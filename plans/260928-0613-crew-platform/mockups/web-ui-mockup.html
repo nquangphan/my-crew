@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2P Crew — Web UI mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --line:#dfe3ea; --line2:#eceff3; --ink:#172033; --muted:#5b6578; --soft:#eef0f4;
+  --blue:#1d5fd1; --blue-bg:#e3ecfb; --blue-ink:#123f8f;
+  --green:#1f845a; --green-bg:#dcfff1; --green-ink:#164b35;
+  --yellow-bg:#fff4d6; --yellow-line:#e8c25a; --yellow-ink:#7a4f00;
+  --red:#c9372c; --red-bg:#ffe6e3; --red-ink:#9e2a20;
+  --gray-bg:#e9ecf1; --gray-ink:#3b4557;
+}
+:root[data-theme="dark"]{
+  --bg:#161a22; --panel:#1d222c; --line:#2f3644; --line2:#282e3a; --ink:#e3e7ee; --muted:#9aa4b5; --soft:#232935;
+  --blue:#5b8def; --blue-bg:#1f2f4d; --blue-ink:#a9c4f7;
+  --green-bg:#173a2b; --green-ink:#8fe0b8; --yellow-bg:#3a3017; --yellow-line:#7a6425; --yellow-ink:#f2d27a;
+  --red-bg:#43201d; --red-ink:#f5a79f; --gray-bg:#2a303c; --gray-ink:#c3cad6;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;color:var(--ink);background:#d9dde4}
+a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
+button,input,textarea,select{font-family:inherit;font-size:14px;color:inherit}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+/* mockup switcher (not part of the product) */
+.switcher{position:sticky;top:0;z-index:50;display:flex;gap:6px;align-items:center;padding:10px 16px;background:#141a24;color:#cfd6e2;font-size:13px}
+.switcher strong{color:#fff;margin-right:10px}
+.switcher button{background:transparent;border:1px solid #3a4456;color:#cfd6e2;border-radius:4px;padding:5px 10px;cursor:pointer}
+.switcher button[aria-pressed="true"]{background:#fff;color:#141a24;border-color:#fff;font-weight:600}
+.switcher .sp{flex-grow:1}
+
+/* app shell */
+.app{width:1440px;height:900px;margin:20px auto;background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden;border:1px solid #b8bfcb}
+.top{height:52px;flex-shrink:0;display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px}
+.logo span{width:26px;height:26px;border-radius:6px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.search{display:flex;align-items:center;gap:8px;width:420px;height:34px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--muted)}
+.search input{border:none;background:transparent;flex-grow:1;outline:none}
+.btn{border-radius:4px;padding:6px 12px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.btn:hover{background:var(--soft)}
+.btnp{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
+.btnp:hover{background:var(--blue-ink)}
+.kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.8;border:1px solid currentColor;border-radius:3px;padding:0 4px;margin-left:4px}
+.avatar{border-radius:50%;color:#fff;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.body{flex-grow:1;display:flex;min-height:0}
+.side{width:232px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:2px}
+.proj{display:flex;align-items:center;gap:10px;padding:6px 8px 14px}
+.proj .ic{width:32px;height:32px;border-radius:6px;background:var(--blue-bg);color:var(--blue);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px}
+.navi{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:4px;font-size:14px;color:var(--gray-ink)}
+.navi:hover{background:var(--soft);text-decoration:none}
+.navi.on{background:var(--blue-bg);color:var(--blue);font-weight:600}
+.sec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:14px 10px 4px}
+.machine{margin-top:auto;font-size:12px;color:var(--muted);padding:10px;border-top:1px solid var(--line2);display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+main{flex-grow:1;padding:18px 24px;display:flex;flex-direction:column;gap:14px;min-width:0;overflow:hidden}
+.crumb{font-size:13px;color:var(--muted)}
+h1{margin:0;font-size:22px;font-weight:600}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex-grow:1}
+
+/* board */
+.cols{display:flex;gap:12px;flex-grow:1;min-height:0}
+.col{width:214px;flex-shrink:0;background:var(--soft);border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.colh{font-size:12px;font-weight:700;color:var(--gray-ink);text-transform:uppercase;letter-spacing:.04em;padding:2px 4px}
+.lane{font-size:11px;color:var(--muted);padding:6px 4px 0;border-top:1px dashed var(--line)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;width:100%}
+.card:hover{border-color:var(--blue)}
+.card.sel{outline:2px solid var(--blue);outline-offset:-1px}
+.card .t{font-size:14px;line-height:1.35}
+.meta{display:flex;align-items:center;gap:6px}
+.ty{width:18px;height:18px;border-radius:4px;color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.key{font-size:12px;color:var(--muted)}
+.pr{font-weight:700;font-size:14px}
+.lz{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.lz.todo{background:var(--gray-bg);color:var(--gray-ink)}
+.lz.prog{background:var(--blue-bg);color:var(--blue-ink)}
+.lz.done{background:var(--green-bg);color:var(--green-ink)}
+.lz.wait{background:var(--yellow-bg);color:var(--yellow-ink)}
+.lz.block{background:var(--red-bg);color:var(--red-ink)}
+.spin{width:12px;height:12px;border:2px solid var(--blue-bg);border-top-color:var(--blue);border-radius:50%;animation:sp 1s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* side panel */
+.panel{position:absolute;top:52px;right:0;bottom:0;width:580px;background:var(--panel);border-left:1px solid var(--line);box-shadow:-12px 0 24px rgba(23,32,51,.08);display:flex;flex-direction:column}
+.panelh{display:flex;align-items:center;gap:8px;padding:12px 20px;border-bottom:1px solid var(--line2);font-size:13px;color:var(--muted)}
+.scroll{overflow:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.banner{display:flex;gap:10px;align-items:center;background:var(--yellow-bg);border:1px solid var(--yellow-line);border-radius:6px;padding:10px 12px;font-size:14px;color:var(--yellow-ink)}
+.details{display:grid;grid-template-columns:130px minmax(0,1fr);gap:9px 12px;font-size:13px;border:1px solid var(--line2);border-radius:6px;padding:12px 14px}
+.details dt{color:var(--muted);margin:0}.details dd{margin:0}
+.tabs{display:flex;gap:18px;border-bottom:1px solid var(--line2);font-size:14px}
+.tabs button{background:none;border:none;padding:8px 0;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+.cmt{display:flex;gap:10px;font-size:14px;line-height:1.55}
+.cmt .when{color:var(--muted);font-size:12px}
+.reply{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.reply textarea{height:72px;border:2px solid var(--blue);border-radius:4px;padding:8px;resize:none;background:var(--panel)}
+.child{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line2);border-radius:4px;font-size:14px}
+.child + .child{margin-top:-1px}
+.pair{margin-left:22px;border-left:2px solid var(--line);padding-left:10px}
+.docchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:13px}
+
+/* list */
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--panel);border:1px solid var(--line)}
+th{text-align:left;font-size:12px;font-weight:600;color:var(--muted);padding:9px 10px;border-bottom:1px solid var(--line);background:var(--soft);cursor:pointer;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid var(--line2);vertical-align:middle}
+tr:hover td{background:var(--soft)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);border-radius:14px;padding:4px 12px;font-size:13px;background:var(--panel)}
+.chip.on{background:var(--blue-bg);border-color:var(--blue);color:var(--blue-ink)}
+
+/* ticket full page */
+.tp{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;overflow:auto;min-height:0}
+.box{border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.boxh{font-size:13px;font-weight:700;padding:10px 14px;border-bottom:1px solid var(--line2)}
+.prose{font-size:14px;line-height:1.6}
+.prose h3{font-size:15px;margin:14px 0 6px}
+.report{border:1px solid var(--line2);border-radius:6px;padding:12px 14px;font-size:13px;display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px 12px}
+
+/* docs space */
+.tree{width:272px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--line);padding:16px 10px;display:flex;flex-direction:column;gap:1px;font-size:14px}
+.tree a{color:var(--gray-ink);padding:6px 10px;border-radius:4px;display:block}
+.tree a.on{background:var(--blue-bg);color:var(--blue);font-weight:600}
+.tree .ind{padding-left:26px}
+.doc{flex-grow:1;display:flex;gap:28px;padding:22px 32px;min-width:0;overflow:auto}
+.article{flex-grow:1;min-width:0;max-width:780px}
+.article h1{font-size:28px}
+.article h2{font-size:18px;margin:26px 0 8px}
+.article p,.article li{font-size:15px;line-height:1.65}
+.article table{font-size:13px}
+.toc{width:220px;flex-shrink:0;font-size:13px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;align-self:flex-start}
+.toc a{color:var(--muted)}
+.toc a.on{color:var(--blue);font-weight:600}
+.related{border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--panel)}
+.note{max-width:1440px;margin:0 auto 30px;font-size:13px;color:#3b4557;line-height:1.6;padding:0 4px}
+[hidden]{display:none !important}
+
+/* mobile frames */
+.phones{max-width:1440px;margin:20px auto;display:flex;gap:40px;justify-content:center;flex-wrap:wrap;padding:0 16px}
+.phonewrap{display:flex;flex-direction:column;gap:10px;align-items:center}
+.phonecap{font-size:13px;font-weight:600;color:#3b4557}
+.phone{width:390px;height:844px;background:var(--bg);border:10px solid #141a24;border-radius:44px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.mtop{height:56px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.ibtn{width:44px;height:44px;border-radius:8px;border:none;background:transparent;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);position:relative}
+.ibtn:hover{background:var(--soft)}
+.mtabs{display:flex;gap:6px;padding:10px 12px;overflow-x:auto;background:var(--panel);border-bottom:1px solid var(--line2)}
+.mtab{flex-shrink:0;border:1px solid var(--line);border-radius:16px;padding:6px 12px;font-size:13px;background:var(--panel);min-height:36px}
+.mtab.on{background:var(--blue-bg);border-color:var(--blue);color:var(--blue-ink);font-weight:600}
+.mbody{flex-grow:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.mcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:44px}
+.dots{display:flex;gap:6px;justify-content:center;padding:8px 0 4px}
+.dots span{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dots span.on{background:var(--blue)}
+.pinned{border-top:1px solid var(--line);background:var(--panel);padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.pinned textarea{height:56px;border:2px solid var(--blue);border-radius:6px;padding:8px;resize:none;background:var(--panel)}
+.sumrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;border:1px solid var(--line2);border-radius:6px;padding:10px;background:var(--panel)}
+.fab{position:absolute;right:16px;bottom:20px;width:56px;height:56px;border-radius:28px;background:var(--blue);color:#fff;border:none;font-size:26px;box-shadow:0 6px 16px rgba(23,32,51,.25);cursor:pointer}
+.tocbox{border:1px solid var(--line);border-radius:6px;background:var(--panel);font-size:14px}
+.tocbox summary{padding:10px 12px;cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
+.tocbox div{padding:0 12px 10px;display:flex;flex-direction:column;gap:6px}
+.scrollx{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+</style>
+</head>
+<body>
+<div class="switcher" role="toolbar" aria-label="Chọn màn hình mockup">
+  <strong>Mockup 2P Crew</strong>
+  <button data-screen="board" aria-pressed="true">1. Board + panel ticket</button>
+  <button data-screen="list" aria-pressed="false">2. Danh sách</button>
+  <button data-screen="ticket" aria-pressed="false">3. Ticket toàn trang</button>
+  <button data-screen="docs" aria-pressed="false">4. Docs space</button>
+  <button data-screen="mobile" aria-pressed="false">5. Mobile</button>
+  <span class="sp"></span>
+  <button id="theme" aria-pressed="false">Dark mode</button>
+</div>
+
+<div class="app" id="desktopApp">
+  <header class="top">
+    <div class="logo"><span>2P</span>2P Crew</div>
+    <label class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input aria-label="Tìm kiếm" placeholder="Tìm ticket theo key, tiêu đề, trang docs…"><span class="kbd">/</span>
+    </label>
+    <button class="btn btnp">+ Tạo<span class="kbd">c</span></button>
+    <span class="grow"></span>
+    <button class="btn row" aria-label="Inbox, 3 mục cần xử lý">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 004 0"/></svg>
+      Inbox <span style="background:var(--red);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;font-weight:700">3</span>
+    </button>
+    <span class="avatar" style="width:32px;height:32px;background:#243b64;font-size:12px">Bạn</span>
+  </header>
+
+  <div class="body">
+    <nav class="side" id="side" aria-label="Điều hướng dự án">
+      <div class="proj"><span class="ic">SH</span><div><div style="font-weight:600;font-size:14px">Shop API ▾</div><div style="font-size:12px;color:var(--muted)">Máy: macbook-studio</div></div></div>
+      <a class="navi" href="#">Request của tôi</a>
+      <div class="sec">Dự án</div>
+      <a class="navi" data-nav="board" href="#">Board</a>
+      <a class="navi" data-nav="list" href="#">Danh sách</a>
+      <a class="navi" data-nav="docs" href="#">Docs</a>
+      <a class="navi" href="#">Cài đặt project</a>
+      <div class="machine"><span class="dot"></span>macbook-studio · 2 job đang chạy</div>
+    </nav>
+
+    <!-- SCREEN 1: BOARD -->
+    <main id="s-board">
+      <div class="crumb">Dự án / Shop API / Board</div>
+      <div class="row">
+        <h1>Board SH</h1><span class="grow"></span>
+        <button class="btn">Loại: Tất cả ▾</button>
+        <button class="btn">Vai trò: Tất cả ▾</button>
+        <button class="btn">Nhóm theo: PM task ▾</button>
+      </div>
+      <div class="cols" id="cols"></div>
+    </main>
+
+    <!-- SCREEN 2: LIST -->
+    <main id="s-list" hidden>
+      <div class="crumb">Dự án / Shop API / Danh sách</div>
+      <div class="row"><h1>Danh sách ticket</h1><span class="grow"></span><button class="btn">Xuất CSV</button></div>
+      <div class="chips">
+        <span class="chip on">Trạng thái: chưa xong</span><span class="chip">Loại: dev, bug</span><span class="chip">Vai trò</span><span class="chip">Độ ưu tiên</span><span class="chip">Flow: payments</span>
+        <span class="grow"></span><span style="font-size:13px;color:var(--muted)">2 đã chọn</span><button class="btn">Đổi ưu tiên</button><button class="btn">Hủy</button>
+      </div>
+      <table>
+        <thead><tr><th><input type="checkbox" aria-label="Chọn tất cả"></th><th>Key ↕</th><th>Loại</th><th>Tiêu đề</th><th>Trạng thái</th><th>Vai trò</th><th>Ưu tiên ↓</th><th>Model</th><th>Chi phí</th><th>Cập nhật</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </main>
+
+    <!-- SCREEN 3: TICKET FULL PAGE -->
+    <main id="s-ticket" hidden>
+      <div class="crumb">Dự án / Shop API / <span class="mono">SH-3</span> / <span class="mono">SH-9</span></div>
+      <div class="tp">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="row"><span class="ty" style="background:#1f845a">D</span><h1 style="font-size:24px">Tách service thanh toán khỏi order-service</h1></div>
+          <div class="row"><button class="btn">+ Đính kèm flow</button><button class="btn">Mở lại</button><button class="btn">Hủy</button></div>
+          <div class="prose">
+            <h3>Mô tả</h3>
+            Tách toàn bộ logic thanh toán (tạo payment intent, webhook, hoàn tiền) từ <span class="mono">order-service</span> sang <span class="mono">payment-service</span>. Giữ nguyên API public.
+            <h3>Tiêu chí nghiệm thu</h3>
+            <ul><li>Tất cả test hiện có của order và payment pass.</li><li>Webhook ký bằng secret riêng của payment-service.</li><li>Docs flow <span class="mono">payments</span> và <span class="mono">order-checkout</span> cập nhật đúng file.</li></ul>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:8px">Ticket con của PM task SH-3</div>
+            <div class="child"><span class="ty" style="background:#1f845a">D</span><span class="mono key">SH-9</span>Tách service thanh toán<span class="grow"></span><span class="lz prog">Đang làm</span><span class="avatar" style="width:24px;height:24px;background:#1f845a;font-size:9px">DEV</span></div>
+            <div class="pair">
+              <div class="child"><span class="ty" style="background:#0e7d8f">Q</span><span class="mono key">SH-10</span>QC: tách service thanh toán<span class="grow"></span><span class="lz todo">Chờ SH-9</span></div>
+              <div class="child"><span class="ty" style="background:#c9372c">B</span><span class="mono key">SH-11</span>Bug: webhook trả 500 khi thiếu chữ ký <span style="font-size:12px;color:var(--muted)">(vòng 1/3)</span><span class="grow"></span><span class="lz block">Bị chặn</span></div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:8px">Docs liên quan</div>
+            <div class="row"><a class="docchip" href="#" data-go="docs">📄 Flow: payments</a><a class="docchip" href="#" data-go="docs">📄 Flow: order-checkout</a></div>
+          </div>
+          <div>
+            <div class="tabs" role="tablist"><button class="on" role="tab" aria-selected="false">Report</button><button role="tab" aria-selected="false">Bình luận (4)</button><button role="tab" aria-selected="false">Lịch sử</button></div>
+            <div class="report" style="margin-top:12px">
+              <span style="color:var(--muted)">Tóm tắt</span><span>Đã tách 14 file sang payment-service, thêm client gọi nội bộ, cập nhật 2 flow docs.</span>
+              <span style="color:var(--muted)">Commit</span><span class="mono">a41c9e2 · 7b02d1f · head 7b02d1f</span>
+              <span style="color:var(--muted)">Tests</span><span>pnpm test — 212 passed</span>
+              <span style="color:var(--muted)">Skill đã dùng</span><span>ak:scout, ak:backend-development, ak:test</span>
+              <span style="color:var(--muted)">Skill thiếu</span><span style="color:var(--green)">Không</span>
+              <span style="color:var(--muted)">Đọc docs trước</span><span style="color:var(--green)">Có</span>
+            </div>
+          </div>
+        </div>
+        <aside style="display:flex;flex-direction:column;gap:14px">
+          <button class="btn" style="align-self:flex-start;background:var(--blue-bg);color:var(--blue-ink);border-color:var(--blue);font-weight:600">ĐANG LÀM ▾</button>
+          <div class="box">
+            <div class="boxh">Chi tiết</div>
+            <dl class="details" style="border:none">
+              <dt>Người xử lý</dt><dd class="row"><span class="avatar" style="width:22px;height:22px;background:#1f845a;font-size:9px">DEV</span>Dev agent</dd>
+              <dt>Máy</dt><dd>macbook-studio</dd>
+              <dt>Ưu tiên</dt><dd><span class="pr" style="color:var(--red)">↑</span> Cao</dd>
+              <dt>Độ phức tạp</dt><dd>large</dd>
+              <dt>Model</dt><dd>opus · high</dd>
+              <dt>Skill bắt buộc</dt><dd>ak:scout, ak:backend-development, ak:test</dd>
+              <dt>Phụ thuộc</dt><dd>—</dd>
+              <dt>Chi phí</dt><dd>$3.12</dd>
+              <dt>Tạo lúc</dt><dd>28/09 09:14</dd>
+              <dt>Cập nhật</dt><dd>2 phút trước</dd>
+            </dl>
+          </div>
+          <div class="box" style="padding:12px 14px;font-size:13px;display:flex;flex-direction:column;gap:6px">
+            <strong>Agent đang chạy</strong>
+            <span class="row"><span class="spin"></span>Đang chạy test… (lượt 23)</span>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- SCREEN 4: DOCS SPACE -->
+    <div id="s-docs" hidden style="flex-grow:1;display:flex;min-width:0">
+      <nav class="tree" aria-label="Cây trang docs">
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:4px 10px 10px">Space · Shop API</div>
+        <label class="search" style="width:auto;margin:0 4px 10px;height:30px"><input aria-label="Tìm trong space" placeholder="Tìm trong space…"></label>
+        <a href="#">Tổng quan</a>
+        <a href="#">Kiến trúc</a>
+        <a href="#">▾ Flows (6)</a>
+        <a class="ind" href="#">Auth &amp; session</a>
+        <a class="ind" href="#">Đặt hàng (order-checkout)</a>
+        <a class="ind on" href="#">Thanh toán (payments)</a>
+        <a class="ind" href="#">Hoàn tiền</a>
+        <a class="ind" href="#">Webhook</a>
+        <a class="ind" href="#">Health check</a>
+        <a href="#">Tra cứu file</a>
+        <div style="margin-top:auto;font-size:12px;color:var(--muted);padding:10px">Docs chỉ đọc. Sửa bằng commit trong repo.</div>
+      </nav>
+      <div class="doc">
+        <article class="article">
+          <div class="crumb">Shop API / Flows / Thanh toán</div>
+          <h1 style="margin:8px 0 6px">Thanh toán (payments)</h1>
+          <div class="row" style="font-size:13px;color:var(--muted)">Cập nhật ở commit <span class="mono">7b02d1f</span> · 28/09 13:40 · <a href="#">Xem trên GitHub</a></div>
+          <h2 id="muc-dich">Mục đích</h2>
+          <p>Tạo payment intent cho đơn hàng, nhận webhook từ cổng thanh toán, cập nhật trạng thái đơn và phát sự kiện cho order-service.</p>
+          <h2 id="diem-vao">Điểm vào</h2>
+          <p><span class="mono">POST /payments/intents</span>, <span class="mono">POST /payments/webhook</span></p>
+          <h2 id="cac-buoc">Các bước</h2>
+          <ol>
+            <li><span class="mono">payment-routes.ts</span> → nhận request, kiểm tra quyền.</li>
+            <li><span class="mono">payment-service.ts#createIntent</span> → gọi cổng thanh toán, lưu bản ghi.</li>
+            <li><span class="mono">webhook-handler.ts#verify</span> → xác thực chữ ký, cập nhật trạng thái.</li>
+            <li><span class="mono">order-client.ts#markPaid</span> → báo order-service.</li>
+          </ol>
+          <h2 id="files">Files</h2>
+          <table>
+            <thead><tr><th>Đường dẫn</th><th>Vai trò</th><th>Symbol chính</th></tr></thead>
+            <tbody>
+              <tr><td><a class="mono" href="#">services/payment/src/payment-routes.ts</a></td><td>Entry point</td><td class="mono">registerPaymentRoutes</td></tr>
+              <tr><td><a class="mono" href="#">services/payment/src/payment-service.ts</a></td><td>Nghiệp vụ</td><td class="mono">createIntent, refund</td></tr>
+              <tr><td><a class="mono" href="#">services/payment/src/webhook-handler.ts</a></td><td>Webhook</td><td class="mono">verify, handleEvent</td></tr>
+              <tr><td><a class="mono" href="#">services/payment/src/order-client.ts</a></td><td>Gọi order-service</td><td class="mono">markPaid</td></tr>
+            </tbody>
+          </table>
+          <h2 id="tests">Tests</h2>
+          <p class="mono" style="font-size:13px">services/payment/test/webhook.test.ts</p>
+        </article>
+        <div style="display:flex;flex-direction:column;gap:18px;width:240px;flex-shrink:0">
+          <nav class="toc" aria-label="Mục lục">
+            <strong style="font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Trên trang này</strong>
+            <a class="on" href="#muc-dich">Mục đích</a><a href="#diem-vao">Điểm vào</a><a href="#cac-buoc">Các bước</a><a href="#files">Files</a><a href="#tests">Tests</a>
+          </nav>
+          <div class="related">
+            <strong style="font-size:13px">Ticket liên quan</strong>
+            <a href="#" data-go="ticket" class="row" style="font-size:13px"><span class="mono">SH-9</span><span class="grow">Tách service thanh toán</span><span class="lz prog">Đang làm</span></a>
+            <a href="#" data-go="ticket" class="row" style="font-size:13px"><span class="mono">SH-11</span><span class="grow">Bug webhook 500</span><span class="lz block">Chặn</span></a>
+            <a href="#" class="row" style="font-size:13px"><span class="mono">SH-4</span><span class="grow">Hoàn tiền một phần</span><span class="lz done">Xong</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- side panel over board -->
+  <aside class="panel" id="panel" aria-label="Panel ticket">
+    <div class="panelh"><span class="mono">SH / SH-12</span><span class="grow"></span><a href="#" data-go="ticket">Mở toàn trang</a><button class="btn" id="closePanel" aria-label="Đóng panel" style="padding:3px 9px">✕</button></div>
+    <div class="scroll">
+      <div class="row"><span class="ty" style="background:#1d5fd1">P</span><h2 style="margin:0;font-size:20px;font-weight:600;line-height:1.3">Thêm endpoint /health và cảnh báo khi DB mất kết nối</h2></div>
+      <div class="banner"><strong>Agent đang chờ bạn trả lời</strong><span>PM hỏi 1 câu bên dưới</span><span class="grow"></span><button class="btn" onclick="document.getElementById('replyBox').focus()">Trả lời</button></div>
+      <div class="row">
+        <select aria-label="Trạng thái" class="btn" style="font-weight:700;background:var(--yellow-bg);color:var(--yellow-ink);border-color:var(--yellow-line)">
+          <option>CHỜ BẠN</option><option>Đang làm</option><option>Hủy</option>
+        </select>
+        <button class="btn">Hủy ticket</button>
+      </div>
+      <dl class="details">
+        <dt>Người xử lý</dt><dd class="row"><span class="avatar" style="width:22px;height:22px;background:#6b3fb5;font-size:9px">PM</span>PM agent · macbook-studio</dd>
+        <dt>Request gốc</dt><dd><a class="mono" href="#">AST-7</a></dd>
+        <dt>Model</dt><dd>sonnet · high</dd>
+        <dt>Độ phức tạp</dt><dd>medium</dd>
+        <dt>Chi phí</dt><dd>$0.84</dd>
+      </dl>
+      <div class="tabs" role="tablist"><button role="tab" aria-selected="false">Bình luận (2)</button><button class="on" role="tab" aria-selected="false">Lịch sử</button><button role="tab" aria-selected="false">Report</button></div>
+      <div class="cmt"><span class="avatar" style="width:30px;height:30px;background:#243b64;font-size:10px">TL</span><div><strong>Trợ lý</strong> <span class="when">· 12 phút trước</span><br>Ticket thuộc dự án <b>Shop API</b> (khớp mô tả: "API bán hàng, thanh toán"). Yêu cầu: endpoint kiểm tra sức khỏe và cảnh báo khi mất DB.</div></div>
+      <div class="cmt"><span class="avatar" style="width:30px;height:30px;background:#6b3fb5;font-size:10px">PM</span><div><strong>PM agent</strong> <span class="when">· 3 phút trước</span><br>Đã đọc docs flow <a href="#" data-go="docs">health-check</a>. Hỏi lại 2 điểm:<br>1. /health kiểm tra cả Redis hay chỉ Postgres?<br>2. Cảnh báo ghi log hay gọi webhook Slack?</div></div>
+      <label class="reply">Trả lời
+        <textarea id="replyBox">Chỉ Postgres. Cảnh báo gọi webhook Slack, URL để trong env SLACK_WEBHOOK.</textarea>
+      </label>
+      <div><button class="btn btnp">Gửi</button></div>
+    </div>
+  </aside>
+</div>
+
+
+<div class="phones" id="s-mobile" hidden>
+  <div class="phonewrap"><div class="phonecap">Board: vuốt ngang, mỗi màn một cột</div>
+  <div class="phone">
+    <header class="mtop"><button class="ibtn" aria-label="Mở menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><strong style="font-size:16px;flex-grow:1">SH · Board</strong><button class="ibtn" aria-label="Tìm kiếm"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button><button class="ibtn" aria-label="Inbox, 3 mục"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 004 0"/></svg><span style="position:absolute;top:6px;right:6px;background:var(--red);color:#fff;border-radius:9px;font-size:10px;font-weight:700;padding:0 5px">3</span></button></header>
+    <nav class="mtabs" aria-label="Cột trạng thái"><span class="mtab">Cần làm 2</span><span class="mtab">Đang phân tích 1</span><span class="mtab on">Chờ bạn 1</span><span class="mtab">Đang làm 2</span><span class="mtab">Review 1</span><span class="mtab">Xong 3</span></nav>
+    <div class="mbody">
+      <div class="mcard" style="outline:2px solid var(--yellow-line)"><span class="t" style="font-size:15px;line-height:1.35">Thêm endpoint /health và cảnh báo khi DB mất kết nối</span>
+        <span class="meta"><span class="ty" style="background:#1d5fd1">P</span><span class="mono key">SH-12</span><span class="pr" style="color:var(--red)">↑</span><span class="grow"></span><span class="lz wait">Chờ bạn</span><span class="avatar" style="width:28px;height:28px;background:#6b3fb5;font-size:10px">PM</span></span></div>
+      <div style="font-size:12px;color:var(--muted);text-align:center;padding:6px">Nhấn giữ để kéo card, hoặc đổi trạng thái trong ticket</div>
+      <div class="dots" aria-hidden="true"><span></span><span></span><span class="on"></span><span></span><span></span><span></span></div>
+    </div>
+    <button class="fab" aria-label="Tạo ticket">+</button>
+  </div></div>
+
+  <div class="phonewrap"><div class="phonecap">Ticket toàn màn, trả lời agent 1 chạm</div>
+  <div class="phone">
+    <header class="mtop"><button class="ibtn" aria-label="Quay lại"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><strong style="font-size:16px;flex-grow:1">SH-12</strong><button class="ibtn" aria-label="Tìm kiếm"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button><button class="ibtn" aria-label="Inbox, 3 mục"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 004 0"/></svg><span style="position:absolute;top:6px;right:6px;background:var(--red);color:#fff;border-radius:9px;font-size:10px;font-weight:700;padding:0 5px">3</span></button></header>
+    <div class="mbody">
+      <div class="row" style="align-items:flex-start"><span class="ty" style="background:#1d5fd1;margin-top:3px">P</span><h2 style="margin:0;font-size:18px;line-height:1.35">Thêm endpoint /health và cảnh báo khi DB mất kết nối</h2></div>
+      <div class="sumrow"><span class="lz wait">Chờ bạn</span><span>PM · sonnet</span><span>medium</span><span>$0.84</span><span class="grow"></span><a href="#">Chi tiết ▾</a></div>
+      <div class="tabs" role="tablist"><button class="on" role="tab" aria-selected="false">Bình luận</button><button role="tab" aria-selected="false">Lịch sử</button><button role="tab" aria-selected="false">Report</button></div>
+      <div class="cmt"><span class="avatar" style="width:30px;height:30px;background:#6b3fb5;font-size:10px">PM</span><div><strong>PM agent</strong> <span class="when">· 3 phút</span><br>1. /health kiểm tra cả Redis hay chỉ Postgres?<br>2. Cảnh báo ghi log hay gọi webhook Slack?</div></div>
+    </div>
+    <div class="pinned">
+      <div class="banner" style="padding:8px 10px;font-size:13px"><strong>Agent đang chờ bạn trả lời</strong></div>
+      <label class="reply" style="font-size:12px">Trả lời<textarea>Chỉ Postgres. Gọi webhook Slack trong env SLACK_WEBHOOK.</textarea></label>
+      <button class="btn btnp" style="min-height:44px">Gửi</button>
+    </div>
+  </div></div>
+
+  <div class="phonewrap"><div class="phonecap">Docs: cây trang trong drawer, mục lục thu gọn</div>
+  <div class="phone">
+    <header class="mtop"><button class="ibtn" aria-label="Mở menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><strong style="font-size:16px;flex-grow:1">Docs · Shop API</strong><button class="ibtn" aria-label="Tìm kiếm"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button><button class="ibtn" aria-label="Inbox, 3 mục"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 8a6 6 0 1112 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 20a2 2 0 004 0"/></svg><span style="position:absolute;top:6px;right:6px;background:var(--red);color:#fff;border-radius:9px;font-size:10px;font-weight:700;padding:0 5px">3</span></button></header>
+    <div class="mbody">
+      <div class="crumb">Flows / Thanh toán</div>
+      <h1 style="font-size:22px">Thanh toán (payments)</h1>
+      <div style="font-size:12px;color:var(--muted)">Commit <span class="mono">7b02d1f</span> · 28/09 13:40</div>
+      <details class="tocbox"><summary>Trên trang này</summary><div><a href="#">Mục đích</a><a href="#">Các bước</a><a href="#">Files</a><a href="#">Tests</a></div></details>
+      <p style="font-size:15px;line-height:1.6;margin:0">Tạo payment intent cho đơn hàng, nhận webhook từ cổng thanh toán, cập nhật trạng thái đơn.</p>
+      <div class="scrollx"><table style="border:none;min-width:520px"><thead><tr><th>Đường dẫn</th><th>Vai trò</th></tr></thead><tbody><tr><td class="mono" style="font-size:12px">services/payment/src/payment-service.ts</td><td>Nghiệp vụ</td></tr><tr><td class="mono" style="font-size:12px">services/payment/src/webhook-handler.ts</td><td>Webhook</td></tr></tbody></table></div>
+      <div class="related"><strong style="font-size:13px">Ticket liên quan</strong><span class="row" style="font-size:13px"><span class="mono">SH-9</span><span class="grow">Tách service thanh toán</span><span class="lz prog">Đang làm</span></span></div>
+    </div>
+  </div></div>
+</div>
+
+<p class="note"><strong>Ghi chú mockup:</strong> Bấm card trên board để mở panel bên phải. "Mở toàn trang" dẫn tới màn 3. Chip docs và "Ticket liên quan" liên kết qua lại giữa ticket và docs. Dữ liệu là ví dụ. Màu trạng thái: xám = cần làm, xanh dương = đang làm, xanh lá = xong, vàng = chờ bạn, đỏ = bị chặn.</p>
+
+<script>
+const T={request:['R','#5e4db2'],pm:['P','#1d5fd1'],dev:['D','#1f845a'],qc:['Q','#0e7d8f'],bug:['B','#c9372c'],docs:['I','#a54800']};
+const R={TL:'#243b64',PM:'#6b3fb5',DEV:'#1f845a',QC:'#0e7d8f'};
+const P={'↑':'var(--red)','→':'#a54800','↓':'var(--blue)'};
+const cols=[
+ {n:'Cần làm',c:[['SH-15','dev','Viết test cho middleware rate limit','→','DEV'],['SH-16','qc','QC: rate limit','→','QC']]},
+ {n:'Đang phân tích',c:[['SH-14','pm','Chuẩn hóa response lỗi API','↓','PM',null,true]]},
+ {n:'Chờ bạn',c:[['SH-12','pm','Thêm endpoint /health và cảnh báo khi DB mất kết nối','↑','PM','wait']]},
+ {n:'Đang làm',c:[['SH-9','dev','Tách service thanh toán khỏi order-service','↑','DEV',null,true],['SH-11','bug','Bug: webhook trả 500 khi thiếu chữ ký','↑','DEV','block']]},
+ {n:'Review',c:[['SH-13','dev','Thêm cache cho danh sách sản phẩm','→','PM']]},
+ {n:'Xong',c:[['SH-7','docs','Khởi tạo docs dự án','→','DEV'],['SH-8','dev','Thêm index cho bảng orders','↓','DEV'],['SH-6','qc','QC: index bảng orders','↓','QC']]}
+];
+const badge={wait:['wait','Chờ bạn'],block:['block','Bị chặn']};
+function cardHTML(x){const[k,t,ti,p,r,b,run]=x;return `<button class="card${k==='SH-12'?' sel':''}" data-key="${k}"><span class="t">${ti}</span><span class="meta"><span class="ty" style="background:${T[t][1]}">${T[t][0]}</span><span class="mono key">${k}</span><span class="pr" style="color:${P[p]}">${p}</span><span class="grow"></span>${b?`<span class="lz ${badge[b][0]}">${badge[b][1]}</span>`:''}${run?'<span class="spin" title="Agent đang chạy"></span>':''}<span class="avatar" style="width:26px;height:26px;background:${R[r]};font-size:10px">${r}</span></span></button>`}
+document.getElementById('cols').innerHTML=cols.map(c=>`<section class="col"><div class="colh">${c.n} · ${c.c.length}</div>${c.c.map(cardHTML).join('')}</section>`).join('');
+const rows=[['SH-12','pm','Thêm endpoint /health và cảnh báo khi DB mất kết nối','wait','Chờ bạn','PM','↑','sonnet','$0.84','3 phút'],['SH-9','dev','Tách service thanh toán khỏi order-service','prog','Đang làm','DEV','↑','opus','$3.12','2 phút'],['SH-11','bug','Bug: webhook trả 500 khi thiếu chữ ký','block','Bị chặn','DEV','↑','sonnet','$0.41','20 phút'],['SH-10','qc','QC: tách service thanh toán','todo','Cần làm','QC','→','sonnet','—','1 giờ'],['SH-13','dev','Thêm cache cho danh sách sản phẩm','prog','Review','PM','→','sonnet','$1.05','40 phút'],['SH-14','pm','Chuẩn hóa response lỗi API','prog','Đang phân tích','PM','↓','sonnet','$0.22','5 phút'],['SH-15','dev','Viết test cho middleware rate limit','todo','Cần làm','DEV','→','haiku','—','2 giờ'],['SH-8','dev','Thêm index cho bảng orders','done','Xong','DEV','↓','haiku','$0.09','hôm qua']];
+document.getElementById('rows').innerHTML=rows.map((r,i)=>`<tr><td><input type="checkbox" aria-label="Chọn ${r[0]}" ${i<2?'checked':''}></td><td class="mono"><a href="#" data-go="ticket">${r[0]}</a></td><td><span class="ty" style="background:${T[r[1]][1]}">${T[r[1]][0]}</span></td><td>${r[2]}</td><td><span class="lz ${r[3]}">${r[4]}</span></td><td><span class="avatar" style="width:24px;height:24px;background:${R[r[5]]};font-size:9px">${r[5]}</span></td><td><span class="pr" style="color:${P[r[6]]}">${r[6]}</span></td><td>${r[7]}</td><td>${r[8]}</td><td style="color:var(--muted)">${r[9]}</td></tr>`).join('');
+
+const screens=['board','list','ticket','docs'];
+const app=document.getElementById('desktopApp'), mob=document.getElementById('s-mobile');
+const panel=document.getElementById('panel');
+function show(s){
+  const m=s==='mobile'; app.hidden=m; mob.hidden=!m;
+  document.querySelectorAll('.switcher [data-screen]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.screen===s));
+  if(m) return;
+  screens.forEach(x=>document.getElementById('s-'+x).hidden=x!==s);
+  document.querySelectorAll('.switcher [data-screen]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.screen===s));
+  document.querySelectorAll('.navi[data-nav]').forEach(a=>a.classList.toggle('on',a.dataset.nav===s||(s==='ticket'&&a.dataset.nav==='board')));
+  panel.hidden=s!=='board';
+}
+document.querySelectorAll('.switcher [data-screen]').forEach(b=>b.onclick=()=>show(b.dataset.screen));
+document.addEventListener('click',e=>{
+  const nav=e.target.closest('[data-nav]');if(nav){e.preventDefault();show(nav.dataset.nav);return}
+  const go=e.target.closest('[data-go]');if(go){e.preventDefault();show(go.dataset.go);return}
+  const card=e.target.closest('.card');if(card){document.querySelectorAll('.card').forEach(c=>c.classList.toggle('sel',c===card));panel.hidden=false}
+});
+document.getElementById('closePanel').onclick=()=>{panel.hidden=true};
+document.getElementById('theme').onclick=e=>{const d=document.documentElement.dataset.theme==='dark';document.documentElement.dataset.theme=d?'light':'dark';e.target.setAttribute('aria-pressed',!d);e.target.textContent=d?'Dark mode':'Light mode'};
+show('board');
+</script>
+</body>
+</html>
