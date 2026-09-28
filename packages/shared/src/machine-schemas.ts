@@ -205,11 +205,11 @@ export const ClaimTarget = z.union([
 export type ClaimTarget = z.infer<typeof ClaimTarget>;
 
 /**
- * Success body of a claim. A target held by another machine is answered with 409 `CLAIM_PENDING` instead,
- * whose `details` carry `{ claimRequestId }`.
+ * Body of a claim. `pending` (HTTP 202): another machine holds the target, and the claim request waits for
+ * the owner's approval on the web.
  */
 export const ClaimResponse = z.object({
-  status: z.enum(['granted', 'already_owned']),
+  status: z.enum(['granted', 'already_owned', 'pending']),
   claimRequestId: z.string().nullable(),
 });
 export type ClaimResponse = z.infer<typeof ClaimResponse>;

@@ -1,5 +1,5 @@
-import { type AgentRole, type EventEnvelope, EventPayload } from '@crew/shared';
-import { and, asc, eq, gt, isNotNull, sql } from 'drizzle-orm';
+import { type AgentRole, type EventEnvelope, EventPayload, NOTICE_EVENT_TYPES } from '@crew/shared';
+import { and, asc, desc, eq, gt, inArray, isNotNull, sql } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import { type EventRow, events } from '../db/schema.js';
 
@@ -89,4 +89,15 @@ export async function listEventsAfter(
 export async function latestEventSeq(db: Executor): Promise<bigint> {
   const [row] = await db.select({ max: sql<string | null>`max(${events.seq})::text` }).from(events);
   return BigInt(row?.max ?? '0');
+}
+
+/** The newest committed machine and budget notices, for the owner inbox. */
+export async function listNotices(db: Executor, limit: number): Promise<EventEnvelope[]> {
+  const rows = await db
+    .select()
+    .from(events)
+    .where(and(inArray(events.type, [...NOTICE_EVENT_TYPES]), isNotNull(events.seq)))
+    .orderBy(desc(events.seq))
+    .limit(limit);
+  return rows.map(toEventEnvelope);
 }

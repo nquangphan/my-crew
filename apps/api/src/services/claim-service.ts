@@ -27,7 +27,6 @@ import { ApiError, notFound } from '../errors.js';
 import { appendEvents, type NewEvent } from './event-service.js';
 import { isUniqueViolation } from './pg-errors.js';
 import { toProjectDto } from './project-service.js';
-import { commitThenThrow } from './ticket-service.js';
 
 /** A project (`projectId`) or the assistant role (`projectId` null). */
 interface ClaimScope {
@@ -152,10 +151,10 @@ async function assertLiveMachine(tx: Executor, machineId: string): Promise<void>
 /**
  * Claims a project or the assistant role for a machine. Unheld: bound at once (audit row plus
  * `machine.claimed`). Held by another machine: a pending claim request plus `claim.requested`, answered with
- * 409 `CLAIM_PENDING` after the request is committed.
+ * `pending` (202 on the route) until the owner decides.
  */
 export async function claim(db: Executor, machineId: string, target: ClaimTarget): Promise<ClaimResponse> {
-  return commitThenThrow(db, async (tx) => {
+  return db.transaction(async (tx) => {
     const scope = await lockTarget(tx, target);
     if (scope.holder === machineId) return { status: 'already_owned' as const, claimRequestId: null };
 
@@ -198,12 +197,7 @@ export async function claim(db: Executor, machineId: string, target: ClaimTarget
         },
       ]);
     }
-    return new ApiError(
-      'CLAIM_PENDING',
-      `${scope.label} belongs to another machine; the owner must approve the takeover on the web`,
-      { claimRequestId },
-      true,
-    );
+    return { status: 'pending' as const, claimRequestId };
   });
 }
 

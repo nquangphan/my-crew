@@ -155,7 +155,7 @@ except where noted.
 | `PUT /v1/daemon/skills` | `PutSkillsRequest` (`projectKey` null = machine level) → 204 |
 | `GET /v1/daemon/projects` | → `DaemonProjectsResponse` (`ownerState` mine, unowned or other; `pendingClaim`; assistant state) |
 | `POST /v1/daemon/projects` | `DaemonCreateProjectRequest` → 201 `Project` (409 on a duplicate key) |
-| `POST /v1/daemon/claims` | `{projectKey}` or `{hostsAssistant: true}` → 200 `{status: granted \| already_owned}`, or 409 `CLAIM_PENDING {claimRequestId}` |
+| `POST /v1/daemon/claims` | `{projectKey}` or `{hostsAssistant: true}` → 200 `{status: granted \| already_owned}`, or 202 `{status: pending, claimRequestId}` |
 | `DELETE /v1/daemon/claims/:projectKey`, `DELETE /v1/daemon/claims/assistant` | → `{status: released \| withdrawn}`; 409 when nothing is held |
 | `GET /v1/projects/catalog` (host only) | → `{items: [{id, key, name, description}]}` |
 | `GET /v1/daemon/tickets/:id` (uuid or key) | → `TicketDetailResponse` |

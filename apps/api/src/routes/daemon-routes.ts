@@ -117,10 +117,10 @@ export async function daemonRoutes(app: FastifyInstance, { db, config }: RouteDe
   app.post('/v1/daemon/claims', async (request, reply) => {
     const machine = requireMachine(request);
     const target = parseInput(ClaimTarget, request.body);
-    return replyIdempotent(db, request, reply, machine.machineId, async (tx) => ({
-      statusCode: 200,
-      body: await claim(tx, machine.machineId, target),
-    }));
+    return replyIdempotent(db, request, reply, machine.machineId, async (tx) => {
+      const body = await claim(tx, machine.machineId, target);
+      return { statusCode: body.status === 'pending' ? 202 : 200, body };
+    });
   });
 
   app.delete('/v1/daemon/claims/assistant', async (request, reply) => {

@@ -1,9 +1,11 @@
+import { NoticeListQuery } from '@crew/shared';
 import type { FastifyInstance } from 'fastify';
 import { authenticateTokenHash, requireMachine } from '../auth/machine-auth.js';
 import { sessionStillValid } from '../auth/owner-auth.js';
 import { ApiError } from '../errors.js';
 import { openEventStream, readCursor } from '../realtime/sse.js';
-import type { RouteDeps } from './route-deps.js';
+import { listNotices } from '../services/event-service.js';
+import { parseInput, type RouteDeps } from './route-deps.js';
 
 /**
  * `GET /v1/daemon/stream`: the events targeted at the calling machine, replayed from the cursor
@@ -52,5 +54,11 @@ export async function ownerStreamRoutes(
       heartbeatMs: streamHeartbeatMs,
       stillAuthorized: () => sessionStillValid(db, session.sessionIdHash),
     });
+  });
+
+  /** Machine and budget notices for the owner inbox, newest first. */
+  app.get('/v1/notices', async (request) => {
+    const { limit } = parseInput(NoticeListQuery, request.query);
+    return { items: await listNotices(db, limit) };
   });
 }

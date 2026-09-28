@@ -14,6 +14,8 @@ import {
   type Ticket,
   type TicketStatus,
   type TicketType,
+  type UpdateTicketRequest as UpdateTicketInput,
+  UpdateTicketRequest,
 } from '@crew/shared';
 import { and, arrayContains, asc, eq, inArray, ne, notInArray, sql } from 'drizzle-orm';
 import type { Executor, Transaction } from '../db/client.js';
@@ -478,6 +480,19 @@ function statusChanged(ticket: TicketRow, from: TicketStatus, to: TicketStatus):
   };
 }
 
+/** Owner-stream-only notice that a ticket changed without a status change. */
+export function ticketUpdated(
+  ticket: Pick<TicketRow, 'id' | 'projectId'>,
+  change: 'comment' | 'report' | 'meta' | 'fields',
+): NewEvent {
+  return {
+    payload: { type: 'ticket.updated', data: { ticketId: ticket.id, change } },
+    ticketId: ticket.id,
+    projectId: ticket.projectId,
+    targetMachineId: null,
+  };
+}
+
 function toAssignee(ticket: TicketRow, payload: NewEvent['payload']): NewEvent {
   return {
     payload,
@@ -568,6 +583,26 @@ async function cascadeCancel(tx: Executor, root: TicketRow): Promise<NewEvent[]>
 }
 
 // ---------------------------------------------------------------------------
+// Owner edits
+// ---------------------------------------------------------------------------
+
+/** Owner inline edits of title, description and priority. They never wake an agent. */
+export async function updateTicket(db: Executor, idOrKey: string, input: UpdateTicketInput): Promise<Ticket> {
+  const patch = UpdateTicketRequest.parse(input);
+  return db.transaction(async (tx) => {
+    const { ticket } = await lockWithParent(tx, idOrKey);
+    const [row] = await tx
+      .update(tickets)
+      .set({ ...patch, updatedAt: new Date() })
+      .where(eq(tickets.id, ticket.id))
+      .returning();
+    if (!row) throw new Error('ticket update returned no row');
+    await appendEvents(tx, [ticketUpdated(row, 'fields')]);
+    return toTicketDto(row);
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Comments
 // ---------------------------------------------------------------------------
 
@@ -601,7 +636,12 @@ export async function addComment(db: Executor, input: AddCommentInput): Promise<
       })
       .returning();
     if (!comment) throw new Error('comment insert returned no row');
-    if (input.authorKind !== 'owner' || isTerminal(ticket.status)) return comment;
+    if (input.authorKind !== 'owner') {
+      // Agent and system comments wake nobody; the owner's web app still shows them live.
+      await appendEvents(tx, [ticketUpdated(ticket, 'comment')]);
+      return comment;
+    }
+    if (isTerminal(ticket.status)) return comment;
 
     const out: NewEvent[] = [];
     if (ticket.status === 'needs_input') {

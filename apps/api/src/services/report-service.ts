@@ -12,7 +12,14 @@ import type { Executor } from '../db/client.js';
 import { projects, type ReportRow, ticketReports, tickets } from '../db/schema.js';
 import { ApiError } from '../errors.js';
 import { addCost, DEFAULT_BUDGET_TIMEZONE } from './budget-service.js';
-import { getTicketRow, governingPmTask, lockWithParent, toTicketDto } from './ticket-service.js';
+import { appendEvents } from './event-service.js';
+import {
+  getTicketRow,
+  governingPmTask,
+  lockWithParent,
+  ticketUpdated,
+  toTicketDto,
+} from './ticket-service.js';
 
 export function toReportDto(row: ReportRow): Report {
   return {
@@ -83,6 +90,7 @@ export async function submitReport(
       deltaUsd: data.costUsd,
       timezone: options.timezone ?? DEFAULT_BUDGET_TIMEZONE,
     });
+    await appendEvents(tx, [ticketUpdated(ticket, 'report')]);
     return toReportDto(row);
   });
 }
@@ -144,6 +152,7 @@ export async function recordAgentMeta(
         timezone: options.timezone ?? DEFAULT_BUDGET_TIMEZONE,
       });
     }
+    await appendEvents(tx, [ticketUpdated(ticket, 'meta')]);
     const [fresh] = await tx.select().from(tickets).where(eq(tickets.id, ticket.id));
     if (!fresh) throw new Error('ticket vanished inside its own transaction');
     return toTicketDto(fresh);

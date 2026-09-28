@@ -108,15 +108,15 @@ describe('taking over a project held by another machine', () => {
   it('stays pending until the owner approves with TOTP, then moves the open tickets', async () => {
     const tree = await webTree(a.machineId);
     const first = await claimAs(b, { projectKey: 'WEB' }, 'claim-key-1');
-    expect(first.statusCode).toBe(409);
-    expect(first.json().error.code).toBe('CLAIM_PENDING');
-    const { claimRequestId } = first.json().error.details;
+    expect(first.statusCode).toBe(202);
+    expect(first.json().status).toBe('pending');
+    const { claimRequestId } = first.json();
 
     const retry = await claimAs(b, { projectKey: 'WEB' }, 'claim-key-1');
-    expect(retry.statusCode).toBe(409);
+    expect(retry.statusCode).toBe(202);
     expect(retry.headers['idempotent-replayed']).toBe('true');
     const second = await claimAs(b, { projectKey: 'WEB' });
-    expect(second.json().error.details.claimRequestId).toBe(claimRequestId);
+    expect(second.json().claimRequestId).toBe(claimRequestId);
     expect(await ctx.db.$count(claimRequests)).toBe(1);
 
     const [requested] = await eventsOf(ctx.db, 'claim.requested');
@@ -163,7 +163,7 @@ describe('taking over a project held by another machine', () => {
 
   it('a rejection keeps the holder and notifies only the requesting machine', async () => {
     await webTree(a.machineId);
-    const { claimRequestId } = (await claimAs(b, { projectKey: 'WEB' })).json().error.details;
+    const { claimRequestId } = (await claimAs(b, { projectKey: 'WEB' })).json();
     const rejected = await decide(claimRequestId, 'reject');
     expect(rejected.json()).toMatchObject({ status: 'rejected' });
     expect(await projectOwner('WEB')).toBe(a.machineId);
@@ -175,7 +175,7 @@ describe('taking over a project held by another machine', () => {
 
   it('a pending request can be withdrawn by releasing it', async () => {
     await webTree(a.machineId);
-    const { claimRequestId } = (await claimAs(b, { projectKey: 'WEB' })).json().error.details;
+    const { claimRequestId } = (await claimAs(b, { projectKey: 'WEB' })).json();
     const res = await releaseAs(b, 'WEB');
     expect(res.json()).toEqual({ status: 'withdrawn' });
     const [row] = await ctx.db.select().from(claimRequests).where(eq(claimRequests.id, claimRequestId));
@@ -185,7 +185,7 @@ describe('taking over a project held by another machine', () => {
 });
 
 describe('the assistant role', () => {
-  it('is bound at once when nobody hosts it; a second assistant host returns 409 until approved', async () => {
+  it('is bound at once when nobody hosts it; a second assistant host gets 202 pending until approved', async () => {
     const request = await createRequestTicket(ctx.db, { title: 'Chưa có trợ lý' });
     expect(request.assigneeMachineId).toBeNull();
 
@@ -195,12 +195,12 @@ describe('the assistant role', () => {
     expect(await reassignedTo(a.machineId)).toEqual([request.id]);
 
     const second = await claimAs(b, { hostsAssistant: true });
-    expect(second.statusCode).toBe(409);
-    expect(second.json().error.code).toBe('CLAIM_PENDING');
+    expect(second.statusCode).toBe(202);
+    expect(second.json().status).toBe('pending');
     const hosts = await ctx.db.select().from(machines).where(eq(machines.hostsAssistant, true));
     expect(hosts.map((m) => m.id)).toEqual([a.machineId]);
 
-    const approved = await decide(second.json().error.details.claimRequestId, 'approve');
+    const approved = await decide(second.json().claimRequestId, 'approve');
     expect(approved.json()).toMatchObject({ status: 'approved', assistant: true, projectId: null });
     const after = await ctx.db.select().from(machines).where(eq(machines.hostsAssistant, true));
     expect(after.map((m) => m.id)).toEqual([b.machineId]);

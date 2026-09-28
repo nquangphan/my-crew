@@ -62,6 +62,14 @@ export const EventPayload = z.discriminatedUnion('type', [
       failing: z.array(z.object({ id: z.string(), title: z.string() })),
     }),
   }),
+  /**
+   * Owner stream only (never targeted at a machine): something the web shows changed without a status
+   * change, e.g. an agent comment, a new report, agent run metadata or an owner edit.
+   */
+  z.object({
+    type: z.literal('ticket.updated'),
+    data: TicketRef.extend({ change: z.enum(['comment', 'report', 'meta', 'fields']) }),
+  }),
   z.object({ type: z.literal('children.all_done'), data: TicketRef }),
   z.object({ type: z.literal('ticket.reopened'), data: TicketRef }),
   z.object({ type: z.literal('ticket.unblocked'), data: TicketRef }),
@@ -106,3 +114,18 @@ export const StreamCursor = z.string().regex(/^\d{1,19}$/, 'the cursor is a deci
 
 export const StreamQuery = z.object({ cursor: StreamCursor.optional() });
 export type StreamQuery = z.infer<typeof StreamQuery>;
+
+/** Machine and budget notices the owner inbox lists (`GET /v1/notices`), newest first. */
+export const NOTICE_EVENT_TYPES = [
+  'machine.claimed',
+  'claim.requested',
+  'machine.released',
+  'project.created',
+  'machine.offline',
+  'machine.unhealthy',
+  'budget.exceeded',
+] as const satisfies readonly EventType[];
+
+export const NoticeListQuery = z.object({ limit: z.coerce.number().int().min(1).max(200).default(50) });
+export const NoticeListResponse = z.object({ items: z.array(EventEnvelope) });
+export type NoticeListResponse = z.infer<typeof NoticeListResponse>;

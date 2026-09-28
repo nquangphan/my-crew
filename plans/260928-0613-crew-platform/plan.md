@@ -238,3 +238,8 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
 
 ### Session 12 — 2026-09-28 (owner follow-up)
 - **Owner decision:** when the owner approves going past a child cap or budget hold (a comment or resume on the held pm_task), the limit is lifted for the rest of that pm_task's tree, not for a single batch. This is what Phase 2 implemented; see [the Phase 2 report](./reports/phase-02-implementation-report.md).
+
+### Session 13 — 2026-09-28 (owner follow-up)
+- **Owner decisions on the Phase 3 claim contract:**
+  - A claim on a target that another machine holds returns **202** `{status: 'pending', claimRequestId}` instead of 409 `CLAIM_PENDING`. The error code is removed.
+  - Revoking a machine releases its projects and assistant role at once, as implemented.

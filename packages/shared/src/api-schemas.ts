@@ -28,8 +28,6 @@ export const ApiErrorCode = z.enum([
   'QC_ALREADY_PAIRED',
   'IDEMPOTENCY_KEY_REQUIRED',
   'IDEMPOTENCY_KEY_REUSED',
-  /** The project or assistant role is held by another machine; a claim request now waits for the owner. */
-  'CLAIM_PENDING',
   'RATE_LIMITED',
   'INTERNAL',
 ]);
@@ -156,6 +154,13 @@ export const CreateSubtaskRequest = z.object({
   flows: z.array(FlowRef).max(100).default([]),
 });
 export type CreateSubtaskRequest = z.input<typeof CreateSubtaskRequest>;
+
+/** `PATCH /v1/tickets/:id`: owner inline edits (title, description, priority). */
+export const UpdateTicketRequest = z
+  .object({ title: Title, description: Description, priority: TicketPriority })
+  .partial()
+  .refine((patch) => Object.keys(patch).length > 0, 'at least one field is required');
+export type UpdateTicketRequest = z.infer<typeof UpdateTicketRequest>;
 
 export const TransitionRequest = z.object({ to: TicketStatus });
 export type TransitionRequest = z.infer<typeof TransitionRequest>;
