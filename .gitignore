@@ -5,3 +5,4 @@ node_modules/
 !.env.example
 .claude/settings.local.json
 .claude/skills/
+.claude/hooks/.logs/
