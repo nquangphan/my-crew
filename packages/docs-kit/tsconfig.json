@@ -1,6 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts"]
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "paths": { "@crew/shared": ["../shared/src/index.ts"] }
+  },
+  "include": ["src", "test", "vitest.config.ts"],
+  "exclude": ["test/fixtures"]
 }

@@ -1,0 +1,9 @@
+# Manifest flow ↔ file (nguồn sự thật). Chuẩn: STANDARD.md của crew-docs.
+# Các mục source, shared, unassigned được bảo vệ (luật R6): chỉ đổi khi chủ dự án cho phép.
+version: 1
+source:
+  include: ["src/**", "apps/**", "packages/**"]
+  exclude: ["**/*.test.*", "**/dist/**", "**/generated/**"]
+flows: {}
+shared: {}
+unassigned: []

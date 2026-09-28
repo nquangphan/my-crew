@@ -9,6 +9,9 @@ import {
   type CreateProjectRequest,
   type CreateRequestTicket,
   CSRF_HEADER,
+  DocsPageResponse,
+  DocsSearchResponse,
+  DocsSpaceResponse,
   type ListTicketsQuery,
   LoginPasswordResponse,
   type LoginTotpRequest,
@@ -203,6 +206,24 @@ export const api = {
     request(`/v1/tickets/${encodeURIComponent(idOrKey)}/report`, { schema: ReportResponse }),
   search: (q: string, signal?: AbortSignal) =>
     request('/v1/search', { schema: SearchResponse, query: { q }, signal }),
+
+  /** One page of tickets as the server sorts it (default: most recently updated first). */
+  listTicketsPage: (query: ListTicketsQuery) =>
+    request('/v1/tickets', { schema: TicketListResponse, query: query as Query }),
+
+  getDocsSpace: (projectId: string) =>
+    request(`/v1/projects/${encodeURIComponent(projectId)}/docs`, { schema: DocsSpaceResponse }),
+  getDocsPage: (projectId: string, path: string) =>
+    request(`/v1/projects/${encodeURIComponent(projectId)}/docs/page`, {
+      schema: DocsPageResponse,
+      query: { path },
+    }),
+  searchDocs: (projectId: string, q: string, signal?: AbortSignal) =>
+    request(`/v1/projects/${encodeURIComponent(projectId)}/docs/search`, {
+      schema: DocsSearchResponse,
+      query: { q },
+      signal,
+    }),
 
   listProjects: () => request('/v1/projects', { schema: ProjectListResponse }),
   createProject: (body: CreateProjectRequest) =>

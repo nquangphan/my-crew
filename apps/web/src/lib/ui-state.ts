@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 /** Tailwind breakpoints used by the layout: phone < md (768) ≤ tablet < xl (1280) ≤ desktop. */
 export type Viewport = 'phone' | 'tablet' | 'desktop';
@@ -93,4 +93,14 @@ export function useTheme(): [Theme, (theme: Theme) => void] {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
   return [theme, setTheme];
+}
+
+/** The value, once it has stopped changing for `ms` (search-as-you-type). */
+export function useDebounced<T>(value: T, ms: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), ms);
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+  return debounced;
 }

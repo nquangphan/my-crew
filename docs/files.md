@@ -1,0 +1,206 @@
+# Tra cứu file
+
+File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng lệnh.
+
+<!-- crew-docs:files:start -->
+> Sinh tự động bởi `crew-docs generate` từ `docs/flows.yaml`. Không sửa tay.
+
+| File | Flows |
+|------|-------|
+| `apps/api/drizzle/0000_init.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0001_machine_auth_and_delivery.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0002_docs_snapshots.sql` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/api/src/app.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/auth/csrf.ts` | [owner-auth](flows/owner-auth.md) (file) |
+| `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
+| `apps/api/src/auth/owner-auth.ts` | [owner-auth](flows/owner-auth.md) (file) |
+| `apps/api/src/auth/password.ts` | [owner-auth](flows/owner-auth.md) (file) |
+| `apps/api/src/auth/totp.ts` | [owner-auth](flows/owner-auth.md) (file) |
+| `apps/api/src/cli/seed-owner.ts` | [owner-auth](flows/owner-auth.md) (file) |
+| `apps/api/src/config.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/db/client.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/db/migrate.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/db/schema.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/errors.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/index.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/jobs/heartbeat-sweeper.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
+| `apps/api/src/realtime/event-bus.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `apps/api/src/realtime/sse.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `apps/api/src/routes/auth-routes.ts` | [owner-auth](flows/owner-auth.md) (điểm vào) |
+| `apps/api/src/routes/comment-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
+| `apps/api/src/routes/daemon-routes.ts` | [daemon-api](flows/daemon-api.md) (điểm vào) |
+| `apps/api/src/routes/docs-routes.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (điểm vào) |
+| `apps/api/src/routes/machine-routes.ts` | [machine-pairing](flows/machine-pairing.md) (điểm vào) |
+| `apps/api/src/routes/project-routes.ts` | [project-claims](flows/project-claims.md) (điểm vào) |
+| `apps/api/src/routes/report-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
+| `apps/api/src/routes/route-deps.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/routes/stream-routes.ts` | [event-delivery](flows/event-delivery.md) (điểm vào) |
+| `apps/api/src/routes/ticket-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
+| `apps/api/src/server.ts` | [api-platform](flows/api-platform.md) (điểm vào) |
+| `apps/api/src/services/budget-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `apps/api/src/services/claim-service.ts` | [project-claims](flows/project-claims.md) (file) |
+| `apps/api/src/services/docs-service.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/api/src/services/event-service.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `apps/api/src/services/idempotency.ts` | [daemon-api](flows/daemon-api.md) (file) |
+| `apps/api/src/services/like-pattern.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
+| `apps/api/src/services/machine-service.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
+| `apps/api/src/services/pg-errors.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/services/project-service.ts` | [project-claims](flows/project-claims.md) (file) |
+| `apps/api/src/services/report-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `apps/api/src/services/ticket-query-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `apps/api/src/services/ticket-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `apps/api/test/auth.test.ts` | [owner-auth](flows/owner-auth.md) (test) |
+| `apps/api/test/budget.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/api/test/bug-loop.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/api/test/claims.test.ts` | [project-claims](flows/project-claims.md) (test) |
+| `apps/api/test/csrf.test.ts` | [owner-auth](flows/owner-auth.md) (test) |
+| `apps/api/test/daemon-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
+| `apps/api/test/docs-sync.test.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
+| `apps/api/test/idempotency.test.ts` | [daemon-api](flows/daemon-api.md) (test) |
+| `apps/api/test/lifecycle-effects.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/api/test/machine-scope.test.ts` | [daemon-api](flows/daemon-api.md) (test) |
+| `apps/api/test/owner-web-support.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/api/test/pairing.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
+| `apps/api/test/revoke-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
+| `apps/api/test/sweeper.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
+| `apps/api/test/ticket-service.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/api/test/transition.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/e2e/docs-space.spec.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
+| `apps/web/e2e/owner-admin.spec.ts` | [web-admin](flows/web-admin.md) (test) |
+| `apps/web/src/components/board-view.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/src/components/board-view.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/cancel-dialog.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/src/components/cancel-dialog.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/comment-thread.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/src/components/comment-thread.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/details-box.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/docs-page-tree.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/web/src/components/docs-page-view.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/web/src/components/docs-toc.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/web/src/components/event-timeline.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/file-lookup.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/web/src/components/filter-menu.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/flow-view.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/web/src/components/issue-table.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/markdown-editor.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/markdown-view.tsx` | [web-tickets](flows/web-tickets.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
+| `apps/web/src/components/new-ticket-dialog.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/pairing-dialog.test.tsx` | [web-admin](flows/web-admin.md) (test) |
+| `apps/web/src/components/pairing-dialog.tsx` | [web-admin](flows/web-admin.md) (file) |
+| `apps/web/src/components/project-form.tsx` | [web-admin](flows/web-admin.md) (file) |
+| `apps/web/src/components/related-tickets.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/web/src/components/report-panel.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/role-avatar.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/status-dropdown.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/src/components/status-dropdown.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/status-lozenge.tsx` | [web-tickets](flows/web-tickets.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
+| `apps/web/src/components/subtask-tree.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/src/components/subtask-tree.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/ticket-card.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/ticket-side-panel.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/ticket-view.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/src/components/ticket-view.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/totp-dialog.tsx` | [web-admin](flows/web-admin.md) (file) |
+| `apps/web/src/components/type-icon.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/ui/button.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/components/ui/dialog.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/components/ui/dropdown-menu.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/components/ui/field.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/components/ui/info-tip.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/components/ui/tabs.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/components/ui/toast.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/layout/app-shell.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/layout/breadcrumbs.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/layout/project-sidebar.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/layout/quick-search.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/layout/shell-context.ts` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/lib/api-client.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `apps/web/src/lib/api-client.ts` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/lib/cn.ts` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/lib/docs-links.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/web/src/lib/docs-space.test.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
+| `apps/web/src/lib/docs-space.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/web/src/lib/format.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `apps/web/src/lib/format.ts` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/lib/inbox.ts` | [web-admin](flows/web-admin.md) (file) |
+| `apps/web/src/lib/live-events.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
+| `apps/web/src/lib/live-events.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `apps/web/src/lib/queries.test.tsx` | [web-shell](flows/web-shell.md) (test) |
+| `apps/web/src/lib/queries.ts` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/lib/search-params.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `apps/web/src/lib/search-params.ts` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/lib/shortcuts.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `apps/web/src/lib/shortcuts.ts` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/lib/ui-state.ts` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
+| `apps/web/src/router.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
+| `apps/web/src/routes/board.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
+| `apps/web/src/routes/home.tsx` | [web-shell](flows/web-shell.md) (file) |
+| `apps/web/src/routes/inbox.test.tsx` | [web-admin](flows/web-admin.md) (test) |
+| `apps/web/src/routes/inbox.tsx` | [web-admin](flows/web-admin.md) (điểm vào) |
+| `apps/web/src/routes/list.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
+| `apps/web/src/routes/login.test.tsx` | [owner-auth](flows/owner-auth.md) (test) |
+| `apps/web/src/routes/login.tsx` | [owner-auth](flows/owner-auth.md) (điểm vào) |
+| `apps/web/src/routes/machines.tsx` | [web-admin](flows/web-admin.md) (điểm vào) |
+| `apps/web/src/routes/my-requests.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
+| `apps/web/src/routes/project-docs.test.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
+| `apps/web/src/routes/project-docs.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (điểm vào) |
+| `apps/web/src/routes/project-settings.tsx` | [web-admin](flows/web-admin.md) (điểm vào) |
+| `apps/web/src/routes/projects.tsx` | [web-admin](flows/web-admin.md) (điểm vào) |
+| `apps/web/src/routes/ticket-detail.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
+| `apps/web/src/styles/app.css` | [web-shell](flows/web-shell.md) (file) |
+| `packages/docs-kit/src/bin.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
+| `packages/docs-kit/src/cli.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
+| `packages/docs-kit/src/commands/check.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/commands/ci-workflow.ts` | [docs-hooks](flows/docs-hooks.md) (điểm vào) |
+| `packages/docs-kit/src/commands/flow.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/commands/generate.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/commands/init.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/commands/install-hooks.ts` | [docs-hooks](flows/docs-hooks.md) (điểm vào) |
+| `packages/docs-kit/src/commands/io.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/commands/lookup.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/commands/where.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/generate.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/git.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/hook-installer.ts` | [docs-hooks](flows/docs-hooks.md) (file) |
+| `packages/docs-kit/src/manifest.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/raw-imports.d.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/rules/r1-manifest.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/rules/r2-coverage.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/rules/r3-freshness.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/rules/r4-generated.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/rules/r5-initialized.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/rules/r6-protected.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/rules/r7-secrets.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/rules/types.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/secret-scan.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/templates.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/tree.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/src/version.ts` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/templates/AGENTS.md` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/templates/architecture.md` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/templates/crew-docs.yml` | [docs-hooks](flows/docs-hooks.md) (file) |
+| `packages/docs-kit/templates/flow.md` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/templates/flows.yaml` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/templates/index.md` | [docs-check](flows/docs-check.md) (file) |
+| `packages/docs-kit/test/hook-installer.test.ts` | [docs-hooks](flows/docs-hooks.md) (test) |
+| `packages/docs-kit/test/rules.test.ts` | [docs-check](flows/docs-check.md) (test) |
+| `packages/shared/src/agent-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `packages/shared/src/api-schemas.ts` | [owner-auth](flows/owner-auth.md) (dùng chung), [ticket-lifecycle](flows/ticket-lifecycle.md) (dùng chung) |
+| `packages/shared/src/docs-schemas.test.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
+| `packages/shared/src/docs-schemas.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung), [docs-check](flows/docs-check.md) (dùng chung) |
+| `packages/shared/src/event-schemas.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `packages/shared/src/index.ts` | [api-platform](flows/api-platform.md) (file) |
+| `packages/shared/src/machine-schemas.ts` | [machine-pairing](flows/machine-pairing.md) (dùng chung), [project-claims](flows/project-claims.md) (dùng chung), [daemon-api](flows/daemon-api.md) (dùng chung) |
+| `packages/shared/src/project-schemas.ts` | [project-claims](flows/project-claims.md) (file) |
+| `packages/shared/src/status-workflow.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `packages/shared/src/status-workflow.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `packages/shared/src/ticket-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+
+### Không thuộc flow (unassigned)
+
+| File | Lý do |
+|------|-------|
+| `apps/daemon/src/index.ts` | chỗ giữ chỗ của daemon, chưa có hành vi; flow daemon được viết ở phase 6 |
+<!-- crew-docs:files:end -->

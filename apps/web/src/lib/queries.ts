@@ -25,6 +25,10 @@ export const keys = {
   claims: (status?: ClaimRequestStatus) => ['claims', status ?? 'all'] as const,
   notices: ['notices'] as const,
   search: (q: string) => ['search', q] as const,
+  /** Everything under `docs` is refetched when a `docs.synced` event arrives. */
+  docsSpace: (projectId: string) => ['docs', projectId, 'space'] as const,
+  docsPage: (projectId: string, path: string) => ['docs', projectId, 'page', path] as const,
+  docsSearch: (projectId: string, q: string) => ['docs', projectId, 'search', q] as const,
 };
 
 export const sessionQuery = queryOptions({
@@ -102,6 +106,41 @@ export function useProjectByKey(key: string | undefined): {
     project: projects.data?.find((p) => p.key === key),
     isLoading: projects.isLoading,
   };
+}
+
+/** Recent tickets whose flows include one flow ("Ticket liên quan" on a flow page). */
+export function useFlowTickets(projectId: string | undefined, flow: string | null, limit = 10) {
+  const query: ListTicketsQuery = { projectId, flow: flow ?? undefined, limit };
+  return useQuery({
+    queryKey: keys.ticketList(query),
+    queryFn: async () => (await api.listTicketsPage(query)).items,
+    enabled: Boolean(projectId && flow),
+  });
+}
+
+export function useDocsSpace(projectId: string | undefined) {
+  return useQuery({
+    queryKey: keys.docsSpace(projectId ?? ''),
+    queryFn: () => api.getDocsSpace(projectId ?? ''),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useDocsPage(projectId: string | undefined, path: string | null) {
+  return useQuery({
+    queryKey: keys.docsPage(projectId ?? '', path ?? ''),
+    queryFn: () => api.getDocsPage(projectId ?? '', path ?? ''),
+    enabled: Boolean(projectId && path),
+  });
+}
+
+export function useDocsSearch(projectId: string | undefined, q: string) {
+  return useQuery({
+    queryKey: keys.docsSearch(projectId ?? '', q),
+    queryFn: ({ signal }) => api.searchDocs(projectId ?? '', q, signal),
+    enabled: Boolean(projectId) && q.length > 0,
+    staleTime: 5_000,
+  });
 }
 
 /** Machines refresh on live events and every 30 s (heartbeats do not emit events). */

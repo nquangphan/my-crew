@@ -9,7 +9,9 @@ import { and, arrayContains, asc, desc, eq, ilike, inArray, or, type SQL, sql } 
 import type { Executor } from '../db/client.js';
 import { comments, tickets } from '../db/schema.js';
 import { ApiError } from '../errors.js';
+import { searchAllDocs } from './docs-service.js';
 import { listTicketEvents } from './event-service.js';
+import { likePattern } from './like-pattern.js';
 import { getCurrentReport } from './report-service.js';
 import { getTicketRow, toTicketDto } from './ticket-service.js';
 
@@ -26,9 +28,6 @@ const SORTS = {
 } as const;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Escapes LIKE wildcards so user text is matched literally. */
-export const likePattern = (text: string) => `%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
 function encodeCursor(sortValue: string, id: string): string {
   return Buffer.from(JSON.stringify([sortValue, id])).toString('base64url');
@@ -116,13 +115,10 @@ export async function getTicketDetail(db: Executor, idOrKey: string): Promise<Ti
 
 const SEARCH_LIMIT = 10;
 
-/**
- * Quick search: tickets by key or title (exact key first). Docs pages are matched by title once the docs
- * snapshot tables exist; until then the docs list is empty.
- */
+/** Quick search: tickets by key or title (exact key first), and synced docs pages by title, path or text. */
 export async function search(db: Executor, q: string): Promise<SearchResponse> {
   const pattern = likePattern(q.trim());
-  const rows = await db
+  const ticketRows = db
     .select({
       id: tickets.id,
       key: tickets.key,
@@ -134,5 +130,6 @@ export async function search(db: Executor, q: string): Promise<SearchResponse> {
     .where(or(ilike(tickets.key, pattern), ilike(tickets.title, pattern)))
     .orderBy(sql`(upper(${tickets.key}) = upper(${q.trim()})) desc`, desc(tickets.updatedAt))
     .limit(SEARCH_LIMIT);
-  return { tickets: rows, docs: [] };
+  const [rows, docs] = await Promise.all([ticketRows, searchAllDocs(db, q)]);
+  return { tickets: rows, docs };
 }

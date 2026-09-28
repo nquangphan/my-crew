@@ -1,6 +1,6 @@
 ---
 title: "Phase 5: Docs Standard and Enforcement"
-status: todo
+status: completed
 priority: P1
 effort: 18h
 dependsOn: [1, 3, 4]
@@ -166,13 +166,13 @@ Modify:
 
 ## Todo
 
-- [ ] STANDARD.md, templates, manifest schema
-- [ ] Rules R1–R7 and CLI commands
-- [ ] Hook installer that chains with existing hooks and uses absolute paths
-- [ ] Single-file bundle
-- [ ] Fixture tests per rule and per hook setup
-- [ ] Docs sync endpoint (validated) and a Confluence-like space viewer: page tree, breadcrumbs, table of contents, related tickets, space search, file lookup
-- [ ] Platform repo dogfoods the standard
+- [x] STANDARD.md, templates, manifest schema
+- [x] Rules R1–R7 and CLI commands
+- [x] Hook installer that chains with existing hooks and uses absolute paths
+- [x] Single-file bundle
+- [x] Fixture tests per rule and per hook setup
+- [x] Docs sync endpoint (validated) and a Confluence-like space viewer: page tree, breadcrumbs, table of contents, related tickets, space search, file lookup
+- [x] Platform repo dogfoods the standard
 
 ## Success Criteria
 

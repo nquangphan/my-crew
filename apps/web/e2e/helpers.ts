@@ -3,7 +3,15 @@ import { readFileSync } from 'node:fs';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { generateSync } from 'otplib';
 import postgres from 'postgres';
-import { assertE2eDatabase, E2E_API_URL, E2E_DATABASE_URL, E2E_STATE_FILE, type E2eState } from './e2e-env';
+import { DOCS_COMMIT, DOCS_FILES } from './docs-fixture';
+import {
+  assertE2eDatabase,
+  E2E_API_URL,
+  E2E_DATABASE_URL,
+  E2E_STATE_FILE,
+  E2E_WEB_ORIGIN,
+  type E2eState,
+} from './e2e-env';
 
 export function readState(): E2eState {
   return JSON.parse(readFileSync(E2E_STATE_FILE, 'utf8')) as E2eState;
@@ -112,6 +120,13 @@ export class Agent {
       testsRun: [{ name: 'pnpm test', passed: true, summary: '12 passed' }],
     });
   }
+  /** Syncs a docs snapshot, as the daemon does after a merge to the default branch. */
+  syncDocs(
+    projectKey: string,
+    body: { commit: string; branch: string; files: { path: string; content: string }[] },
+  ) {
+    return this.call<{ fileCount: number }>('PUT', `/v1/daemon/projects/${projectKey}/docs`, body);
+  }
   claimProject(projectKey: string) {
     return this.call<{ status: string; claimRequestId: string | null }>('POST', '/v1/daemon/claims', {
       projectKey,
@@ -127,4 +142,27 @@ export async function ownerTicket(
   const res = await page.request.get(`/v1/tickets/${key}`);
   expect(res.ok()).toBe(true);
   return (await res.json()) as { ticket: TicketDto; children: TicketDto[] };
+}
+
+/** Syncs the docs fixture for project SHOP as its owning machine (idempotent: the same commit every time). */
+export async function seedDocs(state: E2eState): Promise<void> {
+  const result = await new Agent(state.machineA.token).syncDocs(state.project.key, {
+    commit: DOCS_COMMIT,
+    branch: 'main',
+    files: DOCS_FILES,
+  });
+  expect(result.fileCount).toBe(DOCS_FILES.length);
+}
+
+/** Creates a request ticket as the logged-in owner (session cookie plus the CSRF header). */
+export async function ownerCreateRequest(page: Page, title: string): Promise<TicketDto> {
+  const csrf = (await page.context().cookies()).find((cookie) => cookie.name === 'crew_csrf')?.value;
+  expect(csrf, 'CSRF cookie after login').toBeTruthy();
+  const res = await page.request.post('/v1/tickets', {
+    data: { title },
+    // A browser sends the Origin header on a same-origin POST; the API's CSRF guard requires it.
+    headers: { 'x-csrf-token': csrf ?? '', origin: E2E_WEB_ORIGIN },
+  });
+  expect(res.ok(), `POST /v1/tickets → ${res.status()} ${await res.text()}`).toBe(true);
+  return (await res.json()) as TicketDto;
 }

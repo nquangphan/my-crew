@@ -204,3 +204,82 @@
 .prose-crew a {
   text-decoration: underline;
 }
+
+/* Docs space pages: the mockup's article typography. Wide tables and code blocks scroll in their own box. */
+.docs-prose {
+  font-size: 15px;
+  line-height: 1.65;
+}
+.docs-prose h2 {
+  font-size: 18px;
+  margin: 26px 0 8px;
+}
+.docs-prose h3 {
+  font-size: 15px;
+  margin: 18px 0 6px;
+}
+.docs-prose :is(h1, h2, h3, h4, h5, h6) {
+  scroll-margin-top: 16px;
+}
+.docs-prose p,
+.docs-prose ul,
+.docs-prose ol {
+  margin: 8px 0;
+}
+.docs-prose li {
+  margin: 2px 0;
+}
+.docs-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  margin: 10px 0;
+}
+.docs-scroll table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  overflow-wrap: normal;
+}
+.docs-scroll th {
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.docs-scroll th,
+.docs-scroll td {
+  border: none;
+  border-bottom: 1px solid var(--line2);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+/* Paths and identifiers stay on one line; the table scrolls instead of breaking them at hyphens. */
+.docs-scroll td code {
+  white-space: nowrap;
+}
+.docs-scroll tr:last-child td {
+  border-bottom: none;
+}
+.docs-scroll pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--soft);
+  overflow: visible;
+  width: max-content;
+  min-width: 100%;
+  overflow-wrap: normal;
+  white-space: pre;
+}
+.docs-prose a {
+  text-decoration: none;
+}
+.docs-prose a:hover {
+  text-decoration: underline;
+}

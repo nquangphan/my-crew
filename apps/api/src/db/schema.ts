@@ -3,8 +3,10 @@ import {
   ClaimRequestStatus,
   CommentAuthorKind,
   Complexity,
+  DocsPageKind,
   DocsStatus,
   Effort,
+  type FlowsManifest,
   type HealthSummary,
   type InventoryMcpServer,
   type InventorySkill,
@@ -395,6 +397,42 @@ export const budgetsUsage = pgTable(
   (t) => [primaryKey({ columns: [t.projectId, t.day] })],
 );
 
+// ---------------------------------------------------------------------------
+// Docs snapshots (latest per project, read-only on the web)
+// ---------------------------------------------------------------------------
+
+export const docsPageKindEnum = pgEnum('docs_page_kind', enumValues(DocsPageKind));
+
+/** The latest synced docs tree of each project; a new sync replaces it. */
+export const docsSnapshots = pgTable('docs_snapshots', {
+  projectId: uuid('project_id')
+    .primaryKey()
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  commitSha: text('commit_sha').notNull(),
+  branch: text('branch').notNull(),
+  /** The machine that synced it (the project owner at that time). */
+  machineId: uuid('machine_id').references(() => machines.id, { onDelete: 'set null' }),
+  /** Parsed `docs/flows.yaml` of the snapshot. */
+  manifest: jsonb('manifest').$type<FlowsManifest>().notNull(),
+  totalBytes: integer('total_bytes').notNull(),
+  syncedAt: timestamp('synced_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const docsFiles = pgTable(
+  'docs_files',
+  {
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => docsSnapshots.projectId, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    title: text('title').notNull(),
+    kind: docsPageKindEnum('kind').notNull(),
+    flowId: text('flow_id'),
+    content: text('content').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.projectId, t.path] })],
+);
+
 export type OwnerRow = typeof owner.$inferSelect;
 export type ProjectRow = typeof projects.$inferSelect;
 export type MachineRow = typeof machines.$inferSelect;
@@ -404,3 +442,5 @@ export type ReportRow = typeof ticketReports.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
 export type MachineTokenRow = typeof machineTokens.$inferSelect;
 export type ClaimRequestRow = typeof claimRequests.$inferSelect;
+export type DocsSnapshotRow = typeof docsSnapshots.$inferSelect;
+export type DocsFileRow = typeof docsFiles.$inferSelect;

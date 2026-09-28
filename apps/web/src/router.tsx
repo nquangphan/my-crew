@@ -13,13 +13,13 @@ import { ApiRequestError, setCsrfToken } from './lib/api-client';
 import { sessionQuery } from './lib/queries';
 import { BoardSearch, DocsSearch, ListSearch, LoginSearch, searchOf } from './lib/search-params';
 import { BoardPage } from './routes/board';
-import { DocsPage } from './routes/docs';
 import { HomeRedirect } from './routes/home';
 import { InboxPage } from './routes/inbox';
 import { ListPage } from './routes/list';
 import { LoginPage } from './routes/login';
 import { MachinesPage } from './routes/machines';
 import { MyRequestsPage } from './routes/my-requests';
+import { ProjectDocsPage } from './routes/project-docs';
 import { ProjectSettingsPage } from './routes/project-settings';
 import { ProjectsPage } from './routes/projects';
 import { TicketDetailPage } from './routes/ticket-detail';
@@ -79,7 +79,7 @@ const listRoute = createRoute({
   validateSearch: searchOf(ListSearch),
   component: ListView,
 });
-/** Slot for the Confluence-like docs space (built in the docs phase). */
+/** The project's read-only, Confluence-like docs space. */
 export const docsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/projects/$projectKey/docs',
@@ -122,7 +122,7 @@ function ListView(): ReactElement {
   return <ListPage projectKey={listRoute.useParams().projectKey} search={listRoute.useSearch()} />;
 }
 function DocsView(): ReactElement {
-  return <DocsPage projectKey={docsRoute.useParams().projectKey} search={docsRoute.useSearch()} />;
+  return <ProjectDocsPage projectKey={docsRoute.useParams().projectKey} search={docsRoute.useSearch()} />;
 }
 function ProjectSettingsView(): ReactElement {
   return <ProjectSettingsPage projectKey={projectSettingsRoute.useParams().projectKey} />;

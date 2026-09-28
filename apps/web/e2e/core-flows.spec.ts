@@ -7,6 +7,7 @@ import {
   openNav,
   ownerTicket,
   readState,
+  seedDocs,
   snap,
   viewportOf,
 } from './helpers';
@@ -130,13 +131,15 @@ test('create, open, answer needs_input, change status, open docs, cancel', async
   await expect(page.getByText('kiểm tra Postgres và cảnh báo Slack')).toBeVisible();
   await snap(page, testInfo, 'ticket-page');
 
-  // 6. Open the related docs from the ticket, then from the sidebar.
+  // 6. Open the related docs from the ticket (the flow's page in the synced space), then from the sidebar.
+  await seedDocs(state);
   await page.getByRole('link', { name: 'Flow: health-check' }).click();
-  await expect(page.getByRole('heading', { name: `Docs · ${state.project.name}` })).toBeVisible();
-  await expect(page.getByText('Trang được yêu cầu: flow health-check')).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Health check' })).toBeVisible();
+  await expect(page).toHaveURL(/\?flow=health-check$/);
   await expectNoHorizontalOverflow(page);
   await openNav(page, viewport, 'Docs');
   await expect(page).toHaveURL(new RegExp(`/projects/${state.project.key}/docs$`));
+  await expect(page.getByRole('heading', { level: 1, name: 'Tổng quan' })).toBeVisible();
 
   // The list view at this viewport.
   await openNav(page, viewport, 'Danh sách');

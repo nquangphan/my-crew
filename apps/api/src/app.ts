@@ -13,6 +13,7 @@ import { EventBus } from './realtime/event-bus.js';
 import { authRoutes } from './routes/auth-routes.js';
 import { commentRoutes } from './routes/comment-routes.js';
 import { daemonRoutes } from './routes/daemon-routes.js';
+import { daemonDocsRoutes, docsRoutes } from './routes/docs-routes.js';
 import { machineRoutes, pairRoutes } from './routes/machine-routes.js';
 import { projectRoutes } from './routes/project-routes.js';
 import { reportRoutes } from './routes/report-routes.js';
@@ -95,12 +96,14 @@ export async function buildApp({
     await owner.register(commentRoutes, deps);
     await owner.register(reportRoutes, deps);
     await owner.register(machineRoutes, deps);
+    await owner.register(docsRoutes, deps);
     await owner.register(ownerStreamRoutes, deps);
   });
   // Daemon routes: machine bearer token only; cookies are ignored.
   await app.register(async (daemon) => {
     daemon.addHook('onRequest', machineGuard(db));
     await daemon.register(daemonRoutes, deps);
+    await daemon.register(daemonDocsRoutes, deps);
     await daemon.register(daemonStreamRoutes, deps);
   });
 

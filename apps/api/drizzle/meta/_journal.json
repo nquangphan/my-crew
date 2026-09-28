@@ -15,6 +15,13 @@
       "when": 1790610634672,
       "tag": "0001_machine_auth_and_delivery",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790614533481,
+      "tag": "0002_docs_snapshots",
+      "breakpoints": true
     }
   ]
 }

@@ -2,34 +2,18 @@ import type { SearchResponse } from '@crew/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, FileText, Search } from 'lucide-react';
-import {
-  forwardRef,
-  type KeyboardEvent,
-  useEffect,
-  useId,
-  useImperativeHandle,
-  useRef,
-  useState,
-} from 'react';
+import { forwardRef, type KeyboardEvent, useId, useImperativeHandle, useRef, useState } from 'react';
 import { StatusLozenge } from '../components/status-lozenge';
 import { TypeIcon } from '../components/type-icon';
 import { api } from '../lib/api-client';
 import { cn } from '../lib/cn';
 import { docsPage } from '../lib/docs-links';
 import { keys, useProjects } from '../lib/queries';
+import { useDebounced } from '../lib/ui-state';
 
 type Result =
   | { kind: 'ticket'; item: SearchResponse['tickets'][number] }
   | { kind: 'doc'; item: SearchResponse['docs'][number]; projectKey: string | undefined };
-
-function useDebounced<T>(value: T, ms: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), ms);
-    return () => clearTimeout(timer);
-  }, [value, ms]);
-  return debounced;
-}
 
 export interface QuickSearchHandle {
   focus: () => void;

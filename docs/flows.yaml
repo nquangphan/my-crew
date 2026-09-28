@@ -1,0 +1,287 @@
+# Manifest flow ↔ file của repo 2P Crew (nguồn sự thật). Chuẩn: packages/docs-kit/STANDARD.md.
+# Các mục source, shared, unassigned được bảo vệ (luật R6): chỉ đổi khi chủ dự án cho phép.
+version: 1
+source:
+  include:
+    - "apps/*/src/**"
+    - "packages/*/src/**"
+    - "apps/api/drizzle/*.sql"
+    - "packages/docs-kit/templates/**"
+  exclude:
+    - "**/*.test.*"
+    - "**/test/**"
+    - "**/dist/**"
+    - "**/generated/**"
+flows:
+  api-platform:
+    title: Nền tảng API
+    doc: docs/flows/api-platform.md
+    entrypoints:
+      - apps/api/src/server.ts
+    files:
+      - apps/api/src/index.ts
+      - apps/api/src/app.ts
+      - apps/api/src/config.ts
+      - apps/api/src/errors.ts
+      - apps/api/src/routes/route-deps.ts
+      - apps/api/src/services/pg-errors.ts
+      - apps/api/src/db/client.ts
+      - apps/api/src/db/schema.ts
+      - apps/api/src/db/migrate.ts
+      - apps/api/drizzle/0000_init.sql
+      - apps/api/drizzle/0001_machine_auth_and_delivery.sql
+      - packages/shared/src/index.ts
+    tests: []
+  owner-auth:
+    title: Đăng nhập chủ dự án
+    doc: docs/flows/owner-auth.md
+    entrypoints:
+      - apps/api/src/routes/auth-routes.ts
+      - apps/web/src/routes/login.tsx
+    files:
+      - apps/api/src/auth/owner-auth.ts
+      - apps/api/src/auth/csrf.ts
+      - apps/api/src/auth/password.ts
+      - apps/api/src/auth/totp.ts
+      - apps/api/src/cli/seed-owner.ts
+    tests:
+      - apps/api/test/auth.test.ts
+      - apps/api/test/csrf.test.ts
+      - apps/web/src/routes/login.test.tsx
+  ticket-lifecycle:
+    title: Vòng đời ticket
+    doc: docs/flows/ticket-lifecycle.md
+    entrypoints:
+      - apps/api/src/routes/ticket-routes.ts
+      - apps/api/src/routes/comment-routes.ts
+      - apps/api/src/routes/report-routes.ts
+    files:
+      - apps/api/src/services/ticket-service.ts
+      - apps/api/src/services/ticket-query-service.ts
+      - apps/api/src/services/report-service.ts
+      - apps/api/src/services/budget-service.ts
+      - packages/shared/src/ticket-schemas.ts
+      - packages/shared/src/agent-schemas.ts
+      - packages/shared/src/status-workflow.ts
+    tests:
+      - apps/api/test/ticket-service.test.ts
+      - apps/api/test/transition.test.ts
+      - apps/api/test/lifecycle-effects.test.ts
+      - apps/api/test/bug-loop.test.ts
+      - apps/api/test/budget.test.ts
+      - apps/api/test/owner-web-support.test.ts
+      - packages/shared/src/status-workflow.test.ts
+  machine-pairing:
+    title: Ghép máy và xác thực máy
+    doc: docs/flows/machine-pairing.md
+    entrypoints:
+      - apps/api/src/routes/machine-routes.ts
+    files:
+      - apps/api/src/auth/machine-auth.ts
+      - apps/api/src/services/machine-service.ts
+      - apps/api/src/jobs/heartbeat-sweeper.ts
+    tests:
+      - apps/api/test/pairing.test.ts
+      - apps/api/test/sweeper.test.ts
+  project-claims:
+    title: Dự án và quyền sở hữu máy
+    doc: docs/flows/project-claims.md
+    entrypoints:
+      - apps/api/src/routes/project-routes.ts
+    files:
+      - apps/api/src/services/claim-service.ts
+      - apps/api/src/services/project-service.ts
+      - packages/shared/src/project-schemas.ts
+    tests:
+      - apps/api/test/claims.test.ts
+  daemon-api:
+    title: REST API cho daemon
+    doc: docs/flows/daemon-api.md
+    entrypoints:
+      - apps/api/src/routes/daemon-routes.ts
+    files:
+      - apps/api/src/services/idempotency.ts
+    tests:
+      - apps/api/test/machine-scope.test.ts
+      - apps/api/test/idempotency.test.ts
+  event-delivery:
+    title: Phát sự kiện và SSE
+    doc: docs/flows/event-delivery.md
+    entrypoints:
+      - apps/api/src/routes/stream-routes.ts
+    files:
+      - apps/api/src/services/event-service.ts
+      - apps/api/src/realtime/event-bus.ts
+      - apps/api/src/realtime/sse.ts
+      - packages/shared/src/event-schemas.ts
+      - apps/web/src/lib/live-events.ts
+    tests:
+      - apps/api/test/daemon-stream.test.ts
+      - apps/api/test/revoke-stream.test.ts
+      - apps/web/src/lib/live-events.test.ts
+  docs-sync-viewer:
+    title: Đồng bộ và xem docs
+    doc: docs/flows/docs-sync-viewer.md
+    entrypoints:
+      - apps/api/src/routes/docs-routes.ts
+      - apps/web/src/routes/project-docs.tsx
+    files:
+      - apps/api/src/services/docs-service.ts
+      - apps/api/drizzle/0002_docs_snapshots.sql
+      - apps/web/src/lib/docs-space.ts
+      - apps/web/src/lib/docs-links.ts
+      - apps/web/src/components/docs-page-tree.tsx
+      - apps/web/src/components/docs-page-view.tsx
+      - apps/web/src/components/docs-toc.tsx
+      - apps/web/src/components/flow-view.tsx
+      - apps/web/src/components/related-tickets.tsx
+      - apps/web/src/components/file-lookup.tsx
+    tests:
+      - apps/api/test/docs-sync.test.ts
+      - packages/shared/src/docs-schemas.test.ts
+      - apps/web/src/lib/docs-space.test.ts
+      - apps/web/src/routes/project-docs.test.tsx
+      - apps/web/e2e/docs-space.spec.ts
+  docs-check:
+    title: Kiểm tra chuẩn docs (crew-docs)
+    doc: docs/flows/docs-check.md
+    entrypoints:
+      - packages/docs-kit/src/bin.ts
+      - packages/docs-kit/src/cli.ts
+    files:
+      - packages/docs-kit/src/commands/check.ts
+      - packages/docs-kit/src/commands/init.ts
+      - packages/docs-kit/src/commands/generate.ts
+      - packages/docs-kit/src/commands/where.ts
+      - packages/docs-kit/src/commands/flow.ts
+      - packages/docs-kit/src/commands/lookup.ts
+      - packages/docs-kit/src/commands/io.ts
+      - packages/docs-kit/src/git.ts
+      - packages/docs-kit/src/tree.ts
+      - packages/docs-kit/src/manifest.ts
+      - packages/docs-kit/src/generate.ts
+      - packages/docs-kit/src/secret-scan.ts
+      - packages/docs-kit/src/rules/types.ts
+      - packages/docs-kit/src/rules/r1-manifest.ts
+      - packages/docs-kit/src/rules/r2-coverage.ts
+      - packages/docs-kit/src/rules/r3-freshness.ts
+      - packages/docs-kit/src/rules/r4-generated.ts
+      - packages/docs-kit/src/rules/r5-initialized.ts
+      - packages/docs-kit/src/rules/r6-protected.ts
+      - packages/docs-kit/src/rules/r7-secrets.ts
+      - packages/docs-kit/src/templates.ts
+      - packages/docs-kit/src/version.ts
+      - packages/docs-kit/src/raw-imports.d.ts
+      - packages/docs-kit/templates/AGENTS.md
+      - packages/docs-kit/templates/index.md
+      - packages/docs-kit/templates/architecture.md
+      - packages/docs-kit/templates/flow.md
+      - packages/docs-kit/templates/flows.yaml
+    tests:
+      - packages/docs-kit/test/rules.test.ts
+  docs-hooks:
+    title: Hook git và CI của crew-docs
+    doc: docs/flows/docs-hooks.md
+    entrypoints:
+      - packages/docs-kit/src/commands/install-hooks.ts
+      - packages/docs-kit/src/commands/ci-workflow.ts
+    files:
+      - packages/docs-kit/src/hook-installer.ts
+      - packages/docs-kit/templates/crew-docs.yml
+    tests:
+      - packages/docs-kit/test/hook-installer.test.ts
+  web-shell:
+    title: Khung ứng dụng web
+    doc: docs/flows/web-shell.md
+    entrypoints:
+      - apps/web/src/main.tsx
+      - apps/web/src/router.tsx
+    files:
+      - apps/web/src/layout/app-shell.tsx
+      - apps/web/src/layout/project-sidebar.tsx
+      - apps/web/src/layout/breadcrumbs.tsx
+      - apps/web/src/layout/quick-search.tsx
+      - apps/web/src/layout/shell-context.ts
+      - apps/web/src/routes/home.tsx
+      - apps/web/src/lib/api-client.ts
+      - apps/web/src/lib/queries.ts
+      - apps/web/src/lib/search-params.ts
+      - apps/web/src/lib/shortcuts.ts
+      - apps/web/src/lib/ui-state.ts
+      - apps/web/src/lib/format.ts
+      - apps/web/src/lib/cn.ts
+      - apps/web/src/styles/app.css
+      - apps/web/src/components/ui/button.tsx
+      - apps/web/src/components/ui/dialog.tsx
+      - apps/web/src/components/ui/dropdown-menu.tsx
+      - apps/web/src/components/ui/field.tsx
+      - apps/web/src/components/ui/info-tip.tsx
+      - apps/web/src/components/ui/tabs.tsx
+      - apps/web/src/components/ui/toast.tsx
+    tests:
+      - apps/web/src/lib/api-client.test.ts
+      - apps/web/src/lib/queries.test.tsx
+      - apps/web/src/lib/search-params.test.ts
+      - apps/web/src/lib/shortcuts.test.ts
+      - apps/web/src/lib/format.test.ts
+  web-tickets:
+    title: Board, danh sách và ticket trên web
+    doc: docs/flows/web-tickets.md
+    entrypoints:
+      - apps/web/src/routes/board.tsx
+      - apps/web/src/routes/list.tsx
+      - apps/web/src/routes/ticket-detail.tsx
+      - apps/web/src/routes/my-requests.tsx
+    files:
+      - apps/web/src/components/board-view.tsx
+      - apps/web/src/components/ticket-card.tsx
+      - apps/web/src/components/filter-menu.tsx
+      - apps/web/src/components/issue-table.tsx
+      - apps/web/src/components/ticket-side-panel.tsx
+      - apps/web/src/components/ticket-view.tsx
+      - apps/web/src/components/details-box.tsx
+      - apps/web/src/components/status-dropdown.tsx
+      - apps/web/src/components/subtask-tree.tsx
+      - apps/web/src/components/comment-thread.tsx
+      - apps/web/src/components/event-timeline.tsx
+      - apps/web/src/components/report-panel.tsx
+      - apps/web/src/components/cancel-dialog.tsx
+      - apps/web/src/components/new-ticket-dialog.tsx
+      - apps/web/src/components/markdown-editor.tsx
+      - apps/web/src/components/role-avatar.tsx
+      - apps/web/src/components/type-icon.tsx
+    tests:
+      - apps/web/src/components/board-view.test.ts
+      - apps/web/src/components/ticket-view.test.tsx
+      - apps/web/src/components/status-dropdown.test.tsx
+      - apps/web/src/components/subtask-tree.test.tsx
+      - apps/web/src/components/comment-thread.test.tsx
+      - apps/web/src/components/cancel-dialog.test.tsx
+      - apps/web/e2e/core-flows.spec.ts
+  web-admin:
+    title: Inbox, dự án và máy trên web
+    doc: docs/flows/web-admin.md
+    entrypoints:
+      - apps/web/src/routes/inbox.tsx
+      - apps/web/src/routes/projects.tsx
+      - apps/web/src/routes/project-settings.tsx
+      - apps/web/src/routes/machines.tsx
+    files:
+      - apps/web/src/lib/inbox.ts
+      - apps/web/src/components/project-form.tsx
+      - apps/web/src/components/pairing-dialog.tsx
+      - apps/web/src/components/totp-dialog.tsx
+    tests:
+      - apps/web/src/routes/inbox.test.tsx
+      - apps/web/src/components/pairing-dialog.test.tsx
+      - apps/web/e2e/owner-admin.spec.ts
+shared:
+  packages/shared/src/api-schemas.ts: [owner-auth, ticket-lifecycle]
+  packages/shared/src/machine-schemas.ts: [machine-pairing, project-claims, daemon-api]
+  packages/shared/src/docs-schemas.ts: [docs-sync-viewer, docs-check]
+  apps/api/src/services/like-pattern.ts: [ticket-lifecycle, docs-sync-viewer]
+  apps/web/src/components/markdown-view.tsx: [web-tickets, docs-sync-viewer]
+  apps/web/src/components/status-lozenge.tsx: [web-tickets, docs-sync-viewer]
+unassigned:
+  - path: apps/daemon/src/index.ts
+    reason: chỗ giữ chỗ của daemon, chưa có hành vi; flow daemon được viết ở phase 6
