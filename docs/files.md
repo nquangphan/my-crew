@@ -75,9 +75,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/health/checks/app.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/health/checks/claude.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/health/checks/machine.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/checks/mcp.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/health/checks/repos.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/checks/resources.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/health/checks/server.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/checks/skills.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/health/health-runner.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/project-views.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/repo-probe.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/health/types.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/library.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
 | `apps/daemon/src/roles/docs-first-check.ts` | [agent-roles](flows/agent-roles.md) (file) |
@@ -133,6 +138,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/docs-update-handoff.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/guard-hook.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/health-checks.test.ts` | [daemon-health](flows/daemon-health.md) (test) |
+| `apps/daemon/test/health-groups.test.ts` | [daemon-health](flows/daemon-health.md) (test) |
 | `apps/daemon/test/lifecycle.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/live-smoke.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/live-workflow.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
@@ -149,6 +155,51 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/ticket-tools.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/units.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
 | `apps/daemon/test/worktree-manager.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
+| `apps/desktop/src/daemon-host/activity.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/daemon-host/health-ops.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/daemon-host/host-context.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/daemon-host/host-service.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/daemon-host/index.ts` | [desktop-app](flows/desktop-app.md) (điểm vào) |
+| `apps/desktop/src/daemon-host/setup-ops.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/daemon-host/test-seams.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/daemon-supervisor.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/desktop-state.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/index.ts` | [desktop-app](flows/desktop-app.md) (điểm vào) |
+| `apps/desktop/src/main/ipc-handlers.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/login-item.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/notifications.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/quit-guard.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/shell-env.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/terminal-launcher.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/tray-view.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/tray.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/updater.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/window.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/preload/index.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/renderer/app.tsx` | [desktop-ui](flows/desktop-ui.md) (điểm vào) |
+| `apps/desktop/src/renderer/components/folder-picker.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/components/health-check-row.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/components/new-project-form.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/components/project-picker.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/components/resource-form.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/components/ui.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/components/wizard-step.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/index.html` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/lib/format.ts` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/lib/ipc.ts` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/main.tsx` | [desktop-ui](flows/desktop-ui.md) (điểm vào) |
+| `apps/desktop/src/renderer/routes/health.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/routes/jobs.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/routes/logs.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/routes/settings-projects.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/routes/settings.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/routes/setup-wizard.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/styles.css` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/test/daemon-supervisor.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/desktop/test/e2e/health.spec.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/desktop/test/e2e/onboarding.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
+| `apps/desktop/test/host-service.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/desktop/test/main-logic.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/docs-space.spec.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `apps/web/e2e/owner-admin.spec.ts` | [web-admin](flows/web-admin.md) (test) |
@@ -272,9 +323,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/docs-kit/test/rules.test.ts` | [docs-check](flows/docs-check.md) (test) |
 | `packages/shared/src/agent-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `packages/shared/src/api-schemas.ts` | [owner-auth](flows/owner-auth.md) (dùng chung), [ticket-lifecycle](flows/ticket-lifecycle.md) (dùng chung) |
+| `packages/shared/src/desktop-ipc.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `packages/shared/src/docs-schemas.test.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `packages/shared/src/docs-schemas.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung), [docs-check](flows/docs-check.md) (dùng chung) |
 | `packages/shared/src/event-schemas.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `packages/shared/src/health-schemas.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `packages/shared/src/index.ts` | [api-platform](flows/api-platform.md) (file) |
 | `packages/shared/src/machine-schemas.ts` | [machine-pairing](flows/machine-pairing.md) (dùng chung), [project-claims](flows/project-claims.md) (dùng chung), [daemon-api](flows/daemon-api.md) (dùng chung) |
 | `packages/shared/src/project-schemas.test.ts` | [project-claims](flows/project-claims.md) (test) |

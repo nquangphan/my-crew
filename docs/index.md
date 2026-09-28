@@ -20,6 +20,8 @@ theo từng flow; agent đọc docs trước khi đọc code.
 - `apps/daemon`: daemon TypeScript `crewd` chạy trên máy cục bộ của chủ dự án — nhận sự kiện qua SSE, lập
   lịch job, chạy Claude Code (PM, dev, QC, assistant) qua Agent SDK trong worktree git riêng từng ticket, dọn
   tài nguyên sau mỗi job, và tự kiểm tra sức khỏe máy (`crewd doctor`).
+- `apps/desktop`: app Electron (macOS) cho chủ dự án — trình cài đặt, tray, bảng sức khỏe, job và log; chạy
+  `createDaemon()` của `apps/daemon` trong một tiến trình con riêng, nên UI đóng hay crash không dừng job.
 
 ## Bản đồ module
 
@@ -40,6 +42,8 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | `packages/docs-kit/templates` | Template `AGENTS.md`, `index.md`, `architecture.md`, `flow.md`, `flows.yaml` |
 | `apps/daemon/src` | Daemon cục bộ `crewd`: CLI, stream/scheduler, runner agent, worktree/skill, dọn tài nguyên, health check |
 | `apps/daemon/src/roles` | Vai trò agent theo bước (prompt, model, cổng, report, merge/push, thất bại) |
+| `apps/desktop/src/main`, `apps/desktop/src/daemon-host` | App Electron: tiến trình main (cửa sổ, tray, cập nhật) và tiến trình con chạy daemon + thao tác trình cài đặt/sức khỏe |
+| `apps/desktop/src/renderer` | Giao diện React của app desktop: trình cài đặt, sức khỏe, job, log, cài đặt project |
 
 ## Danh sách flow
 
@@ -54,6 +58,8 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Kiểm tra sức khỏe máy (crewd doctor)](flows/daemon-health.md) | `daemon-health` | `apps/daemon/src/commands/doctor.ts` |
 | [Daemon cục bộ (crewd)](flows/daemon-runtime.md) | `daemon-runtime` | `apps/daemon/src/cli.ts`, `apps/daemon/src/daemon.ts` |
 | [Nhận sự kiện và lập lịch job](flows/daemon-scheduling.md) | `daemon-scheduling` | `apps/daemon/src/stream/stream-client.ts` |
+| [Ứng dụng máy local 2P Crew (Electron)](flows/desktop-app.md) | `desktop-app` | `apps/desktop/src/main/index.ts`, `apps/desktop/src/daemon-host/index.ts` |
+| [Giao diện app desktop (cài đặt, sức khỏe, job, project)](flows/desktop-ui.md) | `desktop-ui` | `apps/desktop/src/renderer/main.tsx`, `apps/desktop/src/renderer/app.tsx` |
 | [Kiểm tra chuẩn docs (crew-docs)](flows/docs-check.md) | `docs-check` | `packages/docs-kit/src/bin.ts`, `packages/docs-kit/src/cli.ts` |
 | [Hook git và CI của crew-docs](flows/docs-hooks.md) | `docs-hooks` | `packages/docs-kit/src/commands/install-hooks.ts`, `packages/docs-kit/src/commands/ci-workflow.ts` |
 | [Đồng bộ và xem docs](flows/docs-sync-viewer.md) | `docs-sync-viewer` | `apps/api/src/routes/docs-routes.ts`, `apps/web/src/routes/project-docs.tsx` |

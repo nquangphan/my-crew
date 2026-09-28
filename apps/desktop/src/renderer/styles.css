@@ -1,0 +1,137 @@
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+
+/* The palette of the approved web mockup (Atlassian-like neutrals with a blue accent). */
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --line: #dfe3ea;
+  --line2: #eceff3;
+  --ink: #172033;
+  --muted: #5b6578;
+  --soft: #eef0f4;
+  --blue: #1d5fd1;
+  --blue-bg: #e3ecfb;
+  --blue-ink: #123f8f;
+  --green: #1f845a;
+  --green-bg: #dcfff1;
+  --green-ink: #164b35;
+  --yellow: #b97a00;
+  --yellow-bg: #fff4d6;
+  --yellow-line: #e8c25a;
+  --yellow-ink: #7a4f00;
+  --red: #c9372c;
+  --red-bg: #ffe6e3;
+  --red-ink: #9e2a20;
+  --gray-bg: #e9ecf1;
+  --gray-ink: #3b4557;
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-soft: var(--soft);
+  --color-accent: var(--blue);
+  --color-accent-bg: var(--blue-bg);
+  --color-accent-ink: var(--blue-ink);
+  --color-ok: var(--green);
+  --color-ok-bg: var(--green-bg);
+  --color-ok-ink: var(--green-ink);
+  --color-warn: var(--yellow);
+  --color-warn-bg: var(--yellow-bg);
+  --color-warn-line: var(--yellow-line);
+  --color-warn-ink: var(--yellow-ink);
+  --color-bad: var(--red);
+  --color-bad-bg: var(--red-bg);
+  --color-bad-ink: var(--red-ink);
+  --color-gray-bg: var(--gray-bg);
+  --color-gray-ink: var(--gray-ink);
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 5px 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) {
+  background: var(--soft);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.btn-primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--blue-ink);
+}
+.btn-danger {
+  color: var(--red-ink);
+  border-color: var(--red-bg);
+}
+.input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 9px;
+  background: var(--panel);
+  color: var(--ink);
+}
+.input:focus {
+  outline: 2px solid var(--blue-bg);
+  border-color: var(--blue);
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}

@@ -13,3 +13,9 @@ coverage/
 *.token
 *.tsbuildinfo
 .claude/worktrees/
+# Desktop app: electron-vite output, the staged app and electron-builder artifacts (dmg).
+apps/desktop/out/
+apps/desktop/.stage/
+apps/desktop/release/
+apps/desktop/test-results/
+apps/desktop/.e2e/

@@ -1,0 +1,39 @@
+# 2P Crew desktop packaging, run by `pnpm --filter @crew/desktop package:mac` (scripts/package-mac.mjs),
+# which stages the bundled code, the crew-docs resource and a flat npm node_modules with only the runtime
+# externals outside the workspace and builds from there.
+appId: com.2p-solutions.crew
+productName: 2P Crew
+copyright: Copyright © 2P Solutions
+directories:
+  output: release
+  buildResources: build
+# Plain files: the Agent SDK spawns its Claude Code binary and better-sqlite3 loads its .node file from disk.
+asar: false
+npmRebuild: true
+mac:
+  target:
+    - target: dmg
+      arch: universal
+  category: public.app-category.developer-tools
+  icon: build/icon.png
+  # Ad-hoc signature: no Developer ID certificate yet. The app runs after right-click → Open on first launch,
+  # and updates fall back to a download link. See docs/flows/desktop-app.md for the signing and notarizing
+  # step (CSC_LINK / CSC_KEY_PASSWORD, identity, hardenedRuntime, notarize).
+  identity: "-"
+  # The hardened runtime is for Developer ID builds; with an ad-hoc signature it blocks loading native
+  # modules (library validation). Turn it on together with the signing identity.
+  hardenedRuntime: false
+  # The SDK ships one Claude Code binary per architecture in separate packages; both builds contain both
+  # identical files, which must be copied as they are instead of merged with lipo.
+  # better-sqlite3 also ships identical per-arch prebuilds next to its rebuilt binary.
+  x64ArchFiles: "{**/node_modules/@anthropic-ai/claude-agent-sdk-darwin-*/claude,**/node_modules/better-sqlite3/prebuilds/**}"
+  extendInfo:
+    NSHumanReadableCopyright: Copyright © 2P Solutions
+dmg:
+  title: 2P Crew ${version}
+  artifactName: 2P-Crew-${version}-universal.${ext}
+publish:
+  provider: github
+  owner: nquangphan
+  repo: my-crew
+  releaseType: release

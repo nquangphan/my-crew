@@ -1,24 +1,28 @@
 import type { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk';
-import type { HealthStatus } from '@crew/shared';
+import type {
+  HealthCheckResult,
+  HealthGroup,
+  HealthStatus,
+  SkillInventory,
+  UpdateStatus,
+} from '@crew/shared';
 import type { VpsClient } from '../api/vps-client.js';
 import type { DaemonConfig, homePaths } from '../config.js';
+import type { Daemon } from '../daemon.js';
 import type { TokenStore } from '../secrets.js';
 import type { StateDb } from '../state-db.js';
 
-export type HealthGroup = 'server' | 'claude' | 'mcp' | 'skills' | 'repos' | 'machine' | 'resources' | 'app';
+/**
+ * One check's outcome, rendered by `crewd doctor` and by the desktop dashboard (the shared schema). Text is
+ * Vietnamese; a `fix` is a one-click fix the runner can apply (doctor applies it with `--fix`, the default).
+ */
+export type { HealthCheckResult, HealthGroup };
 
-/** One check's outcome, rendered by `crewd doctor` and by the desktop dashboard. Text is Vietnamese. */
-export interface HealthCheckResult {
-  /** Stable id, e.g. `claude.login` or `repos.WEB.hooks`; also sent in the heartbeat summary. */
-  id: string;
-  group: HealthGroup;
-  title: string;
-  status: HealthStatus;
-  detail: string;
-  /** A one-click fix the runner can apply (doctor applies it with `--fix`, the default). */
-  fix?: { id: string; label: string };
-  /** The fix ran during this check and the re-check passed. */
-  fixed?: boolean;
+/** What only the desktop app knows; without it the App group checks the user session (CLI). */
+export interface HealthAppFacts {
+  version: string;
+  loginItem: boolean;
+  update: UpdateStatus;
 }
 
 export interface HealthContext {
@@ -34,6 +38,15 @@ export interface HealthContext {
   skipLoginProbe?: boolean;
   /** Runs a command and returns its stdout (injectable for tests). */
   exec: (command: string, args: string[]) => { code: number; stdout: string; stderr: string };
+  /** The running daemon (desktop app): stream state, running jobs and inventory refresh. */
+  daemon?: Daemon | null;
+  app?: HealthAppFacts;
+  /** crew-docs bundle to install and the runtime hooks call (the app binary with ELECTRON_RUN_AS_NODE=1). */
+  crewDocs?: { source: string; runtime: string };
+  /** Probes the skills a main checkout sees, compared with the job-worktree inventory. */
+  probeCheckout?: (repoPath: string) => Promise<SkillInventory>;
+  /** Scheduled run: skip the network and SDK probes (login, push access, checkout inventory). */
+  quick?: boolean;
 }
 
 export interface HealthCheck {

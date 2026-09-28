@@ -8,7 +8,7 @@
 `crewd` là daemon TypeScript chạy trên máy cục bộ của chủ dự án: ghép máy với VPS, giữ cấu hình và token máy,
 lưu trạng thái job trong SQLite, và là nơi lắp ráp mọi flow khác của daemon (nhận sự kiện, lập lịch, chạy
 agent, dọn tài nguyên, kiểm tra sức khỏe) thành một tiến trình sống. `createDaemon()` là điểm lắp ráp dùng
-chung: cả lệnh `crewd start` và app desktop (Phase 9) đều dựng daemon từ đây.
+chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều dựng daemon từ đây.
 
 ## Điểm vào
 
@@ -70,17 +70,22 @@ chung: cả lệnh `crewd start` và app desktop (Phase 9) đều dựng daemon 
 12. `apps/daemon/src/service/systemd.ts` → `installService()`/`systemdUnit()`: sinh và cài một **systemd user
     unit** (`crewd.service`) chạy trong phiên của chủ dự án, luôn `UnsetEnvironment=ANTHROPIC_API_KEY` để
     billing ở lại đăng nhập gói đăng ký; `crewd install-service` chỉ chạy trên Linux (macOS dùng app desktop).
-13. `apps/daemon/src/library.ts`: re-export toàn bộ API công khai của daemon (`createDaemon`, `VpsClient`,
-    `StateDb`, các health check, runner, tool scopes, cộng `rolePlanner`/`resolveModel`/`renderPrompt`/
-    `setPromptsDir`/`resolveStage`/`STAGES` của flow `agent-roles`) cho CLI và app desktop dùng chung một
-    nguồn.
+13. `apps/daemon/src/daemon.ts` → `CreateDaemonOptions.crewDocsRuntime`: đường dẫn tuyệt đối của runtime mà
+    wrapper `crew-docs` và hook git sẽ gọi (mặc định `process.execPath`); app desktop truyền chính binary của
+    nó (chạy với `ELECTRON_RUN_AS_NODE=1`) nên máy không cần cài Node riêng cho hook.
+14. `apps/daemon/src/library.ts`: re-export toàn bộ API công khai của daemon (`createDaemon`, `VpsClient`,
+    `StateDb`, mọi health check và helper của flow `daemon-health` — `HEALTH_CHECKS`, `runHealthChecks`,
+    `applyHealthFix`, `repoFolderChecks`, `inspectFolder`, `serverProjects`, `storedInventory`…, runner, tool
+    scopes, cộng `rolePlanner`/`resolveModel`/`renderPrompt`/`setPromptsDir`/`resolveStage`/`STAGES` của flow
+    `agent-roles`) cho CLI và app desktop (`setup-ops.ts`, `health-ops.ts`, `activity.ts`, flow `desktop-app`)
+    dùng chung một nguồn.
 
 ## Files
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/daemon/src/cli.ts` | Lệnh `crewd` | `main`, `pair`, `status`, `rotateToken`, `runDoctor`, `runInstallService`, `project`, `assistant` |
-| `apps/daemon/src/daemon.ts` | Lắp ráp daemon: vòng đời, sweep, heartbeat, dispatch effect | `createDaemon`, `Daemon`, `releaseLostProjects`, `reconcileRestart`, `wakePmForLeftovers`, `cancelDescendants` |
+| `apps/daemon/src/daemon.ts` | Lắp ráp daemon: vòng đời, sweep, heartbeat, dispatch effect | `createDaemon`, `CreateDaemonOptions`, `Daemon`, `releaseLostProjects`, `reconcileRestart`, `wakePmForLeftovers`, `cancelDescendants` |
 | `apps/daemon/src/library.ts` | Điểm export thư viện dùng chung CLI/app desktop | (re-export) |
 | `apps/daemon/src/config.ts` | Cấu hình `~/.crew/config.yaml` | `DaemonConfig`, `loadConfig`, `saveConfig`, `crewHome`, `homePaths` |
 | `apps/daemon/src/secrets.ts` | Lưu token máy | `TokenStore`, `FileTokenStore`, `KeychainTokenStore`, `defaultTokenStore` |
@@ -111,6 +116,9 @@ chung: cả lệnh `crewd start` và app desktop (Phase 9) đều dựng daemon 
   `JobRunnerDeps.resourceOps`.
 - daemon-health: `crewd doctor` (`runDoctor()` trong `cli.ts`) gọi `doctor()` của flow `daemon-health`.
 - daemon-api: `VpsClient` gọi các route đó (xem flow `daemon-api` ở phía server).
+- desktop-app: `HostService.startDaemon()` gọi `createDaemon()` với `crewDocsRuntime` là binary của app; mọi
+  export của `library.ts` (config, secrets, state DB, VPS client, health) được `setup-ops.ts`/`health-ops.ts`/
+  `activity.ts` dùng lại thay vì định nghĩa riêng.
 
 ## Tests
 

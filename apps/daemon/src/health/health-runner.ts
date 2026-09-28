@@ -1,19 +1,41 @@
 import { spawnSync } from 'node:child_process';
-import type { HealthStatus, HealthSummary } from '@crew/shared';
+import type { HealthGroup, HealthStatus, HealthSummary } from '@crew/shared';
 import { serviceChecks } from './checks/app.js';
 import { claudeChecks } from './checks/claude.js';
 import { machineChecks } from './checks/machine.js';
+import { mcpChecks } from './checks/mcp.js';
 import { repoChecks } from './checks/repos.js';
+import { resourceChecks } from './checks/resources.js';
 import { serverChecks } from './checks/server.js';
+import { skillChecks } from './checks/skills.js';
 import type { HealthCheck, HealthCheckResult, HealthContext } from './types.js';
 
+/** Every check, in dashboard order; `crewd doctor` and the desktop app run the same list. */
 export const HEALTH_CHECKS: readonly HealthCheck[] = [
   serverChecks,
   claudeChecks,
+  mcpChecks,
+  skillChecks,
   repoChecks,
   machineChecks,
+  resourceChecks,
   serviceChecks,
 ];
+
+/**
+ * Applies one fix a dashboard row offered (a fixed, whitelisted operation of that group's check). Fixes that
+ * need the app itself (Terminal login, login item, update, re-pair) are handled by the desktop app instead.
+ */
+export async function applyHealthFix(
+  ctx: HealthContext,
+  group: HealthGroup,
+  fixId: string,
+  checks: readonly HealthCheck[] = HEALTH_CHECKS,
+): Promise<void> {
+  const check = checks.find((item) => item.group === group);
+  if (!check?.fix) throw new Error(`nhóm ${group} không có cách sửa tự động`);
+  await check.fix(ctx, fixId);
+}
 
 /** Runs a command without a shell; a missing binary reads as exit code 127. */
 export function execCommand(command: string, args: string[]) {

@@ -406,8 +406,73 @@ flows:
       - apps/daemon/src/health/checks/repos.ts
       - apps/daemon/src/health/checks/machine.ts
       - apps/daemon/src/health/checks/app.ts
+      - apps/daemon/src/health/checks/mcp.ts
+      - apps/daemon/src/health/checks/skills.ts
+      - apps/daemon/src/health/checks/resources.ts
+      - apps/daemon/src/health/repo-probe.ts
+      - apps/daemon/src/health/project-views.ts
+      - packages/shared/src/health-schemas.ts
     tests:
       - apps/daemon/test/health-checks.test.ts
+      - apps/daemon/test/health-groups.test.ts
+  desktop-app:
+    title: Ứng dụng máy local 2P Crew (Electron)
+    doc: docs/flows/desktop-app.md
+    entrypoints:
+      - apps/desktop/src/main/index.ts
+      - apps/desktop/src/daemon-host/index.ts
+    files:
+      - apps/desktop/src/main/daemon-supervisor.ts
+      - apps/desktop/src/main/ipc-handlers.ts
+      - apps/desktop/src/main/window.ts
+      - apps/desktop/src/main/tray.ts
+      - apps/desktop/src/main/tray-view.ts
+      - apps/desktop/src/main/login-item.ts
+      - apps/desktop/src/main/updater.ts
+      - apps/desktop/src/main/notifications.ts
+      - apps/desktop/src/main/terminal-launcher.ts
+      - apps/desktop/src/main/quit-guard.ts
+      - apps/desktop/src/main/shell-env.ts
+      - apps/desktop/src/main/desktop-state.ts
+      - apps/desktop/src/preload/index.ts
+      - apps/desktop/src/daemon-host/host-service.ts
+      - apps/desktop/src/daemon-host/host-context.ts
+      - apps/desktop/src/daemon-host/setup-ops.ts
+      - apps/desktop/src/daemon-host/health-ops.ts
+      - apps/desktop/src/daemon-host/activity.ts
+      - apps/desktop/src/daemon-host/test-seams.ts
+      - packages/shared/src/desktop-ipc.ts
+    tests:
+      - apps/desktop/test/daemon-supervisor.test.ts
+      - apps/desktop/test/main-logic.test.ts
+      - apps/desktop/test/host-service.test.ts
+      - apps/desktop/test/e2e/health.spec.ts
+  desktop-ui:
+    title: Giao diện app desktop (cài đặt, sức khỏe, job, project)
+    doc: docs/flows/desktop-ui.md
+    entrypoints:
+      - apps/desktop/src/renderer/main.tsx
+      - apps/desktop/src/renderer/app.tsx
+    files:
+      - apps/desktop/src/renderer/index.html
+      - apps/desktop/src/renderer/styles.css
+      - apps/desktop/src/renderer/lib/ipc.ts
+      - apps/desktop/src/renderer/lib/format.ts
+      - apps/desktop/src/renderer/routes/setup-wizard.tsx
+      - apps/desktop/src/renderer/routes/health.tsx
+      - apps/desktop/src/renderer/routes/jobs.tsx
+      - apps/desktop/src/renderer/routes/logs.tsx
+      - apps/desktop/src/renderer/routes/settings.tsx
+      - apps/desktop/src/renderer/routes/settings-projects.tsx
+      - apps/desktop/src/renderer/components/wizard-step.tsx
+      - apps/desktop/src/renderer/components/health-check-row.tsx
+      - apps/desktop/src/renderer/components/folder-picker.tsx
+      - apps/desktop/src/renderer/components/project-picker.tsx
+      - apps/desktop/src/renderer/components/new-project-form.tsx
+      - apps/desktop/src/renderer/components/resource-form.tsx
+      - apps/desktop/src/renderer/components/ui.tsx
+    tests:
+      - apps/desktop/test/e2e/onboarding.spec.ts
 shared:
   packages/shared/src/api-schemas.ts: [owner-auth, ticket-lifecycle]
   packages/shared/src/machine-schemas.ts: [machine-pairing, project-claims, daemon-api]

@@ -40,7 +40,8 @@ export const serverChecks: HealthCheck = {
           'server',
           'Token máy',
           'red',
-          'Máy chưa được ghép: chạy `crewd pair --code <mã>`.',
+          'Máy chưa được ghép: chạy `crewd pair --code <mã>` hoặc ghép lại trong app.',
+          { id: 'repair', label: 'Ghép lại máy' },
         ),
       );
       return results;
@@ -55,6 +56,7 @@ export const serverChecks: HealthCheck = {
           'Token máy',
           'red',
           `Token bị từ chối (${(error as Error).message}): ghép lại máy.`,
+          { id: 'repair', label: 'Ghép lại máy' },
         ),
       );
       return results;
@@ -68,7 +70,8 @@ export const serverChecks: HealthCheck = {
           'server',
           'Token máy',
           'yellow',
-          `Token hết hạn sau ${days} ngày: chạy \`crewd rotate-token\`.`,
+          `Token hết hạn sau ${days} ngày: đổi token (\`crewd rotate-token\`).`,
+          { id: 'rotate-token', label: 'Đổi token' },
         ),
       );
     } else {
@@ -82,6 +85,46 @@ export const serverChecks: HealthCheck = {
         ),
       );
     }
+    if (ctx.daemon) {
+      const status = ctx.daemon.status();
+      const last = status.lastEventAt ? `, sự kiện cuối lúc ${formatTime(status.lastEventAt)}` : '';
+      results.push(
+        status.connected
+          ? result('server.stream', 'server', 'Luồng sự kiện (SSE)', 'green', `Đã kết nối${last}.`)
+          : result(
+              'server.stream',
+              'server',
+              'Luồng sự kiện (SSE)',
+              status.running ? 'red' : 'yellow',
+              status.running ? `Mất kết nối luồng sự kiện${last}.` : 'Daemon chưa chạy.',
+              { id: 'reconnect', label: 'Kết nối lại' },
+            ),
+      );
+    }
     return results;
   },
+  async fix(ctx, fixId) {
+    if (fixId === 'rotate-token' && ctx.vps) {
+      const rotated = await ctx.vps.rotateToken();
+      ctx.tokenStore.set(rotated.token);
+      ctx.state?.setMeta('tokenExpiresAt', rotated.expiresAt);
+    } else if (fixId === 'reconnect' && ctx.daemon) {
+      await ctx.daemon.stream.stop();
+      ctx.daemon.stream.start();
+      // Give the stream a moment to connect before the re-check.
+      for (let i = 0; i < 50 && !ctx.daemon.stream.connected; i++)
+        await new Promise((r) => setTimeout(r, 100));
+    }
+  },
 };
+
+/** `HH:mm dd/MM` in the owner's time zone. */
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+  });
+}

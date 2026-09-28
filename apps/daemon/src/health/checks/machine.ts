@@ -18,7 +18,8 @@ export const machineChecks: HealthCheck = {
         'machine',
         'Tài nguyên máy',
         slots > 0 ? 'green' : 'yellow',
-        slots > 0 ? detail : `${detail}: máy đang bận, job mới sẽ chờ.`,
+        slots > 0 ? detail : `${detail}: máy đang bận (hoặc giới hạn quá chặt), job mới sẽ chờ.`,
+        slots > 0 ? undefined : { id: 'adjust-limits', label: 'Chỉnh giới hạn' },
       ),
       disk === null || disk >= MIN_DISK_FREE_GB
         ? result(

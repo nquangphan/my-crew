@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk';
-import { agentEnv } from '../../runner/agent-runner.js';
+import { agentEnv, sdkRuntimeVersion } from '../../runner/agent-runner.js';
 import { type HealthCheck, type HealthCheckResult, result } from '../types.js';
 
 /** Resuming a session restores its cost only from this Claude Code version on. */
@@ -101,6 +101,7 @@ export const claudeChecks: HealthCheck = {
             'Không có ANTHROPIC_API_KEY',
             'red',
             'ANTHROPIC_API_KEY đang có trong môi trường của dịch vụ: gỡ biến này khỏi môi trường (shell profile, unit systemd) để agent dùng gói đăng ký, không tính phí API.',
+            { id: 'api-key-help', label: 'Hướng dẫn gỡ biến' },
           )
         : result(
             'claude.api-key-env',
@@ -108,6 +109,27 @@ export const claudeChecks: HealthCheck = {
             'Không có ANTHROPIC_API_KEY',
             'green',
             'Môi trường dịch vụ không có API key.',
+          ),
+    );
+
+    const runtime = sdkRuntimeVersion();
+    results.push(
+      runtime && compareVersions(runtime, MIN_CLAUDE_VERSION) >= 0
+        ? result(
+            'claude.runtime',
+            'claude',
+            'Runtime Claude Code của Agent SDK',
+            'green',
+            `Phiên bản ${runtime}.`,
+          )
+        : result(
+            'claude.runtime',
+            'claude',
+            'Runtime Claude Code của Agent SDK',
+            'red',
+            runtime
+              ? `Runtime ${runtime} cũ hơn ${MIN_CLAUDE_VERSION}: cập nhật app hoặc daemon.`
+              : 'Không tìm thấy runtime Claude Code đi kèm Agent SDK: cài lại app hoặc daemon.',
           ),
     );
 
@@ -137,7 +159,8 @@ export const claudeChecks: HealthCheck = {
       results.push(result('claude.cli', 'claude', 'Claude Code CLI', 'green', `Phiên bản ${cliVersion}.`));
     }
 
-    if (ctx.skipLoginProbe) return results;
+    if (ctx.skipLoginProbe || ctx.quick) return results;
+    const login = { id: 'open-claude-login', label: 'Đăng nhập Claude' };
     const probe = await loginProbe({ query: ctx.query, env: ctx.env });
     if (!probe.ok) {
       results.push(
@@ -147,6 +170,7 @@ export const claudeChecks: HealthCheck = {
           'Đăng nhập gói Claude',
           'red',
           `Lượt thử với haiku thất bại (${probe.error ?? 'không rõ lỗi'}). Mở Terminal, chạy \`claude\` rồi \`/login\`.`,
+          login,
         ),
       );
     } else if (probe.apiKeySource !== 'none') {
@@ -157,6 +181,7 @@ export const claudeChecks: HealthCheck = {
           'Đăng nhập gói Claude',
           'red',
           `Lượt thử đang tính phí qua ${probe.apiKeySource}: chỉ dùng đăng nhập gói đăng ký (\`/login\`).`,
+          login,
         ),
       );
     } else if (probe.claudeCodeVersion && compareVersions(probe.claudeCodeVersion, MIN_CLAUDE_VERSION) < 0) {

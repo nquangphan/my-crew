@@ -1,18 +1,8 @@
-import type { HealthStatus } from '@crew/shared';
+import { HEALTH_GROUP_TITLES, type HealthStatus } from '@crew/shared';
 import { runHealthChecks } from '../health/health-runner.js';
 import type { HealthCheckResult, HealthContext } from '../health/types.js';
 
 const ICON: Record<HealthStatus, string> = { green: '[OK]  ', yellow: '[WARN]', red: '[LỖI] ' };
-const GROUP_TITLE: Record<string, string> = {
-  server: 'Server',
-  claude: 'Claude',
-  mcp: 'MCP',
-  skills: 'Skill',
-  repos: 'Repo',
-  machine: 'Máy',
-  resources: 'Tài nguyên',
-  app: 'Dịch vụ',
-};
 
 /** Renders the shared health check results as text, grouped like the desktop dashboard. */
 export function renderHealth(results: readonly HealthCheckResult[]): string {
@@ -21,7 +11,7 @@ export function renderHealth(results: readonly HealthCheckResult[]): string {
   for (const item of results) {
     if (item.group !== group) {
       group = item.group;
-      lines.push('', `${GROUP_TITLE[group] ?? group}`);
+      lines.push('', HEALTH_GROUP_TITLES[item.group]);
     }
     const fixed = item.fixed ? ' (đã tự sửa)' : '';
     const fix = item.status !== 'green' && item.fix ? `  → sửa: ${item.fix.label}` : '';

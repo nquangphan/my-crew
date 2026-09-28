@@ -88,6 +88,11 @@ export interface CreateDaemonOptions {
   slots?: () => number;
   /** crew-docs bundle copied to `~/.crew/bin` at start; null skips the install. */
   crewDocsSource?: string | null;
+  /**
+   * Absolute runtime the crew-docs wrapper and hooks call (default: this process's binary). The desktop app
+   * passes its own executable, run with ELECTRON_RUN_AS_NODE=1, so hooks need no Node install.
+   */
+  crewDocsRuntime?: string;
   timings?: DaemonTimings;
 }
 
@@ -671,9 +676,10 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
   function installBundle(): void {
     const source = options.crewDocsSource === undefined ? packagedCrewDocs() : options.crewDocsSource;
     if (source === null) return;
+    const runtime = options.crewDocsRuntime ?? process.execPath;
     try {
-      const installed = installCrewDocs(paths.bin, source);
-      crewDocs = { bundle: installed.bundle, runtime: process.execPath };
+      const installed = installCrewDocs(paths.bin, source, runtime);
+      crewDocs = { bundle: installed.bundle, runtime };
       const standard = packagedStandard();
       if (standard) {
         copyFileSync(standard, join(paths.bin, STANDARD_FILE));
@@ -681,7 +687,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       }
     } catch (error) {
       const existing = `${paths.bin}/${CREW_DOCS_BUNDLE}`;
-      if (existsSync(existing)) crewDocs = { bundle: existing, runtime: process.execPath };
+      if (existsSync(existing)) crewDocs = { bundle: existing, runtime };
       log('warn', 'crew-docs install failed', { error: (error as Error).message });
     }
   }
