@@ -1,11 +1,18 @@
 import {
   AgentRole,
+  ClaimRequestStatus,
   CommentAuthorKind,
   Complexity,
   DocsStatus,
   Effort,
+  type HealthSummary,
+  type InventoryMcpServer,
+  type InventorySkill,
+  type MachineHardware,
+  type MachineResources,
   ModelAlias,
   ProjectPlatform,
+  type RunningJob,
   TicketPriority,
   TicketStatus,
   TicketType,
@@ -14,8 +21,10 @@ import {
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
+  bigint,
   bigserial,
   boolean,
+  check,
   date,
   index,
   integer,
@@ -26,6 +35,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
@@ -48,6 +58,7 @@ export const projectPlatformEnum = pgEnum('project_platform', enumValues(Project
 export const docsStatusEnum = pgEnum('docs_status', enumValues(DocsStatus));
 export const commentAuthorKindEnum = pgEnum('comment_author_kind', enumValues(CommentAuthorKind));
 export const budgetHoldEnum = pgEnum('budget_hold', ['children', 'cost']);
+export const claimStatusEnum = pgEnum('claim_status', enumValues(ClaimRequestStatus));
 
 // ---------------------------------------------------------------------------
 // Owner auth
@@ -93,7 +104,19 @@ export const machines = pgTable(
     hostname: text('hostname'),
     os: text('os'),
     hostsAssistant: boolean('hosts_assistant').notNull().default(false),
+    hardware: jsonb('hardware').$type<MachineHardware>(),
+    /** Set by any authenticated request; cleared by the heartbeat sweeper after 5 minutes of silence. */
+    online: boolean('online').notNull().default(false),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+    lastHeartbeatAt: timestamp('last_heartbeat_at', { withTimezone: true }),
+    paused: boolean('paused').notNull().default(false),
+    health: jsonb('health').$type<HealthSummary>(),
+    resources: jsonb('resources').$type<MachineResources>(),
+    runningJobs: jsonb('running_jobs').$type<RunningJob[]>().notNull().default([]),
+    cliVersion: text('cli_version'),
+    appVersion: text('app_version'),
+    /** A revoked machine keeps its row for history; it can never authenticate again. */
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex('machines_single_assistant_host').on(t.hostsAssistant).where(sql`${t.hostsAssistant}`)],
@@ -157,6 +180,8 @@ export const tickets = pgTable(
     bugCycle: integer('bug_cycle').notNull().default(0),
     flows: textArray('flows'),
     agentSessionId: text('agent_session_id'),
+    agentModel: text('agent_model'),
+    agentEffort: effortEnum('agent_effort'),
     costUsd: usd('cost_usd').notNull().default(0),
     /** Why the ticket waits in needs_input for the owner, when a cap or budget was hit. */
     budgetHold: budgetHoldEnum('budget_hold'),
@@ -238,6 +263,11 @@ export const events = pgTable(
   'events',
   {
     id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+    /**
+     * Delivery sequence and SSE cursor. A deferred trigger assigns it at commit under a lock (see the
+     * migration), so sequence order is commit order: null only while the inserting transaction is open.
+     */
+    seq: bigint('seq', { mode: 'bigint' }),
     type: text('type').notNull(),
     ticketId: uuid('ticket_id'),
     projectId: uuid('project_id'),
@@ -248,8 +278,85 @@ export const events = pgTable(
     createdAt: createdAt(),
   },
   (t) => [
-    index('events_target_machine_idx').on(t.targetMachineId, t.id),
+    uniqueIndex('events_seq_uq').on(t.seq),
+    index('events_target_seq_idx').on(t.targetMachineId, t.seq),
     index('events_ticket_idx').on(t.ticketId, t.id),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Machine auth, inventory and claims
+// ---------------------------------------------------------------------------
+
+/** Single-use codes the owner creates on the web; only the SHA-256 of the code is stored. */
+export const pairingCodes = pgTable('pairing_codes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  codeHash: text('code_hash').notNull().unique(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  /** The machine that used the code. */
+  machineId: uuid('machine_id').references(() => machines.id, { onDelete: 'set null' }),
+  createdAt: createdAt(),
+});
+
+/** Device tokens; only the SHA-256 of the token is stored. */
+export const machineTokens = pgTable(
+  'machine_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    machineId: uuid('machine_id')
+      .notNull()
+      .references(() => machines.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('machine_tokens_machine_idx').on(t.machineId)],
+);
+
+/** Skill and MCP inventory per machine and project; `project_id` null is the machine-level inventory. */
+export const machineSkills = pgTable(
+  'machine_skills',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    machineId: uuid('machine_id')
+      .notNull()
+      .references(() => machines.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    skills: jsonb('skills').$type<InventorySkill[]>().notNull().default([]),
+    mcpServers: jsonb('mcp_servers').$type<InventoryMcpServer[]>().notNull().default([]),
+    updatedAt: updatedAt(),
+  },
+  (t) => [unique('machine_skills_scope_uq').on(t.machineId, t.projectId).nullsNotDistinct()],
+);
+
+/** Claims of a project (`project_id`) or of the assistant role (`assistant`), and their decisions. */
+export const claimRequests = pgTable(
+  'claim_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    machineId: uuid('machine_id')
+      .notNull()
+      .references(() => machines.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    assistant: boolean('assistant').notNull().default(false),
+    /** The holder when the request was made or decided. */
+    previousMachineId: uuid('previous_machine_id').references(() => machines.id, { onDelete: 'set null' }),
+    status: claimStatusEnum('status').notNull(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check('claim_requests_target_ck', sql`${t.assistant} = (${t.projectId} is null)`),
+    uniqueIndex('claim_requests_pending_project_uq')
+      .on(t.machineId, t.projectId)
+      .where(sql`${t.status} = 'pending' and ${t.projectId} is not null`),
+    uniqueIndex('claim_requests_pending_assistant_uq')
+      .on(t.machineId)
+      .where(sql`${t.status} = 'pending' and ${t.assistant}`),
+    index('claim_requests_status_idx').on(t.status, t.createdAt),
   ],
 );
 
@@ -295,3 +402,5 @@ export type TicketRow = typeof tickets.$inferSelect;
 export type CommentRow = typeof comments.$inferSelect;
 export type ReportRow = typeof ticketReports.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
+export type MachineTokenRow = typeof machineTokens.$inferSelect;
+export type ClaimRequestRow = typeof claimRequests.$inferSelect;

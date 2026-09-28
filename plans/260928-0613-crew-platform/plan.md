@@ -73,7 +73,7 @@ Owner browser ──HTTPS──► Caddy ─┬─► web (static SPA)
 |---|-------|--------|------------|
 | 1 | [Monorepo Foundation](./phase-01-monorepo-foundation.md) | Completed | — |
 | 2 | [Backend Core](./phase-02-backend-core.md) | Completed | 1 |
-| 3 | [Event Delivery and Machine Auth](./phase-03-event-delivery.md) | Pending | 2 |
+| 3 | [Event Delivery and Machine Auth](./phase-03-event-delivery.md) | Completed | 2 |
 | 4 | [Web App](./phase-04-web-app.md) | Pending | 2, 3 |
 | 5 | [Docs Standard and Enforcement](./phase-05-docs-standard.md) | Pending | 1, 3, 4 |
 | 6 | [Local Daemon Core](./phase-06-local-daemon.md) | Pending | 3, 5 |
@@ -235,3 +235,6 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
   - Phase 6: the `docs_update` job kind, the dev-only `handoff_docs` tool, a guard limiting the docs job to `docs/`, and config validation that requires `sonnet` in `models.allow`. Effort is now 21h.
 - **Effort:** 132h.
 - **Consistency sweep:** no phase file still says dev writes or commits flow docs, and `opus / high` no longer appears for docs-init.
+
+### Session 12 — 2026-09-28 (owner follow-up)
+- **Owner decision:** when the owner approves going past a child cap or budget hold (a comment or resume on the held pm_task), the limit is lifted for the rest of that pm_task's tree, not for a single batch. This is what Phase 2 implemented; see [the Phase 2 report](./reports/phase-02-implementation-report.md).

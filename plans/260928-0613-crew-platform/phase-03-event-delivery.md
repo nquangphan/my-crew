@@ -1,6 +1,6 @@
 ---
 title: "Phase 3: Event Delivery and Machine Auth"
-status: todo
+status: completed
 priority: P1
 effort: 10h
 dependsOn: [2]
@@ -109,13 +109,13 @@ Modify:
 
 ## Todo
 
-- [ ] Migration, pairing, and claims from the app (immediate, takeover approval, release, create project)
-- [ ] Token expiry, rotation and revocation, with streams closed on revoke
-- [ ] Machine auth and scope
-- [ ] Event bus and cursor replay SSE
-- [ ] Daemon REST endpoints with idempotency
-- [ ] Owner stream and sweeper
-- [ ] Tests green
+- [x] Migration, pairing, and claims from the app (immediate, takeover approval, release, create project)
+- [x] Token expiry, rotation and revocation, with streams closed on revoke
+- [x] Machine auth and scope
+- [x] Event bus and cursor replay SSE
+- [x] Daemon REST endpoints with idempotency
+- [x] Owner stream and sweeper
+- [x] Tests green
 
 ## Success Criteria
 

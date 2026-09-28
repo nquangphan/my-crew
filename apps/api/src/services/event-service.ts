@@ -1,7 +1,10 @@
 import { type AgentRole, type EventEnvelope, EventPayload } from '@crew/shared';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, gt, isNotNull, sql } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import { type EventRow, events } from '../db/schema.js';
+
+/** Postgres channel notified when events commit; the payload is empty (readers query by sequence). */
+export const EVENTS_CHANNEL = 'events_new';
 
 export interface NewEvent {
   payload: EventPayload;
@@ -14,7 +17,8 @@ export interface NewEvent {
 
 /**
  * Appends events inside the caller's transaction, so they commit or roll back with the business write.
- * Payloads are validated against the shared contract before they are stored.
+ * Payloads are validated against the shared contract before they are stored. The NOTIFY is delivered only
+ * when the transaction commits, after the commit-time trigger has assigned each event its `seq`.
  */
 export async function appendEvents(tx: Executor, list: readonly NewEvent[]): Promise<EventRow[]> {
   if (list.length === 0) return [];
@@ -29,12 +33,16 @@ export async function appendEvents(tx: Executor, list: readonly NewEvent[]): Pro
       payload,
     };
   });
-  return tx.insert(events).values(rows).returning();
+  const inserted = await tx.insert(events).values(rows).returning();
+  await tx.execute(sql`select pg_notify(${EVENTS_CHANNEL}, '')`);
+  return inserted;
 }
 
+/** Envelope of a committed event; its `id` is the delivery sequence, which is also the SSE cursor. */
 export function toEventEnvelope(row: EventRow): EventEnvelope {
+  if (row.seq === null) throw new Error(`event ${row.id} has no delivery sequence yet (uncommitted)`);
   return {
-    id: row.id.toString(),
+    id: row.seq.toString(),
     type: row.type,
     ticketId: row.ticketId,
     projectId: row.projectId,
@@ -53,8 +61,32 @@ export async function listTicketEvents(
   const rows = await db
     .select()
     .from(events)
-    .where(eq(events.ticketId, ticketId))
-    .orderBy(asc(events.id))
+    .where(and(eq(events.ticketId, ticketId), isNotNull(events.seq)))
+    .orderBy(asc(events.seq))
     .limit(limit);
   return rows.map(toEventEnvelope);
+}
+
+/**
+ * Committed events after `cursor`, in delivery order: every event for the owner stream (`machineId`
+ * undefined), or only the events targeted at one machine.
+ */
+export async function listEventsAfter(
+  db: Executor,
+  args: { cursor: bigint; machineId?: string; limit: number },
+): Promise<EventEnvelope[]> {
+  const after = gt(events.seq, args.cursor);
+  const rows = await db
+    .select()
+    .from(events)
+    .where(args.machineId ? and(eq(events.targetMachineId, args.machineId), after) : after)
+    .orderBy(asc(events.seq))
+    .limit(args.limit);
+  return rows.map(toEventEnvelope);
+}
+
+/** Highest committed delivery sequence, or 0 when there are no events. */
+export async function latestEventSeq(db: Executor): Promise<bigint> {
+  const [row] = await db.select({ max: sql<string | null>`max(${events.seq})::text` }).from(events);
+  return BigInt(row?.max ?? '0');
 }

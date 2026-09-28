@@ -182,6 +182,20 @@ async function resolveSession(
   };
 }
 
+/**
+ * True while a session is within both TTLs. Does not extend it, so an open owner stream alone never keeps
+ * an idle session alive.
+ */
+export async function sessionStillValid(db: Executor, sessionIdHash: string): Promise<boolean> {
+  const [row] = await db.select().from(sessions).where(eq(sessions.idHash, sessionIdHash));
+  const now = Date.now();
+  return (
+    row !== undefined &&
+    row.expiresAt.getTime() > now &&
+    now - row.lastSeenAt.getTime() <= SESSION_IDLE_TTL_MS
+  );
+}
+
 export function setSessionCookies(
   reply: FastifyReply,
   config: AppConfig,

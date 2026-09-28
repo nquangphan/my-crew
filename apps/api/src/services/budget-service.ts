@@ -1,7 +1,7 @@
-import { canTransition } from '@crew/shared';
+import { type BudgetStatusResponse, canTransition } from '@crew/shared';
 import { and, eq, ne, or, sql } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
-import { budgetsUsage, comments, type ProjectRow, type TicketRow, tickets } from '../db/schema.js';
+import { budgetsUsage, comments, type ProjectRow, projects, type TicketRow, tickets } from '../db/schema.js';
 import { ApiError } from '../errors.js';
 import { appendEvents } from './event-service.js';
 
@@ -167,3 +167,55 @@ export async function addCost(
 }
 
 const formatUsd = (value: number) => `${value.toFixed(2)} USD`;
+
+/**
+ * What a job may still spend on a ticket: the pm_task tree budget and the project's daily budget for today
+ * in `timezone`. Limits are null (no limit) unless the owner set them.
+ */
+export async function getBudgetStatus(
+  db: Executor,
+  ticket: TicketRow,
+  timezone: string,
+): Promise<BudgetStatusResponse> {
+  const [parent] = ticket.parentId
+    ? await db.select().from(tickets).where(eq(tickets.id, ticket.parentId))
+    : [];
+  const pmTask = ticket.type === 'pm_task' ? ticket : parent?.type === 'pm_task' ? parent : null;
+  const [project] = ticket.projectId
+    ? await db.select().from(projects).where(eq(projects.id, ticket.projectId))
+    : [];
+
+  const [tree] = pmTask
+    ? await db
+        .select({ total: sql<string>`coalesce(sum(${tickets.costUsd}), 0)` })
+        .from(tickets)
+        .where(or(eq(tickets.id, pmTask.id), eq(tickets.parentId, pmTask.id)))
+    : [];
+  const [today] = await db.execute<{ day: string; cost: string | null }>(sql`
+    select to_char((now() at time zone ${timezone})::date, 'YYYY-MM-DD') as day,
+      (select ${budgetsUsage.costUsd}::text from ${budgetsUsage}
+        where ${budgetsUsage.projectId} = ${project?.id ?? null}::uuid
+          and ${budgetsUsage.day} = (now() at time zone ${timezone})::date) as cost`);
+
+  const line = (spentUsd: number, limitUsd: number | null) => ({
+    spentUsd,
+    limitUsd,
+    remainingUsd: limitUsd === null ? null : Math.max(0, limitUsd - spentUsd),
+  });
+  const treeLine = line(Number(tree?.total ?? 0), project?.ticketTreeBudgetUsd ?? null);
+  const dailyLine = line(Number(today?.cost ?? 0), project?.dailyBudgetUsd ?? null);
+  const hold = pmTask?.budgetHold ?? null;
+  const lifted = pmTask?.costBudgetLifted ?? false;
+  const usedUp = (l: { remainingUsd: number | null }) => l.remainingUsd !== null && l.remainingUsd <= 0;
+  return {
+    ticketId: ticket.id,
+    pmTaskId: pmTask?.id ?? null,
+    projectId: ticket.projectId,
+    ticketCostUsd: ticket.costUsd,
+    tree: treeLine,
+    daily: { ...dailyLine, day: today?.day ?? '' },
+    hold,
+    costBudgetLifted: lifted,
+    overBudget: hold === 'cost' || (pmTask !== null && !lifted && (usedUp(treeLine) || usedUp(dailyLine))),
+  };
+}

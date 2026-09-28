@@ -28,6 +28,8 @@ export const ApiErrorCode = z.enum([
   'QC_ALREADY_PAIRED',
   'IDEMPOTENCY_KEY_REQUIRED',
   'IDEMPOTENCY_KEY_REUSED',
+  /** The project or assistant role is held by another machine; a claim request now waits for the owner. */
+  'CLAIM_PENDING',
   'RATE_LIMITED',
   'INTERNAL',
 ]);
@@ -110,6 +112,9 @@ export const Ticket = z.object({
   bugCycle: z.number().int(),
   flows: z.array(z.string()),
   agentSessionId: z.string().nullable(),
+  /** Model and effort of the latest agent run, as reported by the daemon (the planned ones are above). */
+  agentModel: z.string().nullable(),
+  agentEffort: Effort.nullable(),
   costUsd: z.number(),
   /** Set while the ticket waits for the owner because a cap or budget was hit. */
   budgetHold: z.enum(['children', 'cost']).nullable(),
@@ -188,6 +193,8 @@ export const ListTicketsQuery = z.object({
   role: CsvList(AgentRole).optional(),
   priority: CsvList(TicketPriority).optional(),
   flow: FlowRef.optional(),
+  /** Tickets assigned to one machine, e.g. the affected tickets of an offline machine. */
+  machineId: z.uuid().optional(),
   q: z.string().trim().min(1).max(200).optional(),
   sort: TicketSortField.default('updatedAt'),
   order: z.enum(['asc', 'desc']).default('desc'),

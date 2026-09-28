@@ -1,15 +1,18 @@
 import {
+  type AgentMetaRequest as AgentMetaInput,
+  AgentMetaRequest,
   type Report,
   type ReportResponse,
   type SubmitReportRequest as SubmitReportInput,
   SubmitReportRequest,
+  type Ticket,
 } from '@crew/shared';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
-import { projects, type ReportRow, ticketReports } from '../db/schema.js';
+import { projects, type ReportRow, ticketReports, tickets } from '../db/schema.js';
 import { ApiError } from '../errors.js';
 import { addCost, DEFAULT_BUDGET_TIMEZONE } from './budget-service.js';
-import { getTicketRow, governingPmTask, lockWithParent } from './ticket-service.js';
+import { getTicketRow, governingPmTask, lockWithParent, toTicketDto } from './ticket-service.js';
 
 export function toReportDto(row: ReportRow): Report {
   return {
@@ -101,4 +104,48 @@ export async function getCurrentReport(db: Executor, ticketId: string): Promise<
     .from(ticketReports)
     .where(and(eq(ticketReports.ticketId, ticketId), eq(ticketReports.isCurrent, true)));
   return row ? toReportDto(row) : null;
+}
+
+/**
+ * Records what the latest agent run used (session id, model, effort) and books the cost of a run that ended
+ * without a report. Cost contract: a run's cost goes either into its report's `costUsd` or into
+ * `costDeltaUsd` here, never both; each is a delta that is added once (retries are absorbed by the
+ * idempotency key of the daemon route).
+ */
+export async function recordAgentMeta(
+  db: Executor,
+  ticketId: string,
+  input: AgentMetaInput,
+  options: { timezone?: string } = {},
+): Promise<Ticket> {
+  const data = AgentMetaRequest.parse(input);
+  return db.transaction(async (tx) => {
+    const { ticket, parent } = await lockWithParent(tx, ticketId);
+    const patch = {
+      ...(data.sessionId === undefined ? {} : { agentSessionId: data.sessionId }),
+      ...(data.model === undefined ? {} : { agentModel: data.model }),
+      ...(data.effort === undefined ? {} : { agentEffort: data.effort }),
+    };
+    if (Object.keys(patch).length > 0) {
+      await tx
+        .update(tickets)
+        .set({ ...patch, updatedAt: new Date() })
+        .where(eq(tickets.id, ticket.id));
+    }
+    if (data.costDeltaUsd) {
+      const [project] = ticket.projectId
+        ? await tx.select().from(projects).where(eq(projects.id, ticket.projectId))
+        : [];
+      await addCost(tx, {
+        ticket,
+        pmTask: governingPmTask(ticket, parent),
+        project: project ?? null,
+        deltaUsd: data.costDeltaUsd,
+        timezone: options.timezone ?? DEFAULT_BUDGET_TIMEZONE,
+      });
+    }
+    const [fresh] = await tx.select().from(tickets).where(eq(tickets.id, ticket.id));
+    if (!fresh) throw new Error('ticket vanished inside its own transaction');
+    return toTicketDto(fresh);
+  });
 }

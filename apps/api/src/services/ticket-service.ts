@@ -73,6 +73,8 @@ export function toTicketDto(row: TicketRow): Ticket {
     bugCycle: row.bugCycle,
     flows: row.flows,
     agentSessionId: row.agentSessionId,
+    agentModel: row.agentModel,
+    agentEffort: row.agentEffort,
     costUsd: row.costUsd,
     budgetHold: row.budgetHold,
     createdAt: row.createdAt.toISOString(),
@@ -130,7 +132,10 @@ export function governingPmTask(ticket: TicketRow, parent: TicketRow | null): Ti
  * Runs `fn` in a transaction. When it returns an ApiError, the transaction still commits (it holds side
  * effects such as parking a pm_task) and the error is thrown afterwards.
  */
-async function commitThenThrow<T>(db: Executor, fn: (tx: Transaction) => Promise<T | ApiError>): Promise<T> {
+export async function commitThenThrow<T>(
+  db: Executor,
+  fn: (tx: Transaction) => Promise<T | ApiError>,
+): Promise<T> {
   const result = await db.transaction(fn);
   if (result instanceof ApiError) throw result;
   return result;

@@ -61,6 +61,7 @@ export async function listTickets(db: Executor, input: ListTicketsInput): Promis
   if (query.role?.length) filters.push(inArray(tickets.assigneeRole, query.role));
   if (query.priority?.length) filters.push(inArray(tickets.priority, query.priority));
   if (query.flow) filters.push(arrayContains(tickets.flows, [query.flow]));
+  if (query.machineId) filters.push(eq(tickets.assigneeMachineId, query.machineId));
   if (query.q) {
     const pattern = likePattern(query.q);
     const match = or(ilike(tickets.key, pattern), ilike(tickets.title, pattern));

@@ -1,0 +1,335 @@
+import { createHash, randomInt } from 'node:crypto';
+import {
+  type HeartbeatRequest as HeartbeatInput,
+  HeartbeatRequest,
+  type HeartbeatResponse,
+  MACHINE_TOKEN_TTL_DAYS,
+  type Machine,
+  type MachineDetailResponse,
+  type MachineTokenResponse,
+  PAIRING_CODE_TTL_MINUTES,
+  type PairingCodeResponse,
+  type PairMachineRequest as PairMachineInput,
+  PairMachineRequest,
+  type PutSkillsRequest as PutSkillsInput,
+  PutSkillsRequest,
+  type SkillInventory,
+} from '@crew/shared';
+import { and, asc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
+import type { MachineContext } from '../auth/machine-auth.js';
+import { generateMachineToken, hashMachineToken } from '../auth/machine-auth.js';
+import { verifyOwnerTotp } from '../auth/owner-auth.js';
+import type { Executor } from '../db/client.js';
+import {
+  type MachineRow,
+  machineSkills,
+  machines,
+  machineTokens,
+  pairingCodes,
+  projects,
+} from '../db/schema.js';
+import { ApiError, notFound } from '../errors.js';
+import type { EventBus } from '../realtime/event-bus.js';
+import { releaseEverything } from './claim-service.js';
+import { appendEvents } from './event-service.js';
+
+export const PAIRING_CODE_TTL_MS = PAIRING_CODE_TTL_MINUTES * 60 * 1000;
+export const MACHINE_TOKEN_TTL_MS = MACHINE_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
+/**
+ * After a rotation the old token keeps working this long, so a daemon that crashed before saving the new
+ * token can rotate again instead of re-pairing. Streams on the old token close at the first heartbeat after.
+ */
+export const ROTATION_GRACE_MS = 10 * 60 * 1000;
+
+const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
+const normalizePairingCode = (code: string) => code.trim().toUpperCase().replaceAll('-', '');
+
+// ---------------------------------------------------------------------------
+// Pairing and tokens
+// ---------------------------------------------------------------------------
+
+/** Owner creates a single-use pairing code after re-confirming the TOTP. Only its hash is stored. */
+export async function createPairingCode(
+  db: Executor,
+  ownerId: string,
+  totpCode: string,
+): Promise<PairingCodeResponse> {
+  if (!(await verifyOwnerTotp(db, ownerId, totpCode))) {
+    throw new ApiError('UNAUTHORIZED', 'invalid verification code');
+  }
+  const raw = Array.from({ length: 12 }, () => BASE32[randomInt(BASE32.length)]).join('');
+  const expiresAt = new Date(Date.now() + PAIRING_CODE_TTL_MS);
+  await db.insert(pairingCodes).values({ codeHash: sha256(raw), expiresAt });
+  return { pairingCode: raw.match(/.{4}/g)?.join('-') ?? raw, expiresAt: expiresAt.toISOString() };
+}
+
+async function issueToken(tx: Executor, machineId: string): Promise<{ token: string; expiresAt: Date }> {
+  const token = generateMachineToken();
+  const expiresAt = new Date(Date.now() + MACHINE_TOKEN_TTL_MS);
+  await tx.insert(machineTokens).values({ machineId, tokenHash: hashMachineToken(token), expiresAt });
+  return { token, expiresAt };
+}
+
+async function saveInventory(
+  tx: Executor,
+  machineId: string,
+  projectId: string | null,
+  inventory: SkillInventory,
+): Promise<void> {
+  const values = { skills: inventory.skills, mcpServers: inventory.mcpServers, updatedAt: new Date() };
+  await tx
+    .insert(machineSkills)
+    .values({ machineId, projectId, ...values })
+    .onConflictDoUpdate({ target: [machineSkills.machineId, machineSkills.projectId], set: values });
+}
+
+/**
+ * Pairs a new machine with a single-use code and returns its token once. The code authenticates the machine
+ * only; projects and the assistant role are claimed afterwards from the local app.
+ */
+export async function pairMachine(db: Executor, input: PairMachineInput): Promise<MachineTokenResponse> {
+  const data = PairMachineRequest.parse(input);
+  return db.transaction(async (tx) => {
+    const [code] = await tx
+      .update(pairingCodes)
+      .set({ usedAt: new Date() })
+      .where(
+        and(
+          eq(pairingCodes.codeHash, sha256(normalizePairingCode(data.code))),
+          isNull(pairingCodes.usedAt),
+          gt(pairingCodes.expiresAt, sql`now()`),
+        ),
+      )
+      .returning({ id: pairingCodes.id });
+    if (!code) throw new ApiError('UNAUTHORIZED', 'invalid, used or expired pairing code');
+
+    const [machine] = await tx
+      .insert(machines)
+      .values({
+        name: data.name,
+        hostname: data.hostname,
+        os: data.os,
+        hardware: data.hardware,
+        online: true,
+        lastSeenAt: new Date(),
+      })
+      .returning({ id: machines.id });
+    if (!machine) throw new Error('machine insert returned no row');
+    await tx.update(pairingCodes).set({ machineId: machine.id }).where(eq(pairingCodes.id, code.id));
+    if (data.inventory) await saveInventory(tx, machine.id, null, data.inventory);
+
+    const { token, expiresAt } = await issueToken(tx, machine.id);
+    return { machineId: machine.id, token, expiresAt: expiresAt.toISOString() };
+  });
+}
+
+/** Swaps the calling token for a new one; the old token stays valid for ROTATION_GRACE_MS at most. */
+export async function rotateToken(db: Executor, machine: MachineContext): Promise<MachineTokenResponse> {
+  return db.transaction(async (tx) => {
+    const { token, expiresAt } = await issueToken(tx, machine.machineId);
+    const graceEnd = new Date(Date.now() + ROTATION_GRACE_MS);
+    await tx
+      .update(machineTokens)
+      .set({ expiresAt: sql`least(${machineTokens.expiresAt}, ${graceEnd.toISOString()}::timestamptz)` })
+      .where(eq(machineTokens.id, machine.tokenId));
+    return { machineId: machine.machineId, token, expiresAt: expiresAt.toISOString() };
+  });
+}
+
+/**
+ * Revokes a machine: all its tokens, its claims (its projects and the assistant role become unowned) and
+ * its pending requests. Its open streams are closed before the commit, so no later event reaches it.
+ */
+export async function revokeMachine(db: Executor, bus: EventBus, machineId: string): Promise<Machine> {
+  try {
+    await db.transaction(async (tx) => {
+      const [row] = await tx.select().from(machines).where(eq(machines.id, machineId));
+      if (!row) throw notFound('machine');
+      if (row.revokedAt) return;
+      // Claim scopes are locked before machine rows everywhere, so this takes no machine row lock first.
+      const events = await releaseEverything(tx, machineId);
+      await tx
+        .update(machines)
+        .set({ revokedAt: new Date(), online: false, hostsAssistant: false })
+        .where(eq(machines.id, machineId));
+      await tx
+        .update(machineTokens)
+        .set({ revokedAt: new Date() })
+        .where(and(eq(machineTokens.machineId, machineId), isNull(machineTokens.revokedAt)));
+      await appendEvents(tx, events);
+      bus.revokeMachine(machineId);
+    });
+  } catch (error) {
+    bus.restoreMachine(machineId);
+    throw error;
+  }
+  return (await getMachineDetail(db, bus, machineId)).machine;
+}
+
+// ---------------------------------------------------------------------------
+// Heartbeat and inventory
+// ---------------------------------------------------------------------------
+
+/**
+ * Stores the latest machine state. A health summary that turns red (from anything else) sends a
+ * `machine.unhealthy` alert to the owner stream once.
+ */
+export async function recordHeartbeat(
+  db: Executor,
+  machine: MachineContext,
+  input: HeartbeatInput,
+): Promise<HeartbeatResponse> {
+  const data = HeartbeatRequest.parse(input);
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ health: machines.health })
+      .from(machines)
+      .where(eq(machines.id, machine.machineId))
+      .for('update');
+    if (!row) throw notFound('machine');
+    await tx
+      .update(machines)
+      .set({
+        resources: data.resources,
+        runningJobs: data.runningJobs,
+        cliVersion: data.cliVersion,
+        ...(data.appVersion ? { appVersion: data.appVersion } : {}),
+        paused: data.paused,
+        ...(data.health ? { health: data.health } : {}),
+        online: true,
+        lastSeenAt: sql`now()`,
+        lastHeartbeatAt: sql`now()`,
+      })
+      .where(eq(machines.id, machine.machineId));
+    if (data.health?.status === 'red' && row.health?.status !== 'red') {
+      await appendEvents(tx, [
+        {
+          payload: {
+            type: 'machine.unhealthy',
+            data: { machineId: machine.machineId, failing: data.health.failing },
+          },
+        },
+      ]);
+    }
+    return { serverTime: new Date().toISOString(), tokenExpiresAt: machine.tokenExpiresAt.toISOString() };
+  });
+}
+
+/** Replaces the skill and MCP inventory of one owned project, or the machine-level inventory. */
+export async function putInventory(db: Executor, machineId: string, input: PutSkillsInput): Promise<void> {
+  const data = PutSkillsRequest.parse(input);
+  let projectId: string | null = null;
+  if (data.projectKey !== null) {
+    const [project] = await db
+      .select({ id: projects.id, owner: projects.ownerMachineId })
+      .from(projects)
+      .where(eq(projects.key, data.projectKey));
+    if (!project) throw notFound('project');
+    if (project.owner !== machineId) {
+      throw new ApiError('FORBIDDEN', `project ${data.projectKey} belongs to another machine`);
+    }
+    projectId = project.id;
+  }
+  await saveInventory(db, machineId, projectId, data);
+}
+
+// ---------------------------------------------------------------------------
+// Owner views
+// ---------------------------------------------------------------------------
+
+function toMachineDto(
+  row: MachineRow,
+  extras: { streamConnected: boolean; tokenExpiresAt: Date | null; projectKeys: string[] },
+): Machine {
+  return {
+    id: row.id,
+    name: row.name,
+    hostname: row.hostname,
+    os: row.os,
+    hardware: row.hardware,
+    hostsAssistant: row.hostsAssistant,
+    online: row.online,
+    streamConnected: extras.streamConnected,
+    lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
+    lastHeartbeatAt: row.lastHeartbeatAt?.toISOString() ?? null,
+    paused: row.paused,
+    health: row.health,
+    resources: row.resources,
+    runningJobs: row.runningJobs,
+    cliVersion: row.cliVersion,
+    appVersion: row.appVersion,
+    tokenExpiresAt: extras.tokenExpiresAt?.toISOString() ?? null,
+    revokedAt: row.revokedAt?.toISOString() ?? null,
+    projectKeys: extras.projectKeys,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+async function machineDtos(db: Executor, bus: EventBus, rows: MachineRow[]): Promise<Machine[]> {
+  if (rows.length === 0) return [];
+  const ids = rows.map((row) => row.id);
+  const [expiries, owned] = await Promise.all([
+    db
+      .select({
+        machineId: machineTokens.machineId,
+        expiresAt: sql<string>`max(${machineTokens.expiresAt})::text`,
+      })
+      .from(machineTokens)
+      .where(
+        and(
+          inArray(machineTokens.machineId, ids),
+          isNull(machineTokens.revokedAt),
+          gt(machineTokens.expiresAt, sql`now()`),
+        ),
+      )
+      .groupBy(machineTokens.machineId),
+    db
+      .select({ owner: projects.ownerMachineId, key: projects.key })
+      .from(projects)
+      .where(inArray(projects.ownerMachineId, ids))
+      .orderBy(asc(projects.key)),
+  ]);
+  const expiryOf = new Map(expiries.map((e) => [e.machineId, new Date(e.expiresAt)]));
+  return rows.map((row) =>
+    toMachineDto(row, {
+      streamConnected: bus.isConnected(row.id),
+      tokenExpiresAt: expiryOf.get(row.id) ?? null,
+      projectKeys: owned.filter((p) => p.owner === row.id).map((p) => p.key),
+    }),
+  );
+}
+
+export async function listMachines(db: Executor, bus: EventBus): Promise<Machine[]> {
+  const rows = await db.select().from(machines).orderBy(asc(machines.createdAt));
+  return machineDtos(db, bus, rows);
+}
+
+export async function getMachineDetail(
+  db: Executor,
+  bus: EventBus,
+  machineId: string,
+): Promise<MachineDetailResponse> {
+  const [row] = await db.select().from(machines).where(eq(machines.id, machineId));
+  if (!row) throw notFound('machine');
+  const [[machine], inventories] = await Promise.all([
+    machineDtos(db, bus, [row]),
+    db
+      .select({ inventory: machineSkills, projectKey: projects.key })
+      .from(machineSkills)
+      .leftJoin(projects, eq(projects.id, machineSkills.projectId))
+      .where(eq(machineSkills.machineId, machineId))
+      .orderBy(asc(projects.key)),
+  ]);
+  if (!machine) throw notFound('machine');
+  return {
+    machine,
+    inventories: inventories.map(({ inventory, projectKey }) => ({
+      projectId: inventory.projectId,
+      projectKey,
+      skills: inventory.skills,
+      mcpServers: inventory.mcpServers,
+      updatedAt: inventory.updatedAt.toISOString(),
+    })),
+  };
+}

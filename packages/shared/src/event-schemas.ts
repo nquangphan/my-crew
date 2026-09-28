@@ -3,10 +3,16 @@ import { AgentRole } from './agent-schemas.js';
 import { TicketStatus } from './ticket-schemas.js';
 
 const TicketRef = z.object({ ticketId: z.string() });
+/** What a claim is about: one project, or the assistant role (`projectId` null). */
+const ClaimScope = z.object({ projectId: z.string().nullable(), assistant: z.boolean() });
 
 /** Discriminated union of every event the server emits. `type` is the discriminator. */
 export const EventPayload = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('ticket.assigned'), data: TicketRef.extend({ role: AgentRole }) }),
+  /** `reassigned` marks a re-dispatch after the ticket's project (or the assistant role) moved machines. */
+  z.object({
+    type: z.literal('ticket.assigned'),
+    data: TicketRef.extend({ role: AgentRole, reassigned: z.boolean().optional() }),
+  }),
   /** Owner comments only; agent comments never wake an agent. */
   z.object({
     type: z.literal('ticket.comment_added'),
@@ -25,15 +31,35 @@ export const EventPayload = z.discriminatedUnion('type', [
     type: z.literal('machine.claimed'),
     data: z.object({ machineId: z.string(), projectId: z.string().nullable(), assistant: z.boolean() }),
   }),
+  /** A takeover request waits for the owner. Owner stream only. */
   z.object({
     type: z.literal('claim.requested'),
-    data: z.object({ claimRequestId: z.string(), machineId: z.string() }),
+    data: ClaimScope.extend({ claimRequestId: z.string(), machineId: z.string() }),
   }),
+  /** Sent to the requesting machine and, on approval, to the machine that lost the claim. */
   z.object({
     type: z.literal('claim.changed'),
-    data: z.object({
+    data: ClaimScope.extend({
       claimRequestId: z.string(),
       status: z.enum(['approved', 'rejected']),
+      /** The machine that holds the claim after the decision (null when nobody does). */
+      machineId: z.string().nullable(),
+      previousMachineId: z.string().nullable(),
+    }),
+  }),
+  /** A machine released a project or the assistant role (or was revoked). Owner stream only. */
+  z.object({ type: z.literal('machine.released'), data: ClaimScope.extend({ machineId: z.string() }) }),
+  /** A machine created a project it owns. Owner stream only. */
+  z.object({
+    type: z.literal('project.created'),
+    data: z.object({ projectId: z.string(), machineId: z.string() }),
+  }),
+  /** The desktop app's health summary turned red. Owner stream only. */
+  z.object({
+    type: z.literal('machine.unhealthy'),
+    data: z.object({
+      machineId: z.string(),
+      failing: z.array(z.object({ id: z.string(), title: z.string() })),
     }),
   }),
   z.object({ type: z.literal('children.all_done'), data: TicketRef }),
@@ -54,7 +80,10 @@ export type EventPayload = z.infer<typeof EventPayload>;
 export type EventType = EventPayload['type'];
 
 export const EventEnvelope = z.object({
-  /** bigserial as a decimal string: it is also the SSE cursor. */
+  /**
+   * Delivery sequence as a decimal string; it is also the SSE cursor. Sequence numbers are assigned in
+   * commit order, so a reader that has seen `n` has seen every committed event below `n`.
+   */
   id: z.string(),
   type: z.string(),
   ticketId: z.string().nullable(),
@@ -65,3 +94,15 @@ export const EventEnvelope = z.object({
   createdAt: z.iso.datetime(),
 });
 export type EventEnvelope = z.infer<typeof EventEnvelope>;
+
+/** SSE comment heartbeat interval of both streams; the token or session is re-checked on each one. */
+export const STREAM_HEARTBEAT_MS = 20_000;
+
+/**
+ * Resume point of `GET /v1/daemon/stream` and `GET /v1/stream`: the `id` of the last event received.
+ * Sent as the SSE `Last-Event-ID` header or as `?cursor=`; the header wins when both are present.
+ */
+export const StreamCursor = z.string().regex(/^\d{1,19}$/, 'the cursor is a decimal event id');
+
+export const StreamQuery = z.object({ cursor: StreamCursor.optional() });
+export type StreamQuery = z.infer<typeof StreamQuery>;

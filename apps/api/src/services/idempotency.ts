@@ -75,15 +75,16 @@ export async function withIdempotency(
       key,
       fingerprint,
       statusCode: response.statusCode,
-      response: response.body ?? null,
+      // A body-less response (204) is stored as JSON null; SQL NULL would violate the column.
+      response: response.body === undefined || response.body === null ? sql`'null'::jsonb` : response.body,
     });
     return { ...response, replayed: false };
   });
 }
 
 /**
- * Fastify glue for daemon write routes: reads the key, fingerprints the request (method, route pattern and
- * body), runs the handler once and replays the stored status and body on retries.
+ * Fastify glue for daemon write routes: reads the key, fingerprints the request (method, path and body),
+ * runs the handler once and replays the stored status and body on retries.
  */
 export async function replyIdempotent(
   db: Executor,
@@ -96,7 +97,8 @@ export async function replyIdempotent(
   const bodyHash = createHash('sha256')
     .update(JSON.stringify(request.body ?? null))
     .digest('hex');
-  const fingerprint = `${request.method} ${request.routeOptions.url ?? request.url} ${bodyHash}`;
+  // The concrete path (not the route pattern), so a key reused for another ticket is refused, not replayed.
+  const fingerprint = `${request.method} ${request.url} ${bodyHash}`;
   const result = await withIdempotency(db, { machineId, key, fingerprint }, handler);
   if (result.replayed) reply.header('idempotent-replayed', 'true');
   return reply.status(result.statusCode).send(result.body);

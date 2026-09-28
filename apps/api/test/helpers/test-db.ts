@@ -16,6 +16,10 @@ import { createRequestTicket, createSubtask, transitionTicket } from '../../src/
 import { assertTestDatabase, TEST_DATABASE_URL } from './test-database-url.js';
 
 const TABLES = [
+  'claim_requests',
+  'machine_skills',
+  'machine_tokens',
+  'pairing_codes',
   'idempotency_keys',
   'budgets_usage',
   'events',
