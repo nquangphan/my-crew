@@ -45,9 +45,17 @@ export class ScriptedCrash extends Error {
 
 export interface ScriptedRunnerOptions {
   /** The script for a run (YAML text or a parsed script), e.g. chosen by ticket, role and trigger. */
-  script: (run: RunAgentOptions) => string | ScriptInput;
+  script: (run: RunAgentOptions) => string | ScriptInput | Promise<string | ScriptInput>;
   /** Where fake sessions keep their progress, so `resume` continues after the last completed step. */
   sessionsDir: string;
+  /**
+   * Fills in a step's input right before it runs (e.g. the id of a ticket an earlier step created). Tool
+   * inputs and Bash commands pass through it.
+   */
+  resolve?: (
+    input: Record<string, unknown>,
+    run: RunAgentOptions,
+  ) => Promise<Record<string, unknown>> | Record<string, unknown>;
 }
 
 function loadScript(source: string | ScriptInput): Script {
@@ -104,7 +112,7 @@ function toolCall(step: ScriptStep): { tool: string; input: Record<string, unkno
  */
 export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunner {
   return async (run) => {
-    const script = loadScript(options.script(run));
+    const script = loadScript(await options.script(run));
     const result: AgentRunResult = emptyResult();
     const sessionId = run.resumeSessionId ?? `scripted-${randomUUID()}`;
     const session = run.resumeSessionId
@@ -145,8 +153,11 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
         result.errors.push(step.fail);
         break;
       } else {
-        const call = toolCall(step);
-        if (!call) continue;
+        const planned = toolCall(step);
+        if (!planned) continue;
+        const call = options.resolve
+          ? { tool: planned.tool, input: await options.resolve(planned.input, run) }
+          : planned;
         const hookInput: PreToolUseHookInput = {
           hook_event_name: 'PreToolUse',
           session_id: sessionId,
@@ -180,6 +191,8 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
             const target = resolve(run.cwd, String(call.input.file_path));
             mkdirSync(dirname(target), { recursive: true });
             writeFileSync(target, String(call.input.content));
+          } else if (call.tool === 'Edit') {
+            applyEdit(run.cwd, call.input);
           } else if (call.tool.startsWith(ticketPrefix)) {
             const name = call.tool.slice(ticketPrefix.length);
             const definition = run.ticketTools.find((tool) => tool.name === name);
@@ -201,6 +214,21 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
     result.totalCostUsd = session.costUsd;
     return result;
   };
+}
+
+/** Replays an Edit like Claude Code: `old_string` must be found (once, unless `replace_all`). */
+function applyEdit(cwd: string, input: Record<string, unknown>): void {
+  const target = resolve(cwd, String(input.file_path));
+  const oldString = String(input.old_string);
+  const newString = String(input.new_string);
+  const text = existsSync(target) ? readFileSync(target, 'utf8') : '';
+  if (!text.includes(oldString)) throw new Error(`scripted Edit: old_string not found in ${input.file_path}`);
+  writeFileSync(
+    target,
+    input.replace_all === true
+      ? text.split(oldString).join(newString)
+      : text.replace(oldString, () => newString),
+  );
 }
 
 /** Runs one Bash step in its own process group with the job env; resolves with the shell's pid. */

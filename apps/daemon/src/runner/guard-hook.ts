@@ -14,6 +14,11 @@ export interface GuardContext {
   /** The job's temp dir (`$TMPDIR`), which Bash may clean up. */
   tmpDir?: string;
   home?: string;
+  /**
+   * A dev or bug run: it writes code and tests only. Writes under `docs/` and `git commit` are denied; the
+   * docs-update job updates the docs and commits everything together.
+   */
+  codeOnly?: boolean;
 }
 
 export interface GuardVerdict {
@@ -32,7 +37,7 @@ const PROTECTED_MANIFEST_SECTIONS = ['source', 'shared', 'unassigned'] as const;
  * Protected config (rule R6), mirrored from crew-docs: agent config, the files that wire the crew-docs
  * hooks and CI in, and `CLAUDE.md`. Only the docs-init job may write them.
  */
-function isProtectedPath(rel: string): boolean {
+export function isProtectedPath(rel: string): boolean {
   const posix = rel.split(sep).join('/');
   return (
     posix === '.claude' ||
@@ -158,6 +163,13 @@ function checkWrite(ctx: GuardContext, tool: string, input: Input): GuardVerdict
   if (ctx.kind === 'docs_update' && !rel.split(sep).join('/').startsWith('docs/')) {
     return { decision: 'deny', reason: 'job docs_update chỉ được ghi dưới docs/', target: rel };
   }
+  if (ctx.codeOnly && rel.split(sep).join('/').startsWith('docs/')) {
+    return {
+      decision: 'deny',
+      reason: 'dev không sửa docs: job docs_update (sonnet) cập nhật docs sau khi bạn gọi handoff_docs',
+      target: rel,
+    };
+  }
   return { decision: 'allow', reason: null, target: rel };
 }
 
@@ -223,6 +235,21 @@ function isForcePush(words: string[]): boolean {
     );
 }
 
+function isGitCommit(words: string[]): boolean {
+  if (words[0] !== 'git') return false;
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i] as string;
+    // Global options that take a separate value: `git -C <dir> commit`, `git -c k=v commit`.
+    if (word === '-C' || word === '-c' || word === '--git-dir' || word === '--work-tree') {
+      i++;
+      continue;
+    }
+    if (word.startsWith('-')) continue;
+    return word === 'commit';
+  }
+  return false;
+}
+
 function touchesHooksPath(words: string[]): boolean {
   if (words[0] !== 'git') return false;
   return words.some((arg) => /core\.hookspath/i.test(arg));
@@ -281,6 +308,13 @@ function checkBash(ctx: GuardContext, input: Input): GuardVerdict {
       return {
         decision: 'deny',
         reason: 'không được đổi core.hooksPath (hook crew-docs là cổng bắt buộc)',
+        target,
+      };
+    }
+    if (ctx.codeOnly && isGitCommit(words)) {
+      return {
+        decision: 'deny',
+        reason: 'dev không commit: gọi handoff_docs, job docs_update sẽ commit code, test và docs cùng nhau',
         target,
       };
     }

@@ -17,6 +17,7 @@ import type { z } from 'zod';
 import {
   assertAssistantHost,
   assertTicketInScope,
+  assertTicketReadable,
   type MachineContext,
   requireMachine,
 } from '../auth/machine-auth.js';
@@ -32,7 +33,12 @@ import {
   release,
 } from '../services/claim-service.js';
 import { replyIdempotent } from '../services/idempotency.js';
-import { putInventory, recordHeartbeat, rotateToken } from '../services/machine-service.js';
+import {
+  assertKnownCapabilities,
+  putInventory,
+  recordHeartbeat,
+  rotateToken,
+} from '../services/machine-service.js';
 import { recordAgentMeta, submitReport } from '../services/report-service.js';
 import { getTicketDetail } from '../services/ticket-query-service.js';
 import {
@@ -153,7 +159,7 @@ export async function daemonRoutes(app: FastifyInstance, { db, config }: RouteDe
   app.get('/v1/daemon/tickets/:id', async (request) => {
     const machine = requireMachine(request);
     const ticket = await getTicketRow(db, idParam(request.params));
-    await assertTicketInScope(db, machine.machineId, ticket);
+    await assertTicketReadable(db, machine.machineId, ticket);
     return getTicketDetail(db, ticket.id);
   });
 
@@ -175,6 +181,11 @@ export async function daemonRoutes(app: FastifyInstance, { db, config }: RouteDe
         throw new ApiError('INVALID_HIERARCHY', 'a pm_task must be created under a request');
       }
       await assertTicketInScope(tx, machine.machineId, parent);
+      await assertKnownCapabilities(tx, {
+        projectId: body.type === 'pm_task' ? (body.projectId ?? null) : parent.projectId,
+        skills: body.requiredSkills ?? [],
+        mcps: body.requiredMcps ?? [],
+      });
       return { statusCode: 201, body: await createSubtask(tx, body) };
     });
   });
@@ -211,9 +222,11 @@ export async function daemonRoutes(app: FastifyInstance, { db, config }: RouteDe
     submitReport(tx, ticket.id, body, { timezone }),
   );
 
-  ticketWrite('POST', '/v1/daemon/tickets/:id/bugs', FileBugRequest, 201, (tx, ticket, body) =>
-    fileBug(tx, ticket.id, body),
-  );
+  /** QC files a bug in the ticket it verifies, or the PM rejects a finished dev or bug ticket. */
+  ticketWrite('POST', '/v1/daemon/tickets/:id/bugs', FileBugRequest, 201, async (tx, ticket, body) => {
+    await assertKnownCapabilities(tx, { projectId: ticket.projectId, skills: body.requiredSkills, mcps: [] });
+    return fileBug(tx, ticket.id, body);
+  });
 
   ticketWrite('PATCH', '/v1/daemon/tickets/:id/agent-meta', AgentMetaRequest, 200, (tx, ticket, body) =>
     recordAgentMeta(tx, ticket.id, body, { timezone }),

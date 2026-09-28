@@ -3,6 +3,7 @@ import { inject } from 'vitest';
 import { type DaemonConfig, homePaths, parseConfig } from '../../src/config.js';
 import { type CreateDaemonOptions, createDaemon, type Daemon } from '../../src/daemon.js';
 import type { AgentRunner, RunAgentOptions } from '../../src/runner/agent-runner.js';
+import { defaultPlanner } from '../../src/runner/job-runner.js';
 import { ResourceTracker } from '../../src/runner/resource-tracker.js';
 import { createScriptedRunner, type ScriptInput } from '../../src/runner/scripted-runner.js';
 import { FileTokenStore } from '../../src/secrets.js';
@@ -111,6 +112,8 @@ export function makeDaemon(
     // Tests run on a busy dev machine: the slot count is the configured limit, not the live load.
     slots: () => config.resources.maxConcurrentJobs,
     tracker: new ResourceTracker({ dockerBin: null }),
+    // Runtime tests use the generic planner; the role workflow tests pass `rolePlanner`.
+    planner: defaultPlanner,
     crewDocsSource: inject('bundlePath'),
     logger: process.env.DEBUG_CREWD
       ? (level, message, fields) => console.log(level, message, JSON.stringify(fields))

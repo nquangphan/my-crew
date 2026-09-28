@@ -1,12 +1,16 @@
 import { EventEmitter } from 'node:events';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
 import type { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk';
-import type {
-  DaemonProject,
-  HealthSummary,
-  HeartbeatRequest,
-  RunningJob,
-  SkillInventory,
+import {
+  type DaemonProject,
+  type HealthSummary,
+  type HeartbeatRequest,
+  type RunningJob,
+  type SkillInventory,
+  TERMINAL_STATUSES,
+  type Ticket,
 } from '@crew/shared';
 import { VpsClient, VpsError } from './api/vps-client.js';
 import { crewHome, type DaemonConfig, homePaths, type ProjectConfig } from './config.js';
@@ -19,6 +23,7 @@ import {
   worktreeKeys,
   worktreePath,
 } from './git/worktree-manager.js';
+import { rolePlanner } from './roles/role-planner.js';
 import {
   type AgentRunner,
   agentEnv,
@@ -27,15 +32,15 @@ import {
   sdkRuntimeVersion,
 } from './runner/agent-runner.js';
 import { cleanupJob, sweepOrphans } from './runner/job-cleanup.js';
-import { defaultPlanner, JobRunner, type RolePlanner } from './runner/job-runner.js';
+import { JobRunner, type RolePlanner } from './runner/job-runner.js';
 import { ResourceOps, type WorktreeEntry } from './runner/resource-report.js';
 import { ResourceTracker } from './runner/resource-tracker.js';
 import { takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
 import { Scheduler, type StartDecision } from './scheduler/scheduler.js';
 import { defaultTokenStore, type TokenStore } from './secrets.js';
 import { probeInventory } from './skills/skill-inventory.js';
-import { type JobRow, StateDb } from './state-db.js';
-import type { DispatchEffect } from './stream/dispatcher.js';
+import { type CleanupRecord, type JobRow, StateDb } from './state-db.js';
+import { type DispatchEffect, wakeTicket } from './stream/dispatcher.js';
 import { HeartbeatLoop, StreamClient } from './stream/stream-client.js';
 
 export type LogLevel = 'info' | 'warn' | 'error';
@@ -61,7 +66,7 @@ export interface CreateDaemonOptions {
   tokenStore?: TokenStore;
   /** Agent runner: the SDK runner in production, the scripted runner in tests. */
   runner?: AgentRunner;
-  /** Role behaviour; the runtime's generic default until the role workflow plugs in. */
+  /** Role behaviour; the role workflow (`rolePlanner`) by default. */
   planner?: RolePlanner;
   /** SDK `query` used by the inventory probe (and the SDK runner when `runner` is not given). */
   query?: typeof sdkQuery;
@@ -127,6 +132,19 @@ export interface Daemon {
 
 const PROBE_KEY = '_probe';
 const MACHINE_INVENTORY = '';
+/** The docs standard is installed next to the crew-docs bundle, for the docs-init prompt. */
+const STANDARD_FILE = 'STANDARD.md';
+
+/** `STANDARD.md` of the `@crew/docs-kit` package this daemon was built with, when it can be found. */
+function packagedStandard(): string | null {
+  try {
+    const manifest = createRequire(import.meta.url).resolve('@crew/docs-kit/package.json');
+    const file = join(dirname(manifest), STANDARD_FILE);
+    return existsSync(file) ? file : null;
+  } catch {
+    return null;
+  }
+}
 
 function readMcpJsonServers(repo: string): string[] {
   const file = `${repo}/.mcp.json`;
@@ -182,6 +200,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
   let orphansCleaned = 0;
   let claudeVersion: string | null = sdkRuntimeVersion();
   let crewDocs: { bundle: string; runtime: string } | null = null;
+  let standardPath: string | null = null;
   let projectsView = new Map<string, DaemonProject>();
   let hostsAssistant = false;
   const inventories = new Map<string, SkillInventory>();
@@ -261,8 +280,16 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
           ).inventory;
       inventories.set(key, inventory);
       state.setMeta(`inventory:${key}`, JSON.stringify(inventory));
+      // The server refuses tickets that require a server the owner switched off for the project.
+      const disabledHere = new Set(project?.disabledMcpServers ?? []);
+      const reported = {
+        skills: inventory.skills,
+        mcpServers: inventory.mcpServers.map((server) =>
+          disabledHere.has(server.name) ? { ...server, disabled: true } : server,
+        ),
+      };
       await vps.putSkills(
-        { projectKey: projectKey, ...inventory },
+        { projectKey: projectKey, ...reported },
         `inventory:${key || 'machine'}:${Date.now()}`,
       );
       return inventory;
@@ -317,12 +344,13 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     state,
     vps,
     runner: options.runner ?? createSdkRunner(options.query ? { query: options.query } : {}),
-    planner: options.planner ?? defaultPlanner,
+    planner: options.planner ?? rolePlanner,
     tracker,
     config: () => config,
     tmpRoot: paths.tmp,
     binDir: paths.bin,
     crewDocs: () => crewDocs,
+    standardPath: () => standardPath,
     projectFor,
     inventoryFor,
     workspace: ({ job, ticket, project, base }) => {
@@ -348,6 +376,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       const inventory = inventoryFor(project?.key ?? null);
       const disabled = new Set(project?.disabledMcpServers ?? []);
       return {
+        stage: _job.stage,
         machine: { ...takeSnapshot(home), freeSlots: slots() },
         runningJobs: state.listJobs(['running']).map((job) => ({
           ticketId: job.ticketId,
@@ -374,6 +403,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
         graceMs: timings.cleanupGraceMs,
       }),
     onInit,
+    onCleaned: (job, ticket, record) => void wakePmForLeftovers(job, ticket, record),
     onJobChanged: (job) => events.emit('job', job),
     log,
     stopping: () => stopping,
@@ -402,10 +432,78 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       if (dep.ticket.status !== 'done') return { action: 'wait_deps' };
     }
     const budget = await vps.getBudget(ticket.id);
-    if (budget.overBudget) {
-      return { action: 'skip', reason: 'over budget: the server holds the ticket for the owner' };
-    }
+    // The server holds the pm_task for the owner; the job stays queued and starts once they approve.
+    if (budget.overBudget) return { action: 'defer', reason: 'over budget: waiting for the owner' };
     return { action: 'start' };
+  }
+
+  /**
+   * A finished child left processes, ports or containers that its cleanup had to stop: wake the PM of its
+   * pm_task, which checks `resource_report` and comments which ticket left them.
+   */
+  async function wakePmForLeftovers(job: JobRow, ticket: Ticket, record: CleanupRecord): Promise<void> {
+    if (record.pids.length + record.ports.length + record.containers.length === 0) return;
+    if (!ticket.parentId || !['dev', 'bug', 'qc', 'docs_init'].includes(ticket.type)) return;
+    try {
+      const parent = (await vps.getTicket(ticket.parentId)).ticket;
+      if (parent.type !== 'pm_task' || TERMINAL_STATUSES.includes(parent.status)) return;
+      if (!projectFor(parent.projectId)) return;
+      const effect = state.transaction(() =>
+        wakeTicket(state, {
+          ticketId: parent.id,
+          projectId: parent.projectId,
+          role: 'pm',
+          trigger: 'child.resources',
+          eventId: `cleanup:${record.id}:${job.id}`,
+        }),
+      );
+      events.emit('job', effect.job);
+      void scheduler.tick();
+    } catch (error) {
+      log('warn', 'PM resource wake-up failed', { jobId: job.id, error: (error as Error).message });
+    }
+  }
+
+  /**
+   * `ticket.cancelled` names the root of the cancelled tree only; the server has already cancelled its
+   * descendants. Every active job of this daemon whose ticket is now cancelled stops, and its worktree goes.
+   */
+  async function cancelDescendants(rootId: string): Promise<void> {
+    for (const job of state.listJobs(['queued', 'running', 'backoff'])) {
+      if (job.ticketId === rootId) continue;
+      let ticket: Ticket;
+      try {
+        ticket = (await vps.getTicket(job.ticketId)).ticket;
+      } catch {
+        continue;
+      }
+      if (ticket.status !== 'cancelled') continue;
+      state.dropWakeups(ticket.id);
+      const current = state.getJob(job.id);
+      if (current?.status === 'running') {
+        state.updateJob(job.id, { cancelRequested: true });
+        jobs.abort(job.id);
+        continue;
+      }
+      if (current && (current.status === 'queued' || current.status === 'backoff')) {
+        events.emit(
+          'job',
+          state.updateJob(job.id, {
+            status: 'cancelled',
+            endedAt: new Date().toISOString(),
+            error: 'ticket cancelled with its parent',
+          }),
+        );
+      }
+      const project = projectFor(ticket.projectId);
+      if (project) {
+        try {
+          removeWorktree(project.repoPath, ticket.key);
+        } catch (error) {
+          log('warn', 'worktree removal failed', { ticket: ticket.key, error: (error as Error).message });
+        }
+      }
+    }
   }
 
   const scheduler = new Scheduler({
@@ -430,6 +528,9 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       case 'folded':
         break;
       case 'cancel':
+        void cancelDescendants(effect.ticketId).catch((error: Error) =>
+          log('warn', 'cancel cascade failed', { ticketId: effect.ticketId, error: error.message }),
+        );
         if (effect.job?.status === 'running' && jobs.abort(effect.job.id)) break;
         void (async () => {
           try {
@@ -573,6 +674,11 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     try {
       const installed = installCrewDocs(paths.bin, source);
       crewDocs = { bundle: installed.bundle, runtime: process.execPath };
+      const standard = packagedStandard();
+      if (standard) {
+        copyFileSync(standard, join(paths.bin, STANDARD_FILE));
+        standardPath = join(paths.bin, STANDARD_FILE);
+      }
     } catch (error) {
       const existing = `${paths.bin}/${CREW_DOCS_BUNDLE}`;
       if (existsSync(existing)) crewDocs = { bundle: existing, runtime: process.execPath };

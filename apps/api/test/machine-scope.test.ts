@@ -101,13 +101,27 @@ describe('scope', () => {
     expect((await callAs(a, calls[7] as Call)).statusCode).toBe(200);
   });
 
-  it('request tickets are readable only by the assistant host', async () => {
+  it('request tickets are readable by the assistant host and by the machine of one of their pm_tasks', async () => {
     const url = `/v1/daemon/tickets/${tree.request.id}`;
     expect((await callAs(host, { method: 'GET', url })).statusCode).toBe(200);
     const detail = (await callAs(host, { method: 'GET', url })).json();
     expect(detail.children.map((c: { id: string }) => c.id)).toEqual([tree.pmTask.id]);
-    expect((await callAs(a, { method: 'GET', url })).statusCode).toBe(403);
+    // The PM on machine A reads the owner's own request; machine B has no pm_task under it.
+    const read = await callAs(a, { method: 'GET', url });
+    expect(read.statusCode).toBe(200);
+    expect(read.json().ticket.title).toBe('Thêm giỏ hàng');
     expect((await callAs(b, { method: 'GET', url })).statusCode).toBe(403);
+    const other = await createRequestTicket(ctx.db, { title: 'Chưa có PM' });
+    expect((await callAs(a, { method: 'GET', url: `/v1/daemon/tickets/${other.id}` })).statusCode).toBe(403);
+  });
+
+  it('the project machine cannot write to the request above its pm_task', async () => {
+    const write = await callAs(a, {
+      method: 'POST',
+      url: `/v1/daemon/tickets/${tree.request.id}/comments`,
+      payload: { body: 'không được' },
+    });
+    expect(write.statusCode).toBe(403);
   });
 
   it('only the assistant host creates a pm_task, and only under a request', async () => {
@@ -360,6 +374,62 @@ describe('heartbeat and inventory', () => {
       skills: [{ name: 'ak:scout' }],
       mcpServers: [{ name: 'playwright', tools: [{ name: 'click' }] }],
     });
+  });
+
+  it('refuses required skills and MCP servers the project machine did not report, or switched off', async () => {
+    const create = (payload: object) =>
+      callAs(a, {
+        method: 'POST',
+        url: '/v1/daemon/tickets',
+        payload: { parentId: tree.pmTask.id, ...payload },
+      });
+    const noInventory = await create({ type: 'dev', title: 'X', requiredSkills: ['api-design'] });
+    expect(noInventory.statusCode).toBe(400);
+    expect(noInventory.json().error.code).toBe('VALIDATION_FAILED');
+    // Without requirements there is nothing to check.
+    expect((await create({ type: 'dev', title: 'Không cần skill' })).statusCode).toBe(201);
+
+    const put = (projectKey: string | null, body: object) =>
+      app.inject({
+        method: 'PUT',
+        url: '/v1/daemon/skills',
+        headers: writeHeaders(a),
+        payload: { projectKey, ...body },
+      });
+    await put('WEB', {
+      skills: [{ name: 'api-design', source: 'project' }],
+      mcpServers: [
+        { name: 'figma', source: 'user', status: 'connected' },
+        { name: 'maestro', source: 'user', status: 'connected', disabled: true },
+      ],
+    });
+    await put(null, { skills: [{ name: 'ak:plan', source: 'plugin' }], mcpServers: [] });
+
+    const ok = await create({
+      type: 'dev',
+      title: 'Có skill',
+      requiredSkills: ['api-design', 'ak:plan'],
+      requiredMcps: ['figma'],
+    });
+    expect(ok.statusCode).toBe(201);
+    const unknown = await create({
+      type: 'dev',
+      title: 'Sai',
+      requiredSkills: ['nope'],
+      requiredMcps: ['maestro'],
+    });
+    expect(unknown.statusCode).toBe(400);
+    expect(unknown.json().error.details).toEqual({ unknownSkills: ['nope'], unknownMcps: ['maestro'] });
+    // The QC default UI-test server is added by the server and never checked against the inventory.
+    const qc = await create({ type: 'qc', title: 'QC có skill', pairsWith: ok.json().id });
+    expect(qc.statusCode).toBe(201);
+    expect(qc.json().requiredMcps).toEqual(['playwright']);
+    const bug = await callAs(a, {
+      method: 'POST',
+      url: `/v1/daemon/tickets/${tree.qc.id}/bugs`,
+      payload: { title: 'Lỗi', requiredSkills: ['nope'] },
+    });
+    expect(bug.statusCode).toBe(400);
   });
 
   it('the owner lists the tickets of one machine', async () => {

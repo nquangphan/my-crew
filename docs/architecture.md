@@ -19,7 +19,10 @@
   worktree git riêng mỗi ticket với bộ công cụ ticket và guard riêng theo vai trò
   (`docs/flows/agent-runs.md`, `docs/flows/agent-workspace.md`), dọn tiến trình/port/container sau mỗi job
   (`docs/flows/resource-hygiene.md`), và tự kiểm tra sức khỏe máy (`crewd doctor`,
-  `docs/flows/daemon-health.md`).
+  `docs/flows/daemon-health.md`). Hành vi theo vai trò (prompt, cổng docs-init/UI-test, model, thử lại, bọc dữ
+  liệu không tin cậy) sống trong `apps/daemon/src/roles` (`docs/flows/agent-roles.md`); nghiệm thu của PM merge
+  cục bộ kết quả các subtask, chạy cổng trước khi đẩy và push lên nhánh mặc định, không cần chủ dự án tự
+  merge PR (`docs/flows/local-merge.md`).
 
 ## Lưu trữ dữ liệu
 

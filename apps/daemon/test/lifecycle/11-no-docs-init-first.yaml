@@ -1,0 +1,33 @@
+name: no-docs-init-first
+description: >-
+  A project without docs: PM analyze creates a docs-init child (sonnet) and waits; docs-init writes the docs,
+  the daemon installs the hooks, and only then the PM plans subtasks that all depend on docs-init.
+project:
+  platform: backend
+  docs: false
+inventory:
+  skills: [docs-writer]
+request:
+  title: Trang sản phẩm
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Trang sản phẩm }]
+  - stage: docs_init
+    steps: [{ macro: docs_init, skills: [docs-writer] }]
+  - stage: pm_analyze
+    steps: [{ macro: pm_analyze, subtasks: [{ title: Trang sản phẩm }] }]
+  - stage: dev
+    steps: [{ macro: dev, file: src/product.js }]
+  - stage: docs_update
+    steps: [{ macro: docs_update, files: [src/product.js] }]
+  - stage: qc
+    steps: [{ macro: qc }]
+  - stage: pm_accept
+    steps: [{ macro: pm_accept }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Trang sản phẩm$', type: pm_task, status: done }
+    - { title: '^Khởi tạo docs', type: docs_init, status: done }
+    - { title: '^Trang sản phẩm$', type: dev, status: done }

@@ -3,7 +3,7 @@ import { MACHINE_TOKEN_PREFIX } from '@crew/shared';
 import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
 import type { FastifyRequest } from 'fastify';
 import type { Executor } from '../db/client.js';
-import { machines, machineTokens, projects, type TicketRow } from '../db/schema.js';
+import { machines, machineTokens, projects, type TicketRow, tickets } from '../db/schema.js';
 import { ApiError } from '../errors.js';
 
 /** Authenticated machines touch `last_seen_at` at most this often. */
@@ -129,6 +129,33 @@ export async function assertAssistantHost(db: Executor, machineId: string): Prom
  * A machine may read or write a ticket whose project it owns, or a `request` ticket when it hosts the
  * assistant. Ownership is read fresh, so a claim moved to another machine takes effect at once.
  */
+/**
+ * Read access: the write scope, plus the request above a pm_task of a project this machine owns, so its PM
+ * reads the owner's own words. Writes on that request stay with the assistant host.
+ */
+export async function assertTicketReadable(
+  db: Executor,
+  machineId: string,
+  ticket: TicketRow,
+): Promise<void> {
+  if (ticket.type === 'request') {
+    const [owned] = await db
+      .select({ id: tickets.id })
+      .from(tickets)
+      .innerJoin(projects, eq(projects.id, tickets.projectId))
+      .where(
+        and(
+          eq(tickets.parentId, ticket.id),
+          eq(tickets.type, 'pm_task'),
+          eq(projects.ownerMachineId, machineId),
+        ),
+      )
+      .limit(1);
+    if (owned) return;
+  }
+  await assertTicketInScope(db, machineId, ticket);
+}
+
 export async function assertTicketInScope(db: Executor, machineId: string, ticket: TicketRow): Promise<void> {
   if (ticket.type === 'request') {
     if (await isAssistantHost(db, machineId)) return;

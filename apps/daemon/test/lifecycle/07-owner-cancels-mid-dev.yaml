@@ -1,0 +1,29 @@
+name: owner-cancels-mid-dev
+description: >-
+  The owner cancels the request while dev is running: the server cascades, the daemon aborts the running dev
+  job and the waiting QC job, removes their worktrees, and nothing is left behind.
+project:
+  platform: backend
+request:
+  title: Việc sẽ bị huỷ
+owner:
+  - when: { title: '^Việc dài$', running: dev }
+    target: { title: '^Việc sẽ bị huỷ$', type: request }
+    cancel: true
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Việc sẽ bị huỷ }]
+  - stage: pm_analyze
+    steps: [{ macro: pm_analyze, subtasks: [{ title: Việc dài }] }]
+  - stage: dev
+    title: '^Việc dài$'
+    steps:
+      - macro: dev_start
+      - sleep: 60000
+      - macro: dev_finish
+        file: src/long.js
+expect:
+  tickets:
+    - { title: '^Việc sẽ bị huỷ$', type: request, status: cancelled }
+    - { title: '^Việc dài$', status: cancelled }
+    - { title: '^QC: Việc dài$', status: cancelled }

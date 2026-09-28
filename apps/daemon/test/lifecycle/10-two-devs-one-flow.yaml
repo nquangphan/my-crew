@@ -1,0 +1,35 @@
+name: two-devs-one-flow
+description: >-
+  Two dev tickets change the same flow in parallel; at accept the generated docs blocks conflict, the merge
+  regenerates them from the merged manifest, and the pushed head passes crew-docs check --all.
+project:
+  platform: backend
+request:
+  title: Hai tính năng cùng flow
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Hai tính năng cùng flow }]
+  - stage: pm_analyze
+    steps: [{ macro: pm_analyze, subtasks: [{ title: Tính năng Beta }, { title: Tính năng Bravo }] }]
+  - stage: dev
+    title: Beta
+    steps: [{ macro: dev, file: src/beta.js }]
+  - stage: docs_update
+    title: Beta
+    steps: [{ macro: docs_update, files: [src/beta.js], position: top }]
+  - stage: dev
+    title: Bravo
+    steps: [{ macro: dev, file: src/bravo.js }]
+  - stage: docs_update
+    title: Bravo
+    steps: [{ macro: docs_update, files: [src/bravo.js], position: bottom }]
+  - stage: qc
+    steps: [{ macro: qc }]
+  - stage: pm_accept
+    steps: [{ macro: pm_accept }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Hai tính năng cùng flow$', type: pm_task, status: done }
+    - { title: '^Tính năng B', type: dev, status: done, count: 2 }

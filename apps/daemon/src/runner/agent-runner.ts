@@ -9,7 +9,7 @@ import {
   type SDKMessage,
   query as sdkQuery,
 } from '@anthropic-ai/claude-agent-sdk';
-import type { AgentRole, Effort } from '@crew/shared';
+import type { AgentRole, Effort, RoleStage } from '@crew/shared';
 import type { JobKind } from '../state-db.js';
 import type { AnyToolDefinition, EndReason } from '../tools/ticket-mcp-server.js';
 import { slashCommandsIn } from './skill-usage.js';
@@ -46,6 +46,8 @@ export interface RunAgentOptions {
   ticketKey: string;
   role: AgentRole;
   kind: JobKind;
+  /** The role step the run performs (informational; the prompt already says it). */
+  stage?: RoleStage;
   cwd: string;
   model: string;
   effort: Effort;

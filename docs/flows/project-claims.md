@@ -56,12 +56,22 @@ owner duyệt bằng TOTP. Khi quyền sở hữu đổi, các ticket đang mở
 | `apps/api/src/routes/project-routes.ts` | Route CRUD project (owner) | `projectRoutes` |
 | `apps/api/src/services/claim-service.ts` | Claim, duyệt, thu hồi, dời ticket theo scope | `claim`, `release`, `decideClaimRequest`, `ownerAssign`, `releaseEverything`, `listDaemonProjects`, `createDaemonProject`, `projectCatalog` |
 | `apps/api/src/services/project-service.ts` | CRUD project và DTO | `createProject`, `updateProject`, `listProjects`, `getProject`, `toProjectDto` |
-| `packages/shared/src/project-schemas.ts` | Schema project, `qcDefaultMcps`, giới hạn mặc định | `CreateProjectRequest`, `UpdateProjectRequest`, `Project`, `qcDefaultMcps` |
+| `packages/shared/src/project-schemas.ts` | Schema project, `qcDefaultMcps`, giới hạn mặc định, tên MCP server | `CreateProjectRequest`, `UpdateProjectRequest`, `Project`, `qcDefaultMcps`, `McpServerName` |
 
 ## Dữ liệu
 
 - Bảng: `projects`, `claim_requests`, `machines` (`hosts_assistant`, `owner_machine_id`), `tickets`
   (`assignee_machine_id` bị dời khi scope đổi chủ).
+- `packages/shared/src/project-schemas.ts` → `McpServerName`: tên MCP server đúng như Claude Code báo cáo
+  (chữ, số, dấu cách, `_ . : @ / -`, 1-200 ký tự, không khoảng trắng đầu/cuối) — chấp nhận cả server plugin có
+  namespace (`plugin:claude-mem:mcp-search`) và connector claude.ai có dấu cách (`claude.ai Figma`); trước đó
+  một report có `mcpsUsed` chứa tên như vậy bị server từ chối. Dùng lại bởi `UiTestMcp` ở đây và bởi schema
+  report/ticket của `packages/shared/src/api-schemas.ts` (flow `ticket-lifecycle`).
+- `packages/shared/src/machine-schemas.ts` → `InventoryMcpServer.disabled` là cờ dùng chung với flow
+  `machine-pairing`/`daemon-api`, không thuộc file của flow này: nguồn của nó là `ProjectConfig.disabledMcpServers`
+  cục bộ trên máy (`apps/daemon/src/config.ts`, flow `daemon-runtime`), không phải bảng `projects` hay claim ở
+  đây; daemon đánh dấu nó khi báo cáo inventory và server dùng để từ chối ticket yêu cầu server đó cho project
+  này.
 - Sự kiện: `machine.claimed`, `claim.requested`, `claim.changed`, `machine.released`, `project.created`,
   `ticket.assigned {reassigned: true}`.
 - Gọi ngoài: không.
@@ -80,3 +90,6 @@ owner duyệt bằng TOTP. Khi quyền sở hữu đổi, các ticket đang mở
 - `apps/api/test/claims.test.ts`: gán ngay khi chưa ai giữ (kèm event và audit row), yêu cầu chờ duyệt TOTP
   (rồi ticket dời theo), từ chối, rút yêu cầu, gán trùng vai trò assistant thứ hai bị chặn, giải phóng, tạo
   project trùng key bị chặn, view project phía daemon, owner gán lại/thu hồi.
+- `packages/shared/src/project-schemas.test.ts`: `McpServerName` chấp nhận tên plugin có namespace và
+  connector claude.ai có dấu cách như Claude Code thật báo cáo, từ chối tên rỗng/có khoảng trắng đầu-cuối/ký
+  tự điều khiển; một report với `mcpsUsed`/`mcpsSelected` chứa các tên đó được schema report chấp nhận.

@@ -15,7 +15,7 @@ import {
   PutSkillsRequest,
   type SkillInventory,
 } from '@crew/shared';
-import { and, asc, eq, gt, inArray, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { MachineContext } from '../auth/machine-auth.js';
 import { generateMachineToken, hashMachineToken } from '../auth/machine-auth.js';
 import { verifyOwnerTotp } from '../auth/owner-auth.js';
@@ -82,6 +82,56 @@ async function saveInventory(
     .insert(machineSkills)
     .values({ machineId, projectId, ...values })
     .onConflictDoUpdate({ target: [machineSkills.machineId, machineSkills.projectId], set: values });
+}
+
+/**
+ * Required skills and MCP servers of a new ticket must be in the inventory the project's machine reported
+ * (the project inventory plus the machine-level one), and an MCP server the owner switched off for the
+ * project cannot be required. Unknown names are refused with the lists in `details`. The UI-test MCP
+ * servers the server adds to QC tickets itself are not checked here: QC blocks when they are missing.
+ */
+export async function assertKnownCapabilities(
+  tx: Executor,
+  input: { projectId: string | null; skills: readonly string[]; mcps: readonly string[] },
+): Promise<void> {
+  if (input.skills.length + input.mcps.length === 0) return;
+  const [project] = input.projectId
+    ? await tx
+        .select({ id: projects.id, ownerMachineId: projects.ownerMachineId })
+        .from(projects)
+        .where(eq(projects.id, input.projectId))
+    : [];
+  if (!project?.ownerMachineId) {
+    throw new ApiError('VALIDATION_FAILED', 'required skills need a project owned by a machine');
+  }
+  const rows = await tx
+    .select()
+    .from(machineSkills)
+    .where(
+      and(
+        eq(machineSkills.machineId, project.ownerMachineId),
+        or(eq(machineSkills.projectId, project.id), isNull(machineSkills.projectId)),
+      ),
+    );
+  if (rows.length === 0) {
+    throw new ApiError(
+      'VALIDATION_FAILED',
+      'the project machine has not reported its skill and MCP inventory yet; required skills cannot be checked',
+    );
+  }
+  const skills = new Set(rows.flatMap((row) => row.skills.map((skill) => skill.name)));
+  const mcps = new Set(
+    rows.flatMap((row) => row.mcpServers.filter((server) => !server.disabled).map((server) => server.name)),
+  );
+  const unknownSkills = input.skills.filter((name) => !skills.has(name));
+  const unknownMcps = input.mcps.filter((name) => !mcps.has(name));
+  if (unknownSkills.length + unknownMcps.length > 0) {
+    throw new ApiError(
+      'VALIDATION_FAILED',
+      `not in the machine inventory (or disabled): ${[...unknownSkills, ...unknownMcps].join(', ')}`,
+      { unknownSkills, unknownMcps },
+    );
+  }
 }
 
 /**

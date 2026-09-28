@@ -11,6 +11,10 @@ export {
 } from './daemon.js';
 export { HEALTH_CHECKS, runHealthChecks, summarize } from './health/health-runner.js';
 export type { HealthCheck, HealthCheckResult, HealthContext, HealthGroup } from './health/types.js';
+export { resolveModel } from './roles/model-policy.js';
+export { renderPrompt, setPromptsDir } from './roles/prompt-templates.js';
+export { rolePlanner } from './roles/role-planner.js';
+export { resolveStage, STAGES, type StageContract } from './roles/role-registry.js';
 export {
   type AgentRunner,
   type AgentRunResult,
@@ -28,6 +32,7 @@ export {
   defaultPlanner,
   type PlanInput,
   type PlannedRun,
+  type PlannerContext,
   type RolePlanner,
 } from './runner/job-runner.js';
 export { buildResourceReport, ResourceOps, type ResourceReport } from './runner/resource-report.js';

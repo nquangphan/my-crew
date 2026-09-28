@@ -21,6 +21,10 @@ export const TICKET_TOOL_NAMES = [
   'handoff_docs',
   'get_project_catalog',
   'create_pm_ticket',
+  'select_capabilities',
+  'return_to_dev',
+  'reject_work',
+  'merge_and_push',
 ] as const;
 export type TicketToolName = (typeof TICKET_TOOL_NAMES)[number];
 
@@ -33,19 +37,30 @@ const EVERY_ROLE: readonly TicketToolName[] = [
   'submit_report',
   'docs_flow',
   'docs_where',
+  'select_capabilities',
 ];
 
 const ROLE_EXTRAS: Record<AgentRole, readonly TicketToolName[]> = {
-  pm: ['create_subtask', 'resource_report', 'cleanup_resources'],
+  pm: ['create_subtask', 'resource_report', 'cleanup_resources', 'reject_work', 'merge_and_push'],
   qc: ['file_bug'],
   // Dev and bug tickets are assigned to the dev role; the docs job takes over after `handoff_docs`.
-  dev: ['handoff_docs'],
+  dev: ['handoff_docs', 'return_to_dev'],
   assistant: ['get_project_catalog', 'create_pm_ticket'],
 };
 
-/** Ticket tools a run may see. The docs-update and docs-init jobs never hand off. */
+/** Dev-role tools that only one job kind may see. */
+const KIND_ONLY: Partial<Record<TicketToolName, JobKind>> = {
+  // The dev run hands off to the docs job; the docs job hands a refused commit back to dev.
+  handoff_docs: 'agent',
+  return_to_dev: 'docs_update',
+};
+
+/** Ticket tools a run may see. The docs-init job neither hands off nor returns work. */
 export function ticketToolsFor(role: AgentRole, kind: JobKind): TicketToolName[] {
-  const extras = ROLE_EXTRAS[role].filter((name) => !(name === 'handoff_docs' && kind !== 'agent'));
+  const extras = ROLE_EXTRAS[role].filter((name) => {
+    const only = KIND_ONLY[name];
+    return only === undefined || only === kind;
+  });
   return [...EVERY_ROLE, ...extras];
 }
 

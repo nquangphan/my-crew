@@ -10,7 +10,13 @@ import {
 import { type LoggedInOwner, seedAndLogin } from '../../../api/test/helpers/owner-session.js';
 import { createTestProject, setStatus, useTestDb } from '../../../api/test/helpers/test-db.js';
 
-export { commentsOf, eventsOf, getTicket, setStatus } from '../../../api/test/helpers/test-db.js';
+export {
+  commentsOf,
+  eventsOf,
+  getTicket,
+  reportAndFinish,
+  setStatus,
+} from '../../../api/test/helpers/test-db.js';
 
 /**
  * The real API (`buildApp()` on the daemon test database, listening on a random port), truncated before

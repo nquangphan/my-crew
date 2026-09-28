@@ -80,6 +80,29 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/health/health-runner.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/health/types.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/library.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/roles/docs-first-check.ts` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/docs-init-gate.ts` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/docs-update-handoff.ts` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/failure-policy.ts` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/merge-policy.ts` | [local-merge](flows/local-merge.md) (điểm vào) |
+| `apps/daemon/src/roles/model-policy.ts` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompt-templates.ts` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/_capability-preflight.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/_shared-rules.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/assistant-close.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/assistant-triage.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/dev.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/docs-init.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/docs-update.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/pm-accept.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/pm-analyze.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/pm-monitor.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/prompts/qc.md` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/role-planner.ts` | [agent-roles](flows/agent-roles.md) (điểm vào) |
+| `apps/daemon/src/roles/role-registry.ts` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/skill-enforcement.ts` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/untrusted-wrap.ts` | [agent-roles](flows/agent-roles.md) (file) |
+| `apps/daemon/src/roles/workspace-prep.ts` | [agent-roles](flows/agent-roles.md) (file) |
 | `apps/daemon/src/runner/agent-runner.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/guard-hook.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/job-cleanup.ts` | [resource-hygiene](flows/resource-hygiene.md) (điểm vào) |
@@ -105,11 +128,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/daemon-extras.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
 | `apps/daemon/test/daemon.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/dispatcher.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
+| `apps/daemon/test/docs-first-check.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
+| `apps/daemon/test/docs-init-gate.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
+| `apps/daemon/test/docs-update-handoff.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/guard-hook.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/health-checks.test.ts` | [daemon-health](flows/daemon-health.md) (test) |
+| `apps/daemon/test/lifecycle.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/live-smoke.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
+| `apps/daemon/test/live-workflow.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
+| `apps/daemon/test/merge-policy.test.ts` | [local-merge](flows/local-merge.md) (test) |
+| `apps/daemon/test/model-policy.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/resources.test.ts` | [resource-hygiene](flows/resource-hygiene.md) (test) |
+| `apps/daemon/test/role-contracts.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
+| `apps/daemon/test/role-policies.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/scheduler.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
+| `apps/daemon/test/skill-enforcement.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/skill-inventory.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/daemon/test/stream-atomicity.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
 | `apps/daemon/test/stream-client.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
@@ -244,6 +277,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/shared/src/event-schemas.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `packages/shared/src/index.ts` | [api-platform](flows/api-platform.md) (file) |
 | `packages/shared/src/machine-schemas.ts` | [machine-pairing](flows/machine-pairing.md) (dùng chung), [project-claims](flows/project-claims.md) (dùng chung), [daemon-api](flows/daemon-api.md) (dùng chung) |
+| `packages/shared/src/project-schemas.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `packages/shared/src/project-schemas.ts` | [project-claims](flows/project-claims.md) (file) |
 | `packages/shared/src/status-workflow.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `packages/shared/src/status-workflow.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |

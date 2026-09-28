@@ -87,10 +87,39 @@ describe('QC bug loop', () => {
     expect(exceeded?.targetMachineId).toBeNull();
   });
 
-  it('only accepts bugs from an open, paired QC ticket', async () => {
+  it('lets the PM reject a finished dev ticket: a bug for dev plus a retest with the QC settings', async () => {
     const { pmTask } = await createTree(ctx.db);
     const { dev, qc } = await createDevWithQc(ctx.db, pmTask.id);
+    await reportAndFinish(ctx.db, dev.id);
+    await reportAndFinish(ctx.db, qc.id);
+
+    const { bug, retest } = await fileBug(ctx.db, dev.id, {
+      title: 'Sửa: đọc docs trước',
+      description: 'docs_first=false',
+      requiredSkills: ['api-design'],
+    });
+    expect(bug).toMatchObject({ type: 'bug', originDevId: dev.id, bugCycle: 1, parentId: pmTask.id });
+    expect(bug.requiredSkills).toContain('api-design');
+    expect(retest).toMatchObject({
+      type: 'qc',
+      pairsWith: bug.id,
+      dependsOn: [bug.id],
+      requiredMcps: ['playwright'],
+    });
+    // A rejected bug fix is rejected the same way, one cycle further down the chain.
+    await reportAndFinish(ctx.db, bug.id);
+    const again = await fileBug(ctx.db, bug.id, { title: 'Sửa lần hai' });
+    expect(again.bug).toMatchObject({ originDevId: dev.id, bugCycle: 2 });
+  });
+
+  it('only accepts bugs from an open, paired QC ticket or a PM rejection of a done dev ticket', async () => {
+    const { pmTask } = await createTree(ctx.db);
+    const { dev, qc } = await createDevWithQc(ctx.db, pmTask.id);
+    // The dev ticket is not done yet: nothing to reject.
     await expect(fileBug(ctx.db, dev.id, { title: 'x' })).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+    });
+    await expect(fileBug(ctx.db, pmTask.id, { title: 'x' })).rejects.toMatchObject({
       code: 'VALIDATION_FAILED',
     });
     await setStatus(ctx.db, qc.id, 'done');

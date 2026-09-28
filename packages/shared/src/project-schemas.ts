@@ -15,9 +15,17 @@ export const ProjectKey = z
   .regex(/^[A-Z][A-Z0-9]{1,9}$/, 'project keys are 2-10 upper-case letters or digits')
   .refine((key) => key !== REQUEST_KEY_SCOPE, `${REQUEST_KEY_SCOPE} is reserved for requests`);
 
+/**
+ * An MCP server name as Claude Code reports it in the inventory: plugin servers are namespaced
+ * (`plugin:claude-mem:mcp-search`) and claude.ai connectors carry spaces (`claude.ai Figma`).
+ */
 export const McpServerName = z
   .string()
-  .regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$/, 'MCP server names are 1-64 chars of letters, digits, _ . -');
+  .regex(
+    /^[A-Za-z0-9][A-Za-z0-9 _.:@/-]{0,199}$/,
+    'MCP server names are 1-200 chars of letters, digits, spaces and _ . : @ / -',
+  )
+  .refine((name) => name === name.trim(), 'MCP server names have no leading or trailing spaces');
 
 /** Maps each UI-test role to the inventory server that plays it. */
 export const UiTestMcp = z.object({

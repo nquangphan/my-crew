@@ -29,10 +29,14 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    gọi sang `budget-service.ts`), QC bắt buộc `pairsWith` một dev/bug còn sống và chưa có QC khác
    (`assertPairable`), `dependsOn` chỉ được là ticket anh em (`assertSiblings`), QC luôn được cộng thêm MCP
    test UI mặc định theo platform (`qcDefaultMcps`, từ flow `project-claims`).
-3. `apps/api/src/services/ticket-service.ts` → `fileBug()`: QC báo lỗi — tính `cycle = bugCycle + 1` của dev
-   gốc (`originDevId`); vượt `MAX_BUG_CYCLES` (3) thì không tạo ticket, gọi `applyHold()` park pm_task và trả
-   lỗi `BUG_CYCLE_CAP` (side effect đã commit); còn lại tạo một `bug` ticket cộng một `qc` retest phụ thuộc nó,
-   cùng `pairsWith` bug đó, `bugCycle` tăng dần.
+3. `apps/api/src/services/ticket-service.ts` → `fileBug()`: hai nguồn tạo `bug` — QC báo lỗi trên ticket dev/bug
+   nó verify (`pairsWith`), hoặc PM từ chối một ticket dev/bug đã `done` khi nghiệm thu (`reject_work`, flow
+   `agent-roles`; ticket nguồn khi đó chính là ticket bị từ chối, không phải QC). Tính `cycle = bugCycle + 1`
+   của dev gốc (`originDevId`); vượt `MAX_BUG_CYCLES` (3) thì không tạo ticket, gọi `applyHold()` park pm_task
+   và trả lỗi `BUG_CYCLE_CAP` (side effect đã commit); còn lại tạo một `bug` ticket cộng một `qc` retest phụ
+   thuộc nó, cùng `pairsWith` bug đó, `bugCycle` tăng dần — retest kế thừa `complexity`/`model`/`effort`/
+   `requiredSkills`/`requiredMcps` của **QC ticket đang kiểm ticket bị từ chối** (tìm qua `pairsWith`), không
+   phải của ticket nguồn, kể cả khi nguồn là PM từ chối chứ không phải chính QC đó báo lỗi.
 4. `apps/api/src/services/ticket-service.ts` → `transitionTicket()`: `canTransition(actor, from, to)` (từ
    `packages/shared/src/status-workflow.ts`) gác cổng; `to='done'` bắt buộc đã có report hiện hành
    (`REPORT_REQUIRED`); sau khi cập nhật trạng thái trong cùng transaction: `cascadeCancel()` khi huỷ,
@@ -41,6 +45,10 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    `children.all_done` khi con cuối cùng đóng (dù `done` hay `cancelled`).
 5. `packages/shared/src/status-workflow.ts` → `canTransition()`/`allowedTransitions()`: bảng cạnh hợp lệ theo
    actor (`AGENT_EDGES`, `OWNER_EDGES`); `system` (dùng cho cascade cancel) được thêm cạnh `* → cancelled`.
+   `packages/shared/src/agent-schemas.ts` → `RoleStage`: bước của một agent run (`assistant_triage`,
+   `pm_analyze`, `dev`, `docs_update`, `qc`, `docs_init`, …); mỗi bước có đường trạng thái riêng phải hợp lệ
+   với `canTransition('agent', …)` (định nghĩa và kiểm ở flow `agent-roles`, không lặp lại ở đây). `DOCS_MODEL`
+   (`= 'sonnet'`) là model cố định của `docs_init`/`docs_update`.
 6. `apps/api/src/services/ticket-service.ts` → `addComment()`: bình luận owner trên ticket đang
    `needs_input` tự chuyển nó về `in_progress` và gọi `liftHold()`; bình luận agent/system chỉ phát
    `ticket.updated{change:'comment'}`, không đánh thức ai.
@@ -48,7 +56,10 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    không bao giờ đánh thức agent, chỉ phát `ticket.updated{change:'fields'}`.
 8. `apps/api/src/services/report-service.ts` → `submitReport()`: lưu report mới là bản hiện hành (bản cũ mất
    `is_current`), cộng `costUsd` của report vào ticket/ngân sách qua `addCost()` (flow này gọi sang
-   `budget-service.ts`), phát `ticket.updated{change:'report'}`.
+   `budget-service.ts`), phát `ticket.updated{change:'report'}`. `SubmitReportRequest`/subtask (`requiredMcps`)
+   ở `packages/shared/src/api-schemas.ts` validate tên MCP server (`mcpsUsed`, `mcpsSelected`) bằng
+   `McpServerName` của `packages/shared/src/project-schemas.ts` (flow `project-claims`), nên một report ghi
+   đúng tên plugin/connector Claude Code báo cáo không bị từ chối.
 9. `apps/api/src/services/report-service.ts` → `recordAgentMeta()`: daemon ghi `agentSessionId`/`agentModel`/
    `agentEffort` và cộng `costDeltaUsd` cho lượt chạy không kết thúc bằng report (hợp đồng: chi phí một lượt
    chạy chỉ được cộng đúng một lần, hoặc qua report hoặc qua delta này, không bao giờ cả hai).
@@ -75,7 +86,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/services/report-service.ts` | Report và agent-meta | `submitReport`, `recordAgentMeta`, `getReports`, `getCurrentReport` |
 | `apps/api/src/services/budget-service.ts` | Trần con, ngân sách, hold | `enforceChildCap`, `addCost`, `applyHold`, `liftHold`, `getBudgetStatus` |
 | `packages/shared/src/ticket-schemas.ts` | Enum trạng thái/loại/ưu tiên/actor ticket | `TicketStatus`, `TicketType`, `Actor` |
-| `packages/shared/src/agent-schemas.ts` | Enum role/complexity/model/effort agent | `AgentRole`, `Complexity`, `ModelAlias`, `Effort` |
+| `packages/shared/src/agent-schemas.ts` | Enum role/complexity/model/effort/bước agent | `AgentRole`, `Complexity`, `ModelAlias`, `Effort`, `RoleStage`, `DOCS_MODEL` |
 | `packages/shared/src/status-workflow.ts` | Bảng cạnh workflow, kiểm tra transition | `canTransition`, `allowedTransitions`, `AGENT_EDGES`, `OWNER_EDGES`, `TERMINAL_STATUSES` |
 
 ## Dữ liệu
@@ -95,6 +106,10 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - event-delivery: mọi `NewEvent` sinh ra ở đây được `appendEvents()` ghi vào outbox `events` rồi phát qua SSE.
 - docs-sync-viewer: `search()` gộp kết quả `searchAllDocs()`; `flows[]` của ticket liên kết tới trang
   `docs/flows/<id>.md` tương ứng trên web.
+- agent-roles: `RoleStage` và `STAGES` (flow đó) gán mỗi bước agent vào một ticket loại nào chạy khi nào; tool
+  `reject_work` của PM gọi `fileBug()` với ticket dev/bug đã `done` làm nguồn; `create_subtask` thêm phụ thuộc
+  `docs_init`.
+- local-merge: `head_sha` mà `mergeAndPush()` merge đến từ `report.headSha` (`submitReport()`).
 
 ## Tests
 
@@ -102,7 +117,8 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - `apps/api/test/transition.test.ts`: đủ ma trận cạnh hợp lệ theo actor, `REPORT_REQUIRED`, mã lỗi HTTP.
 - `apps/api/test/lifecycle-effects.test.ts`: `dependency.resolved`, đúng một `children.all_done` khi tuần tự
   lẫn đồng thời, cascade cancel phát đúng một `ticket.cancelled` mỗi máy, đánh thức owner, rollback nguyên tử.
-- `apps/api/test/bug-loop.test.ts`: vòng lặp bug, chặn ở chu kỳ 4.
+- `apps/api/test/bug-loop.test.ts`: vòng lặp bug từ QC lẫn từ PM từ chối, chặn ở chu kỳ 4, retest kế thừa
+  cấu hình của QC ticket đang kiểm ticket bị từ chối.
 - `apps/api/test/budget.test.ts`: trần con và ngân sách cây/ngày, mỗi loại đẩy pm_task sang `needs_input`,
   cộng owner duyệt.
 - `apps/api/test/owner-web-support.test.ts`: `PATCH /v1/tickets/:id`, sự kiện `ticket.updated`.

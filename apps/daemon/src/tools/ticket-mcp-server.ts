@@ -11,15 +11,23 @@ import {
   Effort,
   McpServerName,
   ModelAlias,
+  type Report,
+  type RoleStage,
   type SkillInventory,
   TicketPriority,
   TicketStatus,
+  type TicketType,
 } from '@crew/shared';
 import { z } from 'zod';
 import { type VpsClient, VpsError } from '../api/vps-client.js';
+import type { ProjectConfig } from '../config.js';
 import { runCrewDocs } from '../git/docs-kit-bridge.js';
+import { mergeAndPush } from '../roles/merge-policy.js';
+import { mergeChoices } from '../roles/skill-enforcement.js';
+import { wrapTicketDetail, wrapUntrusted } from '../roles/untrusted-wrap.js';
 import type { ResourceReport } from '../runner/resource-report.js';
 import { scrubSecrets } from '../runner/secret-scrubber.js';
+import { mcpServersUsed } from '../runner/skill-usage.js';
 import type { JobKind, StateDb } from '../state-db.js';
 import { TICKET_SERVER, TICKET_TOOL_NAMES, type TicketToolName, ticketToolsFor } from './tool-scopes.js';
 
@@ -42,23 +50,69 @@ export const DocsHandoff = z.object({
 });
 export type DocsHandoff = z.infer<typeof DocsHandoff>;
 
+/** What a successful `merge_and_push` records on the PM job: the pushed head and the commits it brought in. */
+export interface MergeHandoff {
+  kind: 'merge';
+  head: string;
+  commits: string[];
+}
+
 /** Why a tool asked the runner to end the run. */
-export type EndReason = 'ask_owner' | 'handoff_docs';
+export type EndReason = 'ask_owner' | 'handoff_docs' | 'return_to_dev' | 'blocked';
+
+/** What the docs job's `return_to_dev` records: the commit was refused for a reason outside `docs/`. */
+export const ReturnToDev = z.object({
+  summaryMd: z.string().trim().min(1).max(20_000),
+  output: z.string().trim().min(1).max(50_000),
+});
+
+/** The preflight picks a report carries. */
+export interface ReportSelections {
+  skillsSelected: { name: string; reason: string }[];
+  mcpsSelected: { server: string; reason: string }[];
+}
+
+/** The parts of the agent's report the daemon checks before storing it. */
+export interface ReportDraft extends ReportSelections {
+  summaryMd: string;
+}
+
+/** What the daemon adds to (or refuses in) a report the agent files. */
+export interface ReportOverlay extends ReportSelections {
+  fields: DaemonReportFields;
+  /** Recorded from the worktree, overriding the agent's values. */
+  headSha?: string | null;
+  commits?: string[];
+  /** Appended to the summary (e.g. the resource cleanup section of the PM report). */
+  summaryAppend?: string | null;
+  /** The report is refused with this message (e.g. uncommitted changes in the worktree). */
+  refusal?: string | null;
+  /** Posted as a comment after the report is stored (skills or MCP servers left unused). */
+  warning?: string | null;
+}
 
 export interface TicketToolContext {
   jobId: string;
   ticketId: string;
+  ticketType: TicketType;
+  /** MCP servers the ticket requires (QC's UI-test servers must be used before QC closes). */
+  requiredMcps?: readonly string[];
   role: AgentRole;
   kind: JobKind;
+  stage: RoleStage | null;
   cwd: string;
   vps: VpsClient;
   state: StateDb;
+  /** The local project of the ticket, null for assistant runs. */
+  project: ProjectConfig | null;
+  /** The run's env (job tag, temp dir); daemon-run commands such as the pre-push gate use it too. */
+  env: Record<string, string | undefined>;
   /** Absolute crew-docs bundle and runtime, or null when crew-docs is not installed. */
   crewDocs: { bundle: string; runtime: string } | null;
   /** Machine resources, running jobs and the capability inventory for this run's cwd. */
   contextBlock: () => Promise<Record<string, unknown>>;
   inventory: () => SkillInventory;
-  reportFields: () => Promise<DaemonReportFields>;
+  reportOverlay: (draft: ReportDraft) => Promise<ReportOverlay>;
   /** PM only. */
   resources?: {
     report: () => Promise<ResourceReport>;
@@ -90,8 +144,11 @@ const failure = (message: string): CallToolResult => ({
 });
 
 function errorText(error: unknown): string {
-  if (error instanceof VpsError)
-    return `Lỗi từ server (${error.code}, HTTP ${error.status}): ${error.message}`;
+  if (error instanceof VpsError) {
+    // The details (e.g. which field failed validation) let the agent fix its input instead of guessing.
+    const details = error.details === undefined ? '' : ` ${JSON.stringify(error.details).slice(0, 2_000)}`;
+    return `Lỗi từ server (${error.code}, HTTP ${error.status}): ${error.message}${details}`;
+  }
   return `Lỗi: ${(error as Error).message}`;
 }
 
@@ -139,7 +196,7 @@ export class JobWriter {
 const scrub = (body: string) => scrubSecrets(body).text;
 
 const SubtaskShape = {
-  type: z.enum(['dev', 'qc', 'docs_init']).describe('Loại subtask'),
+  type: z.enum(['dev', 'qc']).describe('Loại subtask (docs_init do daemon tạo)'),
   title: z.string().trim().min(1).max(300),
   description: z.string().max(100_000).default(''),
   priority: TicketPriority.optional(),
@@ -186,10 +243,34 @@ const ReportShape = {
   bugsFiled: z.array(z.uuid()).max(100).default([]),
 };
 
+const Selection = {
+  skills: z
+    .array(z.object({ name: z.string().trim().min(1).max(200), reason: z.string().trim().min(1).max(500) }))
+    .max(100)
+    .default([]),
+  mcps: z
+    .array(z.object({ server: McpServerName, reason: z.string().trim().min(1).max(500) }))
+    .max(100)
+    .default([]),
+  noneReason: z.string().trim().min(1).max(500).optional().describe('Lý do một dòng khi không chọn gì'),
+};
+
+/** A dev-stage run writes code only: the docs job files the report and closes the ticket. */
+const codeOnlyRun = (ctx: TicketToolContext) => ctx.stage === 'dev';
+
+/** Caps and holds the server answers by parking the pm_task for the owner. */
+const OWNER_HOLDS = new Set(['CHILD_CAP_EXCEEDED', 'BUDGET_HOLD', 'BUDGET_EXCEEDED', 'BUG_CYCLE_CAP']);
+
 /** The role-scoped ticket tools of one run, as SDK tool definitions (also callable directly by tests). */
 export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
   const writer = new JobWriter(ctx.state, ctx.jobId);
   const allowed = new Set<TicketToolName>(ticketToolsFor(ctx.role, ctx.kind));
+  const disabledMcps = new Set(ctx.project?.disabledMcpServers ?? []);
+  const endForOwner = (why: string) => {
+    ctx.state.updateJob(ctx.jobId, { askedOwner: true });
+    ctx.requestEnd('ask_owner');
+    return text(`${why} Ticket chờ chủ dự án duyệt. Dừng lại ngay, không gọi thêm công cụ nào.`);
+  };
   const all: Record<TicketToolName, AnyToolDefinition> = {
     get_ticket: tool(
       'get_ticket',
@@ -204,7 +285,7 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
           .describe('Id hoặc key; mặc định là ticket của lượt chạy'),
       },
       async ({ id }) => {
-        const detail = await ctx.vps.getTicket(id ?? ctx.ticketId);
+        const detail = wrapTicketDetail(await ctx.vps.getTicket(id ?? ctx.ticketId));
         return text({ ...detail, context: await ctx.contextBlock() });
       },
     ),
@@ -215,7 +296,7 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
           id: child.id,
           key: child.key,
           type: child.type,
-          title: child.title,
+          title: wrapUntrusted(`ticket ${child.key} title`, child.title),
           status: child.status,
           assigneeRole: child.assigneeRole,
           dependsOn: child.dependsOn,
@@ -258,34 +339,83 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
       'Chuyển trạng thái ticket (theo luồng hợp lệ; done cần report trước).',
       { to: TicketStatus },
       async ({ to }) => {
+        if (codeOnlyRun(ctx) && (to === 'done' || to === 'in_review')) {
+          return failure(
+            'Dev không đóng ticket: gọi handoff_docs, job docs_update sẽ commit, nộp report và chuyển done.',
+          );
+        }
+        if (ctx.stage === 'qc' && to === 'done') {
+          const skipped = unusedUiServers(ctx);
+          if (skipped.length > 0) {
+            return failure(
+              `QC không được bỏ qua kiểm thử UI: chưa gọi công cụ nào của MCP bắt buộc ${skipped.map((s) => `\`${s}\``).join(', ')}. ` +
+                'Chạy ứng dụng, kiểm tra các tiêu chí nghiệm thu bằng các công cụ đó, ghi kết quả vào report rồi mới đóng. ' +
+                'Nếu server không dùng được, bình luận lý do rồi chuyển ticket sang blocked.',
+            );
+          }
+        }
+        if (ctx.role === 'pm' && (to === 'done' || to === 'in_review') && ctx.resources) {
+          const orphans = await treeOrphans(ctx);
+          if (orphans.length > 0) {
+            return failure(
+              `Còn tiến trình của cây ticket này: ${orphans.join('; ')}. Gọi cleanup_resources rồi resource_report lại trước khi đóng.`,
+            );
+          }
+        }
         const ticket = await writer.write((key) => ctx.vps.transition(ctx.ticketId, to, key));
         return text({ key: ticket.key, status: ticket.status });
       },
     ),
     submit_report: tool(
       'submit_report',
-      'Nộp report của ticket (tiếng Việt). Skill/MCP đã dùng, docs-first và tài nguyên để lại do daemon ghi từ nhật ký công cụ.',
+      'Nộp report của ticket (tiếng Việt). Skill/MCP đã dùng, docs-first, tài nguyên để lại và (với job commit) headSha, commits do daemon ghi.',
       ReportShape,
       async (input) => {
-        const fields = await ctx.reportFields();
+        if (codeOnlyRun(ctx)) {
+          return failure(
+            'Dev không nộp report: gọi handoff_docs, job docs_update sẽ nộp report sau khi commit.',
+          );
+        }
+        const summary = scrub(input.summaryMd);
+        const overlay = await ctx.reportOverlay({
+          summaryMd: summary,
+          skillsSelected: input.skillsSelected,
+          mcpsSelected: input.mcpsSelected,
+        });
+        if (overlay.refusal) return failure(overlay.refusal);
         const report = await writer.write((key) =>
           ctx.vps.submitReport(
             ctx.ticketId,
             {
               ...input,
-              summaryMd: scrub(input.summaryMd),
+              summaryMd: overlay.summaryAppend ? `${summary}\n\n${overlay.summaryAppend}` : summary,
               testsRun: input.testsRun.map((test) => ({
                 ...test,
                 summary: test.summary === undefined ? undefined : scrub(test.summary),
               })),
-              ...fields,
+              skillsSelected: overlay.skillsSelected,
+              mcpsSelected: overlay.mcpsSelected,
+              ...overlay.fields,
+              ...(overlay.headSha !== undefined ? { headSha: overlay.headSha } : {}),
+              ...(overlay.commits !== undefined ? { commits: overlay.commits } : {}),
               // Cost is booked once per run through agent-meta when the run ends.
               costUsd: 0,
             },
             key,
           ),
         );
-        return text({ reportId: report.id, version: report.version });
+        if (overlay.warning) {
+          const warning = overlay.warning;
+          await writer.write((key) => ctx.vps.comment(ctx.ticketId, { body: warning, role: ctx.role }, key));
+        }
+        return text({
+          reportId: report.id,
+          version: report.version,
+          headSha: report.headSha,
+          docsFirst: report.docsFirst,
+          skillsMissing: report.skillsMissing,
+          mcpsMissing: report.mcpsMissing,
+        });
       },
     ),
     docs_flow: tool(
@@ -305,9 +435,36 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
       'PM: tạo subtask dev/qc/docs_init dưới ticket này (mỗi dev có một qc đi kèm qua pairsWith).',
       SubtaskShape,
       async (input) => {
-        const body: CreateSubtaskRequest = { ...input, parentId: ctx.ticketId };
-        const ticket = await writer.write((key) => ctx.vps.createSubtask(body, key));
-        return text({ id: ticket.id, key: ticket.key, status: ticket.status });
+        const off = input.requiredMcps.filter((server) => disabledMcps.has(server));
+        if (off.length > 0) {
+          return failure(`MCP server đã bị chủ dự án tắt cho dự án này: ${off.join(', ')}. Chọn cái khác.`);
+        }
+        // Every subtask of a pm_task depends on its docs-init ticket (it runs first).
+        const parent = await ctx.vps.getTicket(ctx.ticketId);
+        const docsInit = parent.children.find(
+          (child) => child.type === 'docs_init' && child.status !== 'cancelled',
+        );
+        const dependsOn = docsInit ? [...new Set([...input.dependsOn, docsInit.id])] : input.dependsOn;
+        const body: CreateSubtaskRequest = {
+          ...input,
+          description: scrub(input.description),
+          dependsOn,
+          parentId: ctx.ticketId,
+        };
+        try {
+          const ticket = await writer.write((key) => ctx.vps.createSubtask(body, key));
+          return text({
+            id: ticket.id,
+            key: ticket.key,
+            status: ticket.status,
+            requiredMcps: ticket.requiredMcps,
+          });
+        } catch (error) {
+          if (error instanceof VpsError && OWNER_HOLDS.has(error.code)) {
+            return endForOwner(`Server từ chối tạo subtask (${error.code}): ${error.message}.`);
+          }
+          throw error;
+        }
       },
     ),
     resource_report: tool(
@@ -339,10 +496,20 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
         flows: z.array(z.string()).max(100).default([]),
       },
       async (input) => {
-        const result = await writer.write((key) =>
-          ctx.vps.fileBug(ctx.ticketId, { ...input, description: scrub(input.description) }, key),
-        );
-        return text({ bug: result.bug.key, bugId: result.bug.id, retest: result.retest.key });
+        try {
+          const result = await writer.write((key) =>
+            ctx.vps.fileBug(ctx.ticketId, { ...input, description: scrub(input.description) }, key),
+          );
+          return text({ bug: result.bug.key, bugId: result.bug.id, retest: result.retest.key });
+        } catch (error) {
+          if (error instanceof VpsError && error.code === 'BUG_CYCLE_CAP') {
+            return failure(
+              `Chuỗi sửa lỗi đã đạt giới hạn 3 vòng (${error.message}); server đã chuyển PM task cho chủ dự án. ` +
+                'Ghi lỗi này vào report của bạn rồi kết thúc ticket như bình thường.',
+            );
+          }
+          throw error;
+        }
       },
     ),
     handoff_docs: tool(
@@ -370,16 +537,182 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
         title: z.string().trim().min(1).max(300),
         description: z.string().max(100_000).default(''),
         priority: TicketPriority.optional(),
+        complexity: Complexity.optional().describe(
+          'large: việc lớn hoặc ảnh hưởng nhiều phần (PM dùng opus)',
+        ),
       },
       async (input) => {
         const ticket = await writer.write((key) =>
-          ctx.vps.createSubtask({ ...input, type: 'pm_task', parentId: ctx.ticketId }, key),
+          ctx.vps.createSubtask(
+            { ...input, description: scrub(input.description), type: 'pm_task', parentId: ctx.ticketId },
+            key,
+          ),
         );
         return text({ id: ticket.id, key: ticket.key });
       },
     ),
+    select_capabilities: tool(
+      'select_capabilities',
+      'Bước kiểm tra skill/MCP: ghi các skill và MCP server bạn chọn cho bước này, mỗi mục một lý do; không chọn gì thì gửi noneReason.',
+      Selection,
+      async (input) => {
+        const inventory = ctx.inventory();
+        const skills = new Set(inventory.skills.map((skill) => skill.name));
+        const servers = new Set(
+          inventory.mcpServers.map((server) => server.name).filter((name) => !disabledMcps.has(name)),
+        );
+        const unknownSkills = input.skills
+          .map((s) => s.name)
+          .filter((name) => !skills.has(name.replace(/^\//, '')));
+        const unknownMcps = input.mcps.map((m) => m.server).filter((name) => !servers.has(name));
+        if (unknownSkills.length + unknownMcps.length > 0) {
+          return failure(
+            `Không có trong kho của máy (hoặc đã bị tắt): ${[...unknownSkills, ...unknownMcps].join(', ')}. ` +
+              'Chỉ chọn từ context.capabilities của get_ticket.',
+          );
+        }
+        if (input.skills.length + input.mcps.length === 0 && !input.noneReason) {
+          return failure('Không chọn skill hay MCP nào thì cần noneReason (một dòng).');
+        }
+        const job = ctx.state.requireJob(ctx.jobId);
+        const merged = mergeChoices([
+          job.capabilities,
+          { skills: input.skills, mcps: input.mcps, noneReason: input.noneReason ?? null },
+        ]);
+        ctx.state.updateJob(ctx.jobId, { capabilities: merged });
+        return text({
+          recorded: merged,
+          next: 'Gọi từng skill đã chọn bằng công cụ Skill trước khi làm việc, và dùng công cụ của các MCP server đã chọn.',
+        });
+      },
+    ),
+    return_to_dev: tool(
+      'return_to_dev',
+      'Job docs: commit bị hook từ chối vì lỗi ngoài docs/ (test, R6, R7 trong code): trả việc về cho dev kèm nguyên văn output của hook, rồi kết thúc lượt chạy.',
+      ReturnToDev.shape,
+      async (input) => {
+        const note = ReturnToDev.parse({ summaryMd: scrub(input.summaryMd), output: scrub(input.output) });
+        ctx.state.updateJob(ctx.jobId, { returnToDev: note });
+        await writer.write((key) =>
+          ctx.vps.comment(
+            ctx.ticketId,
+            {
+              role: ctx.role,
+              body: `Commit bị hook từ chối vì lỗi ngoài docs, trả việc về cho dev.\n\n${note.summaryMd}\n\n\`\`\`\n${note.output.slice(0, 8_000)}\n\`\`\``,
+            },
+            key,
+          ),
+        );
+        ctx.requestEnd('return_to_dev');
+        return text('Đã trả việc về cho dev. Dừng lại ngay, không gọi thêm công cụ nào.');
+      },
+    ),
+    reject_work: tool(
+      'reject_work',
+      'PM: từ chối một ticket dev/bug đã xong (thiếu skill, docs_first=false, sai tiêu chí): tạo ticket bug cho dev kèm QC kiểm thử lại.',
+      {
+        ticketId: z.uuid().describe('Id ticket dev hoặc bug bị từ chối'),
+        title: z.string().trim().min(1).max(300),
+        description: z.string().max(100_000).default(''),
+        priority: TicketPriority.optional(),
+        requiredSkills: z.array(z.string().trim().min(1).max(200)).max(50).default([]),
+      },
+      async ({ ticketId, ...input }) => {
+        const pm = await ctx.vps.getTicket(ctx.ticketId);
+        const target = pm.children.find((child) => child.id === ticketId);
+        if (!target || (target.type !== 'dev' && target.type !== 'bug')) {
+          return failure('Chỉ từ chối được ticket dev hoặc bug là con của PM task này.');
+        }
+        const result = await writer.write((key) =>
+          ctx.vps.fileBug(ticketId, { ...input, description: scrub(input.description) }, key),
+        );
+        return text({ bug: result.bug.key, bugId: result.bug.id, retest: result.retest.key });
+      },
+    ),
+    merge_and_push: tool(
+      'merge_and_push',
+      'PM nghiệm thu: merge head_sha của mọi ticket dev/bug/docs-init đã xong vào crew/<pm-key> theo thứ tự phụ thuộc, crew-docs generate và commit, chạy cổng pre-push (test, crew-docs check --range, đường dẫn được bảo vệ), push lên nhánh mặc định và đồng bộ docs.',
+      {
+        acceptedExceptions: z
+          .array(z.object({ ticketId: z.uuid(), reason: z.string().trim().min(1).max(500) }))
+          .max(50)
+          .default([])
+          .describe('Ticket thiếu skill mà PM chấp nhận lời giải thích của dev'),
+      },
+      async ({ acceptedExceptions }) => {
+        const project = ctx.project;
+        if (!project) return failure('Ticket này không thuộc dự án nào trên máy này.');
+        const pm = await ctx.vps.getTicket(ctx.ticketId);
+        const reports = new Map<string, Report>();
+        for (const child of pm.children) {
+          if (!['dev', 'bug', 'docs_init'].includes(child.type) || child.status !== 'done') continue;
+          const report = (await ctx.vps.getTicket(child.id)).report;
+          if (report) reports.set(child.id, report);
+        }
+        const outcome = await mergeAndPush({
+          cwd: ctx.cwd,
+          project,
+          pmKey: pm.ticket.key,
+          children: pm.children,
+          reports,
+          exceptions: acceptedExceptions,
+          crewDocs: ctx.crewDocs,
+          env: ctx.env as NodeJS.ProcessEnv,
+          syncDocs: async (snapshot) => {
+            await writer.write((key) => ctx.vps.syncDocs(project.key, snapshot, key));
+          },
+        });
+        if (outcome.status === 'gate_failed') {
+          await writer.write((key) =>
+            ctx.vps.comment(
+              ctx.ticketId,
+              {
+                role: ctx.role,
+                body: `Cổng pre-push thất bại, không push. Ticket chuyển sang blocked cho chủ dự án.\n\n${scrub(outcome.output)}`,
+              },
+              key,
+            ),
+          );
+          const fresh = await ctx.vps.getTicket(ctx.ticketId);
+          if (fresh.ticket.status === 'in_progress') {
+            await writer.write((key) => ctx.vps.transition(ctx.ticketId, 'blocked', key));
+          }
+          ctx.requestEnd('blocked');
+          return text({ ...outcome, next: 'Ticket đã bị chặn. Dừng lại ngay.' });
+        }
+        if (outcome.status === 'merged') {
+          // The PM report carries what was pushed; the daemon fills it from here (see the report overlay).
+          const merged: MergeHandoff = { kind: 'merge', head: outcome.head, commits: outcome.commits };
+          ctx.state.updateJob(ctx.jobId, { handoff: merged });
+        }
+        return text(outcome);
+      },
+    ),
   };
   return TICKET_TOOL_NAMES.filter((name) => allowed.has(name)).map((name) => guarded(all[name]));
+}
+
+/** Required MCP servers of a QC ticket that none of its runs has called a tool of. */
+function unusedUiServers(ctx: TicketToolContext): string[] {
+  const ticket = ctx.state.jobsForTicket(ctx.ticketId);
+  const log = ticket.flatMap((job) => ctx.state.toolLog(job.id));
+  const required = ctx.requiredMcps ?? [];
+  const used = new Set(mcpServersUsed(log, required));
+  return required.filter((server) => !used.has(server));
+}
+
+/** Live processes of this pm_task's children (the PM must clean them before closing). */
+async function treeOrphans(ctx: TicketToolContext): Promise<string[]> {
+  if (!ctx.resources) return [];
+  const detail = await ctx.vps.getTicket(ctx.ticketId);
+  const keys = new Map(detail.children.map((child) => [child.id, child.key]));
+  const report = await ctx.resources.report();
+  return report.processes
+    .filter((proc) => proc.ticketId !== null && keys.has(proc.ticketId))
+    .map(
+      (proc) =>
+        `${keys.get(proc.ticketId as string)}: pid ${proc.pid}${proc.ports.length ? ` cổng ${proc.ports.join(',')}` : ''}`,
+    );
 }
 
 /** Turns thrown errors into tool errors the agent can read, instead of failing the run. */

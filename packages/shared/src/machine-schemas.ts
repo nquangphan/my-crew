@@ -58,6 +58,8 @@ export const InventoryMcpServer = z.object({
     .array(z.object({ name: SkillText, description: z.string().max(5_000).optional() }))
     .max(1_000)
     .default([]),
+  /** The owner switched the server off for this project: agents never get its tools, and tickets cannot require it. */
+  disabled: z.boolean().optional(),
 });
 export type InventoryMcpServer = z.infer<typeof InventoryMcpServer>;
 

@@ -4,19 +4,31 @@ import type {
   Complexity,
   Effort,
   ModelAlias,
+  RoleStage,
   SkillInventory,
   Ticket,
   TicketDetailResponse,
 } from '@crew/shared';
 import type { VpsClient } from '../api/vps-client.js';
 import type { DaemonConfig, ProjectConfig } from '../config.js';
-import type { JobKind, JobPatch, JobRow, NewJob, StateDb, ToolLogEntry } from '../state-db.js';
+import type {
+  CleanupRecord,
+  JobKind,
+  JobPatch,
+  JobRow,
+  JobStatus,
+  NewJob,
+  StateDb,
+  ToolLogEntry,
+} from '../state-db.js';
 import { foldWakeups } from '../stream/dispatcher.js';
 import {
   buildTicketTools,
   createTicketMcpServer,
   type DaemonReportFields,
   JobWriter,
+  type ReportDraft,
+  type ReportOverlay,
   type TicketToolContext,
 } from '../tools/ticket-mcp-server.js';
 import { allowedToolsFor } from '../tools/tool-scopes.js';
@@ -39,6 +51,18 @@ import { mcpServersUsed, skillsInvoked } from './skill-usage.js';
 // Role planning: the extension point the role workflow builds on
 // ---------------------------------------------------------------------------
 
+/** Daemon services a role planner may use (writes go through the job's own idempotent writer). */
+export interface PlannerContext {
+  vps: VpsClient;
+  state: StateDb;
+  crewDocs: { bundle: string; runtime: string } | null;
+  /** Writes keyed on this job (`<jobId>:<seq>`), so a restarted job never repeats one. */
+  writer: JobWriter;
+  /** The docs standard (`STANDARD.md`) installed next to crew-docs, or null. */
+  standardPath: string | null;
+  log: (level: 'info' | 'warn' | 'error', message: string, fields?: Record<string, unknown>) => void;
+}
+
 export interface PlanInput {
   job: JobRow;
   kind: JobKind;
@@ -46,6 +70,7 @@ export interface PlanInput {
   config: DaemonConfig;
   project: ProjectConfig | null;
   inventory: SkillInventory;
+  ctx: PlannerContext;
 }
 
 export interface PlannedRun {
@@ -57,6 +82,46 @@ export interface PlannedRun {
   /** Base of a new worktree (default: the project's default branch; QC passes the dev `head_sha`). */
   worktreeBase?: string;
   appendSystemPrompt?: string;
+  /** The role step this run performs (recorded on the job). */
+  stage?: RoleStage;
+  /** Comments to post before the run (e.g. a model clamped to the allowlist). */
+  notices?: string[];
+  /**
+   * Do not run: the planner already did what the job needed (a gate that waits or blocks). The job ends with
+   * this status and reason.
+   */
+  skip?: { reason: string; status?: Extract<JobStatus, 'skipped' | 'blocked'> };
+}
+
+export interface PrepareInput {
+  job: JobRow;
+  kind: JobKind;
+  stage: RoleStage | undefined;
+  detail: TicketDetailResponse;
+  config: DaemonConfig;
+  project: ProjectConfig | null;
+  cwd: string;
+  ctx: PlannerContext;
+}
+
+export interface PrepareResult {
+  /** Appended to the prompt (e.g. merge conflicts left for the agent). */
+  note?: string;
+  skip?: PlannedRun['skip'];
+}
+
+export interface ReportOverlayInput {
+  job: JobRow;
+  kind: JobKind;
+  ticket: Ticket;
+  toolLog: ToolLogEntry[];
+  inventory: SkillInventory;
+  project: ProjectConfig | null;
+  cwd: string;
+  draft: ReportDraft;
+  /** Processes of this job still alive when the report is filed. */
+  liveProcesses: number;
+  ctx: PlannerContext;
 }
 
 export interface AfterRunInput {
@@ -65,22 +130,37 @@ export interface AfterRunInput {
   ticket: Ticket;
   result: AgentRunResult;
   toolLog: ToolLogEntry[];
+  inventory?: SkillInventory;
+  project?: ProjectConfig | null;
+  cwd?: string;
+  ctx?: PlannerContext;
 }
 
 export interface AfterRunDecision {
   /** A job to queue for the same ticket right after this one (e.g. the docs job after a dev handoff). */
   followUp?: Omit<NewJob, 'ticketId' | 'projectId' | 'role'> & { role?: AgentRole };
+  /** Comments to post on the ticket (warnings, failure notes). */
+  comments?: string[];
+  /** Move the ticket to `blocked` for the owner. */
+  block?: boolean;
+  /** The job's final status when the run itself succeeded (default `done`). */
+  status?: Extract<JobStatus, 'done' | 'failed' | 'blocked'>;
+  error?: string;
 }
 
 /** Role behaviour plugged into the runtime: prompts, model policy, report checks and follow-ups. */
 export interface RolePlanner {
   plan(input: PlanInput): Promise<PlannedRun>;
+  /** After the workspace exists and before the run (e.g. merge dependency heads, install hooks). */
+  prepare?(input: PrepareInput): Promise<PrepareResult>;
   reportFields?(input: {
     job: JobRow;
     kind: JobKind;
     ticket: Ticket;
     toolLog: ToolLogEntry[];
   }): DaemonReportFields;
+  /** Report fields the daemon records itself, when the agent files a report. Replaces `reportFields`. */
+  reportOverlay?(input: ReportOverlayInput): Promise<ReportOverlay>;
   afterRun?(input: AfterRunInput): Promise<AfterRunDecision>;
 }
 
@@ -105,7 +185,7 @@ export function chooseModel(
   return { model: config.models.allow.includes(model) ? model : 'sonnet', effort };
 }
 
-function restartNote(job: JobRow, detail: TicketDetailResponse): string {
+export function restartNote(job: JobRow, detail: TicketDetailResponse): string {
   if (job.resumeMode === 'restart_resume') {
     return [
       'Daemon vừa khởi động lại giữa lượt chạy trước của bạn.',
@@ -234,6 +314,10 @@ export interface JobRunnerDeps {
   releaseWorkspace: (input: { job: JobRow; ticket: Ticket; project: ProjectConfig | null }) => void;
   contextBlock: (job: JobRow, cwd: string) => Promise<Record<string, unknown>>;
   resourceOps?: (job: JobRow) => NonNullable<TicketToolContext['resources']>;
+  /** The docs standard installed next to crew-docs (for the docs-init prompt), or null. */
+  standardPath?: () => string | null;
+  /** After a job's cleanup: the daemon wakes the PM when a finished child left processes behind. */
+  onCleaned?: (job: JobRow, ticket: Ticket, record: CleanupRecord) => void;
   onInit?: (job: JobRow, init: InitInfo, project: ProjectConfig | null) => void;
   onJobChanged?: (job: JobRow) => void;
   log: (level: 'info' | 'warn' | 'error', message: string, fields?: Record<string, unknown>) => void;
@@ -328,6 +412,17 @@ export class JobRunner {
     return job;
   }
 
+  private context(job: JobRow): PlannerContext {
+    return {
+      vps: this.deps.vps,
+      state: this.deps.state,
+      crewDocs: this.deps.crewDocs(),
+      writer: new JobWriter(this.deps.state, job.id),
+      standardPath: this.deps.standardPath?.() ?? null,
+      log: this.deps.log,
+    };
+  }
+
   private async execute(started: JobRow, controller: AbortController): Promise<void> {
     const { state, vps } = this.deps;
     let job = started;
@@ -348,7 +443,19 @@ export class JobRunner {
     const project = this.deps.projectFor(ticket.projectId);
     const inventory = this.deps.inventoryFor(project?.key ?? null);
     const config = this.deps.config();
-    const plan = await this.deps.planner.plan({ job, kind, detail, config, project, inventory });
+    const ctx = this.context(job);
+    const plan = await this.deps.planner.plan({ job, kind, detail, config, project, inventory, ctx });
+    if (plan.stage) job = this.update(job.id, { stage: plan.stage, kind });
+    if (plan.skip) {
+      await this.finish(
+        job,
+        ticket,
+        null,
+        { status: plan.skip.status ?? 'skipped', error: plan.skip.reason },
+        project,
+      );
+      return;
+    }
 
     let workspace: JobWorkspace;
     try {
@@ -364,6 +471,29 @@ export class JobRunner {
       );
       return;
     }
+    const prepared = await this.deps.planner.prepare?.({
+      job,
+      kind,
+      stage: plan.stage,
+      detail,
+      config,
+      project,
+      cwd: workspace.cwd,
+      ctx,
+    });
+    if (prepared?.skip) {
+      await this.finish(
+        job,
+        ticket,
+        null,
+        { status: prepared.skip.status ?? 'skipped', error: prepared.skip.reason },
+        project,
+      );
+      return;
+    }
+    const prompt = prepared?.note ? `${plan.prompt}\n\n${prepared.note}` : plan.prompt;
+    for (const notice of plan.notices ?? []) await this.comment(ctx.writer, ticket.id, job.role, notice);
+
     const tmpDir = jobTmpDir(this.deps.tmpRoot, job.id);
     mkdirSync(tmpDir, { recursive: true, mode: 0o700 });
     job = this.update(job.id, {
@@ -376,33 +506,6 @@ export class JobRunner {
     });
 
     const control = new RunControl();
-    const reportFields = (): DaemonReportFields => {
-      const log = state.toolLog(job.id);
-      return (
-        this.deps.planner.reportFields?.({ job, kind, ticket, toolLog: log }) ??
-        defaultReportFields(ticket, log, inventory, false)
-      );
-    };
-    const tools: TicketToolContext = {
-      jobId: job.id,
-      ticketId: ticket.id,
-      role: job.role,
-      kind,
-      cwd: workspace.cwd,
-      vps,
-      state,
-      crewDocs: this.deps.crewDocs(),
-      contextBlock: () => this.deps.contextBlock(job, workspace.cwd),
-      inventory: () => inventory,
-      reportFields: async () => reportFields(),
-      ...(job.role === 'pm' && this.deps.resourceOps ? { resources: this.deps.resourceOps(job) } : {}),
-      requestEnd: (reason: 'ask_owner' | 'handoff_docs') => control.requestEnd(reason),
-    };
-    const ticketTools = buildTicketTools(tools);
-    const server = createTicketMcpServer(ticketTools);
-    const disabled = project?.disabledMcpServers ?? [];
-    const mcpNames = inventory.mcpServers.map((server) => server.name);
-    const projectServers = inventory.mcpServers.filter((s) => s.source === 'project').map((s) => s.name);
     const env = agentEnv(process.env, {
       CREW_JOB_ID: job.id,
       TMPDIR: tmpDir,
@@ -410,6 +513,53 @@ export class JobRunner {
       TEMP: tmpDir,
       PATH: `${this.deps.binDir}:${process.env.PATH ?? ''}`,
     });
+    const reportOverlay = async (draft: ReportDraft): Promise<ReportOverlay> => {
+      const current = state.requireJob(job.id);
+      const log = state.toolLog(job.id);
+      if (this.deps.planner.reportOverlay) {
+        return this.deps.planner.reportOverlay({
+          job: current,
+          kind,
+          ticket,
+          toolLog: log,
+          inventory,
+          project,
+          cwd: workspace.cwd,
+          draft,
+          liveProcesses: this.liveProcesses(current),
+          ctx,
+        });
+      }
+      const fields =
+        this.deps.planner.reportFields?.({ job: current, kind, ticket, toolLog: log }) ??
+        defaultReportFields(ticket, log, inventory, false);
+      return { fields, skillsSelected: draft.skillsSelected, mcpsSelected: draft.mcpsSelected };
+    };
+    const tools: TicketToolContext = {
+      jobId: job.id,
+      ticketId: ticket.id,
+      ticketType: ticket.type,
+      requiredMcps: ticket.requiredMcps,
+      role: job.role,
+      kind,
+      stage: plan.stage ?? null,
+      cwd: workspace.cwd,
+      vps,
+      state,
+      project,
+      env,
+      crewDocs: ctx.crewDocs,
+      contextBlock: () => this.deps.contextBlock(job, workspace.cwd),
+      inventory: () => inventory,
+      reportOverlay,
+      ...(job.role === 'pm' && this.deps.resourceOps ? { resources: this.deps.resourceOps(job) } : {}),
+      requestEnd: (reason) => control.requestEnd(reason),
+    };
+    const ticketTools = buildTicketTools(tools);
+    const server = createTicketMcpServer(ticketTools);
+    const disabled = project?.disabledMcpServers ?? [];
+    const mcpNames = inventory.mcpServers.map((server) => server.name);
+    const projectServers = inventory.mcpServers.filter((s) => s.source === 'project').map((s) => s.name);
     const budget = config.budgets.perJobUsd;
 
     let result: AgentRunResult;
@@ -420,10 +570,11 @@ export class JobRunner {
         ticketKey: ticket.key,
         role: job.role,
         kind,
+        ...(plan.stage ? { stage: plan.stage } : {}),
         cwd: workspace.cwd,
         model: plan.model,
         effort: plan.effort,
-        prompt: plan.prompt,
+        prompt,
         resumeSessionId: plan.resumeSessionId,
         allowedTools: allowedToolsFor({
           role: job.role,
@@ -443,6 +594,7 @@ export class JobRunner {
           kind,
           sharedPaths: workspace.sharedPaths,
           tmpDir,
+          codeOnly: plan.stage === 'dev',
         }),
         enabledMcpjsonServers: projectServers.filter((name) => !disabled.includes(name)),
         disabledMcpjsonServers: projectServers.filter((name) => disabled.includes(name)),
@@ -535,14 +687,25 @@ export class JobRunner {
       return;
     }
 
-    const afterRun = await this.deps.planner.afterRun?.({ job, kind, ticket, result, toolLog: log });
+    job = state.updateJob(job.id, { skillsInvoked: skills });
+    const afterRun = await this.deps.planner.afterRun?.({
+      job,
+      kind,
+      ticket,
+      result,
+      toolLog: log,
+      inventory,
+      project,
+      cwd: workspace.cwd,
+      ctx,
+    });
+    const writer = new JobWriter(state, job.id);
     if (result.isError) {
       this.deps.log('warn', 'run failed', {
         jobId: job.id,
         subtype: result.resultSubtype,
         errors: result.errors,
       });
-      const writer = new JobWriter(state, job.id);
       const errorClass = result.resultSubtype ?? 'runner_error';
       await this.comment(
         writer,
@@ -550,6 +713,7 @@ export class JobRunner {
         job.role,
         `Lượt chạy lỗi (\`${errorClass}\`), chi phí ${result.totalCostUsd.toFixed(4)} USD: ${result.errors.join('; ').slice(0, 2_000) || 'không rõ lỗi'}`,
       );
+      for (const body of afterRun?.comments ?? []) await this.comment(writer, ticket.id, job.role, body);
       if (!afterRun?.followUp) await this.transition(writer, ticket, 'blocked');
       await this.finish(
         job,
@@ -561,7 +725,39 @@ export class JobRunner {
       );
       return;
     }
-    await this.finish(job, ticket, result, { ...base, status: 'done' }, project, afterRun);
+    for (const body of afterRun?.comments ?? []) await this.comment(writer, ticket.id, job.role, body);
+    if (afterRun?.block) {
+      await this.transition(writer, ticket, 'blocked');
+      await this.finish(
+        job,
+        ticket,
+        result,
+        { ...base, status: 'blocked', error: afterRun.error ?? 'blocked' },
+        project,
+      );
+      return;
+    }
+    await this.finish(
+      job,
+      ticket,
+      result,
+      { ...base, status: afterRun?.status ?? 'done', ...(afterRun?.error ? { error: afterRun.error } : {}) },
+      project,
+      afterRun,
+    );
+  }
+
+  /** Processes of a running job that are still alive (its process group, its tag, their children). */
+  private liveProcesses(job: JobRow): number {
+    try {
+      const groups = new Map<number, string>();
+      if (job.pgid && job.pgid > 1) groups.set(job.pgid, job.id);
+      return this.deps.tracker
+        .jobProcesses(groups)
+        .filter((proc) => proc.jobId === job.id && proc.pid !== job.pgid).length;
+    } catch {
+      return 0;
+    }
   }
 
   /** A QC worktree starts at the paired dev (or bug) report's `head_sha`, so QC tests exactly what dev built. */
@@ -661,7 +857,14 @@ export class JobRunner {
     });
     this.deps.onJobChanged?.(followUps.ended);
     for (const row of followUps.created) this.deps.onJobChanged?.(row);
-    await this.cleanup(followUps.ended);
+    const record = await this.cleanup(followUps.ended);
+    if (record) {
+      try {
+        this.deps.onCleaned?.(followUps.ended, ticket, record);
+      } catch (error) {
+        this.deps.log('warn', 'cleanup notice failed', { jobId: job.id, error: (error as Error).message });
+      }
+    }
     if (followUps.created.length > 0) return;
     let status = ticket.status;
     try {
@@ -678,9 +881,9 @@ export class JobRunner {
     }
   }
 
-  private async cleanup(job: JobRow): Promise<void> {
+  private async cleanup(job: JobRow): Promise<CleanupRecord | null> {
     try {
-      await cleanupJob(
+      return await cleanupJob(
         {
           state: this.deps.state,
           tracker: this.deps.tracker,
@@ -691,6 +894,7 @@ export class JobRunner {
       );
     } catch (error) {
       this.deps.log('error', 'cleanup failed', { jobId: job.id, error: (error as Error).message });
+      return null;
     }
   }
 }

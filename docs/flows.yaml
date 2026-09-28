@@ -94,6 +94,7 @@ flows:
       - packages/shared/src/project-schemas.ts
     tests:
       - apps/api/test/claims.test.ts
+      - packages/shared/src/project-schemas.test.ts
   daemon-api:
     title: REST API cho daemon
     doc: docs/flows/daemon-api.md
@@ -326,6 +327,51 @@ flows:
       - apps/daemon/test/guard-hook.test.ts
       - apps/daemon/test/ticket-tools.test.ts
       - apps/daemon/test/live-smoke.test.ts
+  agent-roles:
+    title: Vai trò agent và quy trình ticket
+    doc: docs/flows/agent-roles.md
+    entrypoints:
+      - apps/daemon/src/roles/role-planner.ts
+    files:
+      - apps/daemon/src/roles/role-registry.ts
+      - apps/daemon/src/roles/prompt-templates.ts
+      - apps/daemon/src/roles/model-policy.ts
+      - apps/daemon/src/roles/skill-enforcement.ts
+      - apps/daemon/src/roles/docs-first-check.ts
+      - apps/daemon/src/roles/docs-init-gate.ts
+      - apps/daemon/src/roles/docs-update-handoff.ts
+      - apps/daemon/src/roles/failure-policy.ts
+      - apps/daemon/src/roles/untrusted-wrap.ts
+      - apps/daemon/src/roles/workspace-prep.ts
+      - apps/daemon/src/roles/prompts/_capability-preflight.md
+      - apps/daemon/src/roles/prompts/_shared-rules.md
+      - apps/daemon/src/roles/prompts/assistant-triage.md
+      - apps/daemon/src/roles/prompts/assistant-close.md
+      - apps/daemon/src/roles/prompts/pm-analyze.md
+      - apps/daemon/src/roles/prompts/pm-monitor.md
+      - apps/daemon/src/roles/prompts/pm-accept.md
+      - apps/daemon/src/roles/prompts/dev.md
+      - apps/daemon/src/roles/prompts/docs-update.md
+      - apps/daemon/src/roles/prompts/qc.md
+      - apps/daemon/src/roles/prompts/docs-init.md
+    tests:
+      - apps/daemon/test/role-contracts.test.ts
+      - apps/daemon/test/model-policy.test.ts
+      - apps/daemon/test/skill-enforcement.test.ts
+      - apps/daemon/test/docs-first-check.test.ts
+      - apps/daemon/test/docs-init-gate.test.ts
+      - apps/daemon/test/docs-update-handoff.test.ts
+      - apps/daemon/test/role-policies.test.ts
+      - apps/daemon/test/lifecycle.test.ts
+      - apps/daemon/test/live-workflow.test.ts
+  local-merge:
+    title: 'Nghiệm thu: merge cục bộ, cổng pre-push và push'
+    doc: docs/flows/local-merge.md
+    entrypoints:
+      - apps/daemon/src/roles/merge-policy.ts
+    files: []
+    tests:
+      - apps/daemon/test/merge-policy.test.ts
   agent-workspace:
     title: Worktree và kho skill, MCP của agent
     doc: docs/flows/agent-workspace.md

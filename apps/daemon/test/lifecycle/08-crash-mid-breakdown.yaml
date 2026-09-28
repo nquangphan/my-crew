@@ -1,0 +1,28 @@
+name: crash-mid-breakdown
+description: >-
+  The daemon dies right after the PM created the dev subtask and before its QC; after the restart the same
+  analyze job resumes its session and creates only the missing QC ticket (no duplicate subtasks).
+project:
+  platform: backend
+request:
+  title: Thêm trang liên hệ
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Thêm trang liên hệ }]
+  - stage: pm_analyze
+    steps: [{ macro: pm_analyze, subtasks: [{ title: Trang liên hệ, crashAfter: true }] }]
+  - stage: dev
+    steps: [{ macro: dev, file: src/contact.js }]
+  - stage: docs_update
+    steps: [{ macro: docs_update, files: [src/contact.js] }]
+  - stage: qc
+    steps: [{ macro: qc }]
+  - stage: pm_accept
+    steps: [{ macro: pm_accept }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Thêm trang liên hệ$', type: pm_task, status: done }
+    - { title: '^Trang liên hệ$', status: done }
+    - { title: '^QC: Trang liên hệ$', status: done }

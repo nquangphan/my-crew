@@ -41,6 +41,37 @@ describe('dispatcher', () => {
     });
   });
 
+  it("routes the owner's answer to the job kind that asked: a docs job resumes its own session", () => {
+    const state = new StateDb(':memory:');
+    const ticket = randomUUID();
+    const dev = state.insertJob({
+      ticketId: ticket,
+      projectId: null,
+      role: 'dev',
+      trigger: 'ticket.assigned',
+    });
+    state.updateJob(dev.id, { status: 'done', sessionId: 's-dev', handoff: { summaryMd: 'x' } });
+    const docs = state.insertJob({
+      ticketId: ticket,
+      projectId: null,
+      role: 'dev',
+      kind: 'docs_update',
+      trigger: 'handoff',
+    });
+    state.updateJob(docs.id, { status: 'done', sessionId: 's-docs', askedOwner: true });
+    const effect = dispatchEvent(state, comment(ticket));
+    expect(effect.kind === 'enqueued' && effect.job).toMatchObject({
+      kind: 'docs_update',
+      sessionId: 's-docs',
+    });
+    // Without a docs question, an owner comment wakes the dev session.
+    const other = randomUUID();
+    const d2 = state.insertJob({ ticketId: other, projectId: null, role: 'dev', trigger: 'ticket.assigned' });
+    state.updateJob(d2.id, { status: 'done', sessionId: 's-dev-2' });
+    const second = dispatchEvent(state, comment(other));
+    expect(second.kind === 'enqueued' && second.job).toMatchObject({ kind: 'agent', sessionId: 's-dev-2' });
+  });
+
   it('never creates a second active job: a queued job absorbs later events', () => {
     const state = new StateDb(':memory:');
     const ticket = randomUUID();

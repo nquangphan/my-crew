@@ -1,0 +1,40 @@
+name: resources-cleanup
+description: >-
+  A dev run leaves a nohup server and temp files; the daemon cleans them when the job ends, wakes the PM,
+  which sees them in resource_report and comments, and the PM report lists the cleanup.
+inventory:
+  skills: []
+request:
+  title: Chạy thử máy chủ
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Chạy thử máy chủ }]
+  - stage: pm_analyze
+    steps: [{ macro: pm_analyze, subtasks: [{ title: Chạy thử máy chủ }] }]
+  - stage: dev
+    title: Chạy thử máy chủ
+    steps:
+      - macro: dev_start
+      - bash: >-
+          nohup node -e "require('node:http').createServer((q, s) => s.end('ok')).listen(4391, '127.0.0.1')"
+          > /dev/null 2>&1 &
+      - bash: head -c 150000 /dev/zero > "$TMPDIR/scratch.bin"
+      - sleep: 700
+      - macro: dev_finish
+        file: src/ping.js
+  - stage: pm_monitor
+    steps: [{ macro: pm_monitor, comment: 'WEB-2 để lại một tiến trình trên cổng 4391; daemon đã dừng nó.' }]
+  - stage: docs_update
+    steps: [{ macro: docs_update, files: [src/ping.js] }]
+  - stage: qc
+    steps: [{ macro: qc, mcps: [] }]
+  - stage: pm_accept
+    steps: [{ macro: pm_accept }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+project:
+  platform: backend
+expect:
+  tickets:
+    - { title: '^Chạy thử máy chủ$', type: request, status: in_review }
+    - { title: '^Chạy thử máy chủ$', type: pm_task, status: done }

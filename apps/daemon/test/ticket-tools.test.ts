@@ -17,8 +17,8 @@ describe('tool scopes', () => {
     const extras = (
       role: Parameters<typeof ticketToolsFor>[0],
       kind: Parameters<typeof ticketToolsFor>[1] = 'agent',
-    ) => ticketToolsFor(role, kind).slice(8);
-    expect(ticketToolsFor('dev', 'agent').slice(0, 8)).toEqual([
+    ) => ticketToolsFor(role, kind).slice(9);
+    expect(ticketToolsFor('dev', 'agent').slice(0, 9)).toEqual([
       'get_ticket',
       'list_children',
       'comment',
@@ -27,11 +27,19 @@ describe('tool scopes', () => {
       'submit_report',
       'docs_flow',
       'docs_where',
+      'select_capabilities',
     ]);
-    expect(extras('pm')).toEqual(['create_subtask', 'resource_report', 'cleanup_resources']);
+    expect(extras('pm')).toEqual([
+      'create_subtask',
+      'resource_report',
+      'cleanup_resources',
+      'reject_work',
+      'merge_and_push',
+    ]);
     expect(extras('qc')).toEqual(['file_bug']);
     expect(extras('dev')).toEqual(['handoff_docs']);
-    expect(extras('dev', 'docs_update')).toEqual([]);
+    expect(extras('dev', 'docs_update')).toEqual(['return_to_dev']);
+    expect(extras('dev', 'docs_init')).toEqual([]);
     expect(extras('assistant')).toEqual(['get_project_catalog', 'create_pm_ticket']);
   });
 
@@ -57,17 +65,26 @@ function tools(
   const ended: string[] = [];
   const list = buildTicketTools({
     kind: 'agent',
+    ticketType: 'dev',
+    stage: ctx.role === 'dev' ? 'dev' : null,
+    requiredMcps: [],
     cwd: '/',
+    project: null,
+    env: {},
     crewDocs: null,
     contextBlock: async () => ({ machine: 'test' }),
     inventory: () => ({ skills: [], mcpServers: [] }),
-    reportFields: async () => ({
-      skillsUsed: [],
-      skillsMissing: [],
-      mcpsUsed: [],
-      mcpsMissing: [],
-      docsFirst: true,
-      leftResources: false,
+    reportOverlay: async (draft) => ({
+      fields: {
+        skillsUsed: [],
+        skillsMissing: [],
+        mcpsUsed: [],
+        mcpsMissing: [],
+        docsFirst: true,
+        leftResources: false,
+      },
+      skillsSelected: draft.skillsSelected,
+      mcpsSelected: draft.mcpsSelected,
     }),
     requestEnd: (reason) => ended.push(reason),
     ...ctx,
@@ -107,9 +124,49 @@ describe('ticket MCP tools against the real API', () => {
     // Four writes, four committed keys.
     expect(state.getJob(job.id)?.toolSeq).toBe(4);
 
+    // A dev run never closes its ticket: the docs job files the report and moves it to done.
     const refused = await t.call('update_status', { to: 'done' });
     expect(refused.isError).toBe(true);
-    expect(JSON.stringify(refused.content)).toMatch(/ILLEGAL_TRANSITION|REPORT_REQUIRED/);
+    expect(JSON.stringify(refused.content)).toMatch(/handoff_docs/);
+    const noReport = await t.call('submit_report', { summaryMd: 'Xong' });
+    expect(noReport.isError).toBe(true);
+    // The server still refuses an illegal move.
+    const illegal = await t.call('update_status', { to: 'triage' });
+    expect(JSON.stringify(illegal.content)).toMatch(/ILLEGAL_TRANSITION/);
+  });
+
+  it('QC cannot close without using its required UI-test MCP server', async () => {
+    const f = await fixture(api);
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id);
+    const { createSubtask } = await import('../../api/src/services/ticket-service.js');
+    const qc = await createSubtask(api.db, { type: 'qc', parentId: pm.id, title: 'QC', pairsWith: dev.id });
+    const state = new StateDb(':memory:');
+    const job = state.insertJob({ ticketId: qc.id, projectId: f.projectId, role: 'qc', trigger: 't' });
+    const vps = new VpsClient({ apiUrl: f.server.url, token: () => f.machine.token });
+    const t = tools({
+      vps,
+      state,
+      jobId: job.id,
+      ticketId: qc.id,
+      role: 'qc',
+      stage: 'qc',
+      requiredMcps: ['playwright'],
+    });
+    await t.call('update_status', { to: 'in_progress' });
+    const refused = await t.call('update_status', { to: 'done' });
+    expect(refused.isError).toBe(true);
+    expect(JSON.stringify(refused.content)).toContain('playwright');
+    state.logTool({
+      jobId: job.id,
+      tool: 'mcp__playwright__browser_navigate',
+      target: '{}',
+      decision: 'allow',
+      reason: null,
+    });
+    // Now the daemon lets it through; the server still wants a report first.
+    const next = await t.call('update_status', { to: 'done' });
+    expect(JSON.stringify(next.content)).toMatch(/REPORT_REQUIRED/);
   });
 
   it('records a docs handoff on the job and ends the run', async () => {

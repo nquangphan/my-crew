@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { chmodSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { AgentRole } from '@crew/shared';
+import type { AgentRole, RoleStage } from '@crew/shared';
 import Database from 'better-sqlite3';
 
 export type JobKind = 'agent' | 'docs_update' | 'docs_init';
@@ -58,6 +58,22 @@ export interface JobRow {
   createdAt: string;
   startedAt: string | null;
   endedAt: string | null;
+  /** The role step this run performed (set when the run is planned). */
+  stage: RoleStage | null;
+  /** Failed attempts before this job (no handoff, rejected docs commit, runner error); capped by the failure policy. */
+  failedAttempts: number;
+  /** Skills and MCP servers the agent picked in its capability preflight (`select_capabilities`). */
+  capabilities: CapabilityChoice | null;
+  /** Recorded by the docs job's `return_to_dev`: why the commit failed and the hook output. */
+  returnToDev: { summaryMd: string; output: string } | null;
+}
+
+/** What a run selected in its capability preflight, each with a one-line reason. */
+export interface CapabilityChoice {
+  skills: { name: string; reason: string }[];
+  mcps: { server: string; reason: string }[];
+  /** Why nothing fits, when both lists are empty. */
+  noneReason: string | null;
 }
 
 export interface NewJob {
@@ -71,6 +87,7 @@ export interface NewJob {
   sessionId?: string | null;
   worktree?: string | null;
   attempts?: number;
+  failedAttempts?: number;
 }
 
 export interface ToolLogEntry {
@@ -126,7 +143,11 @@ create table if not exists jobs (
   error text,
   created_at text not null,
   started_at text,
-  ended_at text
+  ended_at text,
+  stage text,
+  failed_attempts integer not null default 0,
+  capabilities text,
+  return_to_dev text
 );
 create unique index if not exists jobs_one_active_per_ticket
   on jobs (ticket_id) where status in ('queued', 'running', 'backoff');
@@ -158,6 +179,14 @@ create table if not exists job_cleanup (
   at text not null
 );
 `;
+
+/** Job columns added after the first release, with their definitions (see `StateDb.migrate`). */
+const LATER_COLUMNS: readonly (readonly [string, string])[] = [
+  ['stage', 'text'],
+  ['failed_attempts', 'integer not null default 0'],
+  ['capabilities', 'text'],
+  ['return_to_dev', 'text'],
+];
 
 type Row = Record<string, unknown>;
 
@@ -202,6 +231,10 @@ function toJob(row: Row): JobRow {
     createdAt: row.created_at as string,
     startedAt: (row.started_at as string | null) ?? null,
     endedAt: (row.ended_at as string | null) ?? null,
+    stage: (row.stage as RoleStage | null) ?? null,
+    failedAttempts: (row.failed_attempts as number | null) ?? 0,
+    capabilities: json<CapabilityChoice | null>(row.capabilities, null),
+    returnToDev: json<JobRow['returnToDev']>(row.return_to_dev, null),
   };
 }
 
@@ -232,6 +265,10 @@ const JOB_COLUMNS = {
   error: ['error', (v: unknown) => v],
   startedAt: ['started_at', (v: unknown) => v],
   endedAt: ['ended_at', (v: unknown) => v],
+  stage: ['stage', (v: unknown) => v],
+  failedAttempts: ['failed_attempts', (v: unknown) => v],
+  capabilities: ['capabilities', (v: unknown) => (v === null ? null : JSON.stringify(v))],
+  returnToDev: ['return_to_dev', (v: unknown) => (v === null ? null : JSON.stringify(v))],
 } as const satisfies Record<string, readonly [string, (v: unknown) => unknown]>;
 
 export type JobPatch = Partial<Pick<JobRow, keyof typeof JOB_COLUMNS>>;
@@ -253,6 +290,17 @@ export class StateDb {
     this.db.pragma('synchronous = FULL');
     this.db.pragma('busy_timeout = 5000');
     this.db.exec(SCHEMA);
+    this.migrate();
+  }
+
+  /** Adds the columns a state DB written by an older daemon lacks (SQLite has no `add column if not exists`). */
+  private migrate(): void {
+    const have = new Set(
+      (this.db.prepare('pragma table_info(jobs)').all() as Row[]).map((column) => column.name as string),
+    );
+    for (const [name, ddl] of LATER_COLUMNS) {
+      if (!have.has(name)) this.db.exec(`alter table jobs add column ${name} ${ddl}`);
+    }
   }
 
   close(): void {
@@ -298,8 +346,8 @@ export class StateDb {
     this.db
       .prepare(
         `insert into jobs (id, ticket_id, project_id, role, kind, status, trigger, event_ids, resume_mode,
-           session_id, worktree, attempts, created_at)
-         values (?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?)`,
+           session_id, worktree, attempts, failed_attempts, created_at)
+         values (?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -313,6 +361,7 @@ export class StateDb {
         input.sessionId ?? null,
         input.worktree ?? null,
         input.attempts ?? 0,
+        input.failedAttempts ?? 0,
         now.toISOString(),
       );
     return this.requireJob(id);

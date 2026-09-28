@@ -324,33 +324,70 @@ export interface FileBugResult {
 }
 
 /**
- * QC files a defect: a `bug` ticket for dev plus a paired QC retest that depends on it, under the same
- * pm_task. Past MAX_BUG_CYCLES nothing is created; the pm_task is parked for the owner instead.
+ * Files a defect as a `bug` ticket for dev plus a paired QC retest that depends on it, under the same pm_task.
+ * Two sources: a QC ticket reports a bug in the dev or bug ticket it verifies, or the PM rejects a finished
+ * dev or bug ticket at accept (a skipped required skill, source read before docs, unmet criteria). Past
+ * MAX_BUG_CYCLES nothing is created; the pm_task is parked for the owner instead.
  */
-export async function fileBug(db: Executor, qcTicketId: string, input: FileBugInput): Promise<FileBugResult> {
+export async function fileBug(
+  db: Executor,
+  sourceTicketId: string,
+  input: FileBugInput,
+): Promise<FileBugResult> {
   const data = FileBugRequest.parse(input);
   return commitThenThrow(db, async (tx) => {
-    const { ticket: qc, parent: pmTask } = await lockWithParent(tx, qcTicketId);
-    if (qc.type !== 'qc') throw new ApiError('VALIDATION_FAILED', 'only qc tickets file bugs');
-    if (isTerminal(qc.status)) throw new ApiError('TICKET_CLOSED', `${qc.key} is ${qc.status}`);
-    if (pmTask?.type !== 'pm_task' || !qc.pairsWith) {
-      throw new ApiError('INVALID_HIERARCHY', `${qc.key} is not a paired QC ticket under a pm_task`);
+    const { ticket: source, parent: pmTask } = await lockWithParent(tx, sourceTicketId);
+    const rejection = source.type === 'dev' || source.type === 'bug';
+    if (!rejection && source.type !== 'qc') {
+      throw new ApiError(
+        'VALIDATION_FAILED',
+        'only qc tickets file bugs, and only dev or bug tickets are rejected',
+      );
+    }
+    if (rejection && source.status !== 'done') {
+      throw new ApiError(
+        'VALIDATION_FAILED',
+        `${source.key} is ${source.status}; only a done ticket is rejected`,
+      );
+    }
+    if (!rejection && isTerminal(source.status)) {
+      throw new ApiError('TICKET_CLOSED', `${source.key} is ${source.status}`);
+    }
+    if (pmTask?.type !== 'pm_task' || (!rejection && !source.pairsWith)) {
+      throw new ApiError(
+        'INVALID_HIERARCHY',
+        `${source.key} is not a paired QC or a dev ticket under a pm_task`,
+      );
     }
     if (isTerminal(pmTask.status)) throw new ApiError('PARENT_CLOSED', `${pmTask.key} is ${pmTask.status}`);
     const project = await findProject(tx, pmTask.projectId);
     if (!project) throw new ApiError('INVALID_HIERARCHY', `pm_task ${pmTask.key} has no project`);
-    const [verified] = await tx.select().from(tickets).where(eq(tickets.id, qc.pairsWith));
+    const [verified] = rejection
+      ? [source]
+      : await tx
+          .select()
+          .from(tickets)
+          .where(eq(tickets.id, source.pairsWith as string));
     if (!verified) throw notFound('paired ticket');
+    // The retest inherits the QC settings of the ticket under test (the rejected ticket's own QC, if any).
+    const [qcTemplate] = rejection
+      ? await tx
+          .select()
+          .from(tickets)
+          .where(and(eq(tickets.pairsWith, verified.id), eq(tickets.type, 'qc')))
+          .orderBy(asc(tickets.createdAt))
+      : [source];
 
     const cycle = verified.bugCycle + 1;
     const originDevId = verified.originDevId ?? verified.id;
     if (cycle > MAX_BUG_CYCLES) {
       const [origin] = await tx.select({ key: tickets.key }).from(tickets).where(eq(tickets.id, originDevId));
+      const who = rejection ? `PM từ chối ${source.key}` : `QC (${source.key}) báo thêm lỗi`;
       await applyHold(
         tx,
         pmTask,
         'bug_cycles',
-        `QC (${qc.key}) báo thêm lỗi cho ${origin?.key ?? verified.key}, nhưng chuỗi sửa lỗi đã đạt giới hạn ` +
+        `${who} cho ${origin?.key ?? verified.key}, nhưng chuỗi sửa lỗi đã đạt giới hạn ` +
           `${MAX_BUG_CYCLES} vòng nên lỗi mới chưa được tạo: "${data.title}". ` +
           'Hãy bình luận để quyết định bước tiếp theo.',
       );
@@ -393,11 +430,14 @@ export async function fileBug(db: Executor, qcTicketId: string, input: FileBugIn
       type: 'qc',
       title: `Kiểm thử lại ${bug.key}: ${data.title}`,
       description: `Kiểm thử lại sau khi sửa lỗi ${bug.key} (vòng ${cycle}/${MAX_BUG_CYCLES}).`,
-      complexity: qc.complexity,
-      model: qc.model,
-      effort: qc.effort,
-      requiredSkills: qc.requiredSkills,
-      requiredMcps: mergeUnique(qc.requiredMcps, qcDefaultMcps(project.platform, project.uiTestMcp)),
+      complexity: qcTemplate?.complexity ?? null,
+      model: qcTemplate?.model ?? null,
+      effort: qcTemplate?.effort ?? null,
+      requiredSkills: qcTemplate?.requiredSkills ?? [],
+      requiredMcps: mergeUnique(
+        qcTemplate?.requiredMcps ?? [],
+        qcDefaultMcps(project.platform, project.uiTestMcp),
+      ),
       dependsOn: [bug.id],
       pairsWith: bug.id,
     });

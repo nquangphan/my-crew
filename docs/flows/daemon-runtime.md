@@ -29,33 +29,58 @@ chung: cả lệnh `crewd start` và app desktop (Phase 9) đều dựng daemon 
 4. `apps/daemon/src/state-db.ts` → `StateDb`: SQLite `~/.crew/state.db` (`better-sqlite3`, `journal_mode=WAL`,
    `synchronous=FULL`), bảng `meta` (cursor sự kiện, `tokenExpiresAt`, `inventory:<key>`), `jobs` (index unique
    một phần `jobs_one_active_per_ticket` — một ticket chỉ giữ nhiều nhất một job đang `queued`/`running`/
-   `backoff`), `pending_wakeups`, `tool_log`, `job_cleanup`. Mọi thao tác đồng bộ nên `transaction()` gộp
-   nhiều ghi thành một.
+   `backoff`; cột `stage`, `failed_attempts`, `capabilities`, `return_to_dev` của flow `agent-roles`),
+   `pending_wakeups`, `tool_log`, `job_cleanup`. Mọi thao tác đồng bộ nên `transaction()` gộp nhiều ghi thành
+   một. `StateDb.migrate()` chạy sau `SCHEMA` mỗi lần mở: `pragma table_info(jobs)` rồi `alter table … add
+   column` cho cột nào một state DB được ghi bởi daemon cũ còn thiếu (SQLite không có `add column if not
+   exists`), nên nâng cấp tại chỗ không mất job đang chờ.
 5. `apps/daemon/src/api/vps-client.ts` → `VpsClient.request()`: mọi response được validate bằng schema
    `@crew/shared`, lỗi transient (mạng, 502/503/504) được thử lại với backoff nhân đôi, mọi ghi kèm header
    `Idempotency-Key`.
-6. `apps/daemon/src/daemon.ts` → `createDaemon().start()`: `takePidLock()` chặn hai daemon cùng chạy trên một
+6. `apps/daemon/src/daemon.ts` → `createDaemon()`: `planner` mặc định là `rolePlanner` (flow `agent-roles`,
+   trước đây là `defaultPlanner` tối giản); sau khi cài `crew-docs` (`installCrewDocs()`), `packagedStandard()`
+   tìm `STANDARD.md` của `@crew/docs-kit` mà daemon này được build cùng và chép nó vào `~/.crew/bin` cạnh
+   bundle — `standardPath` (cấp cho `JobRunnerDeps.standardPath`) là đường dẫn agent `docs_init` đọc chuẩn docs
+   từ đó. `contextBlock()` (cấp cho tool `get_ticket`) giờ có thêm trường `stage` của job đang chạy. Khi
+   `putSkills()` gửi inventory lên server, MCP server bị chủ dự án tắt cho project đó được đánh dấu
+   `disabled: true` trong danh sách gửi đi (server dùng cờ này để từ chối ticket yêu cầu nó, flow
+   `machine-pairing`/`daemon-api`), dù `inventoryFor()` cục bộ (cấp cho `allowedToolsFor()`) vẫn giữ danh sách
+   gốc.
+7. `apps/daemon/src/daemon.ts` → `createDaemon().start()`: `takePidLock()` chặn hai daemon cùng chạy trên một
    home; `reconcileRestart()` dọn rồi re-queue job còn `running` từ lần chạy trước (`resumeMode` =
    `restart_resume` nếu có `sessionId`, ngược lại `restart_fresh`); `refreshProjects()`; `sweep()`; probe
    inventory máy và từng project; rồi khởi động stream, heartbeat, scheduler và timer sweep mỗi 10 phút.
-7. `apps/daemon/src/daemon.ts` → `releaseLostProjects()`: sau khi `refreshProjects()` trả lời sự kiện
+   `decide()` (dùng bởi `Scheduler`, flow `daemon-scheduling`): `pm_task` vượt ngân sách cây trả `defer` (job ở
+   nguyên `queued`, thử lại ở lượt sau) thay vì `skip` (kết thúc hẳn) — chủ dự án duyệt xong thì job tự chạy mà
+   không cần một sự kiện đánh thức mới.
+8. `apps/daemon/src/daemon.ts` → `releaseLostProjects()`: sau khi `refreshProjects()` trả lời sự kiện
    `claim.changed`, job của project máy này không còn sở hữu bị hủy (đang chạy) hoặc chuyển `skipped`
    (`queued`/`backoff`) — chi tiết dispatch sự kiện thuộc flow `daemon-scheduling`.
-8. `apps/daemon/src/daemon.ts` → `createDaemon().stop()`/`halt()`: `stop()` dừng nhẹ nhàng (abort job đang
-   chạy để chúng tự re-queue nhờ `stopping()`), `halt()` là mô phỏng crash cho test (dừng ngay, không ghi
-   thêm gì).
-9. `apps/daemon/src/service/systemd.ts` → `installService()`/`systemdUnit()`: sinh và cài một **systemd user
-   unit** (`crewd.service`) chạy trong phiên của chủ dự án, luôn `UnsetEnvironment=ANTHROPIC_API_KEY` để billing
-   ở lại đăng nhập gói đăng ký; `crewd install-service` chỉ chạy trên Linux (macOS dùng app desktop).
-10. `apps/daemon/src/library.ts`: re-export toàn bộ API công khai của daemon (`createDaemon`, `VpsClient`,
-    `StateDb`, các health check, runner, tool scopes…) cho CLI và app desktop dùng chung một nguồn.
+9. `apps/daemon/src/daemon.ts` → `wakePmForLeftovers()`: móc `onCleaned` của `JobRunner` (flow `agent-runs`) —
+   một subtask (`dev`/`bug`/`qc`/`docs_init`) mà việc dọn dẹp phải dừng tiến trình/cổng/container thật sự đánh
+   thức PM của `pm_task` cha (`wakeTicket()`, flow `daemon-scheduling`), để `pm_monitor` thấy và bình luận
+   ngay, không phải chờ lượt kiểm tra định kỳ tiếp theo.
+10. `apps/daemon/src/daemon.ts` → `cancelDescendants()`: sự kiện `ticket.cancelled` chỉ nêu gốc cây bị huỷ
+    (server đã tự huỷ mọi ticket con); hàm này quét mọi job cục bộ đang hoạt động, với job nào có ticket đã
+    `cancelled` thì huỷ job đó (`running` → abort, `queued`/`backoff` → `cancelled` tại chỗ) và gỡ worktree của
+    nó, nên không job con nào của một cây bị huỷ còn sống sót trên máy.
+11. `apps/daemon/src/daemon.ts` → `createDaemon().stop()`/`halt()`: `stop()` dừng nhẹ nhàng (abort job đang
+    chạy để chúng tự re-queue nhờ `stopping()`), `halt()` là mô phỏng crash cho test (dừng ngay, không ghi
+    thêm gì).
+12. `apps/daemon/src/service/systemd.ts` → `installService()`/`systemdUnit()`: sinh và cài một **systemd user
+    unit** (`crewd.service`) chạy trong phiên của chủ dự án, luôn `UnsetEnvironment=ANTHROPIC_API_KEY` để
+    billing ở lại đăng nhập gói đăng ký; `crewd install-service` chỉ chạy trên Linux (macOS dùng app desktop).
+13. `apps/daemon/src/library.ts`: re-export toàn bộ API công khai của daemon (`createDaemon`, `VpsClient`,
+    `StateDb`, các health check, runner, tool scopes, cộng `rolePlanner`/`resolveModel`/`renderPrompt`/
+    `setPromptsDir`/`resolveStage`/`STAGES` của flow `agent-roles`) cho CLI và app desktop dùng chung một
+    nguồn.
 
 ## Files
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/daemon/src/cli.ts` | Lệnh `crewd` | `main`, `pair`, `status`, `rotateToken`, `runDoctor`, `runInstallService`, `project`, `assistant` |
-| `apps/daemon/src/daemon.ts` | Lắp ráp daemon: vòng đời, sweep, heartbeat, dispatch effect | `createDaemon`, `Daemon`, `releaseLostProjects`, `reconcileRestart` |
+| `apps/daemon/src/daemon.ts` | Lắp ráp daemon: vòng đời, sweep, heartbeat, dispatch effect | `createDaemon`, `Daemon`, `releaseLostProjects`, `reconcileRestart`, `wakePmForLeftovers`, `cancelDescendants` |
 | `apps/daemon/src/library.ts` | Điểm export thư viện dùng chung CLI/app desktop | (re-export) |
 | `apps/daemon/src/config.ts` | Cấu hình `~/.crew/config.yaml` | `DaemonConfig`, `loadConfig`, `saveConfig`, `crewHome`, `homePaths` |
 | `apps/daemon/src/secrets.ts` | Lưu token máy | `TokenStore`, `FileTokenStore`, `KeychainTokenStore`, `defaultTokenStore` |
@@ -74,9 +99,12 @@ chung: cả lệnh `crewd start` và app desktop (Phase 9) đều dựng daemon 
 
 ## Flow liên quan
 
-- daemon-scheduling: `StreamClient` và `Scheduler` được tạo và nối dây trong `createDaemon()`.
-- agent-runs: `JobRunner` được tạo trong `createDaemon()` với `workspace`, `contextBlock`, `resourceOps` lấy từ
-  các flow khác.
+- daemon-scheduling: `StreamClient` và `Scheduler` được tạo và nối dây trong `createDaemon()`; `wakePmForLeftovers()`
+  gọi `wakeTicket()`; `decide()` dùng bởi `Scheduler.pass()`.
+- agent-runs: `JobRunner` được tạo trong `createDaemon()` với `workspace`, `contextBlock`, `resourceOps`,
+  `standardPath`, `onCleaned` lấy từ các flow khác.
+- agent-roles: `rolePlanner` là `RolePlanner` mặc định của `JobRunner`; cột `jobs` mới (`stage`,
+  `failed_attempts`, `capabilities`, `return_to_dev`) thuộc flow đó nhưng sống trong `state-db.ts` ở đây.
 - agent-workspace: `createDaemon()` gọi `ensureWorktree`/`detectSharedPaths`/`probeInventory` để chuẩn bị
   worktree và kho skill/MCP.
 - resource-hygiene: `createDaemon().sweep()` gọi `sweepOrphans()`; `ResourceOps` được lắp trong

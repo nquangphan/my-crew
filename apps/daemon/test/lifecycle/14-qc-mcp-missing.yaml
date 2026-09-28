@@ -1,0 +1,21 @@
+name: qc-mcp-missing
+description: >-
+  A web project's QC needs the Playwright MCP, which is not connected on this machine: QC comments that,
+  moves to blocked without running, and never silently skips UI testing.
+inventory:
+  mcpServers: [{ name: playwright, status: failed }]
+request:
+  title: Trang tìm kiếm
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Trang tìm kiếm }]
+  - stage: pm_analyze
+    steps: [{ macro: pm_analyze, subtasks: [{ title: Trang tìm kiếm }] }]
+  - stage: dev
+    steps: [{ macro: dev, file: src/search.js }]
+  - stage: docs_update
+    steps: [{ macro: docs_update, files: [src/search.js] }]
+expect:
+  tickets:
+    - { title: '^Trang tìm kiếm$', type: dev, status: done }
+    - { title: '^QC: Trang tìm kiếm$', status: blocked }

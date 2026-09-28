@@ -1,0 +1,34 @@
+name: budget-hold
+description: >-
+  The dev run's cost passes the pm_task tree budget: the server holds the tree for the owner and the next
+  jobs wait queued (not skipped); the owner approves in a comment and the work continues to done.
+project:
+  platform: backend
+  treeBudgetUsd: 0.1
+request:
+  title: Trang khuyến mãi
+owner:
+  - when: { title: '^Trang khuyến mãi$', type: pm_task, status: needs_input, comment: 'ngân sách' }
+    comment: Đồng ý chi thêm cho việc này.
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Trang khuyến mãi }]
+  - stage: pm_analyze
+    steps: [{ macro: pm_analyze, subtasks: [{ title: Banner khuyến mãi }] }]
+  - stage: dev
+    costUsd: 0.25
+    steps: [{ macro: dev, file: src/promo.js }]
+  - stage: docs_update
+    steps: [{ macro: docs_update, files: [src/promo.js] }]
+  - stage: qc
+    steps: [{ macro: qc }]
+  - stage: pm_monitor
+    steps: [{ macro: pm_monitor }]
+  - stage: pm_accept
+    steps: [{ macro: pm_accept }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Trang khuyến mãi$', type: pm_task, status: done }
+    - { title: '^Banner khuyến mãi$', type: dev, status: done }

@@ -1,0 +1,53 @@
+name: bug-cycle-cap
+description: >-
+  Every retest finds another bug; after three bug cycles the server refuses a fourth, parks the pm_task for
+  the owner, and the PM waits instead of accepting.
+project:
+  platform: backend
+request:
+  title: Sửa lỗi lặp lại
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Sửa lỗi lặp lại }]
+  - stage: pm_analyze
+    steps: [{ macro: pm_analyze, subtasks: [{ title: Tính phí vận chuyển }] }]
+  - stage: dev
+    title: '^Tính phí'
+    steps: [{ macro: dev, file: src/ship.js }]
+  - stage: docs_update
+    title: '^Tính phí'
+    steps: [{ macro: docs_update, files: [src/ship.js] }]
+  - stage: qc
+    title: '^QC: Tính phí'
+    steps: [{ macro: qc, bugs: [Lỗi vòng 1] }]
+  - stage: dev
+    title: '^Lỗi vòng 1$'
+    steps: [{ macro: dev, file: src/fix-1.js }]
+  - stage: docs_update
+    title: '^Lỗi vòng 1$'
+    steps: [{ macro: docs_update, files: [src/fix-1.js] }]
+  - stage: qc
+    title: 'Lỗi vòng 1$'
+    steps: [{ macro: qc, bugs: [Lỗi vòng 2] }]
+  - stage: dev
+    title: '^Lỗi vòng 2$'
+    steps: [{ macro: dev, file: src/fix-2.js }]
+  - stage: docs_update
+    title: '^Lỗi vòng 2$'
+    steps: [{ macro: docs_update, files: [src/fix-2.js] }]
+  - stage: qc
+    title: 'Lỗi vòng 2$'
+    steps: [{ macro: qc, bugs: [Lỗi vòng 3] }]
+  - stage: dev
+    title: '^Lỗi vòng 3$'
+    steps: [{ macro: dev, file: src/fix-3.js }]
+  - stage: docs_update
+    title: '^Lỗi vòng 3$'
+    steps: [{ macro: docs_update, files: [src/fix-3.js] }]
+  - stage: qc
+    title: 'Lỗi vòng 3$'
+    steps: [{ macro: qc, bugs: [Lỗi vòng 4] }]
+expect:
+  tickets:
+    - { title: '^Sửa lỗi lặp lại$', type: pm_task, status: needs_input }
+    - { title: '^Lỗi vòng', type: bug, status: done, count: 3 }

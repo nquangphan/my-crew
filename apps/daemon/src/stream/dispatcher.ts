@@ -1,5 +1,5 @@
 import type { AgentRole, EventEnvelope } from '@crew/shared';
-import type { JobRow, StateDb } from '../state-db.js';
+import type { JobKind, JobRow, StateDb } from '../state-db.js';
 
 /**
  * What an event did to the local state. The daemon acts on it after the transaction commits (start the
@@ -82,18 +82,31 @@ export function dispatchEvent(state: StateDb, envelope: EventEnvelope, now = new
     };
   }
 
+  const kind = payload.type === 'ticket.assigned' ? 'agent' : resumeKind(state, ticketId);
   const job = state.insertJob(
     {
       ticketId,
       projectId: envelope.projectId,
       role,
+      kind,
       trigger: payload.type,
       eventIds: [envelope.id],
-      sessionId: payload.type === 'ticket.assigned' ? null : state.latestSession(ticketId, 'agent'),
+      sessionId: payload.type === 'ticket.assigned' ? null : state.latestSession(ticketId, kind),
     },
     now,
   );
   return { kind: 'enqueued', job };
+}
+
+/**
+ * The kind of job an owner event resumes: the docs job when it was the one that asked the owner (its
+ * answer belongs to that session), docs-init for a docs-init ticket, otherwise the ticket's agent run.
+ */
+function resumeKind(state: StateDb, ticketId: string): JobKind {
+  const last = state.jobsForTicket(ticketId).at(-1);
+  if (last?.kind === 'docs_init') return 'docs_init';
+  if (last?.kind === 'docs_update' && last.askedOwner) return 'docs_update';
+  return 'agent';
 }
 
 /**
@@ -117,4 +130,39 @@ export function foldWakeups(state: StateDb, ended: JobRow, now = new Date()): Jo
     },
     now,
   );
+}
+
+/**
+ * A daemon-internal wake-up of a ticket's assignee (not a server event), e.g. the PM after a child left
+ * processes behind. Same one-job-per-ticket rules as events: a queued or backoff job absorbs it, a running
+ * one folds it into its follow-up run, otherwise a new job is queued. Call inside a state transaction.
+ */
+export function wakeTicket(
+  state: StateDb,
+  input: { ticketId: string; projectId: string | null; role: AgentRole; trigger: string; eventId: string },
+  now = new Date(),
+): Extract<DispatchEffect, { job: JobRow }> {
+  const active = state.activeJob(input.ticketId);
+  if (active?.status === 'running') {
+    state.appendWakeup(input.ticketId, [input.eventId], now);
+    return { kind: 'folded', job: active };
+  }
+  if (active) {
+    return {
+      kind: 'absorbed',
+      job: state.updateJob(active.id, { eventIds: [...active.eventIds, input.eventId] }),
+    };
+  }
+  const job = state.insertJob(
+    {
+      ticketId: input.ticketId,
+      projectId: input.projectId,
+      role: input.role,
+      trigger: input.trigger,
+      eventIds: [input.eventId],
+      sessionId: state.latestSession(input.ticketId, 'agent'),
+    },
+    now,
+  );
+  return { kind: 'enqueued', job };
 }

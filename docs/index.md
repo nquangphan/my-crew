@@ -39,12 +39,14 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | `packages/docs-kit/src` | Lệnh CLI, luật kiểm tra R1–R7, sinh block tự động, cài hook |
 | `packages/docs-kit/templates` | Template `AGENTS.md`, `index.md`, `architecture.md`, `flow.md`, `flows.yaml` |
 | `apps/daemon/src` | Daemon cục bộ `crewd`: CLI, stream/scheduler, runner agent, worktree/skill, dọn tài nguyên, health check |
+| `apps/daemon/src/roles` | Vai trò agent theo bước (prompt, model, cổng, report, merge/push, thất bại) |
 
 ## Danh sách flow
 
 <!-- crew-docs:flows:start -->
 | Flow | Id | Điểm vào |
 |------|----|----------|
+| [Vai trò agent và quy trình ticket](flows/agent-roles.md) | `agent-roles` | `apps/daemon/src/roles/role-planner.ts` |
 | [Chạy agent qua Agent SDK](flows/agent-runs.md) | `agent-runs` | `apps/daemon/src/runner/job-runner.ts` |
 | [Worktree và kho skill, MCP của agent](flows/agent-workspace.md) | `agent-workspace` | `apps/daemon/src/git/worktree-manager.ts` |
 | [Nền tảng API](flows/api-platform.md) | `api-platform` | `apps/api/src/server.ts` |
@@ -56,6 +58,7 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Hook git và CI của crew-docs](flows/docs-hooks.md) | `docs-hooks` | `packages/docs-kit/src/commands/install-hooks.ts`, `packages/docs-kit/src/commands/ci-workflow.ts` |
 | [Đồng bộ và xem docs](flows/docs-sync-viewer.md) | `docs-sync-viewer` | `apps/api/src/routes/docs-routes.ts`, `apps/web/src/routes/project-docs.tsx` |
 | [Phát sự kiện và SSE](flows/event-delivery.md) | `event-delivery` | `apps/api/src/routes/stream-routes.ts` |
+| [Nghiệm thu: merge cục bộ, cổng pre-push và push](flows/local-merge.md) | `local-merge` | `apps/daemon/src/roles/merge-policy.ts` |
 | [Ghép máy và xác thực máy](flows/machine-pairing.md) | `machine-pairing` | `apps/api/src/routes/machine-routes.ts` |
 | [Đăng nhập chủ dự án](flows/owner-auth.md) | `owner-auth` | `apps/api/src/routes/auth-routes.ts`, `apps/web/src/routes/login.tsx` |
 | [Dự án và quyền sở hữu máy](flows/project-claims.md) | `project-claims` | `apps/api/src/routes/project-routes.ts` |

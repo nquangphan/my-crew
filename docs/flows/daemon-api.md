@@ -34,11 +34,16 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
 4. `apps/api/src/routes/daemon-routes.ts` → project/claim: `GET/POST /v1/daemon/projects`,
    `POST/DELETE /v1/daemon/claims*`, `GET /v1/projects/catalog` (chỉ máy host assistant,
    `assertAssistantHost()`) gọi thẳng `claim-service.ts` (flow `project-claims`).
-5. `apps/api/src/routes/daemon-routes.ts` → ticket: `GET /v1/daemon/tickets/:id`,
-   `GET /v1/daemon/budget/:id` đọc trực tiếp sau khi kiểm tra scope; `POST /v1/daemon/tickets` tạo subtask
-   (kiểm `pm_task` chỉ được tạo bởi máy host assistant, dưới đúng `request`); các `ticketWrite()` còn lại —
-   `POST .../comments`, `POST .../transition`, `PUT .../report`, `POST .../bugs`, `PATCH .../agent-meta` — gọi
-   thẳng các hàm của flow `ticket-lifecycle` với `actor='agent'`.
+5. `apps/api/src/routes/daemon-routes.ts` → ticket: `GET /v1/daemon/tickets/:id` đọc sau
+   `assertTicketReadable()` (rộng hơn phạm vi ghi đúng một chỗ: PM đọc được ticket `request` cha của dự án
+   mình, flow `machine-pairing`); `GET /v1/daemon/budget/:id` đọc sau `assertTicketInScope()`; `POST
+   /v1/daemon/tickets` tạo subtask (kiểm `pm_task` chỉ được tạo bởi máy host assistant, dưới đúng `request`)
+   và gọi `assertKnownCapabilities()` trước khi tạo — skill/MCP bắt buộc ngoài kho máy đã báo cáo (hoặc MCP bị
+   tắt cho project) bị từ chối ngay, không tới lúc job chạy mới phát hiện; `POST .../bugs` gọi
+   `assertKnownCapabilities()` cho `requiredSkills` của bug trước khi tạo (dùng cho cả QC báo lỗi lẫn PM từ
+   chối một ticket dev/bug, flow `ticket-lifecycle`); các `ticketWrite()` còn lại — `POST .../comments`,
+   `POST .../transition`, `PUT .../report`, `PATCH .../agent-meta` — gọi thẳng các hàm của flow
+   `ticket-lifecycle` với `actor='agent'`.
 
 ## Files
 
@@ -57,15 +62,22 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
 
 ## Flow liên quan
 
-- machine-pairing: `machineGuard`, `assertTicketInScope`, token/heartbeat/inventory.
-- ticket-lifecycle: mọi ghi ticket của agent dùng chung hàm service với route owner.
+- machine-pairing: `machineGuard`, `assertTicketInScope`, `assertTicketReadable`, `assertKnownCapabilities`,
+  token/heartbeat/inventory.
+- ticket-lifecycle: mọi ghi ticket của agent dùng chung hàm service với route owner; `fileBug()` phục vụ cả QC
+  báo lỗi và PM từ chối (`reject_work`, flow `agent-roles`).
 - project-claims: route project/claim của daemon gọi thẳng `claim-service.ts`.
 - api-platform: `daemonRoutes` được đăng ký trong nhóm route bọc `machineGuard` tại `buildApp()`.
+- agent-roles: PM đọc ticket `request` cha qua `GET /v1/daemon/tickets/:id`
+  (`assertTicketReadable`) để lấy `ownerRequest()`; tool `create_subtask`/`file_bug` chạm
+  `assertKnownCapabilities()` ở đây trước khi ghi.
 
 ## Tests
 
-- `apps/api/test/machine-scope.test.ts`: máy B nhận 403 trên toàn bộ 9 endpoint ticket của project máy A;
-  `pm_task`/catalog chỉ máy host assistant; retry idempotent phát lại đúng response đã lưu; hợp đồng chi phí;
-  endpoint ngân sách; cảnh báo health đỏ; inventory.
+- `apps/api/test/machine-scope.test.ts`: máy B nhận 403 trên toàn bộ endpoint ticket của project máy A;
+  `pm_task`/catalog chỉ máy host assistant; máy sở hữu dự án đọc được (nhưng không ghi được) ticket `request`
+  phía trên `pm_task` của mình (`assertTicketReadable`); tạo ticket/bug với skill hay MCP ngoài kho máy đã báo
+  cáo (hoặc MCP bị tắt cho project) bị từ chối (`assertKnownCapabilities`); retry idempotent phát lại đúng
+  response đã lưu; hợp đồng chi phí; endpoint ngân sách; cảnh báo health đỏ; inventory.
 - `apps/api/test/idempotency.test.ts`: khoá theo `(machine, key)`, TTL, `IDEMPOTENCY_KEY_REUSED` khi
   fingerprint khác, lưu cả lỗi có side effect đã commit.

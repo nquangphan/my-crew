@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/copy-prompts.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:live": "CREW_LIVE_AGENT_TESTS=1 vitest run test/live-smoke.test.ts"

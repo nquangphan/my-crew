@@ -1,0 +1,45 @@
+name: happy-path
+description: >-
+  Owner request → assistant triage → PM asks one question → owner answers → PM breakdown (dev + paired QC)
+  → dev hands off → docs_update on sonnet commits code and docs together → QC passes through Playwright →
+  PM accept merges, runs the pre-push gate and pushes → assistant closes.
+inventory:
+  skills: [api-design, requirements, planning, code-review]
+  mcpServers: [{ name: playwright }]
+request:
+  title: Thêm endpoint /health
+  description: Tôi cần endpoint /health để giám sát.
+owner:
+  - when: { title: '^Thêm endpoint /health$', status: needs_input }
+    comment: Trả JSON {"status":"ok"}, không cần xác thực.
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Thêm endpoint /health }]
+  - stage: pm_analyze
+    run: 1
+    steps: [{ macro: pm_analyze, skills: [requirements], ask: Endpoint trả JSON hay text thuần? }]
+  - stage: pm_analyze
+    run: 2
+    steps:
+      - macro: pm_analyze
+        skills: [planning]
+        subtasks: [{ title: Viết route /health, skills: [api-design], complexity: trivial }]
+  - stage: dev
+    title: Viết route /health
+    steps: [{ macro: dev, skills: [api-design], file: src/health.js }]
+  - stage: docs_update
+    title: Viết route /health
+    steps: [{ macro: docs_update, files: [src/health.js], message: 'feat: thêm route /health' }]
+  - stage: qc
+    title: '^QC: Viết route'
+    steps: [{ macro: qc, mcps: [playwright] }]
+  - stage: pm_accept
+    steps: [{ macro: pm_accept, skills: [code-review] }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Thêm endpoint /health$', type: request, status: in_review }
+    - { title: '^Thêm endpoint /health$', type: pm_task, status: done }
+    - { title: '^Viết route /health$', status: done }
+    - { title: '^QC: Viết route /health$', status: done }
