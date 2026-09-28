@@ -1,0 +1,130 @@
+import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { expect, type Page, type TestInfo } from '@playwright/test';
+import { generateSync } from 'otplib';
+import postgres from 'postgres';
+import { assertE2eDatabase, E2E_API_URL, E2E_DATABASE_URL, E2E_STATE_FILE, type E2eState } from './e2e-env';
+
+export function readState(): E2eState {
+  return JSON.parse(readFileSync(E2E_STATE_FILE, 'utf8')) as E2eState;
+}
+
+let sql: postgres.Sql | null = null;
+function db(): postgres.Sql {
+  assertE2eDatabase(E2E_DATABASE_URL);
+  sql ??= postgres(E2E_DATABASE_URL, { max: 1, onnotice: () => {} });
+  return sql;
+}
+
+export async function closeDb(): Promise<void> {
+  await sql?.end({ timeout: 5 });
+  sql = null;
+}
+
+/**
+ * A fresh TOTP code. Codes are single use per 30 s step; clearing the replay marker of the test owner stands
+ * in for waiting for the next step (the same trick the API tests use).
+ */
+export async function freshTotp(state: E2eState): Promise<string> {
+  await db()`update owner set totp_last_step = null`;
+  return generateSync({ secret: state.totpSecret });
+}
+
+export type Viewport = 'phone' | 'tablet' | 'desktop';
+export const viewportOf = (testInfo: TestInfo): Viewport => testInfo.project.name as Viewport;
+
+/** Logs in through the UI: password, then the TOTP step. */
+export async function login(page: Page, state: E2eState, path = '/'): Promise<void> {
+  await page.goto(path);
+  await expect(page.getByRole('heading', { name: 'Đăng nhập' })).toBeVisible();
+  await page.getByLabel('Tên đăng nhập').fill(state.username);
+  await page.getByLabel('Mật khẩu').fill(state.password);
+  await page.getByRole('button', { name: 'Tiếp tục' }).click();
+  await expect(page.getByRole('heading', { name: 'Xác thực hai bước' })).toBeVisible();
+  await page.getByLabel('Mã xác thực').fill(await freshTotp(state));
+  await page.getByRole('button', { name: 'Đăng nhập' }).click();
+  await expect(page.getByRole('link', { name: /^Inbox/ }).first()).toBeVisible();
+}
+
+/** The page never scrolls sideways (the board scrolls inside its own container). */
+export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+  const { scrollWidth, innerWidth } = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }));
+  expect(scrollWidth, 'document.documentElement.scrollWidth <= innerWidth').toBeLessThanOrEqual(innerWidth);
+}
+
+/** Screenshots for the visual check against the mockup; they land in the gitignored test-results. */
+export async function snap(page: Page, testInfo: TestInfo, name: string): Promise<void> {
+  await page.screenshot({ path: testInfo.outputPath(`${testInfo.project.name}-${name}.png`) });
+}
+
+/** Opens a sidebar entry; on phones the sidebar is a drawer behind the menu button. */
+export async function openNav(page: Page, viewport: Viewport, label: string): Promise<void> {
+  if (viewport !== 'desktop') {
+    await page.getByRole('button', { name: viewport === 'phone' ? 'Mở menu' : 'Mở rộng thanh bên' }).click();
+  }
+  const nav = page.getByRole('navigation', { name: 'Điều hướng dự án' }).last();
+  await nav.getByRole('link', { name: label, exact: true }).click();
+}
+
+interface TicketDto {
+  id: string;
+  key: string;
+  status: string;
+  priority: string;
+}
+
+/** Acts as the daemon of a paired machine through the real daemon REST API. */
+export class Agent {
+  constructor(private readonly token: string) {}
+
+  private async call<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const headers: Record<string, string> = { authorization: `Bearer ${this.token}` };
+    if (method !== 'GET') headers['idempotency-key'] = `e2e-${randomUUID()}`;
+    if (body !== undefined) headers['content-type'] = 'application/json';
+    const res = await fetch(`${E2E_API_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await res.text();
+    if (!res.ok) throw new Error(`${method} ${path} → ${res.status} ${text}`);
+    return (text ? JSON.parse(text) : undefined) as T;
+  }
+
+  createSubtask(body: Record<string, unknown>) {
+    return this.call<TicketDto>('POST', '/v1/daemon/tickets', body);
+  }
+  comment(ticketId: string, body: string) {
+    return this.call('POST', `/v1/daemon/tickets/${ticketId}/comments`, { body });
+  }
+  transition(ticketId: string, to: string) {
+    return this.call<TicketDto>('POST', `/v1/daemon/tickets/${ticketId}/transition`, { to });
+  }
+  report(ticketId: string, summaryMd: string) {
+    return this.call('PUT', `/v1/daemon/tickets/${ticketId}/report`, {
+      summaryMd,
+      docsFirst: true,
+      commits: ['a41c9e2'],
+      headSha: 'a41c9e2',
+      testsRun: [{ name: 'pnpm test', passed: true, summary: '12 passed' }],
+    });
+  }
+  claimProject(projectKey: string) {
+    return this.call<{ status: string; claimRequestId: string | null }>('POST', '/v1/daemon/claims', {
+      projectKey,
+    });
+  }
+}
+
+/** Reads a ticket as the logged-in owner (the page's cookies). */
+export async function ownerTicket(
+  page: Page,
+  key: string,
+): Promise<{ ticket: TicketDto; children: TicketDto[] }> {
+  const res = await page.request.get(`/v1/tickets/${key}`);
+  expect(res.ok()).toBe(true);
+  return (await res.json()) as { ticket: TicketDto; children: TicketDto[] };
+}

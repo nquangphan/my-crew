@@ -1,0 +1,206 @@
+@import "tailwindcss";
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-sans/700.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Palette of the approved mockup (Atlassian-like neutrals with a blue accent). */
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --line: #dfe3ea;
+  --line2: #eceff3;
+  --ink: #172033;
+  --muted: #5b6578;
+  --soft: #eef0f4;
+  --blue: #1d5fd1;
+  --blue-bg: #e3ecfb;
+  --blue-ink: #123f8f;
+  --green: #1f845a;
+  --green-bg: #dcfff1;
+  --green-ink: #164b35;
+  --yellow-bg: #fff4d6;
+  --yellow-line: #e8c25a;
+  --yellow-ink: #7a4f00;
+  --red: #c9372c;
+  --red-bg: #ffe6e3;
+  --red-ink: #9e2a20;
+  --gray-bg: #e9ecf1;
+  --gray-ink: #3b4557;
+  --orange: #a54800;
+  color-scheme: light;
+}
+
+:root.dark {
+  --bg: #161a22;
+  --panel: #1d222c;
+  --line: #2f3644;
+  --line2: #282e3a;
+  --ink: #e3e7ee;
+  --muted: #9aa4b5;
+  --soft: #232935;
+  --blue: #5b8def;
+  --blue-bg: #1f2f4d;
+  --blue-ink: #a9c4f7;
+  --green: #3fbf87;
+  --green-bg: #173a2b;
+  --green-ink: #8fe0b8;
+  --yellow-bg: #3a3017;
+  --yellow-line: #7a6425;
+  --yellow-ink: #f2d27a;
+  --red: #f0685c;
+  --red-bg: #43201d;
+  --red-ink: #f5a79f;
+  --gray-bg: #2a303c;
+  --gray-ink: #c3cad6;
+  --orange: #f0a35e;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-soft: var(--soft);
+  --color-accent: var(--blue);
+  --color-accent-bg: var(--blue-bg);
+  --color-accent-ink: var(--blue-ink);
+  --color-ok: var(--green);
+  --color-ok-bg: var(--green-bg);
+  --color-ok-ink: var(--green-ink);
+  --color-warn-bg: var(--yellow-bg);
+  --color-warn-line: var(--yellow-line);
+  --color-warn-ink: var(--yellow-ink);
+  --color-bad: var(--red);
+  --color-bad-bg: var(--red-bg);
+  --color-bad-ink: var(--red-ink);
+  --color-neutral-bg: var(--gray-bg);
+  --color-neutral-ink: var(--gray-ink);
+  --color-orange: var(--orange);
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--blue);
+  }
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 1px;
+  }
+}
+
+@keyframes crew-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Rendered markdown (agent content is sanitized before it gets here). */
+.prose-crew {
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.prose-crew > :first-child {
+  margin-top: 0;
+}
+.prose-crew > :last-child {
+  margin-bottom: 0;
+}
+.prose-crew h1,
+.prose-crew h2,
+.prose-crew h3,
+.prose-crew h4 {
+  font-weight: 600;
+  margin: 14px 0 6px;
+  line-height: 1.3;
+}
+.prose-crew h1 {
+  font-size: 18px;
+}
+.prose-crew h2 {
+  font-size: 16px;
+}
+.prose-crew h3,
+.prose-crew h4 {
+  font-size: 15px;
+}
+.prose-crew p {
+  margin: 6px 0;
+}
+.prose-crew ul,
+.prose-crew ol {
+  margin: 6px 0;
+  padding-left: 22px;
+}
+.prose-crew ul {
+  list-style: disc;
+}
+.prose-crew ol {
+  list-style: decimal;
+}
+.prose-crew code {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  background: var(--soft);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.prose-crew pre {
+  background: var(--soft);
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+.prose-crew pre code {
+  background: none;
+  padding: 0;
+}
+.prose-crew blockquote {
+  border-left: 3px solid var(--line);
+  margin: 8px 0;
+  padding-left: 10px;
+  color: var(--muted);
+}
+.prose-crew table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.prose-crew th,
+.prose-crew td {
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  text-align: left;
+}
+.prose-crew a {
+  text-decoration: underline;
+}

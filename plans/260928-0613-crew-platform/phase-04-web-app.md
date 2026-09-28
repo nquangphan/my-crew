@@ -1,6 +1,6 @@
 ---
 title: "Phase 4: Web App"
-status: todo
+status: completed
 priority: P1
 effort: 20h
 dependsOn: [2, 3]
@@ -149,18 +149,18 @@ Create under `apps/web/`:
 
 ## Todo
 
-- [ ] App shell: top bar, project sidebar, breadcrumbs, quick search, keyboard shortcuts, light and dark themes
-- [ ] Responsive layouts for phone, tablet and desktop (drawer sidebar, swipe board, full-screen ticket, card list), with viewport E2E tests
-- [ ] Board with swimlanes, card badges and the ticket side panel
-- [ ] List/Backlog view with sortable columns, inline edit, bulk actions and URL filters
-- [ ] Ticket view with the Details box, legal-transition dropdown, Activity tabs and related docs links
+- [x] App shell: top bar, project sidebar, breadcrumbs, quick search, keyboard shortcuts, light and dark themes
+- [x] Responsive layouts for phone, tablet and desktop (drawer sidebar, swipe board, full-screen ticket, card list), with viewport E2E tests
+- [x] Board with swimlanes, card badges and the ticket side panel
+- [x] List/Backlog view with sortable columns, inline edit, bulk actions and URL filters
+- [x] Ticket view with the Details box, legal-transition dropdown, Activity tabs and related docs links
 
-- [ ] Scaffold, router, auth guard, TOTP login
-- [ ] API client with CSRF and live invalidation
-- [ ] Board, ticket detail, comments, report panel, timeline, cancel, unblock
-- [ ] Inbox with alerts
-- [ ] Projects and machines, pairing, claim approval in the inbox
-- [ ] Component tests
+- [x] Scaffold, router, auth guard, TOTP login
+- [x] API client with CSRF and live invalidation
+- [x] Board, ticket detail, comments, report panel, timeline, cancel, unblock
+- [x] Inbox with alerts
+- [x] Projects and machines, pairing, claim approval in the inbox
+- [x] Component tests
 
 ## Success Criteria
 

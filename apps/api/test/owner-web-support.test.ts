@@ -37,7 +37,10 @@ describe('PATCH /v1/tickets/:id (owner inline edits)', () => {
     expect(res.json()).toMatchObject({ title: 'Tiêu đề mới', description: '# Mô tả', priority: 'urgent' });
     const [updated] = await eventsOf(ctx.db, 'ticket.updated');
     expect(updated).toMatchObject({ ticketId: ticket.id, targetMachineId: null });
-    expect(updated?.payload).toEqual({ type: 'ticket.updated', data: { ticketId: ticket.id, change: 'fields' } });
+    expect(updated?.payload).toEqual({
+      type: 'ticket.updated',
+      data: { ticketId: ticket.id, change: 'fields' },
+    });
   });
 
   it('rejects an empty patch, an empty title and a missing CSRF token', async () => {

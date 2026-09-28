@@ -1,0 +1,227 @@
+import type {
+  ClaimRequestStatus,
+  ListTicketsQuery,
+  Machine,
+  Project,
+  Ticket,
+  TicketDetailResponse,
+  TicketPriority,
+  TicketStatus,
+} from '@crew/shared';
+import { type QueryClient, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api } from './api-client';
+
+/** Query-key roots; live events invalidate by these prefixes. */
+export const keys = {
+  session: ['session'] as const,
+  tickets: ['tickets'] as const,
+  ticketList: (query: ListTicketsQuery) => ['tickets', query] as const,
+  ticket: (idOrKey: string) => ['ticket', idOrKey] as const,
+  descendants: (id: string) => ['descendants', id] as const,
+  reports: (idOrKey: string) => ['report', idOrKey] as const,
+  projects: ['projects'] as const,
+  machines: ['machines'] as const,
+  machine: (id: string) => ['machine', id] as const,
+  claims: (status?: ClaimRequestStatus) => ['claims', status ?? 'all'] as const,
+  notices: ['notices'] as const,
+  search: (q: string) => ['search', q] as const,
+};
+
+export const sessionQuery = queryOptions({
+  queryKey: keys.session,
+  queryFn: async () => {
+    try {
+      return await api.session();
+    } catch (error) {
+      if (error instanceof Error && 'status' in error && error.status === 401) return null;
+      throw error;
+    }
+  },
+  staleTime: 5 * 60_000,
+});
+
+export function useTickets(query: ListTicketsQuery, enabled = true) {
+  return useQuery({
+    queryKey: keys.ticketList(query),
+    queryFn: () => api.listTickets(query),
+    enabled,
+  });
+}
+
+export function useTicket(idOrKey: string | null | undefined) {
+  return useQuery({
+    queryKey: keys.ticket(idOrKey ?? ''),
+    queryFn: () => api.getTicket(idOrKey ?? ''),
+    enabled: Boolean(idOrKey),
+  });
+}
+
+export function useReports(idOrKey: string | null | undefined, enabled = true) {
+  return useQuery({
+    queryKey: keys.reports(idOrKey ?? ''),
+    queryFn: () => api.getReports(idOrKey ?? ''),
+    enabled: Boolean(idOrKey) && enabled,
+  });
+}
+
+/** Every open descendant of a ticket (3 levels at most), for the cancel confirmation. */
+export async function fetchOpenDescendants(root: Ticket): Promise<Ticket[]> {
+  const found: Ticket[] = [];
+  let frontier = [root.id];
+  for (let depth = 0; depth < 4 && frontier.length > 0; depth++) {
+    const levels = await Promise.all(frontier.map((parentId) => api.listTickets({ parentId })));
+    const level = levels.flat();
+    found.push(...level);
+    frontier = level.map((ticket) => ticket.id);
+  }
+  return found.filter((ticket) => ticket.status !== 'done' && ticket.status !== 'cancelled');
+}
+
+export function useOpenDescendants(root: Ticket | null, enabled: boolean) {
+  return useQuery({
+    queryKey: keys.descendants(root?.id ?? ''),
+    queryFn: () => (root ? fetchOpenDescendants(root) : Promise.resolve([])),
+    enabled: Boolean(root) && enabled,
+  });
+}
+
+export function useProjects() {
+  return useQuery({
+    queryKey: keys.projects,
+    queryFn: async () => (await api.listProjects()).items,
+    staleTime: 30_000,
+  });
+}
+
+export function useProjectByKey(key: string | undefined): {
+  project: Project | undefined;
+  isLoading: boolean;
+} {
+  const projects = useProjects();
+  return {
+    project: projects.data?.find((p) => p.key === key),
+    isLoading: projects.isLoading,
+  };
+}
+
+/** Machines refresh on live events and every 30 s (heartbeats do not emit events). */
+export function useMachines() {
+  return useQuery({
+    queryKey: keys.machines,
+    queryFn: async () => (await api.listMachines()).items,
+    refetchInterval: 30_000,
+    staleTime: 10_000,
+  });
+}
+
+export function useMachine(id: string | null) {
+  return useQuery({
+    queryKey: keys.machine(id ?? ''),
+    queryFn: () => api.getMachine(id ?? ''),
+    enabled: Boolean(id),
+  });
+}
+
+export function useMachineNames(): Map<string, Machine> {
+  const machines = useMachines();
+  return new Map((machines.data ?? []).map((m) => [m.id, m]));
+}
+
+/** Ticket ids with an agent job running right now, from the machines' last heartbeat. */
+export function useRunningTicketIds(): Set<string> {
+  const machines = useMachines();
+  const ids = new Set<string>();
+  for (const machine of machines.data ?? []) {
+    if (!machine.online) continue;
+    for (const job of machine.runningJobs) ids.add(job.ticketId);
+  }
+  return ids;
+}
+
+export function useClaimRequests(status?: ClaimRequestStatus) {
+  return useQuery({
+    queryKey: keys.claims(status),
+    queryFn: async () => (await api.listClaimRequests(status)).items,
+  });
+}
+
+export function useNotices() {
+  return useQuery({ queryKey: keys.notices, queryFn: async () => (await api.listNotices()).items });
+}
+
+/** Refreshes everything a ticket write can change. */
+export function invalidateTicketData(queryClient: QueryClient) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: keys.tickets }),
+    queryClient.invalidateQueries({ queryKey: ['ticket'] }),
+    queryClient.invalidateQueries({ queryKey: ['descendants'] }),
+    queryClient.invalidateQueries({ queryKey: ['report'] }),
+  ]);
+}
+
+/** Writes a changed ticket into every cached list and detail, so the UI updates before the refetch. */
+function patchCachedTicket(queryClient: QueryClient, ticket: Ticket) {
+  queryClient.setQueriesData<Ticket[]>({ queryKey: keys.tickets }, (list) =>
+    list?.map((item) => (item.id === ticket.id ? ticket : item)),
+  );
+  queryClient.setQueriesData<TicketDetailResponse>({ queryKey: ['ticket'] }, (detail) => {
+    if (!detail) return detail;
+    if (detail.ticket.id === ticket.id) return { ...detail, ticket };
+    return {
+      ...detail,
+      children: detail.children.map((child) => (child.id === ticket.id ? ticket : child)),
+    };
+  });
+}
+
+interface TransitionVars {
+  ticket: Ticket;
+  to: TicketStatus;
+}
+
+/**
+ * Owner status change. The card moves at once (optimistic); on an error such as REPORT_REQUIRED or an
+ * illegal transition every cached list is restored, so the card snaps back.
+ */
+export function useTransition() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ticket, to }: TransitionVars) => api.transition(ticket.id, to),
+    onMutate: async ({ ticket, to }: TransitionVars) => {
+      await queryClient.cancelQueries({ queryKey: keys.tickets });
+      const snapshot = queryClient.getQueriesData<Ticket[]>({ queryKey: keys.tickets });
+      queryClient.setQueriesData<Ticket[]>({ queryKey: keys.tickets }, (list) =>
+        list?.map((item) => (item.id === ticket.id ? { ...item, status: to } : item)),
+      );
+      return { snapshot };
+    },
+    onError: (_error, _vars, context) => {
+      for (const [key, data] of context?.snapshot ?? []) queryClient.setQueryData(key, data);
+    },
+    onSuccess: (ticket) => patchCachedTicket(queryClient, ticket),
+    onSettled: () => invalidateTicketData(queryClient),
+  });
+}
+
+export function useUpdateTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ticket,
+      patch,
+    }: {
+      ticket: Ticket;
+      patch: { title?: string; description?: string; priority?: TicketPriority };
+    }) => api.updateTicket(ticket.id, patch),
+    onSuccess: (ticket) => patchCachedTicket(queryClient, ticket),
+    onSettled: () => invalidateTicketData(queryClient),
+  });
+}
+
+export function useAddComment(ticketKey: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (body: string) => api.addComment(ticketKey, body),
+    onSettled: () => invalidateTicketData(queryClient),
+  });
+}
