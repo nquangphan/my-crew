@@ -72,7 +72,7 @@ Owner browser ──HTTPS──► Caddy ─┬─► web (static SPA)
 | # | Phase | Status | Depends on |
 |---|-------|--------|------------|
 | 1 | [Monorepo Foundation](./phase-01-monorepo-foundation.md) | Completed | — |
-| 2 | [Backend Core](./phase-02-backend-core.md) | Pending | 1 |
+| 2 | [Backend Core](./phase-02-backend-core.md) | Completed | 1 |
 | 3 | [Event Delivery and Machine Auth](./phase-03-event-delivery.md) | Pending | 2 |
 | 4 | [Web App](./phase-04-web-app.md) | Pending | 2, 3 |
 | 5 | [Docs Standard and Enforcement](./phase-05-docs-standard.md) | Pending | 1, 3, 4 |

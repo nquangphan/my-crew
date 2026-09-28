@@ -1,6 +1,6 @@
 ---
 title: "Phase 2: Backend Core"
-status: todo
+status: completed
 priority: P1
 effort: 16h
 dependsOn: [1]
@@ -118,12 +118,12 @@ Create under `apps/api/`:
 
 ## Todo
 
-- [ ] Schema and migration
-- [ ] Owner auth: password, TOTP, sessions, CSRF, rate limit
-- [ ] Ticket service with server-side lifecycle effects
-- [ ] QC bug loop and cycle cap
-- [ ] Budgets, child cap, idempotency
-- [ ] Integration tests green
+- [x] Schema and migration
+- [x] Owner auth: password, TOTP, sessions, CSRF, rate limit
+- [x] Ticket service with server-side lifecycle effects
+- [x] QC bug loop and cycle cap
+- [x] Budgets, child cap, idempotency
+- [x] Integration tests green
 
 ## Success Criteria
 
