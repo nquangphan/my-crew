@@ -1,6 +1,6 @@
 ---
 title: "Phase 7: Agent Workflow"
-status: todo
+status: completed
 priority: P1
 effort: 19h
 dependsOn: [6]
@@ -167,15 +167,15 @@ Modify:
 
 ## Todo
 
-- [ ] Role registry and prompts (docs-first, skills, untrusted data)
-- [ ] Model, failure and merge policies; docs-first and skill checks
-- [ ] Assistant flows
-- [ ] PM flows (clarify loop, breakdown with pairing, accept with local merge and gate)
-- [ ] Dev, docs-update and QC flows with the bug loop
-- [ ] Docs-init child ticket gate
-- [ ] Cancellation
-- [ ] Scripted lifecycle matrix green in CI
-- [ ] Live scenario passes
+- [x] Role registry and prompts (docs-first, skills, untrusted data)
+- [x] Model, failure and merge policies; docs-first and skill checks
+- [x] Assistant flows
+- [x] PM flows (clarify loop, breakdown with pairing, accept with local merge and gate)
+- [x] Dev, docs-update and QC flows with the bug loop
+- [x] Docs-init child ticket gate
+- [x] Cancellation
+- [x] Scripted lifecycle matrix green in CI
+- [x] Live scenario passes
 
 ## Success Criteria
 

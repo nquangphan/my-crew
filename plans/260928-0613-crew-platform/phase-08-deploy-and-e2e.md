@@ -1,6 +1,6 @@
 ---
 title: "Phase 8: Deploy and E2E"
-status: todo
+status: in-progress
 priority: P1
 effort: 6h
 dependsOn: [4, 7, 9]

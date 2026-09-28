@@ -1,6 +1,6 @@
 ---
 title: "Phase 9: Local Desktop App"
-status: todo
+status: completed
 priority: P1
 effort: 16h
 dependsOn: [6]
@@ -155,16 +155,16 @@ Modify:
 
 ## Todo
 
-- [ ] `createDaemon()` library entry; health checks shared with `doctor`
-- [ ] Electron scaffold with sandboxed renderer and typed IPC
-- [ ] Daemon supervisor in utilityProcess (restart, pause, graceful stop)
-- [ ] Setup wizard (server, pairing, Claude login, projects and folders with claims and project creation, hooks, resources, finish)
-- [ ] Settings → Projects: add, create, change folder, release, assistant toggle, applied live
-- [ ] Health dashboard with fix actions, and the health summary to the server and web
-- [ ] Jobs view, logs view, tray, notifications, login item
-- [ ] Hooks use the bundled runtime
-- [ ] Universal dmg, release job, updater
-- [ ] Unit and Electron E2E tests green
+- [x] `createDaemon()` library entry; health checks shared with `doctor`
+- [x] Electron scaffold with sandboxed renderer and typed IPC
+- [x] Daemon supervisor in utilityProcess (restart, pause, graceful stop)
+- [x] Setup wizard (server, pairing, Claude login, projects and folders with claims and project creation, hooks, resources, finish)
+- [x] Settings → Projects: add, create, change folder, release, assistant toggle, applied live
+- [x] Health dashboard with fix actions, and the health summary to the server and web
+- [x] Jobs view, logs view, tray, notifications, login item
+- [x] Hooks use the bundled runtime
+- [x] Universal dmg, release job, updater
+- [x] Unit and Electron E2E tests green
 
 ## Success Criteria
 
