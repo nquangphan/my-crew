@@ -335,10 +335,4 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/shared/src/status-workflow.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `packages/shared/src/status-workflow.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `packages/shared/src/ticket-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
-
-### Không thuộc flow (unassigned)
-
-| File | Lý do |
-|------|-------|
-| `apps/daemon/src/index.ts` | chỗ giữ chỗ của daemon, chưa có hành vi; flow daemon được viết ở phase 6 |
 <!-- crew-docs:files:end -->

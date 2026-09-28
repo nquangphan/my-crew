@@ -480,6 +480,4 @@ shared:
   apps/api/src/services/like-pattern.ts: [ticket-lifecycle, docs-sync-viewer]
   apps/web/src/components/markdown-view.tsx: [web-tickets, docs-sync-viewer]
   apps/web/src/components/status-lozenge.tsx: [web-tickets, docs-sync-viewer]
-unassigned:
-  - path: apps/daemon/src/index.ts
-    reason: chỗ giữ chỗ của daemon, chưa có hành vi; flow daemon được viết ở phase 6
+unassigned: []

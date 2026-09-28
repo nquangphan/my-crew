@@ -243,3 +243,14 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
 - **Owner decisions on the Phase 3 claim contract:**
   - A claim on a target that another machine holds returns **202** `{status: 'pending', claimRequestId}` instead of 409 `CLAIM_PENDING`. The error code is removed.
   - Revoking a machine releases its projects and assistant role at once, as implemented.
+
+### Session 14 — 2026-09-29 (owner follow-up)
+- **Owner decisions:**
+  1. A skill the agent selected but never invoked keeps counting as missing (Phase 7 behaviour unchanged).
+  2. **To check later:** in all three live runs the PM put QC on haiku, below the QC contract default (sonnet/high). Decide whether QC needs a minimum model after more live runs.
+  3. The desktop app ships **one dmg per architecture** (arm64 and x64) instead of one universal dmg.
+  4. A machine may change its own project's type and UI-test MCP mapping from the desktop app, but **only after the owner confirms on the web** (TOTP), like a claim takeover.
+  5. Infrastructure changes to this repo's protected paths use the trailer `Crew-Owner-Approved: CREW-0`. The owner approved "CREW-SELF", but R6 only accepts a ticket-shaped key (`[A-Z][A-Z0-9]{1,9}-<number>`), so `CREW-0` stands for it; no real ticket uses number 0.
+  6. The `_probe` worktree used for the capability inventory is kept for 1 hour after a probe, then removed.
+  7. "Chỉ ticket của tôi" means tickets waiting for the owner (needs_input, blocked, budget hold), as built.
+  8. The inbox read state is stored on the server, so every device shares it.
