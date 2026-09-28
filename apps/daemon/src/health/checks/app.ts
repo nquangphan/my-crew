@@ -1,5 +1,58 @@
 import { SYSTEMD_UNIT_NAME } from '../../service/systemd.js';
-import { type HealthCheck, result } from '../types.js';
+import { type HealthCheck, type HealthCheckResult, type HealthContext, result } from '../types.js';
+
+/** The desktop app's own checks: the daemon process, start at login and the app version. */
+function desktopChecks(ctx: HealthContext): HealthCheckResult[] {
+  const app = ctx.app;
+  if (!app) return [];
+  const running = ctx.daemon?.status().running ?? false;
+  const update = app.update;
+  const results = [
+    running
+      ? result('app.daemon', 'app', 'Daemon', 'green', `Daemon đang chạy (pid ${process.pid}).`)
+      : result('app.daemon', 'app', 'Daemon', 'red', 'Daemon không chạy: máy này không nhận việc.', {
+          id: 'restart-daemon',
+          label: 'Khởi động lại daemon',
+        }),
+    app.loginItem
+      ? result('app.login-item', 'app', 'Mở cùng máy', 'green', 'App tự chạy khi đăng nhập macOS.')
+      : result(
+          'app.login-item',
+          'app',
+          'Mở cùng máy',
+          'yellow',
+          'App chưa tự chạy khi đăng nhập: sau khi khởi động lại máy sẽ không nhận việc.',
+          { id: 'enable-login-item', label: 'Bật mở cùng máy' },
+        ),
+  ];
+  if (update.state === 'available' || update.state === 'downloaded') {
+    results.push(
+      result(
+        'app.version',
+        'app',
+        'Phiên bản app',
+        'yellow',
+        `Đang dùng ${app.version}, có bản mới ${update.version ?? ''}${update.canAutoInstall ? '' : ' (bản chưa ký: tải về và cài thủ công)'}.`,
+        { id: 'install-update', label: update.canAutoInstall ? 'Cài bản mới' : 'Tải bản mới' },
+      ),
+    );
+  } else if (update.state === 'error') {
+    results.push(
+      result(
+        'app.version',
+        'app',
+        'Phiên bản app',
+        'yellow',
+        `Đang dùng ${app.version}; không kiểm tra được bản mới: ${update.message ?? 'lỗi không rõ'}.`,
+      ),
+    );
+  } else {
+    const note =
+      update.state === 'disabled' ? ' (bản chạy thử: không kiểm tra cập nhật)' : ', đã là bản mới nhất';
+    results.push(result('app.version', 'app', 'Phiên bản app', 'green', `Phiên bản ${app.version}${note}.`));
+  }
+  return results;
+}
 
 /**
  * The daemon must run in the owner's user session so the SDK can read the Claude login (the login
@@ -13,6 +66,7 @@ export const serviceChecks: HealthCheck = {
       const manager = ctx.exec('launchctl', ['managername']);
       const name = manager.stdout.trim();
       return [
+        ...desktopChecks(ctx),
         manager.code === 0 && (name === 'Aqua' || name === 'Background')
           ? result(
               'app.session',

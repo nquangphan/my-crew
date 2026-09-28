@@ -9,8 +9,40 @@ export {
   type DaemonStatus,
   type Logger,
 } from './daemon.js';
-export { HEALTH_CHECKS, runHealthChecks, summarize } from './health/health-runner.js';
-export type { HealthCheck, HealthCheckResult, HealthContext, HealthGroup } from './health/types.js';
+export {
+  CREW_DOCS_BUNDLE,
+  hookStatus,
+  installCrewDocs,
+  installHooks,
+  packagedCrewDocs,
+  runCrewDocs,
+} from './git/docs-kit-bridge.js';
+export { detectSharedPaths, removeWorktree } from './git/worktree-manager.js';
+export { loginProbe, MIN_CLAUDE_VERSION } from './health/checks/claude.js';
+export { OFFICIAL_UI_TEST_SERVERS } from './health/checks/mcp.js';
+export { missingHookFiles } from './health/checks/repos.js';
+export {
+  applyHealthFix,
+  execCommand,
+  HEALTH_CHECKS,
+  runHealthChecks,
+  summarize,
+} from './health/health-runner.js';
+export { serverProjects, storedInventory } from './health/project-views.js';
+export {
+  inspectFolder,
+  normalizeRepoUrl,
+  repoFolderChecks,
+  sameRepo,
+  suggestProjectKey,
+} from './health/repo-probe.js';
+export type {
+  HealthAppFacts,
+  HealthCheck,
+  HealthCheckResult,
+  HealthContext,
+  HealthGroup,
+} from './health/types.js';
 export {
   type AgentRunner,
   type AgentRunResult,
@@ -18,6 +50,7 @@ export {
   createSdkRunner,
   type RunAgentOptions,
   RunControl,
+  sdkRuntimeVersion,
 } from './runner/agent-runner.js';
 export { evaluateToolCall, type GuardContext } from './runner/guard-hook.js';
 export { cleanupJob, findOrphans, sweepOrphans } from './runner/job-cleanup.js';
@@ -34,6 +67,7 @@ export { buildResourceReport, ResourceOps, type ResourceReport } from './runner/
 export { ResourceTracker } from './runner/resource-tracker.js';
 export { createScriptedRunner, Script, ScriptedCrash } from './runner/scripted-runner.js';
 export { scrubSecrets } from './runner/secret-scrubber.js';
+export { takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
 export { defaultTokenStore, FileTokenStore, KeychainTokenStore, type TokenStore } from './secrets.js';
 export { probeInventory } from './skills/skill-inventory.js';
 export { type JobKind, type JobRow, type JobStatus, StateDb } from './state-db.js';

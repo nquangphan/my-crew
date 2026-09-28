@@ -20,6 +20,11 @@
   (`docs/flows/agent-runs.md`, `docs/flows/agent-workspace.md`), dọn tiến trình/port/container sau mỗi job
   (`docs/flows/resource-hygiene.md`), và tự kiểm tra sức khỏe máy (`crewd doctor`,
   `docs/flows/daemon-health.md`).
+- **`apps/desktop`**: app Electron (macOS) đóng gói `crewd` cho chủ dự án không quen dòng lệnh. Tiến trình
+  main quản lý cửa sổ, tray, mở cùng máy và cập nhật (`docs/flows/desktop-app.md`); daemon thật và các thao
+  tác trình cài đặt/sức khỏe chạy trong một `utilityProcess` riêng, nên đóng cửa sổ hay UI crash không dừng
+  job đang chạy. Renderer React (`docs/flows/desktop-ui.md`) chỉ nói chuyện với hai tiến trình đó qua một cầu
+  IPC có kiểu (`packages/shared/src/desktop-ipc.ts`), sandbox, không có Node.
 
 ## Lưu trữ dữ liệu
 
@@ -53,7 +58,10 @@ PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migrat
 - Daemon (`apps/daemon`) chạy Claude Code qua Agent SDK trên máy cục bộ, dưới đăng nhập gói đăng ký của chủ
   dự án (không `ANTHROPIC_API_KEY`, xem `docs/flows/daemon-health.md`). Docker, git, `lsof`, `ps` là công cụ
   dòng lệnh cục bộ mà daemon gọi (worktree, dọn tài nguyên, kiểm tra sức khỏe) — không phải dịch vụ mạng.
-- GitHub lưu mã nguồn; `crew-docs ci-workflow` sinh workflow GitHub Actions cho `packages/docs-kit`.
+- GitHub lưu mã nguồn; `crew-docs ci-workflow` sinh workflow GitHub Actions cho `packages/docs-kit`. App
+  desktop (`apps/desktop`) cũng phát hành qua GitHub Releases của cùng repo và tự kiểm bản mới từ đó
+  (`docs/flows/desktop-app.md`); bản dmg hiện ký ad-hoc, chưa notarize, nên lần đầu mở phải bấm chuột phải →
+  Open và cập nhật tự động rơi về đường link tải thay vì cài thẳng.
 
 ## Triển khai
 
