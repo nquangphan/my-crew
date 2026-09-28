@@ -1,6 +1,6 @@
 ---
 title: "Phase 1: Monorepo Foundation"
-status: todo
+status: completed
 priority: P1
 effort: 6h
 dependsOn: []
@@ -84,10 +84,10 @@ Create (repo root `/Users/admin/Documents/Projects/AI-company`):
 
 ## Todo
 
-- [ ] Workspace, root configs, git init
-- [ ] `@crew/shared` schemas and actor-aware status workflow
-- [ ] Table-driven tests: every edge per actor is allowed, and one forbidden edge per state is rejected
-- [ ] Root scripts green
+- [x] Workspace, root configs, git init
+- [x] `@crew/shared` schemas and actor-aware status workflow
+- [x] Table-driven tests: every edge per actor is allowed, and one forbidden edge per state is rejected
+- [x] Root scripts green
 
 ## Success Criteria
 

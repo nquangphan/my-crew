@@ -1,7 +1,7 @@
 ---
 title: "2P Crew"
 description: "Jira/Confluence-like ticket and docs system where a human owner assigns tickets to an assistant agent, which routes them through per-project PM, dev and QC Claude Code agents running on local machines."
-status: pending
+status: in-progress
 priority: P1
 effort: 132h
 tags: [feature, backend, frontend, api, database, auth, infra, docs]
@@ -71,7 +71,7 @@ Owner browser ──HTTPS──► Caddy ─┬─► web (static SPA)
 
 | # | Phase | Status | Depends on |
 |---|-------|--------|------------|
-| 1 | [Monorepo Foundation](./phase-01-monorepo-foundation.md) | Pending | — |
+| 1 | [Monorepo Foundation](./phase-01-monorepo-foundation.md) | Completed | — |
 | 2 | [Backend Core](./phase-02-backend-core.md) | Pending | 1 |
 | 3 | [Event Delivery and Machine Auth](./phase-03-event-delivery.md) | Pending | 2 |
 | 4 | [Web App](./phase-04-web-app.md) | Pending | 2, 3 |
