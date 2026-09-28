@@ -1,8 +1,17 @@
-import { CreateProjectRequest, UpdateProjectRequest } from '@crew/shared';
+import {
+  ClaimDecisionRequest,
+  CreateProjectRequest,
+  ProjectChangeListQuery,
+  UpdateProjectRequest,
+} from '@crew/shared';
 import type { FastifyInstance } from 'fastify';
+import { verifyOwnerTotp } from '../auth/owner-auth.js';
 import { ApiError } from '../errors.js';
+import { decideProjectChange, listProjectChanges } from '../services/project-change-service.js';
 import { createProject, getProject, listProjects, updateProject } from '../services/project-service.js';
-import { idParam, parseInput, type RouteDeps, UUID_RE } from './route-deps.js';
+import { idParam, parseInput, type RouteDeps, UUID_RE, uuidParam } from './route-deps.js';
+
+const DECISION_RATE_LIMIT = { rateLimit: { max: 5, timeWindow: '1 minute' } };
 
 function projectId(params: unknown): string {
   const id = idParam(params);
@@ -25,4 +34,27 @@ export async function projectRoutes(app: FastifyInstance, { db }: RouteDeps): Pr
     const body = parseInput(UpdateProjectRequest, request.body);
     return updateProject(db, projectId(request.params), body);
   });
+
+  /** Type and UI-test MCP changes the owning machines asked for. */
+  app.get('/v1/project-change-requests', async (request) => {
+    const { status } = parseInput(ProjectChangeListQuery, request.query);
+    return { items: await listProjectChanges(db, status) };
+  });
+
+  for (const decision of ['approve', 'reject'] as const) {
+    app.post(
+      `/v1/project-change-requests/:id/${decision}`,
+      { config: DECISION_RATE_LIMIT },
+      async (request) => {
+        const id = uuidParam(request.params, 'project change request');
+        const { code } = parseInput(ClaimDecisionRequest, request.body);
+        const session = request.ownerSession;
+        if (!session) throw new ApiError('UNAUTHORIZED', 'login required');
+        if (!(await verifyOwnerTotp(db, session.ownerId, code))) {
+          throw new ApiError('UNAUTHORIZED', 'invalid verification code');
+        }
+        return decideProjectChange(db, id, decision);
+      },
+    );
+  }
 }

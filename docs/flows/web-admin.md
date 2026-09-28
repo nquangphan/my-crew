@@ -18,16 +18,22 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 
 ## Các bước
 
-1. `apps/web/src/lib/inbox.ts` → `useInboxSummary()`: gộp claim đang chờ, ticket `needs_input` (tách riêng
-   loại chờ trả lời với loại chờ duyệt ngân sách qua `budgetHold`), máy offline/lỗi health, project chưa có
-   máy, và thông báo (`GET /v1/notices`); đếm chưa đọc bằng mốc `seq` lớn nhất lưu trong localStorage
-   (`LAST_READ_KEY`, qua `useStoredState`); `badge` = số việc cần làm + số thông báo chưa đọc.
-2. `apps/web/src/routes/inbox.tsx` → `InboxPage()`: render từng nhóm (`Group`), tự đánh dấu đã đọc khi mở
-   trang (giữ nguyên chấm chưa đọc cho các thông báo đã có lúc mở, qua `readBefore`); `ClaimItem` mở
-   `TotpDialog` để duyệt/từ chối yêu cầu chuyển máy (gọi `api.decideClaim`, flow `project-claims`);
-   `describeNotice()` diễn giải từng loại sự kiện thông báo (`machine.claimed`, `claim.requested`,
-   `machine.released`, `project.created`, `machine.offline`, `machine.unhealthy`, `budget.exceeded`) thành câu
-   tiếng Việt.
+1. `apps/web/src/lib/inbox.ts` → `useInboxSummary()`: gộp claim đang chờ, yêu cầu đổi loại project đang chờ
+   (`pendingChanges`, flow `project-claims`), ticket `needs_input` (tách riêng loại chờ trả lời với loại chờ
+   duyệt ngân sách qua `budgetHold`), máy offline/lỗi health, project chưa có máy, và thông báo (`GET
+   /v1/notices` → `{items, unread}`); `unread` và trạng thái đã đọc từng thông báo do server giữ (bảng
+   `notice_reads`, flow `event-delivery`) — không còn lưu mốc đã đọc ở localStorage, nên mọi thiết bị của
+   owner thấy cùng số chưa đọc; `markRead(ids)`/`markAllRead(throughId?)` gọi `POST /v1/notices/read`/
+   `read-all`. `badge` = số việc cần làm (gồm cả `pendingChanges`) + số thông báo chưa đọc.
+2. `apps/web/src/routes/inbox.tsx` → `InboxPage()`: render từng nhóm (`Group`); mở trang tự đánh dấu đã đọc
+   tới thông báo mới nhất đang hiển thị (`markAllRead(newest.id)`, để thông báo tới trong lúc đang mở không bị
+   đánh dấu hụt), thông báo chưa đọc lúc mở giữ chấm chưa đọc suốt lượt xem đó (`openedUnread`); thông báo còn
+   chưa đọc trên server có nút "Đã đọc" (`markRead([id])`), có nút "Đánh dấu tất cả đã đọc" và đếm "N chưa đọc"
+   khi còn thông báo chưa đọc. `ClaimItem` mở `TotpDialog` để duyệt/từ chối yêu cầu chuyển máy (gọi
+   `api.decideClaim`, flow `project-claims`); `ProjectChangeItem` cũng mở `TotpDialog` để duyệt/từ chối yêu
+   cầu đổi loại project (gọi `api.decideProjectChange`); `describeNotice()` diễn giải từng loại sự kiện thông
+   báo (`machine.claimed`, `claim.requested`, `machine.released`, `project.created`, `machine.offline`,
+   `machine.unhealthy`, `budget.exceeded`, `project.change_requested`) thành câu tiếng Việt.
 3. `apps/web/src/routes/projects.tsx` → `ProjectsPage()`, `ProjectCard`: danh sách project (badge trạng thái
    docs qua `DocsStatusLozenge`), dialog tạo/sửa dùng `ProjectForm`, dialog chuyển máy dùng `ReassignDialog`.
 4. `apps/web/src/components/project-form.tsx` → `ProjectForm()`: form tên/mô tả (gợi ý "mô tả quyết định định
@@ -45,7 +51,7 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 8. `apps/web/src/components/pairing-dialog.tsx` → `PairingDialog()`: yêu cầu TOTP, tạo mã pairing một lần
    (hiện kèm đếm ngược), gọi `POST /v1/machines/pairing-codes` (flow `machine-pairing`).
 9. `apps/web/src/components/totp-dialog.tsx` → `TotpDialog()`: hộp thoại xác nhận hành động nhạy cảm bằng mã
-   TOTP, dùng chung cho duyệt claim và tạo mã pairing.
+   TOTP, dùng chung cho duyệt claim, duyệt đổi loại project và tạo mã pairing.
 
 ## Files
 
@@ -64,20 +70,23 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 
 - Bảng: không trực tiếp (qua API các flow `project-claims`, `machine-pairing`, `event-delivery`).
 - Sự kiện: tiêu thụ `claim.requested`, `machine.claimed`, `machine.released`, `project.created`,
-  `machine.offline`, `machine.unhealthy`, `budget.exceeded` (danh sách `NOTICE_EVENT_TYPES`) qua
-  `GET /v1/notices` và qua `invalidationsFor()` (flow `event-delivery`) để làm mới trực tiếp.
+  `machine.offline`, `machine.unhealthy`, `budget.exceeded`, `project.change_requested` (danh sách
+  `NOTICE_EVENT_TYPES`) qua `GET /v1/notices` cùng `unread` do server tính; `inbox.read` và
+  `project.change_decided` làm mới Inbox qua `invalidationsFor()` (flow `event-delivery`).
 - Gọi ngoài: gọi API qua `lib/api-client.ts` (flow `web-shell`).
 
 ## Flow liên quan
 
-- project-claims: duyệt/từ chối claim, tạo/sửa project, chuyển máy sở hữu.
+- project-claims: duyệt/từ chối claim, tạo/sửa project, chuyển máy sở hữu, duyệt/từ chối yêu cầu đổi loại
+  project và MCP test UI mà một máy tự đề nghị.
 - machine-pairing: tạo mã pairing, thu hồi máy, đặt máy trợ lý, đọc inventory skill/MCP.
 - event-delivery: nguồn thông báo (`/v1/notices`) và làm mới trực tiếp qua SSE.
 - web-shell: dùng chung `Breadcrumbs`, `StatusLozenge`, `ui/*`, `useStoredState`.
 
 ## Tests
 
-- `apps/web/src/routes/inbox.test.tsx`: duyệt claim kèm TOTP (và mã sai), đếm badge, nhóm hiển thị đúng.
+- `apps/web/src/routes/inbox.test.tsx`: duyệt claim kèm TOTP (và mã sai), đếm badge, nhóm hiển thị đúng, đánh
+  dấu đã đọc (một thông báo và tất cả) phản ánh đúng số chưa đọc.
 - `apps/web/src/components/pairing-dialog.test.tsx`: tạo mã, đếm ngược, lỗi TOTP.
 - `apps/web/e2e/owner-admin.spec.ts`: phím tắt (kể cả "Tạo thêm"), quick search, kéo-thả bị từ chối, đổi ưu
   tiên hàng loạt, ghép máy bằng TOTP, duyệt chuyển máy từ máy B trong Inbox rồi chuyển project về từ trang Dự

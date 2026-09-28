@@ -36,7 +36,8 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    exists`), nên nâng cấp tại chỗ không mất job đang chờ.
 5. `apps/daemon/src/api/vps-client.ts` → `VpsClient.request()`: mọi response được validate bằng schema
    `@crew/shared`, lỗi transient (mạng, 502/503/504) được thử lại với backoff nhân đôi, mọi ghi kèm header
-   `Idempotency-Key`.
+   `Idempotency-Key` — ví dụ `requestProjectChange(projectKey, body, idempotencyKey)` (flow `project-claims`,
+   dùng bởi `setup-ops.ts` → `requestTestSetup()` của app desktop).
 6. `apps/daemon/src/daemon.ts` → `createDaemon()`: `planner` mặc định là `rolePlanner` (flow `agent-roles`,
    trước đây là `defaultPlanner` tối giản); sau khi cài `crew-docs` (`installCrewDocs()`), `packagedStandard()`
    tìm `STANDARD.md` của `@crew/docs-kit` mà daemon này được build cùng và chép nó vào `~/.crew/bin` cạnh
@@ -49,10 +50,14 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 7. `apps/daemon/src/daemon.ts` → `createDaemon().start()`: `takePidLock()` chặn hai daemon cùng chạy trên một
    home; `reconcileRestart()` dọn rồi re-queue job còn `running` từ lần chạy trước (`resumeMode` =
    `restart_resume` nếu có `sessionId`, ngược lại `restart_fresh`); `refreshProjects()`; `sweep()`; probe
-   inventory máy và từng project; rồi khởi động stream, heartbeat, scheduler và timer sweep mỗi 10 phút.
-   `decide()` (dùng bởi `Scheduler`, flow `daemon-scheduling`): `pm_task` vượt ngân sách cây trả `defer` (job ở
-   nguyên `queued`, thử lại ở lượt sau) thay vì `skip` (kết thúc hẳn) — chủ dự án duyệt xong thì job tự chạy mà
-   không cần một sự kiện đánh thức mới.
+   inventory máy và từng project (mỗi lần probe một project gọi `ProbeWorktreeKeeper.used()`, flow
+   `agent-workspace`, để giữ worktree `_probe` của nó thêm một giờ); rồi khởi động stream, heartbeat, scheduler
+   và timer sweep mỗi 10 phút. `decide()` (dùng bởi `Scheduler`, flow `daemon-scheduling`): `pm_task` vượt ngân
+   sách cây trả `defer` (job ở nguyên `queued`, thử lại ở lượt sau) thay vì `skip` (kết thúc hẳn) — chủ dự án
+   duyệt xong thì job tự chạy mà không cần một sự kiện đánh thức mới.
+   `sweep()` cũng gọi `ProbeWorktreeKeeper.expire()` cho mọi project đã cấu hình — dọn worktree probe quá một
+   giờ (không tính vào `orphansCleaned`); `timings.probeWorktreeTtlMs`/`timings.probeClock` cho test kiểm soát
+   thời gian này.
 8. `apps/daemon/src/daemon.ts` → `releaseLostProjects()`: sau khi `refreshProjects()` trả lời sự kiện
    `claim.changed`, job của project máy này không còn sở hữu bị hủy (đang chạy) hoặc chuyển `skipped`
    (`queued`/`backoff`) — chi tiết dispatch sự kiện thuộc flow `daemon-scheduling`.
@@ -66,7 +71,7 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
     nó, nên không job con nào của một cây bị huỷ còn sống sót trên máy.
 11. `apps/daemon/src/daemon.ts` → `createDaemon().stop()`/`halt()`: `stop()` dừng nhẹ nhàng (abort job đang
     chạy để chúng tự re-queue nhờ `stopping()`), `halt()` là mô phỏng crash cho test (dừng ngay, không ghi
-    thêm gì).
+    thêm gì); cả hai đều gọi `ProbeWorktreeKeeper.stop()` để huỷ timer dọn worktree probe đang chờ.
 12. `apps/daemon/src/service/systemd.ts` → `installService()`/`systemdUnit()`: sinh và cài một **systemd user
     unit** (`crewd.service`) chạy trong phiên của chủ dự án, luôn `UnsetEnvironment=ANTHROPIC_API_KEY` để
     billing ở lại đăng nhập gói đăng ký; `crewd install-service` chỉ chạy trên Linux (macOS dùng app desktop).
@@ -111,7 +116,8 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 - agent-roles: `rolePlanner` là `RolePlanner` mặc định của `JobRunner`; cột `jobs` mới (`stage`,
   `failed_attempts`, `capabilities`, `return_to_dev`) thuộc flow đó nhưng sống trong `state-db.ts` ở đây.
 - agent-workspace: `createDaemon()` gọi `ensureWorktree`/`detectSharedPaths`/`probeInventory` để chuẩn bị
-  worktree và kho skill/MCP.
+  worktree và kho skill/MCP; `ProbeWorktreeKeeper` (sở hữu bởi flow đó) được lắp và điều khiển từ `daemon.ts`
+  (`used()` sau mỗi probe, `expire()` trong `sweep()`, `stop()` khi dừng daemon).
 - resource-hygiene: `createDaemon().sweep()` gọi `sweepOrphans()`; `ResourceOps` được lắp trong
   `JobRunnerDeps.resourceOps`.
 - daemon-health: `crewd doctor` (`runDoctor()` trong `cli.ts`) gọi `doctor()` của flow `daemon-health`.
@@ -131,4 +137,5 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
   cho run quyền dùng đúng MCP server đã bật; gửi heartbeat kèm job đang chạy và số đã sweep; job trợ lý chạy
   trong thư mục `assistantDir` do daemon quản lý; công cụ docs chạy `crew-docs` trong worktree và đồng bộ
   snapshot docs lên server; worktree QC bắt đầu đúng `head_sha` của report dev đã ghép cặp; cài `crew-docs`
-  vào `~/.crew/bin` kèm wrapper trên PATH của agent.
+  vào `~/.crew/bin` kèm wrapper trên PATH của agent; giữ worktree probe một giờ sau lần probe rồi xoá, và một
+  daemon khởi động lại xoá worktree probe đã quá hạn (đồng hồ giả kiểm soát được thời gian).

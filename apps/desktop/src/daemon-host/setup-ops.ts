@@ -371,7 +371,31 @@ export async function projectDetail(ctx: HostContext, key: string): Promise<Proj
     disabledMcpServers: project?.disabledMcpServers ?? [],
     sharedPaths: { detected, extra: project?.sharedPaths ?? [] },
     webSettingsUrl: ctx.webUrl(`/projects/${key}/settings`),
+    pendingChange: view?.pendingChange ?? null,
   };
+}
+
+/**
+ * Asks the owner to change the project type and UI-test MCP mapping. The server keeps the request pending
+ * until the owner approves it on the web with a TOTP; only the machine that owns the project may ask.
+ */
+export async function requestTestSetup(
+  ctx: HostContext,
+  input: DesktopParsed<'projects.requestTestSetup'>,
+): Promise<ProjectDetail> {
+  const { key, ...setup } = input;
+  try {
+    await ctx.vps().requestProjectChange(key, setup, `project-change:${key}:${randomUUID()}`);
+  } catch (error) {
+    if (error instanceof VpsError && error.status === 403) {
+      throw new HostError(`Máy này không sở hữu project ${key} nên không đổi được loại project.`);
+    }
+    if (error instanceof VpsError && error.status === 409) {
+      throw new HostError('Đã có một thay đổi khác đang chờ chủ dự án xác nhận.');
+    }
+    throw error;
+  }
+  return projectDetail(ctx, key);
 }
 
 export function updateProject(

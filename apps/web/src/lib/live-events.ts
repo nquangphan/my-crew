@@ -30,6 +30,13 @@ export function invalidationsFor(event: EventEnvelope): QueryKey[] {
       return [...MACHINE_KEYS, keys.tickets, ['ticket']];
     case 'project.created':
       return [keys.projects, keys.notices];
+    case 'project.change_requested':
+      return [['projectChanges'], keys.notices];
+    case 'project.change_decided':
+      return [keys.projects, ['projectChanges']];
+    // Another device read the inbox: the badge and the dots follow.
+    case 'inbox.read':
+      return [keys.notices];
     case 'docs.synced':
       return [keys.projects, ['docs']];
     default:

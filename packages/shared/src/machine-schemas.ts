@@ -257,6 +257,56 @@ export const OwnerAssignRequest = z.union([
 export type OwnerAssignRequest = z.infer<typeof OwnerAssignRequest>;
 
 // ---------------------------------------------------------------------------
+// Project type and UI-test MCP changes from the owning machine
+// ---------------------------------------------------------------------------
+
+/** The project settings that decide which UI-test MCP servers QC tickets must carry. */
+export const ProjectTestSetup = z.object({ platform: ProjectPlatform, uiTestMcp: UiTestMcp });
+export type ProjectTestSetup = z.infer<typeof ProjectTestSetup>;
+
+/**
+ * `POST /v1/daemon/projects/:projectKey/change-requests`: the owning machine asks to change its project's
+ * type and UI-test MCP mapping. Nothing changes until the owner approves it on the web with a TOTP.
+ */
+export const ProjectChangeBody = ProjectTestSetup.strict();
+export type ProjectChangeBody = z.input<typeof ProjectChangeBody>;
+
+/**
+ * `pending` (HTTP 202): the request waits for the owner. `unchanged` (HTTP 200): the values are already the
+ * project's, so nothing was requested.
+ */
+export const ProjectChangeResponse = z.object({
+  status: z.enum(['pending', 'unchanged']),
+  requestId: z.string().nullable(),
+});
+export type ProjectChangeResponse = z.infer<typeof ProjectChangeResponse>;
+
+export const ProjectChangeStatus = z.enum(['pending', 'approved', 'rejected']);
+export type ProjectChangeStatus = z.infer<typeof ProjectChangeStatus>;
+
+export const PendingProjectChange = ProjectTestSetup.extend({ requestId: z.string() });
+export type PendingProjectChange = z.infer<typeof PendingProjectChange>;
+
+export const ProjectChangeRequest = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  projectKey: z.string(),
+  machineId: z.string(),
+  machineName: z.string(),
+  /** The project's values when the machine asked. */
+  current: ProjectTestSetup,
+  requested: ProjectTestSetup,
+  status: ProjectChangeStatus,
+  decidedAt: z.iso.datetime().nullable(),
+  createdAt: z.iso.datetime(),
+});
+export type ProjectChangeRequest = z.infer<typeof ProjectChangeRequest>;
+
+export const ProjectChangeListQuery = z.object({ status: ProjectChangeStatus.optional() });
+export const ProjectChangeListResponse = z.object({ items: z.array(ProjectChangeRequest) });
+export type ProjectChangeListResponse = z.infer<typeof ProjectChangeListResponse>;
+
+// ---------------------------------------------------------------------------
 // Daemon project views
 // ---------------------------------------------------------------------------
 
@@ -278,6 +328,8 @@ export const DaemonProject = z.object({
   ownerMachineName: z.string().nullable(),
   /** This machine has a takeover request waiting for the owner. */
   pendingClaim: z.boolean(),
+  /** This machine's type and UI-test MCP change waiting for the owner's confirmation. */
+  pendingChange: PendingProjectChange.nullable().default(null),
 });
 export type DaemonProject = z.infer<typeof DaemonProject>;
 

@@ -7,8 +7,9 @@
  *     rebuilt for Electron's ABI (that would break the Node test suites);
  *   - the crew-docs bundle as `resources/crew-docs.cjs` (copied to ~/.crew/bin on first run and updates);
  *   - better-sqlite3 rebuilt for this Electron version.
- * `--universal` also installs the x64 and arm64 Claude Code binaries of the Agent SDK, so the universal dmg
- * runs agents on both architectures (electron-builder then rebuilds better-sqlite3 per architecture).
+ * `--both-archs` (packaging) also installs the x64 and arm64 Claude Code binaries of the Agent SDK: one
+ * electron-builder run packs an arm64 and an x64 app from this stage (rebuilding better-sqlite3 per
+ * architecture), and package-mac.mjs drops the other architecture's binaries from each packed app.
  * `--out <dir>` stages into another folder (see package-mac.mjs). `--if-missing` skips the work when a stage already exists (the E2E entry point).
  */
 import { execFileSync } from 'node:child_process';
@@ -23,7 +24,7 @@ const args = new Set(argv);
 const outIndex = argv.indexOf('--out');
 /** `--out <dir>` stages elsewhere (packaging stages outside the pnpm workspace). */
 const stage = outIndex >= 0 && argv[outIndex + 1] ? argv[outIndex + 1] : join(root, '.stage', 'app');
-const universal = args.has('--universal');
+const bothArchs = args.has('--both-archs');
 const OUTPUT_DIR = 'out';
 const BUNDLE_DIR = ['..', '..', 'packages', 'docs-kit', 'dist'];
 
@@ -142,8 +143,8 @@ writeFileSync(
       type: 'module',
       main: `./${OUTPUT_DIR}/main/index.js`,
       dependencies: pkg.dependencies,
-      // Both macOS Claude Code binaries of the pinned SDK, so the universal app runs agents on both.
-      ...(universal
+      // Both macOS Claude Code binaries of the pinned SDK; each packed app keeps only its own (package-mac).
+      ...(bothArchs
         ? { optionalDependencies: { [`${SDK}-darwin-arm64`]: sdkVersion, [`${SDK}-darwin-x64`]: sdkVersion } }
         : {}),
     },
@@ -154,8 +155,8 @@ writeFileSync(
 
 // A lockfile makes electron-builder collect this npm tree (not the pnpm workspace). `--force` installs the
 // other architecture's optional SDK binary too.
-run('npm', ['install', '--omit=dev', '--no-audit', '--no-fund', ...(universal ? ['--force'] : [])], stage);
-if (universal) {
+run('npm', ['install', '--omit=dev', '--no-audit', '--no-fund', ...(bothArchs ? ['--force'] : [])], stage);
+if (bothArchs) {
   // npm skips the optional binary of the other architecture even with --force: unpack it from its tarball.
   for (const cpu of ['arm64', 'x64']) {
     const target = join(stage, 'node_modules', '@anthropic-ai', `claude-agent-sdk-darwin-${cpu}`);

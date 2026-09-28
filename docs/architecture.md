@@ -34,11 +34,14 @@
 PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migration SQL ở `apps/api/drizzle/`.
 
 - **Owner & phiên đăng nhập**: `owner` (mật khẩu argon2id, `totp_secret`, `recovery_code_hashes`), `sessions`
-  (id phiên chỉ lưu hash SHA-256).
+  (id phiên chỉ lưu hash SHA-256); `notice_reads` (owner đã đọc thông báo nào — khoá `owner_id`+`event_seq`,
+  dùng để tính số chưa đọc dùng chung giữa các thiết bị, xem `docs/flows/event-delivery.md`).
 - **Máy & project**: `machines` (trạng thái online/paused/health/resources/running_jobs, index unique một máy
   giữ vai trò assistant), `projects` (key, mô tả, platform, `ui_test_mcp`, ngân sách/giới hạn con), `pairing_codes`,
   `machine_tokens` (chỉ lưu hash token), `machine_skills` (kho skill/MCP theo máy và theo project),
-  `claim_requests` (yêu cầu nhận project hoặc vai trò assistant, có ràng buộc chờ duyệt).
+  `claim_requests` (yêu cầu nhận project hoặc vai trò assistant, có ràng buộc chờ duyệt), `project_change_requests`
+  (máy sở hữu xin đổi `platform`/`ui_test_mcp` của project mình, chỉ áp dụng khi chủ dự án duyệt bằng TOTP; tối đa
+  một yêu cầu `pending` mỗi project, xem `docs/flows/project-claims.md`).
 - **Ticket & vòng đời**: `ticket_counters` (cấp số theo scope), `tickets` (loại, cha/con, người nhận, trạng
   thái, `depends_on`/`flows` kiểu mảng có index GIN, cặp dev↔QC qua `pairs_with`/`origin_dev_id`, cờ ngân sách),
   `comments`, `ticket_reports` (một report hiện hành mỗi ticket, các trường skill/MCP đã chọn và đã dùng,
@@ -63,8 +66,10 @@ PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migrat
   dòng lệnh cục bộ mà daemon gọi (worktree, dọn tài nguyên, kiểm tra sức khỏe) — không phải dịch vụ mạng.
 - GitHub lưu mã nguồn; `crew-docs ci-workflow` sinh workflow GitHub Actions cho `packages/docs-kit`. App
   desktop (`apps/desktop`) cũng phát hành qua GitHub Releases của cùng repo và tự kiểm bản mới từ đó
-  (`docs/flows/desktop-app.md`); bản dmg hiện ký ad-hoc, chưa notarize, nên lần đầu mở phải bấm chuột phải →
-  Open và cập nhật tự động rơi về đường link tải thay vì cài thẳng.
+  (`docs/flows/desktop-app.md`); mỗi bản phát hành có hai file dmg, một cho mỗi kiến trúc (`arm64`, `x64`),
+  mỗi app chỉ chứa Claude Code binary và native module của kiến trúc của nó. Hiện ký ad-hoc, chưa notarize, nên
+  lần đầu mở phải bấm chuột phải → Open và cập nhật tự động rơi về đường link tải đúng dmg kiến trúc máy đó
+  thay vì cài thẳng.
 
 ## Triển khai
 

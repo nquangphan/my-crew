@@ -11,8 +11,8 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 
 ## Điểm vào
 
-- `apps/api/src/routes/stream-routes.ts` — `GET /v1/daemon/stream` (daemon), `GET /v1/stream` và
-  `GET /v1/notices` (owner).
+- `apps/api/src/routes/stream-routes.ts` — `GET /v1/daemon/stream` (daemon), `GET /v1/stream`,
+  `GET /v1/notices`, `POST /v1/notices/read`, `POST /v1/notices/read-all` (owner).
 - `apps/web/src/lib/live-events.ts` → `startLiveEvents()` — mở kết nối SSE từ trình duyệt.
 
 ## Các bước
@@ -43,6 +43,11 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
    `EventEnvelope` sang danh sách query key cần invalidate (`invalidationsFor()`), gộp theo lô 100ms
    (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với `?cursor=<lastEventId>`
    sau `retryMs`, và invalidate toàn bộ query sau mỗi lần nối lại (vì có thể đã lỡ sự kiện lúc mất kết nối).
+8. `apps/api/src/services/notice-read-service.ts` → `listOwnerNotices()`: mỗi thông báo (loại sự kiện trong
+   `NOTICE_EVENT_TYPES`) kèm cờ `read` của owner (tra bảng `notice_reads` theo `seq`), cộng `unread` là số
+   thông báo chưa đọc trong **toàn bộ lịch sử**, không chỉ trang đang lấy — đây là số cho badge Inbox.
+   `markNoticesRead(ids)`/`markAllNoticesRead(throughId?)` ghi `notice_reads` (bỏ qua id không phải thông
+   báo), rồi phát `inbox.read {unread}` trên owner stream để các thiết bị khác của owner làm mới ngay.
 
 ## Files
 
@@ -50,6 +55,7 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 |-----------|---------|--------------|
 | `apps/api/src/routes/stream-routes.ts` | Route SSE daemon/owner + notices | `daemonStreamRoutes`, `ownerStreamRoutes` |
 | `apps/api/src/services/event-service.ts` | Outbox: ghi, đọc theo cursor, envelope | `appendEvents`, `listEventsAfter`, `latestEventSeq`, `toEventEnvelope`, `listNotices`, `listTicketEvents` |
+| `apps/api/src/services/notice-read-service.ts` | Trạng thái đã đọc thông báo của owner | `listOwnerNotices`, `markNoticesRead`, `markAllNoticesRead` |
 | `apps/api/src/realtime/event-bus.ts` | Fan-out trong tiến trình, LISTEN/NOTIFY + poll | `EventBus`, `wake`, `subscribe`, `revokeMachine` |
 | `apps/api/src/realtime/sse.ts` | Phục vụ một kết nối SSE, replay không mất sự kiện | `openEventStream`, `readCursor` |
 | `packages/shared/src/event-schemas.ts` | Schema `EventPayload`/`EventEnvelope`, hằng số cursor/heartbeat | `EventPayload`, `EventEnvelope`, `STREAM_HEARTBEAT_MS`, `NOTICE_EVENT_TYPES` |
@@ -57,18 +63,25 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 
 ## Dữ liệu
 
-- Bảng: `events` (outbox, sở hữu bởi flow này — cột `seq` là cursor phát).
+- Bảng: `events` (outbox, sở hữu bởi flow này — cột `seq` là cursor phát); `notice_reads` (owner đã đọc
+  thông báo nào, khoá `owner_id`+`event_seq`, cũng sở hữu bởi flow này qua `notice-read-service.ts`).
 - Sự kiện: đây là hạ tầng phát mọi loại sự kiện định nghĩa ở `packages/shared/src/event-schemas.ts`; các flow
-  khác (ticket-lifecycle, project-claims, machine-pairing) là nguồn phát thật.
+  khác (ticket-lifecycle, project-claims, machine-pairing) là nguồn phát thật. `inbox.read {unread}` (owner
+  stream) là sự kiện riêng của flow này, phát mỗi lần `markNoticesRead()`/`markAllNoticesRead()` chạy, để mọi
+  thiết bị của owner thấy cùng số chưa đọc.
 - Gọi ngoài: không (chỉ Postgres LISTEN/NOTIFY nội bộ).
 
 ## Flow liên quan
 
 - api-platform: `EventBus` được tạo/khởi động/dừng theo vòng đời `buildApp()`.
 - machine-pairing: `EventBus.revokeMachine()`/`restoreMachine()` gọi từ `revokeMachine()` khi thu hồi máy.
-- ticket-lifecycle, project-claims: nguồn phát sự kiện chính qua `appendEvents()`.
+- ticket-lifecycle, project-claims: nguồn phát sự kiện chính qua `appendEvents()`; `project.change_requested`
+  là một loại thông báo (`NOTICE_EVENT_TYPES`), `project.change_decided` nhắm đúng máy đã hỏi nên không qua
+  `/v1/notices`.
 - docs-sync-viewer: sự kiện `docs.synced` (định nghĩa ở event-schemas) khiến web làm mới `['docs']`.
 - web-shell: `startLiveEvents()` được gắn vào app shell để mọi trang nhận cập nhật realtime.
+- web-admin: trang Inbox gọi `markRead()`/`markAllRead()` (qua `useInboxSummary()`) và làm mới khi nhận
+  `inbox.read` từ thiết bị khác của owner.
 
 ## Tests
 
@@ -79,3 +92,7 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 - `apps/api/test/revoke-stream.test.ts`: thu hồi đóng stream đang mở ngay lập tức, token hết hạn đóng trong một
   heartbeat, đăng xuất đóng owner stream.
 - `apps/web/src/lib/live-events.test.ts`: ánh xạ sự kiện, resume theo cursor, invalidate sau khi nối lại.
+
+`listOwnerNotices()`/`markNoticesRead()`/`markAllNoticesRead()` được kiểm bởi
+`apps/api/test/owner-web-support.test.ts` (flow `ticket-lifecycle`, nơi test đó sống): đánh dấu một hay tất cả
+đã đọc, dùng chung giữa các phiên đăng nhập của owner, phát đúng `inbox.read`.

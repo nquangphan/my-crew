@@ -13,6 +13,7 @@ import {
   type MachineHardware,
   type MachineResources,
   ModelAlias,
+  ProjectChangeStatus,
   ProjectPlatform,
   type RunningJob,
   TicketPriority,
@@ -61,6 +62,7 @@ export const docsStatusEnum = pgEnum('docs_status', enumValues(DocsStatus));
 export const commentAuthorKindEnum = pgEnum('comment_author_kind', enumValues(CommentAuthorKind));
 export const budgetHoldEnum = pgEnum('budget_hold', ['children', 'cost']);
 export const claimStatusEnum = pgEnum('claim_status', enumValues(ClaimRequestStatus));
+export const projectChangeStatusEnum = pgEnum('project_change_status', enumValues(ProjectChangeStatus));
 
 // ---------------------------------------------------------------------------
 // Owner auth
@@ -362,6 +364,52 @@ export const claimRequests = pgTable(
   ],
 );
 
+/**
+ * Type and UI-test MCP changes the owning machine asked for; the project changes only when the owner
+ * approves. One pending request per project.
+ */
+export const projectChangeRequests = pgTable(
+  'project_change_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    projectId: uuid('project_id')
+      .notNull()
+      .references(() => projects.id, { onDelete: 'cascade' }),
+    machineId: uuid('machine_id')
+      .notNull()
+      .references(() => machines.id, { onDelete: 'cascade' }),
+    /** The project's values when the machine asked. */
+    currentPlatform: projectPlatformEnum('current_platform').notNull(),
+    currentUiTestMcp: jsonb('current_ui_test_mcp').$type<UiTestMcp>().notNull(),
+    platform: projectPlatformEnum('platform').notNull(),
+    uiTestMcp: jsonb('ui_test_mcp').$type<UiTestMcp>().notNull(),
+    status: projectChangeStatusEnum('status').notNull().default('pending'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex('project_change_requests_pending_uq').on(t.projectId).where(sql`${t.status} = 'pending'`),
+    index('project_change_requests_status_idx').on(t.status, t.createdAt),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Owner inbox read state
+// ---------------------------------------------------------------------------
+
+/** Notices (events, by `seq`) the owner has read; shared by every device the owner uses. */
+export const noticeReads = pgTable(
+  'notice_reads',
+  {
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => owner.id, { onDelete: 'cascade' }),
+    eventSeq: bigint('event_seq', { mode: 'bigint' }).notNull(),
+    readAt: timestamp('read_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.ownerId, t.eventSeq] })],
+);
+
 // ---------------------------------------------------------------------------
 // Idempotency and budgets
 // ---------------------------------------------------------------------------
@@ -442,5 +490,6 @@ export type ReportRow = typeof ticketReports.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
 export type MachineTokenRow = typeof machineTokens.$inferSelect;
 export type ClaimRequestRow = typeof claimRequests.$inferSelect;
+export type ProjectChangeRequestRow = typeof projectChangeRequests.$inferSelect;
 export type DocsSnapshotRow = typeof docsSnapshots.$inferSelect;
 export type DocsFileRow = typeof docsFiles.$inferSelect;

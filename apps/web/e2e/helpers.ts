@@ -120,6 +120,17 @@ export class Agent {
       testsRun: [{ name: 'pnpm test', passed: true, summary: '12 passed' }],
     });
   }
+  /** The owning machine asks to change its project's type and UI-test MCP mapping. */
+  requestProjectChange(
+    projectKey: string,
+    body: { platform: string; uiTestMcp: { playwright?: string; maestro?: string } },
+  ) {
+    return this.call<{ status: string; requestId: string | null }>(
+      'POST',
+      `/v1/daemon/projects/${projectKey}/change-requests`,
+      body,
+    );
+  }
   /** Syncs a docs snapshot, as the daemon does after a merge to the default branch. */
   syncDocs(
     projectKey: string,

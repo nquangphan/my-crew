@@ -30,6 +30,7 @@ flows:
       - apps/api/src/db/migrate.ts
       - apps/api/drizzle/0000_init.sql
       - apps/api/drizzle/0001_machine_auth_and_delivery.sql
+      - apps/api/drizzle/0003_project_changes_and_notice_reads.sql
       - packages/shared/src/index.ts
     tests: []
   owner-auth:
@@ -90,10 +91,12 @@ flows:
       - apps/api/src/routes/project-routes.ts
     files:
       - apps/api/src/services/claim-service.ts
+      - apps/api/src/services/project-change-service.ts
       - apps/api/src/services/project-service.ts
       - packages/shared/src/project-schemas.ts
     tests:
       - apps/api/test/claims.test.ts
+      - apps/api/test/project-changes.test.ts
       - packages/shared/src/project-schemas.test.ts
   daemon-api:
     title: REST API cho daemon
@@ -112,6 +115,7 @@ flows:
       - apps/api/src/routes/stream-routes.ts
     files:
       - apps/api/src/services/event-service.ts
+      - apps/api/src/services/notice-read-service.ts
       - apps/api/src/realtime/event-bus.ts
       - apps/api/src/realtime/sse.ts
       - packages/shared/src/event-schemas.ts
@@ -380,8 +384,10 @@ flows:
     files:
       - apps/daemon/src/skills/skill-inventory.ts
       - apps/daemon/src/git/docs-kit-bridge.ts
+      - apps/daemon/src/git/probe-worktree.ts
     tests:
       - apps/daemon/test/worktree-manager.test.ts
+      - apps/daemon/test/probe-worktree.test.ts
       - apps/daemon/test/skill-inventory.test.ts
   resource-hygiene:
     title: Dọn tài nguyên sau mỗi job
@@ -473,6 +479,7 @@ flows:
       - apps/desktop/src/renderer/components/ui.tsx
     tests:
       - apps/desktop/test/e2e/onboarding.spec.ts
+      - apps/desktop/test/e2e/project-settings.spec.ts
 shared:
   packages/shared/src/api-schemas.ts: [owner-auth, ticket-lifecycle]
   packages/shared/src/machine-schemas.ts: [machine-pairing, project-claims, daemon-api]

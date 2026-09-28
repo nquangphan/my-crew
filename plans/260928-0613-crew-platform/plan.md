@@ -254,3 +254,8 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
   6. The `_probe` worktree used for the capability inventory is kept for 1 hour after a probe, then removed.
   7. "Chỉ ticket của tôi" means tickets waiting for the owner (needs_input, blocked, budget hold), as built.
   8. The inbox read state is stored on the server, so every device shares it.
+
+### Session 15 — 2026-09-29 (owner follow-up)
+- **Owner decision:** deploy to the VPS reached as `ssh nhamoiplatform`. It already runs two landing pages behind one shared nginx container (`2ps-landing-nginx`, owns host ports 80/443, certbot in `2ps-landing-certbot` with the shared `2ps-landing_certbot-conf` volume). kidyschool.com is attached to it with a mounted conf file plus an external network in `/opt/2ps-landing/docker-compose.override.yml`.
+- **Change to Phase 8:** no Caddy. The crew stack lives in `/opt/crew`, publishes no host ports, and joins the shared nginx the same way kidy does. SSE needs `proxy_buffering off` on `/v1/`. Until DNS points at the VPS, only the HTTP server block is installed (a missing certificate would stop the shared nginx and take both landing pages down); `scripts/enable-https.sh` issues the certificate and switches the block to HTTPS once DNS is mapped.
+- **Domain (owner-confirmed):** `crew.2p-solutions.com` (company site https://2p-solutions.com/). It is one variable in the deploy config.

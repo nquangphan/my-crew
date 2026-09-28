@@ -3,6 +3,7 @@ import type {
   ListTicketsQuery,
   Machine,
   Project,
+  ProjectChangeStatus,
   Ticket,
   TicketDetailResponse,
   TicketPriority,
@@ -23,6 +24,7 @@ export const keys = {
   machines: ['machines'] as const,
   machine: (id: string) => ['machine', id] as const,
   claims: (status?: ClaimRequestStatus) => ['claims', status ?? 'all'] as const,
+  projectChanges: (status?: ProjectChangeStatus) => ['projectChanges', status ?? 'all'] as const,
   notices: ['notices'] as const,
   search: (q: string) => ['search', q] as const,
   /** Everything under `docs` is refetched when a `docs.synced` event arrives. */
@@ -184,8 +186,16 @@ export function useClaimRequests(status?: ClaimRequestStatus) {
   });
 }
 
+export function useProjectChanges(status?: ProjectChangeStatus) {
+  return useQuery({
+    queryKey: keys.projectChanges(status),
+    queryFn: async () => (await api.listProjectChanges(status)).items,
+  });
+}
+
+/** The newest notices with the owner's read state (kept on the server) and the unread count. */
 export function useNotices() {
-  return useQuery({ queryKey: keys.notices, queryFn: async () => (await api.listNotices()).items });
+  return useQuery({ queryKey: keys.notices, queryFn: () => api.listNotices() });
 }
 
 /** Refreshes everything a ticket write can change. */

@@ -32,8 +32,9 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
    (không phải `ticket.assigned`) resume đúng loại job (`resumeKind()`): job cuối là
    `docs_init` thì tiếp tục `docs_init`; job cuối là `docs_update` từng `ask_owner` thì tiếp tục `docs_update`
    (câu trả lời của chủ dự án thuộc phiên đó); còn lại resume phiên `agent` (dev/PM/QC/assistant). `ticket.cancelled`
-   hủy job `queued`/`backoff` ngay hoặc đánh dấu `cancelRequested` cho job `running`. `claim.changed` trả effect
-   `refresh_projects` (không sinh job).
+   hủy job `queued`/`backoff` ngay hoặc đánh dấu `cancelRequested` cho job `running`. `claim.changed` và
+   `project.change_decided` (owner duyệt/từ chối máy tự đổi `platform`/`uiTestMcp`, flow `project-claims`) đều
+   trả effect `refresh_projects` (không sinh job).
 4. `apps/daemon/src/stream/dispatcher.ts` → `foldWakeups()`: gọi trong transaction kết thúc job, gộp mọi
    `pending_wakeups` của ticket thành đúng một job tiếp theo (hoặc nối vào job vừa được tạo trong cùng
    transaction, ví dụ job docs sau khi dev handoff).
@@ -90,6 +91,8 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
 - agent-roles: `resumeKind()` resume đúng loại job (`docs_init`/`docs_update`/`agent`) khi một sự kiện của chủ
   dự án tạo job mới; `wakeTicket()` được `wakePmForLeftovers()` (flow `daemon-runtime`) gọi.
 - daemon-api / event-delivery: nguồn sự kiện và route `/v1/daemon/stream` phía server.
+- project-claims: `project.change_decided` (kết quả owner duyệt máy tự đổi `platform`/`uiTestMcp` của
+  project) ánh xạ sang `refresh_projects` như `claim.changed`.
 
 ## Tests
 
@@ -104,7 +107,7 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
   chạy gộp thành đúng một job tiếp theo (kể cả khi job tiếp theo đã được tạo trong cùng transaction); bình
   luận chủ dự án resume session khi không có job hoạt động; `dependency.resolved` kiểm lại job đang chờ;
   `ticket.cancelled` hủy job `queued` ngay và đánh dấu job `running`; sự kiện không có job bị bỏ qua,
-  `claim.changed` yêu cầu refresh project.
+  `claim.changed` và `project.change_decided` đều yêu cầu refresh project.
 - `apps/daemon/test/scheduler.test.ts`: công thức slot `min(maxConcurrentJobs, floor(cpus/2))` và 0 khi máy
   bận; PM/assistant có thêm một slot dự phòng; `runnableJobs()` liệt kê đúng job `queued` không chờ dependency
   và `backoff` đã tới hạn; `Scheduler` chạy tối đa `maxConcurrentJobs` job dev độc lập cùng lúc; job chờ

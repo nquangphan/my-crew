@@ -49,11 +49,14 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    thao tác host — đọc lại config từ đĩa mỗi lần gọi (để CLI `crewd` và app luôn thấy cùng cấu hình), lưu là
    áp dụng cho daemon đang chạy ngay (`ctx.save()` gọi `daemon.updateConfig()`), không cần khởi động lại.
 8. `apps/desktop/src/daemon-host/setup-ops.ts` → `checkServer()`, `pairMachine()`, `applyProjects()`,
-   `createProject()`, `setFolder()`, `releaseProject()`, `installProjectHooks()`: các thao tác của trình cài
-   đặt và Settings → Projects — `checkServer()` bắt buộc `https://` (trừ loopback) và gọi `GET /v1/health`;
-   `applyProjects()`/`createProject()` dùng lại `repoFolderChecks()` (flow `daemon-health`) để validate thư
-   mục trước khi claim/tạo project; `installProjectHooks()` cài hook crew-docs trỏ về chính binary app
-   (`ctx.deps.runtime`, chạy với `ELECTRON_RUN_AS_NODE=1`).
+   `createProject()`, `setFolder()`, `releaseProject()`, `installProjectHooks()`, `requestTestSetup()`: các
+   thao tác của trình cài đặt và Settings → Projects — `checkServer()` bắt buộc `https://` (trừ loopback) và
+   gọi `GET /v1/health`; `applyProjects()`/`createProject()` dùng lại `repoFolderChecks()` (flow
+   `daemon-health`) để validate thư mục trước khi claim/tạo project; `installProjectHooks()` cài hook
+   crew-docs trỏ về chính binary app (`ctx.deps.runtime`, chạy với `ELECTRON_RUN_AS_NODE=1`);
+   `requestTestSetup()` gọi `VpsClient.requestProjectChange()` để máy tự đề nghị đổi `platform`/`uiTestMcp`
+   của project mình — dịch lỗi 403/409 của server thành thông báo tiếng Việt (máy không sở hữu project /
+   đã có yêu cầu khác đang chờ), không đổi gì tới khi chủ dự án xác nhận TOTP trên web (flow `project-claims`).
 9. `apps/desktop/src/daemon-host/health-ops.ts` → `HealthOps.run()`/`context()`: dựng `HealthContext` (thêm
    `daemon`, `app` facts, `crewDocs: {source, runtime}`, `probeCheckout`, `quick`) rồi gọi `runHealthChecks()`
    dùng chung với `crewd doctor` (flow `daemon-health`). `full` chạy khi mở cửa sổ và theo yêu cầu; `quick`
@@ -74,11 +77,12 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
     đỏ khi daemon không chạy, hoặc theo màu sức khỏe; tiêu đề hiện số job đang chạy.
 14. `apps/desktop/src/main/notifications.ts` → `Notifier.onHealth()`/`onJobBlocked()`: thông báo macOS khi
     sức khỏe chuyển đỏ (liệt kê tối đa 3 mục lỗi) hoặc khi một job chuyển `blocked`.
-15. `apps/desktop/src/main/updater.ts` → `Updater.check()`/`install()`, `isDeveloperIdSigned()`:
-    `electron-updater` kiểm bản mới từ GitHub Releases của `nquangphan/my-crew`; build ký Developer ID (có
-    `TeamIdentifier` qua `codesign`) tải và cài luôn sau khi chờ hết job (`waitForIdle()` tạm dừng rồi `drain`
-    daemon); build chưa ký chỉ mở link tải (`RELEASES_URL`) để cài tay. Tắt hẳn khi `!app.isPackaged` hoặc ở
-    chế độ test.
+15. `apps/desktop/src/main/updater.ts` → `Updater.check()`/`install()`, `isDeveloperIdSigned()`,
+    `dmgAssetName()`: `electron-updater` kiểm bản mới từ GitHub Releases của `nquangphan/my-crew`; build ký
+    Developer ID (có `TeamIdentifier` qua `codesign`) tải và cài luôn sau khi chờ hết job (`waitForIdle()` tạm
+    dừng rồi `drain` daemon); build chưa ký chỉ mở link tải đúng file dmg của kiến trúc máy này
+    (`dmgAssetName(version, process.arch)` → `2P-Crew-<version>-arm64.dmg` hay `...-x64.dmg`, `UpdaterDeps.arch`
+    cho test) để cài tay. Tắt hẳn khi `!app.isPackaged` hoặc ở chế độ test.
 16. `apps/desktop/src/main/shell-env.ts` → `loginShellPath()`: app mở từ Finder hoặc login item nhận PATH tối
     thiểu của `launchd`; hàm này chạy shell đăng nhập một lần lúc khởi động để lấy PATH đầy đủ (nơi
     Homebrew/`~/.local/bin` cài `git`, `claude`, `npx`, `maestro`), gộp với fallback các thư mục thường gặp.
@@ -89,21 +93,31 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
     `CREW_DESKTOP_TEST_MODE=1` (bộ E2E) — thay lượt thử đăng nhập Claude và probe kho skill bằng bản giả lập
     đọc/ghi file trong crew home của test; mọi phần khác (API, git, hook, config, daemon) vẫn chạy thật.
 19. Đóng gói và phát hành (ngoài `apps/*/src/**` nên không thuộc file nguồn của flow, nhưng là nơi lắp app
-    chạy được): `pnpm --filter @crew/desktop package:mac` (`scripts/package-mac.mjs`) dựng dmg universal vào
-    `apps/desktop/release/` (gitignored, ~443 MB) — `scripts/stage-app.mjs` đóng gói app ra ngoài workspace
-    pnpm với một `node_modules` phẳng chỉ chứa các gói ngoài cần lúc chạy (`better-sqlite3`, Agent SDK, MCP
-    SDK, `electron-updater`), cả hai binary Claude Code (`darwin-arm64` và `darwin-x64`), tắt `asar`, ký ad-hoc
-    (`identity: "-"` trong `electron-builder.yml`), `hardenedRuntime: false`. `better-sqlite3` 13 nạp
-    prebuild Node-API theo kiến trúc (`prebuilds/darwin-<arch>.node`) nên cùng một binary chạy được trong
-    Electron. Chưa ký Developer ID và chưa notarize: lần đầu mở phải bấm chuột phải → Open (Gatekeeper), và
-    cập nhật tự động rơi về đường link tải; job CI phát hành (`.github/workflows`) chưa được tạo (thuộc Phase
-    8). Bước ký và notarize sau này: xin chứng chỉ Developer ID Application; trên CI đặt `CSC_LINK` (file
-    `.p12` mã hoá base64) và `CSC_KEY_PASSWORD`, cùng `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`,
-    `APPLE_TEAM_ID`; trong `electron-builder.yml` thay `identity: "-"` bằng identity Developer ID (hoặc bỏ hẳn
-    `identity` để tự dò), bật `hardenedRuntime: true`, thêm `notarize: true` dưới `mac` cùng entitlements cho
+    chạy được): `pnpm --filter @crew/desktop package:mac` (`scripts/package-mac.mjs`) dựng **một dmg riêng cho
+    mỗi kiến trúc** vào `apps/desktop/release/` (gitignored) — `2P-Crew-<version>-arm64.dmg` và
+    `2P-Crew-<version>-x64.dmg` (`electron-builder.yml` → `mac.target` dmg với `arch: [arm64, x64]`,
+    `dmg.artifactName`; tên này khớp với `dmgAssetName()` ở bước 15, kiểm bởi
+    `apps/desktop/test/main-logic.test.ts`). `scripts/stage-app.mjs --both-archs` đóng gói app ra ngoài
+    workspace pnpm với một `node_modules` phẳng chỉ chứa các gói ngoài cần lúc chạy (`better-sqlite3`, Agent
+    SDK, MCP SDK, `electron-updater`) cộng cả hai binary Claude Code của Agent SDK
+    (`@anthropic-ai/claude-agent-sdk-darwin-arm64` và `-x64`), tắt `asar`. Một lượt `electron-builder` dựng cả
+    hai kiến trúc từ stage đó (nên `latest-mac.yml` liệt kê cả hai dmg); `afterPack` (`keepOnlyArch()` trong
+    `package-mac.mjs`) chạy trước khi ký, xoá binary Claude Code của kiến trúc còn lại và mọi prebuild
+    `better-sqlite3` trừ `prebuilds/darwin-<arch>.node` của chính app đó, nên mỗi app chỉ chứa đúng Electron,
+    Claude Code binary và native module của kiến trúc của nó. Ký ad-hoc (`identity: "-"` trong `electron-builder.yml`), `hardenedRuntime: false`.
+    `better-sqlite3` 13 nạp prebuild Node-API theo kiến trúc (`prebuilds/darwin-<arch>.node`) nên cùng một
+    binary chạy được trong Electron. Chưa ký Developer ID và chưa notarize: lần đầu mở phải bấm chuột phải →
+    Open (Gatekeeper), và cập nhật tự động rơi về đường link tải file dmg đúng kiến trúc; job CI phát hành
+    (`.github/workflows`) chưa được tạo (thuộc Phase 8). Bước ký và notarize sau này: xin chứng chỉ Developer
+    ID Application; trên CI đặt `CSC_LINK` (file `.p12` mã hoá base64) và `CSC_KEY_PASSWORD`, cùng `APPLE_ID`,
+    `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`; trong `electron-builder.yml` bỏ `identity: "-"` (tự dò
+    identity Developer ID), bật `hardenedRuntime: true`, thêm `notarize: true` dưới `mac` cùng entitlements cho
     phép `com.apple.security.cs.allow-jit`, `allow-unsigned-executable-memory`, `disable-library-validation`
-    (Electron cần); rồi chạy `node scripts/package-mac.mjs --publish` để tải lên GitHub Releases (cần
-    `GH_TOKEN`).
+    (Electron cần) — `afterPack` chạy trước khi ký nên app đã ký không còn binary của kiến trúc khác, và cả hai
+    app kiến trúc được ký/notarize riêng trong cùng một lượt build. Squirrel.Mac (electron-updater tự cài trên
+    build đã ký) cài từ file zip, không phải dmg, nên khi bật ký phải thêm target `zip` (mỗi kiến trúc) cạnh
+    `dmg` trong `mac.target` — thiếu nó, bản ký vẫn không có zip để tự cài. Rồi chạy
+    `node scripts/package-mac.mjs --publish` để tải lên GitHub Releases (cần `GH_TOKEN`).
 
 ## Files
 
@@ -117,7 +131,7 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 | `apps/desktop/src/main/tray.ts` | Icon và menu trên thanh menu bar | `CrewTray` |
 | `apps/desktop/src/main/tray-view.ts` | Suy ra màu/nhãn tray từ trạng thái | `trayView`, `RGB`, `DotColor` |
 | `apps/desktop/src/main/login-item.ts` | Mở cùng máy (login item macOS) | `electronLoginItem`, `fileLoginItem` |
-| `apps/desktop/src/main/updater.ts` | Kiểm và cài bản mới qua electron-updater | `Updater`, `isDeveloperIdSigned`, `RELEASES_URL` |
+| `apps/desktop/src/main/updater.ts` | Kiểm và cài bản mới qua electron-updater | `Updater`, `isDeveloperIdSigned`, `dmgAssetName`, `RELEASES_URL` |
 | `apps/desktop/src/main/notifications.ts` | Thông báo macOS (sức khỏe đỏ, job blocked) | `Notifier` |
 | `apps/desktop/src/main/terminal-launcher.ts` | Mở Terminal chạy `claude` để `/login` | `macTerminalLauncher`, `recordingTerminalLauncher` |
 | `apps/desktop/src/main/quit-guard.ts` | Hỏi trước khi thoát nếu còn job chạy | `decideQuit`, `quitMessage`, `QUIT_BUTTONS` |
@@ -126,7 +140,7 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 | `apps/desktop/src/preload/index.ts` | Cầu nối `invoke`/`on` duy nhất cho renderer | `contextBridge.exposeInMainWorld` |
 | `apps/desktop/src/daemon-host/host-service.ts` | Chạy daemon thật và định tuyến mọi thao tác host | `HostService` |
 | `apps/desktop/src/daemon-host/host-context.ts` | State dùng chung của các thao tác host | `HostContext`, `HostError` |
-| `apps/desktop/src/daemon-host/setup-ops.ts` | Thao tác trình cài đặt và Settings → Projects | `checkServer`, `pairMachine`, `applyProjects`, `createProject`, `installProjectHooks` |
+| `apps/desktop/src/daemon-host/setup-ops.ts` | Thao tác trình cài đặt và Settings → Projects | `checkServer`, `pairMachine`, `applyProjects`, `createProject`, `installProjectHooks`, `requestTestSetup` |
 | `apps/desktop/src/daemon-host/health-ops.ts` | Chạy health check dùng chung với `crewd doctor` | `HealthOps` |
 | `apps/desktop/src/daemon-host/activity.ts` | Danh sách job và nhật ký daemon | `Activity` |
 | `apps/desktop/src/daemon-host/test-seams.ts` | Thay SDK Claude bằng bản giả lập cho E2E | `testSeams`, `TestSeams` |
@@ -158,6 +172,8 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 - docs-check, docs-hooks: `installShippedCrewDocs()`/`installProjectHooks()` cài bundle crew-docs vào
   `~/.crew/bin` và hook git của từng project, chạy bằng chính binary app (`ELECTRON_RUN_AS_NODE=1`) thay vì
   cần Node cài riêng trên máy.
+- project-claims: `requestTestSetup()` gọi `POST /v1/daemon/projects/:projectKey/change-requests`; kết quả và
+  trạng thái đang chờ hiển thị ở Settings → Projects (flow `desktop-ui`) tới khi chủ dự án quyết định.
 
 ## Tests
 
@@ -171,11 +187,14 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   nhận renderer đã bundle, tên kênh preload khớp hợp đồng dùng chung; thông báo đúng một lần khi sức khỏe
   chuyển đỏ và khi job bị chặn; tray hiện đúng chấm màu/số job/nhãn tạm dừng; trạng thái cài đặt xong và tạm
   dừng sống sót qua khởi động lại (login item test không đụng macOS thật); updater: build chưa ký chỉ mở link
-  tải, build đã ký tải về rồi chờ hết job mới cài, tắt ở bản dev/test và phát hiện thiếu Developer ID.
+  tải đúng dmg kiến trúc máy này, build đã ký tải về rồi chờ hết job mới cài, tắt ở bản dev/test và phát hiện
+  thiếu Developer ID; `dmg.artifactName` của `electron-builder.yml` khớp đúng `dmgAssetName()` cho cả hai kiến
+  trúc.
 - `apps/desktop/test/host-service.test.ts`: kiểm tra server, ghép máy, claim project (202 chờ duyệt khi đang
   ở máy khác) rồi chạy được sau khi chủ dự án duyệt, kiểm `crew-docs.runtime` được ghi vào hook git đúng
   binary; tạo project từ thư mục, từ chối key trùng, sửa cấu hình project khi đang chạy (không cần khởi động
-  lại) và trả project — tất cả chạy trên API thật.
+  lại) và trả project; `requestTestSetup()` trả về đúng `pendingChange`, chặn máy không sở hữu và yêu cầu
+  trùng khi đang chờ, phản ánh đúng khi chủ dự án duyệt — tất cả chạy trên API thật.
 - `apps/desktop/test/e2e/health.spec.ts` (Electron thật qua Playwright `_electron`, bộ `test:e2e`): phá một
   check cho nó chuyển đỏ rồi tự sửa cho nó xanh lại; daemon sống sót qua việc đóng/mở lại cửa sổ và tự khởi
   động lại sau khi host bị kill.

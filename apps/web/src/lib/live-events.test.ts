@@ -62,6 +62,22 @@ describe('invalidationsFor', () => {
     const budget = envelope('3', { type: 'budget.exceeded', data: { ticketId: 't', kind: 'cost' } });
     expect(invalidationsFor(budget)).toEqual(expect.arrayContaining([['tickets'], ['notices']]));
   });
+
+  it('refreshes notices when the inbox was read on another device, and project changes on their events', () => {
+    expect(invalidationsFor(envelope('4', { type: 'inbox.read', data: { unread: 0 } }))).toEqual([
+      ['notices'],
+    ]);
+    const requested = envelope('5', {
+      type: 'project.change_requested',
+      data: { requestId: 'r', projectId: 'p', machineId: 'm' },
+    });
+    expect(invalidationsFor(requested)).toEqual(expect.arrayContaining([['projectChanges'], ['notices']]));
+    const decided = envelope('6', {
+      type: 'project.change_decided',
+      data: { requestId: 'r', projectId: 'p', machineId: 'm', status: 'approved' },
+    });
+    expect(invalidationsFor(decided)).toEqual(expect.arrayContaining([['projects'], ['projectChanges']]));
+  });
 });
 
 describe('startLiveEvents', () => {

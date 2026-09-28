@@ -15,6 +15,7 @@ import {
 import { VpsClient, VpsError } from './api/vps-client.js';
 import { crewHome, type DaemonConfig, homePaths, type ProjectConfig } from './config.js';
 import { CREW_DOCS_BUNDLE, installCrewDocs, packagedCrewDocs } from './git/docs-kit-bridge.js';
+import { PROBE_WORKTREE_KEY, type ProbeClock, ProbeWorktreeKeeper } from './git/probe-worktree.js';
 import {
   detectSharedPaths,
   ensureWorktree,
@@ -56,6 +57,10 @@ export interface DaemonTimings {
   recheckMs?: number;
   sweepMs?: number;
   cleanupGraceMs?: number;
+  /** How long a probe worktree is kept after its last probe (1 hour). */
+  probeWorktreeTtlMs?: number;
+  /** Clock of the probe worktree timers (tests). */
+  probeClock?: ProbeClock;
   stream?: { minBackoffMs?: number; maxBackoffMs?: number; idleTimeoutMs?: number };
 }
 
@@ -135,7 +140,6 @@ export interface Daemon {
   idle(): Promise<void>;
 }
 
-const PROBE_KEY = '_probe';
 const MACHINE_INVENTORY = '';
 /** The docs standard is installed next to the crew-docs bundle, for the docs-init prompt. */
 const STANDARD_FILE = 'STANDARD.md';
@@ -226,6 +230,17 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
   const localProject = (key: string): ProjectConfig | null =>
     config.projects.find((p) => p.key === key) ?? null;
 
+  const probeWorktrees = new ProbeWorktreeKeeper({
+    meta: { get: (key) => state.getMeta(key), set: (key, value) => state.setMeta(key, value) },
+    repoOf: (projectKey) => localProject(projectKey)?.repoPath ?? null,
+    busy: (projectKey) => probing.has(projectKey),
+    ...(timings.probeWorktreeTtlMs === undefined ? {} : { ttlMs: timings.probeWorktreeTtlMs }),
+    ...(timings.probeClock ? { clock: timings.probeClock } : {}),
+    onError: (projectKey, error) =>
+      log('warn', 'probe worktree removal failed', { projectKey, error: error.message }),
+  });
+  const expireProbeWorktrees = () => probeWorktrees.expire(config.projects.map((project) => project.key));
+
   /** The local project for a server project id, when this machine owns it and has a folder for it. */
   const projectFor = (projectId: string | null): ProjectConfig | null => {
     if (!projectId) return null;
@@ -259,7 +274,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
         // A probe worktree prepared exactly like a job worktree, so the inventory is what agents see.
         const probe = ensureWorktree({
           repo: project.repoPath,
-          key: PROBE_KEY,
+          key: PROBE_WORKTREE_KEY,
           base: project.defaultBranch,
           sharedPaths,
           detach: true,
@@ -303,7 +318,13 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
         log('warn', 'inventory probe failed', { projectKey, error: error.message });
         return null;
       })
-      .finally(() => probing.delete(key));
+      .finally(() => {
+        probing.delete(key);
+        // Kept for reuse by the next probe for an hour, then removed.
+        if (projectKey && localProject(projectKey)) {
+          probeWorktrees.used(projectKey, { arm: !stopping && !halted });
+        }
+      });
     probing.set(key, run);
     return run;
   }
@@ -326,7 +347,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     for (const project of config.projects) {
       if (!existsSync(project.repoPath)) continue;
       for (const key of worktreeKeys(project.repoPath)) {
-        if (key === PROBE_KEY) continue;
+        if (key === PROBE_WORKTREE_KEY) continue;
         let ticketStatus: string | null = null;
         try {
           ticketStatus = (await vps.getTicket(key)).ticket.status;
@@ -654,6 +675,8 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       jobs.runningJobIds(),
     );
     const worktrees = await sweepWorktrees().catch(() => 0);
+    // A probe worktree past its hour (a missed timer, or a restart) is not an orphan: not counted.
+    expireProbeWorktrees();
     orphansCleaned = result.cleaned + worktrees;
     if (orphansCleaned > 0) log('info', 'sweep cleaned orphans', { count: orphansCleaned });
     return orphansCleaned;
@@ -728,6 +751,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       if (!started) return;
       stopping = true;
       if (sweepTimer) clearInterval(sweepTimer);
+      probeWorktrees.stop();
       await stream.stop();
       await scheduler.stop();
       jobs.abortAll();
@@ -743,6 +767,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     async halt() {
       halted = true;
       if (sweepTimer) clearInterval(sweepTimer);
+      probeWorktrees.stop();
       await stream.stop();
       await scheduler.stop();
       await heartbeatLoop.stop();

@@ -24,6 +24,7 @@ import {
   pairMachine,
   projectDetail,
   releaseProject,
+  requestTestSetup,
   resourcesView,
   saveResources,
   setAssistant,
@@ -244,6 +245,8 @@ export class HostService {
         this.afterProjectChange();
         return projectDetail(ctx, key);
       }
+      case 'projects.requestTestSetup':
+        return requestTestSetup(this.host, as<'projects.requestTestSetup'>());
       case 'projects.refreshInventory': {
         const { key } = as<'projects.refreshInventory'>();
         if (!ctx.daemon) throw new HostError('Daemon chưa chạy: kho skill được dò khi daemon chạy.');

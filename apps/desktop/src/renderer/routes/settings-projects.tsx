@@ -1,4 +1,11 @@
-import type { ClaimOutcome, FolderValidation, ProjectDetail, ProjectsView } from '@crew/shared';
+import type {
+  ClaimOutcome,
+  FolderValidation,
+  ProjectDetail,
+  ProjectPlatform,
+  ProjectsView,
+  ProjectTestSetup,
+} from '@crew/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { FolderPicker } from '../components/folder-picker';
 import { HealthCheckRow } from '../components/health-check-row';
@@ -13,6 +20,178 @@ import {
 import { ErrorBox, Lozenge, Notice, PageHeader, Toggle } from '../components/ui';
 import { errorText } from '../lib/format';
 import { invoke } from '../lib/ipc';
+
+/** How often the panel re-reads the project while a change waits for the owner. */
+const PENDING_POLL_MS = 5_000;
+
+const sameSetup = (a: ProjectTestSetup, b: ProjectTestSetup) =>
+  a.platform === b.platform &&
+  a.uiTestMcp.playwright === b.uiTestMcp.playwright &&
+  a.uiTestMcp.maestro === b.uiTestMcp.maestro;
+
+/**
+ * Project type and UI-test MCP mapping. The machine may only ask: the change waits for the owner's TOTP
+ * confirmation on the web, and the panel shows it as pending until the owner decides.
+ */
+function TestSetupSection({
+  detail,
+  disabled,
+  onSubmit,
+  onRefresh,
+}: {
+  detail: ProjectDetail;
+  disabled: boolean;
+  onSubmit: (setup: ProjectTestSetup) => void;
+  onRefresh: (detail: ProjectDetail) => void;
+}) {
+  const current: ProjectTestSetup | null =
+    detail.platform && detail.uiTestMcp ? { platform: detail.platform, uiTestMcp: detail.uiTestMcp } : null;
+  const pending = detail.pendingChange;
+  const [draft, setDraft] = useState<ProjectTestSetup | null>(pending ?? current);
+  const [asked, setAsked] = useState<ProjectTestSetup | null>(null);
+  const [outcome, setOutcome] = useState<string | null>(null);
+
+  // A new detail (another project, or a decision) resets the form to what the server has.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on the server values only
+  useEffect(() => {
+    setDraft(pending ?? current);
+  }, [
+    detail.key,
+    pending?.requestId,
+    current?.platform,
+    current?.uiTestMcp.playwright,
+    current?.uiTestMcp.maestro,
+  ]);
+
+  // While pending, re-read the project until the owner decides; then say how it went.
+  useEffect(() => {
+    if (!pending) return;
+    setAsked(pending);
+    const timer = setInterval(() => {
+      invoke('projects.detail', { key: detail.key }).then(
+        (next) => {
+          if (next.pendingChange) return;
+          onRefresh(next);
+        },
+        () => undefined,
+      );
+    }, PENDING_POLL_MS);
+    return () => clearInterval(timer);
+  }, [pending, detail.key, onRefresh]);
+
+  useEffect(() => {
+    if (pending || !asked || !current) return;
+    setOutcome(
+      sameSetup(asked, current)
+        ? 'Chủ dự án đã xác nhận: đã đổi loại project và MCP test UI.'
+        : 'Chủ dự án đã từ chối thay đổi; loại project giữ nguyên.',
+    );
+    setAsked(null);
+  }, [pending, asked, current]);
+
+  if (!current || !draft) {
+    return (
+      <section className="card space-y-2 p-5">
+        <h2 className="font-semibold">Loại project và MCP test UI</h2>
+        <p className="text-sm text-muted">Chưa đọc được project từ server.</p>
+      </section>
+    );
+  }
+  const set = (patch: Partial<ProjectTestSetup>) => setDraft({ ...draft, ...patch });
+  const setMcp = (patch: Partial<ProjectTestSetup['uiTestMcp']>) =>
+    setDraft({ ...draft, uiTestMcp: { ...draft.uiTestMcp, ...patch } });
+  const needsPlaywright = draft.platform === 'web' || draft.platform === 'web_mobile';
+  const needsMaestro = draft.platform === 'mobile' || draft.platform === 'web_mobile';
+  const valid = draft.uiTestMcp.playwright.trim() !== '' && draft.uiTestMcp.maestro.trim() !== '';
+  const locked = disabled || pending !== null;
+
+  return (
+    <section className="card space-y-3 p-5" data-section="test-setup">
+      <h2 className="font-semibold">Loại project và MCP test UI</h2>
+      <div className="grid grid-cols-2 gap-3">
+        <label>
+          <span className="label">Loại project</span>
+          <select
+            className="input"
+            value={draft.platform}
+            disabled={locked}
+            onChange={(e) => set({ platform: e.target.value as ProjectPlatform })}
+          >
+            {Object.entries(PLATFORM_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div />
+        {needsPlaywright && (
+          <label>
+            <span className="label">MCP test UI web (mặc định Playwright)</span>
+            <input
+              className="input font-mono"
+              value={draft.uiTestMcp.playwright}
+              disabled={locked}
+              onChange={(e) => setMcp({ playwright: e.target.value })}
+            />
+          </label>
+        )}
+        {needsMaestro && (
+          <label>
+            <span className="label">MCP test UI mobile (mặc định Maestro)</span>
+            <input
+              className="input font-mono"
+              value={draft.uiTestMcp.maestro}
+              disabled={locked}
+              onChange={(e) => setMcp({ maestro: e.target.value })}
+            />
+          </label>
+        )}
+      </div>
+      <p className="text-sm text-muted">
+        QC bắt buộc dùng: {detail.requiredMcps.length ? detail.requiredMcps.join(', ') : 'không có (backend)'}
+        . Mặc định Maestro cho mobile, Playwright cho web; có thể trỏ sang server tên khác. Thay đổi chỉ có
+        hiệu lực khi chủ dự án xác nhận trên web.
+      </p>
+      {pending && (
+        <Notice tone="warn">
+          Đang chờ chủ dự án xác nhận: {PLATFORM_LABELS[pending.platform]} · test UI web{' '}
+          <code>{pending.uiTestMcp.playwright}</code> · test UI mobile{' '}
+          <code>{pending.uiTestMcp.maestro}</code>
+        </Notice>
+      )}
+      {!pending && outcome && <Notice tone="ok">{outcome}</Notice>}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={locked || !valid || sameSetup(draft, current)}
+          onClick={() => {
+            setOutcome(null);
+            onSubmit({
+              platform: draft.platform,
+              uiTestMcp: {
+                playwright: draft.uiTestMcp.playwright.trim(),
+                maestro: draft.uiTestMcp.maestro.trim(),
+              },
+            });
+          }}
+        >
+          Gửi yêu cầu đổi
+        </button>
+        {detail.webSettingsUrl && (
+          <button
+            type="button"
+            className="btn text-xs"
+            onClick={() => void invoke('app.openExternal', { url: detail.webSettingsUrl as string })}
+          >
+            Mở cài đặt project trên web
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
 
 function ProjectPanel({
   projectKey,
@@ -76,33 +255,16 @@ function ProjectPanel({
         {validation && !validation.ok && <Notice tone="bad">Thư mục chưa hợp lệ nên chưa được lưu.</Notice>}
       </section>
 
-      <section className="card space-y-2 p-5">
-        <h2 className="font-semibold">Loại project và MCP test UI</h2>
-        <p className="text-sm">
-          Loại: <strong>{detail.platform ? PLATFORM_LABELS[detail.platform] : '—'}</strong>
-          {detail.uiTestMcp && (
-            <>
-              {' '}
-              · test UI web: <code>{detail.uiTestMcp.playwright}</code> · test UI mobile:{' '}
-              <code>{detail.uiTestMcp.maestro}</code>
-            </>
-          )}
-        </p>
-        <p className="text-sm text-muted">
-          QC bắt buộc dùng:{' '}
-          {detail.requiredMcps.length ? detail.requiredMcps.join(', ') : 'không có (backend)'}. Mặc định
-          Maestro cho mobile, Playwright cho web; có thể trỏ sang server tên khác.
-        </p>
-        {detail.webSettingsUrl && (
-          <button
-            type="button"
-            className="btn text-xs"
-            onClick={() => void invoke('app.openExternal', { url: detail.webSettingsUrl as string })}
-          >
-            Đổi loại và MCP trên web
-          </button>
-        )}
-      </section>
+      <TestSetupSection
+        detail={detail}
+        disabled={busy}
+        onSubmit={(setup) =>
+          void run(async () =>
+            setDetail(await invoke('projects.requestTestSetup', { key: projectKey, ...setup })),
+          )
+        }
+        onRefresh={setDetail}
+      />
 
       <section className="card p-5">
         <div className="mb-3 flex items-center justify-between">

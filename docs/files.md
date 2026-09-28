@@ -10,6 +10,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/drizzle/0000_init.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0001_machine_auth_and_delivery.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0002_docs_snapshots.sql` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
+| `apps/api/drizzle/0003_project_changes_and_notice_reads.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/app.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/auth/csrf.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
@@ -44,7 +45,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/services/idempotency.ts` | [daemon-api](flows/daemon-api.md) (file) |
 | `apps/api/src/services/like-pattern.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
 | `apps/api/src/services/machine-service.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
+| `apps/api/src/services/notice-read-service.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `apps/api/src/services/pg-errors.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/services/project-change-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/project-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/report-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/ticket-query-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
@@ -61,6 +64,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/machine-scope.test.ts` | [daemon-api](flows/daemon-api.md) (test) |
 | `apps/api/test/owner-web-support.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/pairing.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
+| `apps/api/test/project-changes.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `apps/api/test/revoke-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
 | `apps/api/test/sweeper.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
 | `apps/api/test/ticket-service.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
@@ -71,6 +75,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/config.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
 | `apps/daemon/src/daemon.ts` | [daemon-runtime](flows/daemon-runtime.md) (điểm vào) |
 | `apps/daemon/src/git/docs-kit-bridge.ts` | [agent-workspace](flows/agent-workspace.md) (file) |
+| `apps/daemon/src/git/probe-worktree.ts` | [agent-workspace](flows/agent-workspace.md) (file) |
 | `apps/daemon/src/git/worktree-manager.ts` | [agent-workspace](flows/agent-workspace.md) (điểm vào) |
 | `apps/daemon/src/health/checks/app.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/health/checks/claude.ts` | [daemon-health](flows/daemon-health.md) (file) |
@@ -144,6 +149,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/live-workflow.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/merge-policy.test.ts` | [local-merge](flows/local-merge.md) (test) |
 | `apps/daemon/test/model-policy.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
+| `apps/daemon/test/probe-worktree.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/daemon/test/resources.test.ts` | [resource-hygiene](flows/resource-hygiene.md) (test) |
 | `apps/daemon/test/role-contracts.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/role-policies.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
@@ -198,6 +204,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/test/daemon-supervisor.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/e2e/health.spec.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/e2e/onboarding.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
+| `apps/desktop/test/e2e/project-settings.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/host-service.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/main-logic.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |

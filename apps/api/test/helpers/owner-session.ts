@@ -46,6 +46,14 @@ export interface LoggedInOwner {
 
 export async function seedAndLogin(app: FastifyInstance, db: Database): Promise<LoggedInOwner> {
   const seeded = await seedOwner(db, { ...OWNER, reset: false });
+  return loginOwner(app, seeded);
+}
+
+/** A new session of the seeded owner (another device). Clear the TOTP replay marker first for a second login. */
+export async function loginOwner(
+  app: FastifyInstance,
+  seeded: { totpSecret: string; recoveryCodes: string[] },
+): Promise<LoggedInOwner> {
   const step1 = await app.inject({
     method: 'POST',
     url: '/v1/auth/login',

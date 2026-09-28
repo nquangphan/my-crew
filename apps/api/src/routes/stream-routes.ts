@@ -1,11 +1,17 @@
-import { NoticeListQuery } from '@crew/shared';
-import type { FastifyInstance } from 'fastify';
+import { MarkAllNoticesReadRequest, MarkNoticesReadRequest, NoticeListQuery } from '@crew/shared';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { authenticateTokenHash, requireMachine } from '../auth/machine-auth.js';
 import { sessionStillValid } from '../auth/owner-auth.js';
 import { ApiError } from '../errors.js';
 import { openEventStream, readCursor } from '../realtime/sse.js';
-import { listNotices } from '../services/event-service.js';
+import { listOwnerNotices, markAllNoticesRead, markNoticesRead } from '../services/notice-read-service.js';
 import { parseInput, type RouteDeps } from './route-deps.js';
+
+function ownerIdOf(request: FastifyRequest): string {
+  const session = request.ownerSession;
+  if (!session) throw new ApiError('UNAUTHORIZED', 'login required');
+  return session.ownerId;
+}
 
 /**
  * `GET /v1/daemon/stream`: the events targeted at the calling machine, replayed from the cursor
@@ -56,9 +62,19 @@ export async function ownerStreamRoutes(
     });
   });
 
-  /** Machine and budget notices for the owner inbox, newest first. */
+  /** Machine and budget notices for the owner inbox, newest first, with the owner's read state. */
   app.get('/v1/notices', async (request) => {
     const { limit } = parseInput(NoticeListQuery, request.query);
-    return { items: await listNotices(db, limit) };
+    return listOwnerNotices(db, ownerIdOf(request), limit);
+  });
+
+  app.post('/v1/notices/read', async (request) => {
+    const { ids } = parseInput(MarkNoticesReadRequest, request.body);
+    return { unread: await markNoticesRead(db, ownerIdOf(request), ids) };
+  });
+
+  app.post('/v1/notices/read-all', async (request) => {
+    const { throughId } = parseInput(MarkAllNoticesReadRequest, request.body ?? {});
+    return { unread: await markAllNoticesRead(db, ownerIdOf(request), throughId) };
   });
 }

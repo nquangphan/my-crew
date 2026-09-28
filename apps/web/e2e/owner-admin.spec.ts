@@ -143,3 +143,63 @@ test('shortcuts, quick search, pairing and takeover approval with TOTP', async (
   await page.goto(`/projects/${state.project.key}/board`);
   await snap(page, testInfo, 'board-dark');
 });
+
+test('a machine asks to change its project type, the owner approves with TOTP; the inbox read state is shared live by two devices', async ({
+  page,
+  browser,
+}, testInfo) => {
+  const state = readState();
+  const machineA = new Agent(state.machineA.token);
+  const mapping = { playwright: 'playwright', maestro: 'maestro-cloud' };
+  const first = await machineA.requestProjectChange(state.project.key, {
+    platform: 'web_mobile',
+    uiTestMcp: mapping,
+  });
+  expect(first.status).toBe('pending');
+
+  await login(page, state, '/inbox');
+  const changes = page.getByRole('region', { name: 'Yêu cầu đổi loại dự án cần duyệt' });
+  await expect(changes).toContainText(`${state.machineA.name} muốn đổi dự án ${state.project.key}`);
+  await expect(changes).toContainText(
+    'Web và mobile · test UI web playwright · test UI mobile maestro-cloud',
+  );
+  await snap(page, testInfo, 'inbox-project-change');
+  await changes.getByRole('button', { name: 'Duyệt' }).click();
+  const approve = page.getByRole('dialog', { name: 'Duyệt đổi loại dự án' });
+  await approve.getByLabel('Mã xác thực (TOTP)').fill(await freshTotp(state));
+  await approve.getByRole('button', { name: 'Duyệt' }).click();
+  await expect(page.getByText('Đã duyệt thay đổi dự án')).toBeVisible();
+  await expect(changes).toBeHidden();
+
+  // Opening the inbox on the desktop marked the notices read on the server: a phone sees them read.
+  const feed = page.getByRole('region', { name: 'Thông báo' });
+  await expect(feed.getByRole('button', { name: 'Đã đọc', exact: true })).toHaveCount(0);
+  const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const phone = await phoneContext.newPage();
+    await login(phone, state, '/inbox');
+    const phoneFeed = phone.getByRole('region', { name: 'Thông báo' });
+    await expect(phoneFeed.getByRole('listitem').first()).toBeVisible();
+    await expect(phoneFeed.getByText('Chưa đọc:')).toHaveCount(0);
+
+    // A new notice arrives live on both devices; reading it on the phone clears it on the desktop too.
+    const second = await machineA.requestProjectChange(state.project.key, {
+      platform: 'mobile',
+      uiTestMcp: mapping,
+    });
+    expect(second.status).toBe('pending');
+    await expect(feed.getByRole('button', { name: 'Đã đọc', exact: true })).toHaveCount(1);
+    await phoneFeed.getByRole('button', { name: 'Đã đọc', exact: true }).click();
+    await expect(phoneFeed.getByRole('button', { name: 'Đã đọc', exact: true })).toHaveCount(0);
+    await expect(feed.getByRole('button', { name: 'Đã đọc', exact: true })).toHaveCount(0);
+
+    // Reject the second change: the project keeps the approved type.
+    await changes.getByRole('button', { name: 'Từ chối' }).click();
+    const reject = page.getByRole('dialog', { name: 'Từ chối đổi loại dự án' });
+    await reject.getByLabel('Mã xác thực (TOTP)').fill(await freshTotp(state));
+    await reject.getByRole('button', { name: 'Từ chối' }).click();
+    await expect(page.getByText('Đã từ chối thay đổi dự án')).toBeVisible();
+  } finally {
+    await phoneContext.close();
+  }
+});

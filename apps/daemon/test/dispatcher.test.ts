@@ -178,7 +178,7 @@ describe('dispatcher', () => {
     expect(state.pendingWakeupCount(running)).toBe(0);
   });
 
-  it('ignores events without a job and asks for a project refresh on claim.changed', () => {
+  it('ignores events without a job and asks for a project refresh on claim.changed and project.change_decided', () => {
     const state = new StateDb(':memory:');
     expect(
       dispatchEvent(
@@ -199,6 +199,15 @@ describe('dispatcher', () => {
             projectId: 'p',
             assistant: false,
           },
+        }),
+      ).kind,
+    ).toBe('refresh_projects');
+    expect(
+      dispatchEvent(
+        state,
+        envelope({
+          type: 'project.change_decided',
+          data: { requestId: 'r', projectId: 'p', machineId: 'm', status: 'approved' },
         }),
       ).kind,
     ).toBe('refresh_projects');

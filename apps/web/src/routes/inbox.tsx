@@ -1,7 +1,15 @@
-import type { ClaimRequest, EventEnvelope, Machine, Project } from '@crew/shared';
+import type {
+  ClaimRequest,
+  EventEnvelope,
+  Machine,
+  Project,
+  ProjectChangeRequest,
+  ProjectTestSetup,
+} from '@crew/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useState } from 'react';
+import { PLATFORM_LABEL } from '../components/project-form';
 import { StatusLozenge } from '../components/status-lozenge';
 import { TotpDialog } from '../components/totp-dialog';
 import { TypeIcon } from '../components/type-icon';
@@ -10,7 +18,13 @@ import { useToast } from '../components/ui/toast';
 import { Breadcrumbs } from '../layout/breadcrumbs';
 import { api } from '../lib/api-client';
 import { cn } from '../lib/cn';
-import { budgetKindLabel, formatFullDateTime, formatRelative, OPEN_STATUSES } from '../lib/format';
+import {
+  budgetKindLabel,
+  errorMessage,
+  formatFullDateTime,
+  formatRelative,
+  OPEN_STATUSES,
+} from '../lib/format';
 import { useInboxSummary } from '../lib/inbox';
 import { keys, useMachineNames, useProjects, useTickets } from '../lib/queries';
 
@@ -92,6 +106,57 @@ function ClaimItem({ claim, machines }: { claim: ClaimRequest; machines: Map<str
   );
 }
 
+/** "Web · test UI web playwright" for the parts QC uses on this platform. */
+function setupText(setup: ProjectTestSetup): string {
+  const parts = [PLATFORM_LABEL[setup.platform]];
+  if (setup.platform === 'web' || setup.platform === 'web_mobile')
+    parts.push(`test UI web ${setup.uiTestMcp.playwright}`);
+  if (setup.platform === 'mobile' || setup.platform === 'web_mobile')
+    parts.push(`test UI mobile ${setup.uiTestMcp.maestro}`);
+  return parts.join(' · ');
+}
+
+function ProjectChangeItem({ change }: { change: ProjectChangeRequest }) {
+  const [decision, setDecision] = useState<'approve' | 'reject' | null>(null);
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  return (
+    <Item tone="warn">
+      <span className="min-w-0 grow">
+        <strong>{change.machineName}</strong> muốn đổi dự án <strong>{change.projectKey}</strong>:{' '}
+        {setupText(change.current)} → <strong>{setupText(change.requested)}</strong>
+        <span className="block text-xs text-muted">Gửi {formatRelative(change.createdAt)}</span>
+      </span>
+      <Button variant="primary" onClick={() => setDecision('approve')}>
+        Duyệt
+      </Button>
+      <Button onClick={() => setDecision('reject')}>Từ chối</Button>
+      <TotpDialog
+        open={decision !== null}
+        onOpenChange={(open) => !open && setDecision(null)}
+        title={decision === 'approve' ? 'Duyệt đổi loại dự án' : 'Từ chối đổi loại dự án'}
+        description={`${change.projectKey}: ${setupText(change.requested)}. ${
+          decision === 'approve'
+            ? 'Ticket QC tạo từ giờ dùng MCP test UI mới.'
+            : 'Dự án giữ nguyên loại và MCP test UI hiện tại.'
+        }`}
+        confirmLabel={decision === 'approve' ? 'Duyệt' : 'Từ chối'}
+        confirmVariant={decision === 'approve' ? 'primary' : 'danger'}
+        onConfirm={async (code) => {
+          if (!decision) return;
+          await api.decideProjectChange(change.id, decision, code);
+          setDecision(null);
+          toast(decision === 'approve' ? 'Đã duyệt thay đổi dự án' : 'Đã từ chối thay đổi dự án', 'success');
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['projectChanges'] }),
+            queryClient.invalidateQueries({ queryKey: keys.projects }),
+          ]);
+        }}
+      />
+    </Item>
+  );
+}
+
 function OfflineMachineItem({ machine }: { machine: Machine }) {
   const affected = useTickets({ machineId: machine.id, status: [...OPEN_STATUSES] });
   const list = affected.data ?? [];
@@ -148,6 +213,8 @@ function describeNotice(
       return `${machineName(p.data.machineId)} lỗi health: ${p.data.failing.map((f) => f.title).join(', ') || 'không rõ'}`;
     case 'budget.exceeded':
       return `Vượt giới hạn ${budgetKindLabel(p.data.kind)}`;
+    case 'project.change_requested':
+      return `${machineName(p.data.machineId)} xin đổi loại dự án ${projectKey(p.data.projectId)}`;
     default:
       return p.type;
   }
@@ -164,17 +231,22 @@ export function InboxPage() {
   const projects = useProjects();
   const needsAnswer = inbox.needsInput.filter((t) => !t.budgetHold);
   const budgetHolds = inbox.needsInput.filter((t) => t.budgetHold);
-  /** Unread count when the inbox was opened; those notices keep their dot during this visit. */
-  const [readBefore, setReadBefore] = useState<number | null>(null);
+  const toast = useToast();
+  /** Notices that were unread when the inbox was opened keep their dot during this visit. */
+  const [openedUnread, setOpenedUnread] = useState<Set<string> | null>(null);
   const actionCount = inbox.badge - inbox.unreadNotices;
+  const run = (task: Promise<void>) => task.catch((error: unknown) => toast(errorMessage(error), 'error'));
 
-  // Opening the inbox marks the notices as read, once they are loaded.
+  // Opening the inbox marks the loaded notices read on the server (up to the newest one shown, so a
+  // notice that arrives meanwhile stays unread), for every device.
   // biome-ignore lint/correctness/useExhaustiveDependencies: mark once the notices are loaded
   useEffect(() => {
-    if (readBefore !== null || inbox.notices.length === 0) return;
-    setReadBefore(inbox.unreadNotices);
-    inbox.markRead();
-  }, [inbox.notices.length, readBefore]);
+    if (openedUnread !== null || inbox.notices.length === 0) return;
+    const unread = inbox.notices.filter((event) => !event.read);
+    setOpenedUnread(new Set(unread.map((event) => event.id)));
+    const newest = inbox.notices[0];
+    if (unread.length > 0 && newest) void run(inbox.markAllRead(newest.id));
+  }, [inbox.notices.length, openedUnread]);
 
   const ticketItem = (ticket: (typeof inbox.needsInput)[number], text: string) => (
     <Item key={ticket.id} tone="warn">
@@ -202,6 +274,11 @@ export function InboxPage() {
       <Group title="Yêu cầu chuyển máy cần duyệt" count={inbox.pendingClaims.length}>
         {inbox.pendingClaims.map((claim) => (
           <ClaimItem key={claim.id} claim={claim} machines={machines} />
+        ))}
+      </Group>
+      <Group title="Yêu cầu đổi loại dự án cần duyệt" count={inbox.pendingChanges.length}>
+        {inbox.pendingChanges.map((change) => (
+          <ProjectChangeItem key={change.id} change={change} />
         ))}
       </Group>
       <Group title="Agent đang chờ bạn trả lời" count={needsAnswer.length}>
@@ -245,41 +322,52 @@ export function InboxPage() {
       </Group>
 
       <section aria-label="Thông báo" className="flex flex-col gap-2">
-        <h2 className="m-0 text-sm font-semibold">Thông báo từ máy</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="m-0 text-sm font-semibold">
+            Thông báo từ máy
+            {inbox.unreadNotices > 0 && <span className="text-muted"> · {inbox.unreadNotices} chưa đọc</span>}
+          </h2>
+          {inbox.unreadNotices > 0 && (
+            <Button onClick={() => void run(inbox.markAllRead())}>Đánh dấu tất cả đã đọc</Button>
+          )}
+        </div>
         {inbox.notices.length === 0 ? (
           <p className="m-0 text-sm text-muted">Chưa có thông báo.</p>
         ) : (
           <ul className="m-0 flex list-none flex-col divide-y divide-line2 rounded-md border border-line bg-panel p-0">
-            {inbox.notices.map((event, index) => (
-              <li key={event.id} className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm">
-                <span
-                  aria-hidden
-                  className={cn(
-                    'size-2 shrink-0 rounded-full',
-                    index < (readBefore ?? 0) ? 'bg-accent' : 'bg-transparent',
+            {inbox.notices.map((event) => {
+              const dot = !event.read || (openedUnread?.has(event.id) ?? false);
+              return (
+                <li key={event.id} className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm">
+                  <span
+                    aria-hidden
+                    className={cn('size-2 shrink-0 rounded-full', dot ? 'bg-accent' : 'bg-transparent')}
+                  />
+                  {dot && <span className="sr-only">Chưa đọc:</span>}
+                  <span className="min-w-0 grow">
+                    {describeNotice(event, machines, projects.data ?? [])}
+                    {event.ticketId && event.payload.type === 'budget.exceeded' && (
+                      <>
+                        {' · '}
+                        <Link to="/tickets/$ticketKey" params={{ ticketKey: event.ticketId }}>
+                          mở ticket
+                        </Link>
+                      </>
+                    )}
+                  </span>
+                  <time
+                    dateTime={event.createdAt}
+                    title={formatFullDateTime(event.createdAt)}
+                    className="shrink-0 text-xs text-muted"
+                  >
+                    {formatRelative(event.createdAt)}
+                  </time>
+                  {!event.read && (
+                    <Button onClick={() => void run(inbox.markRead([event.id]))}>Đã đọc</Button>
                   )}
-                />
-                {index < (readBefore ?? 0) && <span className="sr-only">Chưa đọc:</span>}
-                <span className="min-w-0 grow">
-                  {describeNotice(event, machines, projects.data ?? [])}
-                  {event.ticketId && event.payload.type === 'budget.exceeded' && (
-                    <>
-                      {' · '}
-                      <Link to="/tickets/$ticketKey" params={{ ticketKey: event.ticketId }}>
-                        mở ticket
-                      </Link>
-                    </>
-                  )}
-                </span>
-                <time
-                  dateTime={event.createdAt}
-                  title={formatFullDateTime(event.createdAt)}
-                  className="shrink-0 text-xs text-muted"
-                >
-                  {formatRelative(event.createdAt)}
-                </time>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

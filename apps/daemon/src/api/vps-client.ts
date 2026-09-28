@@ -21,6 +21,8 @@ import {
   type PairMachineRequest,
   Project,
   ProjectCatalogResponse,
+  type ProjectChangeBody,
+  ProjectChangeResponse,
   type PutSkillsRequest,
   ReleaseClaimResponse,
   Report,
@@ -196,6 +198,17 @@ export class VpsClient {
       body,
       idempotencyKey,
       schema: Project,
+    });
+  }
+
+  /** Asks the owner to change this machine's project type and UI-test MCP mapping (202 pending). */
+  requestProjectChange(projectKey: string, body: ProjectChangeBody, idempotencyKey: string) {
+    return this.request({
+      method: 'POST',
+      path: `/v1/daemon/projects/${encodeURIComponent(projectKey)}/change-requests`,
+      body,
+      idempotencyKey,
+      schema: ProjectChangeResponse,
     });
   }
 

@@ -11,9 +11,11 @@ directories:
 asar: false
 npmRebuild: true
 mac:
+  # One dmg per architecture: each app carries only its own Electron, Claude Code binary and native
+  # modules (package-mac.mjs drops the other architecture's copies after packing, before signing).
   target:
     - target: dmg
-      arch: universal
+      arch: [arm64, x64]
   category: public.app-category.developer-tools
   icon: build/icon.png
   # Ad-hoc signature: no Developer ID certificate yet. The app runs after right-click → Open on first launch,
@@ -23,15 +25,13 @@ mac:
   # The hardened runtime is for Developer ID builds; with an ad-hoc signature it blocks loading native
   # modules (library validation). Turn it on together with the signing identity.
   hardenedRuntime: false
-  # The SDK ships one Claude Code binary per architecture in separate packages; both builds contain both
-  # identical files, which must be copied as they are instead of merged with lipo.
-  # better-sqlite3 also ships identical per-arch prebuilds next to its rebuilt binary.
-  x64ArchFiles: "{**/node_modules/@anthropic-ai/claude-agent-sdk-darwin-*/claude,**/node_modules/better-sqlite3/prebuilds/**}"
   extendInfo:
     NSHumanReadableCopyright: Copyright © 2P Solutions
 dmg:
   title: 2P Crew ${version}
-  artifactName: 2P-Crew-${version}-universal.${ext}
+  # 2P-Crew-<version>-arm64.dmg and 2P-Crew-<version>-x64.dmg; the updater's download link
+  # (src/main/updater.ts dmgAssetName) and electron-updater's arm64 pick rely on this name.
+  artifactName: 2P-Crew-${version}-${arch}.${ext}
 publish:
   provider: github
   owner: nquangphan

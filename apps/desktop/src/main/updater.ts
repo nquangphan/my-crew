@@ -2,8 +2,17 @@ import { spawnSync } from 'node:child_process';
 import type { UpdateStatus } from '@crew/shared';
 import type { AppUpdater, UpdateInfo } from 'electron-updater';
 
-/** GitHub Releases of the repo the release job publishes the dmg to. */
+/** GitHub Releases of the repo the release job publishes the dmgs to. */
 export const RELEASES_URL = 'https://github.com/nquangphan/my-crew/releases';
+
+/**
+ * The release dmg of one architecture (`arm64` or `x64`), as electron-builder names it
+ * (`dmg.artifactName` in electron-builder.yml). electron-updater also picks the arm64 file by the `arm64`
+ * in its name.
+ */
+export function dmgAssetName(version: string, arch: string): string {
+  return `2P-Crew-${version}-${arch}.dmg`;
+}
 
 /**
  * Squirrel.Mac only installs updates into an app signed with a Developer ID. An unsigned or ad-hoc signed
@@ -24,11 +33,13 @@ export interface UpdaterDeps {
   openExternal: (url: string) => Promise<void>;
   /** Waits until no job runs (the daemon stops taking new jobs meanwhile). */
   waitForIdle: () => Promise<void>;
+  /** This build's architecture, for the unsigned download link (default: `process.arch`). */
+  arch?: string;
 }
 
 /**
  * `electron-updater` from GitHub Releases. Signed builds download and install in place once no job runs;
- * unsigned builds fall back to "a new version is available" with a link to the release page.
+ * unsigned builds fall back to "a new version is available" with a link to this architecture's dmg.
  */
 export class Updater {
   private status: UpdateStatus;
@@ -51,7 +62,7 @@ export class Updater {
       this.set({
         state: 'available',
         version: info.version,
-        downloadUrl: `${RELEASES_URL}/tag/v${info.version}`,
+        downloadUrl: `${RELEASES_URL}/download/v${info.version}/${dmgAssetName(info.version, deps.arch ?? process.arch)}`,
       });
     });
     updater.on('update-not-available', () => this.set({ state: 'none', message: null }));

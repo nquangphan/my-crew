@@ -7,6 +7,7 @@ import {
   DaemonCreateProjectRequest,
   FileBugRequest,
   HeartbeatRequest,
+  ProjectChangeBody,
   ProjectKey,
   PutSkillsRequest,
   SubmitReportRequest,
@@ -39,6 +40,7 @@ import {
   recordHeartbeat,
   rotateToken,
 } from '../services/machine-service.js';
+import { requestProjectChange } from '../services/project-change-service.js';
 import { recordAgentMeta, submitReport } from '../services/report-service.js';
 import { getTicketDetail } from '../services/ticket-query-service.js';
 import {
@@ -118,6 +120,17 @@ export async function daemonRoutes(app: FastifyInstance, { db, config }: RouteDe
       statusCode: 201,
       body: await createDaemonProject(tx, machine.machineId, body),
     }));
+  });
+
+  /** The owning machine asks to change its project's type and UI-test MCP mapping; the owner decides. */
+  app.post('/v1/daemon/projects/:projectKey/change-requests', async (request, reply) => {
+    const machine = requireMachine(request);
+    const projectKey = parseInput(ProjectKey, (request.params as { projectKey?: unknown }).projectKey);
+    const body = parseInput(ProjectChangeBody, request.body);
+    return replyIdempotent(db, request, reply, machine.machineId, async (tx) => {
+      const result = await requestProjectChange(tx, machine.machineId, projectKey, body);
+      return { statusCode: result.status === 'pending' ? 202 : 200, body: result };
+    });
   });
 
   app.post('/v1/daemon/claims', async (request, reply) => {

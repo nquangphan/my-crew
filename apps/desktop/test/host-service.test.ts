@@ -8,6 +8,7 @@ import type {
   HookView,
   Machine,
   PairResult,
+  ProjectDetail,
 } from '@crew/shared';
 import { describe, expect, inject, it } from 'vitest';
 import { freshTotp, insertPairingCode, pairTestMachine } from '../../api/test/helpers/machines.js';
@@ -283,5 +284,52 @@ describe('daemon host: setup wizard operations against the real API', () => {
     const released = await call<ClaimOutcome>('projects.release', { key: 'NEW' });
     expect(released.status).toBe('released');
     expect(loadConfig(join(home, 'config.yaml')).projects).toEqual([]);
+  });
+
+  it('asks the owner to change the project type and UI-test MCP mapping, pending until approved on the web', async () => {
+    const server = await api.server();
+    const owner = await seedAndLogin(server.app, api.db);
+    await createTestProject(api.db, { key: 'WEB', repoUrl: 'https://github.com/2p/web-shop.git' });
+    const home = join(tempDir('crew-desktop-home-'), 'crew');
+    const { call } = host(home);
+    await call('setup.pair', {
+      apiUrl: server.url,
+      code: await insertPairingCode(api.db),
+      machineName: 'mac',
+    });
+    const folder = projectRepo('git@github.com:2p/new-thing.git', {});
+    await call('projects.create', {
+      path: folder,
+      key: 'NEW',
+      name: 'Dự án mới',
+      description: 'Công cụ nội bộ do chủ dự án mô tả',
+      repoUrl: 'git@github.com:2p/new-thing.git',
+      defaultBranch: 'main',
+      platform: 'backend',
+    });
+
+    const setup = { platform: 'web', uiTestMcp: { playwright: 'pw-cloud', maestro: 'maestro' } };
+    const pending = await call<ProjectDetail>('projects.requestTestSetup', { key: 'NEW', ...setup });
+    expect(pending).toMatchObject({ platform: 'backend', requiredMcps: [], pendingChange: setup });
+    await expect(
+      call('projects.requestTestSetup', { key: 'NEW', platform: 'mobile', uiTestMcp: setup.uiTestMcp }),
+    ).rejects.toThrow('Đã có một thay đổi khác đang chờ chủ dự án xác nhận.');
+    await expect(call('projects.requestTestSetup', { key: 'WEB', ...setup })).rejects.toThrow(
+      'Máy này không sở hữu project WEB',
+    );
+
+    const approved = await server.app.inject({
+      method: 'POST',
+      url: `/v1/project-change-requests/${pending.pendingChange?.requestId}/approve`,
+      headers: owner.headers,
+      payload: { code: await freshTotp(api.db, owner.totpSecret) },
+    });
+    expect(approved.statusCode).toBe(200);
+    expect(await call<ProjectDetail>('projects.detail', { key: 'NEW' })).toMatchObject({
+      platform: 'web',
+      uiTestMcp: setup.uiTestMcp,
+      requiredMcps: ['pw-cloud'],
+      pendingChange: null,
+    });
   });
 });

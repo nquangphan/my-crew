@@ -10,6 +10,7 @@ import {
 } from '@crew/shared';
 import type { AppUpdater } from 'electron-updater';
 import { afterEach, describe, expect, it } from 'vitest';
+import { parse } from 'yaml';
 import { DesktopStateStore } from '../src/main/desktop-state.js';
 import { dispatchDesktopRequest, isTrustedSender } from '../src/main/ipc-handlers.js';
 import { fileLoginItem } from '../src/main/login-item.js';
@@ -17,7 +18,7 @@ import { Notifier } from '../src/main/notifications.js';
 import { decideQuit, QUIT_BUTTONS, quitMessage } from '../src/main/quit-guard.js';
 import { recordingTerminalLauncher } from '../src/main/terminal-launcher.js';
 import { trayView } from '../src/main/tray-view.js';
-import { isDeveloperIdSigned, RELEASES_URL, Updater } from '../src/main/updater.js';
+import { dmgAssetName, isDeveloperIdSigned, RELEASES_URL, Updater } from '../src/main/updater.js';
 
 const dirs: string[] = [];
 const temp = () => {
@@ -224,11 +225,25 @@ describe('updater', () => {
       waitForIdle: async () => {
         idleWaits += 1;
       },
+      arch: 'arm64',
     });
     return { fake, updater, statuses, opened, idleWaits: () => idleWaits };
   };
 
-  it('unsigned builds link to the release page instead of installing', async () => {
+  it('names each architecture dmg as electron-builder does', () => {
+    const config = parse(readFileSync(join(import.meta.dirname, '..', 'electron-builder.yml'), 'utf8'));
+    expect(config.mac.target).toEqual([{ target: 'dmg', arch: ['arm64', 'x64'] }]);
+    for (const arch of ['arm64', 'x64']) {
+      const macros: Record<string, string> = { version: '0.2.0', arch, ext: 'dmg' };
+      const name = String(config.dmg.artifactName).replace(
+        /\$\{(\w+)\}/g,
+        (_, key: string) => macros[key] ?? '',
+      );
+      expect(name).toBe(dmgAssetName('0.2.0', arch));
+    }
+  });
+
+  it('unsigned builds link to this architecture dmg instead of installing', async () => {
     const { fake, updater, opened } = make(false);
     expect(fake.autoDownload).toBe(false);
     expect(await updater.check()).toMatchObject({
@@ -237,7 +252,7 @@ describe('updater', () => {
       canAutoInstall: false,
     });
     await updater.install();
-    expect(opened).toEqual([`${RELEASES_URL}/tag/v0.2.0`]);
+    expect(opened).toEqual([`${RELEASES_URL}/download/v0.2.0/2P-Crew-0.2.0-arm64.dmg`]);
     expect(fake.installs).toBe(0);
   });
 

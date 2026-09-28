@@ -77,7 +77,8 @@ export function SettingsPage({ info, section, navigate, onInfoChange }: Settings
             </div>
             {!update.canAutoInstall && update.state === 'available' && (
               <div className="text-xs text-muted">
-                Bản chưa ký: bấm "Tải bản mới" rồi cài thủ công từ file dmg.
+                Bản chưa ký: bấm "Tải bản mới" để tải file dmg đúng kiến trúc của máy này (arm64 cho Apple
+                Silicon, x64 cho Intel) rồi cài thủ công.
               </div>
             )}
             {update.message && <div className="text-xs text-bad-ink">{update.message}</div>}

@@ -79,6 +79,16 @@ export function scriptedRunner(book: ScriptBook, sessionsDir: string): AgentRunn
   };
 }
 
+/** Fast timers for tests; spread and extend it when a test passes its own `timings`. */
+export const TEST_TIMINGS = {
+  heartbeatMs: 60_000,
+  tickMs: 100,
+  recheckMs: 60_000,
+  sweepMs: 10 * 60_000,
+  cleanupGraceMs: 2_000,
+  stream: { minBackoffMs: 50, maxBackoffMs: 200, idleTimeoutMs: 10_000 },
+} satisfies CreateDaemonOptions['timings'];
+
 export interface TestDaemon {
   daemon: Daemon;
   home: string;
@@ -118,14 +128,7 @@ export function makeDaemon(
     logger: process.env.DEBUG_CREWD
       ? (level, message, fields) => console.log(level, message, JSON.stringify(fields))
       : () => {},
-    timings: {
-      heartbeatMs: 60_000,
-      tickMs: 100,
-      recheckMs: 60_000,
-      sweepMs: 10 * 60_000,
-      cleanupGraceMs: 2_000,
-      stream: { minBackoffMs: 50, maxBackoffMs: 200, idleTimeoutMs: 10_000 },
-    },
+    timings: TEST_TIMINGS,
     ...options.extra,
   });
   let stopped = false;

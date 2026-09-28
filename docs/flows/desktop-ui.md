@@ -54,12 +54,14 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 10. `apps/desktop/src/renderer/routes/settings.tsx` → `SettingsPage()`: bật/tắt mở cùng máy, kiểm và cài bản
     mới (`app.checkUpdate`/`app.installUpdate`), nút "Chạy lại trình cài đặt" và "Project của máy này", và
     cùng form tài nguyên/model của bước cuối trình cài đặt.
-11. `apps/desktop/src/renderer/routes/settings-projects.tsx` → `SettingsProjectsPage()`, `ProjectPanel()`:
-    đổi thư mục (validate lại trước khi lưu), loại project và MCP test UI hiển thị chỉ đọc kèm link sang cài
-    đặt project trên web (chỉ chủ dự án sửa được ở đó), kho skill/MCP dò được trong worktree với công tắc
-    bật/tắt từng MCP server (trừ server QC bắt buộc dùng), thư mục dùng chung cho worktree (tự nhận + thêm/bỏ
-    tay), trả project (có hộp xác nhận), "Nhận thêm project" và "Tạo project từ thư mục", bật/tắt vai trò trợ
-    lý của máy.
+11. `apps/desktop/src/renderer/routes/settings-projects.tsx` → `SettingsProjectsPage()`, `ProjectPanel()`,
+    `TestSetupSection()`: đổi thư mục (validate lại trước khi lưu); loại project và MCP test UI cho sửa tại
+    chỗ (nút "Gửi yêu cầu đổi") nhưng chỉ có hiệu lực sau khi chủ dự án xác nhận TOTP trên web — trong lúc chờ,
+    form bị khoá và hiện "Đang chờ chủ dự án xác nhận…" (tự đọc lại project mỗi `PENDING_POLL_MS` = 5 giây tới
+    khi hết `pendingChange`), quyết định xong hiện "Chủ dự án đã xác nhận…"/"Chủ dự án đã từ chối…"; một nút
+    phụ vẫn mở cài đặt project trên web; kho skill/MCP dò được trong worktree với công tắc bật/tắt từng MCP
+    server (trừ server QC bắt buộc dùng), thư mục dùng chung cho worktree (tự nhận + thêm/bỏ tay), trả project
+    (có hộp xác nhận), "Nhận thêm project" và "Tạo project từ thư mục", bật/tắt vai trò trợ lý của máy.
 12. `apps/desktop/src/renderer/components/resource-form.tsx` → `ResourceForm()`, `resourceDraftError()`: số
     job chạy cùng lúc, RAM trống tối thiểu, tải tối đa mỗi CPU, danh sách model được phép (`sonnet` luôn bắt
     buộc, không tắt được) và model/effort theo từng mức độ phức tạp; validate tại chỗ trước khi cho lưu.
@@ -83,7 +85,7 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 | `apps/desktop/src/renderer/routes/jobs.tsx` | Danh sách job | `JobsPage` |
 | `apps/desktop/src/renderer/routes/logs.tsx` | Nhật ký daemon | `LogsPage`, `matchesTicket` |
 | `apps/desktop/src/renderer/routes/settings.tsx` | Cài đặt chung + tài nguyên/model | `SettingsPage` |
-| `apps/desktop/src/renderer/routes/settings-projects.tsx` | Quản lý project của máy này | `SettingsProjectsPage`, `ProjectPanel` |
+| `apps/desktop/src/renderer/routes/settings-projects.tsx` | Quản lý project của máy này | `SettingsProjectsPage`, `ProjectPanel`, `TestSetupSection` |
 | `apps/desktop/src/renderer/components/wizard-step.tsx` | Khung một bước trình cài đặt, danh sách bước | `WizardStep`, `WIZARD_STEPS` |
 | `apps/desktop/src/renderer/components/health-check-row.tsx` | Một dòng kết quả check + nút sửa | `HealthCheckRow` |
 | `apps/desktop/src/renderer/components/folder-picker.tsx` | Hộp thoại chọn thư mục native | `FolderPicker` |
@@ -108,9 +110,12 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 - daemon-health: `HealthPage` hiển thị đúng `HealthGroup`/`HEALTH_GROUP_TITLES` và `HealthCheckResult` mà
   `crewd doctor` cũng dùng.
 - project-claims: `ProjectPicker`/`SettingsProjectsPage` phản ánh trạng thái sở hữu (`ownerState`,
-  `pendingClaim`) mà API `project-claims` cấp qua daemon.
+  `pendingClaim`) mà API `project-claims` cấp qua daemon; `TestSetupSection` gửi và theo dõi yêu cầu đổi
+  `platform`/`uiTestMcp` (`ProjectDetail.pendingChange`) qua `projects.requestTestSetup` (flow `desktop-app`).
 
 ## Tests
 
 - `apps/desktop/test/e2e/onboarding.spec.ts` (Electron thật qua Playwright `_electron`): chạy hết lần đầu cài
   đặt — ghép máy, tick nhận và tạo project, cài hook — rồi kết thúc với dashboard sức khỏe toàn xanh.
+- `apps/desktop/test/e2e/project-settings.spec.ts`: Settings → Projects gửi yêu cầu đổi loại project, khoá form
+  và hiện đang chờ, rồi phản ánh đúng sau khi chủ dự án xác nhận TOTP trên web.

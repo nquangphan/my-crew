@@ -38,9 +38,11 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    `g d`, `g i`, `j`/`k`, `Enter`, `Esc`, `?`; chỉ hoạt động ở độ rộng desktop (`isDesktop()`), bỏ qua khi đang
    gõ trong input (`isTypingTarget()`) hoặc dialog đang mở.
 7. `apps/web/src/lib/api-client.ts` → `api`, `ApiRequestError`: mọi lời gọi kiểm tra response bằng schema zod
-   dùng chung, tự gắn header CSRF (`setCsrfToken()`) trên request ghi, gọi `onUnauthorized()` khi gặp 401.
-8. `apps/web/src/lib/queries.ts` → `keys`, `sessionQuery`, `useTickets`/`useTicket`/`useProjects`/…: định
-   nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác.
+   dùng chung, tự gắn header CSRF (`setCsrfToken()`) trên request ghi, gọi `onUnauthorized()` khi gặp 401 —
+   gồm cả các route chỉ owner mới thấy như `/v1/project-change-requests*` (flow `project-claims`) và
+   `/v1/notices/read*` (flow `event-delivery`) mà trang Inbox (flow `web-admin`) dùng.
+8. `apps/web/src/lib/queries.ts` → `keys`, `sessionQuery`, `useTickets`/`useTicket`/`useProjects`/`useNotices`/
+   `useProjectChanges`/…: định nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác.
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
 

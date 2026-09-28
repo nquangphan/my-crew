@@ -19,9 +19,13 @@ import {
   MachineDetailResponse,
   MachineListResponse,
   NoticeListResponse,
+  NoticeReadResponse,
   type OwnerAssignRequest,
   PairingCodeResponse,
   Project,
+  ProjectChangeListResponse,
+  ProjectChangeRequest,
+  type ProjectChangeStatus,
   ProjectListResponse,
   ReportResponse,
   SearchResponse,
@@ -254,5 +258,22 @@ export const api = {
       schema: ClaimRequest,
     }),
 
+  listProjectChanges: (status?: ProjectChangeStatus) =>
+    request('/v1/project-change-requests', { schema: ProjectChangeListResponse, query: { status } }),
+  decideProjectChange: (id: string, decision: 'approve' | 'reject', code: string) =>
+    request(`/v1/project-change-requests/${encodeURIComponent(id)}/${decision}`, {
+      method: 'POST',
+      body: { code },
+      schema: ProjectChangeRequest,
+    }),
+
   listNotices: () => request('/v1/notices', { schema: NoticeListResponse, query: { limit: 50 } }),
+  markNoticesRead: (ids: string[]) =>
+    request('/v1/notices/read', { method: 'POST', body: { ids }, schema: NoticeReadResponse }),
+  markAllNoticesRead: (throughId?: string) =>
+    request('/v1/notices/read-all', {
+      method: 'POST',
+      body: throughId === undefined ? {} : { throughId },
+      schema: NoticeReadResponse,
+    }),
 };

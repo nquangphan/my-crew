@@ -26,6 +26,7 @@ import {
 import { ApiError, notFound } from '../errors.js';
 import { appendEvents, type NewEvent } from './event-service.js';
 import { isUniqueViolation } from './pg-errors.js';
+import { pendingChangesOf } from './project-change-service.js';
 import { toProjectDto } from './project-service.js';
 
 /** A project (`projectId`) or the assistant role (`projectId` null). */
@@ -444,7 +445,7 @@ export async function listClaimRequests(db: Executor, status?: ClaimRequestStatu
 
 /** Every project with its owner state from the calling machine's point of view, plus the assistant role. */
 export async function listDaemonProjects(db: Executor, machineId: string): Promise<DaemonProjectsResponse> {
-  const [rows, pending, [host]] = await Promise.all([
+  const [rows, pending, [host], changes] = await Promise.all([
     db
       .select({ project: projects, ownerName: machines.name })
       .from(projects)
@@ -458,6 +459,7 @@ export async function listDaemonProjects(db: Executor, machineId: string): Promi
       .select({ id: machines.id, name: machines.name })
       .from(machines)
       .where(and(eq(machines.hostsAssistant, true), isNull(machines.revokedAt))),
+    pendingChangesOf(db, machineId),
   ]);
   const pendingProjects = new Set(pending.map((p) => p.projectId));
   const stateOf = (owner: string | null) =>
@@ -478,6 +480,7 @@ export async function listDaemonProjects(db: Executor, machineId: string): Promi
         ownerState,
         ownerMachineName: ownerState === 'other' ? ownerName : null,
         pendingClaim: pendingProjects.has(project.id),
+        pendingChange: changes.get(project.id) ?? null,
       };
     }),
     assistant: {

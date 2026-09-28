@@ -6,6 +6,8 @@ import {
   DaemonProject,
   OwnerState,
   PairingCode,
+  PendingProjectChange,
+  ProjectTestSetup,
   SkillInventory,
 } from './machine-schemas.js';
 import { McpServerName, ProjectKey, ProjectPlatform, UiTestMcp } from './project-schemas.js';
@@ -224,8 +226,10 @@ export const ProjectDetail = z.object({
   inventory: SkillInventory.nullable(),
   disabledMcpServers: z.array(z.string()),
   sharedPaths: z.object({ detected: z.array(z.string()), extra: z.array(z.string()) }),
-  /** Where the owner edits the project type and MCP mapping (owner-only on the server). */
+  /** The project's settings page on the web. */
   webSettingsUrl: z.string().nullable(),
+  /** This machine's type and MCP change waiting for the owner's confirmation on the web. */
+  pendingChange: PendingProjectChange.nullable(),
 });
 export type ProjectDetail = z.infer<typeof ProjectDetail>;
 
@@ -300,6 +304,8 @@ export const DesktopRequests = {
     ProjectDetail,
   ),
   'projects.refreshInventory': request(z.object({ key: ProjectKey }).strict(), ProjectDetail),
+  /** Asks the owner to change the project type and UI-test MCP mapping; nothing changes until approved. */
+  'projects.requestTestSetup': request(ProjectTestSetup.extend({ key: ProjectKey }).strict(), ProjectDetail),
 
   'hooks.list': request(Empty, z.array(HookView)),
   'hooks.install': request(z.object({ key: ProjectKey }).strict(), HookView),

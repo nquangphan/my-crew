@@ -79,6 +79,23 @@ export const EventPayload = z.discriminatedUnion('type', [
     type: z.literal('budget.exceeded'),
     data: TicketRef.extend({ kind: z.enum(['cost', 'children', 'bug_cycles', 'attempts']) }),
   }),
+  /** The owning machine asked to change its project's type or UI-test MCP mapping. Owner stream only. */
+  z.object({
+    type: z.literal('project.change_requested'),
+    data: z.object({ requestId: z.string(), projectId: z.string(), machineId: z.string() }),
+  }),
+  /** The owner approved (the project changed) or rejected a change request. Sent to the requesting machine. */
+  z.object({
+    type: z.literal('project.change_decided'),
+    data: z.object({
+      requestId: z.string(),
+      projectId: z.string(),
+      machineId: z.string(),
+      status: z.enum(['approved', 'rejected']),
+    }),
+  }),
+  /** The owner's inbox read state changed on some device. Owner stream only. */
+  z.object({ type: z.literal('inbox.read'), data: z.object({ unread: z.number().int().min(0) }) }),
   z.object({
     type: z.literal('docs.synced'),
     data: z.object({ projectId: z.string(), commitSha: z.string() }),
@@ -124,8 +141,30 @@ export const NOTICE_EVENT_TYPES = [
   'machine.offline',
   'machine.unhealthy',
   'budget.exceeded',
+  'project.change_requested',
 ] as const satisfies readonly EventType[];
 
 export const NoticeListQuery = z.object({ limit: z.coerce.number().int().min(1).max(200).default(50) });
-export const NoticeListResponse = z.object({ items: z.array(EventEnvelope) });
+/** A notice with the owner's read state, which the server keeps so every device shares it. */
+export const Notice = EventEnvelope.extend({ read: z.boolean() });
+export type Notice = z.infer<typeof Notice>;
+export const NoticeListResponse = z.object({
+  items: z.array(Notice),
+  /** Unread notices in the whole history, not only the listed page. */
+  unread: z.number().int().min(0),
+});
 export type NoticeListResponse = z.infer<typeof NoticeListResponse>;
+
+/** `POST /v1/notices/read`: marks the listed notices (by `id`) read; ids that are not notices are ignored. */
+export const MarkNoticesReadRequest = z.object({ ids: z.array(StreamCursor).min(1).max(200) }).strict();
+export type MarkNoticesReadRequest = z.infer<typeof MarkNoticesReadRequest>;
+
+/**
+ * `POST /v1/notices/read-all`: marks every notice read, up to `throughId` when given, so a notice that
+ * arrived after the owner loaded the list stays unread.
+ */
+export const MarkAllNoticesReadRequest = z.object({ throughId: StreamCursor.optional() }).strict();
+export type MarkAllNoticesReadRequest = z.infer<typeof MarkAllNoticesReadRequest>;
+
+export const NoticeReadResponse = z.object({ unread: z.number().int().min(0) });
+export type NoticeReadResponse = z.infer<typeof NoticeReadResponse>;

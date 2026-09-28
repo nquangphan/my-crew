@@ -34,7 +34,11 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
 4. `apps/api/src/routes/daemon-routes.ts` → project/claim: `GET/POST /v1/daemon/projects`,
    `POST/DELETE /v1/daemon/claims*`, `GET /v1/projects/catalog` (chỉ máy host assistant,
    `assertAssistantHost()`) gọi thẳng `claim-service.ts` (flow `project-claims`).
-5. `apps/api/src/routes/daemon-routes.ts` → ticket: `GET /v1/daemon/tickets/:id` đọc sau
+5. `apps/api/src/routes/daemon-routes.ts` → `POST /v1/daemon/projects/:projectKey/change-requests` (body
+   `ProjectChangeBody`, cũng bọc `replyIdempotent()`) gọi `requestProjectChange()` — máy sở hữu project mới
+   được đổi `platform`/`uiTestMcp` của nó, và chỉ có hiệu lực sau khi owner duyệt bằng TOTP (flow
+   `project-claims`).
+6. `apps/api/src/routes/daemon-routes.ts` → ticket: `GET /v1/daemon/tickets/:id` đọc sau
    `assertTicketReadable()` (rộng hơn phạm vi ghi đúng một chỗ: PM đọc được ticket `request` cha của dự án
    mình, flow `machine-pairing`); `GET /v1/daemon/budget/:id` đọc sau `assertTicketInScope()`; `POST
    /v1/daemon/tickets` tạo subtask (kiểm `pm_task` chỉ được tạo bởi máy host assistant, dưới đúng `request`)
@@ -66,7 +70,8 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
   token/heartbeat/inventory.
 - ticket-lifecycle: mọi ghi ticket của agent dùng chung hàm service với route owner; `fileBug()` phục vụ cả QC
   báo lỗi và PM từ chối (`reject_work`, flow `agent-roles`).
-- project-claims: route project/claim của daemon gọi thẳng `claim-service.ts`.
+- project-claims: route project/claim của daemon gọi thẳng `claim-service.ts`; route change-requests gọi
+  `project-change-service.ts`.
 - api-platform: `daemonRoutes` được đăng ký trong nhóm route bọc `machineGuard` tại `buildApp()`.
 - agent-roles: PM đọc ticket `request` cha qua `GET /v1/daemon/tickets/:id`
   (`assertTicketReadable`) để lấy `ownerRequest()`; tool `create_subtask`/`file_bug` chạm

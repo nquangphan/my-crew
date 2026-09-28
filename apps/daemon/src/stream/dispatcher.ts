@@ -42,7 +42,10 @@ function roleOf(envelope: EventEnvelope): AgentRole | null {
 export function dispatchEvent(state: StateDb, envelope: EventEnvelope, now = new Date()): DispatchEffect {
   const { payload } = envelope;
 
-  if (payload.type === 'claim.changed') return { kind: 'refresh_projects' };
+  // A claim moved, or the owner decided a type and UI-test MCP change: the project views are stale.
+  if (payload.type === 'claim.changed' || payload.type === 'project.change_decided') {
+    return { kind: 'refresh_projects' };
+  }
 
   if (payload.type === 'ticket.cancelled') {
     const ticketId = payload.data.ticketId;

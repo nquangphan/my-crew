@@ -8,7 +8,8 @@ import { VpsClient } from '../src/api/vps-client.js';
 import { homePaths } from '../src/config.js';
 import { docsSnapshot, installCrewDocs } from '../src/git/docs-kit-bridge.js';
 import { commentsOf, devTicket, fixture, pmTask, useApi } from './helpers/api.js';
-import { makeDaemon, waitFor } from './helpers/daemon.js';
+import { manualClock } from './helpers/clock.js';
+import { makeDaemon, TEST_TIMINGS, waitFor } from './helpers/daemon.js';
 import { git, makeRepo, writeFiles } from './helpers/git.js';
 
 const api = useApi();
@@ -95,6 +96,47 @@ describe('daemon wiring', () => {
     expect(block.capabilities.skills).toEqual(inventory.skills);
     expect(block.capabilities.mcpServers.map((s: { name: string }) => s.name)).toEqual(['playwright']);
     await t.daemon.stop();
+  });
+
+  it('keeps the probe worktree for an hour after a probe, then removes it, and a restart removes an expired one', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const clock = manualClock();
+    const probeDir = join(repo, '.crew/worktrees/_probe');
+    const t = makeDaemon(f, {
+      repoPath: repo,
+      extra: {
+        inventory: true,
+        probe: async () => ({ skills: [], mcpServers: [] }),
+        timings: { ...TEST_TIMINGS, probeClock: clock },
+      },
+    });
+    await t.daemon.start();
+    await waitFor(
+      () => existsSync(probeDir) && t.daemon.state.getMeta(`probeWorktreeUsedAt:${f.projectKey}`),
+      15_000,
+      'probe worktree used',
+    );
+    clock.advance(59 * 60_000);
+    expect(existsSync(probeDir)).toBe(true);
+    clock.advance(60_000);
+    expect(existsSync(probeDir)).toBe(false);
+
+    await t.daemon.refreshInventory(f.projectKey);
+    expect(existsSync(probeDir)).toBe(true);
+    await t.daemon.stop();
+    clock.advance(61 * 60_000);
+    // A stopped daemon runs no timers; the next start removes the expired worktree.
+    expect(existsSync(probeDir)).toBe(true);
+    const restarted = makeDaemon(f, {
+      repoPath: repo,
+      home: t.home,
+      extra: { timings: { ...TEST_TIMINGS, probeClock: clock } },
+    });
+    await restarted.daemon.start();
+    expect(existsSync(probeDir)).toBe(false);
+    await waitFor(() => restarted.daemon.status().connected, 10_000, 'restarted stream');
+    await restarted.daemon.stop();
   });
 
   it('sends heartbeats with running jobs and the sweep count', async () => {
