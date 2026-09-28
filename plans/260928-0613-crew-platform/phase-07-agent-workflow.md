@@ -2,13 +2,13 @@
 title: "Phase 7: Agent Workflow"
 status: todo
 priority: P1
-effort: 17h
+effort: 19h
 dependsOn: [6]
 ---
 
 # Phase 7: Agent Workflow
 
-<!-- Updated: Validation Session 11 - docs-init runs on a fixed model: sonnet -->
+<!-- Updated: Validation Session 11 - all docs work runs on sonnet: docs-init, plus a docs-update job after every dev and bug run -->
 
 <!-- Updated: Validation Session 9 - MCP servers join the capability inventory and preflight; QC defaults Maestro (mobile) / Playwright (web) -->
 
@@ -21,11 +21,11 @@ dependsOn: [6]
 
 ## Overview
 
-Build the roles on top of the daemon runtime: assistant, PM, dev, QC and docs-init. Each role has a prompt file,
+Build the roles on top of the daemon runtime: assistant, PM, dev, docs-update, QC and docs-init. Each role has a prompt file,
 a tool scope, a model and effort default, and fixed entry and exit states that `canTransition` allows. This
 phase wires the whole ticket lifecycle end to end:
 
-owner request → assistant triage → PM clarify → PM breakdown → dev → paired QC (bug loop) → PM accept and local merge → assistant close.
+owner request → assistant triage → PM clarify → PM breakdown → dev → docs-update → paired QC (bug loop) → PM accept and local merge → assistant close.
 
 Every step leaves a comment or report in the ticket.
 
@@ -46,7 +46,8 @@ Every status path below is legal under `canTransition('agent', …)`. A test rep
 | assistant (close) | `children.all_done` on the request | haiku / low | Read the PM report. `submit_report` with a summary and links. `in_progress→in_review`, or `→done` when `autoCloseRequests` is set |
 | pm (analyze) | `ticket.assigned` (pm_task) | sonnet / high; opus for large or cross-cutting work | Docs-init gate first (below). `todo→triage`. Read `docs/index.md`, then `crew-docs flow`, then the listed files. Write a detailed requirement comment. When unclear: `ask_owner`. When clear: post "Requirement confirmed" |
 | pm (breakdown) | same run once clear | same | `create_subtask` per unit. Each dev subtask gets its paired QC subtask (`pairs_with`, `depends_on`). Each subtask has a description, acceptance criteria, `complexity`, `model`, `effort`, `required_skills` (from this machine's inventory; the server validates them), `depends_on`, and the flows touched (saved to `tickets.flows[]`). Comment on the execution plan (parallel groups vs sequence, from the resource snapshot). `triage→in_progress` |
-| dev (and bug) | `ticket.assigned` (dev or bug) | from subtask | `todo→in_progress`. Work in the worktree. Docs first. Invoke every `required_skills` entry. Update code, tests and flow docs, and commit through the hooks. `submit_report` (files, commits, `head_sha`, tests). `in_progress→done` |
+| dev (and bug) | `ticket.assigned` (dev or bug) | from subtask | `todo→in_progress`. Work in the worktree. Docs first. Invoke every `required_skills` entry. Update code and tests, run the tests, and **do not edit or commit docs**. End with `handoff_docs` (files, tests, flows touched, a Vietnamese summary of the change). The ticket stays `in_progress` |
+| docs-update | The dev or bug job succeeds with a `handoff_docs` | **sonnet / high (fixed)** | Same ticket and worktree, a new job of kind `docs_update`. Read the handoff and `git diff`, then the affected flow docs (`crew-docs where` for each changed file). Update `docs/flows/*.md` and the non-protected sections of `docs/flows.yaml`, run `crew-docs check --staged`, and commit code, tests and docs together through the hooks. `submit_report` (dev handoff plus the docs changed, commits, `head_sha`). `in_progress→done` |
 | qc | `dependency.resolved` (paired dev done) | sonnet / high; opus/xhigh when security sensitive | `todo→in_progress`. Worktree at the dev `head_sha`. Run the tests, review the diff **and the accuracy of the docs against the code**. Call `file_bug` once per defect. `submit_report` listing the bugs, or "pass". `in_progress→done` |
 | pm (accept) | `children.all_done` | same as analyze | Verify every acceptance criterion against the reports; reject a skipped required skill unless it was justified. Merge each dev `head_sha` into `crew/<pm-key>` in dependency order, then into the default branch. Run `crew-docs generate` and commit. Push (the pre-push gate runs). Sync docs. `submit_report`. `in_progress→in_review→done`. On a merge conflict, `create_subtask` a dev "resolve conflicts" ticket instead of accepting |
 | docs-init | Created by the daemon as a child of the pm_task when `crew-docs check` exits 3 | **sonnet / high (fixed)** | `todo→in_progress`. Follow STANDARD.md, write every file, `crew-docs install-hooks`, `crew-docs ci-workflow`, pass `check --all`, commit with the `Crew-Docs-Init: true` trailer, sync. `submit_report`. `in_progress→done`. Every other subtask of that pm_task `depends_on` it |
@@ -98,7 +99,15 @@ Every status path below is legal under `canTransition('agent', …)`. A test rep
   - large → opus/high
   - Fable only when the PM justifies needing whole-repo context.
   - The daemon clamps any choice outside the allowlist and comments the change.
-- **Docs model** (owner decision): a docs-init ticket always runs on `sonnet`. The complexity map, the PM and the allowlist clamp never change it, and `model-policy.ts` returns `sonnet` for `docs_init` regardless of input. Dev and bug runs still update flow docs inside their own run, on the ticket's model.
+- **Docs model** (owner decision): all documentation work runs on `sonnet`. That is the docs-init ticket and every `docs_update` job. The complexity map, the PM and the allowlist clamp never change it, and `model-policy.ts` returns `sonnet` for `docs_init` and `docs_update` regardless of input. The dev model chosen by the PM covers code and tests only.
+- **Docs-update job** (owner decision: docs are never written by the dev model):
+  - The dev run does not commit. R3 would reject a code commit without its flow docs, so the code stays uncommitted in the worktree until the docs job commits everything in one commit. R3 keeps its meaning and needs no bypass.
+  - When the dev job ends successfully with a `handoff_docs` call, the daemon queues a `docs_update` job on the same ticket and worktree. The one-active-job-per-ticket index still holds because the jobs run one after the other.
+  - A dev run that ends without `handoff_docs` (and without `ask_owner`) counts as a failed attempt under the failure policy.
+  - The guard lets the docs job write only under `docs/`. It cannot change code or tests.
+  - If the commit fails for a reason the docs job cannot fix within `docs/` (tests, R6, R7), it comments the hook output and the daemon queues a new dev job with that output. This counts against the 2-attempt cap, and the next dev run again ends with `handoff_docs`.
+  - The docs job runs the capability preflight and the docs-first check like every other run.
+  - QC still reviews the accuracy of the docs against the code; a docs defect is filed as a normal bug, whose fix again goes through a docs-update job.
 - **Pre-push gate** (the `pre-push` hook from Phase 5 plus the PM prompt):
   - `testCommand` passes on the merged tree.
   - `crew-docs check --range origin/<default>..HEAD` passes.
@@ -114,10 +123,10 @@ Every status path below is legal under `canTransition('agent', …)`. A test rep
 
 Create under `apps/daemon/src/roles/`:
 - `role-registry.ts`
-- `prompts/assistant-triage.md`, `prompts/assistant-close.md`, `prompts/pm-analyze.md`, `prompts/pm-accept.md`, `prompts/dev.md`, `prompts/qc.md`, `prompts/docs-init.md`
+- `prompts/assistant-triage.md`, `prompts/assistant-close.md`, `prompts/pm-analyze.md`, `prompts/pm-accept.md`, `prompts/dev.md`, `prompts/docs-update.md`, `prompts/qc.md`, `prompts/docs-init.md`
 - `prompts/_capability-preflight.md` (shared partial included by every role prompt)
-- `model-policy.ts`, `skill-enforcement.ts`, `docs-first-check.ts`, `merge-policy.ts` (local merge, generate, push), `docs-init-gate.ts`, `failure-policy.ts`, `untrusted-wrap.ts`
-- `test/role-contracts.test.ts` (replays every contract path through `canTransition`), `test/model-policy.test.ts`, `test/skill-enforcement.test.ts`, `test/docs-first-check.test.ts`, `test/docs-init-gate.test.ts`
+- `model-policy.ts`, `skill-enforcement.ts`, `docs-first-check.ts`, `merge-policy.ts` (local merge, generate, push), `docs-init-gate.ts`, `docs-update-handoff.ts` (queues the docs job after a dev handoff), `failure-policy.ts`, `untrusted-wrap.ts`
+- `test/role-contracts.test.ts` (replays every contract path through `canTransition`), `test/model-policy.test.ts`, `test/skill-enforcement.test.ts`, `test/docs-first-check.test.ts`, `test/docs-init-gate.test.ts`, `test/docs-update-handoff.test.ts`
 - `test/lifecycle/*.yaml` and `test/lifecycle.test.ts`: `ScriptedRunner` against the real API and daemon, in default CI
 
 Modify:
@@ -128,14 +137,15 @@ Modify:
 ## Implementation Steps
 
 1. Role registry and prompts (docs-first, skills, untrusted wrapping).
-2. Model, failure and merge policies, and the docs-first and skill checks, with unit tests. `model-policy.test.ts` asserts that docs-init resolves to `sonnet` for every complexity and PM choice.
+2. Model, failure and merge policies, and the docs-first and skill checks, with unit tests. `model-policy.test.ts` asserts that docs-init and docs-update resolve to `sonnet` for every complexity and PM choice.
 3. Assistant triage and close.
 4. PM analyze (the `ask_owner` → resume loop), breakdown with dev/QC pairing, and accept with local merge and the pre-push gate.
-5. Dev and QC flows, with `file_bug` and QC worktrees at `head_sha`.
+5. Dev, docs-update and QC flows, with `handoff_docs`, `file_bug` and QC worktrees at `head_sha`.
 6. Docs-init gate as a child ticket.
 7. Cancellation and cleanup.
 8. **Scripted lifecycle matrix** (in CI, no model cost). Scenarios:
-   - happy path
+   - happy path (every dev and bug ticket runs a `docs_update` job on `sonnet` before `done`, and its single commit holds code and docs)
+   - a docs-update commit rejected by R7 in dev code: a new dev job gets the hook output, then docs-update commits
    - capability preflight: for each role (assistant, PM analyze, breakdown, accept, dev, QC, docs-init), the scripted run reports `skills_selected` and `mcps_selected`; a selected skill or MCP server never used is flagged; a QC ticket of a web project gets `playwright` and a mobile one gets `maestro` automatically
    - a dev run that leaves a `nohup` server and temp files: auto-cleaned; PM sees it in `resource_report` and its report lists the cleanup
    - QC finds 2 bugs, retest passes
@@ -150,7 +160,7 @@ Modify:
 9. **Live scenario** (`CREW_LIVE_AGENT_TESTS=1`), on a fixture repo with docs plus a plugin skill:
    - request "add /health"
    - one PM question answered
-   - dev, then QC passes
+   - dev, then docs-update, then QC passes
    - local merge and push to a bare fixture remote
    - the assistant closes
    - Assert: reports at every level, `docs_first=true`, docs updated, costs recorded.
@@ -161,7 +171,7 @@ Modify:
 - [ ] Model, failure and merge policies; docs-first and skill checks
 - [ ] Assistant flows
 - [ ] PM flows (clarify loop, breakdown with pairing, accept with local merge and gate)
-- [ ] Dev and QC flows with the bug loop
+- [ ] Dev, docs-update and QC flows with the bug loop
 - [ ] Docs-init child ticket gate
 - [ ] Cancellation
 - [ ] Scripted lifecycle matrix green in CI
@@ -174,6 +184,7 @@ Modify:
 - Every scenario in the scripted matrix passes in CI and satisfies the no-stuck-ticket invariant.
 - The live scenario completes with one owner answer as the only manual step. Every ticket in the tree has a report. The request shows the chain of reports.
 - A project without `docs/flows.yaml` runs docs-init before any other subtask of that pm_task, and that job's recorded model is `sonnet`.
+- Every dev and bug ticket reaches `done` only through a `docs_update` job whose recorded model is `sonnet`, and the dev job itself never writes under `docs/`.
 - A dev run that skips a required skill, or reads source before docs, is rejected at PM accept, and that creates a bug ticket.
 
 ## Risk Assessment

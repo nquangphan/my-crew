@@ -3,7 +3,7 @@ title: "2P Crew"
 description: "Jira/Confluence-like ticket and docs system where a human owner assigns tickets to an assistant agent, which routes them through per-project PM, dev and QC Claude Code agents running on local machines."
 status: pending
 priority: P1
-effort: 129h
+effort: 132h
 tags: [feature, backend, frontend, api, database, auth, infra, docs]
 blockedBy: []
 blocks: []
@@ -49,7 +49,7 @@ Research: [Claude Code headless](./research/researcher-01-claude-code-headless-r
 - Claude auth: the owner's subscription login on each machine. The daemon runs as a user LaunchAgent and strips `ANTHROPIC_API_KEY`.
 - GitHub hosts the repos (GitHub Actions for CI). There is no default cost budget; only the child-ticket cap is enforced by default.
 - All docs, ticket comments and reports are in Vietnamese. Code identifiers and paths stay English.
-- Documentation work (the docs-init ticket) always runs on the **sonnet** model, whatever the complexity map or the PM picks.
+- All documentation work runs on the **sonnet** model, whatever the complexity map or the PM picks: the docs-init ticket, and a docs-update job that follows every dev and bug run and commits code and docs together.
 
 ## Architecture
 
@@ -229,9 +229,9 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
 - **Mockup:** tab "5. Mobile" of `mockups/web-ui-mockup.html` shows the phone layouts: swipe board, full-screen ticket with a pinned reply box, and docs with a collapsed table of contents.
 
 ### Session 11 — 2026-09-28 (owner follow-up)
-- **Owner decision:** documentation work runs on the `sonnet` model.
+- **Owner decision:** all documentation work runs on the `sonnet` model, including the flow-doc updates that come with code changes.
 - **Propagated:**
-  - Phase 7: docs-init is `sonnet / high (fixed)` (was `opus / high`); `model-policy.ts` pins it and ignores the complexity map, the PM's choice and the allowlist clamp; a unit test and a success criterion check it.
-  - Phase 6: config validation requires `sonnet` in `models.allow`.
-- **Scope note:** flow-doc updates that dev and bug tickets make alongside code stay in those runs, on the ticket's model.
-- **Consistency sweep:** `opus / high` no longer appears for docs-init in any phase file.
+  - Phase 7: docs-init is `sonnet / high (fixed)` (was `opus / high`). A new docs-update step follows every dev and bug run: the dev run ends with `handoff_docs` without committing, and a `docs_update` job on `sonnet` in the same worktree updates the flow docs and commits code and docs together, so R3 needs no bypass. `model-policy.ts` pins both to `sonnet`; unit tests, two lifecycle scenarios and success criteria check it. Effort is now 19h.
+  - Phase 6: the `docs_update` job kind, the dev-only `handoff_docs` tool, a guard limiting the docs job to `docs/`, and config validation that requires `sonnet` in `models.allow`. Effort is now 21h.
+- **Effort:** 132h.
+- **Consistency sweep:** no phase file still says dev writes or commits flow docs, and `opus / high` no longer appears for docs-init.

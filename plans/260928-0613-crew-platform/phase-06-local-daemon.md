@@ -2,12 +2,13 @@
 title: "Phase 6: Local Daemon Core"
 status: todo
 priority: P1
-effort: 20h
+effort: 21h
 dependsOn: [3, 5]
 ---
 
 # Phase 6: Local Daemon Core
 
+<!-- Updated: Validation Session 11 - docs_update job kind, handoff_docs tool, docs-only write scope; sonnet required in the allowlist -->
 <!-- Updated: Validation Session 9 - MCP servers join the capability inventory and preflight -->
 <!-- Updated: Validation Session 7 - untracked agent config linked into worktrees; PM sees the full skill inventory (no forced kit) -->
 <!-- Updated: Validation Session 6 - resource hygiene: per-job process tagging, temp dirs, orphan sweep, PM cleanup duty -->
@@ -39,7 +40,7 @@ Phase 7 adds the role behaviour on top.
 - `apiUrl`, `machineName`
 - `projects: [{key, repoPath, defaultBranch, testCommand}]`. It is written by the desktop app (Phase 9) or by `crewd project add|create|release`. The folder mapping is local only. Ownership is what the server has bound: a project whose claim is pending is not run until it is approved.
 - `resources: {maxConcurrentJobs, minFreeMemGb, maxLoadPerCpu}`
-- `models: {allow, complexityMap}`. Config validation rejects an `allow` list without `sonnet`, because docs-init always runs on `sonnet` (Phase 7).
+- `models: {allow, complexityMap}`. Config validation rejects an `allow` list without `sonnet`, because docs-init and docs-update always run on `sonnet` (Phase 7).
 - `budgets: {perJobUsd}`
 - `autoCloseRequests` (bool, default false). When true, the assistant moves a finished request straight to `done`; otherwise to `in_review` for the owner.
 
@@ -53,7 +54,7 @@ Claude auth (owner decision) uses **the Claude subscription the owner logged int
 
 **Local state** (SQLite, `~/.crew/state.db`):
 - `cursor`
-- `jobs(id, ticket_id, role, kind, status, session_id, worktree, model, effort, attempts, retry_at, cost_usd, …)`, with a **partial unique index on `ticket_id` where status is queued, running or backoff**
+- `jobs(id, ticket_id, role, kind (`agent | docs_update | docs_init`), status, session_id, worktree, model, effort, attempts, retry_at, cost_usd, …)`, with a **partial unique index on `ticket_id` where status is queued, running or backoff**
 - `pending_wakeups(ticket_id, event_ids)`
 - `tool_log(job_id, seq, tool, target)`
 
@@ -86,6 +87,7 @@ Claude auth (owner decision) uses **the Claude subscription the owner logged int
 - The `hooks.PreToolUse` guard (`guard-hook.ts`):
   - Denies Edit, Write or NotebookEdit outside `cwd`.
   - Denies writes to protected paths (`.claude/**`, `.githooks/**`, `CLAUDE.md`, manifest exemption sections), except for docs-init.
+  - For a `docs_update` job, denies every write outside `docs/` (the flow docs and the non-protected sections of `flows.yaml`).
   - Denies Bash matching `git push --force|-f|+`, `rm -rf` on paths outside `cwd`, or `git config core.hooksPath`. The Bash patterns are best effort; R6 and R7 remain the hard gates.
   - Logs every call to `tool_log`.
 - It captures `session_id` from init, the skills listed in init, and the skills invoked (the Skill tool plus `/skill` commands in the log). It records cost, model usage and the result subtype.
@@ -97,6 +99,7 @@ Claude auth (owner decision) uses **the Claude subscription the owner logged int
 - All roles: `get_ticket` (includes a context block with the machine's resources, running jobs and **the full capability inventory (skills and MCP servers) for this run's cwd**), `list_children`, `comment`, `ask_owner` (comment and `needs_input`, then end the run), `update_status`, `submit_report`, `docs_flow`, `docs_where`.
 - `create_subtask`: PM only.
 - `file_bug`: QC only, calls `POST .../bugs`.
+- `handoff_docs`: dev and bug runs only. Records the handoff on the job and ends the run; the daemon then queues the `docs_update` job (Phase 7).
 - `get_project_catalog` and `create_pm_ticket`: assistant only.
 - `create_docs_init`: daemon internal.
 - Comment and report bodies go through the secret scrubber before sending.
