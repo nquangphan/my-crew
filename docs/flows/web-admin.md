@@ -33,7 +33,8 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
    `api.decideClaim`, flow `project-claims`); `ProjectChangeItem` cũng mở `TotpDialog` để duyệt/từ chối yêu
    cầu đổi loại project (gọi `api.decideProjectChange`); `describeNotice()` diễn giải từng loại sự kiện thông
    báo (`machine.claimed`, `claim.requested`, `machine.released`, `project.created`, `machine.offline`,
-   `machine.unhealthy`, `budget.exceeded`, `project.change_requested`) thành câu tiếng Việt.
+   `machine.unhealthy`, `budget.exceeded`, `project.change_requested`, `ticket.stuck`) thành câu tiếng Việt —
+   riêng `budget.exceeded` và `ticket.stuck` (flow `ticket-lifecycle`) kèm link "mở ticket".
 3. `apps/web/src/routes/projects.tsx` → `ProjectsPage()`, `ProjectCard`: danh sách project (badge trạng thái
    docs qua `DocsStatusLozenge`), dialog tạo/sửa dùng `ProjectForm`, dialog chuyển máy dùng `ReassignDialog`.
 4. `apps/web/src/components/project-form.tsx` → `ProjectForm()`: form tên/mô tả (gợi ý "mô tả quyết định định
@@ -70,7 +71,7 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 
 - Bảng: không trực tiếp (qua API các flow `project-claims`, `machine-pairing`, `event-delivery`).
 - Sự kiện: tiêu thụ `claim.requested`, `machine.claimed`, `machine.released`, `project.created`,
-  `machine.offline`, `machine.unhealthy`, `budget.exceeded`, `project.change_requested` (danh sách
+  `machine.offline`, `machine.unhealthy`, `budget.exceeded`, `project.change_requested`, `ticket.stuck` (danh sách
   `NOTICE_EVENT_TYPES`) qua `GET /v1/notices` cùng `unread` do server tính; `inbox.read` và
   `project.change_decided` làm mới Inbox qua `invalidationsFor()` (flow `event-delivery`).
 - Gọi ngoài: gọi API qua `lib/api-client.ts` (flow `web-shell`).
@@ -80,6 +81,7 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 - project-claims: duyệt/từ chối claim, tạo/sửa project, chuyển máy sở hữu, duyệt/từ chối yêu cầu đổi loại
   project và MCP test UI mà một máy tự đề nghị.
 - machine-pairing: tạo mã pairing, thu hồi máy, đặt máy trợ lý, đọc inventory skill/MCP.
+- ticket-lifecycle: nguồn thông báo `ticket.stuck` (báo ticket không máy nào đang xử lý).
 - event-delivery: nguồn thông báo (`/v1/notices`) và làm mới trực tiếp qua SSE.
 - web-shell: dùng chung `Breadcrumbs`, `StatusLozenge`, `ui/*`, `useStoredState`.
 

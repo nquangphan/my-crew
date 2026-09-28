@@ -1,7 +1,7 @@
 import { existsSync, lstatSync } from 'node:fs';
 import { join } from 'node:path';
 import type { SkillInventory } from '@crew/shared';
-import { describe, expect, inject, it } from 'vitest';
+import { describe, expect, inject, it, vi } from 'vitest';
 import { machineSkills, machines } from '../../api/src/db/schema.js';
 import { createRequestTicket } from '../../api/src/services/ticket-service.js';
 import { VpsClient } from '../src/api/vps-client.js';
@@ -155,6 +155,41 @@ describe('daemon wiring', () => {
     );
     expect(t.daemon.status()).toMatchObject({ paused: true, connected: true });
     await t.daemon.stop();
+  });
+
+  it('reports queued and backoff jobs as waiting jobs in the heartbeat', async () => {
+    const f = await fixture(api);
+    // The client keeps the fetch it was built with, so spy before the daemon exists.
+    const sent: unknown[] = [];
+    const realFetch = globalThis.fetch;
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      if (String(input).endsWith('/v1/daemon/heartbeat')) sent.push(JSON.parse(String(init?.body)));
+      return realFetch(input, init);
+    });
+    try {
+      const t = makeDaemon(f, { repoPath: null });
+      const queued = await createRequestTicket(api.db, { title: 'Đang xếp hàng' });
+      const parked = await createRequestTicket(api.db, { title: 'Đang chờ thử lại' });
+      const retryAt = new Date(Date.now() + 10 * 60_000).toISOString();
+      t.daemon.state.insertJob({ ticketId: queued.id, projectId: null, role: 'assistant', trigger: 'test' });
+      const backoff = t.daemon.state.insertJob({
+        ticketId: parked.id,
+        projectId: null,
+        role: 'assistant',
+        trigger: 'test',
+      });
+      t.daemon.state.updateJob(backoff.id, { status: 'backoff', retryAt });
+      await t.daemon.heartbeat();
+      expect(sent).toHaveLength(1);
+      expect((sent[0] as { waitingJobs: unknown[] }).waitingJobs).toEqual(
+        expect.arrayContaining([
+          { ticketId: queued.id, status: 'queued' },
+          { ticketId: parked.id, status: 'backoff', retryAt },
+        ]),
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('runs assistant jobs on the assistant host in the daemon-owned assistant dir', async () => {

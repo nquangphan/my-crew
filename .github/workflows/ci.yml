@@ -1,0 +1,145 @@
+# 2P Crew CI: every push and pull request runs the full check (types, lint, all tests including the daemon's
+# scripted lifecycle matrix, the crew-docs gate, all builds) and the E2E suite against the compose stack.
+# A `v*` tag additionally builds the macOS dmgs and publishes them to GitHub Releases.
+name: ci
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  # The test suites default to this server (docker-compose.dev.yml uses the same host port).
+  PGPASSWORD: crew
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: crew
+          POSTGRES_PASSWORD: crew
+          POSTGRES_DB: crew
+        ports: ['55432:5432']
+        options: >-
+          --health-cmd "pg_isready -U crew -d crew" --health-interval 2s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Test databases
+        run: |
+          for db in crew_test crew_daemon_test crew_desktop_test; do
+            psql -h 127.0.0.1 -p 55432 -U crew -d crew -v ON_ERROR_STOP=1 -c "create database $db owner crew"
+          done
+      - name: Typecheck
+        run: pnpm -r typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: crew-docs bundle
+        run: pnpm --filter @crew/docs-kit build
+      - name: crew-docs check --range
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_AFTER: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then base="$PR_BASE"; head="$PR_HEAD"; else base="$PUSH_BEFORE"; head="$PUSH_AFTER"; fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            echo "No base commit to compare (new branch or tag); the whole-tree check below still runs."
+          else
+            node packages/docs-kit/dist/crew-docs.cjs check --range "$base..$head"
+          fi
+      - name: crew-docs check --all
+        run: node packages/docs-kit/dist/crew-docs.cjs check --all
+      - name: Tests (all packages, including the daemon's scripted lifecycle matrix)
+        run: pnpm -r test
+      - name: Web build
+        run: pnpm --filter @crew/web build
+      - name: Daemon build
+        run: pnpm --filter @crew/shared build && pnpm --filter @crew/daemon build
+      - name: Desktop build (electron-vite)
+        run: pnpm --filter @crew/desktop build
+      - name: Deploy scripts (shellcheck)
+        run: shellcheck -x -S warning scripts/*.sh scripts/lib/*.sh deploy/backup/backup.sh
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Chromium
+        run: pnpm --filter @crew/e2e exec playwright install --with-deps chromium
+      - name: E2E (compose stack + daemon, phone/tablet/desktop)
+        run: pnpm --filter @crew/e2e test:e2e
+      - name: Failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: e2e/test-results
+          retention-days: 7
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [check, e2e]
+    runs-on: macos-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Tag matches the app version
+        run: |
+          version=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match apps/desktop version $version"; exit 1
+          fi
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: crew-docs bundle (shipped inside the app)
+        run: pnpm --filter @crew/docs-kit build
+      - name: Build the dmgs and publish them to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # One dmg per architecture (arm64 and x64); the packaging script and electron-builder.yml decide the
+        # targets, and electron-builder uploads every dmg it produces to the release of this tag.
+        run: pnpm --filter @crew/desktop package:mac --publish
+      - name: Keep the dmgs as workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dmgs
+          path: apps/desktop/release/*.dmg
+          if-no-files-found: error

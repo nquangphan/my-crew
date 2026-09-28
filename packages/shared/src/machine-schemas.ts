@@ -125,10 +125,22 @@ export const RunningJob = z.object({
 });
 export type RunningJob = z.infer<typeof RunningJob>;
 
+/**
+ * A job the daemon holds but is not running: queued (waiting for a slot or a dependency) or parked in
+ * backoff until `retryAt`. The server uses them only to tell a waiting ticket from a stuck one.
+ */
+export const WaitingJob = z.object({
+  ticketId: z.uuid(),
+  status: z.enum(['queued', 'backoff']),
+  retryAt: z.iso.datetime().optional(),
+});
+export type WaitingJob = z.infer<typeof WaitingJob>;
+
 /** `POST /v1/daemon/heartbeat`, every 30 s. A heartbeat replaces the previous state. */
 export const HeartbeatRequest = z.object({
   resources: MachineResources,
   runningJobs: z.array(RunningJob).max(200).default([]),
+  waitingJobs: z.array(WaitingJob).max(500).default([]),
   cliVersion: z.string().trim().min(1).max(50),
   appVersion: z.string().trim().min(1).max(50).optional(),
   paused: z.boolean().default(false),

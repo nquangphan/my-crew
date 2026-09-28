@@ -189,6 +189,8 @@ export function describeEvent(event: EventEnvelope): string {
       return 'Hủy ticket và các ticket con';
     case 'budget.exceeded':
       return `Vượt giới hạn ${BUDGET_KIND[p.data.kind] ?? p.data.kind}`;
+    case 'ticket.stuck':
+      return `Cảnh báo: đứng yên ${p.data.idleMinutes} phút ở ${STATUS_LABEL[p.data.status]}`;
     default:
       return p.type;
   }

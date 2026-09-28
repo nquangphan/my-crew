@@ -73,15 +73,17 @@ PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migrat
 
 ## Triển khai
 
-- **Hiện tại (dev)**: `docker-compose.dev.yml` chạy một container Postgres 17 (`crew-dev-postgres`) trên
+- **Dev**: `docker-compose.dev.yml` chạy một container Postgres 17 (`crew-dev-postgres`) trên
   `127.0.0.1:55432`, dùng chung cho DB dev và DB test (`_test` suffix). API và web chạy trực tiếp bằng
   `pnpm --filter @crew/api dev` / `pnpm --filter @crew/web dev`, không có reverse proxy.
-- **Kế hoạch (chưa triển khai)**: theo `plans/260928-0613-crew-platform/plan.md`, sản phẩm chạy trên VPS Linux
-  sau Caddy (HTTPS, SSE giữ kết nối lâu), `docker compose up -d`, backup Postgres hằng đêm — thuộc Phase 8
-  (Deploy and E2E), chưa có file cấu hình nào trong repo hiện tại.
+- **VPS**: `docker compose` (`deploy/compose.yml`) sau một nginx biên đã có sẵn của máy chủ (không Caddy,
+  crew không publish cổng host nào), backup Postgres hằng đêm, chuyển HTTPS bằng certbot của máy chủ đó — xem
+  `docs/flows/deployment.md` cho quy trình và toàn bộ file cấu hình.
 - Cấu hình API qua biến môi trường, xem `apps/api/.env.example` (`DATABASE_URL`, `SESSION_SECRET`,
   `PUBLIC_ORIGIN`, `ALLOWED_ORIGINS`, `TRUST_PROXY`, `COOKIE_SECURE`, `LOGIN_RATE_LIMIT_PER_MINUTE`,
-  `BUDGET_TIMEZONE`, `LOG_LEVEL`).
+  `BUDGET_TIMEZONE`, `LOG_LEVEL`) — trên VPS các biến này nằm trong `/opt/crew/.env`, mẫu ở
+  `deploy/.env.example`.
+- Cách chủ dự án đưa một máy local mới vào hệ thống (app desktop hoặc CLI `crewd`): `docs/flows/daemon-setup.md`.
 
 ## Phát sự kiện và SSE (outbox + cursor)
 

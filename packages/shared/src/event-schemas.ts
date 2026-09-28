@@ -75,6 +75,14 @@ export const EventPayload = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ticket.unblocked'), data: TicketRef }),
   z.object({ type: z.literal('ticket.cancelled'), data: TicketRef }),
   z.object({ type: z.literal('machine.offline'), data: z.object({ machineId: z.string() }) }),
+  /**
+   * A non-terminal ticket saw no activity for a while, and no machine runs, queues or parks a job for it.
+   * Sent once per quiet spell to the owner stream only.
+   */
+  z.object({
+    type: z.literal('ticket.stuck'),
+    data: TicketRef.extend({ status: TicketStatus, idleMinutes: z.number().int().min(0) }),
+  }),
   z.object({
     type: z.literal('budget.exceeded'),
     data: TicketRef.extend({ kind: z.enum(['cost', 'children', 'bug_cycles', 'attempts']) }),
@@ -132,7 +140,7 @@ export const StreamCursor = z.string().regex(/^\d{1,19}$/, 'the cursor is a deci
 export const StreamQuery = z.object({ cursor: StreamCursor.optional() });
 export type StreamQuery = z.infer<typeof StreamQuery>;
 
-/** Machine and budget notices the owner inbox lists (`GET /v1/notices`), newest first. */
+/** Machine, budget and stuck-ticket notices the owner inbox lists (`GET /v1/notices`), newest first. */
 export const NOTICE_EVENT_TYPES = [
   'machine.claimed',
   'claim.requested',
@@ -142,6 +150,7 @@ export const NOTICE_EVENT_TYPES = [
   'machine.unhealthy',
   'budget.exceeded',
   'project.change_requested',
+  'ticket.stuck',
 ] as const satisfies readonly EventType[];
 
 export const NoticeListQuery = z.object({ limit: z.coerce.number().int().min(1).max(200).default(50) });

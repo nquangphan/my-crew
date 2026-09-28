@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "paths": {
+      "@crew/shared": ["../packages/shared/src/index.ts"],
+      "@crew/daemon": ["../apps/daemon/src/library.ts"]
+    }
+  },
+  "include": ["*.ts", "tests", "fixtures"]
+}

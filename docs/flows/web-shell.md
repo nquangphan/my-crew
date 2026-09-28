@@ -63,7 +63,7 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 | `apps/web/src/lib/search-params.ts` | Schema search URL theo route | `BoardSearch`, `ListSearch`, `DocsSearch`, `safeRedirect` |
 | `apps/web/src/lib/shortcuts.ts` | Phím tắt bàn phím | `useShortcuts`, `matchShortcut`, `SHORTCUT_HELP` |
 | `apps/web/src/lib/ui-state.ts` | Viewport, theme, state cục bộ | `useViewport`, `useTheme`, `useStoredState` |
-| `apps/web/src/lib/format.ts` | Nhãn/màu trạng thái, định dạng ngày/tiền | `STATUS_LABEL`, `TYPE_META`, `formatDateTime`, `formatUsd` |
+| `apps/web/src/lib/format.ts` | Nhãn/màu trạng thái, định dạng ngày/tiền, mô tả sự kiện | `STATUS_LABEL`, `TYPE_META`, `formatDateTime`, `formatUsd`, `describeEvent` |
 | `apps/web/src/lib/cn.ts` | Ghép class Tailwind | `cn` |
 | `apps/web/src/styles/app.css` | Theme sáng/tối, biến CSS | — |
 | `apps/web/src/components/ui/button.tsx` | Nút dùng chung | — |

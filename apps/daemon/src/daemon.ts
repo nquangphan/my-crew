@@ -11,6 +11,7 @@ import {
   type SkillInventory,
   TERMINAL_STATUSES,
   type Ticket,
+  type WaitingJob,
 } from '@crew/shared';
 import { VpsClient, VpsError } from './api/vps-client.js';
 import { crewHome, type DaemonConfig, homePaths, type ProjectConfig } from './config.js';
@@ -619,14 +620,24 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
 
   async function heartbeat(): Promise<void> {
     const snapshot = takeSnapshot(home);
+    const isTicketId = (job: JobRow) => /^[0-9a-f-]{36}$/i.test(job.ticketId);
     const runningJobs: RunningJob[] = state
       .listJobs(['running'])
-      .filter((job) => /^[0-9a-f-]{36}$/i.test(job.ticketId))
+      .filter(isTicketId)
       .map((job) => ({
         ticketId: job.ticketId,
         role: job.role,
         kind: job.kind,
         ...(job.startedAt ? { startedAt: job.startedAt } : {}),
+      }));
+    // Held but not running: the server's stuck-ticket alarm must not report these tickets.
+    const waitingJobs: WaitingJob[] = state
+      .listJobs(['queued', 'backoff'])
+      .filter(isTicketId)
+      .map((job) => ({
+        ticketId: job.ticketId,
+        status: job.status === 'backoff' ? 'backoff' : 'queued',
+        ...(job.retryAt ? { retryAt: job.retryAt } : {}),
       }));
     const health = options.health?.();
     const body: HeartbeatRequest = {
@@ -639,6 +650,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
         orphansCleaned,
       },
       runningJobs,
+      waitingJobs,
       cliVersion: claudeVersion ?? 'unknown',
       ...(options.appVersion ? { appVersion: options.appVersion } : {}),
       paused,

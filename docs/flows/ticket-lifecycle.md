@@ -73,6 +73,13 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     sách có lọc/sắp xếp/keyset-pagination (cursor mã hoá base64url), chi tiết ticket kèm con/bình luận/report
     hiện hành/dòng sự kiện, tìm kiếm nhanh (ticket theo key/tiêu đề, cộng docs qua `searchAllDocs()` của flow
     `docs-sync-viewer`).
+12. `apps/api/src/jobs/stuck-ticket-alarm.ts` → `findStuckTickets()`/`raiseStuckTicketAlarms()`: mỗi
+    `STUCK_CHECK_INTERVAL_MS` (5 phút) tìm ticket không kết thúc, im lặng quá `STUCK_AFTER_MS` (30 phút, tính
+    theo lần đổi trường ticket gần nhất hoặc bất kỳ sự kiện nào khác ngoài cảnh báo trước đó), không đang chờ
+    owner (`needs_input`/`blocked`/`request` ở `in_review`), không còn con hay `dependsOn` mở, và không máy nào
+    đang chạy (heartbeat `runningJobs`) hay giữ trong hàng đợi/backoff (heartbeat `waitingJobs`, nhớ tối đa 2
+    phút mỗi máy qua `WaitingJobsRegistry`) — mỗi lần im lặng như vậy chỉ phát đúng một sự kiện `ticket.stuck`
+    (flow `event-delivery`, chỉ owner stream) cho tới khi có hoạt động mới.
 
 ## Files
 
@@ -85,6 +92,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/services/ticket-query-service.ts` | Danh sách, chi tiết, tìm kiếm | `listTickets`, `getTicketDetail`, `search` |
 | `apps/api/src/services/report-service.ts` | Report và agent-meta | `submitReport`, `recordAgentMeta`, `getReports`, `getCurrentReport` |
 | `apps/api/src/services/budget-service.ts` | Trần con, ngân sách, hold | `enforceChildCap`, `addCost`, `applyHold`, `liftHold`, `getBudgetStatus` |
+| `apps/api/src/jobs/stuck-ticket-alarm.ts` | Báo ticket đứng yên không ai xử lý | `findStuckTickets`, `raiseStuckTicketAlarms`, `startStuckTicketAlarm`, `WaitingJobsRegistry` |
 | `packages/shared/src/ticket-schemas.ts` | Enum trạng thái/loại/ưu tiên/actor ticket | `TicketStatus`, `TicketType`, `Actor` |
 | `packages/shared/src/agent-schemas.ts` | Enum role/complexity/model/effort/bước agent | `AgentRole`, `Complexity`, `ModelAlias`, `Effort`, `RoleStage`, `DOCS_MODEL` |
 | `packages/shared/src/status-workflow.ts` | Bảng cạnh workflow, kiểm tra transition | `canTransition`, `allowedTransitions`, `AGENT_EDGES`, `OWNER_EDGES`, `TERMINAL_STATUSES` |
@@ -94,7 +102,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - Bảng: `tickets`, `ticket_counters`, `comments`, `ticket_reports`, `budgets_usage`.
 - Sự kiện: `ticket.assigned`, `ticket.status_changed`, `ticket.cancelled`, `ticket.comment_added`,
   `ticket.updated`, `ticket.reopened`, `ticket.unblocked`, `dependency.resolved`, `children.all_done`,
-  `budget.exceeded`.
+  `budget.exceeded`, `ticket.stuck`.
 - Gọi ngoài: không.
 
 ## Flow liên quan
@@ -110,6 +118,8 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   `reject_work` của PM gọi `fileBug()` với ticket dev/bug đã `done` làm nguồn; `create_subtask` thêm phụ thuộc
   `docs_init`.
 - local-merge: `head_sha` mà `mergeAndPush()` merge đến từ `report.headSha` (`submitReport()`).
+- daemon-runtime: `waitingJobs` mà heartbeat của daemon gửi lên (`apps/daemon/src/daemon.ts`) là điều
+  `findStuckTickets()` dùng để không báo nhầm ticket đang chờ thử lại.
 
 ## Tests
 
@@ -122,4 +132,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - `apps/api/test/budget.test.ts`: trần con và ngân sách cây/ngày, mỗi loại đẩy pm_task sang `needs_input`,
   cộng owner duyệt.
 - `apps/api/test/owner-web-support.test.ts`: `PATCH /v1/tickets/:id`, sự kiện `ticket.updated`.
+- `apps/api/test/stuck-ticket-alarm.test.ts`: báo đúng một lần mỗi lần im lặng, bỏ qua ticket chờ owner/còn
+  con/còn dependency mở, bỏ qua ticket máy online đang chạy hoặc giữ trong hàng đợi/backoff, hết hạn
+  `waitingJobs` sau `WAITING_JOBS_TTL_MS`, `POST /v1/daemon/heartbeat` nhận và validate `waitingJobs`.
 - `packages/shared/src/status-workflow.test.ts`: `canTransition`/`allowedTransitions` cho từng actor.

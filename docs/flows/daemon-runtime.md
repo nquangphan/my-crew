@@ -58,6 +58,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `sweep()` cũng gọi `ProbeWorktreeKeeper.expire()` cho mọi project đã cấu hình — dọn worktree probe quá một
    giờ (không tính vào `orphansCleaned`); `timings.probeWorktreeTtlMs`/`timings.probeClock` cho test kiểm soát
    thời gian này.
+   `heartbeat()` gửi thêm `waitingJobs` (`HeartbeatRequest.waitingJobs`) cho mọi job cục bộ `queued`/`backoff`
+   (kèm `retryAt` nếu có), để cảnh báo "ticket đứng yên" trên server (`startStuckTicketAlarm()`, flow
+   `ticket-lifecycle`) không báo nhầm ticket máy này đang giữ chờ tới lượt hoặc chờ thử lại.
 8. `apps/daemon/src/daemon.ts` → `releaseLostProjects()`: sau khi `refreshProjects()` trả lời sự kiện
    `claim.changed`, job của project máy này không còn sở hữu bị hủy (đang chạy) hoặc chuyển `skipped`
    (`queued`/`backoff`) — chi tiết dispatch sự kiện thuộc flow `daemon-scheduling`.
@@ -122,6 +125,8 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
   `JobRunnerDeps.resourceOps`.
 - daemon-health: `crewd doctor` (`runDoctor()` trong `cli.ts`) gọi `doctor()` của flow `daemon-health`.
 - daemon-api: `VpsClient` gọi các route đó (xem flow `daemon-api` ở phía server).
+- ticket-lifecycle: `waitingJobs` trong mỗi heartbeat là dữ liệu vào của `WaitingJobsRegistry`/
+  `startStuckTicketAlarm()` phía server.
 - desktop-app: `HostService.startDaemon()` gọi `createDaemon()` với `crewDocsRuntime` là binary của app; mọi
   export của `library.ts` (config, secrets, state DB, VPS client, health) được `setup-ops.ts`/`health-ops.ts`/
   `activity.ts` dùng lại thay vì định nghĩa riêng.

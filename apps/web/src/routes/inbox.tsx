@@ -24,6 +24,7 @@ import {
   formatFullDateTime,
   formatRelative,
   OPEN_STATUSES,
+  STATUS_LABEL,
 } from '../lib/format';
 import { useInboxSummary } from '../lib/inbox';
 import { keys, useMachineNames, useProjects, useTickets } from '../lib/queries';
@@ -215,6 +216,8 @@ function describeNotice(
       return `Vượt giới hạn ${budgetKindLabel(p.data.kind)}`;
     case 'project.change_requested':
       return `${machineName(p.data.machineId)} xin đổi loại dự án ${projectKey(p.data.projectId)}`;
+    case 'ticket.stuck':
+      return `Ticket đứng yên ${p.data.idleMinutes} phút ở ${STATUS_LABEL[p.data.status]}, không máy nào đang xử lý`;
     default:
       return p.type;
   }
@@ -346,14 +349,15 @@ export function InboxPage() {
                   {dot && <span className="sr-only">Chưa đọc:</span>}
                   <span className="min-w-0 grow">
                     {describeNotice(event, machines, projects.data ?? [])}
-                    {event.ticketId && event.payload.type === 'budget.exceeded' && (
-                      <>
-                        {' · '}
-                        <Link to="/tickets/$ticketKey" params={{ ticketKey: event.ticketId }}>
-                          mở ticket
-                        </Link>
-                      </>
-                    )}
+                    {event.ticketId &&
+                      (event.payload.type === 'budget.exceeded' || event.payload.type === 'ticket.stuck') && (
+                        <>
+                          {' · '}
+                          <Link to="/tickets/$ticketKey" params={{ ticketKey: event.ticketId }}>
+                            mở ticket
+                          </Link>
+                        </>
+                      )}
                   </span>
                   <time
                     dateTime={event.createdAt}

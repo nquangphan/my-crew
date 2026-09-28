@@ -7,6 +7,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 
 | File | Flows |
 |------|-------|
+| `.dockerignore` | [deployment](flows/deployment.md) (file) |
+| `.github/workflows/ci.yml` | [deployment](flows/deployment.md) (file) |
 | `apps/api/drizzle/0000_init.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0001_machine_auth_and_delivery.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0002_docs_snapshots.sql` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
@@ -25,6 +27,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/errors.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/index.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/jobs/heartbeat-sweeper.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
+| `apps/api/src/jobs/stuck-ticket-alarm.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/realtime/event-bus.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `apps/api/src/realtime/sse.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `apps/api/src/routes/auth-routes.ts` | [owner-auth](flows/owner-auth.md) (điểm vào) |
@@ -66,6 +69,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/pairing.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
 | `apps/api/test/project-changes.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `apps/api/test/revoke-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
+| `apps/api/test/stuck-ticket-alarm.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/sweeper.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
 | `apps/api/test/ticket-service.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/transition.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
@@ -292,6 +296,18 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/routes/projects.tsx` | [web-admin](flows/web-admin.md) (điểm vào) |
 | `apps/web/src/routes/ticket-detail.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
 | `apps/web/src/styles/app.css` | [web-shell](flows/web-shell.md) (file) |
+| `deploy/.env.example` | [deployment](flows/deployment.md) (file) |
+| `deploy/Dockerfile` | [deployment](flows/deployment.md) (file) |
+| `deploy/backup/backup.sh` | [deployment](flows/deployment.md) (file) |
+| `deploy/compose.test.yml` | [deployment](flows/deployment.md) (file) |
+| `deploy/compose.yml` | [deployment](flows/deployment.md) (file) |
+| `deploy/nginx/crew-http.conf` | [deployment](flows/deployment.md) (file) |
+| `deploy/nginx/crew-https.conf` | [deployment](flows/deployment.md) (file) |
+| `deploy/nginx/crew-locations.inc` | [deployment](flows/deployment.md) (file) |
+| `deploy/tools/nginx-override.mjs` | [deployment](flows/deployment.md) (file) |
+| `deploy/web/nginx.conf` | [deployment](flows/deployment.md) (file) |
+| `e2e/tests/docs-viewer.spec.ts` | [deployment](flows/deployment.md) (test) |
+| `e2e/tests/ticket-lifecycle.spec.ts` | [deployment](flows/deployment.md) (test) |
 | `packages/docs-kit/src/bin.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/cli.ts` | [docs-check](flows/docs-check.md) (điểm vào) |
 | `packages/docs-kit/src/commands/check.ts` | [docs-check](flows/docs-check.md) (file) |
@@ -342,4 +358,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/shared/src/status-workflow.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `packages/shared/src/status-workflow.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `packages/shared/src/ticket-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `scripts/attach-nginx.sh` | [deployment](flows/deployment.md) (file) |
+| `scripts/deploy.sh` | [deployment](flows/deployment.md) (điểm vào) |
+| `scripts/enable-https.sh` | [deployment](flows/deployment.md) (file) |
+| `scripts/lib/common.sh` | [deployment](flows/deployment.md) (file) |
+| `scripts/lib/render-nginx.sh` | [deployment](flows/deployment.md) (file) |
+| `scripts/restore.sh` | [deployment](flows/deployment.md) (file) |
+| `scripts/seed-owner.sh` | [deployment](flows/deployment.md) (file) |
 <!-- crew-docs:files:end -->

@@ -50,7 +50,9 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
     = false` trên `machines`, thu hồi mọi `machine_tokens`, phát event, và đóng stream SSE đang mở qua
     `bus.revokeMachine()` trước khi transaction commit (rollback thì `bus.restoreMachine()`).
 11. `apps/api/src/services/machine-service.ts` → `recordHeartbeat()`, `putInventory()`: heartbeat ghi đè
-    `resources`/`running_jobs`/`health`/`paused`, phát `machine.unhealthy` một lần khi health chuyển sang đỏ;
+    `resources`/`running_jobs`/`health`/`paused`, phát `machine.unhealthy` một lần khi health chuyển sang đỏ
+    (`HeartbeatRequest.waitingJobs`, cạnh `runningJobs`, không được `recordHeartbeat()` lưu vào bảng `machines`
+    — route daemon ở flow `daemon-api` đọc riêng để nuôi cảnh báo "ticket đứng yên" của flow `ticket-lifecycle`);
     `putInventory()` ghi đè kho skill/MCP theo máy (`projectKey=null`) hoặc theo project mà máy đó sở hữu —
     `InventoryMcpServer.disabled` (do daemon gửi lên khi chủ dự án tắt server đó cho project, flow
     `daemon-runtime`) được lưu nguyên vào `machine_skills` và đọc lại bởi `assertKnownCapabilities()`.

@@ -61,6 +61,11 @@ describe('invalidationsFor', () => {
     );
     const budget = envelope('3', { type: 'budget.exceeded', data: { ticketId: 't', kind: 'cost' } });
     expect(invalidationsFor(budget)).toEqual(expect.arrayContaining([['tickets'], ['notices']]));
+    const stuck = envelope('4', {
+      type: 'ticket.stuck',
+      data: { ticketId: 't', status: 'in_progress', idleMinutes: 42 },
+    });
+    expect(invalidationsFor(stuck)).toEqual(expect.arrayContaining([['tickets'], ['notices']]));
   });
 
   it('refreshes notices when the inbox was read on another device, and project changes on their events', () => {

@@ -1,0 +1,20 @@
+# Build context of deploy/Dockerfile is the repo root; only sources and manifests go in.
+**/node_modules
+**/dist
+**/.e2e
+**/test-results
+**/coverage
+**/*.tsbuildinfo
+.git
+.github
+.claude
+.githooks
+.env
+.env.*
+!.env.example
+plans
+docs
+e2e
+apps/desktop
+apps/daemon
+apps/*/test

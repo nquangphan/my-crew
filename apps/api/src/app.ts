@@ -9,6 +9,7 @@ import type { AppConfig } from './config.js';
 import type { Database } from './db/client.js';
 import { ApiError } from './errors.js';
 import { startHeartbeatSweeper } from './jobs/heartbeat-sweeper.js';
+import { startStuckTicketAlarm, WaitingJobsRegistry } from './jobs/stuck-ticket-alarm.js';
 import { EventBus } from './realtime/event-bus.js';
 import { authRoutes } from './routes/auth-routes.js';
 import { commentRoutes } from './routes/comment-routes.js';
@@ -33,9 +34,11 @@ export interface BuildAppOptions {
     pollMs?: number;
     /** False disables LISTEN so only the poll delivers (tests the fallback). */
     listen?: boolean;
-    /** False keeps the heartbeat sweeper timer off (tests call the sweep directly). */
+    /** False keeps the heartbeat sweeper and stuck-ticket timers off (tests call the checks directly). */
     sweeper?: boolean;
   };
+  /** Where heartbeats record waiting jobs; tests pass their own to inspect it. */
+  waitingJobs?: WaitingJobsRegistry;
 }
 
 const MAINTENANCE_INTERVAL_MS = 60 * 60 * 1000;
@@ -45,6 +48,7 @@ export async function buildApp({
   db,
   logger = false,
   realtime = {},
+  waitingJobs = new WaitingJobsRegistry(),
 }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger ? { level: config.logLevel } : false,
@@ -85,6 +89,7 @@ export async function buildApp({
     config,
     bus,
     streamHeartbeatMs: realtime.streamHeartbeatMs ?? STREAM_HEARTBEAT_MS,
+    waitingJobs,
   };
   await app.register(authRoutes, deps);
   await app.register(pairRoutes, deps);
@@ -109,9 +114,13 @@ export async function buildApp({
 
   let timer: NodeJS.Timeout | undefined;
   let stopSweeper: (() => void) | undefined;
+  let stopStuckAlarm: (() => void) | undefined;
   app.addHook('onReady', async () => {
     await bus.start();
-    if (realtime.sweeper !== false) stopSweeper = startHeartbeatSweeper(db, app.log);
+    if (realtime.sweeper !== false) {
+      stopSweeper = startHeartbeatSweeper(db, app.log);
+      stopStuckAlarm = startStuckTicketAlarm(db, deps.waitingJobs, app.log);
+    }
     timer = setInterval(() => {
       Promise.all([purgeExpiredIdempotencyKeys(db), purgeExpiredSessions(db)]).catch((error: unknown) =>
         app.log.error({ err: error }, 'maintenance sweep failed'),
@@ -122,6 +131,7 @@ export async function buildApp({
   // SSE responses are hijacked; end them before the server waits for open connections to drain.
   app.addHook('preClose', async () => {
     stopSweeper?.();
+    stopStuckAlarm?.();
     await bus.stop();
   });
   app.addHook('onClose', async () => clearInterval(timer));
