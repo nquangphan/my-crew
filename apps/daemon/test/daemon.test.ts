@@ -1,0 +1,340 @@
+import { spawn } from 'node:child_process';
+import { existsSync, readdirSync } from 'node:fs';
+import { createConnection } from 'node:net';
+import { describe, expect, it } from 'vitest';
+import { homePaths } from '../src/config.js';
+import { jobTmpDir } from '../src/runner/job-cleanup.js';
+import { StateDb } from '../src/state-db.js';
+import {
+  commentsOf,
+  devTicket,
+  fixture,
+  getTicket,
+  ownerComment,
+  ownerTransition,
+  pmTask,
+  useApi,
+} from './helpers/api.js';
+import { makeDaemon, sleep, waitFor } from './helpers/daemon.js';
+import { makeRepo, onCleanup } from './helpers/git.js';
+
+const api = useApi();
+
+const tool = (name: string, input: Record<string, unknown> = {}) => ({
+  tool: `mcp__tickets__${name}`,
+  input,
+});
+
+function portOpen(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: '127.0.0.1', port });
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('error', () => resolve(false));
+  });
+}
+
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const SERVER_JS = (port: number) =>
+  `require('node:http').createServer((q, s) => s.end('ok')).listen(${port}, '127.0.0.1');\n`;
+
+describe('daemon', () => {
+  it('stops what a job started when it ends and leaves untagged processes alone', async () => {
+    expect(await portOpen(4321)).toBe(false);
+    const f = await fixture(api);
+    const repo = makeRepo();
+    // The owner's own dev server on another port, without a job tag.
+    const own = spawn(process.execPath, ['-e', SERVER_JS(4322)], { stdio: 'ignore', detached: true });
+    onCleanup(() => {
+      if (own.pid && alive(own.pid)) process.kill(own.pid, 'SIGKILL');
+    });
+    await waitFor(() => portOpen(4322), 5_000, 'owner server');
+
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Chạy server');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { write: { path: 'server.js', content: SERVER_JS(4321) } },
+        { bash: 'nohup node server.js > /dev/null 2>&1 &' },
+        {
+          bash: 'head -c 200000 /dev/zero > "$TMPDIR/scratch.bin" && mkdir -p "$TMPDIR/cache" && echo x > "$TMPDIR/cache/a"',
+        },
+        { sleep: 700 },
+        tool('comment', { body: 'Đã chạy thử server.' }),
+      ],
+    });
+    await t.daemon.start();
+
+    const job = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'running'),
+      15_000,
+      'dev job running',
+    );
+    await waitFor(() => portOpen(4321), 10_000, 'job server listening');
+    const ended = Date.now();
+    const done = await waitFor(
+      () =>
+        t.daemon.state
+          .jobsForTicket(dev.id)
+          .find((j) => j.status === 'done' && t.daemon.state.cleanups({ jobId: j.id }).length > 0),
+      15_000,
+      'job done and cleaned',
+    );
+    expect(Date.now() - ended).toBeLessThan(15_000);
+    expect(done.id).toBe(job.id);
+    expect(await portOpen(4321)).toBe(false);
+    expect(existsSync(jobTmpDir(homePaths(t.home).tmp, job.id))).toBe(false);
+    const [record] = t.daemon.state.cleanups({ jobId: job.id });
+    expect(record?.ports).toContain(4321);
+    expect(record?.pids.length).toBeGreaterThan(0);
+    expect(record?.bytesFreed).toBeGreaterThanOrEqual(200_000);
+    for (const pid of record?.pids ?? []) expect(alive(pid)).toBe(false);
+    // The owner's untagged process is untouched.
+    expect(own.pid && alive(own.pid)).toBe(true);
+    expect(await portOpen(4322)).toBe(true);
+    expect((await commentsOf(api.db, dev.id)).map((c) => c.body)).toContain('Đã chạy thử server.');
+    await t.daemon.stop();
+  });
+
+  it('survives a crash mid-run: no event lost, one active job per ticket, no duplicate records', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const first = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Việc bị gián đoạn');
+    let crashes = 0;
+    const script = () => ({
+      steps: [
+        tool('comment', { body: 'Bước 1' }),
+        crashes++ === 0 ? { crash: true as const } : { sleep: 0 },
+        tool('comment', { body: 'Bước 2' }),
+      ],
+    });
+    first.book.byTicket.set(dev.id, script);
+    await first.daemon.start();
+    await waitFor(
+      async () => (await commentsOf(api.db, dev.id)).length >= 1 && crashes >= 1,
+      15_000,
+      'first step',
+    );
+    await sleep(200);
+    // The daemon dies here: the job stays "running" in the state DB.
+    await first.daemon.halt();
+
+    // While it is down, more work arrives for this machine.
+    const other = await devTicket(api, pm.id, 'Việc mới khi daemon tắt');
+
+    const second = makeDaemon(f, { repoPath: repo, home: first.home, book: first.book });
+    second.book.byTicket.set(other.id, { steps: [tool('comment', { body: 'Việc mới đã nhận' })] });
+    await second.daemon.start();
+    await waitFor(
+      () => second.daemon.state.jobsForTicket(dev.id).some((j) => j.status === 'done'),
+      15_000,
+      'resumed job done',
+    );
+    await waitFor(
+      () => second.daemon.state.jobsForTicket(other.id).some((j) => j.status === 'done'),
+      15_000,
+      'new job done',
+    );
+
+    const bodies = (await commentsOf(api.db, dev.id)).map((c) => c.body);
+    expect(bodies.filter((b) => b === 'Bước 1')).toHaveLength(1);
+    expect(bodies.filter((b) => b === 'Bước 2')).toHaveLength(1);
+    expect((await commentsOf(api.db, other.id)).map((c) => c.body)).toEqual(['Việc mới đã nhận']);
+    // The resumed run continued the same session with the restart prompt.
+    const resumed = second.book.runs.filter((run) => run.ticketId === dev.id).at(-1);
+    expect(resumed?.resumeSessionId).toBeTruthy();
+    expect(resumed?.prompt).toContain('git status');
+    for (const ticket of [dev.id, other.id, pm.id]) {
+      expect(
+        second.daemon.state
+          .jobsForTicket(ticket)
+          .filter((j) => ['queued', 'running', 'backoff'].includes(j.status)).length,
+      ).toBeLessThanOrEqual(1);
+    }
+    await second.daemon.stop();
+  });
+
+  it('starts a QC job right after dependency.resolved and resumes a session on an owner comment', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, {
+      repoPath: repo,
+      config: { resources: { maxConcurrentJobs: 2, minFreeMemGb: 0, maxLoadPerCpu: 64 } },
+    });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Tính năng');
+    const { createSubtask } = await import('../../api/src/services/ticket-service.js');
+    const qc = await createSubtask(api.db, {
+      type: 'qc',
+      parentId: pm.id,
+      title: 'QC tính năng',
+      pairsWith: dev.id,
+    });
+    let release = false;
+    t.book.byTicket.set(dev.id, () => ({
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { sleep: release ? 0 : 400 },
+        tool('submit_report', { summaryMd: 'Xong tính năng.' }),
+        tool('update_status', { to: 'done' }),
+      ],
+    }));
+    t.book.byTicket.set(qc.id, { steps: [tool('comment', { body: 'QC bắt đầu' })] });
+    await t.daemon.start();
+    await waitFor(() => t.daemon.state.activeJob(qc.id)?.waitingDeps, 15_000, 'qc waiting on dev');
+    release = true;
+    const devDone = await waitFor(
+      async () => (await getTicket(api.db, dev.id)).status === 'done',
+      15_000,
+      'dev done',
+    );
+    expect(devDone).toBe(true);
+    const started = Date.now();
+    await waitFor(
+      async () => (await commentsOf(api.db, qc.id)).some((c) => c.body === 'QC bắt đầu'),
+      15_000,
+      'qc ran',
+    );
+    expect(Date.now() - started).toBeLessThan(60_000);
+    const devReport = await (await import('../../api/src/services/report-service.js')).getCurrentReport(
+      api.db,
+      dev.id,
+    );
+    expect(devReport).toMatchObject({ summaryMd: 'Xong tính năng.', costUsd: 0 });
+
+    // Owner reopens and comments: the dev session is resumed.
+    t.book.byTicket.set(dev.id, { steps: [tool('comment', { body: 'Đã đọc góp ý' })] });
+    const sessionBefore = t.daemon.state.jobsForTicket(dev.id)[0]?.sessionId;
+    expect(sessionBefore).toBeTruthy();
+    const replies = async () =>
+      (await commentsOf(api.db, dev.id)).filter((c) => c.body === 'Đã đọc góp ý').length;
+    await ownerTransition(f, dev.id, 'in_progress');
+    await waitFor(async () => (await replies()) === 1, 15_000, 'reopened dev');
+    await waitFor(() => !t.daemon.state.activeJob(dev.id), 15_000, 'reopened run ended');
+    await ownerComment(f, dev.id, 'Sửa thêm giúp tôi');
+    await waitFor(async () => (await replies()) === 2, 15_000, 'resumed dev');
+    const devRuns = t.book.runs.filter((run) => run.ticketId === dev.id);
+    expect(devRuns.slice(-2).map((run) => run.resumeSessionId)).toEqual([sessionBefore, sessionBefore]);
+    await t.daemon.stop();
+  });
+
+  it('parks a rate-limited run in backoff with a growing retry_at, then blocks after 4 attempts', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Bị giới hạn');
+    t.book.byTicket.set(dev.id, {
+      steps: [tool('update_status', { to: 'in_progress' }), { apiError: 'rate_limit' }],
+      result: { costUsd: 0.01 },
+    });
+    await t.daemon.start();
+    const delays: number[] = [];
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const job = await waitFor(
+        () =>
+          t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'backoff' && j.attempts === attempt),
+        15_000,
+        `backoff ${attempt}`,
+      );
+      delays.push(
+        Math.round(
+          (Date.parse(job.retryAt as string) - Date.parse(job.endedAt ?? job.startedAt ?? '')) / 60_000,
+        ),
+      );
+      // Time passes: make the retry due now.
+      t.daemon.state.updateJob(job.id, { retryAt: new Date(Date.now() - 1000).toISOString() });
+    }
+    const blocked = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'blocked'),
+      15_000,
+      'blocked',
+    );
+    expect(blocked.attempts).toBe(4);
+    expect(delays).toEqual([5, 10, 20]);
+    expect(t.daemon.state.jobsForTicket(dev.id)).toHaveLength(1);
+    expect((await getTicket(api.db, dev.id)).status).toBe('blocked');
+    const bodies = (await commentsOf(api.db, dev.id)).map((c) => c.body);
+    expect(bodies.filter((b) => b.includes('rate_limit'))).toHaveLength(4);
+    // One session, cumulative cost booked once per run.
+    expect((await getTicket(api.db, dev.id)).costUsd).toBeCloseTo(0.04, 5);
+    await t.daemon.stop();
+  });
+
+  it('aborts a running job when its ticket is cancelled and removes its worktree', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Sẽ bị huỷ');
+    t.book.byTicket.set(dev.id, { steps: [tool('update_status', { to: 'in_progress' }), { sleep: 30_000 }] });
+    await t.daemon.start();
+    const running = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'running' && j.worktree),
+      15_000,
+      'running',
+    );
+    await waitFor(
+      async () => (await getTicket(api.db, dev.id)).status === 'in_progress',
+      10_000,
+      'in progress',
+    );
+    expect(existsSync(running.worktree as string)).toBe(true);
+    await ownerTransition(f, dev.id, 'cancelled');
+    const cancelled = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'cancelled'),
+      10_000,
+      'cancelled',
+    );
+    expect(cancelled.id).toBe(running.id);
+    await waitFor(() => !existsSync(running.worktree as string), 10_000, 'worktree removed');
+    expect(t.daemon.state.cleanups({ jobId: running.id })).toHaveLength(1);
+    await t.daemon.stop();
+  });
+
+  it('re-queues running jobs on a graceful stop and resumes them on the next start', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Dừng êm');
+    t.book.byTicket.set(dev.id, {
+      steps: [tool('comment', { body: 'Một' }), { sleep: 30_000 }, tool('comment', { body: 'Hai' })],
+    });
+    await t.daemon.start();
+    await waitFor(async () => (await commentsOf(api.db, dev.id)).length === 1, 15_000, 'first comment');
+    await t.daemon.stop();
+    const closed = new StateDb(homePaths(t.home).stateDb);
+    const [job] = closed.jobsForTicket(dev.id);
+    closed.close();
+    expect(job).toMatchObject({ status: 'queued', resumeMode: 'restart_resume' });
+
+    const again = makeDaemon(f, { repoPath: repo, home: t.home, book: t.book });
+    t.book.byTicket.set(dev.id, {
+      steps: [tool('comment', { body: 'Một' }), { sleep: 0 }, tool('comment', { body: 'Hai' })],
+    });
+    await again.daemon.start();
+    await waitFor(
+      async () => (await commentsOf(api.db, dev.id)).some((c) => c.body === 'Hai'),
+      15_000,
+      'resumed',
+    );
+    expect((await commentsOf(api.db, dev.id)).map((c) => c.body)).toEqual(['Một', 'Hai']);
+    await again.daemon.stop();
+    expect(readdirSync(homePaths(t.home).tmp)).toEqual([]);
+  });
+});

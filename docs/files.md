@@ -65,6 +65,57 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/sweeper.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
 | `apps/api/test/ticket-service.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/transition.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/daemon/src/api/vps-client.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/cli.ts` | [daemon-runtime](flows/daemon-runtime.md) (điểm vào) |
+| `apps/daemon/src/commands/doctor.ts` | [daemon-health](flows/daemon-health.md) (điểm vào) |
+| `apps/daemon/src/config.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/daemon.ts` | [daemon-runtime](flows/daemon-runtime.md) (điểm vào) |
+| `apps/daemon/src/git/docs-kit-bridge.ts` | [agent-workspace](flows/agent-workspace.md) (file) |
+| `apps/daemon/src/git/worktree-manager.ts` | [agent-workspace](flows/agent-workspace.md) (điểm vào) |
+| `apps/daemon/src/health/checks/app.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/checks/claude.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/checks/machine.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/checks/repos.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/checks/server.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/health-runner.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/health/types.ts` | [daemon-health](flows/daemon-health.md) (file) |
+| `apps/daemon/src/library.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/runner/agent-runner.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/runner/guard-hook.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/runner/job-cleanup.ts` | [resource-hygiene](flows/resource-hygiene.md) (điểm vào) |
+| `apps/daemon/src/runner/job-runner.ts` | [agent-runs](flows/agent-runs.md) (điểm vào) |
+| `apps/daemon/src/runner/resource-report.ts` | [resource-hygiene](flows/resource-hygiene.md) (file) |
+| `apps/daemon/src/runner/resource-tracker.ts` | [resource-hygiene](flows/resource-hygiene.md) (file) |
+| `apps/daemon/src/runner/retry-classifier.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/runner/scripted-runner.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/runner/secret-scrubber.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/runner/skill-usage.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/scheduler/resource-monitor.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
+| `apps/daemon/src/scheduler/scheduler.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
+| `apps/daemon/src/secrets.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/service/systemd.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/skills/skill-inventory.ts` | [agent-workspace](flows/agent-workspace.md) (file) |
+| `apps/daemon/src/state-db.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/stream/dispatcher.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
+| `apps/daemon/src/stream/stream-client.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (điểm vào) |
+| `apps/daemon/src/tools/ticket-mcp-server.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/tools/tool-scopes.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/test/agent-runner.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
+| `apps/daemon/test/cli.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
+| `apps/daemon/test/daemon-extras.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
+| `apps/daemon/test/daemon.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
+| `apps/daemon/test/dispatcher.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
+| `apps/daemon/test/guard-hook.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
+| `apps/daemon/test/health-checks.test.ts` | [daemon-health](flows/daemon-health.md) (test) |
+| `apps/daemon/test/live-smoke.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
+| `apps/daemon/test/resources.test.ts` | [resource-hygiene](flows/resource-hygiene.md) (test) |
+| `apps/daemon/test/scheduler.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
+| `apps/daemon/test/skill-inventory.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
+| `apps/daemon/test/stream-atomicity.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
+| `apps/daemon/test/stream-client.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
+| `apps/daemon/test/ticket-tools.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
+| `apps/daemon/test/units.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
+| `apps/daemon/test/worktree-manager.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/docs-space.spec.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `apps/web/e2e/owner-admin.spec.ts` | [web-admin](flows/web-admin.md) (test) |

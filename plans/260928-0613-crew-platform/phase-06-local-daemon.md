@@ -1,6 +1,6 @@
 ---
 title: "Phase 6: Local Daemon Core"
-status: todo
+status: completed
 priority: P1
 effort: 21h
 dependsOn: [3, 5]
@@ -192,16 +192,16 @@ Create under `apps/daemon/src/`:
 
 ## Todo
 
-- [ ] Config, secrets, state DB, pairing, rotate
-- [ ] Stream client with atomic cursor; dispatcher with one job per ticket
-- [ ] Scheduler (resources, dependencies, budget, reserved slot)
-- [ ] Resource hygiene: job tagging, per-job TMPDIR, end-of-job cleanup, 10-minute orphan sweep, `resource_report` and `cleanup_resources` tools
-- [ ] Agent runner (settingSources, dontAsk, guard hook, logs, cost, backoff)
-- [ ] Scripted runner for CI
-- [ ] Ticket MCP server (scopes, idempotency, scrubber)
-- [ ] Skill inventory probe, worktree manager, crew-docs install
-- [ ] doctor, status, install-service
-- [ ] Tests, plus the live smoke test
+- [x] Config, secrets, state DB, pairing, rotate
+- [x] Stream client with atomic cursor; dispatcher with one job per ticket
+- [x] Scheduler (resources, dependencies, budget, reserved slot)
+- [x] Resource hygiene: job tagging, per-job TMPDIR, end-of-job cleanup, 10-minute orphan sweep, `resource_report` and `cleanup_resources` tools
+- [x] Agent runner (settingSources, dontAsk, guard hook, logs, cost, backoff)
+- [x] Scripted runner for CI
+- [x] Ticket MCP server (scopes, idempotency, scrubber)
+- [x] Skill inventory probe, worktree manager, crew-docs install
+- [x] doctor, status, install-service
+- [x] Tests, plus the live smoke test
 
 ## Success Criteria
 

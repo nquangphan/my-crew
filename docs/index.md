@@ -17,7 +17,9 @@ theo từng flow; agent đọc docs trước khi đọc code.
 - `packages/shared`: schema zod dùng chung giữa API và web (hợp đồng request/response, sự kiện, manifest docs).
 - `packages/docs-kit`: CLI `crew-docs` (bundle CommonJS đơn file) kiểm tra và sinh docs theo chuẩn ở
   `packages/docs-kit/STANDARD.md`.
-- `apps/daemon`: chỗ giữ chỗ, hành vi thật (kết nối SSE, lập lịch, chạy agent) đến ở giai đoạn sau.
+- `apps/daemon`: daemon TypeScript `crewd` chạy trên máy cục bộ của chủ dự án — nhận sự kiện qua SSE, lập
+  lịch job, chạy Claude Code (PM, dev, QC, assistant) qua Agent SDK trong worktree git riêng từng ticket, dọn
+  tài nguyên sau mỗi job, và tự kiểm tra sức khỏe máy (`crewd doctor`).
 
 ## Bản đồ module
 
@@ -36,15 +38,20 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | `packages/shared/src` | Schema zod: ticket, project, machine, event, docs, workflow trạng thái |
 | `packages/docs-kit/src` | Lệnh CLI, luật kiểm tra R1–R7, sinh block tự động, cài hook |
 | `packages/docs-kit/templates` | Template `AGENTS.md`, `index.md`, `architecture.md`, `flow.md`, `flows.yaml` |
-| `apps/daemon/src` | Chỗ giữ chỗ của daemon |
+| `apps/daemon/src` | Daemon cục bộ `crewd`: CLI, stream/scheduler, runner agent, worktree/skill, dọn tài nguyên, health check |
 
 ## Danh sách flow
 
 <!-- crew-docs:flows:start -->
 | Flow | Id | Điểm vào |
 |------|----|----------|
+| [Chạy agent qua Agent SDK](flows/agent-runs.md) | `agent-runs` | `apps/daemon/src/runner/job-runner.ts` |
+| [Worktree và kho skill, MCP của agent](flows/agent-workspace.md) | `agent-workspace` | `apps/daemon/src/git/worktree-manager.ts` |
 | [Nền tảng API](flows/api-platform.md) | `api-platform` | `apps/api/src/server.ts` |
 | [REST API cho daemon](flows/daemon-api.md) | `daemon-api` | `apps/api/src/routes/daemon-routes.ts` |
+| [Kiểm tra sức khỏe máy (crewd doctor)](flows/daemon-health.md) | `daemon-health` | `apps/daemon/src/commands/doctor.ts` |
+| [Daemon cục bộ (crewd)](flows/daemon-runtime.md) | `daemon-runtime` | `apps/daemon/src/cli.ts`, `apps/daemon/src/daemon.ts` |
+| [Nhận sự kiện và lập lịch job](flows/daemon-scheduling.md) | `daemon-scheduling` | `apps/daemon/src/stream/stream-client.ts` |
 | [Kiểm tra chuẩn docs (crew-docs)](flows/docs-check.md) | `docs-check` | `packages/docs-kit/src/bin.ts`, `packages/docs-kit/src/cli.ts` |
 | [Hook git và CI của crew-docs](flows/docs-hooks.md) | `docs-hooks` | `packages/docs-kit/src/commands/install-hooks.ts`, `packages/docs-kit/src/commands/ci-workflow.ts` |
 | [Đồng bộ và xem docs](flows/docs-sync-viewer.md) | `docs-sync-viewer` | `apps/api/src/routes/docs-routes.ts`, `apps/web/src/routes/project-docs.tsx` |
@@ -52,6 +59,7 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Ghép máy và xác thực máy](flows/machine-pairing.md) | `machine-pairing` | `apps/api/src/routes/machine-routes.ts` |
 | [Đăng nhập chủ dự án](flows/owner-auth.md) | `owner-auth` | `apps/api/src/routes/auth-routes.ts`, `apps/web/src/routes/login.tsx` |
 | [Dự án và quyền sở hữu máy](flows/project-claims.md) | `project-claims` | `apps/api/src/routes/project-routes.ts` |
+| [Dọn tài nguyên sau mỗi job](flows/resource-hygiene.md) | `resource-hygiene` | `apps/daemon/src/runner/job-cleanup.ts` |
 | [Vòng đời ticket](flows/ticket-lifecycle.md) | `ticket-lifecycle` | `apps/api/src/routes/ticket-routes.ts`, `apps/api/src/routes/comment-routes.ts`, `apps/api/src/routes/report-routes.ts` |
 | [Inbox, dự án và máy trên web](flows/web-admin.md) | `web-admin` | `apps/web/src/routes/inbox.tsx`, `apps/web/src/routes/projects.tsx`, `apps/web/src/routes/project-settings.tsx`, `apps/web/src/routes/machines.tsx` |
 | [Khung ứng dụng web](flows/web-shell.md) | `web-shell` | `apps/web/src/main.tsx`, `apps/web/src/router.tsx` |

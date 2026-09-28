@@ -76,7 +76,7 @@ Owner browser ──HTTPS──► Caddy ─┬─► web (static SPA)
 | 3 | [Event Delivery and Machine Auth](./phase-03-event-delivery.md) | Completed | 2 |
 | 4 | [Web App](./phase-04-web-app.md) | Completed | 2, 3 |
 | 5 | [Docs Standard and Enforcement](./phase-05-docs-standard.md) | Completed | 1, 3, 4 |
-| 6 | [Local Daemon Core](./phase-06-local-daemon.md) | Pending | 3, 5 |
+| 6 | [Local Daemon Core](./phase-06-local-daemon.md) | Completed | 3, 5 |
 | 7 | [Agent Workflow](./phase-07-agent-workflow.md) | Pending | 6 |
 | 8 | [Deploy and E2E](./phase-08-deploy-and-e2e.md) | Pending | 4, 7, 9 |
 | 9 | [Local Desktop App](./phase-09-local-desktop-app.md) | Pending | 6 (can run in parallel with 7) |

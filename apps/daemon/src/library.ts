@@ -1,0 +1,41 @@
+/** Library entry of the 2P Crew daemon: the CLI and the desktop app both build on these exports. */
+export { VpsClient, VpsError } from './api/vps-client.js';
+export { doctor, renderHealth } from './commands/doctor.js';
+export * from './config.js';
+export {
+  type CreateDaemonOptions,
+  createDaemon,
+  type Daemon,
+  type DaemonStatus,
+  type Logger,
+} from './daemon.js';
+export { HEALTH_CHECKS, runHealthChecks, summarize } from './health/health-runner.js';
+export type { HealthCheck, HealthCheckResult, HealthContext, HealthGroup } from './health/types.js';
+export {
+  type AgentRunner,
+  type AgentRunResult,
+  agentEnv,
+  createSdkRunner,
+  type RunAgentOptions,
+  RunControl,
+} from './runner/agent-runner.js';
+export { evaluateToolCall, type GuardContext } from './runner/guard-hook.js';
+export { cleanupJob, findOrphans, sweepOrphans } from './runner/job-cleanup.js';
+export {
+  type AfterRunDecision,
+  type AfterRunInput,
+  chooseModel,
+  defaultPlanner,
+  type PlanInput,
+  type PlannedRun,
+  type RolePlanner,
+} from './runner/job-runner.js';
+export { buildResourceReport, ResourceOps, type ResourceReport } from './runner/resource-report.js';
+export { ResourceTracker } from './runner/resource-tracker.js';
+export { createScriptedRunner, Script, ScriptedCrash } from './runner/scripted-runner.js';
+export { scrubSecrets } from './runner/secret-scrubber.js';
+export { defaultTokenStore, FileTokenStore, KeychainTokenStore, type TokenStore } from './secrets.js';
+export { probeInventory } from './skills/skill-inventory.js';
+export { type JobKind, type JobRow, type JobStatus, StateDb } from './state-db.js';
+export { createDocsInitTicket, DocsHandoff } from './tools/ticket-mcp-server.js';
+export { allowedToolsFor, TICKET_SERVER, ticketToolsFor } from './tools/tool-scopes.js';

@@ -1,0 +1,696 @@
+import { EventEmitter } from 'node:events';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import type { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk';
+import type {
+  DaemonProject,
+  HealthSummary,
+  HeartbeatRequest,
+  RunningJob,
+  SkillInventory,
+} from '@crew/shared';
+import { VpsClient, VpsError } from './api/vps-client.js';
+import { crewHome, type DaemonConfig, homePaths, type ProjectConfig } from './config.js';
+import { CREW_DOCS_BUNDLE, installCrewDocs, packagedCrewDocs } from './git/docs-kit-bridge.js';
+import {
+  detectSharedPaths,
+  ensureWorktree,
+  git,
+  removeWorktree,
+  worktreeKeys,
+  worktreePath,
+} from './git/worktree-manager.js';
+import {
+  type AgentRunner,
+  agentEnv,
+  createSdkRunner,
+  type InitInfo,
+  sdkRuntimeVersion,
+} from './runner/agent-runner.js';
+import { cleanupJob, sweepOrphans } from './runner/job-cleanup.js';
+import { defaultPlanner, JobRunner, type RolePlanner } from './runner/job-runner.js';
+import { ResourceOps, type WorktreeEntry } from './runner/resource-report.js';
+import { ResourceTracker } from './runner/resource-tracker.js';
+import { takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
+import { Scheduler, type StartDecision } from './scheduler/scheduler.js';
+import { defaultTokenStore, type TokenStore } from './secrets.js';
+import { probeInventory } from './skills/skill-inventory.js';
+import { type JobRow, StateDb } from './state-db.js';
+import type { DispatchEffect } from './stream/dispatcher.js';
+import { HeartbeatLoop, StreamClient } from './stream/stream-client.js';
+
+export type LogLevel = 'info' | 'warn' | 'error';
+export type Logger = (level: LogLevel, message: string, fields?: Record<string, unknown>) => void;
+
+const stderrLogger: Logger = (level, message, fields) => {
+  process.stderr.write(`${JSON.stringify({ at: new Date().toISOString(), level, message, ...fields })}\n`);
+};
+
+export interface DaemonTimings {
+  heartbeatMs?: number;
+  tickMs?: number;
+  recheckMs?: number;
+  sweepMs?: number;
+  cleanupGraceMs?: number;
+  stream?: { minBackoffMs?: number; maxBackoffMs?: number; idleTimeoutMs?: number };
+}
+
+export interface CreateDaemonOptions {
+  config: DaemonConfig;
+  /** Crew home (`~/.crew` by default). */
+  home?: string;
+  tokenStore?: TokenStore;
+  /** Agent runner: the SDK runner in production, the scripted runner in tests. */
+  runner?: AgentRunner;
+  /** Role behaviour; the runtime's generic default until the role workflow plugs in. */
+  planner?: RolePlanner;
+  /** SDK `query` used by the inventory probe (and the SDK runner when `runner` is not given). */
+  query?: typeof sdkQuery;
+  /** Replaces the SDK inventory probe (tests). */
+  probe?: (input: {
+    cwd: string;
+    env: Record<string, string | undefined>;
+    enabledMcpjsonServers: string[];
+  }) => Promise<SkillInventory>;
+  /** Probe inventories at start and after runs whose skills changed (default true). */
+  inventory?: boolean;
+  fetch?: typeof fetch;
+  tracker?: ResourceTracker;
+  logger?: Logger;
+  appVersion?: string;
+  /** Health summary for the heartbeat (the desktop app provides it). */
+  health?: () => HealthSummary | undefined;
+  /** Free slots override (tests); defaults to the resource monitor. */
+  slots?: () => number;
+  /** crew-docs bundle copied to `~/.crew/bin` at start; null skips the install. */
+  crewDocsSource?: string | null;
+  timings?: DaemonTimings;
+}
+
+export interface DaemonStatus {
+  running: boolean;
+  paused: boolean;
+  connected: boolean;
+  cursor: string | null;
+  lastEventAt: string | null;
+  jobs: { running: number; queued: number; backoff: number };
+  orphansCleaned: number;
+  projects: { key: string; ownerState: string | null; runnable: boolean }[];
+  hostsAssistant: boolean;
+}
+
+export interface Daemon {
+  readonly state: StateDb;
+  readonly jobs: JobRunner;
+  readonly scheduler: Scheduler;
+  readonly stream: StreamClient;
+  readonly events: EventEmitter;
+  start(): Promise<void>;
+  /** Graceful stop: running jobs are aborted and re-queued to resume on the next start. */
+  stop(): Promise<void>;
+  /** Crash stand-in for tests: stops at once and writes nothing more. */
+  halt(): Promise<void>;
+  pause(): void;
+  resume(): void;
+  status(): DaemonStatus;
+  /** Applies a new config live (projects, folders, limits) without a restart. */
+  updateConfig(config: DaemonConfig): void;
+  /** Replaces the project list live (Settings → Projects in the desktop app). */
+  updateProjects(projects: DaemonConfig['projects']): void;
+  refreshProjects(): Promise<void>;
+  refreshInventory(projectKey: string | null): Promise<SkillInventory | null>;
+  /** Periodic sweep: orphan processes, temp dirs and worktrees of closed tickets. */
+  sweep(): Promise<number>;
+  heartbeat(): Promise<void>;
+  /** Resolves when no job is running. */
+  idle(): Promise<void>;
+}
+
+const PROBE_KEY = '_probe';
+const MACHINE_INVENTORY = '';
+
+function readMcpJsonServers(repo: string): string[] {
+  const file = `${repo}/.mcp.json`;
+  if (!existsSync(file)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as { mcpServers?: Record<string, unknown> };
+    return Object.keys(parsed.mcpServers ?? {});
+  } catch {
+    return [];
+  }
+}
+
+/** Refuses to start a second daemon on the same home (it would break one-job-per-ticket). */
+function takePidLock(pidFile: string): void {
+  if (existsSync(pidFile)) {
+    const pid = Number(readFileSync(pidFile, 'utf8').trim());
+    if (Number.isInteger(pid) && pid > 0 && pid !== process.pid) {
+      let alive = false;
+      try {
+        process.kill(pid, 0);
+        alive = true;
+      } catch (error) {
+        alive = (error as NodeJS.ErrnoException).code === 'EPERM';
+      }
+      if (alive) throw new Error(`crewd is already running (pid ${pid})`);
+    }
+  }
+  writeFileSync(pidFile, `${process.pid}\n`, { mode: 0o600 });
+}
+
+/**
+ * The daemon runtime as a library: the CLI `start` command and the desktop app both run it. It keeps the
+ * event stream, turns events into jobs, schedules them against the machine, runs each as an agent and
+ * cleans up after it.
+ */
+export function createDaemon(options: CreateDaemonOptions): Daemon {
+  let config = options.config;
+  const home = options.home ?? crewHome();
+  const paths = homePaths(home);
+  mkdirSync(home, { recursive: true, mode: 0o700 });
+  const log = options.logger ?? stderrLogger;
+  const tokenStore = options.tokenStore ?? defaultTokenStore(paths.tokenFile);
+  const state = new StateDb(paths.stateDb);
+  const vps = new VpsClient({ apiUrl: config.apiUrl, token: () => tokenStore.get(), fetch: options.fetch });
+  const tracker = options.tracker ?? new ResourceTracker();
+  const events = new EventEmitter();
+  const timings = options.timings ?? {};
+
+  let started = false;
+  let paused = false;
+  let stopping = false;
+  let halted = false;
+  let orphansCleaned = 0;
+  let claudeVersion: string | null = sdkRuntimeVersion();
+  let crewDocs: { bundle: string; runtime: string } | null = null;
+  let projectsView = new Map<string, DaemonProject>();
+  let hostsAssistant = false;
+  const inventories = new Map<string, SkillInventory>();
+  const probing = new Map<string, Promise<SkillInventory | null>>();
+  let sweepTimer: NodeJS.Timeout | null = null;
+
+  for (const row of state.db.prepare(`select key, value from meta where key like 'inventory:%'`).all() as {
+    key: string;
+    value: string;
+  }[]) {
+    try {
+      inventories.set(row.key.slice('inventory:'.length), JSON.parse(row.value) as SkillInventory);
+    } catch {
+      // re-probed on start
+    }
+  }
+
+  const localProject = (key: string): ProjectConfig | null =>
+    config.projects.find((p) => p.key === key) ?? null;
+
+  /** The local project for a server project id, when this machine owns it and has a folder for it. */
+  const projectFor = (projectId: string | null): ProjectConfig | null => {
+    if (!projectId) return null;
+    const view = projectsView.get(projectId);
+    if (view?.ownerState !== 'mine') return null;
+    return localProject(view.key);
+  };
+
+  const inventoryFor = (projectKey: string | null): SkillInventory =>
+    inventories.get(projectKey ?? MACHINE_INVENTORY) ?? { skills: [], mcpServers: [] };
+
+  const slots = () => options.slots?.() ?? totalSlots(config.resources, takeSnapshot(home));
+
+  async function refreshProjects(): Promise<void> {
+    const view = await vps.listProjects();
+    projectsView = new Map(view.items.map((item) => [item.id, item]));
+    hostsAssistant = view.assistant.state === 'mine';
+  }
+
+  async function refreshInventory(projectKey: string | null): Promise<SkillInventory | null> {
+    const key = projectKey ?? MACHINE_INVENTORY;
+    const inFlight = probing.get(key);
+    if (inFlight) return inFlight;
+    const run = (async () => {
+      const project = projectKey ? localProject(projectKey) : null;
+      if (projectKey && !project) return null;
+      let cwd = paths.assistantDir;
+      let enabled: string[] = [];
+      if (project) {
+        const sharedPaths = detectSharedPaths(project.repoPath, project.sharedPaths);
+        // A probe worktree prepared exactly like a job worktree, so the inventory is what agents see.
+        const probe = ensureWorktree({
+          repo: project.repoPath,
+          key: PROBE_KEY,
+          base: project.defaultBranch,
+          sharedPaths,
+          detach: true,
+        });
+        if (!probe.created) git(probe.path, ['checkout', '--quiet', '--detach', project.defaultBranch]);
+        cwd = probe.path;
+        enabled = readMcpJsonServers(project.repoPath).filter(
+          (name) => !project.disabledMcpServers.includes(name),
+        );
+      } else {
+        mkdirSync(cwd, { recursive: true });
+      }
+      const env = agentEnv(process.env, {});
+      const inventory = options.probe
+        ? await options.probe({ cwd, env, enabledMcpjsonServers: enabled })
+        : (
+            await probeInventory({
+              cwd,
+              env,
+              enabledMcpjsonServers: enabled,
+              ...(options.query ? { query: options.query } : {}),
+            })
+          ).inventory;
+      inventories.set(key, inventory);
+      state.setMeta(`inventory:${key}`, JSON.stringify(inventory));
+      await vps.putSkills(
+        { projectKey: projectKey, ...inventory },
+        `inventory:${key || 'machine'}:${Date.now()}`,
+      );
+      return inventory;
+    })()
+      .catch((error: Error) => {
+        log('warn', 'inventory probe failed', { projectKey, error: error.message });
+        return null;
+      })
+      .finally(() => probing.delete(key));
+    probing.set(key, run);
+    return run;
+  }
+
+  const onInit = (job: JobRow, init: InitInfo, project: ProjectConfig | null) => {
+    claudeVersion =
+      init.claudeCodeVersion && init.claudeCodeVersion !== 'scripted'
+        ? init.claudeCodeVersion
+        : claudeVersion;
+    if (options.inventory === false) return;
+    const known = new Set(inventoryFor(project?.key ?? null).skills.map((skill) => skill.name));
+    if (init.skills.some((skill) => !known.has(skill))) {
+      log('info', 'skills changed since the last probe; refreshing the inventory', { jobId: job.id });
+      void refreshInventory(project?.key ?? null);
+    }
+  };
+
+  async function worktreeEntries(): Promise<WorktreeEntry[]> {
+    const entries: WorktreeEntry[] = [];
+    for (const project of config.projects) {
+      if (!existsSync(project.repoPath)) continue;
+      for (const key of worktreeKeys(project.repoPath)) {
+        if (key === PROBE_KEY) continue;
+        let ticketStatus: string | null = null;
+        try {
+          ticketStatus = (await vps.getTicket(key)).ticket.status;
+        } catch {
+          ticketStatus = null;
+        }
+        entries.push({
+          projectKey: project.key,
+          repo: project.repoPath,
+          key,
+          path: worktreePath(project.repoPath, key),
+          ticketStatus,
+        });
+      }
+    }
+    return entries;
+  }
+
+  const jobs: JobRunner = new JobRunner({
+    state,
+    vps,
+    runner: options.runner ?? createSdkRunner(options.query ? { query: options.query } : {}),
+    planner: options.planner ?? defaultPlanner,
+    tracker,
+    config: () => config,
+    tmpRoot: paths.tmp,
+    binDir: paths.bin,
+    crewDocs: () => crewDocs,
+    projectFor,
+    inventoryFor,
+    workspace: ({ job, ticket, project, base }) => {
+      if (job.role === 'assistant' && !ticket.projectId) {
+        mkdirSync(paths.assistantDir, { recursive: true });
+        return { cwd: paths.assistantDir, sharedPaths: [], worktreeKey: null };
+      }
+      if (!project) throw new Error(`project of ${ticket.key} is not configured on this machine`);
+      const sharedPaths = detectSharedPaths(project.repoPath, project.sharedPaths);
+      const worktree = ensureWorktree({
+        repo: project.repoPath,
+        key: ticket.key,
+        base: base ?? project.defaultBranch,
+        sharedPaths,
+      });
+      return { cwd: worktree.path, sharedPaths, worktreeKey: ticket.key };
+    },
+    releaseWorkspace: ({ ticket, project }) => {
+      if (project) removeWorktree(project.repoPath, ticket.key);
+    },
+    contextBlock: async (_job, cwd) => {
+      const project = config.projects.find((p) => cwd.startsWith(p.repoPath)) ?? null;
+      const inventory = inventoryFor(project?.key ?? null);
+      const disabled = new Set(project?.disabledMcpServers ?? []);
+      return {
+        machine: { ...takeSnapshot(home), freeSlots: slots() },
+        runningJobs: state.listJobs(['running']).map((job) => ({
+          ticketId: job.ticketId,
+          role: job.role,
+          kind: job.kind,
+          startedAt: job.startedAt,
+        })),
+        capabilities: {
+          skills: inventory.skills,
+          mcpServers: inventory.mcpServers.filter((server) => !disabled.has(server.name)),
+        },
+      };
+    },
+    resourceOps: () =>
+      new ResourceOps({
+        state,
+        tracker,
+        tmpRoot: paths.tmp,
+        snapshot: () => takeSnapshot(home),
+        freeSlots: slots,
+        runningJobIds: () => jobs.runningJobIds(),
+        worktrees: worktreeEntries,
+        removeWorktree: (entry) => removeWorktree(entry.repo, entry.key),
+        graceMs: timings.cleanupGraceMs,
+      }),
+    onInit,
+    onJobChanged: (job) => events.emit('job', job),
+    log,
+    stopping: () => stopping,
+    halted: () => halted,
+    cleanupGraceMs: timings.cleanupGraceMs,
+  });
+
+  async function decide(job: JobRow): Promise<StartDecision> {
+    if (job.projectId) {
+      const view = projectsView.get(job.projectId);
+      if (!view) return { action: 'defer', reason: 'project not in this machine view yet' };
+      if (view.ownerState !== 'mine')
+        return { action: 'defer', reason: `project ${view.key} is not owned here` };
+      if (!localProject(view.key))
+        return { action: 'defer', reason: `project ${view.key} has no local folder` };
+    } else if (job.role === 'assistant' && !hostsAssistant) {
+      return { action: 'defer', reason: 'this machine does not host the assistant' };
+    }
+    const detail = await vps.getTicket(job.ticketId);
+    const { ticket } = detail;
+    if (ticket.status === 'done' || ticket.status === 'cancelled') {
+      return { action: 'skip', reason: `ticket is ${ticket.status}` };
+    }
+    for (const dependency of ticket.dependsOn) {
+      const dep = await vps.getTicket(dependency);
+      if (dep.ticket.status !== 'done') return { action: 'wait_deps' };
+    }
+    const budget = await vps.getBudget(ticket.id);
+    if (budget.overBudget) {
+      return { action: 'skip', reason: 'over budget: the server holds the ticket for the owner' };
+    }
+    return { action: 'start' };
+  }
+
+  const scheduler = new Scheduler({
+    state,
+    slots,
+    paused: () => paused || stopping || halted,
+    decide,
+    launch: (job) => jobs.launch(job),
+    onError: (error, job) => log('warn', 'scheduler', { jobId: job?.id, error: error.message }),
+    tickMs: timings.tickMs,
+    recheckMs: timings.recheckMs,
+  });
+
+  function onEffect(effect: DispatchEffect): void {
+    switch (effect.kind) {
+      case 'enqueued':
+      case 'absorbed':
+      case 'recheck':
+        events.emit('job', effect.job);
+        void scheduler.tick();
+        break;
+      case 'folded':
+        break;
+      case 'cancel':
+        if (effect.job?.status === 'running' && jobs.abort(effect.job.id)) break;
+        void (async () => {
+          try {
+            const { ticket } = await vps.getTicket(effect.ticketId);
+            const project = projectFor(ticket.projectId);
+            if (project) removeWorktree(project.repoPath, ticket.key);
+          } catch (error) {
+            log('warn', 'cancel cleanup failed', {
+              ticketId: effect.ticketId,
+              error: (error as Error).message,
+            });
+          }
+        })();
+        break;
+      case 'refresh_projects':
+        void refreshProjects()
+          .then(() => releaseLostProjects())
+          .then(() => scheduler.tick())
+          .catch((error: Error) => log('warn', 'project refresh failed', { error: error.message }));
+        break;
+      case 'ignored':
+        break;
+    }
+  }
+
+  const stream = new StreamClient({
+    vps,
+    state,
+    fetch: options.fetch,
+    onEffect,
+    onConnected: () => {
+      log('info', 'stream connected', { cursor: state.getCursor() });
+      void refreshProjects()
+        .catch((error: Error) => log('warn', 'project refresh failed', { error: error.message }))
+        .finally(() => void scheduler.recheckWaiting());
+    },
+    onError: (error) => log('warn', 'stream', { error: error.message }),
+    ...(timings.stream ?? {}),
+  });
+
+  /** After a claim moved away: stop running jobs of projects this machine no longer owns, drop queued ones. */
+  function releaseLostProjects(): void {
+    for (const job of state.listJobs(['queued', 'running', 'backoff'])) {
+      if (!job.projectId) continue;
+      const view = projectsView.get(job.projectId);
+      if (view?.ownerState === 'mine') continue;
+      if (job.status === 'running') {
+        state.updateJob(job.id, { cancelRequested: true });
+        jobs.abort(job.id);
+      } else {
+        state.updateJob(job.id, {
+          status: 'skipped',
+          error: 'the project moved to another machine',
+          endedAt: new Date().toISOString(),
+        });
+      }
+      log('info', 'job released: project no longer owned here', { jobId: job.id });
+    }
+  }
+
+  async function heartbeat(): Promise<void> {
+    const snapshot = takeSnapshot(home);
+    const runningJobs: RunningJob[] = state
+      .listJobs(['running'])
+      .filter((job) => /^[0-9a-f-]{36}$/i.test(job.ticketId))
+      .map((job) => ({
+        ticketId: job.ticketId,
+        role: job.role,
+        kind: job.kind,
+        ...(job.startedAt ? { startedAt: job.startedAt } : {}),
+      }));
+    const health = options.health?.();
+    const body: HeartbeatRequest = {
+      resources: {
+        cpus: snapshot.cpus,
+        loadAvg1: snapshot.loadAvg1,
+        freeMemGb: snapshot.freeMemGb,
+        totalMemGb: snapshot.totalMemGb,
+        ...(snapshot.diskFreeGb === null ? {} : { diskFreeGb: snapshot.diskFreeGb }),
+        orphansCleaned,
+      },
+      runningJobs,
+      cliVersion: claudeVersion ?? 'unknown',
+      ...(options.appVersion ? { appVersion: options.appVersion } : {}),
+      paused,
+      ...(health ? { health } : {}),
+    };
+    const response = await vps.heartbeat(body);
+    state.setMeta('tokenExpiresAt', response.tokenExpiresAt);
+  }
+
+  const heartbeatLoop = new HeartbeatLoop({
+    intervalMs: timings.heartbeatMs,
+    beat: heartbeat,
+    onError: (error) => log('warn', 'heartbeat failed', { error: error.message }),
+  });
+
+  async function sweepWorktrees(): Promise<number> {
+    let removed = 0;
+    const inUse = new Set(state.listJobs(['queued', 'running', 'backoff']).map((job) => job.worktree));
+    for (const entry of await worktreeEntries()) {
+      if (entry.ticketStatus !== 'done' && entry.ticketStatus !== 'cancelled') continue;
+      if (inUse.has(entry.path)) continue;
+      try {
+        if (removeWorktree(entry.repo, entry.key)) removed += 1;
+      } catch (error) {
+        log('warn', 'worktree sweep failed', { key: entry.key, error: (error as Error).message });
+      }
+    }
+    return removed;
+  }
+
+  async function sweep(): Promise<number> {
+    const result = await sweepOrphans(
+      { state, tracker, tmpRoot: paths.tmp, graceMs: timings.cleanupGraceMs },
+      jobs.runningJobIds(),
+    );
+    const worktrees = await sweepWorktrees().catch(() => 0);
+    orphansCleaned = result.cleaned + worktrees;
+    if (orphansCleaned > 0) log('info', 'sweep cleaned orphans', { count: orphansCleaned });
+    return orphansCleaned;
+  }
+
+  /** Jobs left `running` by a previous process: stop what they left, then resume or reconcile them. */
+  async function reconcileRestart(): Promise<void> {
+    for (const job of state.listJobs(['running'])) {
+      await cleanupJob({ state, tracker, tmpRoot: paths.tmp, graceMs: timings.cleanupGraceMs }, job).catch(
+        () => undefined,
+      );
+      state.updateJob(job.id, {
+        status: 'queued',
+        resumeMode: job.sessionId ? 'restart_resume' : 'restart_fresh',
+        pgid: null,
+      });
+    }
+  }
+
+  function installBundle(): void {
+    const source = options.crewDocsSource === undefined ? packagedCrewDocs() : options.crewDocsSource;
+    if (source === null) return;
+    try {
+      const installed = installCrewDocs(paths.bin, source);
+      crewDocs = { bundle: installed.bundle, runtime: process.execPath };
+    } catch (error) {
+      const existing = `${paths.bin}/${CREW_DOCS_BUNDLE}`;
+      if (existsSync(existing)) crewDocs = { bundle: existing, runtime: process.execPath };
+      log('warn', 'crew-docs install failed', { error: (error as Error).message });
+    }
+  }
+
+  const daemon: Daemon = {
+    state,
+    jobs,
+    scheduler,
+    stream,
+    events,
+    async start() {
+      if (started) return;
+      if (!tokenStore.get())
+        throw new VpsError(401, 'UNAUTHORIZED', 'this machine is not paired; run crewd pair');
+      takePidLock(paths.pidFile);
+      started = true;
+      stopping = false;
+      halted = false;
+      mkdirSync(paths.tmp, { recursive: true, mode: 0o700 });
+      installBundle();
+      await reconcileRestart();
+      await refreshProjects().catch((error: Error) =>
+        log('warn', 'project refresh failed', { error: error.message }),
+      );
+      await sweep().catch((error: Error) => log('warn', 'startup sweep failed', { error: error.message }));
+      if (options.inventory !== false) {
+        void refreshInventory(null);
+        for (const project of config.projects) void refreshInventory(project.key);
+      }
+      stream.start();
+      heartbeatLoop.start();
+      scheduler.start();
+      sweepTimer = setInterval(() => void sweep().catch(() => undefined), timings.sweepMs ?? 10 * 60 * 1000);
+      events.emit('status', daemon.status());
+      log('info', 'crewd started', { home, apiUrl: config.apiUrl });
+    },
+    async stop() {
+      if (!started) return;
+      stopping = true;
+      if (sweepTimer) clearInterval(sweepTimer);
+      await stream.stop();
+      await scheduler.stop();
+      jobs.abortAll();
+      await jobs.idle();
+      await heartbeatLoop.stop();
+      await Promise.allSettled([...probing.values()]);
+      const final = { ...daemon.status(), running: false };
+      state.close();
+      rmSync(paths.pidFile, { force: true });
+      started = false;
+      events.emit('status', final);
+    },
+    async halt() {
+      halted = true;
+      if (sweepTimer) clearInterval(sweepTimer);
+      await stream.stop();
+      await scheduler.stop();
+      await heartbeatLoop.stop();
+      jobs.abortAll();
+      await jobs.idle();
+      await Promise.allSettled([...probing.values()]);
+      state.close();
+      started = false;
+    },
+    pause() {
+      paused = true;
+      void heartbeatLoop.tick();
+      events.emit('status', daemon.status());
+    },
+    resume() {
+      paused = false;
+      void heartbeatLoop.tick();
+      void scheduler.tick();
+      events.emit('status', daemon.status());
+    },
+    status() {
+      const count = (status: 'running' | 'queued' | 'backoff') => state.listJobs([status]).length;
+      return {
+        running: started,
+        paused,
+        connected: stream.connected,
+        cursor: state.getCursor(),
+        lastEventAt: stream.lastEventAt?.toISOString() ?? null,
+        jobs: { running: count('running'), queued: count('queued'), backoff: count('backoff') },
+        orphansCleaned,
+        projects: config.projects.map((project) => {
+          const view = [...projectsView.values()].find((item) => item.key === project.key);
+          return {
+            key: project.key,
+            ownerState: view?.ownerState ?? null,
+            runnable: view?.ownerState === 'mine',
+          };
+        }),
+        hostsAssistant,
+      };
+    },
+    updateConfig(next) {
+      const before = new Map(config.projects.map((project) => [project.key, JSON.stringify(project)]));
+      config = next;
+      if (options.inventory !== false) {
+        for (const project of next.projects) {
+          if (before.get(project.key) !== JSON.stringify(project)) void refreshInventory(project.key);
+        }
+      }
+      void scheduler.tick();
+      events.emit('status', daemon.status());
+    },
+    updateProjects(projects) {
+      daemon.updateConfig({ ...config, projects });
+    },
+    refreshProjects,
+    refreshInventory,
+    sweep,
+    heartbeat,
+    idle: () => jobs.idle(),
+  };
+  return daemon;
+}

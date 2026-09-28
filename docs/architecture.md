@@ -13,9 +13,13 @@
   web import cùng một schema zod, không định nghĩa lại.
 - **`packages/docs-kit`**: đóng gói thành một bundle CommonJS (`crew-docs.cjs`) để hook git và CI chạy không
   cần cài dependency; đọc/ghi `docs/flows.yaml` và các file dưới `docs/`.
-- **`apps/daemon`**: chưa có hành vi (xem `docs/flows.yaml` mục `unassigned`); vai trò dự kiến (kết nối SSE,
-  lập lịch, chạy Claude Code agent qua Agent SDK) nằm trong `plans/260928-0613-crew-platform/plan.md`, chưa
-  phải code đã triển khai.
+- **`apps/daemon`**: daemon `crewd` chạy trên máy cục bộ của chủ dự án (CLI + thư viện `createDaemon()` dùng
+  chung với app desktop). Giữ kết nối SSE `/v1/daemon/stream`, biến sự kiện thành job và lập lịch theo slot
+  máy (`docs/flows/daemon-scheduling.md`), chạy Claude Code (PM, dev, QC, assistant) qua Agent SDK trong một
+  worktree git riêng mỗi ticket với bộ công cụ ticket và guard riêng theo vai trò
+  (`docs/flows/agent-runs.md`, `docs/flows/agent-workspace.md`), dọn tiến trình/port/container sau mỗi job
+  (`docs/flows/resource-hygiene.md`), và tự kiểm tra sức khỏe máy (`crewd doctor`,
+  `docs/flows/daemon-health.md`).
 
 ## Lưu trữ dữ liệu
 
@@ -37,12 +41,18 @@ PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migrat
   `budgets_usage` (chi phí theo project theo ngày, múi giờ cấu hình qua `BUDGET_TIMEZONE`).
 - **Docs snapshot**: `docs_snapshots` (bản mới nhất mỗi project: commit, branch, manifest `flows.yaml` đã
   parse), `docs_files` (nội dung từng trang đã đồng bộ, khoá theo project + path).
+- **Trạng thái daemon cục bộ** (`~/.crew/state.db` trên từng máy, SQLite qua `better-sqlite3`, không phải
+  Postgres): `jobs` (job agent đang chờ/chạy/đã xong, tối đa một job hoạt động mỗi ticket), `meta` (cursor sự
+  kiện, hạn token, kho skill/MCP đã probe), `pending_wakeups`, `tool_log`, `job_cleanup`. Xem
+  `docs/flows/daemon-runtime.md`.
 
 ## Dịch vụ bên ngoài
 
-- Không có dịch vụ bên thứ ba nào được gọi trong `apps/api` hay `apps/web` ở trạng thái hiện tại (không email,
-  không thanh toán, không hàng đợi ngoài). Agent runtime (Claude Code / Agent SDK) và các skill/MCP server chạy
-  trên máy cục bộ qua daemon, thuộc phạm vi các giai đoạn sau (Phase 6, 7) — chưa có trong repo này.
+- Không có dịch vụ bên thứ ba nào được gọi trong `apps/api` hay `apps/web` (không email, không thanh toán,
+  không hàng đợi ngoài).
+- Daemon (`apps/daemon`) chạy Claude Code qua Agent SDK trên máy cục bộ, dưới đăng nhập gói đăng ký của chủ
+  dự án (không `ANTHROPIC_API_KEY`, xem `docs/flows/daemon-health.md`). Docker, git, `lsof`, `ps` là công cụ
+  dòng lệnh cục bộ mà daemon gọi (worktree, dọn tài nguyên, kiểm tra sức khỏe) — không phải dịch vụ mạng.
 - GitHub lưu mã nguồn; `crew-docs ci-workflow` sinh workflow GitHub Actions cho `packages/docs-kit`.
 
 ## Triển khai

@@ -2,8 +2,8 @@
 
 Hướng dẫn cho agent (và người) làm việc trong repo này. Repo `crew` là pnpm TypeScript monorepo cho **2P
 Crew**: `apps/api` (Fastify + Drizzle + PostgreSQL), `apps/web` (React 19 + Vite + TanStack Router/Query),
-`packages/shared` (schema zod dùng chung) và `packages/docs-kit` (CLI `crew-docs`). `apps/daemon` hiện là chỗ
-giữ chỗ, hành vi thật đến ở giai đoạn sau.
+`apps/daemon` (daemon `crewd` chạy agent Claude Code trên máy local qua Agent SDK), `packages/shared` (schema
+zod dùng chung) và `packages/docs-kit` (CLI `crew-docs`).
 
 ## Đọc trước tiên
 

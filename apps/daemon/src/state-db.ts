@@ -1,0 +1,482 @@
+import { randomUUID } from 'node:crypto';
+import { chmodSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
+import type { AgentRole } from '@crew/shared';
+import Database from 'better-sqlite3';
+
+export type JobKind = 'agent' | 'docs_update' | 'docs_init';
+export type JobStatus =
+  | 'queued'
+  | 'running'
+  | 'backoff'
+  | 'done'
+  | 'failed'
+  | 'blocked'
+  | 'cancelled'
+  | 'skipped';
+
+/** A ticket has at most one job in these states (partial unique index). */
+export const ACTIVE_JOB_STATUSES: readonly JobStatus[] = ['queued', 'running', 'backoff'];
+
+/** Why a queued job starts the way it does after a daemon restart. */
+export type ResumeMode = 'restart_resume' | 'restart_fresh';
+
+export interface JobRow {
+  id: string;
+  ticketId: string;
+  projectId: string | null;
+  role: AgentRole;
+  kind: JobKind;
+  status: JobStatus;
+  /** Event type (or `wakeup`, `handoff`) that created the job. */
+  trigger: string;
+  /** Delivery sequence numbers of the events this job answers. */
+  eventIds: string[];
+  resumeMode: ResumeMode | null;
+  /** The last dependency check found unmet `depends_on`; re-checked on events, reconnect and a timer. */
+  waitingDeps: boolean;
+  cancelRequested: boolean;
+  sessionId: string | null;
+  worktree: string | null;
+  model: string | null;
+  effort: string | null;
+  attempts: number;
+  retryAt: string | null;
+  costUsd: number;
+  resultSubtype: string | null;
+  /** Per-model usage of the run's final result (tokens and cost). */
+  modelUsage: Record<string, { costUSD: number; inputTokens: number; outputTokens: number }>;
+  skillsListed: string[];
+  skillsInvoked: string[];
+  /** JSON recorded by the `handoff_docs` tool. */
+  handoff: unknown;
+  askedOwner: boolean;
+  /** Last committed ticket-tool write sequence; the next write uses `toolSeq + 1` as its idempotency key. */
+  toolSeq: number;
+  pgid: number | null;
+  error: string | null;
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+}
+
+export interface NewJob {
+  ticketId: string;
+  projectId: string | null;
+  role: AgentRole;
+  kind?: JobKind;
+  trigger: string;
+  eventIds?: string[];
+  resumeMode?: ResumeMode | null;
+  sessionId?: string | null;
+  worktree?: string | null;
+  attempts?: number;
+}
+
+export interface ToolLogEntry {
+  jobId: string;
+  seq: number;
+  tool: string;
+  target: string | null;
+  decision: 'allow' | 'deny';
+  reason: string | null;
+  at: string;
+}
+
+export interface CleanupRecord {
+  id: number;
+  jobId: string;
+  pids: number[];
+  ports: number[];
+  bytesFreed: number;
+  containers: string[];
+  at: string;
+}
+
+const SCHEMA = `
+create table if not exists meta (key text primary key, value text not null);
+create table if not exists jobs (
+  id text primary key,
+  ticket_id text not null,
+  project_id text,
+  role text not null check (role in ('assistant', 'pm', 'dev', 'qc')),
+  kind text not null check (kind in ('agent', 'docs_update', 'docs_init')),
+  status text not null
+    check (status in ('queued', 'running', 'backoff', 'done', 'failed', 'blocked', 'cancelled', 'skipped')),
+  trigger text not null,
+  event_ids text not null default '[]',
+  resume_mode text check (resume_mode in ('restart_resume', 'restart_fresh')),
+  waiting_deps integer not null default 0,
+  cancel_requested integer not null default 0,
+  session_id text,
+  worktree text,
+  model text,
+  effort text,
+  attempts integer not null default 0,
+  retry_at text,
+  cost_usd real not null default 0,
+  result_subtype text,
+  model_usage text not null default '{}',
+  skills_listed text not null default '[]',
+  skills_invoked text not null default '[]',
+  handoff text,
+  asked_owner integer not null default 0,
+  tool_seq integer not null default 0,
+  pgid integer,
+  error text,
+  created_at text not null,
+  started_at text,
+  ended_at text
+);
+create unique index if not exists jobs_one_active_per_ticket
+  on jobs (ticket_id) where status in ('queued', 'running', 'backoff');
+create index if not exists jobs_status on jobs (status);
+create table if not exists pending_wakeups (
+  id integer primary key autoincrement,
+  ticket_id text not null,
+  event_ids text not null,
+  created_at text not null
+);
+create index if not exists pending_wakeups_ticket on pending_wakeups (ticket_id);
+create table if not exists tool_log (
+  job_id text not null,
+  seq integer not null,
+  tool text not null,
+  target text,
+  decision text not null check (decision in ('allow', 'deny')),
+  reason text,
+  at text not null,
+  primary key (job_id, seq)
+);
+create table if not exists job_cleanup (
+  id integer primary key autoincrement,
+  job_id text not null,
+  pids text not null,
+  ports text not null,
+  bytes_freed integer not null,
+  containers text not null default '[]',
+  at text not null
+);
+`;
+
+type Row = Record<string, unknown>;
+
+const json = <T>(value: unknown, fallback: T): T => {
+  if (typeof value !== 'string') return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+function toJob(row: Row): JobRow {
+  return {
+    id: row.id as string,
+    ticketId: row.ticket_id as string,
+    projectId: (row.project_id as string | null) ?? null,
+    role: row.role as AgentRole,
+    kind: row.kind as JobKind,
+    status: row.status as JobStatus,
+    trigger: row.trigger as string,
+    eventIds: json<string[]>(row.event_ids, []),
+    resumeMode: (row.resume_mode as ResumeMode | null) ?? null,
+    waitingDeps: row.waiting_deps === 1,
+    cancelRequested: row.cancel_requested === 1,
+    sessionId: (row.session_id as string | null) ?? null,
+    worktree: (row.worktree as string | null) ?? null,
+    model: (row.model as string | null) ?? null,
+    effort: (row.effort as string | null) ?? null,
+    attempts: row.attempts as number,
+    retryAt: (row.retry_at as string | null) ?? null,
+    costUsd: row.cost_usd as number,
+    resultSubtype: (row.result_subtype as string | null) ?? null,
+    modelUsage: json<JobRow['modelUsage']>(row.model_usage, {}),
+    skillsListed: json<string[]>(row.skills_listed, []),
+    skillsInvoked: json<string[]>(row.skills_invoked, []),
+    handoff: json<unknown>(row.handoff, null),
+    askedOwner: row.asked_owner === 1,
+    toolSeq: row.tool_seq as number,
+    pgid: (row.pgid as number | null) ?? null,
+    error: (row.error as string | null) ?? null,
+    createdAt: row.created_at as string,
+    startedAt: (row.started_at as string | null) ?? null,
+    endedAt: (row.ended_at as string | null) ?? null,
+  };
+}
+
+/** Columns a job update may set, mapped to their SQL names and encoders. */
+const JOB_COLUMNS = {
+  status: ['status', (v: unknown) => v],
+  kind: ['kind', (v: unknown) => v],
+  trigger: ['trigger', (v: unknown) => v],
+  eventIds: ['event_ids', (v: unknown) => JSON.stringify(v)],
+  resumeMode: ['resume_mode', (v: unknown) => v],
+  waitingDeps: ['waiting_deps', (v: unknown) => (v ? 1 : 0)],
+  cancelRequested: ['cancel_requested', (v: unknown) => (v ? 1 : 0)],
+  sessionId: ['session_id', (v: unknown) => v],
+  worktree: ['worktree', (v: unknown) => v],
+  model: ['model', (v: unknown) => v],
+  effort: ['effort', (v: unknown) => v],
+  attempts: ['attempts', (v: unknown) => v],
+  retryAt: ['retry_at', (v: unknown) => v],
+  costUsd: ['cost_usd', (v: unknown) => v],
+  resultSubtype: ['result_subtype', (v: unknown) => v],
+  modelUsage: ['model_usage', (v: unknown) => JSON.stringify(v)],
+  skillsListed: ['skills_listed', (v: unknown) => JSON.stringify(v)],
+  skillsInvoked: ['skills_invoked', (v: unknown) => JSON.stringify(v)],
+  handoff: ['handoff', (v: unknown) => (v === null ? null : JSON.stringify(v))],
+  askedOwner: ['asked_owner', (v: unknown) => (v ? 1 : 0)],
+  toolSeq: ['tool_seq', (v: unknown) => v],
+  pgid: ['pgid', (v: unknown) => v],
+  error: ['error', (v: unknown) => v],
+  startedAt: ['started_at', (v: unknown) => v],
+  endedAt: ['ended_at', (v: unknown) => v],
+} as const satisfies Record<string, readonly [string, (v: unknown) => unknown]>;
+
+export type JobPatch = Partial<Pick<JobRow, keyof typeof JOB_COLUMNS>>;
+
+/**
+ * The daemon's local SQLite state (`~/.crew/state.db`): the stream cursor, jobs, folded wake-ups, the tool
+ * log and cleanup records. Every method is synchronous, so a caller can group several of them in one
+ * `transaction()` and either all or none of them persist.
+ */
+export class StateDb {
+  readonly db: Database.Database;
+
+  constructor(path: string) {
+    if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true, mode: 0o700 });
+    this.db = new Database(path);
+    if (path !== ':memory:') chmodSync(path, 0o600);
+    this.db.pragma('journal_mode = WAL');
+    // FULL: a committed cursor + job write survives a power cut, not only a process crash.
+    this.db.pragma('synchronous = FULL');
+    this.db.pragma('busy_timeout = 5000');
+    this.db.exec(SCHEMA);
+  }
+
+  close(): void {
+    this.db.close();
+  }
+
+  /** Runs `fn` in one SQLite transaction; a throw rolls every write back. */
+  transaction<T>(fn: () => T): T {
+    return this.db.transaction(fn)();
+  }
+
+  // -------------------------------------------------------------------------
+  // Cursor and meta
+  // -------------------------------------------------------------------------
+
+  getMeta(key: string): string | null {
+    const row = this.db.prepare('select value from meta where key = ?').get(key) as Row | undefined;
+    return (row?.value as string | undefined) ?? null;
+  }
+
+  setMeta(key: string, value: string): void {
+    this.db
+      .prepare(
+        'insert into meta (key, value) values (?, ?) on conflict (key) do update set value = excluded.value',
+      )
+      .run(key, value);
+  }
+
+  getCursor(): string | null {
+    return this.getMeta('cursor');
+  }
+
+  setCursor(cursor: string): void {
+    this.setMeta('cursor', cursor);
+  }
+
+  // -------------------------------------------------------------------------
+  // Jobs
+  // -------------------------------------------------------------------------
+
+  insertJob(input: NewJob, now = new Date()): JobRow {
+    const id = randomUUID();
+    this.db
+      .prepare(
+        `insert into jobs (id, ticket_id, project_id, role, kind, status, trigger, event_ids, resume_mode,
+           session_id, worktree, attempts, created_at)
+         values (?, ?, ?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        id,
+        input.ticketId,
+        input.projectId,
+        input.role,
+        input.kind ?? 'agent',
+        input.trigger,
+        JSON.stringify(input.eventIds ?? []),
+        input.resumeMode ?? null,
+        input.sessionId ?? null,
+        input.worktree ?? null,
+        input.attempts ?? 0,
+        now.toISOString(),
+      );
+    return this.requireJob(id);
+  }
+
+  getJob(id: string): JobRow | null {
+    const row = this.db.prepare('select * from jobs where id = ?').get(id) as Row | undefined;
+    return row ? toJob(row) : null;
+  }
+
+  requireJob(id: string): JobRow {
+    const job = this.getJob(id);
+    if (!job) throw new Error(`job ${id} not found`);
+    return job;
+  }
+
+  /** The ticket's queued, running or backoff job, if any (there is at most one). */
+  activeJob(ticketId: string): JobRow | null {
+    const row = this.db
+      .prepare(`select * from jobs where ticket_id = ? and status in ('queued', 'running', 'backoff')`)
+      .get(ticketId) as Row | undefined;
+    return row ? toJob(row) : null;
+  }
+
+  listJobs(statuses?: readonly JobStatus[]): JobRow[] {
+    const rows = statuses
+      ? (this.db
+          .prepare(
+            `select * from jobs where status in (${statuses.map(() => '?').join(', ')}) order by created_at, rowid`,
+          )
+          .all(...statuses) as Row[])
+      : (this.db.prepare('select * from jobs order by created_at, rowid').all() as Row[]);
+    return rows.map(toJob);
+  }
+
+  jobsForTicket(ticketId: string): JobRow[] {
+    const rows = this.db
+      .prepare('select * from jobs where ticket_id = ? order by created_at, rowid')
+      .all(ticketId) as Row[];
+    return rows.map(toJob);
+  }
+
+  /** Session of the ticket's latest job of this kind, used to resume it. */
+  latestSession(ticketId: string, kind: JobKind): string | null {
+    const row = this.db
+      .prepare(
+        `select session_id from jobs where ticket_id = ? and kind = ? and session_id is not null
+         order by created_at desc, rowid desc limit 1`,
+      )
+      .get(ticketId, kind) as Row | undefined;
+    return (row?.session_id as string | undefined) ?? null;
+  }
+
+  updateJob(id: string, patch: JobPatch): JobRow {
+    const entries = Object.entries(patch) as [keyof typeof JOB_COLUMNS, unknown][];
+    if (entries.length > 0) {
+      const sets = entries.map(([key]) => `${JOB_COLUMNS[key][0]} = ?`).join(', ');
+      const values = entries.map(([key, value]) => JOB_COLUMNS[key][1](value));
+      this.db.prepare(`update jobs set ${sets} where id = ?`).run(...values, id);
+    }
+    return this.requireJob(id);
+  }
+
+  // -------------------------------------------------------------------------
+  // Wake-ups folded while a job runs
+  // -------------------------------------------------------------------------
+
+  appendWakeup(ticketId: string, eventIds: string[], now = new Date()): void {
+    this.db
+      .prepare('insert into pending_wakeups (ticket_id, event_ids, created_at) values (?, ?, ?)')
+      .run(ticketId, JSON.stringify(eventIds), now.toISOString());
+  }
+
+  /** Removes and returns the ticket's pending wake-up event ids, oldest first. */
+  takeWakeups(ticketId: string): string[] {
+    const rows = this.db
+      .prepare('select event_ids from pending_wakeups where ticket_id = ? order by id')
+      .all(ticketId) as Row[];
+    this.db.prepare('delete from pending_wakeups where ticket_id = ?').run(ticketId);
+    return rows.flatMap((row) => json<string[]>(row.event_ids, []));
+  }
+
+  pendingWakeupCount(ticketId: string): number {
+    const row = this.db
+      .prepare('select count(*) as n from pending_wakeups where ticket_id = ?')
+      .get(ticketId) as Row;
+    return row.n as number;
+  }
+
+  dropWakeups(ticketId: string): void {
+    this.db.prepare('delete from pending_wakeups where ticket_id = ?').run(ticketId);
+  }
+
+  // -------------------------------------------------------------------------
+  // Tool log
+  // -------------------------------------------------------------------------
+
+  logTool(entry: Omit<ToolLogEntry, 'seq' | 'at'>, now = new Date()): ToolLogEntry {
+    return this.transaction(() => {
+      const row = this.db
+        .prepare('select coalesce(max(seq), 0) as seq from tool_log where job_id = ?')
+        .get(entry.jobId) as Row;
+      const seq = (row.seq as number) + 1;
+      const at = now.toISOString();
+      this.db
+        .prepare(
+          'insert into tool_log (job_id, seq, tool, target, decision, reason, at) values (?, ?, ?, ?, ?, ?, ?)',
+        )
+        .run(entry.jobId, seq, entry.tool, entry.target, entry.decision, entry.reason, at);
+      return { ...entry, seq, at };
+    });
+  }
+
+  toolLog(jobId: string): ToolLogEntry[] {
+    const rows = this.db.prepare('select * from tool_log where job_id = ? order by seq').all(jobId) as Row[];
+    return rows.map((row) => ({
+      jobId: row.job_id as string,
+      seq: row.seq as number,
+      tool: row.tool as string,
+      target: (row.target as string | null) ?? null,
+      decision: row.decision as 'allow' | 'deny',
+      reason: (row.reason as string | null) ?? null,
+      at: row.at as string,
+    }));
+  }
+
+  // -------------------------------------------------------------------------
+  // Cleanup records
+  // -------------------------------------------------------------------------
+
+  recordCleanup(record: Omit<CleanupRecord, 'id' | 'at'>, now = new Date()): CleanupRecord {
+    const at = now.toISOString();
+    const result = this.db
+      .prepare(
+        'insert into job_cleanup (job_id, pids, ports, bytes_freed, containers, at) values (?, ?, ?, ?, ?, ?)',
+      )
+      .run(
+        record.jobId,
+        JSON.stringify(record.pids),
+        JSON.stringify(record.ports),
+        record.bytesFreed,
+        JSON.stringify(record.containers),
+        at,
+      );
+    return { ...record, id: Number(result.lastInsertRowid), at };
+  }
+
+  cleanups(options: { jobId?: string; limit?: number } = {}): CleanupRecord[] {
+    const limit = options.limit ?? 50;
+    const rows = (
+      options.jobId
+        ? this.db
+            .prepare('select * from job_cleanup where job_id = ? order by id desc limit ?')
+            .all(options.jobId, limit)
+        : this.db.prepare('select * from job_cleanup order by id desc limit ?').all(limit)
+    ) as Row[];
+    return rows.map((row) => ({
+      id: row.id as number,
+      jobId: row.job_id as string,
+      pids: json<number[]>(row.pids, []),
+      ports: json<number[]>(row.ports, []),
+      bytesFreed: row.bytes_freed as number,
+      containers: json<string[]>(row.containers, []),
+      at: row.at as string,
+    }));
+  }
+}

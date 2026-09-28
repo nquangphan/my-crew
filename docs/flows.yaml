@@ -275,6 +275,93 @@ flows:
       - apps/web/src/routes/inbox.test.tsx
       - apps/web/src/components/pairing-dialog.test.tsx
       - apps/web/e2e/owner-admin.spec.ts
+  daemon-runtime:
+    title: Daemon cục bộ (crewd)
+    doc: docs/flows/daemon-runtime.md
+    entrypoints:
+      - apps/daemon/src/cli.ts
+      - apps/daemon/src/daemon.ts
+    files:
+      - apps/daemon/src/library.ts
+      - apps/daemon/src/config.ts
+      - apps/daemon/src/secrets.ts
+      - apps/daemon/src/state-db.ts
+      - apps/daemon/src/api/vps-client.ts
+      - apps/daemon/src/service/systemd.ts
+    tests:
+      - apps/daemon/test/cli.test.ts
+      - apps/daemon/test/units.test.ts
+      - apps/daemon/test/daemon-extras.test.ts
+  daemon-scheduling:
+    title: Nhận sự kiện và lập lịch job
+    doc: docs/flows/daemon-scheduling.md
+    entrypoints:
+      - apps/daemon/src/stream/stream-client.ts
+    files:
+      - apps/daemon/src/stream/dispatcher.ts
+      - apps/daemon/src/scheduler/scheduler.ts
+      - apps/daemon/src/scheduler/resource-monitor.ts
+    tests:
+      - apps/daemon/test/stream-client.test.ts
+      - apps/daemon/test/stream-atomicity.test.ts
+      - apps/daemon/test/dispatcher.test.ts
+      - apps/daemon/test/scheduler.test.ts
+  agent-runs:
+    title: Chạy agent qua Agent SDK
+    doc: docs/flows/agent-runs.md
+    entrypoints:
+      - apps/daemon/src/runner/job-runner.ts
+    files:
+      - apps/daemon/src/runner/agent-runner.ts
+      - apps/daemon/src/runner/scripted-runner.ts
+      - apps/daemon/src/runner/guard-hook.ts
+      - apps/daemon/src/runner/skill-usage.ts
+      - apps/daemon/src/runner/retry-classifier.ts
+      - apps/daemon/src/runner/secret-scrubber.ts
+      - apps/daemon/src/tools/ticket-mcp-server.ts
+      - apps/daemon/src/tools/tool-scopes.ts
+    tests:
+      - apps/daemon/test/daemon.test.ts
+      - apps/daemon/test/agent-runner.test.ts
+      - apps/daemon/test/guard-hook.test.ts
+      - apps/daemon/test/ticket-tools.test.ts
+      - apps/daemon/test/live-smoke.test.ts
+  agent-workspace:
+    title: Worktree và kho skill, MCP của agent
+    doc: docs/flows/agent-workspace.md
+    entrypoints:
+      - apps/daemon/src/git/worktree-manager.ts
+    files:
+      - apps/daemon/src/skills/skill-inventory.ts
+      - apps/daemon/src/git/docs-kit-bridge.ts
+    tests:
+      - apps/daemon/test/worktree-manager.test.ts
+      - apps/daemon/test/skill-inventory.test.ts
+  resource-hygiene:
+    title: Dọn tài nguyên sau mỗi job
+    doc: docs/flows/resource-hygiene.md
+    entrypoints:
+      - apps/daemon/src/runner/job-cleanup.ts
+    files:
+      - apps/daemon/src/runner/resource-tracker.ts
+      - apps/daemon/src/runner/resource-report.ts
+    tests:
+      - apps/daemon/test/resources.test.ts
+  daemon-health:
+    title: Kiểm tra sức khỏe máy (crewd doctor)
+    doc: docs/flows/daemon-health.md
+    entrypoints:
+      - apps/daemon/src/commands/doctor.ts
+    files:
+      - apps/daemon/src/health/health-runner.ts
+      - apps/daemon/src/health/types.ts
+      - apps/daemon/src/health/checks/server.ts
+      - apps/daemon/src/health/checks/claude.ts
+      - apps/daemon/src/health/checks/repos.ts
+      - apps/daemon/src/health/checks/machine.ts
+      - apps/daemon/src/health/checks/app.ts
+    tests:
+      - apps/daemon/test/health-checks.test.ts
 shared:
   packages/shared/src/api-schemas.ts: [owner-auth, ticket-lifecycle]
   packages/shared/src/machine-schemas.ts: [machine-pairing, project-claims, daemon-api]

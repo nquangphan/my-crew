@@ -1,0 +1,289 @@
+import { spawn } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import {
+  type HookCallback,
+  type McpServerConfig,
+  type Options,
+  type SDKMessage,
+  query as sdkQuery,
+} from '@anthropic-ai/claude-agent-sdk';
+import type { AgentRole, Effort } from '@crew/shared';
+import type { JobKind } from '../state-db.js';
+import type { AnyToolDefinition, EndReason } from '../tools/ticket-mcp-server.js';
+import { slashCommandsIn } from './skill-usage.js';
+
+/** Lets a ticket tool (ask_owner, handoff_docs) end the run after its result. */
+export class RunControl {
+  endReason: EndReason | null = null;
+  private listener: (() => void) | null = null;
+
+  requestEnd(reason: EndReason): void {
+    if (this.endReason) return;
+    this.endReason = reason;
+    this.listener?.();
+  }
+
+  onEnd(listener: () => void): void {
+    this.listener = listener;
+  }
+}
+
+export interface InitInfo {
+  sessionId: string;
+  /** Skill names from the SDK `system/init` message (plugin skills are namespaced, e.g. `ak:scout`). */
+  skills: string[];
+  mcpServers: { name: string; status: string; source?: string }[];
+  model: string;
+  apiKeySource: string | null;
+  claudeCodeVersion: string | null;
+}
+
+export interface RunAgentOptions {
+  jobId: string;
+  ticketId: string;
+  ticketKey: string;
+  role: AgentRole;
+  kind: JobKind;
+  cwd: string;
+  model: string;
+  effort: Effort;
+  prompt: string;
+  resumeSessionId?: string | null;
+  allowedTools: string[];
+  maxBudgetUsd?: number | null;
+  abortSignal: AbortSignal;
+  /** Full child env: the job tag, the per-job temp dir, never `ANTHROPIC_API_KEY`. */
+  env: Record<string, string | undefined>;
+  /** In-process servers (the ticket server); every other MCP server comes from the loaded settings. */
+  mcpServers: Record<string, McpServerConfig>;
+  /** The ticket tools behind `mcpServers.tickets` (the scripted runner calls them directly). */
+  ticketTools: AnyToolDefinition[];
+  preToolUse: HookCallback;
+  /** Project `.mcp.json` servers from the inventory, approved for this headless run. */
+  enabledMcpjsonServers?: string[];
+  /** Project `.mcp.json` servers the owner switched off. */
+  disabledMcpjsonServers?: string[];
+  appendSystemPrompt?: string;
+  control: RunControl;
+  /** The agent process started (its pid is also its process group id). */
+  onSpawn?: (pid: number) => void;
+  onInit?: (info: InitInfo) => void;
+}
+
+export interface AgentRunResult {
+  sessionId: string | null;
+  /** `success`, an `error_*` subtype, or null when the run produced no result message. */
+  resultSubtype: string | null;
+  isError: boolean;
+  /** The final result's `total_cost_usd` (a resumed session already includes its earlier spend). */
+  totalCostUsd: number;
+  modelUsage: Record<string, { costUSD: number; inputTokens: number; outputTokens: number }>;
+  skillsListed: string[];
+  /** `/skill` commands seen in the run's user messages and prompt. */
+  slashCommands: string[];
+  mcpServers: { name: string; status: string }[];
+  /** Last API error class the CLI reported (`system/api_retry` or an assistant error). */
+  apiError: string | null;
+  aborted: boolean;
+  endedBy: EndReason | null;
+  errors: string[];
+  apiKeySource: string | null;
+  claudeCodeVersion: string | null;
+}
+
+/** Same interface for the real SDK runner and the scripted test double. */
+export type AgentRunner = (options: RunAgentOptions) => Promise<AgentRunResult>;
+
+export function emptyResult(): AgentRunResult {
+  return {
+    sessionId: null,
+    resultSubtype: null,
+    isError: false,
+    totalCostUsd: 0,
+    modelUsage: {},
+    skillsListed: [],
+    slashCommands: [],
+    mcpServers: [],
+    apiError: null,
+    aborted: false,
+    endedBy: null,
+    errors: [],
+    apiKeySource: null,
+    claudeCodeVersion: null,
+  };
+}
+
+/** The agent env: the daemon's env without `ANTHROPIC_API_KEY`, plus the given additions. */
+export function agentEnv(
+  base: NodeJS.ProcessEnv,
+  extra: Record<string, string | undefined>,
+): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = { ...base, ...extra };
+  // Billing must stay on the owner's subscription login; an API key in the env would silently switch it.
+  delete env.ANTHROPIC_API_KEY;
+  return env;
+}
+
+function textOf(message: SDKMessage): string {
+  if (message.type !== 'user') return '';
+  const content = (message.message as { content?: unknown }).content;
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((block) => (block && typeof block === 'object' && 'text' in block ? String(block.text) : ''))
+    .join('\n');
+}
+
+/** Version of the Claude Code runtime bundled with the pinned Agent SDK (`claudeCodeVersion`). */
+export function sdkRuntimeVersion(): string | null {
+  try {
+    const entry = createRequire(import.meta.url).resolve('@anthropic-ai/claude-agent-sdk');
+    const manifest = JSON.parse(readFileSync(join(dirname(entry), 'package.json'), 'utf8')) as {
+      claudeCodeVersion?: string;
+    };
+    return manifest.claudeCodeVersion ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export interface SdkRunnerOptions {
+  query?: typeof sdkQuery;
+  /** Path of the Claude Code executable (the desktop app points the SDK at its bundled runtime). */
+  pathToClaudeCodeExecutable?: string;
+}
+
+/**
+ * The production runner: one Agent SDK `query()` per run, with `settingSources` (so skills load), the
+ * `dontAsk` permission mode plus the role's `allowedTools`, the inline `PreToolUse` guard and the
+ * in-process ticket server. The agent process runs in its own process group so cleanup can stop it and
+ * everything it started.
+ */
+export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
+  const query = options.query ?? sdkQuery;
+  return async (run) => {
+    const result = emptyResult();
+    result.slashCommands.push(...slashCommandsIn(run.prompt));
+    const abortController = new AbortController();
+    const onAbort = () => abortController.abort();
+    if (run.abortSignal.aborted) onAbort();
+    run.abortSignal.addEventListener('abort', onAbort, { once: true });
+    const stderr: string[] = [];
+
+    const sdkOptions: Options = {
+      cwd: run.cwd,
+      model: run.model,
+      effort: run.effort,
+      ...(run.resumeSessionId ? { resume: run.resumeSessionId } : {}),
+      settingSources: ['user', 'project', 'local'],
+      permissionMode: 'dontAsk',
+      allowedTools: run.allowedTools,
+      mcpServers: run.mcpServers,
+      hooks: { PreToolUse: [{ hooks: [run.preToolUse] }] },
+      env: { ...run.env, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '2' },
+      ...(run.maxBudgetUsd ? { maxBudgetUsd: run.maxBudgetUsd } : {}),
+      abortController,
+      settings: {
+        ...(run.enabledMcpjsonServers ? { enabledMcpjsonServers: run.enabledMcpjsonServers } : {}),
+        ...(run.disabledMcpjsonServers?.length ? { disabledMcpjsonServers: run.disabledMcpjsonServers } : {}),
+      },
+      ...(run.appendSystemPrompt
+        ? { systemPrompt: { type: 'preset', preset: 'claude_code', append: run.appendSystemPrompt } }
+        : {}),
+      ...(options.pathToClaudeCodeExecutable
+        ? { pathToClaudeCodeExecutable: options.pathToClaudeCodeExecutable }
+        : {}),
+      stderr: (data) => {
+        stderr.push(data);
+        if (stderr.length > 50) stderr.shift();
+      },
+      spawnClaudeCodeProcess: (spawnOptions) => {
+        const child = spawn(spawnOptions.command, spawnOptions.args, {
+          cwd: spawnOptions.cwd,
+          env: spawnOptions.env as NodeJS.ProcessEnv,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          // Own process group: cleanup signals the whole tree the agent started.
+          detached: true,
+        });
+        if (child.pid) run.onSpawn?.(child.pid);
+        child.stderr?.on('data', (chunk: Buffer) => {
+          stderr.push(chunk.toString('utf8'));
+          if (stderr.length > 50) stderr.shift();
+        });
+        spawnOptions.signal.addEventListener('abort', () => child.kill('SIGTERM'), { once: true });
+        return child as unknown as ReturnType<NonNullable<Options['spawnClaudeCodeProcess']>>;
+      },
+    };
+
+    const q = query({ prompt: run.prompt, options: sdkOptions });
+    let interrupted = false;
+    const interrupt = () => {
+      if (interrupted) return;
+      interrupted = true;
+      q.interrupt().catch(() => undefined);
+    };
+    run.control.onEnd(() => {
+      result.endedBy = run.control.endReason;
+    });
+    try {
+      for await (const message of q) {
+        if (run.control.endReason && message.type === 'assistant') interrupt();
+        if (message.type === 'system' && message.subtype === 'init') {
+          result.sessionId = message.session_id;
+          result.skillsListed = [...message.skills];
+          result.mcpServers = message.mcp_servers.map((server) => ({
+            name: server.name,
+            status: server.status,
+          }));
+          result.apiKeySource = message.apiKeySource;
+          result.claudeCodeVersion = message.claude_code_version;
+          run.onInit?.({
+            sessionId: message.session_id,
+            skills: [...message.skills],
+            mcpServers: message.mcp_servers,
+            model: message.model,
+            apiKeySource: message.apiKeySource,
+            claudeCodeVersion: message.claude_code_version,
+          });
+        } else if (message.type === 'system' && message.subtype === 'api_retry') {
+          result.apiError = message.error;
+        } else if (message.type === 'assistant' && message.error) {
+          result.apiError = message.error;
+        } else if (message.type === 'user') {
+          for (const command of slashCommandsIn(textOf(message))) result.slashCommands.push(command);
+        } else if (message.type === 'result') {
+          result.sessionId = message.session_id;
+          result.resultSubtype = message.subtype;
+          result.isError = message.is_error;
+          result.totalCostUsd = message.total_cost_usd;
+          result.modelUsage = Object.fromEntries(
+            Object.entries(message.modelUsage).map(([model, usage]) => [
+              model,
+              { costUSD: usage.costUSD, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens },
+            ]),
+          );
+          if (message.subtype !== 'success') result.errors.push(...message.errors);
+          if (run.control.endReason) break;
+        }
+      }
+    } catch (error) {
+      if (abortController.signal.aborted) result.aborted = true;
+      else result.errors.push((error as Error).message);
+    } finally {
+      run.abortSignal.removeEventListener('abort', onAbort);
+      q.close();
+    }
+    result.endedBy = run.control.endReason;
+    // A run ended by ask_owner / handoff_docs is a normal end even though the turn was interrupted.
+    if (result.endedBy) result.isError = false;
+    else if (result.resultSubtype === null && !result.aborted) {
+      result.isError = true;
+      if (result.errors.length === 0)
+        result.errors.push(stderr.join('').slice(-2_000) || 'no result message');
+    }
+    result.slashCommands = [...new Set(result.slashCommands)];
+    return result;
+  };
+}
