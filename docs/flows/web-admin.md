@@ -26,8 +26,8 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
    trang (giữ nguyên chấm chưa đọc cho các thông báo đã có lúc mở, qua `readBefore`); `ClaimItem` mở
    `TotpDialog` để duyệt/từ chối yêu cầu chuyển máy (gọi `api.decideClaim`, flow `project-claims`);
    `describeNotice()` diễn giải từng loại sự kiện thông báo (`machine.claimed`, `claim.requested`,
-   `machine.released`, `project.created`, `machine.offline`, `machine.unhealthy`, `budget.exceeded`) thành câu
-   tiếng Việt.
+   `machine.released`, `project.created`, `machine.offline`, `machine.unhealthy`, `budget.exceeded`,
+   `ticket.stuck`) thành câu tiếng Việt — riêng `ticket.stuck` (flow `ticket-lifecycle`) kèm link "mở ticket".
 3. `apps/web/src/routes/projects.tsx` → `ProjectsPage()`, `ProjectCard`: danh sách project (badge trạng thái
    docs qua `DocsStatusLozenge`), dialog tạo/sửa dùng `ProjectForm`, dialog chuyển máy dùng `ReassignDialog`.
 4. `apps/web/src/components/project-form.tsx` → `ProjectForm()`: form tên/mô tả (gợi ý "mô tả quyết định định
@@ -64,14 +64,15 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 
 - Bảng: không trực tiếp (qua API các flow `project-claims`, `machine-pairing`, `event-delivery`).
 - Sự kiện: tiêu thụ `claim.requested`, `machine.claimed`, `machine.released`, `project.created`,
-  `machine.offline`, `machine.unhealthy`, `budget.exceeded` (danh sách `NOTICE_EVENT_TYPES`) qua
-  `GET /v1/notices` và qua `invalidationsFor()` (flow `event-delivery`) để làm mới trực tiếp.
+  `machine.offline`, `machine.unhealthy`, `budget.exceeded`, `ticket.stuck` (danh sách `NOTICE_EVENT_TYPES`)
+  qua `GET /v1/notices` và qua `invalidationsFor()` (flow `event-delivery`) để làm mới trực tiếp.
 - Gọi ngoài: gọi API qua `lib/api-client.ts` (flow `web-shell`).
 
 ## Flow liên quan
 
 - project-claims: duyệt/từ chối claim, tạo/sửa project, chuyển máy sở hữu.
 - machine-pairing: tạo mã pairing, thu hồi máy, đặt máy trợ lý, đọc inventory skill/MCP.
+- ticket-lifecycle: nguồn thông báo `ticket.stuck` (báo ticket không máy nào đang xử lý).
 - event-delivery: nguồn thông báo (`/v1/notices`) và làm mới trực tiếp qua SSE.
 - web-shell: dùng chung `Breadcrumbs`, `StatusLozenge`, `ui/*`, `useStoredState`.
 

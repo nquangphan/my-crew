@@ -19,6 +19,7 @@ export function invalidationsFor(event: EventEnvelope): QueryKey[] {
     case 'ticket.cancelled':
       return TICKET_KEYS;
     case 'budget.exceeded':
+    case 'ticket.stuck':
       return [...TICKET_KEYS, keys.notices];
     case 'machine.claimed':
     case 'claim.requested':

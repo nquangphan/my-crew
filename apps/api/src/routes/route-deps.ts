@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import type { AppConfig } from '../config.js';
 import type { Database } from '../db/client.js';
 import { ApiError } from '../errors.js';
+import type { WaitingJobsRegistry } from '../jobs/stuck-ticket-alarm.js';
 import type { EventBus } from '../realtime/event-bus.js';
 
 export interface RouteDeps {
@@ -10,6 +11,8 @@ export interface RouteDeps {
   bus: EventBus;
   /** SSE heartbeat interval; the token or session is re-checked on each one. */
   streamHeartbeatMs: number;
+  /** Queued and backoff jobs from the latest heartbeats, read by the stuck-ticket alarm. */
+  waitingJobs: WaitingJobsRegistry;
 }
 
 /** Validates external input at the route boundary; failures become 400 VALIDATION_FAILED. */

@@ -60,6 +60,7 @@ flows:
       - apps/api/src/services/ticket-query-service.ts
       - apps/api/src/services/report-service.ts
       - apps/api/src/services/budget-service.ts
+      - apps/api/src/jobs/stuck-ticket-alarm.ts
       - packages/shared/src/ticket-schemas.ts
       - packages/shared/src/agent-schemas.ts
       - packages/shared/src/status-workflow.ts
@@ -70,6 +71,7 @@ flows:
       - apps/api/test/bug-loop.test.ts
       - apps/api/test/budget.test.ts
       - apps/api/test/owner-web-support.test.ts
+      - apps/api/test/stuck-ticket-alarm.test.ts
       - packages/shared/src/status-workflow.test.ts
   machine-pairing:
     title: Ghép máy và xác thực máy
@@ -473,6 +475,39 @@ flows:
       - apps/desktop/src/renderer/components/ui.tsx
     tests:
       - apps/desktop/test/e2e/onboarding.spec.ts
+  deployment:
+    title: Triển khai VPS và vận hành
+    doc: docs/flows/deployment.md
+    entrypoints:
+      - scripts/deploy.sh
+    files:
+      - deploy/compose.yml
+      - deploy/Dockerfile
+      - deploy/.env.example
+      - deploy/backup/backup.sh
+      - deploy/nginx/crew-http.conf
+      - deploy/nginx/crew-https.conf
+      - deploy/nginx/crew-locations.inc
+      - deploy/web/nginx.conf
+      - deploy/tools/nginx-override.mjs
+      - scripts/lib/common.sh
+      - scripts/lib/render-nginx.sh
+      - scripts/attach-nginx.sh
+      - scripts/enable-https.sh
+      - scripts/restore.sh
+      - scripts/seed-owner.sh
+      - .dockerignore
+      - .github/workflows/ci.yml
+      - deploy/compose.test.yml
+    tests:
+      - e2e/tests/ticket-lifecycle.spec.ts
+      - e2e/tests/docs-viewer.spec.ts
+  daemon-setup:
+    title: Cài đặt máy local (daemon)
+    doc: docs/flows/daemon-setup.md
+    entrypoints: []
+    files: []
+    tests: []
 shared:
   packages/shared/src/api-schemas.ts: [owner-auth, ticket-lifecycle]
   packages/shared/src/machine-schemas.ts: [machine-pairing, project-claims, daemon-api]

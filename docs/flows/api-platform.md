@@ -25,10 +25,12 @@ của mình vào app do flow này dựng lên.
    `DbHandle { db, close }`.
 4. `apps/api/src/app.ts` → `buildApp()`: tạo instance Fastify (`trustProxy` theo whitelist CIDR,
    `bodyLimit=2MB`), đăng ký `@fastify/cookie`, `@fastify/rate-limit`, error handler chuyển `ApiError` thành
-   JSON đúng mã lỗi, route `GET /v1/health` (ping DB), dựng `EventBus`, rồi đăng ký ba nhóm route: public
-   (`authRoutes`, `pairRoutes`), owner (bọc hook `ownerGuard`) và daemon (bọc hook `machineGuard`). Hook
-   `onReady` khởi động `EventBus` và `startHeartbeatSweeper`, cộng thêm timer dọn `idempotency_keys`/`sessions`
-   hết hạn mỗi giờ (`MAINTENANCE_INTERVAL_MS`). Hook `preClose` dừng sweeper và event bus trước khi đóng kết
+   JSON đúng mã lỗi, route `GET /v1/health` (ping DB), dựng `EventBus` và `WaitingJobsRegistry` (tham số
+   `waitingJobs`, mặc định một registry mới — test tự truyền registry riêng để xem), rồi đăng ký ba nhóm route:
+   public (`authRoutes`, `pairRoutes`), owner (bọc hook `ownerGuard`) và daemon (bọc hook `machineGuard`). Hook
+   `onReady` khởi động `EventBus`, `startHeartbeatSweeper` và `startStuckTicketAlarm()` (flow `ticket-lifecycle`,
+   cả hai timer cùng tắt khi `realtime.sweeper: false`), cộng thêm timer dọn `idempotency_keys`/`sessions` hết
+   hạn mỗi giờ (`MAINTENANCE_INTERVAL_MS`). Hook `preClose` dừng cả hai timer và event bus trước khi đóng kết
    nối, vì response SSE bị "hijack" khỏi vòng đời request thường.
 5. `apps/api/src/routes/route-deps.ts` → `parseInput()`, `idParam()`, `uuidParam()`: mọi route handler dùng ba
    hàm này ở biên để validate body/param, ném `ApiError('VALIDATION_FAILED', …)` khi sai.
@@ -51,7 +53,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/src/app.ts` | Lắp Fastify, đăng ký route, vòng đời | `buildApp`, `BuildAppOptions` |
 | `apps/api/src/config.ts` | Đọc và validate biến môi trường | `loadConfig`, `AppConfig` |
 | `apps/api/src/errors.ts` | Lỗi API chuẩn hoá, ánh xạ mã lỗi → status | `ApiError`, `STATUS_BY_CODE`, `notFound` |
-| `apps/api/src/routes/route-deps.ts` | Dependency + helper validate dùng chung cho mọi route | `RouteDeps`, `parseInput`, `idParam`, `uuidParam` |
+| `apps/api/src/routes/route-deps.ts` | Dependency + helper validate dùng chung cho mọi route (`RouteDeps.waitingJobs` mang `WaitingJobsRegistry`, flow `ticket-lifecycle`) | `RouteDeps`, `parseInput`, `idParam`, `uuidParam` |
 | `apps/api/src/services/pg-errors.ts` | Phân loại lỗi SQLSTATE của Postgres | `isUniqueViolation` |
 | `apps/api/src/db/client.ts` | Kết nối Postgres qua Drizzle | `createDb`, `Database`, `Executor` |
 | `apps/api/src/db/schema.ts` | Toàn bộ bảng và enum Drizzle | mọi `pgTable`/`pgEnum` xuất khẩu |
@@ -72,8 +74,9 @@ của mình vào app do flow này dựng lên.
 - owner-auth: `ownerGuard` được gắn vào nhóm route owner tại `buildApp()`.
 - machine-pairing: `pairRoutes` (public) và `machineGuard` (nhóm route daemon) được gắn tại `buildApp()`.
 - event-delivery: `EventBus` được tạo và khởi động/dừng theo vòng đời app tại đây.
-- ticket-lifecycle, daemon-api, project-claims, docs-sync-viewer: route của các flow này được đăng ký bên
-  trong `buildApp()`.
+- ticket-lifecycle: `startStuckTicketAlarm()` và `WaitingJobsRegistry` (`RouteDeps.waitingJobs`) được tạo và
+  khởi động/dừng cùng vòng đời `buildApp()`, cạnh `startHeartbeatSweeper` (flow `machine-pairing`).
+- daemon-api, project-claims, docs-sync-viewer: route của các flow này được đăng ký bên trong `buildApp()`.
 
 ## Tests
 

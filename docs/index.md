@@ -58,6 +58,8 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Kiểm tra sức khỏe máy (crewd doctor)](flows/daemon-health.md) | `daemon-health` | `apps/daemon/src/commands/doctor.ts` |
 | [Daemon cục bộ (crewd)](flows/daemon-runtime.md) | `daemon-runtime` | `apps/daemon/src/cli.ts`, `apps/daemon/src/daemon.ts` |
 | [Nhận sự kiện và lập lịch job](flows/daemon-scheduling.md) | `daemon-scheduling` | `apps/daemon/src/stream/stream-client.ts` |
+| [Cài đặt máy local (daemon)](flows/daemon-setup.md) | `daemon-setup` | — |
+| [Triển khai VPS và vận hành](flows/deployment.md) | `deployment` | `scripts/deploy.sh` |
 | [Ứng dụng máy local 2P Crew (Electron)](flows/desktop-app.md) | `desktop-app` | `apps/desktop/src/main/index.ts`, `apps/desktop/src/daemon-host/index.ts` |
 | [Giao diện app desktop (cài đặt, sức khỏe, job, project)](flows/desktop-ui.md) | `desktop-ui` | `apps/desktop/src/renderer/main.tsx`, `apps/desktop/src/renderer/app.tsx` |
 | [Kiểm tra chuẩn docs (crew-docs)](flows/docs-check.md) | `docs-check` | `packages/docs-kit/src/bin.ts`, `packages/docs-kit/src/cli.ts` |

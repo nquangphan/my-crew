@@ -50,6 +50,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    home; `reconcileRestart()` dọn rồi re-queue job còn `running` từ lần chạy trước (`resumeMode` =
    `restart_resume` nếu có `sessionId`, ngược lại `restart_fresh`); `refreshProjects()`; `sweep()`; probe
    inventory máy và từng project; rồi khởi động stream, heartbeat, scheduler và timer sweep mỗi 10 phút.
+   `heartbeat()` gửi thêm `waitingJobs` (`HeartbeatRequest.waitingJobs`) cho mọi job cục bộ `queued`/`backoff`
+   (kèm `retryAt` nếu có), để cảnh báo "ticket đứng yên" trên server (`startStuckTicketAlarm()`, flow
+   `ticket-lifecycle`) không báo nhầm ticket máy này đang giữ chờ tới lượt hoặc chờ thử lại.
    `decide()` (dùng bởi `Scheduler`, flow `daemon-scheduling`): `pm_task` vượt ngân sách cây trả `defer` (job ở
    nguyên `queued`, thử lại ở lượt sau) thay vì `skip` (kết thúc hẳn) — chủ dự án duyệt xong thì job tự chạy mà
    không cần một sự kiện đánh thức mới.
@@ -116,6 +119,8 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
   `JobRunnerDeps.resourceOps`.
 - daemon-health: `crewd doctor` (`runDoctor()` trong `cli.ts`) gọi `doctor()` của flow `daemon-health`.
 - daemon-api: `VpsClient` gọi các route đó (xem flow `daemon-api` ở phía server).
+- ticket-lifecycle: `waitingJobs` trong mỗi heartbeat là dữ liệu vào của `WaitingJobsRegistry`/
+  `startStuckTicketAlarm()` phía server.
 - desktop-app: `HostService.startDaemon()` gọi `createDaemon()` với `crewDocsRuntime` là binary của app; mọi
   export của `library.ts` (config, secrets, state DB, VPS client, health) được `setup-ops.ts`/`health-ops.ts`/
   `activity.ts` dùng lại thay vì định nghĩa riêng.

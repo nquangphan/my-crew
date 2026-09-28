@@ -40,7 +40,8 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
    nhận sự kiện mới); daemon dùng `stillAuthorized = authenticateTokenHash`, owner dùng
    `sessionStillValid()`.
 7. `apps/web/src/lib/live-events.ts` → `startLiveEvents()`: mở `EventSource` tới `/v1/stream`, map mỗi
-   `EventEnvelope` sang danh sách query key cần invalidate (`invalidationsFor()`), gộp theo lô 100ms
+   `EventEnvelope` sang danh sách query key cần invalidate (`invalidationsFor()`; `budget.exceeded` và
+   `ticket.stuck` làm mới cả ticket lẫn danh sách thông báo của inbox), gộp theo lô 100ms
    (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với `?cursor=<lastEventId>`
    sau `retryMs`, và invalidate toàn bộ query sau mỗi lần nối lại (vì có thể đã lỡ sự kiện lúc mất kết nối).
 
@@ -58,8 +59,9 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 ## Dữ liệu
 
 - Bảng: `events` (outbox, sở hữu bởi flow này — cột `seq` là cursor phát).
-- Sự kiện: đây là hạ tầng phát mọi loại sự kiện định nghĩa ở `packages/shared/src/event-schemas.ts`; các flow
-  khác (ticket-lifecycle, project-claims, machine-pairing) là nguồn phát thật.
+- Sự kiện: đây là hạ tầng phát mọi loại sự kiện định nghĩa ở `packages/shared/src/event-schemas.ts`, kể cả
+  `ticket.stuck` (thêm vào `NOTICE_EVENT_TYPES`, chỉ owner stream — `targetMachineId=null`); các flow khác
+  (ticket-lifecycle, project-claims, machine-pairing) là nguồn phát thật.
 - Gọi ngoài: không (chỉ Postgres LISTEN/NOTIFY nội bộ).
 
 ## Flow liên quan

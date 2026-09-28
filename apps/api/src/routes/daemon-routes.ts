@@ -55,7 +55,10 @@ import { idParam, parseInput, type RouteDeps } from './route-deps.js';
  * `Idempotency-Key` and replay the stored response on retry. Exceptions: the heartbeat (a full-state
  * replace sent every 30 s) and token rotation (its response is a secret that must never be stored).
  */
-export async function daemonRoutes(app: FastifyInstance, { db, config }: RouteDeps): Promise<void> {
+export async function daemonRoutes(
+  app: FastifyInstance,
+  { db, config, waitingJobs }: RouteDeps,
+): Promise<void> {
   const timezone = config.budgetTimezone;
 
   /** An idempotent write on one in-scope ticket. */
@@ -90,9 +93,13 @@ export async function daemonRoutes(app: FastifyInstance, { db, config }: RouteDe
     reply.status(201).send(await rotateToken(db, requireMachine(request))),
   );
 
-  app.post('/v1/daemon/heartbeat', async (request) =>
-    recordHeartbeat(db, requireMachine(request), parseInput(HeartbeatRequest, request.body)),
-  );
+  app.post('/v1/daemon/heartbeat', async (request) => {
+    const machine = requireMachine(request);
+    const body = parseInput(HeartbeatRequest, request.body);
+    const response = await recordHeartbeat(db, machine, body);
+    waitingJobs.record(machine.machineId, body.waitingJobs);
+    return response;
+  });
 
   app.put('/v1/daemon/skills', async (request, reply) => {
     const machine = requireMachine(request);

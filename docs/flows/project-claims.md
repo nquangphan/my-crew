@@ -71,7 +71,8 @@ owner duyệt bằng TOTP. Khi quyền sở hữu đổi, các ticket đang mở
   `machine-pairing`/`daemon-api`, không thuộc file của flow này: nguồn của nó là `ProjectConfig.disabledMcpServers`
   cục bộ trên máy (`apps/daemon/src/config.ts`, flow `daemon-runtime`), không phải bảng `projects` hay claim ở
   đây; daemon đánh dấu nó khi báo cáo inventory và server dùng để từ chối ticket yêu cầu server đó cho project
-  này.
+  này. Cùng file còn có `WaitingJob`/`HeartbeatRequest.waitingJobs`, cũng không thuộc claim/project ở đây —
+  dùng bởi cảnh báo "ticket đứng yên" của flow `ticket-lifecycle` (xem flow `daemon-api`).
 - Sự kiện: `machine.claimed`, `claim.requested`, `claim.changed`, `machine.released`, `project.created`,
   `ticket.assigned {reassigned: true}`.
 - Gọi ngoài: không.

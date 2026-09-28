@@ -10,7 +10,13 @@ import { useToast } from '../components/ui/toast';
 import { Breadcrumbs } from '../layout/breadcrumbs';
 import { api } from '../lib/api-client';
 import { cn } from '../lib/cn';
-import { budgetKindLabel, formatFullDateTime, formatRelative, OPEN_STATUSES } from '../lib/format';
+import {
+  budgetKindLabel,
+  formatFullDateTime,
+  formatRelative,
+  OPEN_STATUSES,
+  STATUS_LABEL,
+} from '../lib/format';
 import { useInboxSummary } from '../lib/inbox';
 import { keys, useMachineNames, useProjects, useTickets } from '../lib/queries';
 
@@ -148,6 +154,8 @@ function describeNotice(
       return `${machineName(p.data.machineId)} lỗi health: ${p.data.failing.map((f) => f.title).join(', ') || 'không rõ'}`;
     case 'budget.exceeded':
       return `Vượt giới hạn ${budgetKindLabel(p.data.kind)}`;
+    case 'ticket.stuck':
+      return `Ticket đứng yên ${p.data.idleMinutes} phút ở ${STATUS_LABEL[p.data.status]}, không máy nào đang xử lý`;
     default:
       return p.type;
   }
@@ -262,14 +270,15 @@ export function InboxPage() {
                 {index < (readBefore ?? 0) && <span className="sr-only">Chưa đọc:</span>}
                 <span className="min-w-0 grow">
                   {describeNotice(event, machines, projects.data ?? [])}
-                  {event.ticketId && event.payload.type === 'budget.exceeded' && (
-                    <>
-                      {' · '}
-                      <Link to="/tickets/$ticketKey" params={{ ticketKey: event.ticketId }}>
-                        mở ticket
-                      </Link>
-                    </>
-                  )}
+                  {event.ticketId &&
+                    (event.payload.type === 'budget.exceeded' || event.payload.type === 'ticket.stuck') && (
+                      <>
+                        {' · '}
+                        <Link to="/tickets/$ticketKey" params={{ ticketKey: event.ticketId }}>
+                          mở ticket
+                        </Link>
+                      </>
+                    )}
                 </span>
                 <time
                   dateTime={event.createdAt}

@@ -19,3 +19,7 @@ apps/desktop/.stage/
 apps/desktop/release/
 apps/desktop/test-results/
 apps/desktop/.e2e/
+# VPS deploy: the rendered edge site (scripts/attach-nginx.sh). Root E2E run state and results.
+/edge/
+e2e/.e2e/
+e2e/test-results/
