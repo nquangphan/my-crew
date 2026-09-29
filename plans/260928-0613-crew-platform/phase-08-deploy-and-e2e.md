@@ -1,6 +1,6 @@
 ---
 title: "Phase 8: Deploy and E2E"
-status: in-progress
+status: completed
 priority: P1
 effort: 6h
 dependsOn: [4, 7, 9]
@@ -62,12 +62,12 @@ Create:
 
 ## Todo
 
-- [ ] Dockerfiles, compose, Caddy (SSE-safe)
-- [ ] Backup container and deploy/restore scripts with a restore drill
-- [ ] CI workflow green (including the scripted lifecycle matrix)
-- [ ] Stuck-ticket alarm
-- [ ] Playwright E2E green
-- [ ] Deployment and daemon setup flow docs
+- [x] Dockerfiles, compose, Caddy (SSE-safe)
+- [x] Backup container and deploy/restore scripts with a restore drill
+- [x] CI workflow green (including the scripted lifecycle matrix)
+- [x] Stuck-ticket alarm
+- [x] Playwright E2E green
+- [x] Deployment and daemon setup flow docs
 
 ## Success Criteria
 

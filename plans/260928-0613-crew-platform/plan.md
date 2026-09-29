@@ -1,7 +1,7 @@
 ---
 title: "2P Crew"
 description: "Jira/Confluence-like ticket and docs system where a human owner assigns tickets to an assistant agent, which routes them through per-project PM, dev and QC Claude Code agents running on local machines."
-status: in-progress
+status: completed
 priority: P1
 effort: 132h
 tags: [feature, backend, frontend, api, database, auth, infra, docs]
@@ -78,7 +78,7 @@ Owner browser ──HTTPS──► Caddy ─┬─► web (static SPA)
 | 5 | [Docs Standard and Enforcement](./phase-05-docs-standard.md) | Completed | 1, 3, 4 |
 | 6 | [Local Daemon Core](./phase-06-local-daemon.md) | Completed | 3, 5 |
 | 7 | [Agent Workflow](./phase-07-agent-workflow.md) | Completed | 6 |
-| 8 | [Deploy and E2E](./phase-08-deploy-and-e2e.md) | In progress (deployed over HTTP; HTTPS waits for DNS) | 4, 7, 9 |
+| 8 | [Deploy and E2E](./phase-08-deploy-and-e2e.md) | Completed | 4, 7, 9 |
 | 9 | [Local Desktop App](./phase-09-local-desktop-app.md) | Completed | 6 (can run in parallel with 7) |
 
 ## Success Criteria
