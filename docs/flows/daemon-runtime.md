@@ -80,7 +80,12 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
     nó, nên không job con nào của một cây bị huỷ còn sống sót trên máy.
 11. `apps/daemon/src/daemon.ts` → `createDaemon().stop()`/`halt()`: `stop()` dừng nhẹ nhàng (abort job đang
     chạy để chúng tự re-queue nhờ `stopping()`), `halt()` là mô phỏng crash cho test (dừng ngay, không ghi
-    thêm gì); cả hai đều gọi `ProbeWorktreeKeeper.stop()` để huỷ timer dọn worktree probe đang chờ.
+    thêm gì); cả hai đều gọi `ProbeWorktreeKeeper.stop()` để huỷ timer dọn worktree probe đang chờ. Trước
+    khi đóng state DB, cả hai còn đợi `backgroundIdle()` cho các cuộc gọi API mà daemon tự bắn đi không chờ
+    (`inBackground()`): refresh project khi stream kết nối, refresh project sau effect `refresh_projects`
+    (sự kiện `claim.changed`), `wakePmForLeftovers()` từ `onCleaned`, `cancelDescendants()` và `getTicket`
+    dọn worktree khi huỷ — nên khi `stop()`/`halt()` trả về, daemon không còn request nào bỏ ngỏ và không
+    có ghi nào rơi vào state DB đã đóng.
 12. `apps/daemon/src/service/systemd.ts` → `installService()`/`systemdUnit()`: sinh và cài một **systemd user
     unit** (`crewd.service`) chạy trong phiên của chủ dự án, luôn `UnsetEnvironment=ANTHROPIC_API_KEY` để
     billing ở lại đăng nhập gói đăng ký; `crewd install-service` chỉ chạy trên Linux (macOS dùng app desktop).
@@ -152,4 +157,6 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
   trong thư mục `assistantDir` do daemon quản lý; công cụ docs chạy `crew-docs` trong worktree và đồng bộ
   snapshot docs lên server; worktree QC bắt đầu đúng `head_sha` của report dev đã ghép cặp; cài `crew-docs`
   vào `~/.crew/bin` kèm wrapper trên PATH của agent; giữ worktree probe một giờ sau lần probe rồi xoá, và một
-  daemon khởi động lại xoá worktree probe đã quá hạn (đồng hồ giả kiểm soát được thời gian).
+  daemon khởi động lại xoá worktree probe đã quá hạn (đồng hồ giả kiểm soát được thời gian); và `stop()`
+  không trả về khi một cuộc gọi API daemon tự bắn đi lúc chạy (refresh project khi stream kết nối, bị giữ
+  lại trong test) còn mở.

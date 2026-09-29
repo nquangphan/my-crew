@@ -222,6 +222,16 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
   let hostsAssistant = false;
   const inventories = new Map<string, SkillInventory>();
   const probing = new Map<string, Promise<SkillInventory | null>>();
+  /** API calls started without awaiting them; stop and halt wait for them before closing the state db. */
+  const background = new Set<Promise<unknown>>();
+  const inBackground = (work: Promise<unknown>): void => {
+    const settled = work.catch(() => undefined);
+    background.add(settled);
+    void settled.then(() => background.delete(settled));
+  };
+  const backgroundIdle = async () => {
+    while (background.size > 0) await Promise.allSettled([...background]);
+  };
   let sweepTimer: NodeJS.Timeout | null = null;
 
   for (const row of state.db.prepare(`select key, value from meta where key like 'inventory:%'`).all() as {
@@ -437,7 +447,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
         graceMs: timings.cleanupGraceMs,
       }),
     onInit,
-    onCleaned: (job, ticket, record) => void wakePmForLeftovers(job, ticket, record),
+    onCleaned: (job, ticket, record) => inBackground(wakePmForLeftovers(job, ticket, record)),
     onJobChanged: (job) => events.emit('job', job),
     log,
     stopping: () => stopping,
@@ -562,28 +572,34 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       case 'folded':
         break;
       case 'cancel':
-        void cancelDescendants(effect.ticketId).catch((error: Error) =>
-          log('warn', 'cancel cascade failed', { ticketId: effect.ticketId, error: error.message }),
+        inBackground(
+          cancelDescendants(effect.ticketId).catch((error: Error) =>
+            log('warn', 'cancel cascade failed', { ticketId: effect.ticketId, error: error.message }),
+          ),
         );
         if (effect.job?.status === 'running' && jobs.abort(effect.job.id)) break;
-        void (async () => {
-          try {
-            const { ticket } = await vps.getTicket(effect.ticketId);
-            const project = projectFor(ticket.projectId);
-            if (project) removeWorktree(project.repoPath, ticket.key);
-          } catch (error) {
-            log('warn', 'cancel cleanup failed', {
-              ticketId: effect.ticketId,
-              error: (error as Error).message,
-            });
-          }
-        })();
+        inBackground(
+          (async () => {
+            try {
+              const { ticket } = await vps.getTicket(effect.ticketId);
+              const project = projectFor(ticket.projectId);
+              if (project) removeWorktree(project.repoPath, ticket.key);
+            } catch (error) {
+              log('warn', 'cancel cleanup failed', {
+                ticketId: effect.ticketId,
+                error: (error as Error).message,
+              });
+            }
+          })(),
+        );
         break;
       case 'refresh_projects':
-        void refreshProjects()
-          .then(() => releaseLostProjects())
-          .then(() => scheduler.tick())
-          .catch((error: Error) => log('warn', 'project refresh failed', { error: error.message }));
+        inBackground(
+          refreshProjects()
+            .then(() => releaseLostProjects())
+            .then(() => scheduler.tick())
+            .catch((error: Error) => log('warn', 'project refresh failed', { error: error.message })),
+        );
         break;
       case 'ignored':
         break;
@@ -597,9 +613,11 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     onEffect,
     onConnected: () => {
       log('info', 'stream connected', { cursor: state.getCursor() });
-      void refreshProjects()
-        .catch((error: Error) => log('warn', 'project refresh failed', { error: error.message }))
-        .finally(() => void scheduler.recheckWaiting());
+      inBackground(
+        refreshProjects()
+          .catch((error: Error) => log('warn', 'project refresh failed', { error: error.message }))
+          .finally(() => void scheduler.recheckWaiting()),
+      );
     },
     onError: (error) => log('warn', 'stream', { error: error.message }),
     ...(timings.stream ?? {}),
@@ -776,6 +794,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       jobs.abortAll();
       await jobs.idle();
       await heartbeatLoop.stop();
+      await backgroundIdle();
       await Promise.allSettled([...probing.values()]);
       const final = { ...daemon.status(), running: false };
       state.close();
@@ -792,6 +811,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       await heartbeatLoop.stop();
       jobs.abortAll();
       await jobs.idle();
+      await backgroundIdle();
       await Promise.allSettled([...probing.values()]);
       state.close();
       started = false;

@@ -329,6 +329,44 @@ describe('daemon wiring', () => {
     await t.daemon.stop();
   });
 
+  it('stop waits for the API calls it started in the background, so none outlives it', async () => {
+    const f = await fixture(api);
+    // Hold the project refresh the daemon fires when its stream connects.
+    let hold = false;
+    let held = 0;
+    let open = 0;
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const gatedFetch: typeof fetch = async (input, init) => {
+      open += 1;
+      try {
+        if (hold && String(input).endsWith('/v1/daemon/projects')) {
+          held += 1;
+          await gate;
+        }
+        return await fetch(input, init);
+      } finally {
+        open -= 1;
+      }
+    };
+    const t = makeDaemon(f, { repoPath: null, extra: { fetch: gatedFetch } });
+    await t.daemon.start();
+    hold = true;
+    await waitFor(() => held === 1, 10_000, 'refresh after the stream connected');
+
+    let stopped = false;
+    const stopping = t.daemon.stop().then(() => {
+      stopped = true;
+    });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(stopped).toBe(false);
+    release();
+    await stopping;
+    expect(open).toBe(0);
+  });
+
   it('installs crew-docs into ~/.crew/bin with a wrapper on the agents PATH', () => {
     const bin = join(makeRepo(), 'bin');
     const installed = installCrewDocs(bin, inject('bundlePath'));
