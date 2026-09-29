@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { AgentRole, Effort, JobWaitDetail, JobWaitReason, RoleStage } from './agent-schemas.js';
 import { CreateCommentRequest, TotpCode } from './api-schemas.js';
+import { BmadProfile } from './bmad-schemas.js';
 import {
   CreateProjectRequest,
   DocsStatus,
@@ -387,6 +388,8 @@ export const DaemonProject = z.object({
   pendingChange: PendingProjectChange.nullable().default(null),
   /** This machine's latest type and UI-test MCP change request for the project, whatever its status. */
   lastChange: ProjectChangeOutcome.nullable().default(null),
+  /** The BMAD setup a machine holding the project reported (the newest install), or null. */
+  bmadProfile: BmadProfile.nullable().default(null),
 });
 export type DaemonProject = z.infer<typeof DaemonProject>;
 

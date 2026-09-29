@@ -43,6 +43,7 @@ import { ResourceTracker } from './runner/resource-tracker.js';
 import { type ResourceSnapshot, takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
 import { Scheduler, type StartDecision } from './scheduler/scheduler.js';
 import { defaultTokenStore, type TokenStore } from './secrets.js';
+import { readBmadProfile } from './skills/bmad-profile.js';
 import { probeInventory } from './skills/skill-inventory.js';
 import { ACTIVE_JOB_STATUSES, type CleanupRecord, type JobRow, StateDb } from './state-db.js';
 import { type DispatchEffect, wakeTicket } from './stream/dispatcher.js';
@@ -283,6 +284,36 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     hostsAssistant = view.assistant.state === 'mine';
   }
 
+  /**
+   * Reports the project's BMAD profile (read from the main checkout) when this machine owns the project and the
+   * profile changed since its last report. The server keeps the newest install, so an outdated `_bmad` on a
+   * machine that took the project over never hides the setup another machine reported.
+   */
+  async function reportBmadProfile(project: ProjectConfig): Promise<void> {
+    const view = [...projectsView.values()].find((item) => item.key === project.key);
+    if (view?.ownerState !== 'mine') return;
+    try {
+      const profile = readBmadProfile(project.repoPath);
+      if (!profile) return;
+      const json = JSON.stringify(profile);
+      const metaKey = `bmad-profile:${project.key}`;
+      if (state.getMeta(metaKey) === json) return;
+      const answer = await vps.putBmadProfile(
+        project.key,
+        profile,
+        `bmad-profile:${project.key}:${Date.now()}`,
+      );
+      state.setMeta(metaKey, json);
+      log('info', answer.stored ? 'bmad profile reported' : 'bmad profile older than the stored one', {
+        projectKey: project.key,
+        version: profile.version,
+        stored: answer.stored,
+      });
+    } catch (error) {
+      log('warn', 'bmad profile report failed', { projectKey: project.key, error: (error as Error).message });
+    }
+  }
+
   async function refreshInventory(projectKey: string | null): Promise<SkillInventory | null> {
     const key = projectKey ?? MACHINE_INVENTORY;
     const inFlight = probing.get(key);
@@ -290,6 +321,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     const run = (async () => {
       const project = projectKey ? localProject(projectKey) : null;
       if (projectKey && !project) return null;
+      if (project) await reportBmadProfile(project);
       let cwd = paths.assistantDir;
       let enabled: string[] = [];
       if (project) {

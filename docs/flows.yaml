@@ -34,6 +34,7 @@ flows:
       - apps/api/drizzle/0004_project_change_withdrawn.sql
       - apps/api/drizzle/0005_machine_job_activity.sql
       - apps/api/drizzle/0006_pm_complexity_reason.sql
+      - apps/api/drizzle/0007_project_bmad_profile.sql
       - packages/shared/src/index.ts
     tests:
       - apps/api/test/shutdown.test.ts
@@ -105,10 +106,13 @@ flows:
       - apps/api/src/services/claim-service.ts
       - apps/api/src/services/project-change-service.ts
       - apps/api/src/services/project-service.ts
+      - apps/api/src/services/bmad-profile-service.ts
       - packages/shared/src/project-schemas.ts
+      - packages/shared/src/bmad-schemas.ts
     tests:
       - apps/api/test/claims.test.ts
       - apps/api/test/project-changes.test.ts
+      - apps/api/test/bmad-profile.test.ts
       - packages/shared/src/project-schemas.test.ts
   daemon-api:
     title: REST API cho daemon
@@ -117,6 +121,7 @@ flows:
       - apps/api/src/routes/daemon-routes.ts
     files:
       - apps/api/src/services/idempotency.ts
+      - apps/api/src/routes/bmad-profile-routes.ts
     tests:
       - apps/api/test/machine-scope.test.ts
       - apps/api/test/idempotency.test.ts
@@ -293,6 +298,7 @@ flows:
       - apps/web/src/components/totp-dialog.tsx
     tests:
       - apps/web/src/routes/inbox.test.tsx
+      - apps/web/src/routes/project-settings.test.tsx
       - apps/web/src/components/pairing-dialog.test.tsx
       - apps/web/e2e/owner-admin.spec.ts
   daemon-runtime:
@@ -400,12 +406,14 @@ flows:
       - apps/daemon/src/git/worktree-manager.ts
     files:
       - apps/daemon/src/skills/skill-inventory.ts
+      - apps/daemon/src/skills/bmad-profile.ts
       - apps/daemon/src/git/docs-kit-bridge.ts
       - apps/daemon/src/git/probe-worktree.ts
     tests:
       - apps/daemon/test/worktree-manager.test.ts
       - apps/daemon/test/probe-worktree.test.ts
       - apps/daemon/test/skill-inventory.test.ts
+      - apps/daemon/test/bmad-profile.test.ts
   resource-hygiene:
     title: Dọn tài nguyên sau mỗi job
     doc: docs/flows/resource-hygiene.md
@@ -467,6 +475,7 @@ flows:
       - apps/desktop/src/daemon-host/health-ops.ts
       - apps/desktop/src/daemon-host/activity.ts
       - apps/desktop/src/daemon-host/test-seams.ts
+      - apps/desktop/src/daemon-host/bmad-install.ts
       - packages/shared/src/desktop-ipc.ts
       - apps/desktop/electron.vite.config.ts
     tests:
@@ -476,6 +485,7 @@ flows:
       - apps/desktop/test/host-service.test.ts
       - apps/desktop/test/folder-access.test.ts
       - apps/desktop/test/role-prompts-bundle.test.ts
+      - apps/desktop/test/bmad-install.test.ts
       - apps/desktop/test/e2e/health.spec.ts
   desktop-ui:
     title: Giao diện app desktop (cài đặt, sức khỏe, job, project)
@@ -505,6 +515,7 @@ flows:
       - apps/desktop/test/e2e/onboarding.spec.ts
       - apps/desktop/test/e2e/first-project.spec.ts
       - apps/desktop/test/e2e/project-settings.spec.ts
+      - apps/desktop/test/e2e/project-bmad.spec.ts
       - apps/desktop/test/new-project-form.test.ts
   deployment:
     title: Triển khai VPS và vận hành

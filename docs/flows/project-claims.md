@@ -82,6 +82,14 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
     thông báo trong `NOTICE_EVENT_TYPES`).
 13. `apps/api/src/services/project-change-service.ts` → `listProjectChanges()`, `getProjectChange()`: đọc cho
     trang Inbox trên web (`GET /v1/project-change-requests?status=`) và cho `decideProjectChange()` trả về.
+14. `apps/api/src/services/bmad-profile-service.ts` → `putBmadProfile()`: gọi bởi
+    `PUT /v1/daemon/projects/:projectKey/bmad-profile` (flow `daemon-api`) khi máy sở hữu project báo cáo hồ sơ
+    cài BMAD (`_bmad/`) nó đọc được, để máy khác cài lại đúng bộ đó qua nút "Cài BMAD". Không phải máy sở hữu
+    thì `FORBIDDEN` (403); project không tồn tại thì `NOT_FOUND` (404). Bản ghi mới nhất thắng: một hồ sơ có
+    `lastUpdated` cũ hơn hồ sơ đã lưu không được ghi đè (trả `{stored: false, profile: <hồ sơ đang lưu>}`), nên
+    một máy nhận project với `_bmad` cũ hơn không xoá mất hồ sơ mới máy khác đã báo. `packages/shared/src/bmad-schemas.ts`
+    → `BmadProfile`: từ chối câu trả lời cá nhân (`user_name`, `user_skill_level`, `communication_language` ở
+    dạng setting), key giống credential, đường dẫn tuyệt đối và ký tự điều khiển trước khi lưu.
 
 ## Files
 
@@ -91,10 +99,16 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
 | `apps/api/src/services/claim-service.ts` | Claim, duyệt, thu hồi, dời ticket theo scope | `claim`, `release`, `decideClaimRequest`, `ownerAssign`, `releaseEverything`, `listDaemonProjects`, `createDaemonProject`, `projectCatalog` |
 | `apps/api/src/services/project-change-service.ts` | Máy xin đổi platform/MCP test UI, owner duyệt bằng TOTP, rút yêu cầu khi máy mất project | `requestProjectChange`, `decideProjectChange`, `listProjectChanges`, `getProjectChange`, `changesOf`, `withdrawProjectChanges` |
 | `apps/api/src/services/project-service.ts` | CRUD project và DTO | `createProject`, `updateProject`, `listProjects`, `getProject`, `toProjectDto` |
+| `apps/api/src/services/bmad-profile-service.ts` | Lưu hồ sơ cài BMAD do máy sở hữu project báo cáo, chỉ máy sở hữu mới ghi, bản mới nhất thắng | `putBmadProfile` |
 | `packages/shared/src/project-schemas.ts` | Schema project, `qcDefaultMcps`, giới hạn mặc định, tên MCP server | `CreateProjectRequest`, `UpdateProjectRequest`, `Project`, `qcDefaultMcps`, `McpServerName` |
+| `packages/shared/src/bmad-schemas.ts` | Schema hồ sơ cài BMAD dùng chung server/daemon/desktop, từ chối câu trả lời cá nhân/credential/đường dẫn tuyệt đối | `BmadProfile`, `BmadSetting`, `PutBmadProfileResponse`, `BMAD_PERSONAL_KEYS` |
 
 ## Dữ liệu
 
+- Bảng: `projects.bmad_profile` (jsonb, nullable, migration `apps/api/drizzle/0007_project_bmad_profile.sql`,
+  flow `api-platform` sở hữu việc migrate) lưu `BmadProfile` mới nhất mà máy sở hữu project báo cáo; đọc lại
+  qua `toProjectDto()` (owner) và `listDaemonProjects()` (mọi máy, trường `DaemonProject.bmadProfile`, flow
+  `daemon-api`).
 - Bảng: `projects`, `claim_requests`, `project_change_requests` (`current_platform`/`current_ui_test_mcp` chụp
   lại giá trị lúc hỏi, `platform`/`ui_test_mcp` là giá trị xin đổi, `status` enum `project_change_status`
   `pending`/`approved`/`rejected`/`withdrawn` — `withdrawn` thêm ở migration `0004_project_change_withdrawn.sql`,
@@ -127,7 +141,11 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
 
 - machine-pairing: `revokeMachine()` gọi `releaseEverything()` ở đây khi thu hồi máy.
 - daemon-api: route `/v1/daemon/claims*`, `/v1/daemon/projects`, `/v1/daemon/projects/:projectKey/change-requests`,
-  `/v1/projects/catalog` gọi thẳng các hàm của flow này với `actor='agent'`, qua `replyIdempotent()`.
+  `/v1/projects/catalog` gọi thẳng các hàm của flow này với `actor='agent'`, qua `replyIdempotent()`; route
+  `PUT /v1/daemon/projects/:projectKey/bmad-profile` gọi `putBmadProfile()` cùng cách.
+- daemon-runtime, desktop-app: daemon đọc hồ sơ BMAD từ `_bmad/` cục bộ và gửi lên đây qua `VpsClient.putBmadProfile()`
+  mỗi khi đổi; app desktop dùng lại hồ sơ server trả về để chạy trình cài `bmad-method` trên máy khác
+  ("Cài BMAD", Settings → Projects).
 - ticket-lifecycle: `retargetOpenTickets()` cập nhật `assignee_machine_id` của ticket khi quyền sở hữu project
   đổi.
 - daemon-scheduling: `dispatchEvent()` ánh xạ `project.change_decided` (như `claim.changed`) sang effect
@@ -151,6 +169,10 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
   đúng máy, `lastChange` cập nhật, duyệt/từ chối muộn `CONFLICT` 409 báo "already withdrawn") khi một takeover
   được duyệt chuyển project sang máy khác, khi owner gán lại project cho máy khác, hoặc khi máy tự trả project;
   vẫn `pending` khi owner từ chối takeover (project không đổi chủ); rút khi owner thu hồi máy đang giữ yêu cầu.
+- `apps/api/test/bmad-profile.test.ts`: máy sở hữu báo cáo hồ sơ được lưu và thấy ở cả owner lẫn mọi máy; máy
+  khác báo cáo bị `FORBIDDEN`, project chưa có bị `NOT_FOUND`, key sai `VALIDATION_FAILED`; câu trả lời cá
+  nhân/credential/đường dẫn tuyệt đối/field lạ/version sai định dạng bị từ chối; hồ sơ cũ hơn hồ sơ đã lưu
+  không ghi đè; bắt buộc `Idempotency-Key` và phát lại đúng response khi request lại.
 - `packages/shared/src/project-schemas.test.ts`: `McpServerName` chấp nhận tên plugin có namespace và
   connector claude.ai có dấu cách như Claude Code thật báo cáo, từ chối tên rỗng/có khoảng trắng đầu-cuối/ký
   tự điều khiển; một report với `mcpsUsed`/`mcpsSelected` chứa các tên đó được schema report chấp nhận.

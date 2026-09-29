@@ -91,7 +91,8 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 - project-claims: `revokeMachine()` gọi `releaseEverything()` để giải phóng project/assistant máy đang giữ;
   máy tự đổi `platform`/`uiTestMcp` của project mình qua `POST /v1/daemon/projects/:projectKey/change-requests`
   (chờ owner xác nhận TOTP) dùng chung kiểu dữ liệu `ProjectChangeBody`/`PendingProjectChange` sống trong
-  `packages/shared/src/machine-schemas.ts` (file dùng chung bởi flow này).
+  `packages/shared/src/machine-schemas.ts` (file dùng chung bởi flow này) — cùng file, `DaemonProject` nay có
+  thêm `bmadProfile` (hồ sơ cài BMAD mới nhất do một máy giữ project báo cáo, xem flow `project-claims`).
 - daemon-api: mọi route `/v1/daemon/*` dùng `machineGuard()`, `assertTicketInScope()`/`assertTicketReadable()`
   định nghĩa ở đây; `POST /v1/daemon/tickets` và `.../bugs` gọi `assertKnownCapabilities()` trước khi tạo.
 - ticket-lifecycle: `recordHeartbeat()` gọi `activitySignatures()`/`changedTicketIds()`/`heartbeatFresh()` của

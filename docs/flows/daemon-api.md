@@ -40,12 +40,18 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
    `assertAssistantHost()`) gọi thẳng `claim-service.ts` (flow `project-claims`). Mỗi `DaemonProject` trong
    `GET /v1/daemon/projects` kèm `lastChange: {requestId, status} | null` (`ProjectChangeOutcome`, mặc định
    `null`) — yêu cầu đổi `platform`/MCP test UI mới nhất của chính máy đó cho project, dù trạng thái là gì
-   (`pending`/`approved`/`rejected`/`withdrawn`).
+   (`pending`/`approved`/`rejected`/`withdrawn`) — và `bmadProfile: BmadProfile | null`, hồ sơ cài BMAD mới nhất
+   mà một máy giữ project đã báo cáo, để bất kỳ máy nào cũng thấy được và tự cài lại qua "Cài BMAD" (flow
+   `desktop-app`).
 5. `apps/api/src/routes/daemon-routes.ts` → `POST /v1/daemon/projects/:projectKey/change-requests` (body
    `ProjectChangeBody`, cũng bọc `replyIdempotent()`) gọi `requestProjectChange()` — máy sở hữu project mới
    được đổi `platform`/`uiTestMcp` của nó, và chỉ có hiệu lực sau khi owner duyệt bằng TOTP (flow
    `project-claims`).
-6. `apps/api/src/routes/daemon-routes.ts` → ticket: `GET /v1/daemon/tickets/:id` đọc sau
+6. `apps/api/src/routes/bmad-profile-routes.ts` → `PUT /v1/daemon/projects/:projectKey/bmad-profile` (body
+   `BmadProfile.strict()`, bọc `replyIdempotent()` như mọi ghi khác của daemon) gọi `putBmadProfile()` (flow
+   `project-claims`) — chỉ máy sở hữu project mới ghi được (403 với máy khác), hồ sơ cũ hơn hồ sơ đã lưu không
+   ghi đè.
+7. `apps/api/src/routes/daemon-routes.ts` → ticket: `GET /v1/daemon/tickets/:id` đọc sau
    `assertTicketReadable()` (rộng hơn phạm vi ghi đúng một chỗ: PM đọc được ticket `request` cha của dự án
    mình, flow `machine-pairing`); `GET /v1/daemon/budget/:id` đọc sau `assertTicketInScope()`; `POST
    /v1/daemon/tickets` tạo subtask (kiểm `pm_task` chỉ được tạo bởi máy host assistant, dưới đúng `request`)
@@ -61,6 +67,7 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/api/src/routes/daemon-routes.ts` | Toàn bộ route `/v1/daemon/*` và catalog | `daemonRoutes`, `ticketWrite` |
+| `apps/api/src/routes/bmad-profile-routes.ts` | Route máy sở hữu project báo cáo hồ sơ cài BMAD | `daemonBmadProfileRoutes` |
 | `apps/api/src/services/idempotency.ts` | Khoá + phát lại response ghi của daemon | `withIdempotency`, `replyIdempotent`, `readIdempotencyKey`, `purgeExpiredIdempotencyKeys` |
 
 ## Dữ liệu
@@ -78,7 +85,8 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
 - ticket-lifecycle: mọi ghi ticket của agent dùng chung hàm service với route owner; `fileBug()` phục vụ cả QC
   báo lỗi và PM từ chối (`reject_work`, flow `agent-roles`).
 - project-claims: route project/claim của daemon gọi thẳng `claim-service.ts`; route change-requests gọi
-  `project-change-service.ts`.
+  `project-change-service.ts`; route `bmad-profile` gọi `bmad-profile-service.ts` (schema `BmadProfile` ở
+  `packages/shared/src/bmad-schemas.ts`, cũng thuộc flow đó).
 - api-platform: `daemonRoutes` được đăng ký trong nhóm route bọc `machineGuard` tại `buildApp()`.
 - ticket-lifecycle: `waitingJobs` ghi từ heartbeat được `startStuckTicketAlarm()` đọc để không báo nhầm ticket
   đang chờ thử lại là "đứng yên".

@@ -1,6 +1,7 @@
 import { createDaemon, HEALTH_CHECKS, type JobRow, runHealthChecks } from '@crew/daemon';
 import {
   type AppFacts,
+  type BmadInstallResult,
   type DaemonStatusView,
   type DesktopMethod,
   type DesktopParsed,
@@ -9,6 +10,7 @@ import {
 } from '@crew/shared';
 import { z } from 'zod';
 import { Activity } from './activity.js';
+import { installBmad, npxRunner } from './bmad-install.js';
 import { HealthOps } from './health-ops.js';
 import { HostContext, type HostDeps, HostError } from './host-context.js';
 import {
@@ -169,6 +171,33 @@ export class HostService {
   }
 
   private readonly background = new Set<Promise<unknown>>();
+  /** Projects whose BMAD install is running: a second click waits for the first instead of racing it. */
+  private readonly bmadInstalls = new Set<string>();
+
+  /** "Cài BMAD": installs the project's BMAD profile into its folder, then re-probes its inventory. */
+  private async installBmad(key: string): Promise<BmadInstallResult> {
+    const ctx = this.host;
+    const project = ctx.requireConfig().projects.find((item) => item.key === key);
+    if (!project) throw new HostError(`Máy này chưa có thư mục cho ${key}.`);
+    if (this.bmadInstalls.has(key)) throw new HostError(`Đang cài BMAD cho ${key}; chờ lần cài này xong.`);
+    this.bmadInstalls.add(key);
+    try {
+      const { bmad } = await projectDetail(ctx, key);
+      const outcome = await installBmad(ctx, key, bmad.profile, project.repoPath, {
+        runner: ctx.deps.bmadRunner ?? ctx.deps.seams?.bmadRunner ?? npxRunner,
+        reprobe: async () => {
+          if (!ctx.daemon) return null;
+          const inventory = await ctx.daemon.refreshInventory(key);
+          if (!inventory) throw new Error('inventory probe failed');
+          return inventory.skills.length;
+        },
+      });
+      this.afterProjectChange();
+      return { ...outcome, detail: await projectDetail(ctx, key) };
+    } finally {
+      this.bmadInstalls.delete(key);
+    }
+  }
 
   /** Re-checks health in the background after a project change (the answer does not wait for it). */
   private afterProjectChange(): void {
@@ -295,6 +324,8 @@ export class HostService {
       }
       case 'projects.requestTestSetup':
         return requestTestSetup(this.host, as<'projects.requestTestSetup'>());
+      case 'projects.installBmad':
+        return this.installBmad(as<'projects.installBmad'>().key);
       case 'projects.refreshInventory': {
         const { key } = as<'projects.refreshInventory'>();
         if (!ctx.daemon) throw new HostError('Daemon chưa chạy: kho skill được dò khi daemon chạy.');

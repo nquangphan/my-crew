@@ -12,6 +12,7 @@ import {
   VpsClient,
 } from '@crew/daemon';
 import type { AppLogEntry, HostEventName } from '@crew/shared';
+import type { BmadRunner } from './bmad-install.js';
 import { awaitFolderAccess } from './folder-access.js';
 import type { TestSeams } from './test-seams.js';
 
@@ -30,6 +31,8 @@ export interface HostDeps {
   fetch?: typeof fetch;
   tokenStore?: TokenStore;
   seams?: TestSeams;
+  /** Runs the BMAD installer (`npx`); the unit tests pass a stand-in. */
+  bmadRunner?: BmadRunner;
 }
 
 /** A failure the UI shows as is (Vietnamese). */
@@ -74,6 +77,11 @@ export class HostContext {
     for (const project of config?.projects ?? []) {
       if (existsSync(project.repoPath)) await this.folderRead(project.repoPath);
     }
+  }
+
+  /** Resolves once `path` answered a read: await it before touching a repo folder outside the startup reads. */
+  folderAccess(path: string): Promise<void> {
+    return this.folderRead(path);
   }
 
   private folderRead(path: string): Promise<void> {

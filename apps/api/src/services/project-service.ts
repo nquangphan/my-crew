@@ -26,6 +26,7 @@ export function toProjectDto(row: ProjectRow): Project {
     maxChildrenPerTicket: row.maxChildrenPerTicket,
     ticketTreeBudgetUsd: row.ticketTreeBudgetUsd,
     dailyBudgetUsd: row.dailyBudgetUsd,
+    bmadProfile: row.bmadProfile ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

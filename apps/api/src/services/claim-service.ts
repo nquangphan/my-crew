@@ -489,6 +489,7 @@ export async function listDaemonProjects(db: Executor, machineId: string): Promi
         pendingClaim: pendingProjects.has(project.id),
         pendingChange: changes.get(project.id)?.pending ?? null,
         lastChange: changes.get(project.id)?.last ?? null,
+        bmadProfile: project.bmadProfile ?? null,
       };
     }),
     assistant: {

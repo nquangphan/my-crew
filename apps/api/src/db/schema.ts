@@ -1,5 +1,6 @@
 import {
   AgentRole,
+  type BmadProfile,
   ClaimRequestStatus,
   CommentAuthorKind,
   Complexity,
@@ -149,6 +150,8 @@ export const projects = pgTable('projects', {
   maxChildrenPerTicket: integer('max_children_per_ticket').notNull().default(12),
   ticketTreeBudgetUsd: usd('ticket_tree_budget_usd'),
   dailyBudgetUsd: usd('daily_budget_usd'),
+  /** The BMAD setup the owning machine reported (validated `BmadProfile`); null until one does. */
+  bmadProfile: jsonb('bmad_profile').$type<BmadProfile>(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });

@@ -83,7 +83,12 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
     định "Yêu cầu đổi đã tự rút vì máy này không còn giữ project; loại project giữ nguyên."; một nút
     phụ vẫn mở cài đặt project trên web; kho skill/MCP dò được trong worktree với công tắc bật/tắt từng MCP
     server (trừ server QC bắt buộc dùng), thư mục dùng chung cho worktree (tự nhận + thêm/bỏ tay), trả project
-    (có hộp xác nhận), "Nhận thêm project" và "Tạo project từ thư mục", bật/tắt vai trò trợ lý của máy.
+    (có hộp xác nhận), "Nhận thêm project" và "Tạo project từ thư mục", bật/tắt vai trò trợ lý của máy. Mục
+    `BmadSection` (`ProjectDetail.bmad`): hồ sơ cài BMAD server đang giữ (phiên bản, module, công cụ, ngôn ngữ)
+    hoặc "Chưa có cấu hình BMAD (máy đang giữ project chưa có BMAD)" khi chưa máy nào báo; trạng thái cài trên
+    máy này qua một `Lozenge` (Chưa cài / Khớp cấu hình / Khác cấu hình / Mới hơn cấu hình); nút "Cài BMAD"
+    (`projects.installBmad`, chỉ bấm tay, khoá khi máy này mới hơn hồ sơ) hiện output của trình cài realtime
+    qua sự kiện `bmad.progress` rồi câu kết quả (ví dụ "Đã có BMAD 6.12.0 với đủ module.").
 12. `apps/desktop/src/renderer/components/resource-form.tsx` → `ResourceForm()`, `resourceDraftError()`: số
     job chạy cùng lúc, RAM trống tối thiểu, tải tối đa mỗi CPU, danh sách model được phép (`sonnet` luôn bắt
     buộc, không tắt được) và model/effort theo từng mức độ phức tạp; validate tại chỗ trước khi cho lưu.
@@ -120,8 +125,8 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 
 - Bảng: không đọc/ghi trực tiếp; mọi dữ liệu tới qua các method của `DesktopRequests` (flow `desktop-app`).
 - Sự kiện: nhận `DesktopEvents` (`daemon.status`, `daemon.runtime`, `health.report`, `jobs.changed`,
-  `log.line`, `update.status`, `app.navigate`) qua `useDesktopEvent()`; không tự phát sự kiện nào ra ngoài
-  renderer.
+  `log.line`, `update.status`, `app.navigate`, `bmad.progress`) qua `useDesktopEvent()`; không tự phát sự kiện
+  nào ra ngoài renderer.
 - Gọi ngoài: không gọi mạng trực tiếp (CSP chặn `connect-src`); mọi thao tác đi qua `invoke()` tới main/host.
 
 ## Flow liên quan
@@ -134,7 +139,9 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 - project-claims: `ProjectPicker`/`SettingsProjectsPage` phản ánh trạng thái sở hữu (`ownerState`,
   `pendingClaim`) mà API `project-claims` cấp qua daemon; `TestSetupSection` gửi và theo dõi yêu cầu đổi
   `platform`/`uiTestMcp` (`ProjectDetail.pendingChange`) qua `projects.requestTestSetup` (flow `desktop-app`),
-  rồi hiện kết quả theo `ProjectDetail.lastChange` (duyệt, từ chối, hoặc tự rút khi máy mất project).
+  rồi hiện kết quả theo `ProjectDetail.lastChange` (duyệt, từ chối, hoặc tự rút khi máy mất project);
+  `BmadSection` hiện `ProjectDetail.bmad` (hồ sơ BMAD server đang giữ) và gọi `projects.installBmad` (flow
+  `desktop-app`) để cài lại trên máy này.
 
 ## Tests
 
@@ -147,5 +154,7 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 - `apps/desktop/test/e2e/project-settings.spec.ts`: Settings → Projects gửi yêu cầu đổi loại project, khoá form
   và hiện đang chờ, rồi phản ánh đúng sau khi chủ dự án xác nhận TOTP trên web; một yêu cầu đang chờ tự rút và
   hiện đúng câu khi owner chuyển project sang máy khác trong lúc đó.
+- `apps/desktop/test/e2e/project-bmad.spec.ts`: Settings → Projects hiện đúng hồ sơ BMAD server đang giữ, và
+  "Cài BMAD" bỏ qua hoặc cài đặt bằng trình cài giả lập của chế độ E2E.
 - `apps/desktop/test/new-project-form.test.ts`: `draftProblem()` trả về đúng câu cho key quá dài, key sai định
   dạng và các trường rỗng còn thiếu; `null` khi nháp đã đủ.
