@@ -189,6 +189,7 @@ export function DocsPageView(props: DocsPageViewProps) {
   );
   const forgeUrl = blobUrl(repoUrl, snapshot.commit, page.path);
   const crumbs: Crumb[] = [
+    { label: 'Tài liệu', link: { to: '/docs' } },
     { label: spaceName, link: { to: '/projects/$projectKey/docs', params: { projectKey }, search: {} } },
     ...(page.kind === 'flow' ? [{ label: 'Flows' }] : []),
     { label: page.title },

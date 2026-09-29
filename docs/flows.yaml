@@ -163,8 +163,14 @@ flows:
       - apps/web/src/components/flow-view.tsx
       - apps/web/src/components/related-tickets.tsx
       - apps/web/src/components/file-lookup.tsx
+      - apps/web/src/routes/docs-home.tsx
+      - apps/web/src/components/docs-project-switcher.tsx
     tests:
       - apps/api/test/docs-sync.test.ts
+      - apps/api/test/docs-overview.test.ts
+      - apps/web/src/routes/docs-home.test.tsx
+      - apps/web/src/components/docs-project-switcher.test.tsx
+      - apps/web/e2e/docs-across-projects.spec.ts
       - packages/shared/src/docs-schemas.test.ts
       - apps/web/src/lib/docs-space.test.ts
       - apps/web/src/routes/project-docs.test.tsx
@@ -251,6 +257,8 @@ flows:
       - apps/web/src/lib/search-params.test.ts
       - apps/web/src/lib/shortcuts.test.ts
       - apps/web/src/lib/format.test.ts
+      - apps/web/src/layout/quick-search.test.tsx
+      - apps/web/src/layout/project-sidebar.test.tsx
   web-tickets:
     title: Board, danh sách và ticket trên web
     doc: docs/flows/web-tickets.md
@@ -281,6 +289,7 @@ flows:
       - apps/web/src/components/agent-activity.tsx
       - apps/web/src/components/ticket-tree.tsx
       - apps/web/src/components/project-badge.tsx
+      - apps/web/src/components/project-filter.tsx
     tests:
       - apps/web/src/components/board-view.test.ts
       - apps/web/src/components/ticket-view.test.tsx
@@ -311,6 +320,7 @@ flows:
     tests:
       - apps/web/src/routes/inbox.test.tsx
       - apps/web/src/routes/project-settings.test.tsx
+      - apps/web/src/routes/machines.test.tsx
       - apps/web/src/components/pairing-dialog.test.tsx
       - apps/web/e2e/owner-admin.spec.ts
   daemon-runtime:

@@ -75,6 +75,16 @@ export const DocsSearch = z.object({
 });
 export type DocsSearch = z.infer<typeof DocsSearch>;
 
+/** Screens whose only URL filter is the project multi-select: the inbox and the machines page. */
+export const ProjectFilterSearch = z.object({ project: Csv });
+export type ProjectFilterSearch = z.infer<typeof ProjectFilterSearch>;
+
+/** The docs home (`/docs`): the project filter and the docs search text. */
+export const DocsHomeSearch = ProjectFilterSearch.extend({
+  q: z.string().max(200).optional().catch(undefined),
+});
+export type DocsHomeSearch = z.infer<typeof DocsHomeSearch>;
+
 export const LoginSearch = z.object({ redirect: z.string().max(2000).optional().catch(undefined) });
 
 function csv<T extends string>(value: string | undefined, schema: z.ZodType<T>): T[] {

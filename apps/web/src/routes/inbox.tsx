@@ -7,8 +7,10 @@ import type {
   ProjectTestSetup,
 } from '@crew/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useState } from 'react';
+import { ProjectBadge, projectKeyResolver } from '../components/project-badge';
+import { ProjectFilterMenu, selectedProjects } from '../components/project-filter';
 import { PLATFORM_LABEL } from '../components/project-form';
 import { StatusLozenge } from '../components/status-lozenge';
 import { TotpDialog } from '../components/totp-dialog';
@@ -28,6 +30,7 @@ import {
 } from '../lib/format';
 import { useInboxSummary } from '../lib/inbox';
 import { keys, useMachineNames, useProjects, useTickets } from '../lib/queries';
+import type { ProjectFilterSearch } from '../lib/search-params';
 
 function Group({ title, count, children }: { title: string; count: number; children: ReactNode }) {
   if (count === 0) return null;
@@ -228,16 +231,43 @@ function describeNotice(
  * answer, cap and budget approvals, offline machines with the affected tickets, red health, unowned
  * projects, and the machine notice feed.
  */
-export function InboxPage() {
+export function InboxPage({ search = {} }: { search?: ProjectFilterSearch }) {
   const inbox = useInboxSummary();
   const machines = useMachineNames();
   const projects = useProjects();
-  const needsAnswer = inbox.needsInput.filter((t) => !t.budgetHold);
-  const budgetHolds = inbox.needsInput.filter((t) => t.budgetHold);
+  const navigate = useNavigate();
+  const chosen = selectedProjects(projects.data, search.project);
+  const filtering = chosen.length > 0;
+  const chosenIds = new Set(chosen.map((p) => p.id));
+  const chosenKeys = new Set(chosen.map((p) => p.key));
+  const keyOf = projectKeyResolver(projects.data);
+  // The server applies the same project filter as the boards: a request counts for the projects it was
+  // routed or hinted to.
+  const filteredNeedsInput = useTickets({ status: ['needs_input'], projectIds: [...chosenIds] }, filtering);
+  const waiting = filtering ? (filteredNeedsInput.data ?? []) : inbox.needsInput;
+  const inChosen = (projectKeys: readonly string[]) =>
+    !filtering || projectKeys.some((key) => chosenKeys.has(key));
+  const pendingClaims = inbox.pendingClaims.filter((c) => inChosen(c.projectKey ? [c.projectKey] : []));
+  const pendingChanges = inbox.pendingChanges.filter((c) => inChosen([c.projectKey]));
+  const offlineMachines = inbox.offlineMachines.filter((m) => inChosen(m.projectKeys));
+  const unhealthyMachines = inbox.unhealthyMachines.filter((m) => inChosen(m.projectKeys));
+  const unownedProjects = inbox.unownedProjects.filter((p) => inChosen([p.key]));
+  const notices = inbox.notices.filter(
+    (event) => !filtering || (event.projectId !== null && chosenIds.has(event.projectId)),
+  );
+  const needsAnswer = waiting.filter((t) => !t.budgetHold);
+  const budgetHolds = waiting.filter((t) => t.budgetHold);
   const toast = useToast();
   /** Notices that were unread when the inbox was opened keep their dot during this visit. */
   const [openedUnread, setOpenedUnread] = useState<Set<string> | null>(null);
-  const actionCount = inbox.badge - inbox.unreadNotices;
+  const actionCount =
+    pendingClaims.length +
+    pendingChanges.length +
+    waiting.length +
+    offlineMachines.length +
+    unhealthyMachines.length +
+    unownedProjects.length;
+  const hiddenNotices = inbox.notices.length - notices.length;
   const run = (task: Promise<void>) => task.catch((error: unknown) => toast(errorMessage(error), 'error'));
 
   // Opening the inbox marks the loaded notices read on the server (up to the newest one shown, so a
@@ -251,36 +281,49 @@ export function InboxPage() {
     if (unread.length > 0 && newest) void run(inbox.markAllRead(newest.id));
   }, [inbox.notices.length, openedUnread]);
 
-  const ticketItem = (ticket: (typeof inbox.needsInput)[number], text: string) => (
-    <Item key={ticket.id} tone="warn">
-      <TypeIcon type={ticket.type} />
-      <Link to="/tickets/$ticketKey" params={{ ticketKey: ticket.key }} className="font-mono">
-        {ticket.key}
-      </Link>
-      <span className="min-w-0 grow truncate">{ticket.title}</span>
-      <StatusLozenge status={ticket.status} />
-      <span className="w-full text-xs text-muted md:w-auto">{text}</span>
-    </Item>
-  );
+  const ticketItem = (ticket: (typeof inbox.needsInput)[number], text: string) => {
+    const projectKey = keyOf(ticket);
+    return (
+      <Item key={ticket.id} tone="warn">
+        <TypeIcon type={ticket.type} />
+        <Link to="/tickets/$ticketKey" params={{ ticketKey: ticket.key }} className="font-mono">
+          {ticket.key}
+        </Link>
+        {projectKey && <ProjectBadge projectKey={projectKey} />}
+        <span className="min-w-0 grow truncate">{ticket.title}</span>
+        <StatusLozenge status={ticket.status} />
+        <span className="w-full text-xs text-muted md:w-auto">{text}</span>
+      </Item>
+    );
+  };
 
   return (
     <div className="flex max-w-4xl flex-col gap-5 px-3 py-3 md:px-6 md:py-[18px]">
       <Breadcrumbs items={[{ label: 'Inbox' }]} />
-      <h1 className="m-0 text-[22px] font-semibold">Inbox</h1>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <h1 className="m-0 grow text-[22px] font-semibold">Inbox</h1>
+        <ProjectFilterMenu
+          projects={projects.data ?? []}
+          value={search.project}
+          onChange={(project) => void navigate({ to: '/inbox', search: { project }, replace: true })}
+        />
+      </div>
       {inbox.isLoading && <p className="m-0 text-sm text-muted">Đang tải…</p>}
       {!inbox.isLoading && actionCount === 0 && (
         <p className="m-0 rounded-md border border-line bg-panel p-4 text-sm">
-          Không có việc nào cần bạn xử lý.
+          {filtering
+            ? `Không có việc nào của ${chosen.map((p) => p.key).join(', ')} cần bạn xử lý.`
+            : 'Không có việc nào cần bạn xử lý.'}
         </p>
       )}
 
-      <Group title="Yêu cầu chuyển máy cần duyệt" count={inbox.pendingClaims.length}>
-        {inbox.pendingClaims.map((claim) => (
+      <Group title="Yêu cầu chuyển máy cần duyệt" count={pendingClaims.length}>
+        {pendingClaims.map((claim) => (
           <ClaimItem key={claim.id} claim={claim} machines={machines} />
         ))}
       </Group>
-      <Group title="Yêu cầu đổi loại dự án cần duyệt" count={inbox.pendingChanges.length}>
-        {inbox.pendingChanges.map((change) => (
+      <Group title="Yêu cầu đổi loại dự án cần duyệt" count={pendingChanges.length}>
+        {pendingChanges.map((change) => (
           <ProjectChangeItem key={change.id} change={change} />
         ))}
       </Group>
@@ -295,13 +338,13 @@ export function InboxPage() {
           ),
         )}
       </Group>
-      <Group title="Máy offline" count={inbox.offlineMachines.length}>
-        {inbox.offlineMachines.map((m) => (
+      <Group title="Máy offline" count={offlineMachines.length}>
+        {offlineMachines.map((m) => (
           <OfflineMachineItem key={m.id} machine={m} />
         ))}
       </Group>
-      <Group title="Máy lỗi health" count={inbox.unhealthyMachines.length}>
-        {inbox.unhealthyMachines.map((m) => (
+      <Group title="Máy lỗi health" count={unhealthyMachines.length}>
+        {unhealthyMachines.map((m) => (
           <Item key={m.id} tone="bad">
             <span className="min-w-0 grow">
               <strong>{m.name}</strong>: {m.health?.failing.map((f) => f.title).join(', ') || 'lỗi không rõ'}
@@ -312,8 +355,8 @@ export function InboxPage() {
           </Item>
         ))}
       </Group>
-      <Group title="Dự án chưa có máy" count={inbox.unownedProjects.length}>
-        {inbox.unownedProjects.map((p) => (
+      <Group title="Dự án chưa có máy" count={unownedProjects.length}>
+        {unownedProjects.map((p) => (
           <Item key={p.id}>
             <span className="font-mono text-xs text-muted">{p.key}</span>
             <span className="min-w-0 grow">{p.name}: chưa máy nào nhận, ticket của dự án sẽ không chạy.</span>
@@ -334,12 +377,16 @@ export function InboxPage() {
             <Button onClick={() => void run(inbox.markAllRead())}>Đánh dấu tất cả đã đọc</Button>
           )}
         </div>
-        {inbox.notices.length === 0 ? (
+        {filtering && hiddenNotices > 0 && (
+          <p className="m-0 text-xs text-muted">Ẩn {hiddenNotices} thông báo không thuộc dự án đã chọn.</p>
+        )}
+        {notices.length === 0 ? (
           <p className="m-0 text-sm text-muted">Chưa có thông báo.</p>
         ) : (
           <ul className="m-0 flex list-none flex-col divide-y divide-line2 rounded-md border border-line bg-panel p-0">
-            {inbox.notices.map((event) => {
+            {notices.map((event) => {
               const dot = !event.read || (openedUnread?.has(event.id) ?? false);
+              const projectKey = event.projectId ? keyOf({ projectId: event.projectId }) : undefined;
               return (
                 <li key={event.id} className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm">
                   <span
@@ -347,6 +394,7 @@ export function InboxPage() {
                     className={cn('size-2 shrink-0 rounded-full', dot ? 'bg-accent' : 'bg-transparent')}
                   />
                   {dot && <span className="sr-only">Chưa đọc:</span>}
+                  {projectKey && <ProjectBadge projectKey={projectKey} className="shrink-0" />}
                   <span className="min-w-0 grow">
                     {describeNotice(event, machines, projects.data ?? [])}
                     {event.ticketId &&

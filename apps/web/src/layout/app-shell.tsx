@@ -3,6 +3,7 @@ import {
   Link,
   Outlet,
   useNavigate,
+  useParams,
   useRouteContext,
   useRouter,
   useRouterState,
@@ -22,7 +23,7 @@ import {
 } from '../components/ui/dropdown-menu';
 import { api, setCsrfToken } from '../lib/api-client';
 import { cn } from '../lib/cn';
-import { docsHome } from '../lib/docs-links';
+import { DOCS_INDEX, docsHome } from '../lib/docs-links';
 import { useInboxSummary } from '../lib/inbox';
 import { startLiveEvents } from '../lib/live-events';
 import { keys, sessionQuery } from '../lib/queries';
@@ -147,6 +148,7 @@ export function AppShell() {
   const router = useRouter();
   const navigate = useNavigate();
   const projectKey = useCurrentProjectKey();
+  const urlProjectKey = (useParams({ strict: false }) as { projectKey?: string }).projectKey;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [createOpen, setCreateOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -191,7 +193,8 @@ export function AppShell() {
         ? navigate({ to: '/projects/$projectKey/board', params: { projectKey } })
         : navigate({ to: '/requests' })),
     'g l': () => projectKey && void navigate({ to: '/projects/$projectKey/list', params: { projectKey } }),
-    'g d': () => projectKey && void navigate(docsHome(projectKey)),
+    // The open project's docs; elsewhere the docs home, which lists every project.
+    'g d': () => void (urlProjectKey ? navigate(docsHome(urlProjectKey)) : navigate(DOCS_INDEX)),
   });
 
   const phone = viewport === 'phone';

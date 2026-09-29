@@ -4,13 +4,14 @@ import { BookOpen, FileQuestion, Menu } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { DocsPageTree } from '../components/docs-page-tree';
 import { DocsPageView } from '../components/docs-page-view';
+import { DocsProjectSwitcher } from '../components/docs-project-switcher';
 import { FileLookup } from '../components/file-lookup';
 import { FlowFiles } from '../components/flow-view';
 import { RelatedTickets } from '../components/related-tickets';
 import { Button } from '../components/ui/button';
 import { Breadcrumbs } from '../layout/breadcrumbs';
 import { ApiRequestError } from '../lib/api-client';
-import { docsHome } from '../lib/docs-links';
+import { DOCS_INDEX, docsHome } from '../lib/docs-links';
 import { DOCS_HOME_PATH, type DocsTarget, resolveDocsTarget } from '../lib/docs-space';
 import { DOCS_STATUS_LABEL, errorMessage } from '../lib/format';
 import { useDocsPage, useDocsSpace, useProjectByKey } from '../lib/queries';
@@ -21,15 +22,21 @@ function Frame({ children }: { children: ReactNode }) {
   return <div className="flex flex-col gap-3.5 px-3 py-3 md:px-6 md:py-[18px]">{children}</div>;
 }
 
-/** Before the first sync: what the docs status of the project is, and that docs come from the repo. */
+/**
+ * Before the first sync: what the docs status of the project is, and that docs come from the repo. The
+ * switcher still leads to the other projects' docs.
+ */
 function EmptySpace({ project, search }: { project: Project; search: DocsSearch }) {
   const target = search.flow ? `flow ${search.flow}` : search.path;
   return (
     <Frame>
       <Breadcrumbs
-        items={[{ label: 'Dự án', link: { to: '/projects' } }, { label: project.name }, { label: 'Docs' }]}
+        items={[{ label: 'Tài liệu', link: DOCS_INDEX }, { label: project.name }, { label: 'Docs' }]}
       />
-      <h1 className="m-0 text-[22px] font-semibold">Docs · {project.name}</h1>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <h1 className="m-0 grow text-[22px] font-semibold">Docs · {project.name}</h1>
+        <DocsProjectSwitcher project={project} currentPath={search.path ?? null} className="w-full md:w-72" />
+      </div>
       <div className="flex max-w-xl flex-col items-start gap-2 rounded-md border border-line bg-panel p-5 text-sm">
         <BookOpen size={22} aria-hidden className="text-accent" />
         <p className="m-0">
@@ -38,7 +45,14 @@ function EmptySpace({ project, search }: { project: Project; search: DocsSearch 
         </p>
         {target && <p className="m-0 text-muted">Trang được yêu cầu: {target}</p>}
         <p className="m-0 text-muted">Docs chỉ đọc. Sửa bằng commit trong repo.</p>
-        <Link to="/projects/$projectKey/board" params={{ projectKey: project.key }}>
+        <Link to="/docs" className="inline-flex min-h-11 items-center xl:min-h-0">
+          Xem docs của các dự án khác
+        </Link>
+        <Link
+          to="/projects/$projectKey/board"
+          params={{ projectKey: project.key }}
+          className="inline-flex min-h-11 items-center xl:min-h-0"
+        >
           Về board
         </Link>
       </div>
@@ -57,7 +71,11 @@ function MissingPage({
   return (
     <div className="flex max-w-[780px] flex-col gap-3">
       <Breadcrumbs
-        items={[{ label: project.name, link: docsHome(project.key) }, { label: 'Không tìm thấy' }]}
+        items={[
+          { label: 'Tài liệu', link: DOCS_INDEX },
+          { label: project.name, link: docsHome(project.key) },
+          { label: 'Không tìm thấy' },
+        ]}
       />
       <h1 className="m-0 text-[22px] font-semibold">Không tìm thấy trang</h1>
       <div className="flex flex-col items-start gap-2 rounded-md border border-line bg-panel p-5 text-sm">
@@ -167,7 +185,7 @@ export function ProjectDocsPage({ projectKey, search }: { projectKey: string; se
     return (
       <Frame>
         <h1 className="m-0 text-[22px] font-semibold">Không tìm thấy dự án {projectKey}</h1>
-        <Link to="/projects">Về danh sách dự án</Link>
+        <Link to="/docs">Xem docs của mọi dự án</Link>
       </Frame>
     );
   }
@@ -189,6 +207,7 @@ export function ProjectDocsPage({ projectKey, search }: { projectKey: string; se
       currentPath={currentPath}
       onNavigate={onNavigate}
       className={className}
+      switcher={<DocsProjectSwitcher project={project} currentPath={currentPath} className="grow" />}
     />
   );
 
@@ -212,7 +231,11 @@ export function ProjectDocsPage({ projectKey, search }: { projectKey: string; se
             <Button variant="ghost" onClick={() => setDrawerOpen(true)} aria-expanded={drawerOpen}>
               <Menu size={20} aria-hidden /> Trang docs
             </Button>
-            <strong className="min-w-0 truncate text-sm">Docs · {project.name}</strong>
+            <DocsProjectSwitcher
+              project={project}
+              currentPath={currentPath}
+              className="ml-auto max-w-[60%]"
+            />
           </div>
         )}
         <div className="px-3 py-3 md:px-6 md:py-5 xl:px-8 xl:py-[22px]">

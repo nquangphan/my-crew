@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { DialogContent, DialogRoot } from '../components/ui/dialog';
 import { Breadcrumbs } from '../layout/breadcrumbs';
 import { cn } from '../lib/cn';
+import { docsHome } from '../lib/docs-links';
 import { DOCS_STATUS_LABEL, errorMessage, formatUsd, type Tone } from '../lib/format';
 import { useMachineNames, useProjects } from '../lib/queries';
 
@@ -81,6 +82,12 @@ function ProjectCard({ project }: { project: Project }) {
         <Button size="sm" onClick={() => setMoving(true)}>
           {owner ? 'Chuyển máy' : 'Giao máy'}
         </Button>
+        <Link
+          {...docsHome(project.key)}
+          className="inline-flex min-h-11 items-center rounded border border-line bg-panel px-3 text-[13px] text-ink no-underline hover:bg-soft xl:min-h-7"
+        >
+          Xem docs
+        </Link>
       </div>
       <DialogRoot open={editing} onOpenChange={setEditing}>
         <DialogContent title={`Sửa dự án ${project.key}`} wide>

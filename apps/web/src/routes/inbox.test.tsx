@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { ticket } from '../test/fixtures';
+import { project, ticket } from '../test/fixtures';
 import { mockFetch, renderWithApp } from '../test/render';
 import { InboxPage } from './inbox';
 
@@ -213,6 +213,82 @@ describe('InboxPage', () => {
     expect(one.body).toEqual({ ids: ['13'] });
     await waitFor(() => expect(within(feed).queryByRole('button', { name: 'Đã đọc' })).toBeNull());
     expect(within(feed).queryByText('Đánh dấu tất cả đã đọc')).toBeNull();
+  });
+});
+
+describe('InboxPage project filter', () => {
+  it("keeps only the chosen projects' claims, tickets, machines and notices, with project badges", async () => {
+    const shop = project({ key: 'SHOP', ownerMachineId: A });
+    const admin = project({ key: 'KIDYADMIN', ownerMachineId: B });
+    const lone = project({ key: 'LONE' });
+    const shopWait = ticket({ key: 'SHOP-7', title: 'Hỏi SHOP', status: 'needs_input', projectId: shop.id });
+    const adminWait = ticket({
+      key: 'KIDYADMIN-2',
+      title: 'Hỏi admin',
+      status: 'needs_input',
+      projectId: admin.id,
+    });
+    const notice = (id: string, projectId: string) => ({
+      id,
+      type: 'project.created',
+      ticketId: null,
+      projectId,
+      targetMachineId: null,
+      targetRole: null,
+      payload: { type: 'project.created', data: { projectId, machineId: A } },
+      createdAt: '2026-09-28T01:00:00.000Z',
+      read: true,
+    });
+    const calls = mockFetch([
+      ['GET /v1/claim-requests', () => ({ body: { items: [claim] } })],
+      ['GET /v1/project-change-requests', () => ({ body: { items: [] } })],
+      [
+        'GET /v1/tickets',
+        (call) => {
+          const ids = new URL(call.path, 'http://x').searchParams.get('projectIds');
+          return { body: { items: ids ? [adminWait] : [shopWait, adminWait], nextCursor: null } };
+        },
+      ],
+      [
+        'GET /v1/machines',
+        () => ({
+          body: {
+            items: [
+              { ...machine(A, 'macbook', false), projectKeys: ['SHOP'] },
+              { ...machine(B, 'mac-mini', false), projectKeys: ['KIDYADMIN'] },
+            ],
+          },
+        }),
+      ],
+      ['GET /v1/projects', () => ({ body: { items: [shop, admin, lone] } })],
+      [
+        'GET /v1/notices',
+        () => ({ body: { items: [notice('3', admin.id), notice('2', shop.id)], unread: 0 } }),
+      ],
+    ]);
+    const user = userEvent.setup();
+    const { router } = renderWithApp(<InboxPage search={{ project: 'KIDYADMIN' }} />);
+
+    const waiting = await screen.findByRole('region', { name: 'Agent đang chờ bạn trả lời' });
+    await within(waiting).findByText('KIDYADMIN-2');
+    expect(within(waiting).queryByText('SHOP-7')).toBeNull();
+    expect(waiting.querySelector('[data-project="KIDYADMIN"]')).not.toBeNull();
+    const list = calls.find((c) => c.path.includes('projectIds='));
+    expect(new URL(list?.path ?? '', 'http://x').searchParams.get('projectIds')).toBe(admin.id);
+    // The SHOP claim, the SHOP machine and the unowned LONE project are hidden.
+    expect(screen.queryByRole('region', { name: 'Yêu cầu chuyển máy cần duyệt' })).toBeNull();
+    const offline = screen.getByRole('region', { name: 'Máy offline' });
+    expect(within(offline).getByText('mac-mini')).toBeInTheDocument();
+    expect(within(offline).queryByText('macbook')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Dự án chưa có máy' })).toBeNull();
+    const feed = screen.getByRole('region', { name: 'Thông báo' });
+    expect(within(feed).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(feed).getByText('Ẩn 1 thông báo không thuộc dự án đã chọn.')).toBeInTheDocument();
+    expect(feed.querySelector('[data-project="KIDYADMIN"]')).not.toBeNull();
+
+    await user.click(screen.getByRole('button', { name: /^Dự án: 1/ }));
+    await user.click(await screen.findByRole('menuitem', { name: /KIDYADMIN/ }));
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
   });
 });
 

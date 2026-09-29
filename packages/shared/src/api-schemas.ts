@@ -8,8 +8,9 @@ import {
   SelectableModel,
 } from './agent-schemas.js';
 import { CommentMention } from './comment-mentions.js';
+import { DocsPageSummary, DocsSnapshotInfo } from './docs-schemas.js';
 import { EventEnvelope } from './event-schemas.js';
-import { McpServerName } from './project-schemas.js';
+import { DocsStatus, McpServerName } from './project-schemas.js';
 import { TicketPriority, TicketStatus, TicketType } from './ticket-schemas.js';
 
 // ---------------------------------------------------------------------------
@@ -292,6 +293,11 @@ const CsvList = <T extends z.ZodType<unknown, string>>(item: T) =>
     )
     .pipe(z.array(item));
 
+/** A project filter (ids, comma-separated, at most 100); absent means every project. */
+const ProjectIdsFilter = CsvList(z.uuid())
+  .refine((ids) => ids.length <= 100, 'at most 100 projects')
+  .optional();
+
 export const TicketSortField = z.enum(['createdAt', 'updatedAt', 'priority', 'title']);
 
 /** Query string of `GET /v1/tickets`. List filters accept comma-separated values. */
@@ -301,9 +307,7 @@ export const ListTicketsQuery = z.object({
    * Tickets of any of these projects, plus the request tickets routed to one of them (a pm_task child in
    * the project) or hinted at one: the cross-project board and list.
    */
-  projectIds: CsvList(z.uuid())
-    .refine((ids) => ids.length <= 100, 'at most 100 projects')
-    .optional(),
+  projectIds: ProjectIdsFilter,
   parentId: z.uuid().optional(),
   status: CsvList(TicketStatus).optional(),
   type: CsvList(TicketType).optional(),
@@ -441,15 +445,66 @@ export const TicketDetailResponse = z.object({
 });
 export type TicketDetailResponse = z.infer<typeof TicketDetailResponse>;
 
-export const SearchQuery = z.object({ q: z.string().trim().min(1).max(200) });
+/**
+ * Query string of `GET /v1/search`. `projectIds` keeps the tickets of those projects, the requests routed
+ * or hinted to one of them, and their docs pages.
+ */
+export const SearchQuery = z.object({ q: z.string().trim().min(1).max(200), projectIds: ProjectIdsFilter });
+export type SearchQuery = z.input<typeof SearchQuery>;
 
 export const SearchResponse = z.object({
   tickets: z.array(
-    z.object({ id: z.string(), key: z.string(), title: z.string(), type: TicketType, status: TicketStatus }),
+    z.object({
+      id: z.string(),
+      key: z.string(),
+      title: z.string(),
+      type: TicketType,
+      status: TicketStatus,
+      /** Null for requests (they belong to no project). */
+      projectId: z.string().nullable().default(null),
+    }),
   ),
   docs: z.array(z.object({ projectId: z.string(), path: z.string(), title: z.string() })),
 });
 export type SearchResponse = z.infer<typeof SearchResponse>;
+
+/** The newest docs_init ticket of a project: why its docs space is still empty. */
+export const DocsInitTicketInfo = z.object({
+  id: z.string(),
+  key: z.string(),
+  title: z.string(),
+  status: TicketStatus,
+  updatedAt: z.iso.datetime(),
+});
+export type DocsInitTicketInfo = z.infer<typeof DocsInitTicketInfo>;
+
+/** One project on the docs home: its docs status, latest snapshot (if any) and docs-init ticket. */
+export const DocsOverviewItem = z.object({
+  projectId: z.string(),
+  docsStatus: DocsStatus,
+  snapshot: DocsSnapshotInfo.nullable(),
+  /** Files in the latest snapshot (0 before the first sync). */
+  fileCount: z.number().int().min(0),
+  docsInit: DocsInitTicketInfo.nullable(),
+});
+export type DocsOverviewItem = z.infer<typeof DocsOverviewItem>;
+
+/** `GET /v1/docs`: every project's docs status, in project key order. */
+export const DocsOverviewResponse = z.object({ items: z.array(DocsOverviewItem) });
+export type DocsOverviewResponse = z.infer<typeof DocsOverviewResponse>;
+
+/** Query string of `GET /v1/docs/search`: every project's docs, or only `projectIds`. */
+export const CrossDocsSearchQuery = z.object({
+  q: z.string().trim().min(1).max(200),
+  projectIds: ProjectIdsFilter,
+});
+export type CrossDocsSearchQuery = z.input<typeof CrossDocsSearchQuery>;
+
+/** `GET /v1/docs/search`: matching pages across projects, each with its project and a text snippet. */
+export const CrossDocsSearchResponse = z.object({
+  items: z.array(DocsPageSummary.extend({ projectId: z.string(), snippet: z.string() })),
+});
+export type CrossDocsSearchResponse = z.infer<typeof CrossDocsSearchResponse>;
 
 export const HealthResponse = z.object({ status: z.literal('ok'), db: z.literal('ok') });
 export type HealthResponse = z.infer<typeof HealthResponse>;

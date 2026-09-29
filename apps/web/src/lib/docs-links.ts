@@ -3,6 +3,7 @@
  * search results, the sidebar, `g d` and the space itself) goes through these helpers, so the viewer
  * (`routes/project-docs.tsx`) only has to honour this URL shape:
  *
+ *   /docs                                 the docs home (every project, cross-project search)
  *   /projects/$projectKey/docs            the space home
  *   /projects/$projectKey/docs?flow=<id>  the page of one flow in docs/flows.yaml
  *   /projects/$projectKey/docs?path=<p>   a page by its repo path (search results)
@@ -12,6 +13,9 @@ export interface DocsLink {
   params: { projectKey: string };
   search: { flow?: string; path?: string };
 }
+
+/** The docs home: every project's docs status and a search across projects. */
+export const DOCS_INDEX = { to: '/docs', search: {} } as const;
 
 export function docsHome(projectKey: string): DocsLink {
   return { to: '/projects/$projectKey/docs', params: { projectKey }, search: {} };

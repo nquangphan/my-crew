@@ -6,7 +6,8 @@ import { useMemo, useState } from 'react';
 import { CancelDialog } from '../components/cancel-dialog';
 import { FilterMenu } from '../components/filter-menu';
 import { IssueTable, sortTickets } from '../components/issue-table';
-import { ProjectBadge, projectKeyResolver } from '../components/project-badge';
+import { projectKeyResolver } from '../components/project-badge';
+import { ProjectFilterMenu } from '../components/project-filter';
 import { RoleAvatar } from '../components/role-avatar';
 import { StatusLozenge } from '../components/status-lozenge';
 import { TypeIcon } from '../components/type-icon';
@@ -269,16 +270,10 @@ export function ListPage({ projectKey, search }: { projectKey: string | null; se
           Trạng thái: chưa xong
         </button>
         {crossProject && (
-          <FilterMenu
-            label="Dự án"
-            options={(projects.data ?? []).map((p) => p.key)}
-            selected={projectKeys}
-            render={(key) => (
-              <>
-                <ProjectBadge projectKey={key} /> {projects.data?.find((p) => p.key === key)?.name}
-              </>
-            )}
-            onToggle={(key) => setSearch({ project: toggleCsv(search.project, key) })}
+          <ProjectFilterMenu
+            projects={projects.data ?? []}
+            value={search.project}
+            onChange={(project) => setSearch({ project })}
           />
         )}
         <FilterMenu

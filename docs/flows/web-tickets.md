@@ -25,18 +25,23 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
    ticket đang mở (`?selected=KEY`) sống trong URL. `AllProjectsBoardPage` (`/board`, "Tất cả dự án") nạp mọi
    dự án (`useProjects`) cộng ticket của mọi dự án và request của owner (`useTickets({ projectIds?, status })`
    với `status` = cột board cộng `blocked`; ticket đã hủy không được nạp, chỉ hiện trong danh sách), truyền
-   `projects` cho `BoardView` và có link "Xem danh sách" tới `/list` giữ nguyên bộ lọc dự án.
+   `projects` cho `BoardView` và có link "Xem danh sách" tới `/list` giữ nguyên bộ lọc dự án. `MyRequestsPage`
+   (`/requests`, "Tất cả request của tôi") chỉ nạp ticket loại `request`; truyền `projectFilter={projects.data}`
+   cho `BoardView` để có bộ lọc "Dự án" mà không có badge/lane dự án (request không thuộc project nào), gửi
+   `projectIds` của các project đã chọn kèm `type=['request']` (server giữ request được route hoặc gợi ý tới
+   project đó, qua `inProjectsFilter()` của flow `ticket-lifecycle`).
 2. `apps/web/src/components/board-view.tsx` → `BoardView()`, `filterBoardTickets()`, `columnOf()`: nhóm ticket
    vào `BOARD_COLUMNS` theo trạng thái (`blocked` hiện trong cột "Đang làm" kèm badge đỏ), lane theo
    pm_task/loại, kéo-thả gọi API chuyển trạng thái lạc quan — bị từ chối (`REPORT_REQUIRED`, chuyển không hợp
-   lệ) thì hiện toast và thẻ bật lại vị trí cũ; click thẻ mở `TicketSidePanel`. Khi nhận prop `projects` (board
-   "Tất cả dự án"): thêm `FilterMenu` "Dự án" (khóa dự án trong URL `project`, gửi lên dạng `projectIds`), badge
+   lệ) thì hiện toast và thẻ bật lại vị trí cũ; click thẻ mở `TicketSidePanel`. Prop `projects` (board "Tất cả
+   dự án") thêm `ProjectFilterMenu` "Dự án" (khóa dự án trong URL `project`, gửi lên dạng `projectIds`), badge
    dự án trên mọi thẻ, và swimlane qua `lanesOf(tickets, all, mode, projects)` với `LaneMode = 'parent' |
    'request' | 'project' | 'none'` — board dự án giữ mặc định `parent` (theo pm_task), board "Tất cả dự án" mặc
    định `request` ("Request → PM task": lane của một request chứa request và mọi pm_task nó được route tới,
    con của mỗi pm_task nằm trong lane con lồng "› KEY · title"; ticket chưa nạp được request nằm ở "Không thuộc
    request"); `project` xếp một lane mỗi dự án ("KEY · tên"), request chưa có dự án vào lane "Request" trước.
-   Menu "Nhóm theo" chỉ liệt kê các mode của board hiện tại; mode mặc định không có trong URL.
+   Prop `projectFilter` (board request) chỉ thêm `ProjectFilterMenu`, không badge/lane. Menu "Nhóm theo" chỉ
+   liệt kê các mode của board hiện tại; mode mặc định không có trong URL.
 3. `apps/web/src/components/ticket-card.tsx` → `TicketCard`, `TicketCardFace`: hiển thị icon loại, key, mũi
    tên ưu tiên, avatar vai trò (spinner khi đang chạy job cục bộ hoặc khi `agentActivity.status==='running'`),
    `AgentActivityMark`, badge trạng thái, và (prop `projectKey`, board "Tất cả dự án") badge dự án; hàng
@@ -46,10 +51,10 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
    xếp qua `parseStatuses`/`parseTypes`/… (`search-params.ts`, flow `web-shell`), sắp xếp phía client trên toàn
    bộ dữ liệu đã tải (`sortTickets()`), sửa trạng thái/ưu tiên tại chỗ (`useTransition`/`useUpdateTicket`), thao
    tác hàng loạt (`runBulk()`, `Promise.allSettled`, báo lỗi theo key). `projectKey=null` là danh sách "Tất cả
-   dự án" tại `/list` (breadcrumb "Tất cả dự án / Danh sách", link "Xem board" tới `/board`): thêm `FilterMenu`
-   "Dự án" (khóa dự án trong URL `project`, quy đổi ra id rồi gửi `projectIds`) và cột dự án trên `IssueTable`
-   (`projectKeyOf`); với một `projectKey`, hành vi giữ nguyên như cũ (`/projects/$projectKey/list`, không cột/
-   lọc dự án).
+   dự án" tại `/list` (breadcrumb "Tất cả dự án / Danh sách", link "Xem board" tới `/board`): thêm
+   `ProjectFilterMenu` "Dự án" (khóa dự án trong URL `project`, quy đổi ra id rồi gửi `projectIds`) và cột dự
+   án trên `IssueTable` (`projectKeyOf`); với một `projectKey`, hành vi giữ nguyên như cũ
+   (`/projects/$projectKey/list`, không cột/lọc dự án).
 5. `apps/web/src/components/issue-table.tsx` → `IssueTable`, `sortTickets()`: bảng cột co giãn (độ rộng lưu
    trình duyệt), điều hướng bàn phím `j`/`k`/`Enter` (từ `useShortcuts`, flow `web-shell`). Prop `projectKeyOf`
    (danh sách "Tất cả dự án"): thêm cột "Dự án" trên desktop/tablet ("—" cho request), badge dự án trên card
@@ -57,7 +62,10 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 6. `apps/web/src/components/project-badge.tsx` → `ProjectBadge`, `projectKeyResolver()`: badge khóa dự án
    (mono, `data-project`) và hàm quy ticket → khóa dự án (request không có), dùng lại trên card, dòng danh sách
    và cây ticket; co lại và kết thúc bằng dấu ba chấm khi khung chứa hẹp thay vì tràn ra ngoài, khóa đầy đủ vẫn
-   nằm trong tooltip (`title`).
+   nằm trong tooltip (`title`). `apps/web/src/components/project-filter.tsx` → `ProjectFilterMenu`,
+   `selectedProjects()`: bộ lọc nhiều lựa chọn "Dự án" dùng chung, lưu trong URL `project=KEY,KEY` (khóa lạ bị
+   bỏ qua); ngoài board/danh sách ở đây, cùng component này phục vụ Inbox và Máy (flow `web-admin`) và trang
+   chủ docs (flow `docs-sync-viewer`).
 7. `apps/web/src/routes/ticket-detail.tsx` → `TicketDetailPage`: dựng breadcrumb (dự án hoặc "Request", cha
    nếu có), render `TicketView` chế độ `mode="page"`.
 8. `apps/web/src/components/ticket-view.tsx` → `TicketView()`: một component dùng chung cho panel
@@ -115,6 +123,7 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 | `apps/web/src/components/filter-menu.tsx` | Menu lọc nhiều lựa chọn | `FilterMenu` |
 | `apps/web/src/components/issue-table.tsx` | Bảng danh sách | `IssueTable`, `sortTickets` |
 | `apps/web/src/components/project-badge.tsx` | Badge khóa dự án trên card/hàng/cây | `ProjectBadge`, `projectKeyResolver` |
+| `apps/web/src/components/project-filter.tsx` | Bộ lọc nhiều lựa chọn "Dự án" dùng chung | `ProjectFilterMenu`, `selectedProjects` |
 | `apps/web/src/components/ticket-side-panel.tsx` | Panel bên cạnh | `TicketSidePanel` |
 | `apps/web/src/components/ticket-view.tsx` | Nội dung ticket dùng chung panel/trang | `TicketView` |
 | `apps/web/src/components/ticket-tree.tsx` | Cây hậu duệ đầy đủ của request/pm_task | `TicketTree` |
@@ -143,11 +152,14 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 ## Flow liên quan
 
 - ticket-lifecycle: mọi hành động (tạo, transition, bình luận, report) gọi route owner của flow này;
-  `Ticket.agentActivity` (đọc bởi `describeActivity()`) xuất phát từ flow đó.
+  `Ticket.agentActivity` (đọc bởi `describeActivity()`) xuất phát từ flow đó; `MyRequestsPage` lọc theo
+  `projectIds` bằng đúng `inProjectsFilter()` mà `GET /v1/tickets?projectIds=` dùng.
 - web-shell: dùng chung `queries.ts`, `format.ts`, `shortcuts.ts`, `ShellContext`, component `ui/*`.
 - event-delivery: sự kiện `agent.activity_changed` làm mới ticket và máy qua `invalidationsFor()`.
-- docs-sync-viewer: `TicketView` hiển thị "Docs liên quan" từ `flows[]`, dùng `docsFlow()`.
-- web-admin: `RoleAvatar`/`role_avatar` và badge trạng thái dùng lại ở Inbox và trang Máy; trang Máy dùng lại
+- docs-sync-viewer: `TicketView` hiển thị "Docs liên quan" từ `flows[]`, dùng `docsFlow()`; trang chủ docs dùng
+  lại `ProjectFilterMenu`/`selectedProjects()` của flow này.
+- web-admin: `RoleAvatar`/`role_avatar` và badge trạng thái dùng lại ở Inbox và trang Máy; Inbox và Máy cũng
+  dùng lại `ProjectFilterMenu`/`selectedProjects()`; trang Máy dùng lại
   `describeWait()`/`formatClock()` của `agent-activity.tsx` cho job đang chờ của từng máy.
 
 ## Tests
@@ -162,7 +174,7 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 - `apps/web/src/routes/all-projects.test.tsx`: board "Tất cả dự án" hiện mọi dự án và lane request → pm_task
   kèm badge, không nạp ticket đã hủy, nhóm theo dự án, bộ lọc dự án gửi `projectIds` và giữ `project=` trong
   URL; danh sách "Tất cả dự án" có cột/lọc "Dự án" và sắp xếp theo dự án; danh sách một dự án không có cột dự
-  án.
+  án; bộ lọc "Dự án" của "Tất cả request của tôi" gửi `projectIds` kèm `type=request` và ghi lại URL.
 - `apps/web/src/components/status-dropdown.test.tsx`: chỉ hiện đích hợp lệ theo `canTransition('owner', …)`.
 - `apps/web/src/components/subtask-tree.test.tsx`: cặp dev↔QC, chuỗi bug, phụ thuộc.
 - `apps/web/src/components/comment-thread.test.tsx`: đăng bình luận (header CSRF, nội dung, xoá ô soạn,

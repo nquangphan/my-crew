@@ -1,10 +1,27 @@
 import type { SearchResponse } from '@crew/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, FileText, Search } from 'lucide-react';
-import { forwardRef, type KeyboardEvent, useId, useImperativeHandle, useRef, useState } from 'react';
+import { ArrowLeft, Check, ChevronDown, FileText, Search } from 'lucide-react';
+import {
+  forwardRef,
+  type KeyboardEvent,
+  useEffect,
+  useId,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
+import { ProjectBadge } from '../components/project-badge';
 import { StatusLozenge } from '../components/status-lozenge';
 import { TypeIcon } from '../components/type-icon';
+import {
+  MenuContent,
+  MenuItem,
+  MenuLabel,
+  MenuRoot,
+  MenuSeparator,
+  MenuTrigger,
+} from '../components/ui/dropdown-menu';
 import { api } from '../lib/api-client';
 import { cn } from '../lib/cn';
 import { docsPage } from '../lib/docs-links';
@@ -12,7 +29,7 @@ import { keys, useProjects } from '../lib/queries';
 import { useDebounced } from '../lib/ui-state';
 
 type Result =
-  | { kind: 'ticket'; item: SearchResponse['tickets'][number] }
+  | { kind: 'ticket'; item: SearchResponse['tickets'][number]; projectKey: string | undefined }
   | { kind: 'doc'; item: SearchResponse['docs'][number]; projectKey: string | undefined };
 
 export interface QuickSearchHandle {
@@ -31,28 +48,48 @@ export const QuickSearch = forwardRef<
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  /** Closing the list on blur waits a moment for a click on a result; focusing again cancels it. */
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const navigate = useNavigate();
   const projects = useProjects();
   const listId = useId();
   const q = useDebounced(text.trim(), 200);
 
   useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }), []);
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  /** The project the search is narrowed to (its key), or null for every project. */
+  const [scope, setScope] = useState<string | null>(null);
+  const scopeProject = projects.data?.find((p) => p.key === scope);
+  const projectIds = scopeProject ? [scopeProject.id] : [];
+  const keyOf = (projectId: string | null) =>
+    projectId ? projects.data?.find((p) => p.id === projectId)?.key : undefined;
 
   const search = useQuery({
-    queryKey: keys.search(q),
-    queryFn: ({ signal }) => api.search(q, signal),
+    queryKey: keys.search(q, projectIds),
+    queryFn: ({ signal }) => api.search(q, projectIds, signal),
     enabled: q.length > 0,
     staleTime: 5_000,
   });
 
   const results: Result[] = [
-    ...(search.data?.tickets ?? []).map((item) => ({ kind: 'ticket' as const, item })),
+    ...(search.data?.tickets ?? []).map((item) => ({
+      kind: 'ticket' as const,
+      item,
+      projectKey: keyOf(item.projectId),
+    })),
     ...(search.data?.docs ?? []).map((item) => ({
       kind: 'doc' as const,
       item,
-      projectKey: projects.data?.find((p) => p.id === item.projectId)?.key,
+      projectKey: keyOf(item.projectId),
     })),
   ];
+
+  const pickScope = (key: string | null) => {
+    setScope(key);
+    setActive(0);
+    setOpen(true);
+  };
   const showList = (open || variant === 'overlay') && q.length > 0;
 
   const choose = (result: Result | undefined) => {
@@ -124,11 +161,57 @@ export const QuickSearch = forwardRef<
             setActive(0);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onFocus={() => {
+            clearTimeout(closeTimer.current);
+            setOpen(true);
+          }}
+          onBlur={() => {
+            closeTimer.current = setTimeout(() => setOpen(false), 150);
+          }}
           onKeyDown={onKeyDown}
           className="min-w-0 grow border-none bg-transparent text-sm text-ink outline-none"
         />
+        <MenuRoot>
+          <MenuTrigger asChild>
+            <button
+              type="button"
+              aria-label={`Phạm vi tìm kiếm: ${scope ? `dự án ${scope}` : 'tất cả dự án'}`}
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1 rounded border px-1.5 text-xs',
+                variant === 'inline' ? 'h-6' : 'h-9',
+                scope ? 'border-accent bg-accent-bg text-accent-ink' : 'border-line text-muted hover:bg-soft',
+              )}
+            >
+              <span className={cn('max-w-24 truncate', scope && 'font-mono')}>{scope ?? 'Tất cả'}</span>
+              <ChevronDown size={12} aria-hidden />
+            </button>
+          </MenuTrigger>
+          <MenuContent
+            align="end"
+            // Back to the text instead of the chip, so the owner keeps typing.
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              inputRef.current?.focus();
+            }}
+          >
+            <MenuLabel>Tìm trong</MenuLabel>
+            <MenuItem onSelect={() => pickScope(null)}>
+              <span className="inline-flex w-4 justify-center">
+                {scope === null && <Check size={14} aria-hidden />}
+              </span>
+              Tất cả dự án
+            </MenuItem>
+            <MenuSeparator />
+            {(projects.data ?? []).map((p) => (
+              <MenuItem key={p.id} onSelect={() => pickScope(p.key)}>
+                <span className="inline-flex w-4 justify-center">
+                  {scope === p.key && <Check size={14} aria-hidden />}
+                </span>
+                <span className="font-mono text-xs text-muted">{p.key}</span> {p.name}
+              </MenuItem>
+            ))}
+          </MenuContent>
+        </MenuRoot>
         {variant === 'inline' && (
           <kbd className="rounded-[3px] border border-current px-1 font-mono text-[11px] opacity-80">/</kbd>
         )}
@@ -149,7 +232,9 @@ export const QuickSearch = forwardRef<
             <p className="m-0 p-3 text-sm text-muted">Đang tìm…</p>
           )}
           {!search.isFetching && results.length === 0 && (
-            <p className="m-0 p-3 text-sm text-muted">Không có kết quả cho “{q}”.</p>
+            <p className="m-0 p-3 text-sm text-muted">
+              Không có kết quả cho “{q}”{scope ? ` trong dự án ${scope}` : ''}.
+            </p>
           )}
           {results.map((result, index) => (
             <div
@@ -169,15 +254,16 @@ export const QuickSearch = forwardRef<
               {result.kind === 'ticket' ? (
                 <>
                   <TypeIcon type={result.item.type} />
-                  <span className="font-mono text-xs text-muted">{result.item.key}</span>
+                  <span className="shrink-0 font-mono text-xs text-muted">{result.item.key}</span>
                   <span className="min-w-0 grow truncate">{result.item.title}</span>
+                  {result.projectKey && <ProjectBadge projectKey={result.projectKey} className="max-w-24" />}
                   <StatusLozenge status={result.item.status} />
                 </>
               ) : (
                 <>
                   <FileText size={16} aria-hidden className="text-muted" />
                   <span className="min-w-0 grow truncate">{result.item.title}</span>
-                  <span className="font-mono text-xs text-muted">{result.projectKey}</span>
+                  {result.projectKey && <ProjectBadge projectKey={result.projectKey} className="max-w-24" />}
                 </>
               )}
             </div>

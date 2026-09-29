@@ -36,7 +36,8 @@ import {
 import { stepIndex, useShortcuts } from '../lib/shortcuts';
 import { useViewport } from '../lib/ui-state';
 import { FilterMenu } from './filter-menu';
-import { ProjectBadge, projectKeyResolver } from './project-badge';
+import { projectKeyResolver } from './project-badge';
+import { ProjectFilterMenu } from './project-filter';
 import { RoleAvatar } from './role-avatar';
 import { TicketCard, TicketCardFace } from './ticket-card';
 import { TicketSidePanel } from './ticket-side-panel';
@@ -295,6 +296,11 @@ export interface BoardViewProps {
    * or project swimlanes.
    */
   projects?: readonly Project[];
+  /**
+   * Only the "Dự án" filter, without badges or project lanes: the requests board, whose tickets belong to no
+   * project but are routed or hinted to some.
+   */
+  projectFilter?: readonly Project[];
 }
 
 /**
@@ -311,6 +317,7 @@ export function BoardView({
   header,
   showTypeFilter = true,
   projects,
+  projectFilter,
 }: BoardViewProps) {
   const viewport = useViewport();
   const phone = viewport === 'phone';
@@ -323,6 +330,7 @@ export function BoardView({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
   const crossProject = projects !== undefined;
+  const filterProjects = projects ?? projectFilter;
   const defaultMode: LaneMode = crossProject ? 'request' : 'parent';
   const mode: LaneMode = search.group ?? defaultMode;
   const groupModes: LaneMode[] = crossProject ? ['request', 'project', 'none'] : ['parent', 'none'];
@@ -417,17 +425,11 @@ export function BoardView({
         role="toolbar"
         aria-label="Bộ lọc board"
       >
-        {crossProject && (
-          <FilterMenu
-            label="Dự án"
-            options={(projects ?? []).map((p) => p.key)}
-            selected={projectKeys}
-            render={(key) => (
-              <>
-                <ProjectBadge projectKey={key} /> {projects?.find((p) => p.key === key)?.name}
-              </>
-            )}
-            onToggle={(key) => onSearch({ project: toggleCsv(search.project, key) })}
+        {filterProjects && (
+          <ProjectFilterMenu
+            projects={filterProjects}
+            value={search.project}
+            onChange={(project) => onSearch({ project })}
           />
         )}
         {showTypeFilter && (

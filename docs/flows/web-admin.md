@@ -34,9 +34,16 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
    cầu đổi loại project (gọi `api.decideProjectChange`); `describeNotice()` diễn giải từng loại sự kiện thông
    báo (`machine.claimed`, `claim.requested`, `machine.released`, `project.created`, `machine.offline`,
    `machine.unhealthy`, `budget.exceeded`, `project.change_requested`, `ticket.stuck`) thành câu tiếng Việt —
-   riêng `budget.exceeded` và `ticket.stuck` (flow `ticket-lifecycle`) kèm link "mở ticket".
+   riêng `budget.exceeded` và `ticket.stuck` (flow `ticket-lifecycle`) kèm link "mở ticket". Bộ lọc "Dự án"
+   (`ProjectFilterMenu`, URL `project=KEY,KEY`, flow `web-tickets`) thu hẹp mọi nhóm: yêu cầu chuyển máy (theo
+   `projectKey`, ẩn yêu cầu nhận vai trò trợ lý vì không thuộc project nào), yêu cầu đổi loại project, ticket
+   `needs_input` (server nạp lại kèm `projectIds` khi có lọc, cùng bộ lọc project của board/danh sách), máy
+   offline/lỗi health (theo `projectKeys`), project chưa có máy, và thông báo (theo `event.projectId`, kèm dòng
+   "Ẩn N thông báo không thuộc dự án đã chọn."); `ProjectBadge` hiện trên dòng ticket và thông báo; chuông
+   Inbox và trạng thái đã đọc vẫn tính trên toàn bộ (không theo bộ lọc).
 3. `apps/web/src/routes/projects.tsx` → `ProjectsPage()`, `ProjectCard`: danh sách project (badge trạng thái
-   docs qua `DocsStatusLozenge`), dialog tạo/sửa dùng `ProjectForm`, dialog chuyển máy dùng `ReassignDialog`.
+   docs qua `DocsStatusLozenge`, link "Xem docs" tới docs space của project, flow `docs-sync-viewer`), dialog
+   tạo/sửa dùng `ProjectForm`, dialog chuyển máy dùng `ReassignDialog`.
 4. `apps/web/src/components/project-form.tsx` → `ProjectForm()`: form tên/mô tả (gợi ý "mô tả quyết định định
    tuyến"), repo URL, platform, tên MCP test UI, giới hạn con/ngân sách cây/ngân sách ngày; `ReassignDialog()`
    gọi `api.assignToMachine()` (flow `project-claims`) kèm xác nhận.
@@ -48,9 +55,12 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 6. `apps/web/src/routes/machines.tsx` → `MachinesPage()`, `MachineCard()`: danh sách máy (online/paused/health
    với các check lỗi, tài nguyên, mục "Job" (`MachineJobs`) liệt kê job đang chạy (kèm model/effort), đang chờ
    (lý do qua `describeWait()` của flow `web-tickets`) và lỗi gần nhất của máy — mỗi dòng liên kết ticket khi
-   đã biết key —, project sở hữu, phiên bản app/CLI, hạn token — đỏ khi dưới `TOKEN_WARN_DAYS=14`), nút "Ghép
-   máy mới" (`PairingDialog`), "Đặt làm máy trợ lý"/"Thu hồi" (xác nhận rồi gọi
-   `api.assignToMachine`/`api.revokeMachine`, flow `machine-pairing`).
+   đã biết key kèm `ProjectBadge` của ticket đó —, project sở hữu (hiện bằng badge), phiên bản app/CLI, hạn
+   token — đỏ khi dưới `TOKEN_WARN_DAYS=14`), nút "Ghép máy mới" (`PairingDialog`), "Đặt làm máy trợ
+   lý"/"Thu hồi" (xác nhận rồi gọi `api.assignToMachine`/`api.revokeMachine`, flow `machine-pairing`). Bộ lọc
+   "Dự án" (`ProjectFilterMenu`, URL `project=KEY,KEY`, flow `web-tickets`) chỉ giữ máy có `projectKeys` chứa
+   một project đã chọn (kèm dòng "Ẩn N máy không giữ dự án đã chọn."); `MachineJobs` chỉ liệt kê job có ticket
+   thuộc project đã chọn (job có ticket chưa tải xong vẫn hiện tạm tới khi biết project).
 7. `apps/web/src/routes/machines.tsx` → `Inventory()`: xổ danh sách skill/MCP theo từng project (và cấp máy)
    từ `MachineDetailResponse.inventories`, mỗi skill có tooltip chạm (`InfoTip`, flow `web-shell`) hiện nguồn
    và mô tả.
@@ -90,16 +100,21 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 - ticket-lifecycle: nguồn thông báo `ticket.stuck` (báo ticket không máy nào đang xử lý).
 - event-delivery: nguồn thông báo (`/v1/notices`) và làm mới trực tiếp qua SSE.
 - web-tickets: `MachineJobs` (`machines.tsx`) dùng lại `describeWait()`/`formatClock()` của
-  `agent-activity.tsx` để hiện lý do chờ và giờ nhận job.
+  `agent-activity.tsx` để hiện lý do chờ và giờ nhận job; bộ lọc "Dự án" của Inbox và Máy dùng chung
+  `ProjectFilterMenu`/`selectedProjects()` (`components/project-filter.tsx`) và `ProjectBadge`.
+- docs-sync-viewer: `ProjectsPage` có link "Xem docs" tới docs space của mỗi project.
 - web-shell: dùng chung `Breadcrumbs`, `StatusLozenge`, `ui/*`, `useStoredState`.
 
 ## Tests
 
 - `apps/web/src/routes/inbox.test.tsx`: duyệt claim kèm TOTP (và mã sai), đếm badge, nhóm hiển thị đúng, đánh
-  dấu đã đọc (một thông báo và tất cả) phản ánh đúng số chưa đọc.
+  dấu đã đọc (một thông báo và tất cả) phản ánh đúng số chưa đọc; bộ lọc "Dự án" ẩn claim/ticket/máy/project
+  chưa có máy/thông báo không thuộc project đã chọn, gửi `projectIds` cho server, hiện `ProjectBadge`.
 - `apps/web/src/components/pairing-dialog.test.tsx`: tạo mã, đếm ngược, lỗi TOTP.
 - `apps/web/src/routes/project-settings.test.tsx`: hiện đúng hồ sơ BMAD chỉ đọc trên trang cài đặt project;
   báo đúng câu khi chưa máy nào báo cáo hồ sơ.
+- `apps/web/src/routes/machines.test.tsx`: badge project trên mỗi job; bộ lọc "Dự án" giữ đúng máy và chỉ job
+  của project đã chọn, ghi lại `project=` trong URL.
 - `apps/web/e2e/owner-admin.spec.ts`: phím tắt (kể cả "Tạo thêm"), quick search, kéo-thả bị từ chối, đổi ưu
   tiên hàng loạt, ghép máy bằng TOTP, duyệt chuyển máy từ máy B trong Inbox rồi chuyển project về từ trang Dự
   án, chế độ tối.

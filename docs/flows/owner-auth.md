@@ -58,9 +58,10 @@ owner tự đổi mật khẩu.
     `CreateSubtaskRequest`/`RateSubtaskRequest`/`RetrySubtaskRequest` của flow `ticket-lifecycle` — các schema
     ticket đó, kể cả `RateSubtaskRequest`/`RetrySubtaskRequest` mà PM dùng để đánh giá lại hay mở lại một
     subtask tại chỗ, `Comment.mentions` (tag `@pm` của owner), mã lỗi `PM_NOT_AVAILABLE`,
-    `ListTicketsQuery.projectIds` (lọc nhiều dự án cho board/danh sách "Tất cả dự án") và
-    `TicketTreeResponse` (cây hậu duệ của `GET /v1/tickets/:id/tree`), không ảnh hưởng gì
-    tới schema này; 400 khi mật khẩu mới quá ngắn hoặc trùng mật khẩu hiện tại), gọi
+    `ListTicketsQuery.projectIds` (lọc nhiều dự án cho board/danh sách "Tất cả dự án"),
+    `TicketTreeResponse` (cây hậu duệ của `GET /v1/tickets/:id/tree`) và `SearchQuery`/`DocsOverviewResponse`/
+    `CrossDocsSearchQuery` (bộ lọc `projectIds` của tìm kiếm nhanh và trang chủ docs, flow `docs-sync-viewer`),
+    không ảnh hưởng gì tới schema này; 400 khi mật khẩu mới quá ngắn hoặc trùng mật khẩu hiện tại), gọi
     `changeOwnerPassword()` rồi `setSessionCookies()` với session mới. Không dùng `Idempotency-Key` (route
     owner không dùng cơ chế này).
 13. `apps/api/src/auth/owner-auth.ts` → `changeOwnerPassword()`: xác minh mật khẩu hiện tại trước (để một

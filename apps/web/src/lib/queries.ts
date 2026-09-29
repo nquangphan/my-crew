@@ -28,7 +28,11 @@ export const keys = {
   claims: (status?: ClaimRequestStatus) => ['claims', status ?? 'all'] as const,
   projectChanges: (status?: ProjectChangeStatus) => ['projectChanges', status ?? 'all'] as const,
   notices: ['notices'] as const,
-  search: (q: string) => ['search', q] as const,
+  search: (q: string, projectIds: readonly string[] = []) => ['search', q, [...projectIds]] as const,
+  /** Every project's docs status; ticket events refresh it too (a docs_init ticket changes status). */
+  docsOverview: ['docs', 'overview'] as const,
+  docsSearchAcross: (q: string, projectIds: readonly string[]) =>
+    ['docs', 'search-across', q, [...projectIds]] as const,
   /** Everything under `docs` is refetched when a `docs.synced` event arrives. */
   docsSpace: (projectId: string) => ['docs', projectId, 'space'] as const,
   docsPage: (projectId: string, path: string) => ['docs', projectId, 'page', path] as const,
@@ -131,12 +135,12 @@ export function useFlowTickets(projectId: string | undefined, flow: string | nul
   });
 }
 
+/** A project's docs space; also fetched on demand by the docs project switcher. */
+export const docsSpaceQuery = (projectId: string) =>
+  queryOptions({ queryKey: keys.docsSpace(projectId), queryFn: () => api.getDocsSpace(projectId) });
+
 export function useDocsSpace(projectId: string | undefined) {
-  return useQuery({
-    queryKey: keys.docsSpace(projectId ?? ''),
-    queryFn: () => api.getDocsSpace(projectId ?? ''),
-    enabled: Boolean(projectId),
-  });
+  return useQuery({ ...docsSpaceQuery(projectId ?? ''), enabled: Boolean(projectId) });
 }
 
 export function useDocsPage(projectId: string | undefined, path: string | null) {
@@ -144,6 +148,21 @@ export function useDocsPage(projectId: string | undefined, path: string | null) 
     queryKey: keys.docsPage(projectId ?? '', path ?? ''),
     queryFn: () => api.getDocsPage(projectId ?? '', path ?? ''),
     enabled: Boolean(projectId && path),
+  });
+}
+
+/** Every project's docs status, snapshot, file count and docs-init ticket (the docs home and switcher). */
+export function useDocsOverview() {
+  return useQuery({ queryKey: keys.docsOverview, queryFn: () => api.getDocsOverview() });
+}
+
+/** Docs search across projects: every project when `projectIds` is empty. */
+export function useDocsSearchAcross(q: string, projectIds: readonly string[], enabled = true) {
+  return useQuery({
+    queryKey: keys.docsSearchAcross(q, projectIds),
+    queryFn: ({ signal }) => api.searchDocsAcross(q, projectIds, signal),
+    enabled: enabled && q.length > 0,
+    staleTime: 5_000,
   });
 }
 

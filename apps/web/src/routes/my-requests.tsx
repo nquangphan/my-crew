@@ -1,18 +1,27 @@
 import { useNavigate } from '@tanstack/react-router';
 import { Plus } from 'lucide-react';
 import { BoardView } from '../components/board-view';
+import { selectedProjects } from '../components/project-filter';
 import { Button } from '../components/ui/button';
 import { Breadcrumbs } from '../layout/breadcrumbs';
 import { useShell } from '../layout/shell-context';
-import { useTickets } from '../lib/queries';
-import type { BoardSearch } from '../lib/search-params';
+import { useProjects, useTickets } from '../lib/queries';
+import type { AllBoardSearch } from '../lib/search-params';
 
-/** "Tất cả request của tôi": every request ticket the owner gave the assistant, on a board. */
-export function MyRequestsPage({ search }: { search: BoardSearch }) {
+/**
+ * "Tất cả request của tôi": every request ticket the owner gave the assistant, on a board. The "Dự án"
+ * filter keeps the requests routed or hinted to the chosen projects (a request belongs to no project).
+ */
+export function MyRequestsPage({ search }: { search: AllBoardSearch }) {
   const navigate = useNavigate();
   const shell = useShell();
-  const tickets = useTickets({ type: ['request'] });
-  const onSearch = (patch: Partial<BoardSearch>) =>
+  const projects = useProjects();
+  const projectIds = selectedProjects(projects.data, search.project).map((p) => p.id);
+  const tickets = useTickets(
+    { type: ['request'], projectIds: projectIds.length > 0 ? projectIds : undefined },
+    Boolean(projects.data) || !search.project,
+  );
+  const onSearch = (patch: Partial<AllBoardSearch>) =>
     void navigate({
       to: '/requests',
       search: (prev) => ({ ...prev, ...patch }),
@@ -26,6 +35,7 @@ export function MyRequestsPage({ search }: { search: BoardSearch }) {
       search={{ ...search, group: search.group ?? 'none' }}
       onSearch={onSearch}
       showTypeFilter={false}
+      projectFilter={projects.data ?? []}
       header={
         <>
           <Breadcrumbs items={[{ label: 'Request của tôi' }]} />

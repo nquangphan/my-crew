@@ -9,7 +9,9 @@ import {
   Comment,
   type CreateProjectRequest,
   type CreateRequestTicket,
+  CrossDocsSearchResponse,
   CSRF_HEADER,
+  DocsOverviewResponse,
   DocsPageResponse,
   DocsSearchResponse,
   DocsSpaceResponse,
@@ -213,8 +215,13 @@ export const api = {
     }),
   getReports: (idOrKey: string) =>
     request(`/v1/tickets/${encodeURIComponent(idOrKey)}/report`, { schema: ReportResponse }),
-  search: (q: string, signal?: AbortSignal) =>
-    request('/v1/search', { schema: SearchResponse, query: { q }, signal }),
+  /** Quick search; `projectIds` narrows tickets and docs to those projects. */
+  search: (q: string, projectIds?: readonly string[], signal?: AbortSignal) =>
+    request('/v1/search', {
+      schema: SearchResponse,
+      query: { q, projectIds: projectIds?.length ? projectIds.join(',') : undefined },
+      signal,
+    }),
 
   /** One page of tickets as the server sorts it (default: most recently updated first). */
   /** Every descendant of a ticket (open and closed) in one call. */
@@ -229,6 +236,15 @@ export const api = {
     request(`/v1/projects/${encodeURIComponent(projectId)}/docs/page`, {
       schema: DocsPageResponse,
       query: { path },
+    }),
+  /** Every project's docs status (the docs home). */
+  getDocsOverview: () => request('/v1/docs', { schema: DocsOverviewResponse }),
+  /** Docs search across projects: every project, or only `projectIds`. */
+  searchDocsAcross: (q: string, projectIds?: readonly string[], signal?: AbortSignal) =>
+    request('/v1/docs/search', {
+      schema: CrossDocsSearchResponse,
+      query: { q, projectIds: projectIds?.length ? projectIds.join(',') : undefined },
+      signal,
     }),
   searchDocs: (projectId: string, q: string, signal?: AbortSignal) =>
     request(`/v1/projects/${encodeURIComponent(projectId)}/docs/search`, {

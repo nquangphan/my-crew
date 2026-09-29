@@ -1,10 +1,12 @@
 import type { HealthStatus, Machine } from '@crew/shared';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { ChevronDown, ChevronUp, Hourglass, Plus, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { describeWait, formatClock } from '../components/agent-activity';
 import { PairingDialog } from '../components/pairing-dialog';
+import { ProjectBadge, projectKeyResolver } from '../components/project-badge';
+import { ProjectFilterMenu, selectedProjects } from '../components/project-filter';
 import { Spinner } from '../components/role-avatar';
 import { TONE_CLASS } from '../components/status-lozenge';
 import { Button } from '../components/ui/button';
@@ -15,7 +17,8 @@ import { Breadcrumbs } from '../layout/breadcrumbs';
 import { api } from '../lib/api-client';
 import { cn } from '../lib/cn';
 import { errorMessage, formatFullDateTime, formatRelative, ROLE_META, type Tone } from '../lib/format';
-import { keys, useMachine, useMachines } from '../lib/queries';
+import { keys, useMachine, useMachines, useProjects } from '../lib/queries';
+import type { ProjectFilterSearch } from '../lib/search-params';
 
 const HEALTH: Record<HealthStatus, { label: string; tone: Tone }> = {
   green: { label: 'Ổn', tone: 'done' },
@@ -110,15 +113,20 @@ const JOB_KIND: Record<string, string> = {
   docs_init: 'khởi tạo docs',
 };
 
-/** One job line: a status mark, the ticket key (linked once known), and what the job does or waits for. */
+/**
+ * One job line: a status mark, the ticket key (linked once known) with its project, and what the job does
+ * or waits for.
+ */
 function JobLine({
   ticketId,
   ticketKey,
+  projectKey,
   mark,
   children,
 }: {
   ticketId: string;
   ticketKey: string | undefined;
+  projectKey: string | undefined;
   mark: ReactNode;
   children: ReactNode;
 }) {
@@ -132,13 +140,19 @@ function JobLine({
       ) : (
         <span className="font-mono text-muted">{ticketId.slice(0, 8)}</span>
       )}
+      {projectKey && <ProjectBadge projectKey={projectKey} />}
       <span className="min-w-0 break-words text-muted">{children}</span>
     </li>
   );
 }
 
-/** The machine's running, waiting and failed jobs from its latest heartbeat, with ticket keys and reasons. */
-function MachineJobs({ machine }: { machine: Machine }) {
+/**
+ * The machine's running, waiting and failed jobs from its latest heartbeat, with ticket keys, projects and
+ * reasons. With a project filter (`projectIds`), only the jobs of those projects are listed (a job whose
+ * ticket is still loading stays until its project is known).
+ */
+function MachineJobs({ machine, projectIds }: { machine: Machine; projectIds: ReadonlySet<string> }) {
+  const projects = useProjects();
   const ids = [
     ...new Set([
       ...machine.runningJobs.map((job) => job.ticketId),
@@ -153,15 +167,32 @@ function MachineJobs({ machine }: { machine: Machine }) {
       staleTime: 60_000,
     })),
   });
-  const keyOf = (id: string) => tickets[ids.indexOf(id)]?.data?.ticket.key;
-  if (ids.length === 0) return <>Không có</>;
+  const ticketOf = (id: string) => tickets[ids.indexOf(id)]?.data?.ticket;
+  const keyOf = (id: string) => ticketOf(id)?.key;
+  const projectKeyOf = projectKeyResolver(projects.data);
+  const projectOf = (id: string) => {
+    const ticket = ticketOf(id);
+    return ticket ? projectKeyOf(ticket) : undefined;
+  };
+  const shown = (job: { ticketId: string }) => {
+    if (projectIds.size === 0) return true;
+    const ticket = ticketOf(job.ticketId);
+    return !ticket || (ticket.projectId !== null && projectIds.has(ticket.projectId));
+  };
+  const running = machine.runningJobs.filter(shown);
+  const waiting = machine.waitingJobs.filter(shown);
+  const failed = machine.failedJobs.filter(shown);
+  if (running.length + waiting.length + failed.length === 0) {
+    return <>{ids.length === 0 ? 'Không có' : 'Không có job của dự án đã chọn'}</>;
+  }
   return (
     <ul aria-label={`Job trên ${machine.name}`} className="m-0 flex list-none flex-col gap-1 p-0">
-      {machine.runningJobs.map((job) => (
+      {running.map((job) => (
         <JobLine
           key={`run-${job.ticketId}`}
           ticketId={job.ticketId}
           ticketKey={keyOf(job.ticketId)}
+          projectKey={projectOf(job.ticketId)}
           mark={<Spinner label="Đang chạy" />}
         >
           {ROLE_META[job.role].short} · {JOB_KIND[job.kind] ?? job.kind}
@@ -169,11 +200,12 @@ function MachineJobs({ machine }: { machine: Machine }) {
           {job.startedAt && ` · chạy từ ${formatClock(job.startedAt)}`}
         </JobLine>
       ))}
-      {machine.waitingJobs.map((job) => (
+      {waiting.map((job) => (
         <JobLine
           key={`wait-${job.ticketId}`}
           ticketId={job.ticketId}
           ticketKey={keyOf(job.ticketId)}
+          projectKey={projectOf(job.ticketId)}
           mark={<Hourglass size={14} aria-label="Đang chờ" className="text-warn-ink" />}
         >
           {job.role ? `${ROLE_META[job.role].short} · ` : ''}
@@ -184,11 +216,12 @@ function MachineJobs({ machine }: { machine: Machine }) {
           {job.since && ` · nhận lúc ${formatClock(job.since)}`}
         </JobLine>
       ))}
-      {machine.failedJobs.map((job) => (
+      {failed.map((job) => (
         <JobLine
           key={`fail-${job.ticketId}`}
           ticketId={job.ticketId}
           ticketKey={keyOf(job.ticketId)}
+          projectKey={projectOf(job.ticketId)}
           mark={<TriangleAlert size={14} aria-label="Lỗi" className="text-bad" />}
         >
           {ROLE_META[job.role].short} · lỗi lúc {formatClock(job.failedAt)}: {job.error}
@@ -198,7 +231,7 @@ function MachineJobs({ machine }: { machine: Machine }) {
   );
 }
 
-function MachineCard({ machine }: { machine: Machine }) {
+function MachineCard({ machine, projectIds }: { machine: Machine; projectIds: ReadonlySet<string> }) {
   const [expanded, setExpanded] = useState(false);
   const [confirm, setConfirm] = useState<'revoke' | 'assistant' | null>(null);
   const [busy, setBusy] = useState(false);
@@ -279,11 +312,15 @@ function MachineCard({ machine }: { machine: Machine }) {
             : '—'}
         </Fact>
         <Fact label="Job">
-          <MachineJobs machine={machine} />
+          <MachineJobs machine={machine} projectIds={projectIds} />
         </Fact>
         <Fact label="Dự án">
           {machine.projectKeys.length > 0 ? (
-            <span className="font-mono">{machine.projectKeys.join(', ')}</span>
+            <span className="flex flex-wrap gap-1">
+              {machine.projectKeys.map((key) => (
+                <ProjectBadge key={key} projectKey={key} />
+              ))}
+            </span>
           ) : (
             '—'
           )}
@@ -358,11 +395,23 @@ function MachineCard({ machine }: { machine: Machine }) {
   );
 }
 
-/** Machines: online and paused state, desktop-app health with failing checks, resources, jobs, skills, tokens. */
-export function MachinesPage() {
+/**
+ * Machines: online and paused state, desktop-app health with failing checks, resources, jobs, skills, tokens.
+ * The "Dự án" filter (`?project=`) keeps the machines holding one of the chosen projects, or running a job
+ * of one, and lists only those projects' jobs.
+ */
+export function MachinesPage({ search = {} }: { search?: ProjectFilterSearch }) {
   const machines = useMachines();
+  const projects = useProjects();
+  const navigate = useNavigate();
   const [pairing, setPairing] = useState(false);
-  const list = machines.data ?? [];
+  const chosen = selectedProjects(projects.data, search.project);
+  const chosenIds = new Set(chosen.map((p) => p.id));
+  const chosenKeys = new Set(chosen.map((p) => p.key));
+  const all = machines.data ?? [];
+  const list =
+    chosen.length === 0 ? all : all.filter((m) => m.projectKeys.some((key) => chosenKeys.has(key)));
+  const hidden = all.length - list.length;
   const active = list.filter((m) => m.revokedAt === null);
   const revoked = list.filter((m) => m.revokedAt !== null);
   return (
@@ -370,6 +419,11 @@ export function MachinesPage() {
       <Breadcrumbs items={[{ label: 'Máy' }]} />
       <div className="flex flex-wrap items-center gap-2.5">
         <h1 className="m-0 grow text-[22px] font-semibold">Máy</h1>
+        <ProjectFilterMenu
+          projects={projects.data ?? []}
+          value={search.project}
+          onChange={(project) => void navigate({ to: '/machines', search: { project }, replace: true })}
+        />
         <Button variant="primary" onClick={() => setPairing(true)}>
           <Plus size={16} aria-hidden /> Ghép máy mới
         </Button>
@@ -382,12 +436,17 @@ export function MachinesPage() {
       )}
       {machines.data && active.length === 0 && (
         <p className="m-0 rounded-md border border-line bg-panel p-4 text-sm">
-          Chưa có máy nào. Bấm “Ghép máy mới” rồi nhập mã trong app 2P Crew.
+          {chosen.length > 0
+            ? `Không máy nào đang giữ ${chosen.map((p) => p.key).join(', ')}.`
+            : 'Chưa có máy nào. Bấm “Ghép máy mới” rồi nhập mã trong app 2P Crew.'}
         </p>
+      )}
+      {chosen.length > 0 && hidden > 0 && (
+        <p className="m-0 text-xs text-muted">Ẩn {hidden} máy không giữ dự án đã chọn.</p>
       )}
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {active.map((m) => (
-          <MachineCard key={m.id} machine={m} />
+          <MachineCard key={m.id} machine={m} projectIds={chosenIds} />
         ))}
       </ul>
       {revoked.length > 0 && (
@@ -395,7 +454,7 @@ export function MachinesPage() {
           <h2 className="m-0 text-sm font-semibold text-muted">Đã thu hồi</h2>
           <ul className="m-0 flex list-none flex-col gap-3 p-0">
             {revoked.map((m) => (
-              <MachineCard key={m.id} machine={m} />
+              <MachineCard key={m.id} machine={m} projectIds={chosenIds} />
             ))}
           </ul>
         </>

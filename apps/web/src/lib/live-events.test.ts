@@ -114,6 +114,8 @@ describe('startLiveEvents', () => {
       ['ticket'],
       ['descendants'],
       ['report'],
+      // A docs_init ticket's status explains an empty space on the docs home.
+      ['docs', 'overview'],
     ]);
 
     // The browser's own reconnect: a second open means events may have been missed.
