@@ -131,13 +131,19 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: crew-docs bundle (shipped inside the app)
         run: pnpm --filter @crew/docs-kit build
-      - name: Build the dmgs and zips and publish them to the GitHub Release
+      - name: Build the dmgs and zips
+        # One dmg and one zip per architecture (arm64 and x64); the packaging script and electron-builder.yml
+        # decide the targets. electron-builder's own publishing uploads in parallel and each upload may create
+        # the tag's release, which once split v0.1.0 into two releases; so the release is created once, below.
+        run: pnpm --filter @crew/desktop package:mac
+      - name: Publish one GitHub Release with every artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # One dmg and one zip per architecture (arm64 and x64); the packaging script and electron-builder.yml
-        # decide the targets, and electron-builder uploads every dmg, zip, blockmap and latest-mac.yml it
-        # produces to the release of this tag (the updater reads latest-mac.yml and installs the zip).
-        run: pnpm --filter @crew/desktop package:mac --publish
+        # The updater reads latest-mac.yml from the latest release and installs the zip for its architecture.
+        run: |
+          cd apps/desktop/release
+          gh release create "$GITHUB_REF_NAME" --title "2P Crew $GITHUB_REF_NAME" --generate-notes \
+            *.dmg *.zip *.blockmap latest-mac.yml
       - name: Keep the dmgs and zips as workflow artifacts
         uses: actions/upload-artifact@v4
         with:

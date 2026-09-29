@@ -192,7 +192,10 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
     binary chạy được trong Electron. Chưa ký Developer ID và chưa notarize: lần đầu mở phải bấm chuột phải →
     Open (Gatekeeper), và cập nhật tự động vẫn chỉ mở link tải file dmg đúng kiến trúc (`Updater.check()`, bước
     15) — zip đã được dựng và đăng cùng dmg, chỉ chưa dùng tới vì app chưa ký. Job CI phát hành trên tag `v*`
-    (`.github/workflows/ci.yml`, xem flow `deployment`) chạy chính `package:mac --publish` này. Bước ký và
+    (`.github/workflows/ci.yml`, xem flow `deployment`) chạy `package:mac` này (không `--publish`), rồi tạo
+    đúng một GitHub Release cho tag bằng `gh release create` với mọi dmg/zip/blockmap và `latest-mac.yml` —
+    publish song song của electron-builder từng tạo release cho cùng tag hai lần nên bước tạo release được
+    tách riêng. Bước ký và
     notarize sau này: xin chứng chỉ Developer ID Application; trên CI đặt `CSC_LINK` (file `.p12` mã hoá
     base64) và `CSC_KEY_PASSWORD`, cùng `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`; trong
     `electron-builder.yml` bỏ `identity: "-"` (tự dò identity Developer ID), bật `hardenedRuntime: true`, thêm
@@ -201,8 +204,9 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
     kiến trúc từ trước, không cần đổi `mac.target` khi bật ký; `afterPack` chạy trước khi ký nên app đã ký (và
     cả dmg, zip dựng từ nó) không còn binary của kiến trúc khác, và cả hai kiến trúc được ký/notarize riêng
     trong cùng một lượt build. Squirrel.Mac (electron-updater tự cài trên build đã ký) cài từ file zip, không
-    phải dmg — dmg vẫn là file cho người tải tay. Rồi chạy `node scripts/package-mac.mjs --publish` (hoặc job
-    CI ở trên) để tải mọi dmg, zip, blockmap và `latest-mac.yml` lên GitHub Releases (cần `GH_TOKEN`).
+    phải dmg — dmg vẫn là file cho người tải tay. Rồi chạy `node scripts/package-mac.mjs --publish` để tải mọi
+    dmg, zip, blockmap và `latest-mac.yml` lên GitHub Releases (cần `GH_TOKEN`) — lệnh tay này khác với job CI ở
+    trên, vốn không dùng `--publish` (xem flow `deployment`).
 
 ## Files
 

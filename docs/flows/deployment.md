@@ -73,8 +73,11 @@ build/test/kiểm docs trước khi merge.
 11. CI (`.github/workflows/ci.yml`, một workflow trên push/pull_request, service Postgres 17): `pnpm install`,
     typecheck, lint, toàn bộ test (kể cả ma trận vòng đời job scripted của daemon), build web, `crew-docs check
     --range` và `check --all`, build daemon, build desktop (electron-vite), shellcheck các script deploy; job
-    `e2e` chạy bộ E2E; job `release` (runner macOS) trên tag `v*` build và đăng dmg và zip từng kiến trúc
-    (arm64, x64), cùng blockmap và `latest-mac.yml`, lên GitHub Releases (workflow artifact `mac-release`). Bộ
+    `e2e` chạy bộ E2E; job `release` (runner macOS) trên tag `v*` build dmg và zip từng kiến trúc (arm64, x64)
+    bằng `pnpm --filter @crew/desktop package:mac` (không `--publish`), rồi một bước riêng tạo đúng một GitHub
+    Release cho tag bằng `gh release create` kèm mọi dmg/zip/blockmap và `latest-mac.yml` (workflow artifact
+    `mac-release`) — tách hai bước vì publish song song của electron-builder từng tạo release cho cùng tag hai
+    lần (v0.1.0 bị chia thành hai bản, một bản thiếu `latest-mac.yml`), nên electron-updater không tìm thấy nó. Bộ
     E2E (`e2e/`, Playwright ở viewport điện thoại/
     tablet/desktop, chạy `deploy/compose.yml` + `deploy/compose.test.yml` cộng một daemon với config test)
     chạy bằng `pnpm --filter @crew/e2e test:e2e`, cần Docker.
@@ -118,7 +121,8 @@ build/test/kiểm docs trước khi merge.
   được `deploy.sh` và nginx dùng để kiểm sức khỏe.
 - owner-auth: `scripts/seed-owner.sh` tạo tài khoản owner đầu tiên mà flow đó xác thực.
 - desktop-app: cùng dùng GitHub Releases của repo để phát hành (app desktop tự kiểm bản mới từ đó); job
-  `release` của `.github/workflows/ci.yml` là nơi build dmg và zip thay cho lệnh tay `package-mac.mjs --publish`.
+  `release` của `.github/workflows/ci.yml` là nơi build dmg và zip (thay cho lệnh tay `package-mac.mjs`) rồi
+  tạo release, thay cho lệnh tay `package-mac.mjs --publish`.
 - daemon-setup: sau khi VPS đã chạy theo flow này, owner mới cấu hình máy local để trỏ về đúng
   `https://$CREW_DOMAIN`.
 
