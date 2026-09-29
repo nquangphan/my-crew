@@ -106,4 +106,7 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
 - `packages/docs-kit/test/rules.test.ts`: từng luật R1–R7, cả 5 chế độ `check`, lệnh `where`/`flow`, sinh block
   tự động, hành vi bỏ qua R3/R6 trên commit merge, `--all`/`--range` vẫn báo `NOT_INITIALIZED`, ba chế độ hook
   cho qua với đúng một dòng cảnh báo khi repo chưa có `docs/flows.yaml` ở cả hai bản so sánh, và vẫn từ chối
-  (exit 3) khi một commit hay một push xoá manifest khỏi repo đã khởi tạo docs.
+  (exit 3) khi một commit hay một push xoá manifest khỏi repo đã khởi tạo docs; R6 với `AGENTS.md` ở gốc repo:
+  thất bại khi thiếu trailer, đạt với trailer, một `AGENTS.md` lồng trong thư mục con (ví dụ
+  `src/checkout/AGENTS.md`) không bị coi là đường dẫn được bảo vệ, và commit docs-init vẫn được miễn như
+  `CLAUDE.md`.

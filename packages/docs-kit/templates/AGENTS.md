@@ -25,7 +25,7 @@ Hướng dẫn cho agent (và người) làm việc trong repo này.
 - Commit nào đổi file nguồn cũng phải sửa `docs/flows/<id>.md` của mọi flow chứa file đó (luật R3).
 - File nguồn mới phải có mặt trong một flow của `docs/flows.yaml` (luật R2).
 - Sửa `docs/flows.yaml` xong thì chạy `crew-docs generate`.
-- Không sửa `.claude/**`, `.githooks/**`, `CLAUDE.md` hay các mục `source`, `shared`, `unassigned` của
-  `docs/flows.yaml` khi ticket không được chủ dự án cho phép (luật R6).
+- Không sửa `.claude/**`, `.githooks/**`, `CLAUDE.md`, `AGENTS.md` (file này) hay các mục `source`, `shared`,
+  `unassigned` của `docs/flows.yaml` khi ticket không được chủ dự án cho phép (luật R6).
 - Không bao giờ commit credential (luật R7).
 - Kiểm tra trước khi commit: `crew-docs check --staged`.

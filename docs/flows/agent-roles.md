@@ -108,7 +108,13 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 10. `apps/daemon/src/roles/failure-policy.ts` → `decideFailure()`: `budget` chặn ticket ngay (`blocked`, chờ
     chủ dự án); các lý do khác được thử lại tới `MAX_ATTEMPTS` (2) lần thì mới chặn; một `docs_rejected` được
     thử lại bằng một job `dev` mới trên phiên dev cũ, mang theo nguyên văn output hook bị từ chối, mọi lý do
-    khác lặp lại đúng loại job cũ.
+    khác lặp lại đúng loại job cũ. Cả bình luận thử lại ("Lần thử …/2 không thành: …") lẫn bình luận chặn
+    ("Ticket bị chặn: …") đều nối thêm khối chẩn đoán `traceMarkdown()` của lượt vừa chạy (`run-trace.ts`, flow
+    `agent-runs`) khi lượt đó để lại một `RunTrace` — áp dụng cho mọi lý do (`not_finished`, `budget`, lỗi
+    runner kể cả `error_max_turns`, `no_handoff`, `docs_rejected`), nên một ticket dừng giữa chừng mà không nộp
+    report vẫn để lại số lượt/thời gian/chi phí, tin nhắn cuối và các bước cuối của agent, không chỉ một dòng lý
+    do. `failedJobText()` dựng dòng `failedJobs[].error` của heartbeat cùng cách: lý do bằng lời cộng
+    `traceSummary()` một dòng, tối đa 500 ký tự.
 11. `apps/daemon/src/roles/untrusted-wrap.ts` → `wrapUntrusted()`/`wrapTicketDetail()`: mọi văn bản chủ dự án
     không tự viết (mô tả ticket agent tạo, bình luận agent/system, report, nội dung repo) được bọc trong
     `<untrusted-data source="…">…</untrusted-data>`; delimiter bên trong bị vô hiệu hoá
@@ -219,7 +225,10 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   (`19-docs-only-readme.yaml`: subtask dev "Viết mục cài đặt trong README" bị guard từ chối ghi `README.md` nên
   bàn giao ngay không đụng code, job `docs_update` commit một mình `README.md` và qua đúng hook crew-docs, QC
   giữ `playwright` trên ticket nhưng review tĩnh diff chỉ đổi docs, report ghi đúng câu `DOCS_ONLY_QC_NOTE` và
-  `mcpsUsed`/`mcpsMissing` rỗng) — mỗi kịch bản kết thúc ở trạng
+  `mcpsUsed`/`mcpsMissing` rỗng), docs-init kết thúc hai lần liền mà không nộp report
+  (`20-docs-init-not-finished.yaml`: mỗi lượt chỉ đọc vài file rồi để lại một tin nhắn `say` chưa xong việc —
+  cả bình luận thử lại lẫn bình luận chặn đều mang đủ khối chẩn đoán, tin nhắn cuối đã bị ẩn credential trích
+  dẫn trong đó) — mỗi kịch bản kết thúc ở trạng
   thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
 - `apps/daemon/test/pm-mention.test.ts`: PM chạy với đúng ghi chú "Chủ dự án gọi PM" (ticket được tag, trạng
   thái/complexity, lỗi job gần nhất và bình luận agent gần nhất bọc `<untrusted-data>`, bình luận owner nguyên

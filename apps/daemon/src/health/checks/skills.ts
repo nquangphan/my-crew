@@ -2,7 +2,7 @@ import type { SkillInventory } from '@crew/shared';
 import { removeWorktree } from '../../git/worktree-manager.js';
 import { storedInventory } from '../project-views.js';
 import { PROBE_WORKTREE_KEY } from '../repo-probe.js';
-import { type HealthCheck, type HealthCheckResult, result } from '../types.js';
+import { type HealthCheck, type HealthCheckResult, parseFixId, result } from '../types.js';
 
 const MAX_NAMES = 25;
 
@@ -98,7 +98,7 @@ export const skillChecks: HealthCheck = {
     return results;
   },
   async fix(ctx, fixId) {
-    const [action, key] = fixId.split(':');
+    const { action, key } = parseFixId(fixId);
     const project = ctx.config?.projects.find((p) => p.key === key);
     if (!project) return;
     if (action === 'skills-redetect') {

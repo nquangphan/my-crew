@@ -101,10 +101,11 @@ describe('guard hook', () => {
   describe('protected paths and job kinds', () => {
     const ctx = (kind: GuardContext['kind'], cwd: string): GuardContext => ({ cwd, kind });
 
-    it('protects CLAUDE.md, .claude, husky, lefthook and the crew-docs CI files except for docs-init', () => {
+    it('protects CLAUDE.md, AGENTS.md, .claude, husky, lefthook and the crew-docs CI files except for docs-init', () => {
       const cwd = permissiveRepo();
       for (const path of [
         'CLAUDE.md',
+        'AGENTS.md',
         '.claude/skills/x/SKILL.md',
         '.husky/pre-commit',
         'lefthook.yml',
@@ -177,22 +178,57 @@ describe('guard hook', () => {
       ).toBe('allow');
     });
 
+    it('denies AGENTS.md to every job but docs-init, in any case, with a clear reason', () => {
+      const cwd = permissiveRepo();
+      for (const kind of ['agent', 'docs_update'] as const) {
+        for (const file_path of ['AGENTS.md', 'agents.md', 'Claude.md']) {
+          const verdict = evaluateToolCall(ctx(kind, cwd), 'Write', { file_path, content: '#' });
+          expect(verdict.decision, `${kind} ${file_path}`).toBe('deny');
+          expect(verdict.reason).toMatch(/hướng dẫn agent được bảo vệ \(R6\): chỉ job docs_init được ghi/);
+        }
+      }
+      expect(
+        evaluateToolCall({ cwd, kind: 'agent', codeOnly: true }, 'Edit', {
+          file_path: 'AGENTS.md',
+          old_string: '#',
+          new_string: '##',
+        }).decision,
+      ).toBe('deny');
+      expect(
+        evaluateToolCall(ctx('docs_init', cwd), 'Write', { file_path: 'AGENTS.md', content: '#' }),
+      ).toMatchObject({
+        decision: 'allow',
+      });
+      expect(
+        evaluateToolCall(ctx('agent', cwd), 'Write', { file_path: 'src/AGENTS.md', content: '#' }).decision,
+      ).toBe('allow');
+    });
+
     it('judges a path through a symlink where it lands, except linked shared paths', () => {
       const cwd = permissiveRepo();
       const outside = tempDir('crewd-outside-');
       mkdirSync(join(outside, 'kit'));
       symlinkSync(outside, join(cwd, 'escape'));
+      writeFileSync(join(outside, 'NOTES.txt'), 'shared\n');
+      symlinkSync(join(outside, 'NOTES.txt'), join(cwd, 'NOTES.txt'));
       writeFileSync(join(outside, 'AGENTS.md'), '# shared\n');
       symlinkSync(join(outside, 'AGENTS.md'), join(cwd, 'AGENTS.md'));
       expect(
         evaluateToolCall(ctx('agent', cwd), 'Write', { file_path: 'escape/x.txt', content: '' }).decision,
       ).toBe('deny');
       expect(
+        evaluateToolCall({ cwd, kind: 'agent', sharedPaths: ['NOTES.txt'] }, 'Write', {
+          file_path: 'NOTES.txt',
+          content: '',
+        }).decision,
+      ).toBe('allow');
+      // A linked AGENTS.md is still R6-protected.
+      expect(
         evaluateToolCall({ cwd, kind: 'agent', sharedPaths: ['AGENTS.md'] }, 'Write', {
           file_path: 'AGENTS.md',
           content: '',
         }).decision,
-      ).toBe('allow');
+      ).toBe('deny');
     });
   });
 

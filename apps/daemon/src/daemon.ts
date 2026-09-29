@@ -28,6 +28,7 @@ import {
   worktreeKeys,
   worktreePath,
 } from './git/worktree-manager.js';
+import { failedJobText } from './roles/failure-policy.js';
 import { rolePlanner } from './roles/role-planner.js';
 import {
   type AgentRunner,
@@ -805,7 +806,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
         role: job.role,
         ...(job.stage ? { stage: job.stage } : {}),
         failedAt: job.endedAt ?? job.createdAt,
-        error: (job.error ?? 'không rõ lỗi').slice(0, 500),
+        error: failedJobText(job),
       }))
       .slice(-200);
     const health = options.health?.();

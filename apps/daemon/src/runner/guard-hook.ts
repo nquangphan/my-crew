@@ -35,7 +35,8 @@ const PROTECTED_MANIFEST_SECTIONS = ['source', 'shared', 'unassigned'] as const;
 
 /**
  * Protected config (rule R6), mirrored from crew-docs: agent config, the files that wire the crew-docs
- * hooks and CI in, and `CLAUDE.md`. Only the docs-init job may write them.
+ * hooks and CI in, and the agent instructions `CLAUDE.md` and `AGENTS.md`. Only the docs-init job may
+ * write them.
  */
 export function isProtectedPath(rel: string): boolean {
   const posix = rel.split(sep).join('/');
@@ -45,6 +46,7 @@ export function isProtectedPath(rel: string): boolean {
     posix === '.githooks' ||
     posix.startsWith('.githooks/') ||
     posix === 'CLAUDE.md' ||
+    posix === 'AGENTS.md' ||
     posix === '.husky' ||
     posix.startsWith('.husky/') ||
     /^\.?lefthook\.ya?ml$/.test(posix) ||
@@ -53,7 +55,7 @@ export function isProtectedPath(rel: string): boolean {
   );
 }
 
-/** Repo-root Markdown files that are agent config, not docs (`CLAUDE.md` is also R6-protected). */
+/** Repo-root Markdown files that are agent instructions, not docs; both are R6-protected. */
 const ROOT_AGENT_FILES = new Set(['agents.md', 'claude.md']);
 
 /**
@@ -159,6 +161,14 @@ function checkWrite(ctx: GuardContext, tool: string, input: Input): GuardVerdict
     return { decision: 'deny', reason: 'đường dẫn đi qua symlink ra ngoài thư mục làm việc', target: abs };
   }
   if (ctx.kind !== 'docs_init') {
+    // A case-insensitive worktree (macOS) writes `agents.md` into `AGENTS.md`.
+    if (ROOT_AGENT_FILES.has(rel.split(sep).join('/').toLowerCase())) {
+      return {
+        decision: 'deny',
+        reason: `${rel} là hướng dẫn agent được bảo vệ (R6): chỉ job docs_init được ghi; nếu cần đổi, ghi đề xuất vào comment để chủ dự án duyệt`,
+        target: rel,
+      };
+    }
     if (isProtectedPath(rel)) {
       return {
         decision: 'deny',

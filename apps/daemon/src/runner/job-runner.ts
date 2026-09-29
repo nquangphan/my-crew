@@ -34,7 +34,7 @@ import {
   type ReportOverlay,
   type TicketToolContext,
 } from '../tools/ticket-mcp-server.js';
-import { allowedToolsFor } from '../tools/tool-scopes.js';
+import { allowedToolsFor, disallowedToolsFor } from '../tools/tool-scopes.js';
 import {
   type AgentRunner,
   type AgentRunResult,
@@ -47,6 +47,7 @@ import { createGuardHook } from './guard-hook.js';
 import { cleanupJob, jobTmpDir } from './job-cleanup.js';
 import type { ResourceTracker } from './resource-tracker.js';
 import { classifyRetry, isBackoffError } from './retry-classifier.js';
+import { buildRunTrace, traceMarkdown } from './run-trace.js';
 import { ScriptedCrash } from './scripted-runner.js';
 import { scrubSecrets } from './secret-scrubber.js';
 import { mcpServersUsed, skillsInvoked } from './skill-usage.js';
@@ -635,6 +636,8 @@ export class JobRunner {
           mcpServers: mcpNames,
           disabledMcpServers: disabled,
         }),
+        disallowedTools: disallowedToolsFor(disabled),
+        deniedMcpServers: [...disabled],
         maxBudgetUsd: budget,
         abortSignal: controller.signal,
         env,
@@ -684,7 +687,13 @@ export class JobRunner {
     await this.bookCost(job, ticket, result, plan);
     const log = state.toolLog(job.id);
     const skills = skillsInvoked(log, result.slashCommands);
+    const runTrace = buildRunTrace({
+      capture: result.capture,
+      subtype: result.resultSubtype,
+      costUsd: result.totalCostUsd,
+    });
     const base: JobPatch = {
+      runTrace,
       costUsd: result.totalCostUsd,
       resultSubtype: result.resultSubtype,
       modelUsage: result.modelUsage,
@@ -740,7 +749,7 @@ export class JobRunner {
       return;
     }
 
-    job = state.updateJob(job.id, { skillsInvoked: skills });
+    job = state.updateJob(job.id, { skillsInvoked: skills, runTrace });
     const afterRun = await this.deps.planner.afterRun?.({
       job,
       kind,
@@ -760,11 +769,13 @@ export class JobRunner {
         errors: result.errors,
       });
       const errorClass = result.resultSubtype ?? 'runner_error';
+      // The planner's failure comment carries the run diagnosis; without one, this comment does.
+      const diagnosis = afterRun?.comments?.length ? '' : `\n\n${traceMarkdown(runTrace, job.stage)}`;
       await this.comment(
         writer,
         ticket.id,
         job.role,
-        `Lượt chạy lỗi (\`${errorClass}\`), chi phí ${result.totalCostUsd.toFixed(4)} USD: ${result.errors.join('; ').slice(0, 2_000) || 'không rõ lỗi'}`,
+        `Lượt chạy lỗi (\`${errorClass}\`), chi phí ${result.totalCostUsd.toFixed(4)} USD: ${scrubSecrets(result.errors.join('; ')).text.slice(0, 2_000) || 'không rõ lỗi'}${diagnosis}`,
       );
       for (const body of afterRun?.comments ?? []) await this.comment(writer, ticket.id, job.role, body);
       if (!afterRun?.followUp) await this.transition(writer, ticket, 'blocked');

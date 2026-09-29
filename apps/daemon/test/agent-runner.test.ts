@@ -96,6 +96,7 @@ describe('SDK agent runner', () => {
     });
     expect(sdk.env).not.toHaveProperty('ANTHROPIC_API_KEY');
     expect(sdk.settings).toEqual({ enabledMcpjsonServers: ['maestro'] });
+    expect(sdk).not.toHaveProperty('disallowedTools');
     expect(sdk.model).toBe('sonnet');
     expect(sdk.effort).toBe('high');
     expect(typeof sdk.spawnClaudeCodeProcess).toBe('function');
@@ -110,6 +111,22 @@ describe('SDK agent runner', () => {
       claudeCodeVersion: '2.1.283',
     });
     expect(seen).toEqual(['sess-1']);
+  });
+
+  it('removes a disabled server from the session: its tools are disallowed and the server denied by name', async () => {
+    const fake = fakeQuery(() => [init(), result()]);
+    await createSdkRunner({ query: fake.query })(
+      options({
+        disallowedTools: ['mcp__plugin_engineering_asana__*'],
+        deniedMcpServers: ['plugin:engineering:asana'],
+      }),
+    );
+    const sdk = fake.calls[0]?.options as Options;
+    expect(sdk.disallowedTools).toEqual(['mcp__plugin_engineering_asana__*']);
+    expect(sdk.settings).toEqual({
+      enabledMcpjsonServers: ['maestro'],
+      deniedMcpServers: [{ serverName: 'plugin:engineering:asana' }],
+    });
   });
 
   it('passes resume and the budget, and reports the last API error class', async () => {
@@ -151,6 +168,45 @@ describe('SDK agent runner', () => {
     const run = await createSdkRunner({ query: fake.query })(options({ control }));
     expect(fake.interrupted()).toBe(1);
     expect(run).toMatchObject({ endedBy: 'ask_owner', isError: false });
+  });
+
+  it('captures turns, duration, compactions, the last main-agent message and the last five tool calls', async () => {
+    const assistant = (id: string, content: unknown[], parent: string | null = null) =>
+      ({ type: 'assistant', parent_tool_use_id: parent, message: { id, content } }) as unknown as SDKMessage;
+    const tools = ['a', 'b', 'c', 'd', 'e', 'f'].map((name, index) =>
+      assistant(`m${index}`, [
+        { type: 'tool_use', name: 'Read', input: { file_path: `/work/src/${name}.ts` } },
+      ]),
+    );
+    const fake = fakeQuery(() => [
+      init(),
+      assistant('m-early', [{ type: 'text', text: 'Bắt đầu.' }]),
+      ...tools,
+      assistant('m-bash', [{ type: 'tool_use', name: 'Bash', input: { command: 'echo $SECRET' } }]),
+      {
+        type: 'system',
+        subtype: 'compact_boundary',
+        compact_metadata: { trigger: 'auto', pre_tokens: 1 },
+      } as unknown as SDKMessage,
+      assistant('m-last', [{ type: 'text', text: 'Dòng một.' }]),
+      assistant('m-last', [{ type: 'text', text: 'Dòng hai.' }]),
+      assistant('m-sub', [{ type: 'text', text: 'từ subagent' }], 'toolu_1'),
+      result({ num_turns: 42, duration_ms: 125_000 }),
+    ]);
+    const out = await createSdkRunner({ query: fake.query })(options());
+    expect(out.capture).toEqual({
+      numTurns: 42,
+      durationMs: 125_000,
+      compactions: 1,
+      lastMessage: 'Dòng một.\n\nDòng hai.',
+      lastTools: [
+        { tool: 'Read', target: 'src/c.ts' },
+        { tool: 'Read', target: 'src/d.ts' },
+        { tool: 'Read', target: 'src/e.ts' },
+        { tool: 'Read', target: 'src/f.ts' },
+        { tool: 'Bash', target: null },
+      ],
+    });
   });
 
   it('marks a run without a result message as an error', async () => {

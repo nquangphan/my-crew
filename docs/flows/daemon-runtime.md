@@ -34,7 +34,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `synchronous=FULL`), bảng `meta` (cursor sự kiện, `tokenExpiresAt`, `inventory:<key>`), `jobs` (index unique
    một phần `jobs_one_active_per_ticket` — một ticket chỉ giữ nhiều nhất một job đang `queued`/`running`/
    `backoff`; cột `stage`, `failed_attempts`, `capabilities`, `return_to_dev` của flow `agent-roles`, cột
-   `wait_reason`/`wait_detail` mà `Scheduler` ghi qua `updateJob()` (flow `daemon-scheduling`)),
+   `run_trace` (JSON, flow `agent-runs`: số lượt/thời gian/chi phí, kết quả SDK, tin nhắn cuối và các bước cuối
+   của agent, ghi sau mọi lượt chạy dù thành hay bại) đọc bởi `failedJobText()` (flow `agent-roles`) cho
+   heartbeat, cột `wait_reason`/`wait_detail` mà `Scheduler` ghi qua `updateJob()` (flow `daemon-scheduling`)),
    `pending_wakeups`, `pm_mentions` (khoá chính `event_id`; `pm_task_id`, `source_ticket_id`,
    `source_ticket_key`, `comment_id`, `created_at` — mỗi owner tag `@pm` nhận được, ghi bởi
    `recordPmMention()`/đọc bằng `pmMentions(eventIds)`, dùng bởi flow `daemon-scheduling`/`agent-roles`),
@@ -87,8 +89,11 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    flow `ticket-lifecycle`) không báo nhầm ticket máy này đang giữ chờ tới lượt hoặc chờ thử lại, và để owner
    thấy vì sao mỗi job chờ (`AgentActivity`, cùng flow). Cùng heartbeat gửi `failedJobs`: job `failed` mới nhất
    mỗi ticket trong `FAILED_JOB_REPORT_MS` (24 giờ, qua `StateDb.latestFailures()`), báo tới khi một job mới
-   của ticket đó bắt đầu. `logWaitChange()` (móc `onWaitChange` của `Scheduler`, flow `daemon-scheduling`) ghi
-   một dòng log "job waiting" mỗi lần lý do chờ đổi, tra `ticket.key` qua VPS khi chưa biết. `pause()` ghi
+   của ticket đó bắt đầu — `error` của mỗi mục là `failedJobText()` (flow `agent-roles`): lớp lỗi, lý do bằng
+   lời và một dòng chẩn đoán ngắn (số lượt/thời gian/chi phí, bước cuối, tin nhắn cuối, từ `run_trace` của
+   job) tối đa 500 ký tự, không đổi schema heartbeat. `logWaitChange()` (móc `onWaitChange` của `Scheduler`,
+   flow `daemon-scheduling`) ghi một dòng log "job waiting" mỗi lần lý do chờ đổi, tra `ticket.key` qua VPS
+   khi chưa biết. `pause()` ghi
    thêm một dòng log số job đang giữ chờ khi tạm dừng máy. `reportSoon()` gửi một heartbeat ngay (qua
    `HeartbeatLoop.tick()`, gộp như mọi lượt gọi chồng nhau, flow `daemon-scheduling`) mỗi khi trạng thái một
    job đổi (`events.on('job')`) hay `logWaitChange()` chạy, miễn daemon đã `start()` và chưa dừng/halt — owner

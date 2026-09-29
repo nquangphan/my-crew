@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { mcpToolPrefix } from '../runner/skill-usage.js';
 import { TICKET_SERVER } from '../tools/tool-scopes.js';
 import { type AgentRunner, type AgentRunResult, emptyResult, type RunAgentOptions } from './agent-runner.js';
+import { recordTool } from './run-trace.js';
 
 const Step = z.union([
   z.object({ tool: z.string().min(1), input: z.record(z.string(), z.unknown()).default({}) }).strict(),
@@ -15,6 +16,8 @@ const Step = z.union([
   z.object({ write: z.object({ path: z.string().min(1), content: z.string() }) }).strict(),
   z.object({ skill: z.string().min(1) }).strict(),
   z.object({ sleep: z.number().int().min(0).max(600_000) }).strict(),
+  /** A text message from the agent (the last one ends up in a failure comment). */
+  z.object({ say: z.string().min(1) }).strict(),
   /** Ends the run like the CLI after its own retries failed with this API error class. */
   z.object({ apiError: z.string().min(1) }).strict(),
   z.object({ fail: z.string().min(1) }).strict(),
@@ -50,7 +53,7 @@ export interface ScriptedRunnerOptions {
   sessionsDir: string;
   /**
    * Fills in a step's input right before it runs (e.g. the id of a ticket an earlier step created). Tool
-   * inputs and Bash commands pass through it.
+   * inputs, Bash commands and agent messages (as `{ text }`) pass through it.
    */
   resolve?: (
     input: Record<string, unknown>,
@@ -113,7 +116,9 @@ function toolCall(step: ScriptStep): { tool: string; input: Record<string, unkno
 export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunner {
   return async (run) => {
     const script = loadScript(await options.script(run));
+    const startedAt = Date.now();
     const result: AgentRunResult = emptyResult();
+    let turns = 0;
     const sessionId = run.resumeSessionId ?? `scripted-${randomUUID()}`;
     const session = run.resumeSessionId
       ? readSession(options.sessionsDir, sessionId)
@@ -141,6 +146,11 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
       if ('crash' in step) throw new ScriptedCrash();
       if ('sleep' in step) {
         await sleep(step.sleep, run.abortSignal);
+      } else if ('say' in step) {
+        turns++;
+        result.capture.lastMessage = options.resolve
+          ? String((await options.resolve({ text: step.say }, run)).text)
+          : step.say;
       } else if ('apiError' in step) {
         result.apiError = step.apiError;
         result.isError = true;
@@ -158,6 +168,8 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
         const call = options.resolve
           ? { tool: planned.tool, input: await options.resolve(planned.input, run) }
           : planned;
+        turns++;
+        recordTool(result.capture, call.tool, call.input, run.cwd);
         const hookInput: PreToolUseHookInput = {
           hook_event_name: 'PreToolUse',
           session_id: sessionId,
@@ -212,6 +224,8 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
     session.costUsd += result.aborted ? 0 : script.result.costUsd;
     writeSession(options.sessionsDir, sessionId, session);
     result.totalCostUsd = session.costUsd;
+    result.capture.numTurns = turns;
+    result.capture.durationMs = Date.now() - startedAt;
     return result;
   };
 }

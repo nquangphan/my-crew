@@ -85,8 +85,13 @@ unassigned:        # explicit, reasoned exceptions
 | R3 freshness | A non-merge commit adds, modifies, deletes or renames a source file without modifying the `docs/flows/<id>.md` of each affected flow in the same commit. Affected flows: those listing the file before or after the change; for a `shared` file, its listed flows. Merge commits are skipped, because their parent commits are checked |
 | R4 generated | The generated blocks in `index.md` or `files.md` differ from `crew-docs generate` |
 | R5 initialized | No `flows.yaml` → exit 3 `NOT_INITIALIZED` |
-| R6 protected | Outside a docs-init commit, a commit changes `.claude/**`, `.githooks/**`, `CLAUDE.md`, or the `source`, `unassigned` or `shared` sections of `flows.yaml`, and lacks the trailer `Crew-Owner-Approved: <ticket-key>`. The daemon adds that trailer only for tickets whose description the owner marked "config change allowed" |
+| R6 protected | Outside a docs-init commit, a commit changes `.claude/**`, `.githooks/**`, `CLAUDE.md`, root `AGENTS.md`, or the `source`, `unassigned` or `shared` sections of `flows.yaml`, and lacks the trailer `Crew-Owner-Approved: <ticket-key>`. The daemon adds that trailer only for tickets whose description the owner marked "config change allowed" |
 | R7 secrets | A staged or pushed diff contains a credential. Detection uses a bundled `gitleaks` ruleset where available, with a built-in regex set as fallback |
+
+**Owner decision (Session 23): R6 also protects root `AGENTS.md`,** next to `CLAUDE.md` (a nested `AGENTS.md`,
+e.g. `src/AGENTS.md`, is not protected). `guard-hook.ts` mirrors this at write time and denies it case-insensitively
+for every job kind but `docs_init`; the pre-push protected-path gate (`merge-policy.ts`) catches a change that
+bypassed the hooks.
 
 **Init commit:** the docs-init commit is the commit that adds `docs/flows.yaml` and carries the trailer
 `Crew-Docs-Init: true`. It is exempt from R3 and R6. Detection survives rebase and squash. There is no other bypass.

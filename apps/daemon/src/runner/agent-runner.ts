@@ -12,6 +12,7 @@ import {
 import type { AgentRole, Effort, RoleStage } from '@crew/shared';
 import type { JobKind } from '../state-db.js';
 import type { AnyToolDefinition, EndReason } from '../tools/ticket-mcp-server.js';
+import { emptyCapture, type RunCapture, recordTool } from './run-trace.js';
 import { slashCommandsIn } from './skill-usage.js';
 
 /** Lets a ticket tool (ask_owner, handoff_docs) end the run after its result. */
@@ -54,6 +55,13 @@ export interface RunAgentOptions {
   prompt: string;
   resumeSessionId?: string | null;
   allowedTools: string[];
+  /** Tools removed from the model's context (the disabled MCP servers' `mcp__<server>__*`). */
+  disallowedTools?: string[];
+  /**
+   * MCP servers (by inventory name) the owner disabled for the project: passed as the session's
+   * `deniedMcpServers`, so Claude Code does not start them at all where the name matches.
+   */
+  deniedMcpServers?: string[];
   maxBudgetUsd?: number | null;
   abortSignal: AbortSignal;
   /** Full child env: the job tag, the per-job temp dir, never `ANTHROPIC_API_KEY`. */
@@ -93,6 +101,8 @@ export interface AgentRunResult {
   errors: string[];
   apiKeySource: string | null;
   claudeCodeVersion: string | null;
+  /** Turns, duration, compactions, the last message and tool calls, for diagnosing a run that ends badly. */
+  capture: RunCapture;
 }
 
 /** Same interface for the real SDK runner and the scripted test double. */
@@ -114,6 +124,7 @@ export function emptyResult(): AgentRunResult {
     errors: [],
     apiKeySource: null,
     claudeCodeVersion: null,
+    capture: emptyCapture(),
   };
 }
 
@@ -136,6 +147,34 @@ function textOf(message: SDKMessage): string {
   return content
     .map((block) => (block && typeof block === 'object' && 'text' in block ? String(block.text) : ''))
     .join('\n');
+}
+
+/**
+ * Records the main agent's text and tool calls from one assistant message (subagent messages are skipped).
+ * While streaming, the CLI sends one message per content block, so text blocks sharing a message id are
+ * joined and a new message's text replaces the previous one.
+ */
+function captureAssistant(
+  capture: RunCapture,
+  message: Extract<SDKMessage, { type: 'assistant' }>,
+  cwd: string,
+  lastTextId: { id: string | null },
+): void {
+  if (message.parent_tool_use_id !== null) return;
+  const content = (message.message as { id?: string; content?: unknown }).content;
+  if (!Array.isArray(content)) return;
+  const id = (message.message as { id?: string }).id ?? null;
+  for (const block of content as { type?: string; text?: unknown; name?: unknown; input?: unknown }[]) {
+    if (block?.type === 'text' && typeof block.text === 'string' && block.text.trim() !== '') {
+      capture.lastMessage =
+        id !== null && id === lastTextId.id && capture.lastMessage
+          ? `${capture.lastMessage}\n\n${block.text}`
+          : block.text;
+      lastTextId.id = id;
+    } else if (block?.type === 'tool_use' && typeof block.name === 'string') {
+      recordTool(capture, block.name, block.input, cwd);
+    }
+  }
 }
 
 /** Version of the Claude Code runtime bundled with the pinned Agent SDK (`claudeCodeVersion`). */
@@ -182,6 +221,7 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
       settingSources: ['user', 'project', 'local'],
       permissionMode: 'dontAsk',
       allowedTools: run.allowedTools,
+      ...(run.disallowedTools?.length ? { disallowedTools: run.disallowedTools } : {}),
       mcpServers: run.mcpServers,
       hooks: { PreToolUse: [{ hooks: [run.preToolUse] }] },
       env: { ...run.env, CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH: '2' },
@@ -190,6 +230,9 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
       settings: {
         ...(run.enabledMcpjsonServers ? { enabledMcpjsonServers: run.enabledMcpjsonServers } : {}),
         ...(run.disabledMcpjsonServers?.length ? { disabledMcpjsonServers: run.disabledMcpjsonServers } : {}),
+        ...(run.deniedMcpServers?.length
+          ? { deniedMcpServers: run.deniedMcpServers.map((serverName) => ({ serverName })) }
+          : {}),
       },
       ...(run.appendSystemPrompt
         ? { systemPrompt: { type: 'preset', preset: 'claude_code', append: run.appendSystemPrompt } }
@@ -229,9 +272,11 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
     run.control.onEnd(() => {
       result.endedBy = run.control.endReason;
     });
+    const lastTextId = { id: null as string | null };
     try {
       for await (const message of q) {
         if (run.control.endReason && message.type === 'assistant') interrupt();
+        if (message.type === 'assistant') captureAssistant(result.capture, message, run.cwd, lastTextId);
         if (message.type === 'system' && message.subtype === 'init') {
           result.sessionId = message.session_id;
           result.skillsListed = [...message.skills];
@@ -249,6 +294,8 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
             apiKeySource: message.apiKeySource,
             claudeCodeVersion: message.claude_code_version,
           });
+        } else if (message.type === 'system' && message.subtype === 'compact_boundary') {
+          result.capture.compactions++;
         } else if (message.type === 'system' && message.subtype === 'api_retry') {
           result.apiError = message.error;
         } else if (message.type === 'assistant' && message.error) {
@@ -260,6 +307,8 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
           result.resultSubtype = message.subtype;
           result.isError = message.is_error;
           result.totalCostUsd = message.total_cost_usd;
+          if (typeof message.num_turns === 'number') result.capture.numTurns = message.num_turns;
+          if (typeof message.duration_ms === 'number') result.capture.durationMs = message.duration_ms;
           result.modelUsage = Object.fromEntries(
             Object.entries(message.modelUsage).map(([model, usage]) => [
               model,

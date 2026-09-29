@@ -8,13 +8,15 @@ export const DOCS_INIT_TRAILER = 'Crew-Docs-Init';
 const TICKET_KEY = /^[A-Z][A-Z0-9]{1,9}-\d+$/;
 
 /**
- * Repo config an agent must not change on its own: agent settings, the hook scripts and hook-manager
- * configs that run crew-docs, and the CI wiring that re-runs it.
+ * Repo config an agent must not change on its own: agent settings and instructions (`CLAUDE.md` and
+ * the `AGENTS.md` it imports), the hook scripts and hook-manager configs that run crew-docs, and the
+ * CI wiring that re-runs it.
  */
 export const PROTECTED_PATTERNS: readonly string[] = [
   '.claude/**',
   '.githooks/**',
   'CLAUDE.md',
+  'AGENTS.md',
   '.husky/**',
   'lefthook.yml',
   'lefthook.yaml',

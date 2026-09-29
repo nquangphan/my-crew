@@ -1,6 +1,12 @@
 import { type ProjectPlatform, qcDefaultMcps, type UiTestMcp } from '@crew/shared';
 import { serverProjects, storedInventory, updateProjectConfig } from '../project-views.js';
-import { type HealthCheck, type HealthCheckResult, type HealthContext, result } from '../types.js';
+import {
+  type HealthCheck,
+  type HealthCheckResult,
+  type HealthContext,
+  parseFixId,
+  result,
+} from '../types.js';
 
 /** The official server behind each UI-test role, installed machine-wide so every job worktree sees it. */
 export const OFFICIAL_UI_TEST_SERVERS: Record<keyof UiTestMcp, { command: string[]; note: string }> = {
@@ -141,20 +147,26 @@ export const mcpChecks: HealthCheck = {
     return results;
   },
   async fix(ctx, fixId) {
-    const [action, key = '', arg = ''] = fixId.split(':');
+    const { action, key, arg } = parseFixId(fixId);
     if (action === 'open-simulator') {
       ctx.exec('open', ['-a', 'Simulator']);
       return;
     }
     if (!ctx.config?.projects.some((project) => project.key === key)) return;
     if (action === 'mcp-disable' || action === 'mcp-enable') {
-      updateProjectConfig(ctx, key, (project) => ({
-        ...project,
-        disabledMcpServers:
-          action === 'mcp-disable'
-            ? [...new Set([...project.disabledMcpServers, arg])]
-            : project.disabledMcpServers.filter((name) => name !== arg),
-      }));
+      const known = (storedInventory(ctx, key)?.mcpServers ?? []).map((mcp) => mcp.name);
+      // An older build cut `plugin:<plugin>:<server>` at the first colon and stored `plugin`: drop such a
+      // fragment (a prefix of a known server that is no server itself) whenever the list is saved again.
+      const fragment = (name: string) =>
+        !known.includes(name) && known.some((server) => server.startsWith(`${name}:`));
+      updateProjectConfig(ctx, key, (project) => {
+        const kept = project.disabledMcpServers.filter((name) => !fragment(name));
+        return {
+          ...project,
+          disabledMcpServers:
+            action === 'mcp-disable' ? [...new Set([...kept, arg])] : kept.filter((name) => name !== arg),
+        };
+      });
     } else if (action === 'mcp-install' && arg in OFFICIAL_UI_TEST_SERVERS) {
       const view = (await serverProjects(ctx)).get(key);
       const role = arg as keyof UiTestMcp;

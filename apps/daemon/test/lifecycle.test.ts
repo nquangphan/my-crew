@@ -359,6 +359,46 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(existsSync(join(r.repo.repo, 'docs', 'flows.yaml'))).toBe(true);
   },
 
+  async 'docs-init-not-finished'(r) {
+    const init = await one(/^Khởi tạo docs/);
+    const jobs = jobsOf(r, init.id);
+    expect(jobs.map((j) => [j.kind, j.status, j.error])).toEqual([
+      ['docs_init', 'failed', 'not_finished'],
+      ['docs_init', 'blocked', 'not_finished'],
+    ]);
+    const bodies = (await commentsOf(api.db, init.id)).map((c) => c.body);
+    const retry = bodies.find((b) => b.startsWith('Lần thử 1/2 không thành'));
+    const block = bodies.find((b) => b.startsWith('Ticket bị chặn: lượt chạy kết thúc mà ticket chưa xong'));
+    for (const body of [retry, block]) {
+      expect(body).toBeDefined();
+      expect(body).toContain('**Số lượt / thời gian / chi phí:** 7 lượt · ');
+      expect(body).toContain('kết quả SDK `success` · giai đoạn `docs_init`');
+      expect(body).toContain('**Tin nhắn cuối của agent**');
+      expect(body).toContain(
+        '> Đã đọc README và src/.\n>\n> Chưa viết xong docs/flows.yaml: cần hỏi lại cấu hình (khoá [đã ẩn: aws-access-key-id] trong .env).',
+      );
+      expect(body).not.toMatch(/AKIA[A-Z0-9]{16}/);
+      expect(body).toContain(
+        [
+          '1. `Skill` `docs-writer`',
+          '2. `mcp__tickets__update_status`',
+          '3. `Read` `README.md`',
+          '4. `Glob` `src`',
+          '5. `Bash`',
+        ].join('\n'),
+      );
+    }
+    // The job row keeps the diagnosis for the app and web activity.
+    expect(jobs[1]?.runTrace).toMatchObject({
+      subtype: 'success',
+      numTurns: 7,
+      compactions: 0,
+      lastMessageTrimmed: false,
+      lastTools: expect.arrayContaining([{ tool: 'Read', target: 'README.md' }]),
+    });
+    expect(jobs[1]?.runTrace?.lastMessage).toContain('[đã ẩn: aws-access-key-id]');
+  },
+
   async 'child-cap'(r) {
     const pm = await one(/^Hai trang tĩnh$/, 'pm_task');
     const children = (await all()).filter((t) => t.parentId === pm.id);

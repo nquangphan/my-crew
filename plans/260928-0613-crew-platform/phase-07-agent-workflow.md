@@ -136,6 +136,13 @@ stored.
   - The owner unblocks the ticket (`ticket.unblocked`) to resume it.
   - Retry attempts are capped at 2 per job before `blocked`.
 
+**Owner decision (Session 23): a run that ends without finishing leaves more than one line.** Every retry and
+block comment now carries the run's diagnosis (turns, duration, cost, the agent's scrubbed last message and
+last tool calls, `run-trace.ts`), and the job row keeps it (`jobs.run_trace`) for the heartbeat's `failedJobs`
+line. Separately, a disabled MCP server is now removed from the session itself (`disallowedTools` plus
+`settings.deniedMcpServers`, not just left out of `allowedTools`), and the health check's fix-id parser no
+longer mis-splits a plugin/connector server name that itself contains colons.
+
 ## Related Code Files
 
 Create under `apps/daemon/src/roles/`:

@@ -65,3 +65,12 @@ export const result = (
   detail: string,
   fix?: HealthCheckResult['fix'],
 ): HealthCheckResult => ({ id, group, title, status, detail, ...(fix ? { fix } : {}) });
+
+/**
+ * Splits a fix id `action:projectKey:arg`. The arg may itself contain colons (a plugin MCP server is named
+ * `plugin:<plugin>:<server>`), so it is everything after the second colon; project keys never contain one.
+ */
+export function parseFixId(fixId: string): { action: string; key: string; arg: string } {
+  const [action = '', key = '', ...rest] = fixId.split(':');
+  return { action, key, arg: rest.join(':') };
+}

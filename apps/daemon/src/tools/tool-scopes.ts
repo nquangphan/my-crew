@@ -117,3 +117,14 @@ export function allowedToolsFor(options: {
     .map((server) => `${mcpToolPrefix(server)}*`);
   return [...builtinToolsFor(options.role), ...ticket, ...mcp];
 }
+
+/**
+ * The `disallowedTools` of a run: every tool of each MCP server the owner disabled for the project, as the
+ * same `mcp__<server>__*` prefix `allowedToolsFor` uses. A deny glob removes the tools from the model's
+ * context, which leaving a server out of `allowedTools` does not (plugin and user servers still load).
+ */
+export function disallowedToolsFor(disabledMcpServers: readonly string[]): string[] {
+  return [...new Set(disabledMcpServers.filter((server) => server !== TICKET_SERVER))].map(
+    (server) => `${mcpToolPrefix(server)}*`,
+  );
+}

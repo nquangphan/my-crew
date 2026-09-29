@@ -1,0 +1,162 @@
+import { isAbsolute, relative, resolve } from 'node:path';
+import { scrubSecrets } from './secret-scrubber.js';
+
+/** How many of the run's last tool calls a failure comment lists. */
+export const TRACE_TOOLS = 5;
+/** Characters of the agent's last message a failure comment quotes. */
+export const TRACE_MESSAGE_CHARS = 1_500;
+
+export interface TraceStep {
+  tool: string;
+  /** The file or directory the call touched (repo-relative inside the worktree) or the skill it ran; never a command line. */
+  target: string | null;
+}
+
+/** What a runner records while the run streams, for the diagnosis of a run that ends badly. */
+export interface RunCapture {
+  /** `num_turns` of the final result, or null without one. */
+  numTurns: number | null;
+  /** `duration_ms` of the final result, or null without one. */
+  durationMs: number | null;
+  /** Context compactions seen (`system/compact_boundary`). */
+  compactions: number;
+  /** Text of the main agent's last assistant message (raw; scrubbed when the trace is built). */
+  lastMessage: string | null;
+  /** The main agent's last tool calls, oldest first, at most `TRACE_TOOLS`. */
+  lastTools: TraceStep[];
+}
+
+export function emptyCapture(): RunCapture {
+  return { numTurns: null, durationMs: null, compactions: 0, lastMessage: null, lastTools: [] };
+}
+
+/**
+ * What a tool call works on: the skill name of a `Skill` call, else `file_path`, `notebook_path` or `path`
+ * (Bash commands and other inputs are left out).
+ */
+function toolTarget(tool: string, input: unknown, cwd: string): string | null {
+  if (!input || typeof input !== 'object') return null;
+  const fields = input as Record<string, unknown>;
+  if (tool === 'Skill') return typeof fields.skill === 'string' ? fields.skill : null;
+  const raw = [fields.file_path, fields.notebook_path, fields.path].find(
+    (value): value is string => typeof value === 'string' && value.trim() !== '',
+  );
+  if (!raw) return null;
+  const rel = relative(resolve(cwd), resolve(cwd, raw));
+  return rel === '' ? '.' : rel.startsWith('..') || isAbsolute(rel) ? raw : rel;
+}
+
+/** Appends one tool call to the capture, keeping only the last `TRACE_TOOLS`. */
+export function recordTool(capture: RunCapture, tool: string, input: unknown, cwd: string): void {
+  capture.lastTools.push({ tool, target: toolTarget(tool, input, cwd) });
+  if (capture.lastTools.length > TRACE_TOOLS) capture.lastTools.shift();
+}
+
+/** The diagnosis a job row keeps and a failure comment shows; secrets are already scrubbed. */
+export interface RunTrace {
+  /** Final result subtype (`success`, `error_max_turns`, …), or null when the run produced none. */
+  subtype: string | null;
+  numTurns: number | null;
+  durationMs: number | null;
+  costUsd: number;
+  compactions: number;
+  lastMessage: string | null;
+  /** True when `lastMessage` was cut to `TRACE_MESSAGE_CHARS`. */
+  lastMessageTrimmed: boolean;
+  lastTools: TraceStep[];
+}
+
+const scrub = (text: string) => scrubSecrets(text).text;
+
+export function buildRunTrace(input: {
+  capture: RunCapture;
+  subtype: string | null;
+  costUsd: number;
+}): RunTrace {
+  const { capture } = input;
+  // Scrub before trimming, so a cut cannot split a credential into a prefix the patterns miss.
+  const message = capture.lastMessage?.trim() ? scrub(capture.lastMessage.trim()) : null;
+  const trimmed = message !== null && message.length > TRACE_MESSAGE_CHARS;
+  return {
+    subtype: input.subtype,
+    numTurns: capture.numTurns,
+    durationMs: capture.durationMs,
+    costUsd: input.costUsd,
+    compactions: capture.compactions,
+    lastMessage: trimmed ? `${message.slice(0, TRACE_MESSAGE_CHARS).trimEnd()}…` : message,
+    lastMessageTrimmed: trimmed,
+    lastTools: capture.lastTools.slice(-TRACE_TOOLS).map((step) => ({
+      tool: step.tool,
+      target: step.target === null ? null : scrub(step.target),
+    })),
+  };
+}
+
+function formatDuration(ms: number): string {
+  const seconds = Math.round(ms / 1000);
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h} giờ ${m} phút`;
+  if (m > 0) return `${m} phút ${s} giây`;
+  return `${s} giây`;
+}
+
+/** "42 lượt · 12 phút 3 giây · 10.0291 USD". */
+function numbersLine(trace: RunTrace): string {
+  return [
+    trace.numTurns === null ? 'không rõ số lượt' : `${trace.numTurns} lượt`,
+    trace.durationMs === null ? 'không rõ thời gian' : formatDuration(trace.durationMs),
+    `${trace.costUsd.toFixed(4)} USD`,
+  ].join(' · ');
+}
+
+/** Wraps text as a Markdown quote, keeping its line breaks. */
+const quote = (text: string) =>
+  text
+    .split('\n')
+    .map((line) => (line.trim() === '' ? '>' : `> ${line}`))
+    .join('\n');
+
+/** Inline code that survives backticks in the value. */
+const code = (value: string) => {
+  const flat = value.replace(/\s+/g, ' ');
+  return flat.includes('`') ? `\`\` ${flat} \`\`` : `\`${flat}\``;
+};
+
+/**
+ * The compact Markdown block a failure comment ends with: numbers, result, stage, the agent's last message
+ * (quoted) and its last tool calls, so the owner can tell from the web why the run stopped.
+ */
+export function traceMarkdown(trace: RunTrace, stage: string | null): string {
+  const facts = [
+    `kết quả SDK ${trace.subtype ? code(trace.subtype) : 'không có (lượt chạy không trả kết quả)'}`,
+    ...(stage ? [`giai đoạn ${code(stage)}`] : []),
+    trace.compactions > 0 ? `context đã bị nén ${trace.compactions} lần` : 'context không bị nén',
+  ];
+  const lines = [
+    `**Số lượt / thời gian / chi phí:** ${numbersLine(trace)}`,
+    `**Trạng thái:** ${facts.join(' · ')}`,
+    '',
+    `**Tin nhắn cuối của agent**${trace.lastMessageTrimmed ? ` (cắt còn ${TRACE_MESSAGE_CHARS} ký tự đầu)` : ''}:`,
+    '',
+    trace.lastMessage ? quote(trace.lastMessage) : '_(agent không để lại tin nhắn văn bản nào)_',
+    '',
+    `**Các bước cuối** (${trace.lastTools.length} lệnh gọi tool gần nhất, cũ trước mới sau):`,
+    '',
+    ...(trace.lastTools.length > 0
+      ? trace.lastTools.map(
+          (step, index) => `${index + 1}. ${code(step.tool)}${step.target ? ` ${code(step.target)}` : ''}`,
+        )
+      : ['_(không có lệnh gọi tool nào)_']),
+  ];
+  return lines.join('\n');
+}
+
+/** One short line for the heartbeat's failed-job entry (the web shows it next to the ticket). */
+export function traceSummary(trace: RunTrace): string {
+  const message = trace.lastMessage ? ` · tin nhắn cuối: ${trace.lastMessage.replace(/\s+/g, ' ')}` : '';
+  const last = trace.lastTools.at(-1);
+  const step = last ? ` · bước cuối: ${last.tool}${last.target ? ` ${last.target}` : ''}` : '';
+  return `${numbersLine(trace)}${step}${message}`;
+}

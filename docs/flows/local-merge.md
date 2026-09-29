@@ -37,9 +37,11 @@ của `origin` — không có bước nào trong đây agent tự chạy `git me
    lần nữa trên cây đã merge và commit nếu đổi khác; đã sạch thì không tạo commit rỗng.
 6. `apps/daemon/src/roles/merge-policy.ts` → `prePushGate()`: chạy `project.testCommand` của máy (không có thì
    coi là đạt, ghi rõ lý do), `crew-docs check --range <base>..HEAD` (R1–R7 trên toàn bộ commit vừa gộp),
-   `protectedPathCheck()` (đường dẫn được bảo vệ đổi trong `range` phải có commit mang trailer
-   `Crew-Owner-Approved: <ticket-key>` hoặc `Crew-Docs-Init: true`). Bất kỳ bước nào rớt trả `status:
-   gate_failed` kèm output từng bước; không có gì được push.
+   `protectedPathCheck()` (dùng lại `isProtectedPath()` của `guard-hook.ts`, flow `agent-runs`, nên `AGENTS.md`
+   ở gốc repo cũng được chặn ở đây — đường dẫn được bảo vệ đổi trong `range` phải có commit mang trailer
+   `Crew-Owner-Approved: <ticket-key>` hoặc `Crew-Docs-Init: true`; chặn cả một commit lách được guard hook lúc
+   chạy, ví dụ chỉnh trực tiếp `.claude/settings.json`/`AGENTS.md` rồi commit ngoài luồng agent). Bất kỳ bước
+   nào rớt trả `status: gate_failed` kèm output từng bước; không có gì được push.
 7. `apps/daemon/src/roles/merge-policy.ts` → `mergeAndPush()` (đẩy lên): `git push origin
    HEAD:refs/heads/<default>` — hook `pre-push` của repo (`docs-hooks`) chạy lại ở phía git; push bị hook hay
    remote từ chối cũng trả `gate_failed`.
@@ -87,4 +89,5 @@ của `origin` — không có bước nào trong đây agent tự chạy `git me
   miễn trừ khi PM chấp nhận hoặc một bug sau đã sửa; thứ tự merge theo `dependsOn` và chuỗi bug; `takeOurs()`
   giữ đúng hunk sạch; xung đột giới hạn trong block docs sinh tự động tự giải quyết, xung đột khác abort và trả
   danh sách file; cổng pre-push chặn đúng bước rớt (test, `crew-docs check`, đường dẫn được bảo vệ thiếu
-  trailer); push thật lên remote bare và dời nhánh mặc định cục bộ mà không đụng checkout đang dirty.
+  trailer, kể cả `.claude/settings.json` và `AGENTS.md`); push thật lên remote bare và dời nhánh mặc định cục
+  bộ mà không đụng checkout đang dirty.

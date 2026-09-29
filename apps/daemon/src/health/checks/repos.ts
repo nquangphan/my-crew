@@ -10,7 +10,13 @@ import {
 import { removeWorktree, worktreeKeys, worktreePath } from '../../git/worktree-manager.js';
 import { serverProjects } from '../project-views.js';
 import { PROBE_WORKTREE_KEY, repoFolderChecks, runGit } from '../repo-probe.js';
-import { type HealthCheck, type HealthCheckResult, type HealthContext, result } from '../types.js';
+import {
+  type HealthCheck,
+  type HealthCheckResult,
+  type HealthContext,
+  parseFixId,
+  result,
+} from '../types.js';
 
 const CLOSED = new Set(['done', 'cancelled']);
 /** The git hooks the crew-docs installer wires in (plain, husky or lefthook). */
@@ -247,7 +253,7 @@ export const repoChecks: HealthCheck = {
       install();
       return;
     }
-    const [action, key] = fixId.split(':');
+    const { action, key } = parseFixId(fixId);
     const project = ctx.config?.projects.find((p) => p.key === key);
     if (!project) return;
     if (action === 'install-hooks') {

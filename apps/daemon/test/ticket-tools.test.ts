@@ -7,7 +7,7 @@ import {
   JobWriter,
   type TicketToolContext,
 } from '../src/tools/ticket-mcp-server.js';
-import { allowedToolsFor, ticketToolsFor } from '../src/tools/tool-scopes.js';
+import { allowedToolsFor, disallowedToolsFor, ticketToolsFor } from '../src/tools/tool-scopes.js';
 import {
   commentsOf,
   devTicket,
@@ -67,6 +67,25 @@ describe('tool scopes', () => {
     expect(tools).toContain('mcp__tickets__file_bug');
     expect(tools).not.toContain('mcp__tickets__create_subtask');
     expect(allowedToolsFor({ role: 'assistant', kind: 'agent', mcpServers: [] })).not.toContain('Bash');
+  });
+
+  it('disallows every tool of each disabled server, plugin and connector names included, never the ticket server', () => {
+    expect(
+      disallowedToolsFor([
+        'plugin:engineering:asana',
+        'plugin:engineering:google calendar',
+        'claude.ai Figma',
+        'maestro',
+        'maestro',
+        'tickets',
+      ]),
+    ).toEqual([
+      'mcp__plugin_engineering_asana__*',
+      'mcp__plugin_engineering_google_calendar__*',
+      'mcp__claude_ai_Figma__*',
+      'mcp__maestro__*',
+    ]);
+    expect(disallowedToolsFor([])).toEqual([]);
   });
 });
 

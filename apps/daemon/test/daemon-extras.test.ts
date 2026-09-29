@@ -86,6 +86,8 @@ describe('daemon wiring', () => {
     expect(run.allowedTools).not.toContain('mcp__maestro__*');
     expect(run.enabledMcpjsonServers).toEqual([]);
     expect(run.disabledMcpjsonServers).toEqual(['maestro']);
+    expect(run.disallowedTools).toEqual(['mcp__maestro__*']);
+    expect(run.deniedMcpServers).toEqual(['maestro']);
     expect(run.env.CREW_JOB_ID).toBe(t.daemon.state.jobsForTicket(dev.id)[0]?.id);
     expect(run.env.TMPDIR).toContain(join(homePaths(t.home).tmp));
     expect(run.env).not.toHaveProperty('ANTHROPIC_API_KEY');

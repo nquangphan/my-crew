@@ -1,3 +1,4 @@
+import { traceMarkdown, traceSummary } from '../runner/run-trace.js';
 import type { JobKind, JobRow, NewJob } from '../state-db.js';
 
 /** Attempts a job gets before its ticket is blocked for the owner. */
@@ -29,15 +30,30 @@ const REASON_TEXT: Record<FailureReason, string> = {
 };
 
 /**
+ * The heartbeat's line for a failed job: its error class, the reason in words and a short diagnosis of the
+ * run (turns, duration, cost, last step and last message), at most 500 characters.
+ */
+export function failedJobText(job: Pick<JobRow, 'error' | 'runTrace'>): string {
+  const error = job.error ?? 'không rõ lỗi';
+  const reason = Object.hasOwn(REASON_TEXT, error) ? `: ${REASON_TEXT[error as FailureReason]}` : '';
+  const trace = job.runTrace ? ` · ${traceSummary(job.runTrace)}` : '';
+  const text = `${error}${reason}${trace}`;
+  return text.length > 500 ? `${text.slice(0, 499)}…` : text;
+}
+
+/**
  * Decides what a failed attempt leads to.
  *
  * - Reaching `maxBudgetUsd` blocks the ticket at once: retrying would spend past the owner's limit.
  * - Anything else is retried until the job has used `MAX_ATTEMPTS` attempts, then the ticket is blocked for
  *   the owner, who unblocks it to resume. A docs rejection is retried as a new dev job (the dev run fixes the
  *   code, then hands off to a fresh docs job); every other retry repeats the same kind of job.
+ *
+ * Both comments end with the run's diagnosis (turns, duration, cost, the agent's last message and tool
+ * calls) when the run left one, so the owner can tell from the web why it stopped.
  */
 export function decideFailure(input: {
-  job: Pick<JobRow, 'kind' | 'failedAttempts' | 'sessionId'>;
+  job: Pick<JobRow, 'kind' | 'failedAttempts' | 'sessionId'> & Partial<Pick<JobRow, 'stage' | 'runTrace'>>;
   reason: FailureReason;
   costUsd: number;
   /** Session to resume for a dev retry after a docs rejection (the dev session, not the docs one). */
@@ -46,12 +62,13 @@ export function decideFailure(input: {
   const { job, reason } = input;
   const attempt = job.failedAttempts + 1;
   const cost = `chi phí lượt này ${input.costUsd.toFixed(4)} USD`;
+  const diagnosis = job.runTrace ? `\n\n${traceMarkdown(job.runTrace, job.stage ?? null)}` : '';
   if (reason === 'budget' || attempt >= MAX_ATTEMPTS) {
     return {
       action: 'block',
       comment:
         `Ticket bị chặn: ${REASON_TEXT[reason]} (lần ${attempt}/${MAX_ATTEMPTS}, lỗi \`${reason}\`, ${cost}). ` +
-        'Chủ dự án xem lại rồi mở chặn (unblock) để chạy tiếp.',
+        `Chủ dự án xem lại rồi mở chặn (unblock) để chạy tiếp.${diagnosis}`,
     };
   }
   const kind: JobKind = reason === 'docs_rejected' ? 'agent' : job.kind;
@@ -68,6 +85,6 @@ export function decideFailure(input: {
             ? null
             : job.sessionId,
     },
-    comment: `Lần thử ${attempt}/${MAX_ATTEMPTS} không thành: ${REASON_TEXT[reason]} (${cost}). Daemon chạy lại một lần nữa.`,
+    comment: `Lần thử ${attempt}/${MAX_ATTEMPTS} không thành: ${REASON_TEXT[reason]} (${cost}). Daemon chạy lại một lần nữa.${diagnosis}`,
   };
 }

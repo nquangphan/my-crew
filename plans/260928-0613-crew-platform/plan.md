@@ -297,3 +297,8 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
   1. Markdown files at the repo root (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, …) count as docs: the `docs_update` job (sonnet) may write `docs/**` and root `*.md`; the dev run may not. `AGENTS.md` and `CLAUDE.md` stay R6-protected.
   2. QC must use its UI-test MCP (Playwright/Maestro) only when the change under test touches UI source files; for a docs-only diff a static review is enough and the report says why.
   3. The project badge on board cards stays inside the card (wraps/truncates instead of overflowing).
+
+### Session 23 — 2026-09-29 (owner follow-up)
+- **Owner decisions:**
+  1. `AGENTS.md` becomes R6-protected like `CLAUDE.md`: outside a docs-init commit, a change to it needs the `Crew-Owner-Approved: <ticket-key>` trailer, and the agent guard denies writing it (except docs-init).
+  2. When a run ends without finishing its ticket (`not_finished` and other failures), the daemon's comment includes the agent's last message (scrubbed, trimmed), the stage and step it was on, turns, duration and cost, so the owner can tell why from the web.

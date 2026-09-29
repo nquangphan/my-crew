@@ -323,6 +323,49 @@ describe('mcp and skills groups', () => {
     expect(after.filter((item) => item.status !== 'green')).toEqual([]);
   });
 
+  it('disables a plugin MCP server whose name has colons, and drops a fragment an older build stored', async () => {
+    const home = tempDir('crewd-home-');
+    const paths = homePaths(home);
+    const { repo } = projectRepo();
+    // `plugin` is what the old parser stored for `plugin:engineering:asana`; `gone` is a real server name.
+    const config = saveConfig(paths.config, {
+      apiUrl: 'https://crew.test',
+      machineName: 'm',
+      projects: [{ key: 'VISINOTE', repoPath: repo, disabledMcpServers: ['plugin', 'gone'] }],
+    });
+    const state = openState(home);
+    const asana = 'plugin:engineering:asana';
+    const calendar = 'plugin:engineering:google calendar';
+    state.setMeta(
+      'inventory:VISINOTE',
+      JSON.stringify(
+        inventory({
+          mcpServers: [
+            { name: asana, source: 'plugin', status: 'failed', tools: [] },
+            { name: calendar, source: 'plugin', status: 'failed', tools: [] },
+          ],
+        }),
+      ),
+    );
+    const refreshed: (string | null)[] = [];
+    const daemon = {
+      refreshInventory: async (key: string | null) => refreshed.push(key),
+      updateConfig: () => {},
+    };
+    const ctx = context({ home, config, state, daemon: daemon as unknown as Daemon });
+
+    const before = await mcpChecks.run(ctx);
+    expect(byId(before, `mcp.VISINOTE.${asana}`)?.fix?.id).toBe(`mcp-disable:VISINOTE:${asana}`);
+    await applyHealthFix(ctx, 'mcp', `mcp-disable:VISINOTE:${asana}`);
+    await applyHealthFix(ctx, 'mcp', `mcp-disable:VISINOTE:${calendar}`);
+    expect(loadConfig(paths.config).projects[0]?.disabledMcpServers).toEqual(['gone', asana, calendar]);
+    expect(refreshed).toEqual(['VISINOTE', 'VISINOTE']);
+    expect((await mcpChecks.run(ctx)).filter((item) => item.status !== 'green')).toEqual([]);
+
+    await applyHealthFix(ctx, 'mcp', `mcp-enable:VISINOTE:${calendar}`);
+    expect(loadConfig(paths.config).projects[0]?.disabledMcpServers).toEqual(['gone', asana]);
+  });
+
   it('compares the worktree inventory with the main checkout', async () => {
     const home = tempDir('crewd-home-');
     const { repo } = projectRepo();

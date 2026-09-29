@@ -1,0 +1,27 @@
+name: docs-init-not-finished
+description: >-
+  Docs-init ends twice without submitting its report: the retry comment and the block comment carry the
+  run diagnosis (turns, time, cost, SDK result, the agent's last message scrubbed of the credential it
+  quoted, and its last tool calls), the job row keeps it and the heartbeat's failed entry has the reason.
+project:
+  platform: backend
+  docs: false
+inventory:
+  skills: [docs-writer]
+request:
+  title: Trang giỏ hàng
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Trang giỏ hàng }]
+  - stage: docs_init
+    costUsd: 0.25
+    steps:
+      - { macro: preflight, skills: [docs-writer] }
+      - { tool: mcp__tickets__update_status, input: { to: in_progress } }
+      - { tool: Read, input: { file_path: README.md } }
+      - { tool: Glob, input: { pattern: '**/*.js', path: src } }
+      - { bash: 'ls src > /dev/null' }
+      - say: "Đã đọc README và src/.\n\nChưa viết xong docs/flows.yaml: cần hỏi lại cấu hình (khoá @{fakeSecret} trong .env)."
+expect:
+  tickets:
+    - { title: '^Khởi tạo docs', type: docs_init, status: blocked }

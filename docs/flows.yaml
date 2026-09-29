@@ -353,6 +353,7 @@ flows:
     files:
       - apps/daemon/src/runner/agent-runner.ts
       - apps/daemon/src/runner/scripted-runner.ts
+      - apps/daemon/src/runner/run-trace.ts
       - apps/daemon/src/runner/guard-hook.ts
       - apps/daemon/src/runner/skill-usage.ts
       - apps/daemon/src/runner/retry-classifier.ts
@@ -365,6 +366,7 @@ flows:
       - apps/daemon/test/agent-runner.test.ts
       - apps/daemon/test/guard-hook.test.ts
       - apps/daemon/test/ticket-tools.test.ts
+      - apps/daemon/test/run-trace.test.ts
       - apps/daemon/test/live-smoke.test.ts
   agent-roles:
     title: Vai trò agent và quy trình ticket

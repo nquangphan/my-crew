@@ -3,6 +3,7 @@ import { chmodSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { AgentRole, JobWaitDetail, JobWaitReason, RoleStage } from '@crew/shared';
 import Database from 'better-sqlite3';
+import type { RunTrace } from './runner/run-trace.js';
 
 export type JobKind = 'agent' | 'docs_update' | 'docs_init';
 export type JobStatus =
@@ -69,6 +70,8 @@ export interface JobRow {
   /** Why the scheduler last left this queued or backoff job waiting; cleared when the job starts. */
   waitReason: JobWaitReason | null;
   waitDetail: JobWaitDetail | null;
+  /** How the last run ended: result, turns, duration, cost, its last message and tool calls (scrubbed). */
+  runTrace: RunTrace | null;
 }
 
 /** What a run selected in its capability preflight, each with a one-line reason. */
@@ -162,7 +165,8 @@ create table if not exists jobs (
   capabilities text,
   return_to_dev text,
   wait_reason text,
-  wait_detail text
+  wait_detail text,
+  run_trace text
 );
 create unique index if not exists jobs_one_active_per_ticket
   on jobs (ticket_id) where status in ('queued', 'running', 'backoff');
@@ -211,6 +215,7 @@ const LATER_COLUMNS: readonly (readonly [string, string])[] = [
   ['return_to_dev', 'text'],
   ['wait_reason', 'text'],
   ['wait_detail', 'text'],
+  ['run_trace', 'text'],
 ];
 
 type Row = Record<string, unknown>;
@@ -262,6 +267,7 @@ function toJob(row: Row): JobRow {
     returnToDev: json<JobRow['returnToDev']>(row.return_to_dev, null),
     waitReason: (row.wait_reason as JobWaitReason | null) ?? null,
     waitDetail: json<JobWaitDetail | null>(row.wait_detail, null),
+    runTrace: json<RunTrace | null>(row.run_trace, null),
   };
 }
 
@@ -298,6 +304,7 @@ const JOB_COLUMNS = {
   returnToDev: ['return_to_dev', (v: unknown) => (v === null ? null : JSON.stringify(v))],
   waitReason: ['wait_reason', (v: unknown) => v],
   waitDetail: ['wait_detail', (v: unknown) => (v === null ? null : JSON.stringify(v))],
+  runTrace: ['run_trace', (v: unknown) => (v === null ? null : JSON.stringify(v))],
 } as const satisfies Record<string, readonly [string, (v: unknown) => unknown]>;
 
 export type JobPatch = Partial<Pick<JobRow, keyof typeof JOB_COLUMNS>>;

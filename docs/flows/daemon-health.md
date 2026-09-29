@@ -49,7 +49,16 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
    lại inventory (`refreshInventory`) cho **mọi** project trong config vì server MCP cấp user hiện diện ở tất
    cả project; đang bị tắt dù QC bắt buộc dùng → đỏ, fix `mcp-enable:<key>:<server>`; project cần thiết bị
    (`mobile`/`web_mobile`) mà không có simulator/emulator sẵn sàng (`xcrun simctl`/`adb devices`) → vàng, fix
-   `open-simulator` trên macOS.
+   `open-simulator` trên macOS. `parseFixId()` (`health/types.ts`) tách `action:key:arg` lấy phần sau dấu `:`
+   thứ hai làm `arg` (key project không bao giờ chứa dấu `:`) — trước đây tách trên mọi dấu `:` nên tên server
+   plugin/connector nhiều đoạn như `plugin:engineering:asana` bị cắt còn `plugin`, khiến "Tắt cho project này"
+   không tắt được server đó; `fix()` của `mcp-disable`/`mcp-enable` còn tự dọn một mục cũ bản build trước lỡ
+   lưu sai mỗi khi danh sách được ghi lại (một mục không phải tên server thật nhưng là tiền tố `<mục>:` của một
+   server đang có trong kho). Server một project tắt (`ProjectConfig.disabledMcpServers`) giờ bị gỡ hẳn khỏi
+   context model của lượt chạy job thật qua `disallowedTools`/`settings.deniedMcpServers` (flow `agent-runs`),
+   không chỉ bị loại khỏi `allowedTools` như trước (server cấp user hay plugin/connector từng vẫn khởi động và
+   tốn context dù bị tắt); việc dò inventory mà check này đọc lại không áp hai tuỳ chọn đó, nên vẫn thấy đúng
+   trạng thái của một server đã tắt và cho fix `mcp-enable`.
 5. `apps/daemon/src/health/checks/skills.ts` → `skillChecks.run()`/`fix()`: mỗi project, kho skill đã dò
    (`storedInventory()`) — chưa có thì vàng, fix `skills-refresh:<key>`; khi có `probeCheckout` (không phải
    lượt nhanh), dò skill của checkout chính rồi so với inventory trong worktree job — thiếu skill nào → đỏ,
@@ -104,7 +113,7 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
 |-----------|---------|--------------|
 | `apps/daemon/src/commands/doctor.ts` | Lệnh `crewd doctor`: chạy + render | `doctor`, `renderHealth` |
 | `apps/daemon/src/health/health-runner.ts` | Chạy mọi check, áp dụng fix, tóm tắt | `runHealthChecks`, `applyHealthFix`, `summarize`, `HEALTH_CHECKS`, `execCommand` |
-| `apps/daemon/src/health/types.ts` | Kiểu chung của một check/kết quả/ngữ cảnh | `HealthCheck`, `HealthCheckResult`, `HealthContext`, `HealthAppFacts`, `result` |
+| `apps/daemon/src/health/types.ts` | Kiểu chung của một check/kết quả/ngữ cảnh | `HealthCheck`, `HealthCheckResult`, `HealthContext`, `HealthAppFacts`, `result`, `parseFixId` |
 | `apps/daemon/src/health/checks/server.ts` | Kết nối VPS, token, luồng sự kiện | `serverChecks` |
 | `apps/daemon/src/health/checks/claude.ts` | Runtime/CLI Claude Code, đăng nhập, không lộ API key | `claudeChecks`, `loginProbe`, `compareVersions`, `MIN_CLAUDE_VERSION` |
 | `apps/daemon/src/health/checks/mcp.ts` | MCP server đã dò được và MCP test UI bắt buộc | `mcpChecks`, `OFFICIAL_UI_TEST_SERVERS` |
@@ -157,7 +166,9 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
   origin/nhánh, phát hiện không có quyền push); nhóm repos chuyển đỏ khi hook bị xoá, sai origin hay có
   worktree thừa rồi các fix đưa nó về xanh, và báo xanh kèm ghi chú khi repo chưa có docs (không tính là lỗi);
   nhóm mcp/skills: bắt buộc Playwright cho project web, cài được qua `claude mcp add`, đã cấu hình sẵn thì bỏ
-  qua `add` và chỉ dò lại inventory, tắt được server lỗi, so khớp inventory worktree với checkout chính; nhóm
+  qua `add` và chỉ dò lại inventory, tắt được server lỗi, tắt được một server plugin tên có dấu `:` (ví dụ
+  `plugin:engineering:asana`) đúng tên đầy đủ chứ không cắt còn `plugin`, và tự dọn một mục fragment bản cũ lỡ
+  lưu sai khi danh sách được ghi lại, so khớp inventory worktree với checkout chính; nhóm
   resources/server/app: dọn được thư mục tạm của job đã xong
   bằng đúng code dọn tài nguyên, hiện đúng trạng thái SSE và kết nối lại được, thêm đúng ba dòng riêng khi app
   desktop truyền facts, `app.version` xanh khi updater báo `unpublished` nhưng vàng khi lỗi mạng thật, và chạy

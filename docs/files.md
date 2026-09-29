@@ -138,6 +138,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/runner/resource-report.ts` | [resource-hygiene](flows/resource-hygiene.md) (file) |
 | `apps/daemon/src/runner/resource-tracker.ts` | [resource-hygiene](flows/resource-hygiene.md) (file) |
 | `apps/daemon/src/runner/retry-classifier.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/runner/run-trace.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/scripted-runner.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/secret-scrubber.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/skill-usage.ts` | [agent-runs](flows/agent-runs.md) (file) |
@@ -174,6 +175,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/resources.test.ts` | [resource-hygiene](flows/resource-hygiene.md) (test) |
 | `apps/daemon/test/role-contracts.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/role-policies.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
+| `apps/daemon/test/run-trace.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/scheduler.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
 | `apps/daemon/test/skill-enforcement.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/skill-inventory.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
