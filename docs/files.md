@@ -216,6 +216,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/test/e2e/project-settings.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/host-service.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/main-logic.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/desktop/test/new-project-form.test.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/web/e2e/account-password.spec.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/docs-space.spec.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |

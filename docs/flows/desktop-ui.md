@@ -55,9 +55,11 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
    `draftProblem()`: "Thêm project mới từ thư mục" — chọn thư mục điền sẵn key/tên/repo URL/nhánh từ `origin`
    (`folder.inspect`), chủ project tự gõ mô tả (trợ lý dùng mô tả này để định tuyến ticket, không đọc từ
    repo), rồi `projects.create`. `draftProblem()` nêu đúng phần còn thiếu (key/tên/repo URL/mô tả) bằng lời
-   thay vì chỉ khoá nút im lặng; component lộ một handle (`hasDraft()`, `submit()` qua `ref`) và gọi
-   `onDraftChange(pending)` mỗi khi còn nháp chưa tạo hoặc ẩn form, để `SetupWizard()` (bước 4) gọi được
-   `submit()` từ nút của bước.
+   thay vì chỉ khoá nút im lặng; một key gõ sai độ dài hay sai định dạng không bị tính là "còn thiếu" mà có
+   câu riêng ("Key dài N ký tự, tối đa 10." hoặc "Key phải có 2–10 chữ in hoa hoặc số, bắt đầu bằng chữ."), vì
+   khung đã tự viết hoa và cắt khoảng trắng của key nên chỉ key rỗng mới tính là thiếu; component lộ một handle
+   (`hasDraft()`, `submit()` qua `ref`) và gọi `onDraftChange(pending)` mỗi khi còn nháp chưa tạo hoặc ẩn form,
+   để `SetupWizard()` (bước 4) gọi được `submit()` từ nút của bước.
 7. `apps/desktop/src/renderer/routes/health.tsx` → `HealthPage()`, `navigationFor()`: bảng sức khỏe nhóm theo
    `HealthGroup`, tự chạy khi mở trang và khi có `health.report` mới; một fix hoặc gọi `health.fix` tại chỗ,
    hoặc điều hướng sang trang khác — `repair` → bước Ghép máy, `repick-folder:KEY` → Settings → Projects đúng
@@ -145,3 +147,5 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 - `apps/desktop/test/e2e/project-settings.spec.ts`: Settings → Projects gửi yêu cầu đổi loại project, khoá form
   và hiện đang chờ, rồi phản ánh đúng sau khi chủ dự án xác nhận TOTP trên web; một yêu cầu đang chờ tự rút và
   hiện đúng câu khi owner chuyển project sang máy khác trong lúc đó.
+- `apps/desktop/test/new-project-form.test.ts`: `draftProblem()` trả về đúng câu cho key quá dài, key sai định
+  dạng và các trường rỗng còn thiếu; `null` khi nháp đã đủ.

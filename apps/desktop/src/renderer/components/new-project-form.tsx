@@ -39,14 +39,19 @@ const EMPTY: Draft = {
 
 /** What still blocks creating the drafted project, in words the owner acts on; null when it is ready. */
 export function draftProblem(draft: Pick<Draft, 'key' | 'name' | 'description' | 'repoUrl'>): string | null {
+  const problems: string[] = [];
   const missing: string[] = [];
-  if (!/^[A-Z][A-Z0-9]{1,9}$/.test(draft.key.trim().toUpperCase())) {
-    missing.push('key (2–10 chữ in hoa hoặc số, bắt đầu bằng chữ)');
+  const key = draft.key.trim().toUpperCase();
+  if (!key) missing.push('key');
+  else if (key.length > 10) problems.push(`Key dài ${key.length} ký tự, tối đa 10.`);
+  else if (!/^[A-Z][A-Z0-9]{1,9}$/.test(key)) {
+    problems.push('Key phải có 2–10 chữ in hoa hoặc số, bắt đầu bằng chữ.');
   }
   if (!draft.name.trim()) missing.push('tên');
   if (!draft.repoUrl.trim()) missing.push('repo URL');
   if (!draft.description.trim()) missing.push('mô tả');
-  return missing.length > 0 ? `Còn thiếu ${missing.join(', ')}.` : null;
+  if (missing.length > 0) problems.push(`Còn thiếu ${missing.join(', ')}.`);
+  return problems.length > 0 ? problems.join(' ') : null;
 }
 
 export interface NewProjectFormHandle {
