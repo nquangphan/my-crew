@@ -255,6 +255,7 @@ describe('mcp and skills groups', () => {
     );
     const calls: string[][] = [];
     const refreshed: (string | null)[] = [];
+    let playwrightConfigured = false;
     const daemon = {
       refreshInventory: async (key: string | null) => refreshed.push(key),
       updateConfig: () => {},
@@ -268,7 +269,8 @@ describe('mcp and skills groups', () => {
       daemon: daemon as unknown as Daemon,
       exec: (command, args) => {
         calls.push([command, ...args]);
-        return { code: 0, stdout: '', stderr: '' };
+        const missing = args[0] === 'mcp' && args[1] === 'get' && !playwrightConfigured;
+        return { code: missing ? 1 : 0, stdout: '', stderr: '' };
       },
     });
     const results = await mcpChecks.run(ctx);
@@ -298,6 +300,13 @@ describe('mcp and skills groups', () => {
     await applyHealthFix(ctx, 'mcp', 'mcp-disable:WEB:figma');
     expect(loadConfig(paths.config).projects[0]?.disabledMcpServers).toEqual(['figma']);
     expect(refreshed).toEqual(['WEB', 'WEB']);
+
+    // Already in the user config (added by hand or for another project): no second add, only a re-probe.
+    playwrightConfigured = true;
+    calls.length = 0;
+    await applyHealthFix(ctx, 'mcp', 'mcp-install:WEB:playwright');
+    expect(calls).toEqual([['claude', 'mcp', 'get', 'playwright']]);
+    expect(refreshed).toEqual(['WEB', 'WEB', 'WEB']);
 
     state.setMeta(
       'inventory:WEB',

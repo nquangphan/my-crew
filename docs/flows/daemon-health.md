@@ -44,9 +44,12 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
    (`storedInventory()`) — chưa có thì vàng, fix `refresh-inventory:<key>`; mỗi server không bị tắt cho
    project mà không `connected` → đỏ, fix `mcp-disable:<key>:<server>`; server MCP test UI bắt buộc cho loại
    project (`OFFICIAL_UI_TEST_SERVERS`, mặc định Playwright cho web, Maestro cho mobile qua `qcDefaultMcps()`)
-   thiếu → đỏ, fix `mcp-install:<key>:<role>` (chạy `claude mcp add --scope user`); đang bị tắt dù QC bắt buộc
-   dùng → đỏ, fix `mcp-enable:<key>:<server>`; project cần thiết bị (`mobile`/`web_mobile`) mà không có
-   simulator/emulator sẵn sàng (`xcrun simctl`/`adb devices`) → vàng, fix `open-simulator` trên macOS.
+   thiếu → đỏ, fix `mcp-install:<key>:<role>` — trước tiên `claude mcp get <name>`, đã cấu hình rồi thì bỏ qua
+   `claude mcp add --scope user` (tránh lỗi "already exists" khiến check đỏ vĩnh viễn), dù đi nhánh nào cũng dò
+   lại inventory (`refreshInventory`) cho **mọi** project trong config vì server MCP cấp user hiện diện ở tất
+   cả project; đang bị tắt dù QC bắt buộc dùng → đỏ, fix `mcp-enable:<key>:<server>`; project cần thiết bị
+   (`mobile`/`web_mobile`) mà không có simulator/emulator sẵn sàng (`xcrun simctl`/`adb devices`) → vàng, fix
+   `open-simulator` trên macOS.
 5. `apps/daemon/src/health/checks/skills.ts` → `skillChecks.run()`/`fix()`: mỗi project, kho skill đã dò
    (`storedInventory()`) — chưa có thì vàng, fix `skills-refresh:<key>`; khi có `probeCheckout` (không phải
    lượt nhanh), dò skill của checkout chính rồi so với inventory trong worktree job — thiếu skill nào → đỏ,
@@ -153,8 +156,9 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
 - `apps/daemon/test/health-groups.test.ts`: helper kiểm tra thư mục repo (chuẩn hoá URL, gợi ý key, đọc
   origin/nhánh, phát hiện không có quyền push); nhóm repos chuyển đỏ khi hook bị xoá, sai origin hay có
   worktree thừa rồi các fix đưa nó về xanh, và báo xanh kèm ghi chú khi repo chưa có docs (không tính là lỗi);
-  nhóm mcp/skills: bắt buộc Playwright cho project web, cài được qua `claude mcp add`, tắt được server lỗi, so
-  khớp inventory worktree với checkout chính; nhóm resources/server/app: dọn được thư mục tạm của job đã xong
+  nhóm mcp/skills: bắt buộc Playwright cho project web, cài được qua `claude mcp add`, đã cấu hình sẵn thì bỏ
+  qua `add` và chỉ dò lại inventory, tắt được server lỗi, so khớp inventory worktree với checkout chính; nhóm
+  resources/server/app: dọn được thư mục tạm của job đã xong
   bằng đúng code dọn tài nguyên, hiện đúng trạng thái SSE và kết nối lại được, thêm đúng ba dòng riêng khi app
   desktop truyền facts, `app.version` xanh khi updater báo `unpublished` nhưng vàng khi lỗi mạng thật, và chạy
   đủ mọi nhóm theo đúng thứ tự dashboard (từ chối fix cho nhóm không có cách sửa).

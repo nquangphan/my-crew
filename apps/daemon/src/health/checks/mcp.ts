@@ -159,17 +159,23 @@ export const mcpChecks: HealthCheck = {
       const view = (await serverProjects(ctx)).get(key);
       const role = arg as keyof UiTestMcp;
       const name = view?.uiTestMcp[role] ?? role;
-      const added = ctx.exec('claude', [
-        'mcp',
-        'add',
-        '--scope',
-        'user',
-        name,
-        '--',
-        ...OFFICIAL_UI_TEST_SERVERS[role].command,
-      ]);
-      if (added.code !== 0)
-        throw new Error(`claude mcp add thất bại: ${added.stderr.trim() || added.stdout.trim()}`);
+      // Already configured (e.g. added by hand, or for another project): nothing to add, only a stale inventory.
+      if (ctx.exec('claude', ['mcp', 'get', name]).code !== 0) {
+        const added = ctx.exec('claude', [
+          'mcp',
+          'add',
+          '--scope',
+          'user',
+          name,
+          '--',
+          ...OFFICIAL_UI_TEST_SERVERS[role].command,
+        ]);
+        if (added.code !== 0)
+          throw new Error(`claude mcp add thất bại: ${added.stderr.trim() || added.stdout.trim()}`);
+      }
+      // A user-scope server shows up in every project, so every stored inventory is now stale.
+      for (const project of ctx.config.projects) await ctx.daemon?.refreshInventory(project.key);
+      return;
     } else if (action !== 'refresh-inventory') {
       return;
     }
