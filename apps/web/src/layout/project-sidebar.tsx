@@ -5,6 +5,7 @@ import {
   FolderKanban,
   Inbox,
   KanbanSquare,
+  Layers,
   List,
   type LucideIcon,
   Monitor,
@@ -74,14 +75,14 @@ export function ProjectSidebar({
           icon: KanbanSquare,
           to: '/projects/$projectKey/board',
           params: { projectKey },
-          match: (p) => p.endsWith('/board'),
+          match: (p) => p.startsWith('/projects/') && p.endsWith('/board'),
         },
         {
           label: 'Danh sách',
           icon: List,
           to: '/projects/$projectKey/list',
           params: { projectKey },
-          match: (p) => p.endsWith('/list'),
+          match: (p) => p.startsWith('/projects/') && p.endsWith('/list'),
         },
         {
           label: 'Docs',
@@ -178,6 +179,15 @@ export function ProjectSidebar({
             </button>
           </MenuTrigger>
           <MenuContent>
+            <MenuItem
+              onSelect={() => {
+                onNavigate?.();
+                void navigate({ to: '/board' });
+              }}
+            >
+              <Layers size={14} aria-hidden /> Tất cả dự án
+            </MenuItem>
+            <MenuSeparator />
             <MenuLabel>Dự án</MenuLabel>
             {(projects.data ?? []).map((p) => (
               <MenuItem
@@ -202,6 +212,12 @@ export function ProjectSidebar({
           </MenuContent>
         </MenuRoot>
       )}
+      {item({
+        label: 'Tất cả dự án',
+        icon: Layers,
+        to: '/board',
+        match: (p) => p === '/board' || p === '/list',
+      })}
       {item({
         label: 'Tất cả request của tôi',
         icon: Send,

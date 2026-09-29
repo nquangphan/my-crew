@@ -11,6 +11,7 @@ import {
   useReports,
   useRunningTicketIds,
   useTicket,
+  useTicketTree,
   useTransition,
   useUpdateTicket,
 } from '../lib/queries';
@@ -22,8 +23,10 @@ import { DetailsBox } from './details-box';
 import { EventTimeline } from './event-timeline';
 import { MarkdownEditor } from './markdown-editor';
 import { MarkdownView } from './markdown-view';
+import { projectKeyResolver } from './project-badge';
 import { ReportPanel } from './report-panel';
 import { SubtaskTree } from './subtask-tree';
+import { TicketTree } from './ticket-tree';
 import { TypeIcon } from './type-icon';
 import { Button } from './ui/button';
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from './ui/tabs';
@@ -247,6 +250,10 @@ function TicketViewBody({
   const siblings = parent.data?.children ?? [];
   const family =
     parent.data && parent.data.ticket.type === 'pm_task' && children.length === 0 ? siblings : children;
+  // A request or pm_task shows its whole descendant tree (every project, closed tickets too) instead.
+  const showTree = (ticket.type === 'request' || ticket.type === 'pm_task') && children.length > 0;
+  const tree = useTicketTree(ticket, showTree);
+  const treeItems = tree.data?.items ?? children;
 
   const openCancel = () => {
     transition.reset();
@@ -370,10 +377,30 @@ function TicketViewBody({
           )
         }
       />
-      {family.length > 0 && (
-        <Section title={childHeading}>
-          <SubtaskTree tickets={family} running={running} highlightId={ticket.id} onOpen={open} />
+      {showTree ? (
+        <Section title={`Cây ticket (${treeItems.length})`}>
+          <TicketTree
+            rootId={ticket.id}
+            items={treeItems}
+            running={running}
+            projectKeyOf={projectKeyResolver(projects.data)}
+            onOpen={open}
+          />
+          {tree.data?.truncated && (
+            <p className="m-0 text-xs text-muted">Cây quá lớn: chỉ hiện {treeItems.length} ticket đầu.</p>
+          )}
+          {tree.isError && (
+            <p role="alert" className="m-0 text-xs text-bad">
+              Không tải được cả cây ticket ({errorMessage(tree.error)}); đang hiện ticket con trực tiếp.
+            </p>
+          )}
         </Section>
+      ) : (
+        family.length > 0 && (
+          <Section title={childHeading}>
+            <SubtaskTree tickets={family} running={running} highlightId={ticket.id} onOpen={open} />
+          </Section>
+        )
       )}
       {ticket.type !== 'request' && (
         <Section title="Docs liên quan">

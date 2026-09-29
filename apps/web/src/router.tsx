@@ -11,8 +11,17 @@ import type { ReactElement } from 'react';
 import { AppShell } from './layout/app-shell';
 import { ApiRequestError, setCsrfToken } from './lib/api-client';
 import { sessionQuery } from './lib/queries';
-import { BoardSearch, DocsSearch, ListSearch, LoginSearch, searchOf } from './lib/search-params';
+import {
+  AllBoardSearch,
+  AllListSearch,
+  BoardSearch,
+  DocsSearch,
+  ListSearch,
+  LoginSearch,
+  searchOf,
+} from './lib/search-params';
 import { AccountPage } from './routes/account';
+import { AllProjectsBoardPage } from './routes/all-board';
 import { BoardPage } from './routes/board';
 import { HomeRedirect } from './routes/home';
 import { InboxPage } from './routes/inbox';
@@ -68,6 +77,19 @@ const requestsRoute = createRoute({
   validateSearch: searchOf(BoardSearch),
   component: RequestsView,
 });
+/** "Tất cả dự án": every project's tickets and the owner's requests. */
+const allBoardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/board',
+  validateSearch: searchOf(AllBoardSearch),
+  component: AllBoardView,
+});
+const allListRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/list',
+  validateSearch: searchOf(AllListSearch),
+  component: AllListView,
+});
 const boardRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/projects/$projectKey/board',
@@ -121,6 +143,12 @@ function LoginView(): ReactElement {
 function RequestsView(): ReactElement {
   return <MyRequestsPage search={requestsRoute.useSearch()} />;
 }
+function AllBoardView(): ReactElement {
+  return <AllProjectsBoardPage search={allBoardRoute.useSearch()} />;
+}
+function AllListView(): ReactElement {
+  return <ListPage projectKey={null} search={allListRoute.useSearch()} />;
+}
 function BoardView(): ReactElement {
   return <BoardPage projectKey={boardRoute.useParams().projectKey} search={boardRoute.useSearch()} />;
 }
@@ -142,6 +170,8 @@ export const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     homeRoute,
     requestsRoute,
+    allBoardRoute,
+    allListRoute,
     boardRoute,
     listRoute,
     docsRoute,

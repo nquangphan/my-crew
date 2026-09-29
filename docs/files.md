@@ -68,6 +68,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/budget.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/bug-loop.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/claims.test.ts` | [project-claims](flows/project-claims.md) (test) |
+| `apps/api/test/cross-project-tickets.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/csrf.test.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/api/test/daemon-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
 | `apps/api/test/docs-sync.test.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
@@ -243,6 +244,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/e2e/account-password.spec.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/web/e2e/agent-activity.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/e2e/cross-project-views.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/docs-space.spec.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `apps/web/e2e/owner-admin.spec.ts` | [web-admin](flows/web-admin.md) (test) |
 | `apps/web/e2e/pm-mention.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
@@ -268,6 +270,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/new-ticket-dialog.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/pairing-dialog.test.tsx` | [web-admin](flows/web-admin.md) (test) |
 | `apps/web/src/components/pairing-dialog.tsx` | [web-admin](flows/web-admin.md) (file) |
+| `apps/web/src/components/project-badge.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/project-form.tsx` | [web-admin](flows/web-admin.md) (file) |
 | `apps/web/src/components/related-tickets.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
 | `apps/web/src/components/report-panel.tsx` | [web-tickets](flows/web-tickets.md) (file) |
@@ -279,6 +282,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/subtask-tree.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/ticket-card.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/ticket-side-panel.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/ticket-tree.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/src/components/ticket-tree.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/ticket-view.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/ticket-view.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/totp-dialog.tsx` | [web-admin](flows/web-admin.md) (file) |
@@ -317,6 +322,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/router.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
 | `apps/web/src/routes/account.test.tsx` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/web/src/routes/account.tsx` | [owner-auth](flows/owner-auth.md) (điểm vào) |
+| `apps/web/src/routes/all-board.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/routes/all-projects.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/routes/board.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
 | `apps/web/src/routes/home.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `apps/web/src/routes/inbox.test.tsx` | [web-admin](flows/web-admin.md) (test) |

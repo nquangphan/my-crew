@@ -57,7 +57,9 @@ owner tự đổi mật khẩu.
     `ChangePasswordRequest` (định nghĩa cùng `packages/shared/src/api-schemas.ts` với `Ticket`/
     `CreateSubtaskRequest`/`RateSubtaskRequest`/`RetrySubtaskRequest` của flow `ticket-lifecycle` — các schema
     ticket đó, kể cả `RateSubtaskRequest`/`RetrySubtaskRequest` mà PM dùng để đánh giá lại hay mở lại một
-    subtask tại chỗ, `Comment.mentions` (tag `@pm` của owner) và mã lỗi `PM_NOT_AVAILABLE`, không ảnh hưởng gì
+    subtask tại chỗ, `Comment.mentions` (tag `@pm` của owner), mã lỗi `PM_NOT_AVAILABLE`,
+    `ListTicketsQuery.projectIds` (lọc nhiều dự án cho board/danh sách "Tất cả dự án") và
+    `TicketTreeResponse` (cây hậu duệ của `GET /v1/tickets/:id/tree`), không ảnh hưởng gì
     tới schema này; 400 khi mật khẩu mới quá ngắn hoặc trùng mật khẩu hiện tại), gọi
     `changeOwnerPassword()` rồi `setSessionCookies()` với session mới. Không dùng `Idempotency-Key` (route
     owner không dùng cơ chế này).

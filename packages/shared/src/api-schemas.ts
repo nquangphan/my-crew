@@ -297,6 +297,13 @@ export const TicketSortField = z.enum(['createdAt', 'updatedAt', 'priority', 'ti
 /** Query string of `GET /v1/tickets`. List filters accept comma-separated values. */
 export const ListTicketsQuery = z.object({
   projectId: z.uuid().optional(),
+  /**
+   * Tickets of any of these projects, plus the request tickets routed to one of them (a pm_task child in
+   * the project) or hinted at one: the cross-project board and list.
+   */
+  projectIds: CsvList(z.uuid())
+    .refine((ids) => ids.length <= 100, 'at most 100 projects')
+    .optional(),
   parentId: z.uuid().optional(),
   status: CsvList(TicketStatus).optional(),
   type: CsvList(TicketType).optional(),
@@ -315,6 +322,13 @@ export type ListTicketsQuery = z.input<typeof ListTicketsQuery>;
 
 export const TicketListResponse = z.object({ items: z.array(Ticket), nextCursor: z.string().nullable() });
 export type TicketListResponse = z.infer<typeof TicketListResponse>;
+
+/**
+ * `GET /v1/tickets/:id/tree`: every descendant of a ticket, open or closed, parents before their children
+ * (level by level, oldest first). `truncated` is set when the tree has more than the server's limit.
+ */
+export const TicketTreeResponse = z.object({ items: z.array(Ticket), truncated: z.boolean() });
+export type TicketTreeResponse = z.infer<typeof TicketTreeResponse>;
 
 // ---------------------------------------------------------------------------
 // Comments

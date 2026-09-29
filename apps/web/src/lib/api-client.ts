@@ -36,6 +36,7 @@ import {
   TicketListResponse,
   type TicketPriority,
   type TicketStatus,
+  TicketTreeResponse,
   type UpdateProjectRequest,
   type UpdateTicketRequest,
 } from '@crew/shared';
@@ -216,6 +217,9 @@ export const api = {
     request('/v1/search', { schema: SearchResponse, query: { q }, signal }),
 
   /** One page of tickets as the server sorts it (default: most recently updated first). */
+  /** Every descendant of a ticket (open and closed) in one call. */
+  getTicketTree: (idOrKey: string) =>
+    request(`/v1/tickets/${encodeURIComponent(idOrKey)}/tree`, { schema: TicketTreeResponse }),
   listTicketsPage: (query: ListTicketsQuery) =>
     request('/v1/tickets', { schema: TicketListResponse, query: query as Query }),
 

@@ -89,6 +89,7 @@ flows:
       - packages/shared/src/status-workflow.test.ts
       - apps/api/test/pm-mention.test.ts
       - packages/shared/src/comment-mentions.test.ts
+      - apps/api/test/cross-project-tickets.test.ts
   machine-pairing:
     title: Ghép máy và xác thực máy
     doc: docs/flows/machine-pairing.md
@@ -259,6 +260,7 @@ flows:
       - apps/web/src/routes/ticket-detail.tsx
       - apps/web/src/routes/my-requests.tsx
     files:
+      - apps/web/src/routes/all-board.tsx
       - apps/web/src/components/board-view.tsx
       - apps/web/src/components/ticket-card.tsx
       - apps/web/src/components/filter-menu.tsx
@@ -277,6 +279,8 @@ flows:
       - apps/web/src/components/role-avatar.tsx
       - apps/web/src/components/type-icon.tsx
       - apps/web/src/components/agent-activity.tsx
+      - apps/web/src/components/ticket-tree.tsx
+      - apps/web/src/components/project-badge.tsx
     tests:
       - apps/web/src/components/board-view.test.ts
       - apps/web/src/components/ticket-view.test.tsx
@@ -288,6 +292,9 @@ flows:
       - apps/web/src/components/agent-activity.test.tsx
       - apps/web/e2e/agent-activity.spec.ts
       - apps/web/e2e/pm-mention.spec.ts
+      - apps/web/src/components/ticket-tree.test.tsx
+      - apps/web/src/routes/all-projects.test.tsx
+      - apps/web/e2e/cross-project-views.spec.ts
   web-admin:
     title: Inbox, dự án và máy trên web
     doc: docs/flows/web-admin.md

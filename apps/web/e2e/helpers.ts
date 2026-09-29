@@ -131,6 +131,10 @@ export class Agent {
       body,
     );
   }
+  /** Creates a project owned by this machine, as the daemon does from a local folder. */
+  createProject(body: { key: string; name: string; description: string; repoUrl: string; platform: string }) {
+    return this.call<{ id: string; key: string; name: string }>('POST', '/v1/daemon/projects', body);
+  }
   /** Syncs a docs snapshot, as the daemon does after a merge to the default branch. */
   syncDocs(
     projectKey: string,

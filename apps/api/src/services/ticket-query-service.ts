@@ -2,10 +2,12 @@ import {
   type ListTicketsQuery as ListTicketsInput,
   ListTicketsQuery,
   type SearchResponse,
+  type Ticket,
   type TicketDetailResponse,
   type TicketListResponse,
 } from '@crew/shared';
-import { and, arrayContains, asc, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
+import { and, arrayContains, asc, desc, eq, exists, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import type { Executor } from '../db/client.js';
 import { comments, tickets } from '../db/schema.js';
 import { ApiError } from '../errors.js';
@@ -54,6 +56,19 @@ export async function listTickets(db: Executor, input: ListTicketsInput): Promis
   const sort = SORTS[query.sort];
   const filters: SQL[] = [];
   if (query.projectId) filters.push(eq(tickets.projectId, query.projectId));
+  if (query.projectIds?.length) {
+    const ids = query.projectIds;
+    const child = alias(tickets, 'child');
+    const routed = db
+      .select({ one: sql`1` })
+      .from(child)
+      .where(and(eq(child.parentId, tickets.id), inArray(child.projectId, ids)));
+    const inProjects = or(
+      inArray(tickets.projectId, ids),
+      and(eq(tickets.type, 'request'), or(inArray(tickets.projectHintId, ids), exists(routed))),
+    );
+    if (inProjects) filters.push(inProjects);
+  }
   if (query.parentId) filters.push(eq(tickets.parentId, query.parentId));
   if (query.status?.length) filters.push(inArray(tickets.status, query.status));
   if (query.type?.length) filters.push(inArray(tickets.type, query.type));
@@ -104,6 +119,41 @@ export async function getTicketDetail(db: Executor, idOrKey: string): Promise<Ti
     report,
     events,
   };
+}
+
+/** The largest subtree one call returns; a request tree is far smaller (child caps per pm_task). */
+export const TREE_LIMIT = 1000;
+/** request → pm_task → dev/qc/bug/docs_init: three levels below a request at most, one spare. */
+const TREE_MAX_DEPTH = 4;
+
+/**
+ * Every descendant of a ticket, open or closed, in one call: one query per level (parents before their
+ * children, oldest first), so the web tree needs no request per node.
+ */
+export async function getTicketTree(
+  db: Executor,
+  idOrKey: string,
+  limit = TREE_LIMIT,
+): Promise<{ items: Ticket[]; truncated: boolean }> {
+  const root = await getTicketRow(db, idOrKey);
+  const found: Ticket[] = [];
+  let frontier = [root.id];
+  let truncated = false;
+  for (let depth = 0; depth < TREE_MAX_DEPTH && frontier.length > 0 && !truncated; depth++) {
+    const level = await db
+      .select()
+      .from(tickets)
+      .where(inArray(tickets.parentId, frontier))
+      .orderBy(asc(tickets.createdAt), asc(tickets.id))
+      .limit(limit - found.length + 1);
+    if (found.length + level.length > limit) {
+      truncated = true;
+      level.length = limit - found.length;
+    }
+    found.push(...level.map(toTicketDto));
+    frontier = level.map((row) => row.id);
+  }
+  return { items: found, truncated };
 }
 
 const SEARCH_LIMIT = 10;

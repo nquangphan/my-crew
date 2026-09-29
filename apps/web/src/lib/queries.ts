@@ -19,6 +19,8 @@ export const keys = {
   ticketList: (query: ListTicketsQuery) => ['tickets', query] as const,
   ticket: (idOrKey: string) => ['ticket', idOrKey] as const,
   descendants: (id: string) => ['descendants', id] as const,
+  /** Under `descendants`, so ticket events and writes refresh it with the cancel list. */
+  tree: (id: string) => ['descendants', id, 'tree'] as const,
   reports: (idOrKey: string) => ['report', idOrKey] as const,
   projects: ['projects'] as const,
   machines: ['machines'] as const,
@@ -88,6 +90,15 @@ export function useOpenDescendants(root: Ticket | null, enabled: boolean) {
     queryKey: keys.descendants(root?.id ?? ''),
     queryFn: () => (root ? fetchOpenDescendants(root) : Promise.resolve([])),
     enabled: Boolean(root) && enabled,
+  });
+}
+
+/** Every descendant of a ticket, open and closed, in one call (the "Cây ticket" section). */
+export function useTicketTree(ticket: Ticket | null, enabled = true) {
+  return useQuery({
+    queryKey: keys.tree(ticket?.id ?? ''),
+    queryFn: () => api.getTicketTree(ticket?.id ?? ''),
+    enabled: Boolean(ticket) && enabled,
   });
 }
 

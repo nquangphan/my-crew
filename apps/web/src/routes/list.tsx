@@ -1,11 +1,12 @@
 import type { Ticket, TicketPriority, TicketStatus } from '@crew/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { ChevronDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { CancelDialog } from '../components/cancel-dialog';
 import { FilterMenu } from '../components/filter-menu';
 import { IssueTable, sortTickets } from '../components/issue-table';
+import { ProjectBadge, projectKeyResolver } from '../components/project-badge';
 import { RoleAvatar } from '../components/role-avatar';
 import { StatusLozenge } from '../components/status-lozenge';
 import { TypeIcon } from '../components/type-icon';
@@ -32,16 +33,17 @@ import {
 } from '../lib/format';
 import {
   invalidateTicketData,
-  useProjectByKey,
+  useProjects,
   useRunningTicketIds,
   useTickets,
   useTransition,
   useUpdateTicket,
 } from '../lib/queries';
 import {
-  type ListSearch,
+  type AllListSearch,
   type ListSort,
   parsePriorities,
+  parseProjectKeys,
   parseRoles,
   parseStatuses,
   parseTypes,
@@ -52,20 +54,39 @@ import { useViewport } from '../lib/ui-state';
 
 const OPEN_CSV = OPEN_STATUSES.join(',');
 
-/** List/backlog view. Every filter and the sort live in the URL, so any view can be bookmarked. */
-export function ListPage({ projectKey, search }: { projectKey: string; search: ListSearch }) {
+/**
+ * List/backlog view of one project, or of every project (`projectKey` null: project filter and column,
+ * requests included). Every filter and the sort live in the URL, so any view can be bookmarked.
+ */
+export function ListPage({ projectKey, search }: { projectKey: string | null; search: AllListSearch }) {
   const navigate = useNavigate();
   const viewport = useViewport();
   const toast = useToast();
   const queryClient = useQueryClient();
-  const { project, isLoading: projectLoading } = useProjectByKey(projectKey);
+  const projects = useProjects();
+  const crossProject = projectKey === null;
+  const project = crossProject ? undefined : projects.data?.find((p) => p.key === projectKey);
   const statuses = parseStatuses(search.status);
   const types = parseTypes(search.type);
   const roles = parseRoles(search.role);
   const priorities = parsePriorities(search.priority);
+  const projectKeys = crossProject ? parseProjectKeys(search.project) : [];
+  const projectIds = (projects.data ?? []).filter((p) => projectKeys.includes(p.key)).map((p) => p.id);
   const tickets = useTickets(
-    { projectId: project?.id, status: statuses, type: types, role: roles, priority: priorities, q: search.q },
-    Boolean(project),
+    {
+      projectId: project?.id,
+      projectIds: projectIds.length > 0 ? projectIds : undefined,
+      status: statuses,
+      type: types,
+      role: roles,
+      priority: priorities,
+      q: search.q,
+    },
+    crossProject ? Boolean(projects.data) : Boolean(project),
+  );
+  const projectKeyOf = useMemo(
+    () => (crossProject ? projectKeyResolver(projects.data) : undefined),
+    [crossProject, projects.data],
   );
   const running = useRunningTicketIds();
   const transition = useTransition();
@@ -79,16 +100,21 @@ export function ListPage({ projectKey, search }: { projectKey: string; search: L
 
   const sort: ListSort = search.sort ?? 'updatedAt';
   const order = search.order ?? (sort === 'updatedAt' || sort === 'priority' ? 'desc' : 'asc');
-  const rows = useMemo(() => sortTickets(tickets.data ?? [], sort, order), [tickets.data, sort, order]);
+  const rows = useMemo(
+    () => sortTickets(tickets.data ?? [], sort, order, projectKeyOf),
+    [tickets.data, sort, order, projectKeyOf],
+  );
   const chosen = rows.filter((t) => selected.has(t.id));
 
-  const setSearch = (patch: Partial<ListSearch>) =>
-    void navigate({
-      to: '/projects/$projectKey/list',
-      params: { projectKey },
-      search: (prev) => ({ ...prev, ...patch }),
-      replace: true,
-    });
+  const setSearch = (patch: Partial<AllListSearch>) =>
+    void (projectKey
+      ? navigate({
+          to: '/projects/$projectKey/list',
+          params: { projectKey },
+          search: (prev) => ({ ...prev, ...patch }),
+          replace: true,
+        })
+      : navigate({ to: '/list', search: (prev) => ({ ...prev, ...patch }), replace: true }));
 
   const openTicket = (ticket: Ticket) =>
     void navigate({ to: '/tickets/$ticketKey', params: { ticketKey: ticket.key } });
@@ -177,7 +203,7 @@ export function ListPage({ projectKey, search }: { projectKey: string; search: L
     </div>
   );
 
-  if (!projectLoading && !project)
+  if (!crossProject && !projects.isLoading && !project)
     return <p className="m-0 p-6 text-sm text-bad">Không tìm thấy dự án {projectKey}.</p>;
   const openOnly = search.status === OPEN_CSV;
   const cancellable = chosen.filter((t) => isOpen(t.status));
@@ -189,14 +215,32 @@ export function ListPage({ projectKey, search }: { projectKey: string; search: L
         viewport === 'phone' && chosen.length > 0 && 'pb-20',
       )}
     >
-      <Breadcrumbs
-        items={[
-          { label: 'Dự án', link: { to: '/projects' } },
-          { label: project?.name ?? projectKey },
-          { label: 'Danh sách' },
-        ]}
-      />
-      <h1 className="m-0 text-[22px] font-semibold">Danh sách ticket</h1>
+      {crossProject ? (
+        <>
+          <Breadcrumbs items={[{ label: 'Tất cả dự án' }, { label: 'Danh sách' }]} />
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="m-0 grow text-[22px] font-semibold">Danh sách ticket · Tất cả dự án</h1>
+            <Link
+              to="/board"
+              search={{ project: search.project }}
+              className="inline-flex min-h-11 items-center rounded border border-line bg-panel px-3 text-sm text-ink no-underline hover:bg-soft xl:min-h-8"
+            >
+              Xem board
+            </Link>
+          </div>
+        </>
+      ) : (
+        <>
+          <Breadcrumbs
+            items={[
+              { label: 'Dự án', link: { to: '/projects' } },
+              { label: project?.name ?? projectKey },
+              { label: 'Danh sách' },
+            ]}
+          />
+          <h1 className="m-0 text-[22px] font-semibold">Danh sách ticket</h1>
+        </>
+      )}
       <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Bộ lọc danh sách">
         <form
           className="w-full md:w-56"
@@ -224,6 +268,19 @@ export function ListPage({ projectKey, search }: { projectKey: string; search: L
         >
           Trạng thái: chưa xong
         </button>
+        {crossProject && (
+          <FilterMenu
+            label="Dự án"
+            options={(projects.data ?? []).map((p) => p.key)}
+            selected={projectKeys}
+            render={(key) => (
+              <>
+                <ProjectBadge projectKey={key} /> {projects.data?.find((p) => p.key === key)?.name}
+              </>
+            )}
+            onToggle={(key) => setSearch({ project: toggleCsv(search.project, key) })}
+          />
+        )}
         <FilterMenu
           label="Trạng thái"
           options={STATUS_ORDER}
@@ -264,7 +321,7 @@ export function ListPage({ projectKey, search }: { projectKey: string; search: L
         {viewport !== 'phone' && bulkBar}
       </div>
 
-      {tickets.isLoading && <p className="m-0 text-sm text-muted">Đang tải…</p>}
+      {(tickets.isLoading || projects.isLoading) && <p className="m-0 text-sm text-muted">Đang tải…</p>}
       {tickets.isError && (
         <p role="alert" className="m-0 text-sm text-bad">
           {errorMessage(tickets.error)}
@@ -308,6 +365,7 @@ export function ListPage({ projectKey, search }: { projectKey: string; search: L
           onStatus={onStatus}
           onPriority={onPriority}
           viewport={viewport}
+          projectKeyOf={projectKeyOf}
         />
       )}
       {viewport === 'phone' && bulkBar}

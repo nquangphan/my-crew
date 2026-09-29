@@ -185,6 +185,7 @@ export function AppShell() {
     c: () => setCreateOpen(true),
     '?': () => setShortcutsOpen(true),
     'g i': () => void navigate({ to: '/inbox' }),
+    'g a': () => void navigate({ to: '/board' }),
     'g b': () =>
       void (projectKey
         ? navigate({ to: '/projects/$projectKey/board', params: { projectKey } })

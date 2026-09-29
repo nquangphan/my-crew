@@ -1,6 +1,7 @@
 import type { AgentRole, TicketPriority, TicketStatus, TicketType } from '@crew/shared';
 import {
   TicketPriority as PrioritySchema,
+  ProjectKey as ProjectKeySchema,
   AgentRole as RoleSchema,
   TicketStatus as StatusSchema,
   TicketType as TypeSchema,
@@ -25,15 +26,23 @@ export const BoardSearch = z.object({
   priority: Csv,
   /** Only the tickets that wait for the owner (needs_input, blocked, or a budget hold). */
   mine: z.boolean().optional().catch(undefined),
-  /** Swimlanes by parent (the pm_task); on by default. */
-  group: z.enum(['parent', 'none']).optional().catch(undefined),
+  /**
+   * Swimlanes. A project board groups by parent (the pm_task) by default; the all-projects board by
+   * request → pm_task (`request`) or by project.
+   */
+  group: z.enum(['parent', 'request', 'project', 'none']).optional().catch(undefined),
   /** Key of the ticket open in the side panel. */
   selected: Opt,
 });
 export type BoardSearch = z.infer<typeof BoardSearch>;
 
+/** The all-projects board: the project board's filters plus projects (keys, comma-separated). */
+export const AllBoardSearch = BoardSearch.extend({ project: Csv });
+export type AllBoardSearch = z.infer<typeof AllBoardSearch>;
+
 export const LIST_SORTS = [
   'key',
+  'project',
   'type',
   'title',
   'status',
@@ -56,6 +65,10 @@ export const ListSearch = z.object({
 });
 export type ListSearch = z.infer<typeof ListSearch>;
 
+/** The all-projects list: the project list's filters plus projects (keys, comma-separated). */
+export const AllListSearch = ListSearch.extend({ project: Csv });
+export type AllListSearch = z.infer<typeof AllListSearch>;
+
 export const DocsSearch = z.object({
   flow: Opt,
   path: z.string().max(1000).optional().catch(undefined),
@@ -76,6 +89,7 @@ export const parseTypes = (value: string | undefined): TicketType[] => csv(value
 export const parseRoles = (value: string | undefined): AgentRole[] => csv(value, RoleSchema);
 export const parsePriorities = (value: string | undefined): TicketPriority[] => csv(value, PrioritySchema);
 export const parseStatuses = (value: string | undefined): TicketStatus[] => csv(value, StatusSchema);
+export const parseProjectKeys = (value: string | undefined): string[] => csv(value, ProjectKeySchema);
 
 /** Toggles one value in a CSV filter; an empty result removes the parameter. */
 export function toggleCsv(value: string | undefined, item: string): string | undefined {

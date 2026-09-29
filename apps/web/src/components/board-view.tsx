@@ -1,4 +1,4 @@
-import type { AgentRole, Ticket, TicketStatus, TicketType } from '@crew/shared';
+import type { AgentRole, Project, Ticket, TicketStatus, TicketType } from '@crew/shared';
 import {
   DndContext,
   type DragEndEvent,
@@ -24,10 +24,19 @@ import {
   TYPE_META,
 } from '../lib/format';
 import { useRunningTicketIds, useTransition } from '../lib/queries';
-import { type BoardSearch, parsePriorities, parseRoles, parseTypes, toggleCsv } from '../lib/search-params';
+import {
+  type AllBoardSearch,
+  type BoardSearch,
+  parsePriorities,
+  parseProjectKeys,
+  parseRoles,
+  parseTypes,
+  toggleCsv,
+} from '../lib/search-params';
 import { stepIndex, useShortcuts } from '../lib/shortcuts';
 import { useViewport } from '../lib/ui-state';
 import { FilterMenu } from './filter-menu';
+import { ProjectBadge, projectKeyResolver } from './project-badge';
 import { RoleAvatar } from './role-avatar';
 import { TicketCard, TicketCardFace } from './ticket-card';
 import { TicketSidePanel } from './ticket-side-panel';
@@ -68,16 +77,30 @@ export function filterBoardTickets(tickets: readonly Ticket[], search: BoardSear
   );
 }
 
-interface Lane {
+export type LaneMode = NonNullable<BoardSearch['group']>;
+
+export interface Lane {
   id: string;
   label: string | null;
+  /** A pm_task's lane inside its request's lane (request grouping). */
+  nested?: boolean;
   tickets: Ticket[];
 }
 
+/** The nearest ancestor of a type among the loaded tickets (the hierarchy is three levels deep). */
+function ancestorOf(ticket: Ticket, type: TicketType, byId: ReadonlyMap<string, Ticket>): Ticket | undefined {
+  let current: Ticket | undefined = ticket;
+  for (let hops = 0; hops < 4 && current; hops++) {
+    if (current.type === type) return current;
+    current = current.parentId ? byId.get(current.parentId) : undefined;
+  }
+  return undefined;
+}
+
+const titled = (ticket: Ticket) => `${ticket.key} · ${ticket.title}`;
+
 /** Swimlanes by parent (the pm_task), in the order the parents first appear. */
-function lanesOf(tickets: Ticket[], all: readonly Ticket[], grouped: boolean): Lane[] {
-  if (!grouped) return [{ id: 'all', label: null, tickets }];
-  const byId = new Map(all.map((t) => [t.id, t]));
+function parentLanes(tickets: Ticket[], byId: ReadonlyMap<string, Ticket>): Lane[] {
   const lanes = new Map<string, Lane>();
   for (const ticket of tickets) {
     // pm_tasks share one lane; their children sit in the lane of their pm_task.
@@ -89,7 +112,7 @@ function lanesOf(tickets: Ticket[], all: readonly Ticket[], grouped: boolean): L
         id === 'pm_tasks'
           ? 'PM task'
           : parent
-            ? `${parent.key} · ${parent.title}`
+            ? titled(parent)
             : ticket.parentId
               ? 'Ticket cha khác'
               : 'Không có ticket cha';
@@ -101,11 +124,97 @@ function lanesOf(tickets: Ticket[], all: readonly Ticket[], grouped: boolean): L
   return [...lanes.values()];
 }
 
+/**
+ * Request → pm_task lanes: a request's lane holds the request and its pm_tasks (every project it was
+ * routed to), and each pm_task's children follow in a nested lane, so one request's work sits together.
+ */
+function requestLanes(tickets: Ticket[], byId: ReadonlyMap<string, Ticket>): Lane[] {
+  const groups = new Map<string, { head: Lane; subs: Map<string, Lane> }>();
+  for (const ticket of tickets) {
+    const request = ancestorOf(ticket, 'request', byId);
+    const groupId = request?.id ?? 'none';
+    let group = groups.get(groupId);
+    if (!group) {
+      const head: Lane = {
+        id: `request:${groupId}`,
+        label: request ? titled(request) : 'Không thuộc request',
+        tickets: [],
+      };
+      group = { head, subs: new Map() };
+      groups.set(groupId, group);
+    }
+    if (ticket.type === 'request' || ticket.type === 'pm_task') {
+      group.head.tickets.push(ticket);
+      continue;
+    }
+    const pmTask = ancestorOf(ticket, 'pm_task', byId);
+    const subId = pmTask?.id ?? 'other';
+    let sub = group.subs.get(subId);
+    if (!sub) {
+      sub = {
+        id: `${group.head.id}/${subId}`,
+        label: pmTask ? titled(pmTask) : 'Ticket cha khác',
+        nested: true,
+        tickets: [],
+      };
+      group.subs.set(subId, sub);
+    }
+    sub.tickets.push(ticket);
+  }
+  return [...groups.values()].flatMap((group) => [group.head, ...group.subs.values()]);
+}
+
+/** One lane per project (by key); requests without a project come first. */
+function projectLanes(tickets: Ticket[], projectOf: (ticket: Ticket) => Project | undefined): Lane[] {
+  const lanes = new Map<string, Lane>();
+  for (const ticket of tickets) {
+    const project = projectOf(ticket);
+    const id = project?.key ?? '';
+    let lane = lanes.get(id);
+    if (!lane) {
+      lane = {
+        id: `project:${id}`,
+        label: project ? `${project.key} · ${project.name}` : 'Request',
+        tickets: [],
+      };
+      lanes.set(id, lane);
+    }
+    lane.tickets.push(ticket);
+  }
+  return [...lanes.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, lane]) => lane);
+}
+
+/** Swimlanes of one column. */
+export function lanesOf(
+  tickets: Ticket[],
+  all: readonly Ticket[],
+  mode: LaneMode,
+  projects: readonly Project[] = [],
+): Lane[] {
+  if (mode === 'none') return [{ id: 'all', label: null, tickets }];
+  const byId = new Map(all.map((t) => [t.id, t]));
+  if (mode === 'request') return requestLanes(tickets, byId);
+  if (mode === 'project') {
+    const byProject = new Map(projects.map((p) => [p.id, p]));
+    return projectLanes(tickets, (t) => (t.projectId ? byProject.get(t.projectId) : undefined));
+  }
+  return parentLanes(tickets, byId);
+}
+
+const GROUP_LABEL: Record<LaneMode, string> = {
+  parent: 'PM task',
+  request: 'Request → PM task',
+  project: 'Dự án',
+  none: 'Không',
+};
+
 function Column({
   status,
   tickets,
   all,
-  grouped,
+  mode,
+  projects,
+  projectKeyOf,
   selectedKey,
   focusedId,
   running,
@@ -115,7 +224,9 @@ function Column({
   status: TicketStatus;
   tickets: Ticket[];
   all: readonly Ticket[];
-  grouped: boolean;
+  mode: LaneMode;
+  projects?: readonly Project[];
+  projectKeyOf?: (ticket: Ticket) => string | undefined;
   selectedKey?: string;
   focusedId?: string;
   running: Set<string>;
@@ -123,7 +234,7 @@ function Column({
   phone: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
-  const lanes = lanesOf(tickets, all, grouped);
+  const lanes = lanesOf(tickets, all, mode, projects);
   return (
     <section
       ref={setNodeRef}
@@ -139,13 +250,17 @@ function Column({
         {STATUS_LABEL[status]} · {tickets.length}
       </h2>
       {lanes.map((lane) => (
-        <div key={lane.id} className="flex flex-col gap-2">
+        <div key={lane.id} className={cn('flex flex-col gap-2', lane.nested && 'ml-2')}>
           {lane.label && lanes.length > 0 && (
             <div
-              className="truncate border-t border-dashed border-line px-1 pt-1.5 text-[11px] text-muted"
+              data-lane={lane.id}
+              className={cn(
+                'truncate border-t border-dashed border-line px-1 pt-1.5 text-[11px] text-muted',
+                lane.nested && 'border-dotted',
+              )}
               title={lane.label}
             >
-              {lane.label}
+              {lane.nested ? `› ${lane.label}` : lane.label}
             </div>
           )}
           {lane.tickets.map((ticket) => (
@@ -155,6 +270,7 @@ function Column({
               selected={ticket.key === selectedKey}
               focused={ticket.id === focusedId}
               running={running.has(ticket.id)}
+              projectKey={projectKeyOf?.(ticket)}
               onOpen={onOpen}
             />
           ))}
@@ -169,11 +285,16 @@ export interface BoardViewProps {
   tickets: readonly Ticket[] | undefined;
   isLoading: boolean;
   error: unknown;
-  search: BoardSearch;
-  onSearch: (patch: Partial<BoardSearch>) => void;
+  search: AllBoardSearch;
+  onSearch: (patch: Partial<AllBoardSearch>) => void;
   header: ReactNode;
   /** Hide filters that make no sense for the view (e.g. type on the requests board). */
   showTypeFilter?: boolean;
+  /**
+   * The all-projects board: project badges on cards, the project filter, and request → pm_task (default)
+   * or project swimlanes.
+   */
+  projects?: readonly Project[];
 }
 
 /**
@@ -189,6 +310,7 @@ export function BoardView({
   onSearch,
   header,
   showTypeFilter = true,
+  projects,
 }: BoardViewProps) {
   const viewport = useViewport();
   const phone = viewport === 'phone';
@@ -200,7 +322,15 @@ export function BoardView({
   const [activeColumn, setActiveColumn] = useState(0);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
-  const grouped = (search.group ?? 'parent') === 'parent';
+  const crossProject = projects !== undefined;
+  const defaultMode: LaneMode = crossProject ? 'request' : 'parent';
+  const mode: LaneMode = search.group ?? defaultMode;
+  const groupModes: LaneMode[] = crossProject ? ['request', 'project', 'none'] : ['parent', 'none'];
+  const projectKeyOf = useMemo(
+    () => (crossProject ? projectKeyResolver(projects) : undefined),
+    [crossProject, projects],
+  );
+  const projectKeys = parseProjectKeys(search.project);
 
   const all = tickets ?? [];
   const visible = useMemo(() => filterBoardTickets(all, search), [all, search]);
@@ -215,8 +345,10 @@ export function BoardView({
   /** Card order for `j`/`k`: column by column, top to bottom. */
   const order = useMemo(
     () =>
-      BOARD_COLUMNS.flatMap((s) => lanesOf(byColumn.get(s) ?? [], all, grouped).flatMap((l) => l.tickets)),
-    [byColumn, all, grouped],
+      BOARD_COLUMNS.flatMap((s) =>
+        lanesOf(byColumn.get(s) ?? [], all, mode, projects).flatMap((l) => l.tickets),
+      ),
+    [byColumn, all, mode, projects],
   );
 
   const sensors = useSensors(
@@ -264,6 +396,7 @@ export function BoardView({
     parseTypes(search.type).length +
     roles.length +
     parsePriorities(search.priority).length +
+    projectKeys.length +
     (search.mine ? 1 : 0);
 
   return (
@@ -284,6 +417,19 @@ export function BoardView({
         role="toolbar"
         aria-label="Bộ lọc board"
       >
+        {crossProject && (
+          <FilterMenu
+            label="Dự án"
+            options={(projects ?? []).map((p) => p.key)}
+            selected={projectKeys}
+            render={(key) => (
+              <>
+                <ProjectBadge projectKey={key} /> {projects?.find((p) => p.key === key)?.name}
+              </>
+            )}
+            onToggle={(key) => onSearch({ project: toggleCsv(search.project, key) })}
+          />
+        )}
         {showTypeFilter && (
           <FilterMenu<TicketType>
             label="Loại"
@@ -338,12 +484,22 @@ export function BoardView({
               type="button"
               className="inline-flex min-h-11 items-center gap-1 rounded border border-line bg-panel px-3 text-sm hover:bg-soft xl:min-h-8"
             >
-              Nhóm theo: {grouped ? 'PM task' : 'Không'} <ChevronDown size={14} aria-hidden />
+              Nhóm theo: {GROUP_LABEL[mode]} <ChevronDown size={14} aria-hidden />
             </button>
           </MenuTrigger>
           <MenuContent>
-            <MenuItem onSelect={() => onSearch({ group: undefined })}>PM task (ticket cha)</MenuItem>
-            <MenuItem onSelect={() => onSearch({ group: 'none' })}>Không nhóm</MenuItem>
+            {groupModes.map((option) => (
+              <MenuItem
+                key={option}
+                onSelect={() => onSearch({ group: option === defaultMode ? undefined : option })}
+              >
+                {option === 'parent'
+                  ? 'PM task (ticket cha)'
+                  : option === 'none'
+                    ? 'Không nhóm'
+                    : GROUP_LABEL[option]}
+              </MenuItem>
+            ))}
           </MenuContent>
         </MenuRoot>
       </div>
@@ -407,7 +563,9 @@ export function BoardView({
               status={status}
               tickets={byColumn.get(status) ?? []}
               all={all}
-              grouped={grouped}
+              mode={mode}
+              projects={projects}
+              projectKeyOf={projectKeyOf}
               selectedKey={search.selected}
               focusedId={order[focusIndex]?.id}
               running={running}
@@ -419,7 +577,11 @@ export function BoardView({
         <DragOverlay>
           {dragging && (
             <div className="flex w-[240px] rotate-1 flex-col gap-2 rounded-md border border-accent bg-panel px-3 py-2.5 shadow-xl">
-              <TicketCardFace ticket={dragging} running={running.has(dragging.id)} />
+              <TicketCardFace
+                ticket={dragging}
+                running={running.has(dragging.id)}
+                projectKey={projectKeyOf?.(dragging)}
+              />
             </div>
           )}
         </DragOverlay>

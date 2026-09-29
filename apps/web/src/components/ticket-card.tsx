@@ -2,6 +2,7 @@ import type { Ticket } from '@crew/shared';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '../lib/cn';
 import { AgentActivityMark } from './agent-activity';
+import { ProjectBadge } from './project-badge';
 import { RoleAvatar } from './role-avatar';
 import { PriorityArrow, StatusLozenge } from './status-lozenge';
 import { TypeIcon } from './type-icon';
@@ -12,6 +13,8 @@ export interface TicketCardProps {
   /** Keyboard (`j`/`k`) cursor. */
   focused?: boolean;
   running?: boolean;
+  /** Shown as a badge on cross-project boards. */
+  projectKey?: string;
   onOpen?: (ticket: Ticket) => void;
 }
 
@@ -19,7 +22,15 @@ export interface TicketCardProps {
  * A board card's face: type icon, key, title, priority, assignee role (spinner while running), badges and
  * the agent activity mark (waiting, failed or unknown).
  */
-export function TicketCardFace({ ticket, running }: { ticket: Ticket; running?: boolean }) {
+export function TicketCardFace({
+  ticket,
+  running,
+  projectKey,
+}: {
+  ticket: Ticket;
+  running?: boolean;
+  projectKey?: string;
+}) {
   const badge =
     ticket.status === 'needs_input' ? (
       <StatusLozenge status="needs_input" />
@@ -34,6 +45,7 @@ export function TicketCardFace({ ticket, running }: { ticket: Ticket; running?: 
           <TypeIcon type={ticket.type} />
           <span className="font-mono text-xs whitespace-nowrap text-muted">{ticket.key}</span>
           <PriorityArrow priority={ticket.priority} />
+          {projectKey && <ProjectBadge projectKey={projectKey} />}
         </span>
         <span className="ml-auto flex items-center gap-1.5">
           {ticket.budgetHold && <StatusLozenge status="blocked" label="Vượt giới hạn" />}
@@ -54,7 +66,7 @@ export function TicketCardFace({ ticket, running }: { ticket: Ticket; running?: 
  * Draggable board card. Mouse drags start after 6 px, touch drags after a long press, so taps open the
  * ticket and swipes scroll the board.
  */
-export function TicketCard({ ticket, selected, focused, running, onOpen }: TicketCardProps) {
+export function TicketCard({ ticket, selected, focused, running, projectKey, onOpen }: TicketCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: ticket.id,
     data: { ticket },
@@ -79,7 +91,7 @@ export function TicketCard({ ticket, selected, focused, running, onOpen }: Ticke
         isDragging && 'opacity-40',
       )}
     >
-      <TicketCardFace ticket={ticket} running={running} />
+      <TicketCardFace ticket={ticket} running={running} projectKey={projectKey} />
     </button>
   );
 }

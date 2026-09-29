@@ -22,6 +22,7 @@ export type ShortcutMap = Partial<Record<string, (event: KeyboardEvent) => void>
 export const SHORTCUT_HELP: readonly { keys: string; label: string }[] = [
   { keys: '/', label: 'Tìm kiếm' },
   { keys: 'c', label: 'Tạo ticket' },
+  { keys: 'g a', label: 'Tới board Tất cả dự án' },
   { keys: 'g b', label: 'Tới Board' },
   { keys: 'g l', label: 'Tới Danh sách' },
   { keys: 'g d', label: 'Tới Docs' },

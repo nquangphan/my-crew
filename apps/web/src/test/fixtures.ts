@@ -1,4 +1,4 @@
-import type { Comment, Ticket, TicketDetailResponse } from '@crew/shared';
+import type { Comment, Project, Ticket, TicketDetailResponse } from '@crew/shared';
 
 let seq = 0;
 const uuid = () => {
@@ -59,4 +59,27 @@ export function comment(overrides: Partial<Comment> = {}): Comment {
 
 export function detail(t: Ticket, overrides: Partial<TicketDetailResponse> = {}): TicketDetailResponse {
   return { ticket: t, children: [], comments: [], report: null, events: [], ...overrides };
+}
+
+export function project(overrides: Partial<Project> = {}): Project {
+  const key = overrides.key ?? 'SHOP';
+  return {
+    id: uuid(),
+    key,
+    name: `Dự án ${key}`,
+    description: '',
+    repoUrl: `https://github.com/2p/${key.toLowerCase()}.git`,
+    defaultBranch: 'main',
+    ownerMachineId: null,
+    docsStatus: 'ready',
+    platform: 'web',
+    uiTestMcp: { maestro: 'maestro', playwright: 'playwright' },
+    maxChildrenPerTicket: 8,
+    ticketTreeBudgetUsd: null,
+    dailyBudgetUsd: null,
+    bmadProfile: null,
+    createdAt: '2026-09-28T00:00:00.000Z',
+    updatedAt: '2026-09-28T00:00:00.000Z',
+    ...overrides,
+  };
 }

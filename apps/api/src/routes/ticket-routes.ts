@@ -7,7 +7,7 @@ import {
 } from '@crew/shared';
 import type { FastifyInstance } from 'fastify';
 import { withAgentActivity } from '../services/agent-activity-service.js';
-import { getTicketDetail, listTickets, search } from '../services/ticket-query-service.js';
+import { getTicketDetail, getTicketTree, listTickets, search } from '../services/ticket-query-service.js';
 import { createRequestTicket, transitionTicket, updateTicket } from '../services/ticket-service.js';
 import { idParam, parseInput, type RouteDeps } from './route-deps.js';
 
@@ -30,6 +30,11 @@ export async function ticketRoutes(app: FastifyInstance, { db }: RouteDeps): Pro
     const detail = await getTicketDetail(db, idParam(request.params));
     const [ticket, ...children] = await withAgentActivity(db, [detail.ticket, ...detail.children]);
     return { ...detail, ticket: ticket ?? detail.ticket, children };
+  });
+
+  app.get('/v1/tickets/:id/tree', async (request) => {
+    const tree = await getTicketTree(db, idParam(request.params));
+    return { ...tree, items: await withAgentActivity(db, tree.items) };
   });
 
   app.patch('/v1/tickets/:id', async (request) => {

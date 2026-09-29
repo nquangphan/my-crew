@@ -13,6 +13,7 @@ import {
 } from '../lib/format';
 import type { ListSort } from '../lib/search-params';
 import { useStoredState, type Viewport } from '../lib/ui-state';
+import { ProjectBadge } from './project-badge';
 import { RoleAvatar } from './role-avatar';
 import { StatusDropdown } from './status-dropdown';
 import { PriorityArrow } from './status-lozenge';
@@ -24,10 +25,13 @@ interface Column {
   width: number;
   /** Hidden below the desktop breakpoint (shown in the ticket instead). */
   desktopOnly?: boolean;
+  /** Only on the all-projects list. */
+  crossProject?: boolean;
 }
 
 const COLUMNS: readonly Column[] = [
   { id: 'key', label: 'Key', width: 96 },
+  { id: 'project', label: 'Dự án', width: 88, crossProject: true },
   { id: 'type', label: 'Loại', width: 64 },
   { id: 'title', label: 'Tiêu đề', width: 360 },
   { id: 'status', label: 'Trạng thái', width: 150 },
@@ -40,7 +44,9 @@ const COLUMNS: readonly Column[] = [
 
 const keyNumber = (key: string) => Number(key.split('-')[1] ?? 0);
 
-const COMPARE: Record<ListSort, (a: Ticket, b: Ticket) => number> = {
+type Compare = (a: Ticket, b: Ticket) => number;
+
+const COMPARE: Record<Exclude<ListSort, 'project'>, Compare> = {
   key: (a, b) =>
     a.key.split('-')[0]?.localeCompare(b.key.split('-')[0] ?? '') || keyNumber(a.key) - keyNumber(b.key),
   type: (a, b) => TYPE_META[a.type].label.localeCompare(TYPE_META[b.type].label),
@@ -53,8 +59,17 @@ const COMPARE: Record<ListSort, (a: Ticket, b: Ticket) => number> = {
   updatedAt: (a, b) => a.updatedAt.localeCompare(b.updatedAt),
 };
 
-export function sortTickets(tickets: readonly Ticket[], sort: ListSort, order: 'asc' | 'desc'): Ticket[] {
-  const compare = COMPARE[sort];
+/** Sorts in the client; `projectKeyOf` names each ticket's project for the project column. */
+export function sortTickets(
+  tickets: readonly Ticket[],
+  sort: ListSort,
+  order: 'asc' | 'desc',
+  projectKeyOf: (ticket: Ticket) => string | undefined = () => undefined,
+): Ticket[] {
+  const compare: Compare =
+    sort === 'project'
+      ? (a, b) => (projectKeyOf(a) ?? '').localeCompare(projectKeyOf(b) ?? '')
+      : COMPARE[sort];
   const sign = order === 'asc' ? 1 : -1;
   return [...tickets].sort((a, b) => sign * compare(a, b) || a.id.localeCompare(b.id));
 }
@@ -72,6 +87,8 @@ export interface IssueTableProps {
   onStatus: (ticket: Ticket, to: TicketStatus) => void;
   onPriority: (ticket: Ticket, priority: TicketPriority) => void;
   viewport: Viewport;
+  /** The all-projects list: a project column (a badge on phones). */
+  projectKeyOf?: (ticket: Ticket) => string | undefined;
 }
 
 function PrioritySelect({
@@ -118,10 +135,15 @@ export function IssueTable(props: IssueTableProps) {
     onStatus,
     onPriority,
     viewport,
+    projectKeyOf,
   } = props;
   const [widths, setWidths] = useStoredState<Partial<Record<ListSort, number>>>('crew.list.widths', {});
   const drag = useRef<{ id: ListSort; startX: number; startWidth: number } | null>(null);
   const allSelected = tickets.length > 0 && tickets.every((t) => selected.has(t.id));
+  const projectBadge = (ticket: Ticket) => {
+    const key = projectKeyOf?.(ticket);
+    return key ? <ProjectBadge projectKey={key} /> : null;
+  };
 
   if (viewport === 'phone') {
     return (
@@ -153,6 +175,7 @@ export function IssueTable(props: IssueTableProps) {
             <div className="flex flex-wrap items-center gap-2">
               <TypeIcon type={ticket.type} />
               <span className="font-mono text-xs text-muted">{ticket.key}</span>
+              {projectBadge(ticket)}
               <StatusDropdown status={ticket.status} onSelect={(to) => onStatus(ticket, to)} />
               <PrioritySelect ticket={ticket} onPriority={onPriority} />
               <span className="grow" />
@@ -164,7 +187,9 @@ export function IssueTable(props: IssueTableProps) {
     );
   }
 
-  const columns = COLUMNS.filter((c) => viewport === 'desktop' || !c.desktopOnly);
+  const columns = COLUMNS.filter(
+    (c) => (viewport === 'desktop' || !c.desktopOnly) && (projectKeyOf !== undefined || !c.crossProject),
+  );
   const widthOf = (c: Column) => widths[c.id] ?? c.width;
 
   const startResize = (event: ReactPointerEvent<HTMLSpanElement>, column: Column) => {
@@ -266,6 +291,7 @@ export function IssueTable(props: IssueTableProps) {
                       {ticket.key}
                     </button>
                   )}
+                  {c.id === 'project' && (projectBadge(ticket) ?? <span className="text-muted">—</span>)}
                   {c.id === 'type' && <TypeIcon type={ticket.type} />}
                   {c.id === 'title' && (
                     <button
