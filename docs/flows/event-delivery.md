@@ -35,6 +35,12 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
    flush `buffer`, bỏ qua phần đã gửi trùng nhờ so `seq`, rồi chuyển sang gửi trực tiếp — nhờ thứ tự này không
    sự kiện nào bị mất dù xen giữa bước 1 và 2. Client chậm hơn `MAX_BUFFERED_BYTES` (8MB) bị đóng kết nối để tự
    resume bằng cursor. Heartbeat (`: ping`) mỗi `heartbeatMs` re-check `stillAuthorized()`; false thì đóng.
+   Xác thực chạy bất đồng bộ, nên bus có thể đã `bus.stop()` (`isStopped`) trước khi route này chạy tới; khi đó
+   route không subscribe, trả 200 kèm header `connection: close`, chỉ ghi dòng `retry:` rồi đóng stream ngay —
+   giống các stream mà `bus.stop()` đã đóng — để client tự reconnect. `res.on('close', close)` được gắn ngay
+   sau `reply.hijack()`, trước `writeHead`; nếu `res.destroyed` đã `true` lúc đó (client ngắt kết nối trong lúc
+   xác thực, trước khi listener tồn tại) thì gọi `close()` ngay — gỡ subscriber, không khởi động heartbeat —
+   và `close()` không tự gọi `res.end()` trên một response đã destroyed.
 6. `apps/api/src/routes/stream-routes.ts` → `daemonStreamRoutes`/`ownerStreamRoutes`: đọc cursor qua
    `readCursor()` (`Last-Event-ID` hoặc `?cursor=`; daemon mặc định 0, owner mặc định `bus.currentSeq` — chỉ
    nhận sự kiện mới); daemon dùng `stillAuthorized = authenticateTokenHash`, owner dùng
@@ -57,7 +63,7 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 | `apps/api/src/routes/stream-routes.ts` | Route SSE daemon/owner + notices | `daemonStreamRoutes`, `ownerStreamRoutes` |
 | `apps/api/src/services/event-service.ts` | Outbox: ghi, đọc theo cursor, envelope | `appendEvents`, `listEventsAfter`, `latestEventSeq`, `toEventEnvelope`, `listNotices`, `listTicketEvents` |
 | `apps/api/src/services/notice-read-service.ts` | Trạng thái đã đọc thông báo của owner | `listOwnerNotices`, `markNoticesRead`, `markAllNoticesRead` |
-| `apps/api/src/realtime/event-bus.ts` | Fan-out trong tiến trình, LISTEN/NOTIFY + poll | `EventBus`, `wake`, `subscribe`, `revokeMachine` |
+| `apps/api/src/realtime/event-bus.ts` | Fan-out trong tiến trình, LISTEN/NOTIFY + poll | `EventBus`, `wake`, `subscribe`, `revokeMachine`, `isStopped` |
 | `apps/api/src/realtime/sse.ts` | Phục vụ một kết nối SSE, replay không mất sự kiện | `openEventStream`, `readCursor` |
 | `packages/shared/src/event-schemas.ts` | Schema `EventPayload`/`EventEnvelope`, hằng số cursor/heartbeat | `EventPayload`, `EventEnvelope`, `STREAM_HEARTBEAT_MS`, `NOTICE_EVENT_TYPES` |
 | `apps/web/src/lib/live-events.ts` | Kết nối SSE phía web, map sang invalidate query | `startLiveEvents`, `invalidationsFor` |
@@ -102,3 +108,7 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 `listOwnerNotices()`/`markNoticesRead()`/`markAllNoticesRead()` được kiểm bởi
 `apps/api/test/owner-web-support.test.ts` (flow `ticket-lifecycle`, nơi test đó sống): đánh dấu một hay tất cả
 đã đọc, dùng chung giữa các phiên đăng nhập của owner, phát đúng `inbox.read`.
+
+Hai trường hợp `openEventStream()` đóng stream ngay khi bus đã dừng (subscribe sau khi shutdown, và client
+ngắt kết nối trong lúc xác thực) được kiểm bởi `apps/api/test/shutdown.test.ts` (flow `api-platform`, nơi test
+đó sống).

@@ -1,3 +1,4 @@
+import { Socket } from 'node:net';
 import { type HealthResponse, STREAM_HEARTBEAT_MS } from '@crew/shared';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
@@ -39,9 +40,13 @@ export interface BuildAppOptions {
   };
   /** Where heartbeats record waiting jobs; tests pass their own to inspect it. */
   waitingJobs?: WaitingJobsRegistry;
+  /** How long `close()` lets in-flight requests finish before cutting their connections. */
+  closeDrainMs?: number;
 }
 
 const MAINTENANCE_INTERVAL_MS = 60 * 60 * 1000;
+/** Well inside the container's 20 s stop grace period, so a redeploy never waits for SIGKILL. */
+const CLOSE_DRAIN_MS = 10_000;
 
 export async function buildApp({
   config,
@@ -49,6 +54,7 @@ export async function buildApp({
   logger = false,
   realtime = {},
   waitingJobs = new WaitingJobsRegistry(),
+  closeDrainMs = CLOSE_DRAIN_MS,
 }: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: logger ? { level: config.logLevel } : false,
@@ -128,8 +134,32 @@ export async function buildApp({
     }, MAINTENANCE_INTERVAL_MS);
     timer.unref();
   });
+  // Shutdown. Fastify answers requests arriving after close() begins with 503, but a request already past
+  // that check keeps its keep-alive connection once answered, and `server.close()` would wait for the
+  // client (a daemon, or nginx's pooled upstream connection) to drop it: up to the 72 s keep-alive timeout.
+  // So every response finished from then on closes its connection, and anything still open after the
+  // drain window (a stuck handler) is cut.
+  let closing = false;
+  app.addHook('onSend', async (_request, reply) => {
+    if (closing) reply.header('connection', 'close');
+  });
+  app.addHook('onResponse', async (request) => {
+    const socket = request.raw.socket;
+    // Covers a response whose headers went out as keep-alive just before close() began. (`inject()`
+    // requests have a mock socket, which is not a `Socket`.)
+    if (closing && socket instanceof Socket && !socket.destroyed && !socket.writableEnded) socket.end();
+  });
   // SSE responses are hijacked; end them before the server waits for open connections to drain.
   app.addHook('preClose', async () => {
+    closing = true;
+    if (app.server.listening) {
+      const drain = setTimeout(() => {
+        app.log.warn({ drainMs: closeDrainMs }, 'requests still open at shutdown; closing their connections');
+        app.server.closeAllConnections();
+      }, closeDrainMs);
+      drain.unref();
+      app.server.once('close', () => clearTimeout(drain));
+    }
     stopSweeper?.();
     stopStuckAlarm?.();
     await bus.stop();

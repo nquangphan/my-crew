@@ -34,7 +34,8 @@ flows:
       - apps/api/drizzle/0004_project_change_withdrawn.sql
       - apps/api/drizzle/0005_machine_job_activity.sql
       - packages/shared/src/index.ts
-    tests: []
+    tests:
+      - apps/api/test/shutdown.test.ts
   owner-auth:
     title: Đăng nhập chủ dự án
     doc: docs/flows/owner-auth.md
@@ -310,6 +311,7 @@ flows:
       - apps/daemon/test/cli.test.ts
       - apps/daemon/test/units.test.ts
       - apps/daemon/test/daemon-extras.test.ts
+      - apps/daemon/test/test-cleanup.test.ts
   daemon-scheduling:
     title: Nhận sự kiện và lập lịch job
     doc: docs/flows/daemon-scheduling.md
