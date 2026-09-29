@@ -49,7 +49,7 @@ export class HostUnavailableError extends Error {
  * backoff (1 s, 2 s, 4 s … 30 s), the daemon is started again when the machine is set up, and a pause is
  * re-applied. A graceful stop either waits for running jobs (`drain`) or re-queues them (`requeue`).
  *
- * Events: `runtime` (DaemonRuntime), `host-event` (name, payload).
+ * Events: `runtime` (DaemonRuntime), `host-event` (name, payload), `host-log` (AppLogEntry for app.log).
  */
 export class DaemonSupervisor extends EventEmitter {
   private child: HostProcess | null = null;
@@ -122,6 +122,8 @@ export class DaemonSupervisor extends EventEmitter {
     const message = parsed.data;
     if (message.kind === 'ready') {
       void this.onReady();
+    } else if (message.kind === 'log') {
+      this.emit('host-log', message.entry);
     } else if (message.kind === 'response') {
       const pending = this.pending.get(message.id);
       if (!pending) return;

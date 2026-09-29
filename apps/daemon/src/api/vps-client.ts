@@ -51,6 +51,17 @@ export class VpsError extends Error {
   }
 }
 
+/** A request that ended in an error (after retries): what the app log records. Never headers or bodies. */
+export interface ApiFailure {
+  method: string;
+  path: string;
+  /** HTTP status; 0 when the request never got an answer (network, TLS, timeout). */
+  status: number;
+  code: string;
+  message: string;
+  attempts: number;
+}
+
 export interface VpsClientOptions {
   apiUrl: string;
   /** Read on every request, so a rotated token takes effect at once. */
@@ -60,6 +71,8 @@ export interface VpsClientOptions {
   /** Attempts for transient failures; writes retry with the same Idempotency-Key. */
   attempts?: number;
   retryDelayMs?: number;
+  /** Called once for every request that fails for good (the desktop app logs it). */
+  onError?: (failure: ApiFailure) => void;
 }
 
 interface RequestOptions<S extends z.ZodType> {
@@ -103,16 +116,39 @@ export class VpsClient {
 
   async request<S extends z.ZodType>(options: RequestOptions<S>): Promise<z.output<S>> {
     let lastError: VpsError | undefined;
-    for (let attempt = 1; attempt <= this.attempts; attempt++) {
-      try {
-        return await this.once(options);
-      } catch (error) {
-        if (!(error instanceof VpsError) || !error.transient) throw error;
-        lastError = error;
-        if (attempt < this.attempts) await sleep(this.retryDelayMs * 2 ** (attempt - 1));
+    let attempt = 1;
+    try {
+      for (; attempt <= this.attempts; attempt++) {
+        try {
+          return await this.once(options);
+        } catch (error) {
+          if (!(error instanceof VpsError) || !error.transient) throw error;
+          lastError = error;
+          if (attempt < this.attempts) await sleep(this.retryDelayMs * 2 ** (attempt - 1));
+        }
       }
+      throw lastError ?? new VpsError(0, 'NETWORK', 'request failed');
+    } catch (error) {
+      this.report(options, error, Math.min(attempt, this.attempts));
+      throw error;
     }
-    throw lastError ?? new VpsError(0, 'NETWORK', 'request failed');
+  }
+
+  private report(options: RequestOptions<z.ZodType>, error: unknown, attempts: number): void {
+    if (!this.options.onError) return;
+    const vps = error instanceof VpsError ? error : null;
+    try {
+      this.options.onError({
+        method: options.method,
+        path: options.path,
+        status: vps?.status ?? 0,
+        code: vps?.code ?? 'CLIENT',
+        message: (error as Error).message ?? String(error),
+        attempts,
+      });
+    } catch {
+      // a failing log sink never changes the request's outcome
+    }
   }
 
   private async once<S extends z.ZodType>(options: RequestOptions<S>): Promise<z.output<S>> {

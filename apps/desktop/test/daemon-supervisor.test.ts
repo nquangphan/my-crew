@@ -98,6 +98,17 @@ describe('daemon supervisor', () => {
     expect(hosts[1]?.methods()).toEqual(['host.startDaemon', 'daemon.pause']);
   });
 
+  it('passes the host app-log lines on to the main process', async () => {
+    const { supervisor, hosts } = setup();
+    const lines: unknown[] = [];
+    supervisor.on('host-log', (entry) => lines.push(entry));
+    supervisor.start();
+    await until(() => supervisor.runtime().state === 'running');
+    const entry = { level: 'warn', source: 'host', event: 'api-error', fields: { status: 409 } } as const;
+    hosts[0]?.send({ kind: 'log', entry });
+    expect(lines).toEqual([entry]);
+  });
+
   it('doubles the backoff on repeated crashes, well under 10 s for the first restart', async () => {
     const { supervisor, hosts } = setup({ initialBackoffMs: 30 });
     supervisor.start();

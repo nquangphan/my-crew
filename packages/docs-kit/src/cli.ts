@@ -36,7 +36,9 @@ Usage:
   crew-docs ci-workflow [--bundle <abs path>]
   crew-docs --version
 
-Exit codes: 0 ok, 1 violations (lines "RULE path: message"), 2 usage or git error, 3 not initialized.`;
+Exit codes: 0 ok, 1 violations (lines "RULE path: message"), 2 usage or git error, 3 not initialized
+(--all and --range; the hook modes --staged, --commit-msg and --pre-push warn and pass in a repo without
+docs/flows.yaml).`;
 
 /** Splits `--flag value` pairs from positional arguments. */
 function parseArgs(args: readonly string[], valueFlags: readonly string[], boolFlags: readonly string[]) {
@@ -101,7 +103,11 @@ async function check(root: string, args: readonly string[], io: Io): Promise<num
   for (const violation of outcome.violations) io.out(formatViolation(violation));
   const label = `crew-docs check ${flag}`;
   const scope = outcome.commitsChecked > 0 ? ` (${outcome.commitsChecked} commits)` : '';
-  if (outcome.code === EXIT.ok) io.err(`${label}: ok${scope}`);
+  if (outcome.skipped === 'not-initialized') {
+    io.err(
+      `${label}: cảnh báo: repo chưa có docs/flows.yaml nên chưa kiểm tra chuẩn docs (áp dụng từ commit docs-init).`,
+    );
+  } else if (outcome.code === EXIT.ok) io.err(`${label}: ok${scope}`);
   else if (outcome.code === EXIT.notInitialized) io.err(`${label}: NOT_INITIALIZED`);
   else io.err(`${label}: ${outcome.violations.length} violation(s)${scope}. Docs standard: STANDARD.md`);
   return outcome.code;

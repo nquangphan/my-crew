@@ -43,6 +43,11 @@ export interface CheckOutcome {
   violations: Violation[];
   /** Commits checked individually (range and pre-push). */
   commitsChecked: number;
+  /**
+   * Set when a git hook ran in a repo that has not adopted the docs standard yet: nothing was checked and
+   * the hook lets the commit or push through (the standard applies from the docs-init commit on).
+   */
+  skipped?: 'not-initialized';
 }
 
 export class CheckUsageError extends Error {
@@ -67,6 +72,24 @@ const uninitialized = (where: string): CheckOutcome => ({
   violations: [notInitialized(where)],
   commitsChecked: 0,
 });
+
+/**
+ * A hook in a repo without `docs/flows.yaml` (neither staged nor at HEAD) checks nothing and passes: the
+ * owner keeps committing to a repo whose docs-init has not landed yet. Only CI (`--range`, `--all`) and the
+ * daemon's docs-init detection report NOT_INITIALIZED.
+ */
+const notAdopted = (): CheckOutcome => ({
+  code: 0,
+  violations: [],
+  commitsChecked: 0,
+  skipped: 'not-initialized',
+});
+
+/** The manifest at HEAD (missing when there is no commit yet). */
+function headManifest(root: string): ManifestResult {
+  const head = headCommit(root);
+  return head ? loadManifest(commitReader(root, head)) : { status: 'missing' };
+}
 
 const rawOf = (result: ManifestResult) => (result.status === 'missing' ? null : result.raw);
 
@@ -101,9 +124,9 @@ export function cleanMessage(text: string): string {
 function checkStaged(root: string, options: CheckOptions): CheckOutcome {
   const index = indexReader(root);
   const after = loadManifest(index);
-  if (after.status === 'missing') return uninitialized('index');
-  const head = headCommit(root);
-  const before: ManifestResult = head ? loadManifest(commitReader(root, head)) : { status: 'missing' };
+  const before = headManifest(root);
+  // Removing the manifest of an adopted repo is still refused.
+  if (after.status === 'missing') return before.status === 'missing' ? notAdopted() : uninitialized('index');
   const violations = treeRules(index, after);
   // A commit that adds the manifest is the docs-init candidate: R3 and R6 are checked at commit-msg time,
   // where the Crew-Docs-Init trailer is visible. A merge commit is skipped like in range mode: the
@@ -133,9 +156,8 @@ function checkCommitMessage(root: string, messageFile: string): CheckOutcome {
   const message = cleanMessage(text);
   const index = indexReader(root);
   const after = loadManifest(index);
-  if (after.status === 'missing') return uninitialized('index');
-  const head = headCommit(root);
-  const before: ManifestResult = head ? loadManifest(commitReader(root, head)) : { status: 'missing' };
+  const before = headManifest(root);
+  if (after.status === 'missing') return before.status === 'missing' ? notAdopted() : uninitialized('index');
   if (before.status === 'missing' && isDocsInitMessage(message)) return ok([]);
   if (isMerging(root)) return ok([]);
   return ok(
@@ -186,18 +208,35 @@ function commitRules(root: string, sha: string, extraPatterns: string[], options
 interface PushTarget {
   head: string;
   revList: string[];
+  /** The remote's current tip of the ref, when the remote already has it. */
+  remote?: string;
 }
 
-function checkCommits(root: string, targets: PushTarget[], options: CheckOptions): CheckOutcome {
+/**
+ * `hook`: the pre-push hook, where a ref whose pushed tip and remote tip both lack the manifest belongs to a
+ * repo that has not adopted the standard yet and is let through.
+ */
+function checkCommits(
+  root: string,
+  targets: PushTarget[],
+  options: CheckOptions,
+  hook = false,
+): CheckOutcome {
   const violations: Violation[] = [];
   const seen = new Set<string>();
   const extraPatterns = hooksPathPatterns(root);
+  let checked = 0;
   for (const target of targets) {
     const headTree = commitReader(root, target.head);
-    const headManifest = loadManifest(headTree);
-    if (headManifest.status === 'missing') return uninitialized(`commit ${target.head.slice(0, 7)}`);
+    const manifest = loadManifest(headTree);
+    if (manifest.status === 'missing') {
+      const adopted = target.remote && loadManifest(commitReader(root, target.remote)).status !== 'missing';
+      if (hook && !adopted) continue;
+      return uninitialized(`commit ${target.head.slice(0, 7)}`);
+    }
+    checked += 1;
     violations.push(
-      ...treeRules(headTree, headManifest).map((violation) => ({ ...violation, commit: target.head })),
+      ...treeRules(headTree, manifest).map((violation) => ({ ...violation, commit: target.head })),
     );
     for (const sha of nonMergeCommits(root, target.revList)) {
       if (seen.has(sha)) continue;
@@ -205,6 +244,7 @@ function checkCommits(root: string, targets: PushTarget[], options: CheckOptions
       violations.push(...commitRules(root, sha, extraPatterns, options));
     }
   }
+  if (hook && targets.length > 0 && checked === 0) return notAdopted();
   return ok(violations, seen.size);
 }
 
@@ -231,6 +271,7 @@ export function parsePrePush(root: string, stdin: string): PushTarget[] {
       head: localSha,
       // A new branch (or an unknown remote tip) checks every commit that no remote-tracking ref has.
       revList: known ? [`${remoteSha}..${localSha}`] : [localSha, '--not', '--remotes'],
+      ...(known ? { remote: remoteSha } : {}),
     });
   }
   return targets;
@@ -245,7 +286,7 @@ export function runCheck(root: string, mode: CheckMode, options: CheckOptions = 
     case 'range':
       return checkCommits(root, [parseRange(root, mode.range)], options);
     case 'pre-push':
-      return checkCommits(root, parsePrePush(root, mode.stdin), options);
+      return checkCommits(root, parsePrePush(root, mode.stdin), options, true);
     case 'all': {
       const tree = workingTreeReader(root);
       const result = loadManifest(tree);

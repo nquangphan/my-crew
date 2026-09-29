@@ -6,13 +6,15 @@ import {
   CREW_DOCS_BUNDLE,
   type DaemonConfig,
   detectSharedPaths,
-  hookStatus,
+  type HookInspection,
   inspectFolder,
+  inspectHooks,
   installCrewDocs,
   installHooks,
-  missingHookFiles,
   type ProjectConfig,
   repoFolderChecks,
+  runCrewDocs,
+  sameRepo,
   suggestProjectKey,
   VpsClient,
   VpsError,
@@ -65,6 +67,7 @@ export async function checkServer(ctx: HostContext, apiUrl: string): Promise<Ser
     fetch: ctx.deps.fetch,
     attempts: 1,
     timeoutMs: 10_000,
+    onError: ctx.logApiError,
   });
   try {
     await vps.health();
@@ -84,7 +87,12 @@ export async function checkServer(ctx: HostContext, apiUrl: string): Promise<Ser
 export async function pairMachine(ctx: HostContext, input: DesktopParsed<'setup.pair'>): Promise<PairResult> {
   const server = await checkServer(ctx, input.apiUrl);
   if (!server.ok) throw new HostError(server.message);
-  const vps = new VpsClient({ apiUrl: server.apiUrl, token: () => null, fetch: ctx.deps.fetch });
+  const vps = new VpsClient({
+    apiUrl: server.apiUrl,
+    token: () => null,
+    fetch: ctx.deps.fetch,
+    onError: ctx.logApiError,
+  });
   const paired = await vps.pair({
     code: input.code,
     name: input.machineName,
@@ -246,14 +254,10 @@ export async function applyProjects(
       continue;
     }
     try {
-      outcomes.push(await claimProject(ctx, project));
-      config = ctx.save({
-        ...config,
-        projects: withProject(
-          config,
-          localEntry(config, project.key, validation.path, project.defaultBranch),
-        ),
-      });
+      const outcome = await claimProject(ctx, project);
+      const entry = localEntry(config, project.key, validation.path, project.defaultBranch);
+      config = ctx.save({ ...config, projects: withProject(config, entry) });
+      outcomes.push(withHookNote(outcome, ensureHooks(ctx, entry)));
     } catch (error) {
       outcomes.push({ target: selection.key, status: 'error', message: describeError(error) });
     }
@@ -267,7 +271,11 @@ export async function applyProjects(
   return outcomes;
 }
 
-/** "Thêm project mới từ thư mục": the server creates the project owned by this machine. */
+/**
+ * "Thêm project mới từ thư mục": the server creates the project owned by this machine, the folder is saved and
+ * the crew-docs hooks are installed. Creating again a key this machine already owns with the same repo (a
+ * retry after a lost answer, or a second click) is the same success; any other existing key is a clear 409.
+ */
 export async function createProject(
   ctx: HostContext,
   input: DesktopParsed<'projects.create'>,
@@ -278,27 +286,41 @@ export async function createProject(
   const validation = validateFolder(folder.root, project.repoUrl, project.defaultBranch ?? 'main');
   const failed = validation.checks.find((check) => check.status === 'red');
   if (failed) throw new HostError(`${failed.title}: ${failed.detail}`);
+  let created: { key: string; defaultBranch: string };
+  let outcome: ClaimOutcome;
   try {
-    const created = await ctx.vps().createProject(project, `project-create:${project.key}:${randomUUID()}`);
-    const config = ctx.requireConfig();
-    ctx.save({
-      ...config,
-      projects: withProject(config, localEntry(config, created.key, folder.root, created.defaultBranch)),
-    });
-    await ctx.daemon?.refreshProjects().catch(() => undefined);
-    return {
+    created = await ctx.vps().createProject(project, `project-create:${project.key}:${randomUUID()}`);
+    outcome = {
       target: created.key,
       status: 'granted',
       message: `Đã tạo project ${created.key}; máy này sở hữu nó.`,
     };
   } catch (error) {
-    if (error instanceof VpsError && error.status === 409) {
+    if (!(error instanceof VpsError && error.status === 409)) throw error;
+    const existing = await ctx
+      .vps()
+      .listProjects()
+      .then((view) => view.items.find((item) => item.key === project.key))
+      .catch(() => undefined);
+    if (existing?.ownerState !== 'mine' || !sameRepo(existing.repoUrl, project.repoUrl)) {
       throw new HostError(
         `Key ${project.key} đã có trên server: chọn key khác, hoặc tick project đó trong danh sách.`,
       );
     }
-    throw error;
+    created = existing;
+    outcome = {
+      target: existing.key,
+      status: 'already_owned',
+      message: `Project ${existing.key} đã được tạo trước đó và thuộc máy này; đã lưu thư mục.`,
+    };
+    ctx.log('info', 'project-create-idempotent', { project: existing.key });
   }
+  const config = ctx.requireConfig();
+  const entry = localEntry(config, created.key, folder.root, created.defaultBranch);
+  ctx.save({ ...config, projects: withProject(config, entry) });
+  const hookError = ensureHooks(ctx, entry);
+  await ctx.daemon?.refreshProjects().catch(() => undefined);
+  return withHookNote(outcome, hookError);
 }
 
 export async function setFolder(ctx: HostContext, key: string, path: string): Promise<FolderValidation> {
@@ -306,13 +328,24 @@ export async function setFolder(ctx: HostContext, key: string, path: string): Pr
   const view = (await ctx.vps().listProjects()).items.find((item) => item.key === key);
   if (!view) throw new HostError(`Server không có project ${key}.`);
   const validation = validateFolder(path, view.repoUrl, view.defaultBranch);
-  if (validation.ok) {
-    ctx.save({
-      ...config,
-      projects: withProject(config, localEntry(config, key, validation.path, view.defaultBranch)),
-    });
-  }
-  return validation;
+  if (!validation.ok) return validation;
+  const entry = localEntry(config, key, validation.path, view.defaultBranch);
+  ctx.save({ ...config, projects: withProject(config, entry) });
+  const hookError = ensureHooks(ctx, entry);
+  if (!hookError) return validation;
+  return {
+    ...validation,
+    checks: [
+      ...validation.checks,
+      {
+        id: 'folder.hooks',
+        group: 'repos',
+        title: `Hook crew-docs của ${key}`,
+        status: 'yellow',
+        detail: `Đã lưu thư mục nhưng chưa cài được hook crew-docs: ${hookError}`,
+      },
+    ],
+  };
 }
 
 /** Releases a project (or withdraws a pending claim) and forgets its folder. Its open tickets become unowned. */
@@ -426,14 +459,84 @@ export function installShippedCrewDocs(ctx: HostContext): void {
   crewDocsBundle(ctx, true);
 }
 
+/** The machine's crew-docs bundle in `~/.crew/bin` and its version, run by the app binary. */
+function machineCrewDocs(ctx: HostContext): { bundle: string; version: string | null } {
+  const bundle = crewDocsBundle(ctx, false);
+  const run = runCrewDocs(bundle, ['--version'], ctx.paths.bin, ctx.deps.runtime);
+  return { bundle, version: run.code === 0 ? run.stdout.trim() : null };
+}
+
+function inspectProjectHooks(ctx: HostContext, project: ProjectConfig): HookInspection {
+  return inspectHooks(project.repoPath, machineCrewDocs(ctx));
+}
+
+/**
+ * Installs a project folder's crew-docs hooks unless working hooks are already there, whoever installed them
+ * (the app binary or the CLI's node): a working setup is never rewritten, and a stale but working one keeps
+ * its runtime. Returns why the install failed, or null when the hooks work.
+ */
+export function ensureHooks(ctx: HostContext, project: ProjectConfig): string | null {
+  try {
+    const current = inspectProjectHooks(ctx, project);
+    if (current.state === 'ok') return null;
+    const runtime = current.state === 'stale' && current.runtime ? current.runtime : ctx.deps.runtime;
+    const installed = installHooks(project.repoPath, crewDocsBundle(ctx, false), runtime);
+    if (installed.code !== 0) {
+      const reason = (installed.stderr || installed.stdout).trim() || `mã thoát ${installed.code}`;
+      ctx.log('warn', 'hooks-install-failed', { project: project.key, state: current.state, error: reason });
+      return reason;
+    }
+    ctx.log('info', 'hooks-installed', { project: project.key, previous: current.state, runtime });
+    return null;
+  } catch (error) {
+    const reason = describeError(error);
+    ctx.log('warn', 'hooks-install-failed', { project: project.key, error: reason });
+    return reason;
+  }
+}
+
+/**
+ * At start: hooks whose runtime or bundle no longer runs (the app was moved, for example out of a mounted dmg
+ * or macOS App Translocation) block every commit of the owner, so they are reinstalled at once. Hooks that
+ * work, and repos without hooks, are left alone.
+ */
+export function repairBrokenHooks(ctx: HostContext): void {
+  let config: DaemonConfig | null;
+  try {
+    config = ctx.config();
+  } catch {
+    return;
+  }
+  for (const project of config?.projects ?? []) {
+    if (!existsSync(project.repoPath)) continue;
+    try {
+      const current = inspectProjectHooks(ctx, project);
+      if (current.state !== 'broken') continue;
+      ctx.log('warn', 'hooks-broken', { project: project.key, detail: current.detail });
+      ensureHooks(ctx, project);
+    } catch (error) {
+      ctx.log('warn', 'hooks-repair-failed', { project: project.key, error: describeError(error) });
+    }
+  }
+}
+
+/** Appends a failed hook install to an outcome; the project itself was saved. */
+function withHookNote(outcome: ClaimOutcome, hookError: string | null): ClaimOutcome {
+  if (!hookError) return outcome;
+  return {
+    ...outcome,
+    message: `${outcome.message} Chưa cài được hook crew-docs (${hookError}): cài lại ở bảng sức khỏe.`,
+  };
+}
+
 function hookView(ctx: HostContext, project: ProjectConfig, docsStatus: string | null): HookView {
-  const status = hookStatus(project.repoPath);
-  const installed = status.installed && missingHookFiles(project.repoPath).length === 0;
+  const hooks = inspectProjectHooks(ctx, project);
   return {
     key: project.key,
     path: project.repoPath,
-    installed,
-    current: installed && status.bundle === join(ctx.paths.bin, CREW_DOCS_BUNDLE),
+    installed: hooks.state === 'ok' || hooks.state === 'stale',
+    current: hooks.state === 'ok',
+    detail: hooks.detail,
     docsInitialized: existsSync(join(project.repoPath, 'docs', 'flows.yaml')),
     docsStatus,
   };
@@ -453,15 +556,12 @@ export async function listHooks(ctx: HostContext): Promise<HookView[]> {
   return config.projects.map((project) => hookView(ctx, project, docs.get(project.key) ?? null));
 }
 
-/** Installs the crew-docs hooks with the Phase 5 installer, pointing at the app binary as the runtime. */
+/** Installs the crew-docs hooks (the app binary as the runtime) unless working hooks are already there. */
 export async function installProjectHooks(ctx: HostContext, key: string): Promise<HookView> {
   const project = ctx.requireConfig().projects.find((item) => item.key === key);
   if (!project) throw new HostError(`Máy này chưa có thư mục cho ${key}.`);
-  const bundle = crewDocsBundle(ctx, false);
-  const installed = installHooks(project.repoPath, bundle, ctx.deps.runtime);
-  if (installed.code !== 0) {
-    throw new HostError(`Cài hook thất bại: ${(installed.stderr || installed.stdout).trim()}`);
-  }
+  const failed = ensureHooks(ctx, project);
+  if (failed) throw new HostError(`Cài hook thất bại: ${failed}`);
   const docs = await docsStatuses(ctx);
   return hookView(ctx, project, docs.get(key) ?? null);
 }

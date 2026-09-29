@@ -1,17 +1,20 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, existsSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, inject, it } from 'vitest';
 import { hookLine, withHookLine, withLefthookCommands } from '../src/hook-installer.js';
 import {
+  DOCS_INIT_TRAILER,
   fakeAwsKey,
   fixtureRepo,
   GIT_ENV,
   type RunResult,
-  type TestRepo,
+  TestRepo,
   tempDir,
 } from './helpers/git-repo.js';
+
+const FIXTURES = fileURLToPath(new URL('./fixtures/', import.meta.url));
 
 const bundle = inject('bundlePath');
 const HOOKS = ['pre-commit', 'commit-msg', 'pre-push'];
@@ -112,6 +115,35 @@ describe('plain repo: .githooks with core.hooksPath', () => {
     res = commitWithHooks(repo, 'chore: lỡ tay');
     expect(res.code).not.toBe(0);
     expect(res.out).toContain('R7 src/dev-reset.ts: line 1 looks like a credential');
+  });
+
+  it('lets the owner commit and push before docs-init, then enforces the standard from the docs-init commit', async () => {
+    const repo = new TestRepo(tempDir('crew-docs-nodocs-'));
+    repo.git('init', '-q', '-b', 'main');
+    repo.write('src/app.ts', 'export {};\n');
+    repo.commit('feat: app');
+    bareRemote(repo);
+    expect(install(repo).code).toBe(0);
+
+    repo.write('src/app.ts', 'export const a = 1;\n');
+    let res = commitWithHooks(repo, 'feat: sửa app');
+    expect(res.code, res.out).toBe(0);
+    expect(res.out).toContain('cảnh báo: repo chưa có docs/flows.yaml');
+    expect(repo.tryGit('push', '-q', 'origin', 'main').code).toBe(0);
+
+    // The docs-init commit adds the manifest (and the hook files) with its trailer.
+    cpSync(join(FIXTURES, 'basic'), repo.root, { recursive: true });
+    repo.write('src/app.ts', 'export const a = 2;\n');
+    repo.append('docs/flows.yaml', '  - path: src/app.ts\n    reason: app mẫu của test\n');
+    expect(bundled(repo.root, ['generate']).code).toBe(0);
+    res = commitWithHooks(repo, `docs: khởi tạo docs\n\n${DOCS_INIT_TRAILER}`);
+    expect(res.code, res.out).toBe(0);
+    expect(repo.tryGit('push', '-q', 'origin', 'main').code).toBe(0);
+
+    staleChange(repo, 1);
+    res = commitWithHooks(repo, 'feat: thiếu docs');
+    expect(res.code).not.toBe(0);
+    expect(res.out).toContain('R3 src/checkout/cart.ts');
   });
 
   it('blocks a push carrying a credential or a stale commit that skipped the local hooks', async () => {

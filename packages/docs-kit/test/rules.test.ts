@@ -346,17 +346,55 @@ describe('R4 generated blocks', () => {
 });
 
 describe('R5 initialized', () => {
-  it('exits 3 NOT_INITIALIZED without docs/flows.yaml in every mode', async () => {
+  it('exits 3 NOT_INITIALIZED without docs/flows.yaml in --all and --range', async () => {
     const repo = emptyRepo();
     repo.write('src/app.ts', 'export {};\n');
     const first = repo.commit('feat: app');
     repo.write('src/app.ts', 'export const a = 1;\n');
     repo.commit('feat: a');
-    for (const args of [['--all'], ['--staged'], ['--range', `${first}..HEAD`]]) {
+    for (const args of [['--all'], ['--range', `${first}..HEAD`]]) {
       const res = await repo.cli('check', ...args);
       expect(res.code, args.join(' ')).toBe(3);
       expect(res.out).toMatch(/^R5 docs\/flows\.yaml: NOT_INITIALIZED/);
     }
+  });
+
+  it('lets the hook modes pass with a one-line warning in a repo that has not adopted the standard', async () => {
+    const repo = emptyRepo();
+    repo.write('src/app.ts', 'export {};\n');
+    const first = repo.commit('feat: app');
+    repo.write('src/app.ts', `export const key = '${fakeAwsKey()}';\n`);
+    repo.git('add', '-A');
+    repo.write('.git/COMMIT_EDITMSG', 'chore: đổi app\n');
+    const staged = await repo.cli('check', '--staged');
+    const message = await repo.cli('check', '--commit-msg', '.git/COMMIT_EDITMSG');
+    repo.git('commit', '--no-verify', '-q', '-m', 'chore: đổi app');
+    const push = await runCli(
+      repo.root,
+      ['check', '--pre-push'],
+      `refs/heads/main ${repo.head()} refs/heads/main ${first}\n`,
+    );
+    for (const res of [staged, message, push]) {
+      expect(res).toMatchObject({ code: 0, out: '' });
+      expect(res.err).toMatch(/cảnh báo: repo chưa có docs\/flows\.yaml/);
+      expect(res.err.split('\n')).toHaveLength(1);
+    }
+  });
+
+  it('keeps refusing a commit or push that removes the manifest of an adopted repo', async () => {
+    const repo = await fixtureRepo();
+    const adopted = repo.head();
+    repo.git('rm', '-q', 'docs/flows.yaml');
+    repo.write('.git/COMMIT_EDITMSG', 'chore: bỏ docs\n');
+    expect((await repo.cli('check', '--staged')).code).toBe(3);
+    expect((await repo.cli('check', '--commit-msg', '.git/COMMIT_EDITMSG')).code).toBe(3);
+    repo.git('commit', '--no-verify', '-q', '-m', 'chore: bỏ docs');
+    const push = await runCli(
+      repo.root,
+      ['check', '--pre-push'],
+      `refs/heads/main ${repo.head()} refs/heads/main ${adopted}\n`,
+    );
+    expect(push.code).toBe(3);
   });
 });
 

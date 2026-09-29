@@ -5,6 +5,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   type AppFacts,
   type AppInfo,
+  type AppLogEntry,
+  type DaemonRuntime,
   type DaemonStatusView,
   DESKTOP_EVENT_CHANNEL,
   DESKTOP_INVOKE_CHANNEL,
@@ -15,9 +17,10 @@ import {
 } from '@crew/shared';
 import { app, type BrowserWindow, dialog, ipcMain, Notification, shell, utilityProcess } from 'electron';
 import electronUpdater from 'electron-updater';
+import { AppLog } from './app-log.js';
 import { DaemonSupervisor, type HostProcess } from './daemon-supervisor.js';
 import { DesktopStateStore } from './desktop-state.js';
-import { dispatchDesktopRequest, isTrustedSender, type MainHandlers } from './ipc-handlers.js';
+import { dispatchDesktopRequest, ipcLogEntry, isTrustedSender, type MainHandlers } from './ipc-handlers.js';
 import { electronLoginItem, fileLoginItem } from './login-item.js';
 import { type BlockedJob, Notifier } from './notifications.js';
 import { decideQuit, QUIT_BUTTONS, quitMessage } from './quit-guard.js';
@@ -55,6 +58,19 @@ if (!testMode) process.env.PATH = loginShellPath(process.env);
 
 const home = crewHome();
 mkdirSync(home, { recursive: true, mode: 0o700 });
+const logsDir = join(home, 'logs');
+/** `~/.crew/logs/app.log`: this process is its only writer (the daemon host sends its lines over its port). */
+const appLog = new AppLog(join(logsDir, 'app.log'));
+const log = (level: AppLogEntry['level'], event: string, fields: Record<string, unknown> = {}) =>
+  appLog.write({ level, source: 'main', event, fields });
+process.on('uncaughtException', (error) => {
+  log('error', 'uncaught-exception', { error: error.stack ?? error.message });
+});
+process.on('unhandledRejection', (reason) => {
+  log('error', 'unhandled-rejection', {
+    error: reason instanceof Error ? (reason.stack ?? reason.message) : String(reason),
+  });
+});
 const desktopState = new DesktopStateStore(home);
 const loginItem = testMode ? fileLoginItem(join(home, '.test-login-item')) : electronLoginItem(app);
 const openClaudeLogin = testMode
@@ -100,11 +116,17 @@ const supervisor = new DaemonSupervisor({
   },
 });
 
+let lastUpdateState: string | null = null;
 const updater = new Updater({
   enabled: app.isPackaged && !testMode && process.platform === 'darwin',
   updater: () => electronUpdater.autoUpdater,
   signed: () => isDeveloperIdSigned(join(app.getPath('exe'), '..', '..', '..')),
   onStatus: (status) => {
+    if (status.state === 'error') log('warn', 'updater-error', { message: status.message });
+    else if (status.state === 'unpublished' && lastUpdateState !== 'unpublished') {
+      log('info', 'updater-unpublished', { version: app.getVersion() });
+    }
+    lastUpdateState = status.state;
     send('update.status', status);
     pushFacts();
   },
@@ -164,7 +186,8 @@ function openWindow(navigate?: Navigate): void {
 async function runHealth(quick: boolean): Promise<HealthReport | null> {
   try {
     return await supervisor.request('health.run', { quick }, 10 * 60 * 1000);
-  } catch {
+  } catch (error) {
+    log('warn', 'health-run-failed', { quick, error: (error as Error).message });
     return null;
   }
 }
@@ -215,6 +238,21 @@ const mainHandlers: MainHandlers = {
   },
   'app.checkUpdate': () => updater.check(),
   'app.installUpdate': () => updater.install(),
+  'app.openLogFolder': async () => {
+    mkdirSync(logsDir, { recursive: true, mode: 0o700 });
+    const failed = await shell.openPath(logsDir);
+    if (failed) throw new Error(`Không mở được thư mục log ${logsDir}: ${failed}`);
+    return null;
+  },
+  'app.reportError': async ({ kind, message, stack }) => {
+    appLog.write({
+      level: 'error',
+      source: 'renderer',
+      event: kind === 'error' ? 'uncaught-error' : 'unhandled-rejection',
+      fields: { message, ...(stack ? { stack } : {}) },
+    });
+    return null;
+  },
   'app.setLoginItem': async ({ enabled }) => {
     const result = loginItem.set(enabled);
     pushFacts();
@@ -262,10 +300,24 @@ const mainHandlers: MainHandlers = {
   },
 };
 
-supervisor.on('runtime', (runtime) => {
+let lastRuntime: string | null = null;
+supervisor.on('runtime', (runtime: DaemonRuntime) => {
+  const summary = `${runtime.state}:${runtime.daemonStarted}`;
+  if (summary !== lastRuntime) {
+    lastRuntime = summary;
+    const bad = runtime.state === 'crashed' || runtime.state === 'restarting';
+    log(bad ? 'warn' : 'info', 'daemon-host', {
+      state: runtime.state,
+      daemonStarted: runtime.daemonStarted,
+      restarts: runtime.restarts,
+      lastExit: runtime.lastExit,
+      pid: runtime.pid,
+    });
+  }
   send('daemon.runtime', runtime);
   refreshTray();
 });
+supervisor.on('host-log', (entry: AppLogEntry) => appLog.write({ ...entry, source: 'host' }));
 supervisor.on('host-event', (name: string, payload: unknown) => {
   if (name === 'daemon.status') {
     latestStatus = payload as DaemonStatusView | null;
@@ -323,12 +375,26 @@ if (!app.requestSingleInstanceLock()) {
   app.on('activate', () => openWindow());
 
   app.whenReady().then(() => {
-    ipcMain.handle(DESKTOP_INVOKE_CHANNEL, (event, method: unknown, input: unknown) => {
-      if (!isTrustedSender(event.senderFrame?.url, rendererUrl))
-        return { ok: false, error: 'Nguồn gọi không hợp lệ.' };
-      return dispatchDesktopRequest(method, input, mainHandlers, (name, value) =>
-        supervisor.request(name, value as never, 10 * 60 * 1000),
-      );
+    ipcMain.handle(DESKTOP_INVOKE_CHANNEL, async (event, method: unknown, input: unknown) => {
+      const started = Date.now();
+      const result = isTrustedSender(event.senderFrame?.url, rendererUrl)
+        ? await dispatchDesktopRequest(method, input, mainHandlers, (name, value) =>
+            supervisor.request(name, value as never, 10 * 60 * 1000),
+          )
+        : ({ ok: false, error: 'Nguồn gọi không hợp lệ.' } as const);
+      // The renderer's own crash reports are their own app-log lines.
+      if (method !== 'app.reportError' || !result.ok) {
+        appLog.write(ipcLogEntry(method, result, Date.now() - started));
+      }
+      return result;
+    });
+    log('info', 'app-start', {
+      version: app.getVersion(),
+      packaged: app.isPackaged,
+      executable: app.getPath('exe'),
+      // Run from a mounted dmg or macOS App Translocation: this path goes away (hooks are repaired at start).
+      temporaryLocation: /\/AppTranslocation\/|^\/Volumes\//.test(app.getPath('exe')),
+      setupComplete: desktopState.read().setupCompletedAt !== null,
     });
 
     tray = new CrewTray({

@@ -10,6 +10,7 @@ const UPDATE_TEXT: Record<UpdateStatus['state'], string> = {
   idle: 'Chưa kiểm tra bản mới.',
   checking: 'Đang kiểm tra bản mới…',
   none: 'Đang dùng bản mới nhất.',
+  unpublished: 'Chưa có bản phát hành nào; đang dùng bản hiện tại.',
   available: 'Có bản mới.',
   downloaded: 'Bản mới đã tải xong, sẽ cài khi không còn job chạy.',
   error: 'Không kiểm tra được bản mới.',
@@ -110,7 +111,19 @@ export function SettingsPage({ info, section, navigate, onInfoChange }: Settings
           <button type="button" className="btn" onClick={() => navigate({ route: 'settings-projects' })}>
             Project của máy này
           </button>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => void run(() => invoke('app.openLogFolder', {}))}
+          >
+            Mở thư mục log
+          </button>
         </div>
+        <p className="text-xs text-muted">
+          Thư mục log <code>~/.crew/logs</code>: <code>app.log</code> ghi thao tác của app, lỗi gọi server,
+          thay đổi sức khỏe và lỗi của app; <code>daemon.log</code> ghi hoạt động job. Log không chứa token,
+          mật khẩu hay mã ghép.
+        </p>
       </section>
       <section ref={resourcesRef} className="card space-y-4 p-5">
         <h2 className="font-semibold">Tài nguyên và model</h2>

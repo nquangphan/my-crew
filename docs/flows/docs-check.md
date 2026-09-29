@@ -20,12 +20,18 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
 
 1. `packages/docs-kit/src/cli.ts` → `main()`/`dispatch()`: parse lệnh con (`check`, `init`, `generate`,
    `where`, `flow`, `install-hooks`, `ci-workflow`, `--version`), bắt `UsageError`/`GitError` thành thông báo
-   và exit code 2.
+   và exit code 2. `check()` khi `outcome.skipped === 'not-initialized'` in đúng một dòng cảnh báo tiếng Việt
+   trên stderr thay cho dòng tóm tắt thường (`cảnh báo: repo chưa có docs/flows.yaml nên chưa kiểm tra chuẩn
+   docs (áp dụng từ commit docs-init)`) và giữ exit code `0` của `outcome`.
 2. `packages/docs-kit/src/commands/check.ts` → `runCheck(root, mode)`: một trong 5 chế độ
    (`staged`/`commit-msg`/`range`/`pre-push`/`all`), mỗi chế độ gọi đúng tập luật R1–R7 theo bảng ở
    `STANDARD.md#chế-độ`. `treeRules()` chạy R1 luôn, R2+R4 khi manifest hợp lệ. Commit merge (`isMerging()` từ
    `git.ts`, hoặc phát hiện qua `firstParent`) được bỏ qua ở R3 và R6 vì các commit nó mang vào đã được kiểm
-   tra riêng khi tạo ra; R1, R2, R4, R7 vẫn chạy.
+   tra riêng khi tạo ra; R1, R2, R4, R7 vẫn chạy. Ba chế độ hook (`staged`/`commit-msg`/`pre-push`) gọi
+   `notAdopted()` khi `docs/flows.yaml` thiếu ở cả bản đang xét và bản trước (`headManifest()` cho staged/
+   commit-msg; tip vừa push và tip đã biết của remote cho từng ref ở `checkCommits(..., hook: true)`): trả
+   `CheckOutcome.skipped = 'not-initialized'`, không luật nào chạy, code `0` — để chủ dự án còn commit/push
+   được trước khi chạy docs-init; `--all`/`--range` không có lối tắt này, vẫn `uninitialized()` (exit 3).
 3. `packages/docs-kit/src/manifest.ts` → `loadManifest()`/`parseManifest()`: parse YAML (`uniqueKeys: true` để
    bắt flow id trùng) rồi validate bằng schema `FlowsManifest` (`@crew/shared`); `sourceMatcher()` dùng
    `picomatch` để khớp `source.include` trừ `source.exclude`.
@@ -98,4 +104,6 @@ chuẩn docs 2P Crew dùng chung, đóng gói thành một bundle CommonJS đơn
 ## Tests
 
 - `packages/docs-kit/test/rules.test.ts`: từng luật R1–R7, cả 5 chế độ `check`, lệnh `where`/`flow`, sinh block
-  tự động, và hành vi bỏ qua R3/R6 trên commit merge.
+  tự động, hành vi bỏ qua R3/R6 trên commit merge, `--all`/`--range` vẫn báo `NOT_INITIALIZED`, ba chế độ hook
+  cho qua với đúng một dòng cảnh báo khi repo chưa có `docs/flows.yaml` ở cả hai bản so sánh, và vẫn từ chối
+  (exit 3) khi một commit hay một push xoá manifest khỏi repo đã khởi tạo docs.

@@ -39,8 +39,11 @@ export function initialSelections(projects: ProjectView[]): Selections {
 export interface ProjectPickerProps {
   projects: ProjectView[];
   selections: Selections;
-  /** Receives a state updater, so validations finishing in any order never overwrite each other. */
-  onChange: (update: (previous: Selections) => Selections) => void;
+  /**
+   * Receives a state updater, so validations finishing in any order never overwrite each other. `byOwner` is
+   * false for the automatic re-check of folders already saved on this machine.
+   */
+  onChange: (update: (previous: Selections) => Selections, byOwner: boolean) => void;
   disabled?: boolean;
 }
 
@@ -51,10 +54,11 @@ const EMPTY: ProjectSelection = { checked: false, path: null, validation: null, 
  * once (git repo, origin, default branch, push access, working tree).
  */
 export function ProjectPicker({ projects, selections, onChange, disabled }: ProjectPickerProps) {
-  const update = (key: string, patch: Partial<ProjectSelection>) =>
-    onChange((previous) => ({ ...previous, [key]: { ...(previous[key] ?? EMPTY), ...patch } }));
+  const updateBy = (key: string, patch: Partial<ProjectSelection>, byOwner: boolean) =>
+    onChange((previous) => ({ ...previous, [key]: { ...(previous[key] ?? EMPTY), ...patch } }), byOwner);
 
-  const pick = async (project: ProjectView, path: string) => {
+  const pick = async (project: ProjectView, path: string, byOwner = true) => {
+    const update = (key: string, patch: Partial<ProjectSelection>) => updateBy(key, patch, byOwner);
     update(project.key, { path, validating: true, validation: null });
     try {
       const validation = await invoke('folder.validate', {
@@ -89,7 +93,7 @@ export function ProjectPicker({ projects, selections, onChange, disabled }: Proj
     for (const project of projects) {
       const selection = selections[project.key];
       if (selection?.checked && selection.path && !selection.validation && !selection.validating) {
-        void pick(project, selection.path);
+        void pick(project, selection.path, false);
       }
     }
   }, [projects]);
@@ -115,7 +119,7 @@ export function ProjectPicker({ projects, selections, onChange, disabled }: Proj
                 aria-label={`Chạy ${project.key} trên máy này`}
                 checked={selection?.checked ?? false}
                 disabled={disabled}
-                onChange={(event) => update(project.key, { checked: event.target.checked })}
+                onChange={(event) => updateBy(project.key, { checked: event.target.checked }, true)}
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">

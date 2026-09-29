@@ -6,5 +6,6 @@ export * from './event-schemas.js';
 export * from './health-schemas.js';
 export * from './machine-schemas.js';
 export * from './project-schemas.js';
+export * from './secret-scrubber.js';
 export * from './status-workflow.js';
 export * from './ticket-schemas.js';

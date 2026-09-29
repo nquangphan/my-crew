@@ -174,6 +174,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/src/daemon-host/index.ts` | [desktop-app](flows/desktop-app.md) (điểm vào) |
 | `apps/desktop/src/daemon-host/setup-ops.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/test-seams.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/app-log.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/daemon-supervisor.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/desktop-state.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/index.ts` | [desktop-app](flows/desktop-app.md) (điểm vào) |
@@ -207,7 +208,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/src/renderer/routes/settings.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/routes/setup-wizard.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/styles.css` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/test/app-log.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/daemon-supervisor.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/desktop/test/e2e/first-project.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/e2e/health.spec.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/e2e/onboarding.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/e2e/project-settings.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
@@ -360,6 +363,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/shared/src/machine-schemas.ts` | [machine-pairing](flows/machine-pairing.md) (dùng chung), [project-claims](flows/project-claims.md) (dùng chung), [daemon-api](flows/daemon-api.md) (dùng chung) |
 | `packages/shared/src/project-schemas.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `packages/shared/src/project-schemas.ts` | [project-claims](flows/project-claims.md) (file) |
+| `packages/shared/src/secret-scrubber.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `packages/shared/src/status-workflow.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `packages/shared/src/status-workflow.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `packages/shared/src/ticket-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |

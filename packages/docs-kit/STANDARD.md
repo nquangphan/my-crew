@@ -86,7 +86,7 @@ Không sửa tay phần giữa marker. Sau khi sửa `flows.yaml` hoặc sau khi
 | R2 coverage | Một file nguồn (include trừ exclude) không thuộc flow nào, không nằm trong `shared` hay `unassigned` |
 | R3 freshness | Một commit không phải merge thêm, sửa, xóa hoặc đổi tên file nguồn mà không sửa `docs/flows/<id>.md` của mọi flow bị ảnh hưởng trong cùng commit. Flow bị ảnh hưởng: flow liệt kê file đó trước hoặc sau thay đổi, kể cả qua `shared` |
 | R4 generated | Block sinh tự động trong `index.md` hay `files.md` khác với kết quả `crew-docs generate` |
-| R5 initialized | Không có `docs/flows.yaml` → exit 3 `NOT_INITIALIZED` |
+| R5 initialized | `check --all`/`check --range`: không có `docs/flows.yaml` → exit 3 `NOT_INITIALIZED`. Ở `check --staged`/`--commit-msg`/`--pre-push`: nếu manifest thiếu ở CẢ bản đang xét và bản trước (HEAD cho staged/commit-msg; tip vừa push và tip đã biết của remote cho mỗi ref pre-push) thì không kiểm tra gì, in một dòng cảnh báo trên stderr và exit 0 — chủ dự án vẫn commit/push được trước khi chạy docs-init. Xoá manifest khỏi repo đã có docs vẫn bị chặn (exit 3) như cũ |
 | R6 protected | Ngoài commit docs-init, commit đổi `.claude/**`, `.githooks/**`, `CLAUDE.md`, file cấu hình hook (`.husky/**`, `lefthook.yml`, thư mục `core.hooksPath` trong repo), `.github/workflows/crew-docs.yml`, `.github/crew-docs/**`, hoặc các mục `source`, `unassigned`, `shared` của `flows.yaml`, mà không có trailer `Crew-Owner-Approved: <ticket-key>` |
 | R7 secrets | Dòng được thêm trong diff staged hoặc diff được push chứa credential. Luôn dùng bộ luật có sẵn (lấy từ cấu hình mặc định của gitleaks, thêm token máy 2P Crew); nếu máy có `gitleaks` trong PATH thì chạy thêm gitleaks |
 
@@ -109,14 +109,22 @@ nhận ra sau rebase hoặc squash. Không có cách bỏ qua nào khác. Lịch
 | `check --pre-push` | pre-push | Như `--range` cho mỗi ref git sắp push (đọc từ stdin); nhánh mới thì kiểm tra mọi commit chưa có trên remote |
 | `check --all` | CI, docs-init | R1, R2, R4 trên working tree (kể cả file chưa track mà không bị ignore) |
 
+`--staged`, `--commit-msg` và `--pre-push` là các chế độ chạy trong git hook cục bộ (xem R5): trong repo chưa
+khởi tạo docs, chúng không kiểm tra gì và cho qua với một cảnh báo, để chủ dự án vẫn commit/push được trước
+docs-init. `--all` và `--range` luôn báo `NOT_INITIALIZED` khi thiếu manifest, vì daemon dùng `--all` để phát
+hiện lúc nào cần chạy ticket docs-init, còn CI và cổng trước khi push của PM dùng `--range`.
+
 Commit merge được bỏ qua ở R3 và R6 (kể cả khi kết thúc một `git merge` qua hook) vì các commit nó mang vào đã
 được kiểm tra riêng. R1, R2, R4 và R7 vẫn chạy.
 
 ### Kết quả
 
 - Mỗi vi phạm một dòng trên stdout: `RULE path: thông báo và cách sửa`, thêm ` [commit abc1234]` ở chế độ range.
-- Dòng tóm tắt trên stderr: `crew-docs check --<mode>: ok` hoặc số vi phạm.
-- Exit code: `0` đạt, `1` có vi phạm, `2` sai tham số hoặc lỗi git, `3` chưa khởi tạo (`NOT_INITIALIZED`).
+- Dòng tóm tắt trên stderr: `crew-docs check --<mode>: ok` hoặc số vi phạm; ở chế độ hook khi repo chưa khởi
+  tạo docs thì thay bằng một dòng cảnh báo duy nhất (`cảnh báo: repo chưa có docs/flows.yaml nên chưa kiểm
+  tra chuẩn docs (áp dụng từ commit docs-init)`).
+- Exit code: `0` đạt (kể cả trường hợp cảnh báo trên ở `--staged`/`--commit-msg`/`--pre-push`), `1` có vi
+  phạm, `2` sai tham số hoặc lỗi git, `3` chưa khởi tạo (`NOT_INITIALIZED`, chỉ ở `--all`/`--range`).
 
 ## 6. Lệnh tra cứu cho agent
 

@@ -56,11 +56,17 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
    cài ở `~/.crew/bin` chưa (fix `install-crew-docs`: `installCrewDocs()`, chạy bằng runtime của
    `ctx.crewDocs` — binary app khi gọi từ desktop, `process.execPath` khi gọi từ CLI); mỗi project trong
    config dùng `repoFolderChecks()` (`repo-probe.ts`, dùng chung với trình cài đặt của app desktop) cho thư
-   mục/`origin`/nhánh mặc định/quyền push/working tree; hook crew-docs đã cài đủ file chưa
-   (`hookStatus()`/`missingHookFiles()`) và có phải bản crew-docs hiện tại của máy không, fix
-   `install-hooks:<key>`; docs đã khởi tạo chưa (`docs/flows.yaml`) — chưa có thì vàng, không có fix (một
-   ticket docs-init sẽ tự chạy trước); worktree thừa của ticket đã đóng (`orphanWorktrees()`) → vàng, fix
-   `clean-worktrees:<key>`.
+   mục/`origin`/nhánh mặc định/quyền push/working tree; hook crew-docs của mỗi project được `inspectHooks()`
+   đánh giá theo `HookState`: `missing` (chưa cài)/`incomplete` (thiếu file hook)/`broken` (runtime hoặc bundle
+   mà git config của hook trỏ tới không còn tồn tại, hoặc chạy `--version` thất bại — chặn mọi commit tới khi
+   cài lại) đều đỏ; `stale` (hook chạy được nhưng bằng crew-docs cũ hơn bản của máy) vàng; `ok` xanh. Runtime
+   nào cũng được nhận miễn nó tồn tại và chạy được bundle đã cấu hình, bất kể ai cài (binary app desktop hay
+   node của CLI), nên app và `crewd doctor` không thấy install của nhau là hỏng. Fix `install-hooks:<key>`
+   (`applyHealthFix()`) không bao giờ ghi lại hook đang `ok`, và cài lại một hook `stale` vẫn giữ runtime cũ
+   của nó (chỉ đổi runtime khi hook `broken`/`missing`/`incomplete`) — nên `crewd doctor` không âm thầm ghi đè
+   một cài đặt đang chạy tốt. Docs chưa khởi tạo (`docs/flows.yaml` chưa có) → **xanh kèm ghi chú** (bình
+   thường với repo mới, quyết định: xanh-kèm-ghi-chú, không tính là lỗi — một ticket docs-init sẽ tự chạy
+   trước); worktree thừa của ticket đã đóng (`orphanWorktrees()`) → vàng, fix `clean-worktrees:<key>`.
 7. `apps/daemon/src/health/checks/machine.ts` → `machineChecks.run()`: dùng `takeSnapshot()`/`totalSlots()`
    (flow `daemon-scheduling`) báo số slot trống — 0 → vàng (máy đang bận hoặc giới hạn quá chặt), fix
    `adjust-limits` (app desktop mở mục Tài nguyên trong Cài đặt); đĩa trống dưới `MIN_DISK_FREE_GB` (10 GB,
@@ -75,11 +81,15 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
    install-service`. Khi `ctx.app` có mặt (chỉ app desktop truyền, qua `HealthOps.facts`) thêm ba dòng riêng
    của app: `app.daemon` (daemon runtime có đang chạy không, đỏ + fix `restart-daemon` nếu không),
    `app.login-item` (đã bật mở cùng máy chưa, vàng + fix `enable-login-item` nếu chưa), `app.version` (có bản
-   cập nhật
-   hay lỗi kiểm tra thì vàng + fix `install-update`, ngược lại xanh).
-10. `apps/daemon/src/health/health-runner.ts` → `summarize()`: gộp mọi kết quả thành `HealthSummary` (trạng
-    thái tệ nhất cộng danh sách check không xanh) gửi kèm heartbeat (`daemon.ts`, flow `daemon-runtime`); app
-    desktop gọi lại `daemon.heartbeat()` ngay khi trạng thái đổi, nên trang Máy trên web thấy đúng lúc.
+   cập nhật thì vàng + fix `install-update`; `state: 'unpublished'` — GitHub Releases của repo app chưa có
+   bản phát hành nào — xanh kèm ghi chú phiên bản đang dùng, không phải lỗi; lỗi kiểm tra khác thì vàng; ngược
+   lại xanh).
+10. `apps/daemon/src/health/health-runner.ts` → `summarize()`: gộp mọi kết quả thành `HealthSummary` — `status`
+    là trạng thái tệ nhất; `failing` chỉ liệt kê check **đỏ** (không phải "mọi check không xanh" như trước) —
+    đây là danh sách web hiện là lỗi và thông báo máy không khỏe dùng để đặt tên; check vàng một mình làm máy
+    vàng, không bao giờ làm máy đỏ và không xuất hiện trong `failing` (ví dụ `mcp.<KEY>.device` vẫn luôn vàng
+    khi thiếu simulator/emulator) — gửi kèm heartbeat (`daemon.ts`, flow `daemon-runtime`); app desktop gọi lại
+    `daemon.heartbeat()` ngay khi trạng thái đổi, nên trang Máy trên web thấy đúng lúc.
 11. `apps/daemon/src/commands/doctor.ts` → `renderHealth()`: in kết quả dạng text theo nhóm, dùng đúng tiêu
     đề `HEALTH_GROUP_TITLES` (Server, Claude, MCP, Skill, Repo, Máy, Tài nguyên, Ứng dụng) theo thứ tự
     dashboard, có đánh dấu "(đã tự sửa)" và gợi ý sửa cho mục còn đỏ/vàng — cùng nhóm và thứ tự mà
@@ -96,7 +106,7 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
 | `apps/daemon/src/health/checks/claude.ts` | Runtime/CLI Claude Code, đăng nhập, không lộ API key | `claudeChecks`, `loginProbe`, `compareVersions`, `MIN_CLAUDE_VERSION` |
 | `apps/daemon/src/health/checks/mcp.ts` | MCP server đã dò được và MCP test UI bắt buộc | `mcpChecks`, `OFFICIAL_UI_TEST_SERVERS` |
 | `apps/daemon/src/health/checks/skills.ts` | Kho skill của project và khớp checkout chính | `skillChecks`, `describeSkills` |
-| `apps/daemon/src/health/checks/repos.ts` | git, crew-docs, hook, docs, worktree thừa mỗi project | `repoChecks`, `missingHookFiles`, `orphanWorktrees` |
+| `apps/daemon/src/health/checks/repos.ts` | git, crew-docs, hook, docs, worktree thừa mỗi project | `repoChecks`, `inspectHooks`, `HookInspection`, `HookState`, `missingHookFiles`, `orphanWorktrees` |
 | `apps/daemon/src/health/checks/machine.ts` | Tài nguyên máy, đĩa trống | `machineChecks`, `MIN_DISK_FREE_GB` |
 | `apps/daemon/src/health/checks/resources.ts` | Tiến trình/thư mục tạm/worktree/container mồ côi | `resourceChecks`, `healthResourceOps` |
 | `apps/daemon/src/health/checks/app.ts` | Phiên hệ điều hành / dịch vụ hệ thống / trạng thái app desktop | `serviceChecks` |
@@ -127,18 +137,24 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
   (`healthResourceOps()`).
 - desktop-app: `HealthOps` (`apps/desktop/src/daemon-host/health-ops.ts`) dựng `HealthContext` với thêm
   `daemon`, `app`, `crewDocs`, `probeCheckout`, `quick` rồi gọi đúng `runHealthChecks()`/`applyHealthFix()`
-  của flow này cho dashboard và các nút sửa.
+  của flow này cho dashboard và các nút sửa; `setup-ops.ts` của flow đó cũng gọi trực tiếp `inspectHooks()`
+  (cài hook ngay sau khi tạo/nhận project, và sửa hook hỏng lúc host khởi động) qua cùng export của
+  `apps/daemon/src/library.ts`.
 
 ## Tests
 
 - `apps/daemon/test/health-checks.test.ts`: so sánh phiên bản và phân tích output CLI; báo lỗi khi
   `ANTHROPIC_API_KEY` có trong env dịch vụ hoặc CLI quá cũ; login probe phát hiện billing qua API key; `crewd
   doctor` tự cài crew-docs và hook còn thiếu rồi báo xanh; check server: kết nối được, token hợp lệ, hạn dùng;
-  systemd user unit sinh ra không có API key và cài được qua `systemctl --user`.
+  systemd user unit sinh ra không có API key và cài được qua `systemctl --user`; `summarize()` chỉ liệt kê
+  check đỏ vào `failing`, vàng không làm trạng thái đỏ; hook cài bằng một runtime khác (mô phỏng binary app
+  desktop) vẫn xanh và không bị `crewd doctor` ghi đè, rồi chuyển đỏ đúng lúc runtime đó biến mất và fix cài
+  lại bằng runtime hiện tại.
 - `apps/daemon/test/health-groups.test.ts`: helper kiểm tra thư mục repo (chuẩn hoá URL, gợi ý key, đọc
   origin/nhánh, phát hiện không có quyền push); nhóm repos chuyển đỏ khi hook bị xoá, sai origin hay có
-  worktree thừa rồi các fix đưa nó về xanh, và báo vàng khi repo chưa có docs; nhóm mcp/skills: bắt buộc
-  Playwright cho project web, cài được qua `claude mcp add`, tắt được server lỗi, so khớp inventory worktree
-  với checkout chính; nhóm resources/server/app: dọn được thư mục tạm của job đã xong bằng đúng code dọn tài
-  nguyên, hiện đúng trạng thái SSE và kết nối lại được, thêm đúng ba dòng riêng khi app desktop truyền facts,
-  và chạy đủ mọi nhóm theo đúng thứ tự dashboard (từ chối fix cho nhóm không có cách sửa).
+  worktree thừa rồi các fix đưa nó về xanh, và báo xanh kèm ghi chú khi repo chưa có docs (không tính là lỗi);
+  nhóm mcp/skills: bắt buộc Playwright cho project web, cài được qua `claude mcp add`, tắt được server lỗi, so
+  khớp inventory worktree với checkout chính; nhóm resources/server/app: dọn được thư mục tạm của job đã xong
+  bằng đúng code dọn tài nguyên, hiện đúng trạng thái SSE và kết nối lại được, thêm đúng ba dòng riêng khi app
+  desktop truyền facts, `app.version` xanh khi updater báo `unpublished` nhưng vàng khi lỗi mạng thật, và chạy
+  đủ mọi nhóm theo đúng thứ tự dashboard (từ chối fix cho nhóm không có cách sửa).

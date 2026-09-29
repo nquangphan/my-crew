@@ -24,6 +24,7 @@ import {
   pairMachine,
   projectDetail,
   releaseProject,
+  repairBrokenHooks,
   requestTestSetup,
   resourcesView,
   saveResources,
@@ -56,7 +57,9 @@ export class HostService {
       installShippedCrewDocs(this.host);
     } catch (error) {
       this.activity.logger('warn', 'crew-docs install failed', { error: (error as Error).message });
+      this.host.log('error', 'crew-docs-install-failed', { error: (error as Error).message });
     }
+    repairBrokenHooks(this.host);
   }
 
   setFacts(facts: AppFacts): void {
@@ -110,6 +113,7 @@ export class HostService {
       crewDocsRuntime: deps.runtime,
       appVersion: deps.appVersion,
       logger: this.activity.logger,
+      onApiError: this.host.logApiError,
       health: () => this.health.summary(),
       ...(deps.fetch ? { fetch: deps.fetch } : {}),
       ...(deps.seams ? { query: deps.seams.query, probe: deps.seams.probe } : {}),
@@ -122,8 +126,10 @@ export class HostService {
     } catch (error) {
       this.host.daemon = null;
       await daemon.halt().catch(() => undefined);
+      this.host.log('error', 'daemon-start-failed', { error: describeError(error) });
       throw new HostError(`Không khởi động được daemon: ${describeError(error)}`);
     }
+    this.host.log('info', 'daemon-started', { apiUrl: config.apiUrl, projects: config.projects.length });
     this.statusTimer = setInterval(() => this.emitStatus(false), STATUS_POLL_MS);
     this.emitStatus(true);
     return this.status();
@@ -146,16 +152,42 @@ export class HostService {
     this.emitStatus(true);
   }
 
+  private readonly background = new Set<Promise<unknown>>();
+
+  /** Re-checks health in the background after a project change (the answer does not wait for it). */
   private afterProjectChange(): void {
-    void this.health.run('quick').catch(() => undefined);
+    const run = this.health.run('quick').catch(() => undefined);
+    this.background.add(run);
+    void run.finally(() => this.background.delete(run));
   }
 
+  /** Resolves once the background health runs started so far have finished. */
+  async settled(): Promise<void> {
+    await Promise.allSettled([...this.background]);
+  }
+
+  /**
+   * Answers one request. A failure is written to the app log with what the UI shows plus the error code
+   * (the main process logs the outcome of every IPC call; this line adds the host's detail).
+   */
   async handle(method: string, params: unknown): Promise<unknown> {
-    const schema = hostInputSchema(method);
-    if (!schema) throw new HostError(`Không có thao tác ${method}.`);
-    const parsed = schema.safeParse(params ?? {});
-    if (!parsed.success) throw new HostError(`Dữ liệu không hợp lệ: ${z.prettifyError(parsed.error)}`);
-    return this.dispatch(method as HostMethod, parsed.data);
+    const started = Date.now();
+    try {
+      const schema = hostInputSchema(method);
+      if (!schema) throw new HostError(`Không có thao tác ${method}.`);
+      const parsed = schema.safeParse(params ?? {});
+      if (!parsed.success) throw new HostError(`Dữ liệu không hợp lệ: ${z.prettifyError(parsed.error)}`);
+      return await this.dispatch(method as HostMethod, parsed.data);
+    } catch (error) {
+      this.host.log('warn', 'host-op-failed', {
+        method: method.slice(0, 100),
+        ms: Date.now() - started,
+        error: describeError(error),
+        errorCode: (error as { code?: unknown }).code ?? null,
+        status: (error as { status?: unknown }).status ?? null,
+      });
+      throw error;
+    }
   }
 
   private async dispatch(method: HostMethod, input: unknown): Promise<unknown> {
@@ -292,6 +324,7 @@ export class HostService {
 
   async shutdown(): Promise<void> {
     if (this.jobsTimer) clearTimeout(this.jobsTimer);
+    await this.settled();
     await this.stopDaemon('requeue');
   }
 }

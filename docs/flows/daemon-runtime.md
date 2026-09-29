@@ -37,7 +37,13 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 5. `apps/daemon/src/api/vps-client.ts` → `VpsClient.request()`: mọi response được validate bằng schema
    `@crew/shared`, lỗi transient (mạng, 502/503/504) được thử lại với backoff nhân đôi, mọi ghi kèm header
    `Idempotency-Key` — ví dụ `requestProjectChange(projectKey, body, idempotencyKey)` (flow `project-claims`,
-   dùng bởi `setup-ops.ts` → `requestTestSetup()` của app desktop).
+   dùng bởi `setup-ops.ts` → `requestTestSetup()` của app desktop). Tuỳ chọn `onError(failure: ApiFailure)`
+   được gọi đúng một lần cho mỗi request cuối cùng thất bại (sau khi hết lượt thử lại) với `method`, `path`,
+   `status` (`0` khi request không có phản hồi — mạng/TLS/timeout), `code`, `message`, `attempts` — không bao
+   giờ có header hay body; lỗi của chính `onError` không đổi kết quả request. `CreateDaemonOptions.onApiError`
+   (`daemon.ts` → `createDaemon()`) truyền tuỳ chọn này xuống `VpsClient` nội bộ; app desktop lắp
+   `HostContext.logApiError` (flow `desktop-app`) vào đây để mọi lỗi gọi VPS API của daemon lẫn của các
+   `VpsClient` khác app desktop tự dựng (ghép máy, kiểm server) đều thành một dòng `app.log`.
 6. `apps/daemon/src/daemon.ts` → `createDaemon()`: `planner` mặc định là `rolePlanner` (flow `agent-roles`,
    trước đây là `defaultPlanner` tối giản); sau khi cài `crew-docs` (`installCrewDocs()`), `packagedStandard()`
    tìm `STANDARD.md` của `@crew/docs-kit` mà daemon này được build cùng và chép nó vào `~/.crew/bin` cạnh
@@ -82,11 +88,12 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
     wrapper `crew-docs` và hook git sẽ gọi (mặc định `process.execPath`); app desktop truyền chính binary của
     nó (chạy với `ELECTRON_RUN_AS_NODE=1`) nên máy không cần cài Node riêng cho hook.
 14. `apps/daemon/src/library.ts`: re-export toàn bộ API công khai của daemon (`createDaemon`, `VpsClient`,
-    `StateDb`, mọi health check và helper của flow `daemon-health` — `HEALTH_CHECKS`, `runHealthChecks`,
-    `applyHealthFix`, `repoFolderChecks`, `inspectFolder`, `serverProjects`, `storedInventory`…, runner, tool
-    scopes, cộng `rolePlanner`/`resolveModel`/`renderPrompt`/`setPromptsDir`/`resolveStage`/`STAGES` của flow
-    `agent-roles`) cho CLI và app desktop (`setup-ops.ts`, `health-ops.ts`, `activity.ts`, flow `desktop-app`)
-    dùng chung một nguồn.
+    `VpsError`, `ApiFailure`, `StateDb`, mọi health check và helper của flow `daemon-health` — `HEALTH_CHECKS`,
+    `runHealthChecks`, `applyHealthFix`, `repoFolderChecks`, `inspectFolder`, `inspectHooks`, `HookInspection`,
+    `HookState`, `serverProjects`, `storedInventory`…, runner, tool scopes, cộng
+    `rolePlanner`/`resolveModel`/`renderPrompt`/`setPromptsDir`/`resolveStage`/`STAGES` của flow `agent-roles`)
+    cho CLI và app desktop (`setup-ops.ts`, `health-ops.ts`, `activity.ts`, flow `desktop-app`) dùng chung một
+    nguồn.
 
 ## Files
 
@@ -98,7 +105,7 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 | `apps/daemon/src/config.ts` | Cấu hình `~/.crew/config.yaml` | `DaemonConfig`, `loadConfig`, `saveConfig`, `crewHome`, `homePaths` |
 | `apps/daemon/src/secrets.ts` | Lưu token máy | `TokenStore`, `FileTokenStore`, `KeychainTokenStore`, `defaultTokenStore` |
 | `apps/daemon/src/state-db.ts` | Trạng thái cục bộ SQLite | `StateDb`, `JobRow`, `ACTIVE_JOB_STATUSES` |
-| `apps/daemon/src/api/vps-client.ts` | Client HTTP typed tới VPS | `VpsClient`, `VpsError` |
+| `apps/daemon/src/api/vps-client.ts` | Client HTTP typed tới VPS | `VpsClient`, `VpsError`, `ApiFailure` |
 | `apps/daemon/src/service/systemd.ts` | Cài đặt systemd user unit (Linux) | `systemdUnit`, `installService` |
 
 ## Dữ liệu
@@ -137,7 +144,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
   ngay), `status` hiển thị đúng, `rotate-token` đổi token, `project release`; lỗi cú pháp trả exit code 2.
 - `apps/daemon/test/units.test.ts`: `config` điền mặc định và validate, từ chối `models.allow` thiếu `sonnet`,
   từ chối đường dẫn tương đối/trùng key/đường dẫn thoát khỏi repo, lưu atomic mode 0600 và đọc lại đúng;
-  `secrets` giữ token trong file 0600 và ghi Keychain qua `security -i` (token không lộ trong argv).
+  `secrets` giữ token trong file 0600 và ghi Keychain qua `security -i` (token không lộ trong argv);
+  `onError` của `VpsClient` được gọi đúng một lần cho mỗi request cuối cùng thất bại, sau khi hết lượt thử
+  lại, không kèm header/body và không lộ token.
 - `apps/daemon/test/daemon-extras.test.ts`: probe inventory trong worktree kiểu job rồi gửi lên server và cấp
   cho run quyền dùng đúng MCP server đã bật; gửi heartbeat kèm job đang chạy và số đã sweep; job trợ lý chạy
   trong thư mục `assistantDir` do daemon quản lý; công cụ docs chạy `crew-docs` trong worktree và đồng bộ

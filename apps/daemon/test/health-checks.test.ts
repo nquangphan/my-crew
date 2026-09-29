@@ -1,10 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, inject, it } from 'vitest';
 import { VpsClient } from '../src/api/vps-client.js';
 import { doctor } from '../src/commands/doctor.js';
 import { homePaths, parseConfig } from '../src/config.js';
-import { hookStatus, installCrewDocs } from '../src/git/docs-kit-bridge.js';
+import { hookStatus, installCrewDocs, installHooks } from '../src/git/docs-kit-bridge.js';
 import {
   claudeChecks,
   compareVersions,
@@ -67,6 +67,23 @@ describe('health checks', () => {
     });
   });
 
+  it('summarizes warnings as yellow and lists only red checks as failing', () => {
+    const row = (id: string, status: 'green' | 'yellow' | 'red') => ({
+      id,
+      group: 'repos' as const,
+      title: id,
+      status,
+      detail: '',
+    });
+    expect(
+      summarize([row('a', 'green'), row('mcp.X.device', 'yellow'), row('app.version', 'yellow')]),
+    ).toEqual({ status: 'yellow', failing: [] });
+    expect(summarize([row('mcp.X.device', 'yellow'), row('repos.X.hooks', 'red')])).toEqual({
+      status: 'red',
+      failing: [{ id: 'repos.X.hooks', title: 'repos.X.hooks' }],
+    });
+  });
+
   it('the login probe flags API-key billing', async () => {
     const query = ((params: { options: Record<string, unknown> }) => {
       expect(params.options).toMatchObject({
@@ -119,6 +136,45 @@ describe('health checks', () => {
     expect(hookStatus(repo).installed).toBe(true);
     expect(existsSync(join(repo, '.githooks/pre-commit'))).toBe(true);
     expect(report.text).toContain('Hook crew-docs của WEB (đã tự sửa)');
+  });
+
+  it('accepts hooks installed with another working runtime and never rewrites them; repairs a vanished runtime', async () => {
+    const home = tempDir('crewd-home-');
+    const repo = makeRepo();
+    const config = parseConfig({
+      apiUrl: 'https://crew.test',
+      machineName: 'm',
+      projects: [{ key: 'WEB', repoPath: repo }],
+    });
+    const paths = homePaths(home);
+    const bundle = installCrewDocs(paths.bin, inject('bundlePath')).bundle;
+    // Another installer's runtime (the desktop app binary in production): a separate executable that runs
+    // the bundle like node does.
+    const other = join(tempDir('crewd-runtime-'), 'app-runtime');
+    writeFileSync(other, `#!/bin/sh\nexec '${process.execPath}' "$@"\n`, { mode: 0o755 });
+    expect(installHooks(repo, bundle, other).code).toBe(0);
+
+    const report = await doctor(context({ home, config }), { fix: true });
+    expect(report.results.find((r) => r.id === 'repos.WEB.hooks')).toMatchObject({
+      status: 'green',
+      detail: expect.stringContaining(`runtime ${other}`),
+    });
+    expect(hookStatus(repo).runtime).toBe(other);
+
+    // The other runtime disappears (the app moved or was removed): red, and the fix reinstalls with this one.
+    rmSync(other);
+    const broken = await repoChecks.run(context({ home, config }));
+    expect(broken.find((r) => r.id === 'repos.WEB.hooks')).toMatchObject({
+      status: 'red',
+      detail: expect.stringContaining('không còn tồn tại'),
+      fix: { id: 'install-hooks:WEB' },
+    });
+    const fixed = await doctor(context({ home, config }), { fix: true });
+    expect(fixed.results.find((r) => r.id === 'repos.WEB.hooks')).toMatchObject({
+      status: 'green',
+      fixed: true,
+    });
+    expect(hookStatus(repo).runtime).toBe(process.execPath);
   });
 
   it('server checks: reachable, token valid, expiry', async () => {

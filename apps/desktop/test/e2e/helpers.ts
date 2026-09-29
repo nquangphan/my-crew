@@ -79,17 +79,28 @@ export function testEnv(): TestEnv {
   };
 }
 
-/** A project checkout: fetch URL = the project's repo URL, pushes go to a local bare repo. */
-export function fixtureRepo(env: TestEnv, name: string, repoUrl: string): string {
+/**
+ * A project checkout: fetch URL = the project's repo URL, pushes go to a local bare repo. `docs: false` makes
+ * a repo that has not adopted the docs standard yet (no `docs/flows.yaml`).
+ */
+export function fixtureRepo(
+  env: TestEnv,
+  name: string,
+  repoUrl: string,
+  options: { docs?: boolean } = {},
+): string {
   const repo = join(env.root, name);
   const bare = join(env.root, `${name}.git`);
   const run = (cwd: string, ...args: string[]) =>
     execFileSync('git', args, { cwd, env: { ...process.env, ...env.env }, stdio: 'pipe' });
-  mkdirSync(join(repo, 'docs'), { recursive: true });
+  mkdirSync(repo, { recursive: true });
   mkdirSync(bare);
   run(bare, 'init', '-q', '--bare', '-b', 'main');
   writeFileSync(join(repo, 'README.md'), `# ${name}\n`);
-  writeFileSync(join(repo, 'docs', 'flows.yaml'), 'version: 1\n');
+  if (options.docs !== false) {
+    mkdirSync(join(repo, 'docs'));
+    writeFileSync(join(repo, 'docs', 'flows.yaml'), 'version: 1\n');
+  }
   run(repo, 'init', '-q', '-b', 'main');
   run(repo, 'add', '-A');
   run(repo, 'commit', '-q', '-m', 'init');

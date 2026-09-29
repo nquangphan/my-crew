@@ -1,5 +1,5 @@
 import type { ClaimOutcome, FolderValidation, ProjectPlatform } from '@crew/shared';
-import { useState } from 'react';
+import { type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { errorText } from '../lib/format';
 import { invoke } from '../lib/ipc';
 import { FolderPicker } from './folder-picker';
@@ -37,16 +37,56 @@ const EMPTY: Draft = {
   maestro: 'maestro',
 };
 
+/** What still blocks creating the drafted project, in words the owner acts on; null when it is ready. */
+export function draftProblem(draft: Pick<Draft, 'key' | 'name' | 'description' | 'repoUrl'>): string | null {
+  const missing: string[] = [];
+  if (!/^[A-Z][A-Z0-9]{1,9}$/.test(draft.key.trim().toUpperCase())) {
+    missing.push('key (2–10 chữ in hoa hoặc số, bắt đầu bằng chữ)');
+  }
+  if (!draft.name.trim()) missing.push('tên');
+  if (!draft.repoUrl.trim()) missing.push('repo URL');
+  if (!draft.description.trim()) missing.push('mô tả');
+  return missing.length > 0 ? `Còn thiếu ${missing.join(', ')}.` : null;
+}
+
+export interface NewProjectFormHandle {
+  /** A folder is picked and its project is not created yet. */
+  hasDraft: () => boolean;
+  /** Validates and creates the drafted project; null when it could not (the form shows why). */
+  submit: () => Promise<ClaimOutcome | null>;
+}
+
+export interface NewProjectFormProps {
+  onCreated: (outcome: ClaimOutcome) => void;
+  /** True while a picked folder waits to be created, so the page never moves on without it. */
+  onDraftChange?: (pending: boolean) => void;
+  /** Lets the setup wizard's "Lưu và nhận project" create the drafted project too. */
+  ref?: Ref<NewProjectFormHandle>;
+}
+
 /**
  * "Thêm project mới từ thư mục": the folder prefills key, name, repo URL and branch from `origin`. The owner
  * types the description (the assistant routes tickets by it; it is never read from the repo).
  */
-export function NewProjectForm({ onCreated }: { onCreated: (outcome: ClaimOutcome) => void }) {
+export function NewProjectForm({ onCreated, onDraftChange, ref }: NewProjectFormProps) {
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [validation, setValidation] = useState<FolderValidation | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (patch: Partial<Draft>) => setDraft((current) => ({ ...current, ...patch }));
+  const draftChange = useRef(onDraftChange);
+  draftChange.current = onDraftChange;
+
+  useEffect(() => {
+    draftChange.current?.(draft.path !== null);
+  }, [draft.path]);
+  // Hiding the form drops the draft.
+  useEffect(
+    () => () => {
+      draftChange.current?.(false);
+    },
+    [],
+  );
 
   const pick = async (path: string) => {
     setError(null);
@@ -69,8 +109,13 @@ export function NewProjectForm({ onCreated }: { onCreated: (outcome: ClaimOutcom
     }
   };
 
-  const submit = async () => {
-    if (!draft.path) return;
+  const submit = async (): Promise<ClaimOutcome | null> => {
+    if (!draft.path) return null;
+    const problem = draftProblem(draft);
+    if (problem) {
+      setError(`Chưa tạo được project: ${problem}`);
+      return null;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -80,7 +125,10 @@ export function NewProjectForm({ onCreated }: { onCreated: (outcome: ClaimOutcom
         defaultBranch: draft.defaultBranch,
       });
       setValidation(checked);
-      if (!checked.ok) return;
+      if (!checked.ok) {
+        setError('Thư mục chưa hợp lệ: xem các dòng đỏ ở trên.');
+        return null;
+      }
       const outcome = await invoke('projects.create', {
         path: draft.path,
         key: draft.key.trim().toUpperCase(),
@@ -93,20 +141,18 @@ export function NewProjectForm({ onCreated }: { onCreated: (outcome: ClaimOutcom
       });
       setDraft(EMPTY);
       setValidation(null);
-      onCreated(outcome);
+      return outcome;
     } catch (caught) {
       setError(errorText(caught));
+      return null;
     } finally {
       setBusy(false);
     }
   };
 
-  const ready =
-    draft.path &&
-    /^[A-Z][A-Z0-9]{1,9}$/.test(draft.key.trim().toUpperCase()) &&
-    draft.name.trim() &&
-    draft.description.trim() &&
-    draft.repoUrl.trim();
+  useImperativeHandle(ref, () => ({ hasDraft: () => draft.path !== null, submit }));
+
+  const problem = draftProblem(draft);
   const needsPlaywright = draft.platform === 'web' || draft.platform === 'web_mobile';
   const needsMaestro = draft.platform === 'mobile' || draft.platform === 'web_mobile';
 
@@ -203,12 +249,18 @@ export function NewProjectForm({ onCreated }: { onCreated: (outcome: ClaimOutcom
       <ErrorBox message={error} />
       {draft.path && (
         <div className="flex items-center justify-between gap-3">
-          <Notice tone="gray">Máy này sẽ sở hữu project mới ngay khi tạo.</Notice>
+          <Notice tone={problem ? 'warn' : 'gray'}>
+            {problem ?? 'Máy này sẽ sở hữu project mới ngay khi tạo.'}
+          </Notice>
           <button
             type="button"
             className="btn btn-primary"
-            disabled={!ready || busy}
-            onClick={() => void submit()}
+            disabled={problem !== null || busy}
+            onClick={() =>
+              void submit().then((outcome) => {
+                if (outcome) onCreated(outcome);
+              })
+            }
           >
             {busy ? 'Đang tạo…' : 'Tạo project'}
           </button>

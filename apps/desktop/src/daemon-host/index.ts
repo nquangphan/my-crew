@@ -19,6 +19,7 @@ const service = new HostService({
   appVersion: process.env.CREW_APP_VERSION ?? '0.0.0',
   env: process.env,
   emit: (name: HostEventName, payload: unknown) => post({ kind: 'event', name, payload }),
+  log: (entry) => post({ kind: 'log', entry: { ...entry, fields: entry.fields ?? {} } }),
   ...(process.env.CREW_DESKTOP_TEST_MODE === '1' ? { seams: testSeams(home) } : {}),
 });
 
@@ -52,11 +53,15 @@ async function shutdown(code: number): Promise<void> {
 process.on('SIGTERM', () => void shutdown(0));
 process.on('uncaughtException', (error) => {
   service.activity.logger('error', 'daemon host crashed', { error: error.stack ?? error.message });
+  service.host.log('error', 'uncaught-exception', { error: error.stack ?? error.message });
   // Exit non-zero: the supervisor restarts the host (and the daemon) with backoff.
   void shutdown(1);
 });
 process.on('unhandledRejection', (reason) => {
   service.activity.logger('warn', 'unhandled rejection', { error: String(reason) });
+  service.host.log('error', 'unhandled-rejection', {
+    error: reason instanceof Error ? (reason.stack ?? reason.message) : String(reason),
+  });
 });
 
 post({ kind: 'ready' });

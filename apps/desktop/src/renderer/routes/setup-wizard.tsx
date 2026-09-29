@@ -7,9 +7,9 @@ import type {
   ResourcesView,
   ServerCheck,
 } from '@crew/shared';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HealthCheckRow } from '../components/health-check-row';
-import { NewProjectForm } from '../components/new-project-form';
+import { NewProjectForm, type NewProjectFormHandle } from '../components/new-project-form';
 import {
   initialSelections,
   ProjectPicker,
@@ -74,6 +74,8 @@ export function SetupWizard({ info, section, onFinished }: SetupWizardProps) {
   const [outcomes, setOutcomes] = useState<ClaimOutcome[]>([]);
   const [applied, setApplied] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [draftPending, setDraftPending] = useState(false);
+  const newProject = useRef<NewProjectFormHandle>(null);
   const [hooks, setHooks] = useState<HookView[] | null>(null);
   const [resources, setResources] = useState<ResourcesView | null>(null);
   const [draft, setDraft] = useState<ResourceDraft | null>(null);
@@ -276,19 +278,35 @@ export function SetupWizard({ info, section, onFinished }: SetupWizardProps) {
 
   if (step === 'projects') {
     const waiting = unreadySelections(selections);
+    // One button saves the whole step: a project drafted in "Thêm project mới từ thư mục" is created first,
+    // so a filled-in folder is never left behind silently.
     const apply = () =>
       run(async () => {
+        const created: ClaimOutcome[] = [];
+        if (newProject.current?.hasDraft()) {
+          const outcome = await newProject.current.submit();
+          if (!outcome) {
+            throw new Error(
+              'Project mới chưa được tạo: sửa theo thông báo trong khung "Thêm project mới từ thư mục", hoặc bấm "Ẩn" để bỏ.',
+            );
+          }
+          created.push(outcome);
+          setShowNew(false);
+        }
         const result = await invoke('projects.apply', { selections: readySelections(selections), assistant });
-        setOutcomes(result);
-        setApplied(!result.some((item) => item.status === 'error'));
+        const all = [...created, ...result];
+        setOutcomes(all);
+        setApplied(!all.some((item) => item.status === 'error'));
         const view = await invoke('projects.list', {});
         setProjects(view);
+        // A newly created project joins the list ticked with its folder; the other rows keep their state.
+        setSelections((previous) => ({ ...initialSelections(view.items), ...previous }));
       });
     return (
       <WizardStep
         step="projects"
         description="Máy này quyết định mình chạy project nào. Project chưa có máy được nhận ngay; project đang thuộc máy khác chờ chủ dự án duyệt trên web (có thể hoàn tất cài đặt khi còn mục chờ duyệt)."
-        canNext={applied}
+        canNext={applied && !draftPending}
         busy={busy}
         error={error}
         onBack={() => go(-1)}
@@ -299,8 +317,8 @@ export function SetupWizard({ info, section, onFinished }: SetupWizardProps) {
             projects={projects.items}
             selections={selections}
             disabled={busy}
-            onChange={(update) => {
-              setApplied(false);
+            onChange={(update, byOwner) => {
+              if (byOwner) setApplied(false);
               setSelections(update);
             }}
           />
@@ -335,6 +353,8 @@ export function SetupWizard({ info, section, onFinished }: SetupWizardProps) {
           {showNew && (
             <div className="mt-4">
               <NewProjectForm
+                ref={newProject}
+                onDraftChange={setDraftPending}
                 onCreated={(outcome) => {
                   setOutcomes([outcome]);
                   setShowNew(false);
@@ -344,6 +364,12 @@ export function SetupWizard({ info, section, onFinished }: SetupWizardProps) {
             </div>
           )}
         </div>
+        {draftPending && (
+          <Notice tone="warn">
+            Project mới ở trên chưa được tạo: bấm "Lưu và nhận project" (hoặc "Tạo project") để tạo, hoặc "Ẩn"
+            để bỏ.
+          </Notice>
+        )}
         <OutcomeList outcomes={outcomes} />
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted">
@@ -386,9 +412,10 @@ export function SetupWizard({ info, section, onFinished }: SetupWizardProps) {
                 {hook.installed && hook.current ? 'Đã cài hook' : 'Chưa cài hook'}
               </Lozenge>
               <span className="flex-1 text-sm text-muted">
+                {!(hook.installed && hook.current) && hook.detail ? `${hook.detail} ` : ''}
                 {hook.docsInitialized
                   ? 'Đã có docs.'
-                  : 'Chưa có docs: một ticket docs-init sẽ chạy trước mọi ticket khác của project.'}
+                  : 'Chưa có docs: một ticket docs-init sẽ chạy trước mọi ticket khác của project; hook chỉ cảnh báo cho tới lúc đó.'}
               </span>
               {!(hook.installed && hook.current) && (
                 <button

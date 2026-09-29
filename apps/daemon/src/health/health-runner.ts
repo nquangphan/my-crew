@@ -93,7 +93,11 @@ export async function runHealthChecks(
 
 const RANK: Record<HealthStatus, number> = { green: 0, yellow: 1, red: 2 };
 
-/** The heartbeat summary: the worst status plus every check that is not green. */
+/**
+ * The heartbeat summary: the worst status, and the red checks as `failing` (what the web lists as errors and
+ * the unhealthy alert names). Yellow checks are warnings: they make the machine yellow, never red, and are
+ * not listed as failing.
+ */
 export function summarize(results: readonly HealthCheckResult[]): HealthSummary {
   const worst = results.reduce<HealthStatus>(
     (status, item) => (RANK[item.status] > RANK[status] ? item.status : status),
@@ -102,7 +106,7 @@ export function summarize(results: readonly HealthCheckResult[]): HealthSummary 
   return {
     status: worst,
     failing: results
-      .filter((item) => item.status !== 'green')
+      .filter((item) => item.status === 'red')
       .map((item) => ({ id: item.id, title: item.title })),
   };
 }

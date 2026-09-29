@@ -13,7 +13,7 @@ import {
   type Ticket,
   type WaitingJob,
 } from '@crew/shared';
-import { VpsClient, VpsError } from './api/vps-client.js';
+import { type ApiFailure, VpsClient, VpsError } from './api/vps-client.js';
 import { crewHome, type DaemonConfig, homePaths, type ProjectConfig } from './config.js';
 import { CREW_DOCS_BUNDLE, installCrewDocs, packagedCrewDocs } from './git/docs-kit-bridge.js';
 import { PROBE_WORKTREE_KEY, type ProbeClock, ProbeWorktreeKeeper } from './git/probe-worktree.js';
@@ -99,6 +99,8 @@ export interface CreateDaemonOptions {
    * passes its own executable, run with ELECTRON_RUN_AS_NODE=1, so hooks need no Node install.
    */
   crewDocsRuntime?: string;
+  /** Every API call of the daemon that fails for good (the desktop app writes it to its app log). */
+  onApiError?: (failure: ApiFailure) => void;
   timings?: DaemonTimings;
 }
 
@@ -198,7 +200,12 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
   const log = options.logger ?? stderrLogger;
   const tokenStore = options.tokenStore ?? defaultTokenStore(paths.tokenFile);
   const state = new StateDb(paths.stateDb);
-  const vps = new VpsClient({ apiUrl: config.apiUrl, token: () => tokenStore.get(), fetch: options.fetch });
+  const vps = new VpsClient({
+    apiUrl: config.apiUrl,
+    token: () => tokenStore.get(),
+    fetch: options.fetch,
+    ...(options.onApiError ? { onError: options.onApiError } : {}),
+  });
   const tracker = options.tracker ?? new ResourceTracker();
   const events = new EventEmitter();
   const timings = options.timings ?? {};

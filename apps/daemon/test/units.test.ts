@@ -1,6 +1,7 @@
 import { chmodSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { type ApiFailure, VpsClient } from '../src/api/vps-client.js';
 import { ConfigError, loadConfig, parseConfig, saveConfig } from '../src/config.js';
 import { backoffDelayMs, classifyRetry, isBackoffError } from '../src/runner/retry-classifier.js';
 import { scrubSecrets } from '../src/runner/secret-scrubber.js';
@@ -175,5 +176,58 @@ describe('skill and MCP usage from the tool log', () => {
       'playwright',
       'claude.ai Figma',
     ]);
+  });
+});
+
+describe('VPS client failure hook', () => {
+  it('reports each failed call once, after retries, without headers or bodies', async () => {
+    const failures: ApiFailure[] = [];
+    let calls = 0;
+    const fetchImpl = (async (url: string) => {
+      calls += 1;
+      if (String(url).endsWith('/v1/daemon/projects')) {
+        return new Response(
+          JSON.stringify({ error: { code: 'CONFLICT', message: 'project key X exists' } }),
+          {
+            status: 409,
+          },
+        );
+      }
+      throw new TypeError('fetch failed');
+    }) as unknown as typeof fetch;
+    const vps = new VpsClient({
+      apiUrl: 'https://crew.test',
+      token: () => ['crew', 'mt', 'secret-token-value-123456'].join('_'),
+      fetch: fetchImpl,
+      retryDelayMs: 1,
+      onError: (failure) => failures.push(failure),
+    });
+    await expect(
+      vps.createProject(
+        { key: 'X', name: 'x', description: 'x', repoUrl: 'https://github.com/a/b', platform: 'web' },
+        'k',
+      ),
+    ).rejects.toMatchObject({ status: 409 });
+    await expect(vps.health()).rejects.toMatchObject({ status: 0 });
+    expect(calls).toBe(4);
+    expect(failures).toEqual([
+      {
+        method: 'POST',
+        path: '/v1/daemon/projects',
+        status: 409,
+        code: 'CONFLICT',
+        message: 'project key X exists',
+        attempts: 1,
+      },
+      {
+        method: 'GET',
+        path: '/v1/health',
+        status: 0,
+        code: 'NETWORK',
+        message: 'GET /v1/health: fetch failed',
+        attempts: 3,
+      },
+    ]);
+    expect(JSON.stringify(failures)).not.toContain('secret-token');
   });
 });

@@ -31,6 +31,9 @@ const GROUP_ORDER = HealthGroup.options;
 export class HealthOps {
   private known = new Map<string, HealthCheckResult>();
   private last: HealthReport | null = null;
+  /** Runs overlap (a fix, the 5-minute schedule, a project change): an older run never replaces a newer one. */
+  private runsStarted = 0;
+  private newestApplied = 0;
   facts: AppFacts | null = null;
 
   constructor(private readonly host: HostContext) {}
@@ -85,6 +88,7 @@ export class HealthOps {
   }
 
   async run(mode: HealthMode): Promise<HealthReport> {
+    const ticket = ++this.runsStarted;
     const ctx = this.context(mode);
     const results = await runHealthChecks(ctx);
     const keys = new Set(ctx.config?.projects.map((project) => project.key) ?? []);
@@ -96,20 +100,44 @@ export class HealthOps {
         if (match && !present.has(id) && (!project || keys.has(project))) results.push(item);
       }
       results.sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group));
-    } else {
-      this.known.clear();
     }
+    const summary = summarize(results);
+    const report: HealthReport = { generatedAt: new Date().toISOString(), results, summary };
+    if (ticket < this.newestApplied) return report;
+    this.newestApplied = ticket;
+    if (mode === 'full') this.known.clear();
     for (const item of results) this.known.set(item.id, item);
-    const report: HealthReport = {
-      generatedAt: new Date().toISOString(),
-      results,
-      summary: summarize(results),
-    };
+    this.logChanges(results, summary);
     const changed = this.last?.summary.status !== report.summary.status;
     this.last = report;
     this.host.deps.emit('health.report', report);
     if (changed) void this.host.daemon?.heartbeat().catch(() => undefined);
     return report;
+  }
+
+  /**
+   * App-log lines for the checks whose status changed since the last run (on the first run, the ones that
+   * are not green), and for the summary when it changed.
+   */
+  private logChanges(results: HealthCheckResult[], summary: HealthSummary): void {
+    const before = new Map(this.last?.results.map((item) => [item.id, item.status]) ?? []);
+    for (const item of results) {
+      const from = before.get(item.id) ?? null;
+      if (from === item.status || (from === null && item.status === 'green')) continue;
+      this.host.log(item.status === 'red' ? 'warn' : 'info', 'health-change', {
+        check: item.id,
+        from,
+        to: item.status,
+        detail: item.detail,
+      });
+    }
+    if (this.last?.summary.status !== summary.status) {
+      this.host.log(summary.status === 'red' ? 'warn' : 'info', 'health-summary', {
+        from: this.last?.summary.status ?? null,
+        to: summary.status,
+        failing: summary.failing.map((item) => item.id),
+      });
+    }
   }
 
   async fix(group: HealthGroup, fixId: string): Promise<HealthReport> {

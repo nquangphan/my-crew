@@ -33,7 +33,10 @@ trên push/PR với bundle vendor sẵn (CI không cần mạng).
 5. `packages/docs-kit/src/hook-installer.ts` → `hookLine()`: dòng lệnh thật sự chạy —
    `ELECTRON_RUN_AS_NODE=1 "$(git config --get crew-docs.runtime || echo …not-configured)" "$(git config
    --get crew-docs.bundle || echo …not-configured)" check --staged|--commit-msg "$1"|--pre-push "$@" || exit 1`
-   — máy chưa cấu hình sẽ fail closed với thông báo rõ đường dẫn thiếu.
+   — máy chưa cấu hình sẽ fail closed với thông báo rõ đường dẫn thiếu. Ba chế độ này (flow `docs-check`) tự
+   nhận ra repo chưa có `docs/flows.yaml` (luật R5) và cho qua với một dòng cảnh báo (exit 0) thay vì chặn, nên
+   hook cài xong trước docs-init không khoá chủ dự án lại; từ commit docs-init thì check chạy đầy đủ như mọi
+   repo khác.
 6. `packages/docs-kit/src/commands/ci-workflow.ts` → `ciWorkflowCommand()`: ghi
    `.github/workflows/crew-docs.yml` từ `TEMPLATES.ciWorkflow` (chỉ ghi khi nội dung khác), và vendor bundle
    đang chạy vào `.github/crew-docs/crew-docs.cjs` (so sánh byte, chỉ copy khi khác) — CI chạy `check --range`
@@ -64,4 +67,6 @@ trên push/PR với bundle vendor sẵn (CI không cần mạng).
 
 - `packages/docs-kit/test/hook-installer.test.ts`: phát hiện đúng loại hook (`githooks`, husky, lefthook,
   `hooks-path` tuỳ chỉnh), chèn/dòng thay thế đúng marker mà không phá hook có sẵn, chạy lại không đổi gì,
-  chặn khi chạy trong worktree phụ, lefthook YAML giữ nguyên cấu trúc.
+  chặn khi chạy trong worktree phụ, lefthook YAML giữ nguyên cấu trúc; hook cho chủ dự án commit và push trước
+  docs-init (đúng một dòng cảnh báo), rồi từ commit docs-init trở đi lại chặn đúng như thường (ví dụ thiếu
+  R3).

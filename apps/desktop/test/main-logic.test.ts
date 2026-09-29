@@ -12,13 +12,19 @@ import type { AppUpdater } from 'electron-updater';
 import { afterEach, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import { DesktopStateStore } from '../src/main/desktop-state.js';
-import { dispatchDesktopRequest, isTrustedSender } from '../src/main/ipc-handlers.js';
+import { dispatchDesktopRequest, ipcLogEntry, isTrustedSender } from '../src/main/ipc-handlers.js';
 import { fileLoginItem } from '../src/main/login-item.js';
 import { Notifier } from '../src/main/notifications.js';
 import { decideQuit, QUIT_BUTTONS, quitMessage } from '../src/main/quit-guard.js';
 import { recordingTerminalLauncher } from '../src/main/terminal-launcher.js';
 import { trayView } from '../src/main/tray-view.js';
-import { dmgAssetName, isDeveloperIdSigned, RELEASES_URL, Updater } from '../src/main/updater.js';
+import {
+  dmgAssetName,
+  isDeveloperIdSigned,
+  isUnpublished,
+  RELEASES_URL,
+  Updater,
+} from '../src/main/updater.js';
 
 const dirs: string[] = [];
 const temp = () => {
@@ -108,6 +114,24 @@ describe('typed IPC boundary', () => {
     expect(await dispatchDesktopRequest('projects.list', {}, main, failing)).toEqual({
       ok: false,
       error: 'Máy chưa được ghép',
+    });
+  });
+
+  it('logs every call with its outcome and duration, never its input', () => {
+    expect(ipcLogEntry('projects.create', { ok: true, result: { status: 'granted' } }, 35)).toEqual({
+      level: 'info',
+      source: 'main',
+      event: 'ipc',
+      fields: { method: 'projects.create', outcome: 'ok', ms: 35 },
+    });
+    expect(ipcLogEntry('setup.pair', { ok: false, error: 'Mã ghép đã hết hạn.' }, 20)).toEqual({
+      level: 'warn',
+      source: 'main',
+      event: 'ipc',
+      fields: { method: 'setup.pair', outcome: 'error', ms: 20, error: 'Mã ghép đã hết hạn.' },
+    });
+    expect(ipcLogEntry({ evil: true }, { ok: false, error: 'x' }, 1).fields).toMatchObject({
+      method: 'invalid',
     });
   });
 
@@ -269,6 +293,32 @@ describe('updater', () => {
     expect(fake.downloads).toBe(1);
     expect(idleWaits()).toBe(1);
     expect(fake.installs).toBe(1);
+  });
+
+  it('reports a repo without any release as unpublished (not an error) and keeps real errors', async () => {
+    const { fake, updater } = make(false);
+    const failWith = (error: Error & { code?: string }) => {
+      fake.checkForUpdates = async () => {
+        // electron-updater emits `error` and rejects the check.
+        fake.emit('error', error);
+        throw error;
+      };
+    };
+    const coded = (message: string, code: string) => Object.assign(new Error(message), { code });
+    for (const error of [
+      coded('No published versions on GitHub', 'ERR_UPDATER_NO_PUBLISHED_VERSIONS'),
+      coded('Unable to find latest version on GitHub', 'ERR_UPDATER_LATEST_VERSION_NOT_FOUND'),
+      new Error('Cannot find latest-mac.yml in the latest release artifacts: HttpError: 404'),
+    ]) {
+      failWith(error);
+      expect(await updater.check()).toMatchObject({ state: 'unpublished', message: null });
+    }
+    failWith(new Error('net::ERR_INTERNET_DISCONNECTED'));
+    expect(await updater.check()).toMatchObject({
+      state: 'error',
+      message: 'net::ERR_INTERNET_DISCONNECTED',
+    });
+    expect(isUnpublished(new Error('getaddrinfo ENOTFOUND github.com'))).toBe(false);
   });
 
   it('is disabled in dev and test builds, and detects the missing Developer ID', async () => {

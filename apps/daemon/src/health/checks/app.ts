@@ -36,6 +36,16 @@ function desktopChecks(ctx: HealthContext): HealthCheckResult[] {
         { id: 'install-update', label: update.canAutoInstall ? 'Cài bản mới' : 'Tải bản mới' },
       ),
     );
+  } else if (update.state === 'unpublished') {
+    results.push(
+      result(
+        'app.version',
+        'app',
+        'Phiên bản app',
+        'green',
+        `Chưa có bản phát hành nào; đang dùng ${app.version}.`,
+      ),
+    );
   } else if (update.state === 'error') {
     results.push(
       result(

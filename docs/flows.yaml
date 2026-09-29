@@ -330,6 +330,7 @@ flows:
       - apps/daemon/src/runner/skill-usage.ts
       - apps/daemon/src/runner/retry-classifier.ts
       - apps/daemon/src/runner/secret-scrubber.ts
+      - packages/shared/src/secret-scrubber.ts
       - apps/daemon/src/tools/ticket-mcp-server.ts
       - apps/daemon/src/tools/tool-scopes.ts
     tests:
@@ -442,6 +443,7 @@ flows:
       - apps/desktop/src/main/tray-view.ts
       - apps/desktop/src/main/login-item.ts
       - apps/desktop/src/main/updater.ts
+      - apps/desktop/src/main/app-log.ts
       - apps/desktop/src/main/notifications.ts
       - apps/desktop/src/main/terminal-launcher.ts
       - apps/desktop/src/main/quit-guard.ts
@@ -458,6 +460,7 @@ flows:
     tests:
       - apps/desktop/test/daemon-supervisor.test.ts
       - apps/desktop/test/main-logic.test.ts
+      - apps/desktop/test/app-log.test.ts
       - apps/desktop/test/host-service.test.ts
       - apps/desktop/test/e2e/health.spec.ts
   desktop-ui:
@@ -486,6 +489,7 @@ flows:
       - apps/desktop/src/renderer/components/ui.tsx
     tests:
       - apps/desktop/test/e2e/onboarding.spec.ts
+      - apps/desktop/test/e2e/first-project.spec.ts
       - apps/desktop/test/e2e/project-settings.spec.ts
   deployment:
     title: Triển khai VPS và vận hành

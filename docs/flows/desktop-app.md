@@ -30,39 +30,79 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 3. `apps/desktop/src/main/index.ts` → `mainHandlers`, `APP_FIXES`: các method cần chính app (`app.info`,
    `setup.*`, `folder.pick`, `daemon.pause/resume/restart`, 4 fix `open-claude-login`/`enable-login-item`/
    `install-update`/`restart-daemon`) được trả lời ngay trong main; mọi method khác forward sang daemon host
-   qua `supervisor.request()`.
+   qua `supervisor.request()`. Main dựng một `AppLog` (`apps/desktop/src/main/app-log.ts`) ghi
+   `~/.crew/logs/app.log` — chỉ tiến trình main viết trực tiếp file này (host gửi dòng của nó qua port, xem
+   bước 4/5); mỗi lời gọi IPC từ renderer được bọc qua `ipcLogEntry()` (`ipc-handlers.ts`) thành một dòng
+   `event: 'ipc'` (method, `outcome: 'ok'|'error'`, ms, message lỗi nếu có — không log input vì có thể chứa
+   mã ghép); `app.openLogFolder` mở `~/.crew/logs` bằng `shell.openPath`, `app.reportError` nhận lỗi chưa bắt/
+   promise bị reject từ renderer (`reportRendererErrors()`, flow `desktop-ui`) và ghi thẳng vào log; sự kiện
+   khác được ghi: `app-start` (kèm `temporaryLocation: true` khi exe đang chạy từ dmg gắn tạm hay macOS App
+   Translocation — `/Volumes/`/`AppTranslocation/`), `daemon-host` (đổi trạng thái từ sự kiện `runtime` của
+   supervisor), `updater-error`/`updater-unpublished`, `health-run-failed` (khi `runHealth()` không gọi được
+   host), và `uncaught-exception`/`unhandled-rejection` của chính main.
 4. `apps/desktop/src/main/daemon-supervisor.ts` → `DaemonSupervisor.spawn()`/`onExit()`/`startDaemon()`: fork
    `daemon-host.js` bằng `utilityProcess.fork()`; một host chết được khởi động lại với backoff nhân đôi (1 s →
    2 s → … → 30 s), backoff về lại 1 s nếu host đã sống quá 60 s (`stableMs`) trước khi chết; sau mỗi lần khởi
    động lại, nếu máy đã hoàn tất cài đặt thì daemon runtime được khởi động lại và trạng thái tạm dừng
    (`setPaused`) được áp lại. `stop('drain' | 'requeue')` dừng có kiểm soát: `drain` tạm dừng nhận job rồi chờ
-   job đang chạy xong, `requeue` dừng ngay để job resume ở lần chạy sau.
+   job đang chạy xong, `requeue` dừng ngay để job resume ở lần chạy sau. Sự kiện `host-log` chuyển tiếp mỗi
+   dòng `app.log` mà host gửi (`kind: 'log'`) cho main ghi vào `AppLog`.
 5. `apps/desktop/src/daemon-host/index.ts` → `port.on('message')`, `shutdown()`: host nhận `ToHost` qua
    `process.parentPort`, validate bằng zod, gọi `HostService.handle()` rồi trả `FromHost` (`response`/
    `event`); `SIGTERM` hoặc `uncaughtException` gọi `shutdown()` và thoát với mã khác 0 để supervisor khởi
-   động lại cả host lẫn daemon.
+   động lại cả host lẫn daemon; `deps.log` gửi mỗi dòng log của host (`HostContext.log()`) thành message
+   `{kind: 'log', entry}` qua `parentPort`; `uncaughtException`/`unhandledRejection` của tiến trình host cũng
+   được ghi trước khi thoát.
 6. `apps/desktop/src/daemon-host/host-service.ts` → `HostService.startDaemon()`/`dispatch()`: gọi
    `createDaemon()` (flow `daemon-runtime`) **bên trong tiến trình host này** — daemon chạy độc lập với cửa
    sổ và renderer; `dispatch()` định tuyến method sang `setup-ops.ts` (trình cài đặt, Settings → Projects),
-   `health-ops.ts` (sức khỏe), `activity.ts` (job, log) hoặc gọi thẳng `daemon.pause()/resume()`.
+   `health-ops.ts` (sức khỏe), `activity.ts` (job, log) hoặc gọi thẳng `daemon.pause()/resume()`. Ngay sau khi
+   cài crew-docs (`installShippedCrewDocs()`), `repairBrokenHooks()` (`setup-ops.ts`) chạy một lần để sửa hook
+   của project nào có runtime/bundle không còn chạy được (ví dụ app đã bị chuyển chỗ), giữ nguyên hook đang
+   chạy tốt của project khác. `createDaemon()` nhận `onApiError: this.host.logApiError` nên mọi lỗi API của
+   daemon (không riêng của setup-ops) cũng vào `app.log`. `handle()` bọc `dispatch()`: lỗi nào cũng ghi một
+   dòng `host-op-failed` (method, ms, message, `errorCode`, `status`) trước khi ném lại cho main. Health chạy
+   sau một đổi project (`afterProjectChange()`) không chờ trả lời (`this.background`, một `Set<Promise>`) —
+   `settled()` chờ mọi lượt health nền đã bắt đầu xong, gọi khi `shutdown()` để không rớt báo cáo giữa đường.
 7. `apps/desktop/src/daemon-host/host-context.ts` → `HostContext`, `HostError`: trạng thái dùng chung của các
    thao tác host — đọc lại config từ đĩa mỗi lần gọi (để CLI `crewd` và app luôn thấy cùng cấu hình), lưu là
    áp dụng cho daemon đang chạy ngay (`ctx.save()` gọi `daemon.updateConfig()`), không cần khởi động lại.
+   `ctx.log(level, event, fields)` gửi một dòng `app.log` nguồn `host` qua `deps.log`; `ctx.logApiError`
+   (lắp vào mọi `VpsClient` mà host dựng, kể cả của `ctx.vps()`) chuyển `ApiFailure` (flow `daemon-runtime`)
+   thành dòng `api-error` — đổi tên trường `code` (mã lỗi API) thành `errorCode` vì `code` khớp mẫu tên trường
+   bị ẩn (mã ghép máy).
 8. `apps/desktop/src/daemon-host/setup-ops.ts` → `checkServer()`, `pairMachine()`, `applyProjects()`,
-   `createProject()`, `setFolder()`, `releaseProject()`, `installProjectHooks()`, `requestTestSetup()`: các
-   thao tác của trình cài đặt và Settings → Projects — `checkServer()` bắt buộc `https://` (trừ loopback) và
-   gọi `GET /v1/health`; `applyProjects()`/`createProject()` dùng lại `repoFolderChecks()` (flow
-   `daemon-health`) để validate thư mục trước khi claim/tạo project; `installProjectHooks()` cài hook
-   crew-docs trỏ về chính binary app (`ctx.deps.runtime`, chạy với `ELECTRON_RUN_AS_NODE=1`);
+   `createProject()`, `setFolder()`, `releaseProject()`, `ensureHooks()`, `repairBrokenHooks()`,
+   `installProjectHooks()`, `requestTestSetup()`: các thao tác của trình cài đặt và Settings → Projects —
+   `checkServer()` bắt buộc `https://` (trừ loopback) và gọi `GET /v1/health`; `applyProjects()`/
+   `createProject()` dùng lại `repoFolderChecks()` (flow `daemon-health`) để validate thư mục trước khi
+   claim/tạo project. `createProject()` tạo project mới xong luôn lưu thư mục và gọi `ensureHooks()`
+   (`inspectHooks()` của flow `daemon-health`) để cài hook crew-docs ngay, trừ khi hook đang chạy tốt; hook
+   cài lỗi thì nối lý do vào message của outcome, không chặn việc tạo project. Tạo lại một key máy này đã sở
+   hữu với cùng repo (server trả 409 nhưng `ownerState: 'mine'` và cùng `repoUrl`, `sameRepo()`) là cùng một
+   thành công (`status: 'already_owned'`, giữ idempotent cho câu trả lời bị mất mạng hoặc bấm hai lần); key đã
+   có ở project/repo khác vẫn là lỗi 409 rõ ràng. `applyProjects()`/`setFolder()` cũng gọi `ensureHooks()` sau
+   khi lưu thư mục — `setFolder()` thất bại thì thêm một dòng `folder.hooks` vàng vào kết quả validate thay
+   vì ném lỗi. `ensureHooks()` không bao giờ ghi lại hook đang `ok`, và giữ nguyên runtime của một hook
+   `stale` (chạy được nhưng bằng crew-docs cũ) khi cài lại. `hookView()`/`listHooks()` dùng `inspectHooks()`
+   nên `HookView.detail` (schema `@crew/shared`) luôn có lý do hook chưa chạy hoặc bản đang chạy.
    `requestTestSetup()` gọi `VpsClient.requestProjectChange()` để máy tự đề nghị đổi `platform`/`uiTestMcp`
    của project mình — dịch lỗi 403/409 của server thành thông báo tiếng Việt (máy không sở hữu project /
    đã có yêu cầu khác đang chờ), không đổi gì tới khi chủ dự án xác nhận TOTP trên web (flow `project-claims`).
+   (`ensureHooks()`/idempotent `createProject()` vá đúng sự cố từng gặp: chủ dự án bấm "Lưu và nhận project"
+   ở bước cài đặt trong khi mới điền form "Thêm project mới từ thư mục" — nút đó khi đó chỉ áp dụng project
+   đã tick sẵn, không tạo project vừa nhập, nên trình cài đặt xong mà máy chưa nhận project nào; tạo lại từ
+   Settings → Projects khi đó không cài hook, dashboard sức khỏe đỏ ngay lượt chạy kế tiếp và bấm lại gặp
+   409.)
 9. `apps/desktop/src/daemon-host/health-ops.ts` → `HealthOps.run()`/`context()`: dựng `HealthContext` (thêm
    `daemon`, `app` facts, `crewDocs: {source, runtime}`, `probeCheckout`, `quick`) rồi gọi `runHealthChecks()`
    dùng chung với `crewd doctor` (flow `daemon-health`). `full` chạy khi mở cửa sổ và theo yêu cầu; `quick`
    chạy mỗi 5 phút, bỏ qua lượt thử đăng nhập Claude, push dry-run và probe skill checkout (giữ lại dòng kết
    quả probe gần nhất qua `known`); trạng thái đổi thì gọi `daemon.heartbeat()` ngay để trang Máy trên web
-   thấy cùng trạng thái với dashboard.
+   thấy cùng trạng thái với dashboard. Các lượt chạy chồng lên nhau (một fix, lịch 5 phút, một đổi project) —
+   `runsStarted`/`newestApplied` đảm bảo một lượt cũ không bao giờ ghi đè báo cáo của một lượt mới hơn.
+   `logChanges()` ghi một dòng `app.log` (`health-change`) cho mỗi check đổi trạng thái so với lần trước (lần
+   đầu: mọi check không xanh) và một dòng `health-summary` khi trạng thái tổng đổi.
 10. `apps/desktop/src/daemon-host/activity.ts` → `Activity.jobs()`/`tail()`/`logger`: danh sách job đang
     chạy/chờ/chờ thử lại (kèm tên và tiêu đề ticket) và nhật ký daemon (`~/.crew/logs/daemon.log`, JSON
     Lines, xoay vòng ở 10 MB); `logger` vừa ghi file vừa phát sự kiện `log.line` cho renderer.
@@ -78,11 +118,15 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 14. `apps/desktop/src/main/notifications.ts` → `Notifier.onHealth()`/`onJobBlocked()`: thông báo macOS khi
     sức khỏe chuyển đỏ (liệt kê tối đa 3 mục lỗi) hoặc khi một job chuyển `blocked`.
 15. `apps/desktop/src/main/updater.ts` → `Updater.check()`/`install()`, `isDeveloperIdSigned()`,
-    `dmgAssetName()`: `electron-updater` kiểm bản mới từ GitHub Releases của `nquangphan/my-crew`; build ký
-    Developer ID (có `TeamIdentifier` qua `codesign`) tải và cài luôn sau khi chờ hết job (`waitForIdle()` tạm
-    dừng rồi `drain` daemon); build chưa ký chỉ mở link tải đúng file dmg của kiến trúc máy này
-    (`dmgAssetName(version, process.arch)` → `2P-Crew-<version>-arm64.dmg` hay `...-x64.dmg`, `UpdaterDeps.arch`
-    cho test) để cài tay. Tắt hẳn khi `!app.isPackaged` hoặc ở chế độ test.
+    `dmgAssetName()`, `isUnpublished()`: `electron-updater` kiểm bản mới từ GitHub Releases của
+    `nquangphan/my-crew`; build ký Developer ID (có `TeamIdentifier` qua `codesign`) tải và cài luôn sau khi
+    chờ hết job (`waitForIdle()` tạm dừng rồi `drain` daemon); build chưa ký chỉ mở link tải đúng file dmg của
+    kiến trúc máy này (`dmgAssetName(version, process.arch)` → `2P-Crew-<version>-arm64.dmg` hay
+    `...-x64.dmg`, `UpdaterDeps.arch` cho test) để cài tay. `isUnpublished()` phân loại lỗi của
+    `electron-updater` khi repo GitHub chưa có bản phát hành nào (mã `ERR_UPDATER_NO_PUBLISHED_VERSIONS`/
+    `ERR_UPDATER_LATEST_VERSION_NOT_FOUND`/`ERR_UPDATER_CHANNEL_FILE_NOT_FOUND`, hoặc thông báo chứa "No
+    published versions"/404) thành `state: 'unpublished'` — không phải lỗi, khác lỗi mạng/TLS thật vẫn
+    `state: 'error'`. Tắt hẳn khi `!app.isPackaged` hoặc ở chế độ test.
 16. `apps/desktop/src/main/shell-env.ts` → `loginShellPath()`: app mở từ Finder hoặc login item nhận PATH tối
     thiểu của `launchd`; hàm này chạy shell đăng nhập một lần lúc khởi động để lấy PATH đầy đủ (nơi
     Homebrew/`~/.local/bin` cài `git`, `claude`, `npx`, `maestro`), gộp với fallback các thư mục thường gặp.
@@ -131,12 +175,13 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 | `apps/desktop/src/main/index.ts` | Tiến trình main: khởi động, IPC, tray, health/update schedule | `mainHandlers`, `APP_FIXES`, `openWindow`, `runHealth`, `appInfo`, `quit` |
 | `apps/desktop/src/daemon-host/index.ts` | Điểm vào tiến trình con daemon host | `port.on('message')`, `shutdown` |
 | `apps/desktop/src/main/daemon-supervisor.ts` | Fork, giám sát và giao tiếp với daemon host | `DaemonSupervisor`, `HostUnavailableError` |
-| `apps/desktop/src/main/ipc-handlers.ts` | Validate và định tuyến lời gọi IPC từ renderer | `dispatchDesktopRequest`, `isTrustedSender`, `MainHandlers` |
+| `apps/desktop/src/main/ipc-handlers.ts` | Validate và định tuyến lời gọi IPC từ renderer | `dispatchDesktopRequest`, `isTrustedSender`, `ipcLogEntry`, `MainHandlers` |
 | `apps/desktop/src/main/window.ts` | Cửa sổ chính (sandbox, context isolation, không Node) | `createMainWindow` |
 | `apps/desktop/src/main/tray.ts` | Icon và menu trên thanh menu bar | `CrewTray` |
 | `apps/desktop/src/main/tray-view.ts` | Suy ra màu/nhãn tray từ trạng thái | `trayView`, `RGB`, `DotColor` |
 | `apps/desktop/src/main/login-item.ts` | Mở cùng máy (login item macOS) | `electronLoginItem`, `fileLoginItem` |
-| `apps/desktop/src/main/updater.ts` | Kiểm và cài bản mới qua electron-updater | `Updater`, `isDeveloperIdSigned`, `dmgAssetName`, `RELEASES_URL` |
+| `apps/desktop/src/main/updater.ts` | Kiểm và cài bản mới qua electron-updater | `Updater`, `isDeveloperIdSigned`, `dmgAssetName`, `isUnpublished`, `RELEASES_URL` |
+| `apps/desktop/src/main/app-log.ts` | Ghi `~/.crew/logs/app.log` (JSON Lines, ẩn credential, xoay vòng) | `AppLog`, `formatEntry`, `redactFields`, `localTimestamp` |
 | `apps/desktop/src/main/notifications.ts` | Thông báo macOS (sức khỏe đỏ, job blocked) | `Notifier` |
 | `apps/desktop/src/main/terminal-launcher.ts` | Mở Terminal chạy `claude` để `/login` | `macTerminalLauncher`, `recordingTerminalLauncher` |
 | `apps/desktop/src/main/quit-guard.ts` | Hỏi trước khi thoát nếu còn job chạy | `decideQuit`, `quitMessage`, `QUIT_BUTTONS` |
@@ -145,7 +190,7 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 | `apps/desktop/src/preload/index.ts` | Cầu nối `invoke`/`on` duy nhất cho renderer | `contextBridge.exposeInMainWorld` |
 | `apps/desktop/src/daemon-host/host-service.ts` | Chạy daemon thật và định tuyến mọi thao tác host | `HostService` |
 | `apps/desktop/src/daemon-host/host-context.ts` | State dùng chung của các thao tác host | `HostContext`, `HostError` |
-| `apps/desktop/src/daemon-host/setup-ops.ts` | Thao tác trình cài đặt và Settings → Projects | `checkServer`, `pairMachine`, `applyProjects`, `createProject`, `installProjectHooks`, `requestTestSetup` |
+| `apps/desktop/src/daemon-host/setup-ops.ts` | Thao tác trình cài đặt và Settings → Projects | `checkServer`, `pairMachine`, `applyProjects`, `createProject`, `ensureHooks`, `repairBrokenHooks`, `installProjectHooks`, `requestTestSetup` |
 | `apps/desktop/src/daemon-host/health-ops.ts` | Chạy health check dùng chung với `crewd doctor` | `HealthOps` |
 | `apps/desktop/src/daemon-host/activity.ts` | Danh sách job và nhật ký daemon | `Activity` |
 | `apps/desktop/src/daemon-host/test-seams.ts` | Thay SDK Claude bằng bản giả lập cho E2E | `testSeams`, `TestSeams` |
@@ -156,10 +201,14 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 - Bảng: app không có bảng riêng — daemon host dùng lại `~/.crew/state.db` (`StateDb`, flow `daemon-runtime`)
   qua `HostContext.daemon`; trạng thái riêng của app (`setupCompletedAt`, `paused`) nằm ở
   `~/.crew/desktop.json` (`DesktopStateStore`), không phải bảng SQL.
+- Log: `~/.crew/logs/app.log` (`AppLog`, JSON Lines, mode 0600, thư mục 0700, xoay vòng ở 2 MB giữ `app.log.1`/
+  `app.log.2`) — chỉ tiến trình main viết; ghi thao tác IPC, lỗi gọi VPS API, đổi trạng thái sức khỏe/daemon
+  host, lỗi updater, và lỗi chưa bắt của main/host/renderer; đứng cạnh `daemon.log` (hoạt động job, bước 10)
+  chứ không thay nó.
 - Sự kiện: kênh IPC nội bộ Electron `crew:invoke`/`crew:event` (`DESKTOP_INVOKE_CHANNEL`/
   `DESKTOP_EVENT_CHANNEL`) giữa renderer và main; giao thức `ToHost`/`FromHost` (`request`/`facts` vào,
-  `ready`/`response`/`event` ra — tên sự kiện: `daemon.status`, `health.report`, `jobs.changed`, `log.line`,
-  `job.blocked`) giữa main và daemon host qua `MessagePort` của `utilityProcess`.
+  `ready`/`response`/`event`/`log` ra — tên sự kiện: `daemon.status`, `health.report`, `jobs.changed`,
+  `log.line`, `job.blocked`) giữa main và daemon host qua `MessagePort` của `utilityProcess`.
 - Gọi ngoài: VPS API và Agent SDK qua daemon thật (xem `daemon-runtime`, `daemon-health`); GitHub Releases
   của `nquangphan/my-crew` qua `electron-updater` (kiểm và tải bản mới) và `npm pack`/`gh`-style publish lúc
   đóng gói; `/usr/bin/osascript` mở Terminal; `/usr/bin/codesign` kiểm chữ ký lúc quyết định tự cài bản mới;
@@ -173,7 +222,8 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   `activity.ts` dùng lại mọi export của `apps/daemon/src/library.ts` (config, secrets, state DB, VPS client).
 - daemon-health: `health-ops.ts` chạy `HEALTH_CHECKS`/`runHealthChecks()`/`applyHealthFix()` với
   `HealthContext` có thêm `daemon`, `app`, `crewDocs`, `probeCheckout`, `quick` — cùng danh sách check
-  `crewd doctor` dùng.
+  `crewd doctor` dùng; `setup-ops.ts` cũng gọi trực tiếp `inspectHooks()` của flow đó để cài/sửa hook ngay
+  khi tạo/nhận project, không chờ tới lượt health chạy.
 - docs-check, docs-hooks: `installShippedCrewDocs()`/`installProjectHooks()` cài bundle crew-docs vào
   `~/.crew/bin` và hook git của từng project, chạy bằng chính binary app (`ELECTRON_RUN_AS_NODE=1`) thay vì
   cần Node cài riêng trên máy.
@@ -185,23 +235,40 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 - `apps/desktop/test/daemon-supervisor.test.ts`: khởi động lại host chết với backoff tăng dần và khởi động
   lại daemon kèm áp lại trạng thái tạm dừng; backoff tăng gấp đôi ở lần chết liên tiếp; request đang chờ bị
   từ chối khi host chết và được trả lời lại sau khi khởi động lại; sự kiện host và facts được chuyển tiếp
-  đúng; dừng có kiểm soát theo từng chế độ không khởi động lại; `restart()` thay host ngay cho fix
-  "khởi động lại daemon".
+  đúng, kể cả dòng `app.log` của host qua sự kiện `host-log`; dừng có kiểm soát theo từng chế độ không khởi
+  động lại; `restart()` thay host ngay cho fix "khởi động lại daemon".
 - `apps/desktop/test/main-logic.test.ts`: `decideQuit()` hỏi đúng khi có job chạy; biên IPC từ chối method lạ
   và input sai trước khi chạy gì, trả lời method của main, forward phần còn lại, biến lỗi thành message, chỉ
-  nhận renderer đã bundle, tên kênh preload khớp hợp đồng dùng chung; thông báo đúng một lần khi sức khỏe
-  chuyển đỏ và khi job bị chặn; tray hiện đúng chấm màu/số job/nhãn tạm dừng; trạng thái cài đặt xong và tạm
-  dừng sống sót qua khởi động lại (login item test không đụng macOS thật); updater: build chưa ký chỉ mở link
-  tải đúng dmg kiến trúc máy này, build đã ký tải về rồi chờ hết job mới cài, tắt ở bản dev/test và phát hiện
-  thiếu Developer ID; `mac.target` của `electron-builder.yml` có cả `dmg` và `zip` cho hai kiến trúc,
+  nhận renderer đã bundle, tên kênh preload khớp hợp đồng dùng chung; `ipcLogEntry()` ghi đúng outcome/ms/lỗi
+  của mỗi lời gọi mà không log input; thông báo đúng một lần khi sức khỏe chuyển đỏ và khi job bị chặn; tray
+  hiện đúng chấm màu/số job/nhãn tạm dừng; trạng thái cài đặt xong và tạm dừng sống sót qua khởi động lại
+  (login item test không đụng macOS thật); updater: build chưa ký chỉ mở link tải đúng dmg kiến trúc máy này,
+  build đã ký tải về rồi chờ hết job mới cài, tắt ở bản dev/test, phát hiện thiếu Developer ID, và
+  `isUnpublished()` phân biệt đúng "chưa có bản phát hành" (mã lỗi hoặc thông báo 404 của electron-updater)
+  với lỗi mạng thật; `mac.target` của `electron-builder.yml` có cả `dmg` và `zip` cho hai kiến trúc,
   `dmg.artifactName` khớp đúng `dmgAssetName()` và `mac.artifactName` đặt đúng tên zip
   (`2P-Crew-<version>-<arch>-mac.zip`) cho cả hai kiến trúc.
 - `apps/desktop/test/host-service.test.ts`: kiểm tra server, ghép máy, claim project (202 chờ duyệt khi đang
   ở máy khác) rồi chạy được sau khi chủ dự án duyệt, kiểm `crew-docs.runtime` được ghi vào hook git đúng
-  binary; tạo project từ thư mục, từ chối key trùng, sửa cấu hình project khi đang chạy (không cần khởi động
-  lại) và trả project; `requestTestSetup()` trả về đúng `pendingChange`, chặn máy không sở hữu và yêu cầu
-  trùng khi đang chờ, phản ánh đúng khi chủ dự án duyệt, và tự rút (`lastChange.status: 'withdrawn'`) khi máy
-  trả project trong lúc yêu cầu còn chờ — tất cả chạy trên API thật.
+  binary; tạo project từ thư mục cài hook ngay và không đỏ dashboard, từ chối key trùng của repo khác, tạo lại
+  đúng key + repo máy này đã sở hữu là `already_owned` không phải lỗi, sửa cấu hình project khi đang chạy
+  (không cần khởi động lại) và trả project; hook có runtime đã biến mất được sửa lại lúc host khởi động, hook
+  đang chạy tốt bằng runtime khác (mô phỏng CLI node cạnh binary app) được giữ nguyên; mọi lỗi gọi API và lỗi
+  thao tác host vào `app.log` không kèm token; `requestTestSetup()` trả về đúng `pendingChange`, chặn máy
+  không sở hữu và yêu cầu trùng khi đang chờ, phản ánh đúng khi chủ dự án duyệt, và tự rút
+  (`lastChange.status: 'withdrawn'`) khi máy trả project trong lúc yêu cầu còn chờ — tất cả chạy trên API
+  thật.
+- `apps/desktop/test/app-log.test.ts`: ẩn field tên giống credential và mọi mẫu credential trong dòng, giữ
+  thứ tự field cố định trước, giới hạn độ dài chuỗi/độ sâu object, giờ local kèm offset đúng; ghi JSON Lines
+  mode 0600, xoay vòng đúng ở giới hạn kích thước giữ hai bản cũ, siết lại mode của file cũ và không ném lỗi
+  khi đĩa từ chối ghi.
 - `apps/desktop/test/e2e/health.spec.ts` (Electron thật qua Playwright `_electron`, bộ `test:e2e`): phá một
   check cho nó chuyển đỏ rồi tự sửa cho nó xanh lại; daemon sống sót qua việc đóng/mở lại cửa sổ và tự khởi
   động lại sau khi host bị kill.
+- `apps/desktop/test/e2e/first-project.spec.ts` (Electron thật, bộ `test:e2e`): một project mobile chưa có
+  docs được điền ở khung "Thêm project mới từ thư mục" trong trình cài đặt và lưu bằng nút của bước ("Lưu và
+  nhận project" tự tạo project đang nháp trước khi áp dụng phần đã tick, "Tiếp" bị khoá tới khi tạo xong);
+  commit của chủ dự án đi qua trước docs-init với một dòng cảnh báo; dashboard không đỏ (hook xanh, docs xanh
+  kèm ghi chú); tạo lại đúng project từ trang Project là thành công, key trùng của project khác vẫn báo lỗi rõ
+  ràng; "Mở thư mục log" gọi đúng `shell.openPath`; `app.log` có đủ các dòng mong đợi, không lộ mã ghép hay
+  token, và file ở mode 0600.

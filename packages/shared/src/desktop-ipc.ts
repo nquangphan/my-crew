@@ -51,7 +51,8 @@ export const Navigate = z.object({
 export type Navigate = z.infer<typeof Navigate>;
 
 export const UpdateStatus = z.object({
-  state: z.enum(['disabled', 'idle', 'checking', 'none', 'available', 'downloaded', 'error']),
+  /** `unpublished`: the release feed has no published release yet (not an error). */
+  state: z.enum(['disabled', 'idle', 'checking', 'none', 'unpublished', 'available', 'downloaded', 'error']),
   version: z.string().nullable(),
   /** Signed and notarized builds install in place; unsigned builds only link to the download. */
   canAutoInstall: z.boolean(),
@@ -177,9 +178,12 @@ export type ClaimOutcome = z.infer<typeof ClaimOutcome>;
 export const HookView = z.object({
   key: z.string(),
   path: z.string(),
+  /** The hooks run (whichever runtime installed them). */
   installed: z.boolean(),
-  /** The hooks call this machine's current crew-docs bundle. */
+  /** The hooks run this machine's crew-docs version. */
   current: z.boolean(),
+  /** Why the hooks do not run, or what they run. */
+  detail: z.string().optional(),
   docsInitialized: z.boolean(),
   docsStatus: z.string().nullable(),
 });
@@ -259,6 +263,19 @@ export const DesktopRequests = {
   'app.checkUpdate': request(Empty, UpdateStatus),
   'app.installUpdate': request(Empty, UpdateStatus),
   'app.setLoginItem': request(z.object({ enabled: z.boolean() }).strict(), z.boolean()),
+  /** Opens `~/.crew/logs` (app.log and daemon.log) in Finder. */
+  'app.openLogFolder': request(Empty, z.null()),
+  /** An uncaught error or unhandled rejection in the renderer, written to app.log. */
+  'app.reportError': request(
+    z
+      .object({
+        kind: z.enum(['error', 'unhandledrejection']),
+        message: z.string().max(2_000),
+        stack: z.string().max(10_000).optional(),
+      })
+      .strict(),
+    z.null(),
+  ),
 
   'setup.checkServer': request(z.object({ apiUrl: HttpUrl }).strict(), ServerCheck),
   'setup.pair': request(
@@ -422,7 +439,21 @@ export const ToHost = z.discriminatedUnion('kind', [
 ]);
 export type ToHost = z.infer<typeof ToHost>;
 
+/**
+ * One line of `~/.crew/logs/app.log`: what the app did (IPC operations, failed API calls, health changes,
+ * updater errors, crashes). The main process is the only writer; the daemon host sends its entries over the
+ * port. Fields never carry tokens, cookies, pairing codes or other secrets.
+ */
+export const AppLogEntry = z.object({
+  level: z.enum(['info', 'warn', 'error']),
+  source: z.enum(['main', 'host', 'renderer']),
+  event: z.string().min(1).max(100),
+  fields: z.record(z.string(), z.unknown()).default({}),
+});
+export type AppLogEntry = z.input<typeof AppLogEntry>;
+
 export const FromHost = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('log'), entry: AppLogEntry }),
   z.object({ kind: z.literal('ready') }),
   z.object({
     kind: z.literal('response'),

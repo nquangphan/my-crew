@@ -206,7 +206,7 @@ describe('repos group', () => {
     expect(byId(await repoChecks.run({ ...ctx, quick: true }), 'repos.WEB.push')).toBeUndefined();
   });
 
-  it('flags a repo without docs as yellow (docs-init runs first)', async () => {
+  it('shows a repo without docs as green with a note (docs-init runs first; not a failure)', async () => {
     const home = tempDir('crewd-home-');
     const { repo } = projectRepo();
     const config = parseConfig({
@@ -215,7 +215,10 @@ describe('repos group', () => {
       projects: [{ key: 'WEB', repoPath: repo }],
     });
     const results = await repoChecks.run(context({ home, config, quick: true }));
-    expect(byId(results, 'repos.WEB.docs')?.status).toBe('yellow');
+    expect(byId(results, 'repos.WEB.docs')).toMatchObject({
+      status: 'green',
+      detail: expect.stringContaining('Repo chưa có docs'),
+    });
   });
 });
 
@@ -435,6 +438,25 @@ describe('resources, server stream and app groups', () => {
       fix: { id: 'install-update', label: 'Tải bản mới' },
     });
     expect(byId(results, 'app.session')?.status).toBe('green');
+
+    // No release published yet (the updater's 404 / empty feed) is not a problem; a network error is.
+    const version = async (state: UpdateStatus['state'], message: string | null = null) =>
+      byId(
+        await serviceChecks.run(
+          context({
+            home: tempDir('crewd-home-'),
+            platform: 'darwin',
+            exec: () => ({ code: 0, stdout: 'Aqua\n', stderr: '' }),
+            app: { version: '0.1.0', loginItem: true, update: { ...update, state, message } },
+          }),
+        ),
+        'app.version',
+      );
+    expect(await version('unpublished')).toMatchObject({
+      status: 'green',
+      detail: 'Chưa có bản phát hành nào; đang dùng 0.1.0.',
+    });
+    expect(await version('error', 'net::ERR_INTERNET_DISCONNECTED')).toMatchObject({ status: 'yellow' });
   });
 
   it('runs every group in dashboard order and refuses a fix for a group without fixes', async () => {

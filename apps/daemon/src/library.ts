@@ -1,5 +1,5 @@
 /** Library entry of the 2P Crew daemon: the CLI and the desktop app both build on these exports. */
-export { VpsClient, VpsError } from './api/vps-client.js';
+export { type ApiFailure, VpsClient, VpsError } from './api/vps-client.js';
 export { doctor, renderHealth } from './commands/doctor.js';
 export * from './config.js';
 export {
@@ -20,7 +20,12 @@ export {
 export { detectSharedPaths, removeWorktree } from './git/worktree-manager.js';
 export { loginProbe, MIN_CLAUDE_VERSION } from './health/checks/claude.js';
 export { OFFICIAL_UI_TEST_SERVERS } from './health/checks/mcp.js';
-export { missingHookFiles } from './health/checks/repos.js';
+export {
+  type HookInspection,
+  type HookState,
+  inspectHooks,
+  missingHookFiles,
+} from './health/checks/repos.js';
 export {
   applyHealthFix,
   execCommand,

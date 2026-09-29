@@ -1,7 +1,8 @@
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig } from '@crew/daemon';
 import type {
+  AppLogEntry,
   ClaimOutcome,
   DaemonStatusView,
   HealthReport,
@@ -36,6 +37,7 @@ function projectRepo(
 
 function host(home: string) {
   const events: { name: string; payload: unknown }[] = [];
+  const logs: AppLogEntry[] = [];
   const service = new HostService({
     home,
     runtime: process.execPath,
@@ -43,11 +45,20 @@ function host(home: string) {
     appVersion: '0.1.0-test',
     env: { ...process.env, CREW_TOKEN_STORE: 'file' },
     emit: (name, payload) => events.push({ name, payload }),
+    log: (entry) => logs.push(entry),
     seams: testSeams(home),
   });
   onCleanup(() => service.shutdown());
-  const call = <T>(method: string, params: unknown = {}) => service.handle(method, params) as Promise<T>;
-  return { service, events, call };
+  // Each call also waits for the health re-check it started, so no request is in flight when a test ends
+  // (the API server's close would wait for that keep-alive connection).
+  const call = async <T>(method: string, params: unknown = {}) => {
+    try {
+      return (await service.handle(method, params)) as T;
+    } finally {
+      await service.settled();
+    }
+  };
+  return { service, events, logs, call };
 }
 
 const until = async (condition: () => boolean | Promise<boolean>, ms = 20_000) => {
@@ -206,7 +217,6 @@ describe('daemon host: setup wizard operations against the real API', () => {
     expect(fixed.results.find((item) => item.id === 'repos.WEB.hooks')).toMatchObject({ status: 'green' });
 
     // Logging out of Claude turns the login probe red.
-    const { writeFileSync } = await import('node:fs');
     writeFileSync(join(home, '.test-claude-logged-out'), '');
     const loggedOut = await call<HealthReport>('health.run', {});
     expect(loggedOut.results.find((item) => item.id === 'claude.login')).toMatchObject({
@@ -227,7 +237,7 @@ describe('daemon host: setup wizard operations against the real API', () => {
     const server = await api.server();
     await createTestProject(api.db, { key: 'WEB', repoUrl: 'https://github.com/2p/web-shop.git' });
     const home = join(tempDir('crew-desktop-home-'), 'crew');
-    const { call } = host(home);
+    const { call, logs } = host(home);
     await call('setup.pair', {
       apiUrl: server.url,
       code: await insertPairingCode(api.db),
@@ -254,6 +264,28 @@ describe('daemon host: setup wizard operations against the real API', () => {
       platform: 'backend',
     });
     expect(created).toMatchObject({ target: 'NEW', status: 'granted' });
+    // The hooks are installed with the project (the app binary as the runtime), so the dashboard is not red.
+    expect(git(folder, 'config', '--get', 'crew-docs.runtime').trim()).toBe(process.execPath);
+    const health = await call<HealthReport>('health.run', { quick: true });
+    expect(health.results.find((item) => item.id === 'repos.NEW.hooks')?.status).toBe('green');
+    expect(health.results.find((item) => item.id === 'repos.NEW.docs')).toMatchObject({ status: 'green' });
+    // Before docs-init the hooks warn and let the owner's commit through.
+    writeFileSync(join(folder, 'notes.md'), 'ghi chú\n');
+    git(folder, 'add', '-A');
+    git(folder, 'commit', '-q', '-m', 'docs: ghi chú của chủ dự án');
+
+    // A retry of the same create (the first answer was lost, or a second click) is the same success.
+    const again = await call<ClaimOutcome>('projects.create', {
+      path: folder,
+      key: 'NEW',
+      name: 'Dự án mới',
+      description: 'Công cụ nội bộ do chủ dự án mô tả',
+      repoUrl: 'https://github.com/2p/new-thing',
+      defaultBranch: 'main',
+      platform: 'backend',
+    });
+    expect(again).toMatchObject({ target: 'NEW', status: 'already_owned' });
+    expect(loadConfig(join(home, 'config.yaml')).projects.map((p) => p.key)).toEqual(['NEW']);
     await expect(
       call('projects.create', {
         path: folder,
@@ -265,6 +297,30 @@ describe('daemon host: setup wizard operations against the real API', () => {
         platform: 'web',
       }),
     ).rejects.toThrow('Key WEB đã có trên server');
+    // Every failed API call and failed operation is in the app log, without the token.
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'api-error',
+          fields: expect.objectContaining({
+            method: 'POST',
+            path: '/v1/daemon/projects',
+            status: 409,
+            errorCode: 'CONFLICT',
+          }),
+        }),
+        expect.objectContaining({
+          event: 'host-op-failed',
+          fields: expect.objectContaining({ method: 'projects.create' }),
+        }),
+        expect.objectContaining({
+          event: 'hooks-installed',
+          fields: expect.objectContaining({ project: 'NEW' }),
+        }),
+        expect.objectContaining({ event: 'project-create-idempotent' }),
+      ]),
+    );
+    expect(JSON.stringify(logs)).not.toContain('crew_mt_');
 
     const detail = await call<{ sharedPaths: { extra: string[] }; disabledMcpServers: string[] }>(
       'projects.setSharedPaths',
@@ -284,6 +340,61 @@ describe('daemon host: setup wizard operations against the real API', () => {
     const released = await call<ClaimOutcome>('projects.release', { key: 'NEW' });
     expect(released.status).toBe('released');
     expect(loadConfig(join(home, 'config.yaml')).projects).toEqual([]);
+  });
+
+  it('repairs hooks whose runtime vanished (the app moved) at start, and leaves working hooks alone', async () => {
+    const server = await api.server();
+    const home = join(tempDir('crew-desktop-home-'), 'crew');
+    const first = host(home);
+    await first.call('setup.pair', {
+      apiUrl: server.url,
+      code: await insertPairingCode(api.db),
+      machineName: 'mac',
+    });
+    const moved = projectRepo('git@github.com:2p/moved.git', {});
+    const kept = projectRepo('git@github.com:2p/kept.git', {});
+    for (const [key, path] of [
+      ['MOVED', moved],
+      ['KEPT', kept],
+    ] as const) {
+      await first.call('projects.create', {
+        path,
+        key,
+        name: key,
+        description: 'Repo mẫu',
+        repoUrl: `git@github.com:2p/${key.toLowerCase()}.git`,
+        defaultBranch: 'main',
+        platform: 'backend',
+      });
+    }
+    // MOVED was installed by an app copy that is gone now; KEPT by another working runtime (the CLI's node).
+    const gone = join(tempDir('crew-old-app-'), '2P Crew');
+    const other = join(tempDir('crew-cli-'), 'node');
+    writeFileSync(other, `#!/bin/sh\nexec '${process.execPath}' "$@"\n`, { mode: 0o755 });
+    git(moved, 'config', 'crew-docs.runtime', gone);
+    git(kept, 'config', 'crew-docs.runtime', other);
+
+    const second = host(home);
+    expect(git(moved, 'config', '--get', 'crew-docs.runtime').trim()).toBe(process.execPath);
+    expect(git(kept, 'config', '--get', 'crew-docs.runtime').trim()).toBe(other);
+    expect(second.logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'hooks-broken',
+          fields: expect.objectContaining({ project: 'MOVED' }),
+        }),
+        expect.objectContaining({
+          event: 'hooks-installed',
+          fields: expect.objectContaining({ project: 'MOVED' }),
+        }),
+      ]),
+    );
+    expect(second.logs.some((entry) => entry.fields?.project === 'KEPT')).toBe(false);
+    const hooks = await second.call<HookView[]>('hooks.list');
+    expect(hooks.map((hook) => [hook.key, hook.installed, hook.current])).toEqual([
+      ['MOVED', true, true],
+      ['KEPT', true, true],
+    ]);
   });
 
   it('asks the owner to change the project type and UI-test MCP mapping, pending until approved on the web', async () => {

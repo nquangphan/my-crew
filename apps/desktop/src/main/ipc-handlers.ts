@@ -1,4 +1,5 @@
 import {
+  type AppLogEntry,
   type DesktopMethod,
   type DesktopOutput,
   type DesktopParsed,
@@ -51,4 +52,20 @@ export function isTrustedSender(frameUrl: string | undefined, rendererUrl: strin
   } catch {
     return false;
   }
+}
+
+/**
+ * The app-log line of one renderer call: the method, ok or error with the message the UI showed, and the
+ * duration. Inputs are never logged (they can hold a pairing code).
+ */
+export function ipcLogEntry(method: unknown, result: IpcResult, ms: number): AppLogEntry {
+  const name = typeof method === 'string' ? method.slice(0, 100) : 'invalid';
+  return result.ok
+    ? { level: 'info', source: 'main', event: 'ipc', fields: { method: name, outcome: 'ok', ms } }
+    : {
+        level: 'warn',
+        source: 'main',
+        event: 'ipc',
+        fields: { method: name, outcome: 'error', ms, error: result.error },
+      };
 }

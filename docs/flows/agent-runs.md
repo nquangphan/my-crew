@@ -70,7 +70,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    (`tool-scopes.ts` → `ticketToolsFor()`); mọi ghi đi qua `JobWriter.write()` — Idempotency-Key
    `<jobId>:<seq>` chỉ commit `toolSeq` sau khi server trả lời, nên một câu trả lời bị mất (mạng, crash) được
    gửi lại với cùng key và server phát lại thay vì tạo bản ghi thứ hai; mọi bình luận/report bị
-   `scrubSecrets()` ẩn credential trước khi rời máy; `get_ticket`/`list_children` bọc mọi văn bản chủ dự án
+   `scrubSecrets()` (định nghĩa ở `packages/shared/src/secret-scrubber.ts`, export qua `@crew/shared`;
+   `apps/daemon/src/runner/secret-scrubber.ts` chỉ re-export để nhật ký `app.log` của app desktop dùng chung
+   một bộ luật) ẩn credential trước khi rời máy; `get_ticket`/`list_children` bọc mọi văn bản chủ dự án
    không tự viết bằng `wrapTicketDetail()`/`wrapUntrusted()` (flow `agent-roles`); `submit_report` gọi
    `ctx.reportOverlay()` (do role planner cấp: `docsFirst`, skill/MCP thiếu, tài nguyên để lại, `headSha`/
    `commits` cho job commit) và đăng cảnh báo nếu có, còn lượt `dev` (`codeOnly`) không được `submit_report`
@@ -118,7 +120,8 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
 | `apps/daemon/src/runner/guard-hook.ts` | Chặn ghi/Bash ngoài phạm vi | `evaluateToolCall`, `createGuardHook` |
 | `apps/daemon/src/runner/skill-usage.ts` | Skill/MCP dùng trong run, từ tool log | `skillsInvoked`, `mcpServersUsed`, `mcpToolPrefix`, `slashCommandsIn` |
 | `apps/daemon/src/runner/retry-classifier.ts` | Phân loại lỗi API thành backoff/blocked | `classifyRetry`, `isBackoffError`, `BACKOFF_ERRORS` |
-| `apps/daemon/src/runner/secret-scrubber.ts` | Ẩn credential trong bình luận/report | `scrubSecrets` |
+| `packages/shared/src/secret-scrubber.ts` | Luật ẩn credential dùng chung (daemon + app desktop) | `scrubSecrets`, `ScrubResult` |
+| `apps/daemon/src/runner/secret-scrubber.ts` | Re-export `scrubSecrets` từ `@crew/shared` cho code cũ trong daemon | `scrubSecrets` |
 | `apps/daemon/src/tools/ticket-mcp-server.ts` | MCP server ticket theo vai trò | `buildTicketTools`, `createTicketMcpServer`, `JobWriter`, `createDocsInitTicket`, `unusedUiServers` |
 | `apps/daemon/src/tools/tool-scopes.ts` | Phạm vi tool theo vai trò | `ticketToolsFor`, `allowedToolsFor`, `builtinToolsFor`, `TICKET_TOOL_NAMES` |
 

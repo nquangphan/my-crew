@@ -48,6 +48,81 @@ export async function orphanWorktrees(
 
 const runtimeOf = (ctx: HealthContext) => ctx.crewDocs?.runtime ?? process.execPath;
 
+export type HookState = 'missing' | 'incomplete' | 'broken' | 'stale' | 'ok';
+
+export interface HookInspection {
+  state: HookState;
+  /** The runtime and bundle the repo's git config points the hooks at. */
+  runtime: string | null;
+  bundle: string | null;
+  /** `crew-docs --version` of the configured bundle run by the configured runtime. */
+  version: string | null;
+  detail: string;
+}
+
+/**
+ * The crew-docs hooks of a repo, judged by whether they work. Any runtime that exists and runs the configured
+ * bundle is accepted, whoever installed it (the desktop app's binary or the CLI's node), so the app and
+ * `crewd doctor` never see each other's working install as broken. `stale`: the hooks work but run an older
+ * crew-docs than the machine's (`machine.version`).
+ */
+export function inspectHooks(
+  repo: string,
+  machine: { bundle: string; version: string | null },
+): HookInspection {
+  const { runtime, bundle } = hookStatus(repo);
+  const base = { runtime, bundle, version: null };
+  if (!runtime || !bundle) return { ...base, state: 'missing', detail: 'Hook crew-docs chưa được cài.' };
+  const missing = missingHookFiles(repo);
+  if (missing.length > 0) {
+    return { ...base, state: 'incomplete', detail: `Thiếu hook ${missing.join(', ')}.` };
+  }
+  if (!existsSync(runtime)) {
+    return {
+      ...base,
+      state: 'broken',
+      detail: `Runtime ${runtime} của hook không còn tồn tại (app đã bị chuyển chỗ hoặc gỡ): mọi commit bị chặn cho tới khi cài lại hook.`,
+    };
+  }
+  if (!existsSync(bundle)) {
+    return { ...base, state: 'broken', detail: `Bundle ${bundle} của hook không còn tồn tại.` };
+  }
+  const run = runCrewDocs(bundle, ['--version'], repo, runtime);
+  if (run.code !== 0) {
+    const reason = run.stderr.trim().split('\n').at(-1) || `mã thoát ${run.code}`;
+    return { ...base, state: 'broken', detail: `Runtime ${runtime} không chạy được ${bundle}: ${reason}.` };
+  }
+  const version = run.stdout.trim();
+  if (bundle !== machine.bundle && machine.version !== null && version !== machine.version) {
+    return {
+      ...base,
+      version,
+      state: 'stale',
+      detail: `Hook dùng crew-docs ${version} (${bundle}), máy đang có ${machine.version} (${machine.bundle}).`,
+    };
+  }
+  return {
+    ...base,
+    version,
+    state: 'ok',
+    detail: `Hook chạy được: crew-docs ${version} tại ${bundle}, runtime ${runtime}.`,
+  };
+}
+
+/** `crew-docs --version` of the machine's bundle in `~/.crew/bin`, or null when it is not installed. */
+function machineVersion(ctx: HealthContext, bundle: string) {
+  return existsSync(bundle) ? runCrewDocs(bundle, ['--version'], ctx.paths.home, runtimeOf(ctx)) : null;
+}
+
+/** The status a hook state shows on the dashboard: only hooks that do not run are red. */
+const HOOK_STATUS: Record<HookState, 'green' | 'yellow' | 'red'> = {
+  missing: 'red',
+  incomplete: 'red',
+  broken: 'red',
+  stale: 'yellow',
+  ok: 'green',
+};
+
 export const repoChecks: HealthCheck = {
   id: 'repos',
   group: 'repos',
@@ -67,9 +142,7 @@ export const repoChecks: HealthCheck = {
     );
 
     const bundle = join(ctx.paths.bin, CREW_DOCS_BUNDLE);
-    const version = existsSync(bundle)
-      ? runCrewDocs(bundle, ['--version'], ctx.paths.home, runtimeOf(ctx))
-      : null;
+    const version = machineVersion(ctx, bundle);
     results.push(
       version?.code === 0
         ? result(
@@ -91,6 +164,7 @@ export const repoChecks: HealthCheck = {
             },
           ),
     );
+    const machine = { bundle, version: version?.code === 0 ? version.stdout.trim() : null };
 
     const projects = ctx.config?.projects ?? [];
     const server = await serverProjects(ctx);
@@ -109,42 +183,18 @@ export const repoChecks: HealthCheck = {
       results.push(...folder);
       if (folder.some((item) => item.id === `${id}.path` && item.status === 'red')) continue;
 
-      const hooks = hookStatus(project.repoPath);
-      const reinstall = { id: `install-hooks:${project.key}`, label: 'Cài lại hook' };
-      const missing = hooks.installed ? missingHookFiles(project.repoPath) : [];
-      if (!hooks.installed || missing.length > 0) {
-        results.push(
-          result(
-            `${id}.hooks`,
-            'repos',
-            `Hook crew-docs của ${project.key}`,
-            'red',
-            hooks.installed ? `Thiếu hook ${missing.join(', ')}.` : 'Hook crew-docs chưa được cài.',
-            reinstall,
-          ),
-        );
-      } else if (hooks.bundle !== bundle) {
-        results.push(
-          result(
-            `${id}.hooks`,
-            'repos',
-            `Hook crew-docs của ${project.key}`,
-            'yellow',
-            `Hook dùng ${hooks.bundle}, không phải bản crew-docs hiện tại của máy (${bundle}).`,
-            reinstall,
-          ),
-        );
-      } else {
-        results.push(
-          result(
-            `${id}.hooks`,
-            'repos',
-            `Hook crew-docs của ${project.key}`,
-            'green',
-            `Hook dùng ${hooks.bundle}.`,
-          ),
-        );
-      }
+      const hooks = inspectHooks(project.repoPath, machine);
+      const status = HOOK_STATUS[hooks.state];
+      results.push(
+        result(
+          `${id}.hooks`,
+          'repos',
+          `Hook crew-docs của ${project.key}`,
+          status,
+          hooks.detail,
+          status === 'green' ? undefined : { id: `install-hooks:${project.key}`, label: 'Cài lại hook' },
+        ),
+      );
 
       results.push(
         existsSync(join(project.repoPath, 'docs', 'flows.yaml'))
@@ -155,12 +205,13 @@ export const repoChecks: HealthCheck = {
               'green',
               'Đã khởi tạo docs (docs/flows.yaml).',
             )
-          : result(
+          : // Expected for a new project, not a problem: shown green with a note, never counted as failing.
+            result(
               `${id}.docs`,
               'repos',
               `Docs của ${project.key}`,
-              'yellow',
-              'Repo chưa có docs: một ticket docs-init sẽ chạy trước mọi ticket khác của project.',
+              'green',
+              'Repo chưa có docs (bình thường với repo mới): ticket đầu tiên của project sẽ chạy docs-init trước. Hook crew-docs chỉ cảnh báo cho tới commit docs-init.',
             ),
       );
 
@@ -201,7 +252,15 @@ export const repoChecks: HealthCheck = {
     if (!project) return;
     if (action === 'install-hooks') {
       if (!existsSync(bundle)) install();
-      const installed = installHooks(project.repoPath, bundle, runtimeOf(ctx));
+      const version = machineVersion(ctx, bundle);
+      const current = inspectHooks(project.repoPath, {
+        bundle,
+        version: version?.code === 0 ? version.stdout.trim() : null,
+      });
+      // Working hooks are never rewritten; a stale but working install keeps its runtime.
+      if (current.state === 'ok') return;
+      const runtime = current.state === 'stale' && current.runtime ? current.runtime : runtimeOf(ctx);
+      const installed = installHooks(project.repoPath, bundle, runtime);
       if (installed.code !== 0) throw new Error(installed.stderr || installed.stdout);
     } else if (action === 'clean-worktrees') {
       for (const orphan of await orphanWorktrees(ctx, project.repoPath))

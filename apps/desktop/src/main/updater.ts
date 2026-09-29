@@ -24,6 +24,25 @@ export function isDeveloperIdSigned(appBundle: string): boolean {
   return run.status === 0 && /TeamIdentifier=(?!not set)\S+/.test(info);
 }
 
+/** electron-updater's answers for a GitHub repo that has no release (or no release feed file) yet. */
+const UNPUBLISHED_CODES = new Set([
+  'ERR_UPDATER_NO_PUBLISHED_VERSIONS',
+  'ERR_UPDATER_LATEST_VERSION_NOT_FOUND',
+  'ERR_UPDATER_CHANNEL_FILE_NOT_FOUND',
+]);
+
+/**
+ * "No release published yet" (an empty release feed, or a 404 for the latest release or its
+ * `latest-mac.yml`) is not a failure; network and TLS errors are.
+ */
+export function isUnpublished(error: unknown): boolean {
+  const { code, message } = (error ?? {}) as { code?: unknown; message?: unknown };
+  if (typeof code === 'string' && UNPUBLISHED_CODES.has(code)) return true;
+  return /No published versions|Unable to find latest version|HttpError: 404|\b404 Not Found/i.test(
+    String(message ?? ''),
+  );
+}
+
 export interface UpdaterDeps {
   /** Off in dev builds and in test mode. */
   enabled: boolean;
@@ -67,11 +86,16 @@ export class Updater {
     });
     updater.on('update-not-available', () => this.set({ state: 'none', message: null }));
     updater.on('update-downloaded', () => this.set({ state: 'downloaded' }));
-    updater.on('error', (error: Error) => this.set({ state: 'error', message: error.message }));
+    updater.on('error', (error: Error) => this.failed(error));
   }
 
   current(): UpdateStatus {
     return this.status;
+  }
+
+  private failed(error: unknown): void {
+    if (isUnpublished(error)) this.set({ state: 'unpublished', version: null, message: null });
+    else this.set({ state: 'error', message: (error as Error).message ?? String(error) });
   }
 
   private set(patch: Partial<UpdateStatus>): void {
@@ -85,7 +109,7 @@ export class Updater {
     try {
       await this.deps.updater().checkForUpdates();
     } catch (error) {
-      this.set({ state: 'error', message: (error as Error).message });
+      this.failed(error);
     }
     return this.status;
   }

@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import {
+  type ApiFailure,
   type Daemon,
   type DaemonConfig,
   type DaemonConfigInput,
@@ -10,7 +11,7 @@ import {
   type TokenStore,
   VpsClient,
 } from '@crew/daemon';
-import type { HostEventName } from '@crew/shared';
+import type { AppLogEntry, HostEventName } from '@crew/shared';
 import type { TestSeams } from './test-seams.js';
 
 export interface HostDeps {
@@ -23,6 +24,8 @@ export interface HostDeps {
   appVersion: string;
   env: NodeJS.ProcessEnv;
   emit: (name: HostEventName, payload: unknown) => void;
+  /** Sends one entry to the app log (`~/.crew/logs/app.log`, written by the main process). */
+  log?: (entry: AppLogEntry) => void;
   fetch?: typeof fetch;
   tokenStore?: TokenStore;
   seams?: TestSeams;
@@ -67,8 +70,27 @@ export class HostContext {
 
   vps(apiUrl?: string): VpsClient {
     const url = apiUrl ?? this.requireConfig().apiUrl;
-    return new VpsClient({ apiUrl: url, token: () => this.tokenStore.get(), fetch: this.deps.fetch });
+    return new VpsClient({
+      apiUrl: url,
+      token: () => this.tokenStore.get(),
+      fetch: this.deps.fetch,
+      onError: this.logApiError,
+    });
   }
+
+  /** One app-log entry from the daemon host (never tokens, cookies or pairing codes in `fields`). */
+  log(level: AppLogEntry['level'], event: string, fields: Record<string, unknown> = {}): void {
+    try {
+      this.deps.log?.({ level, source: 'host', event, fields });
+    } catch {
+      // logging never breaks an operation
+    }
+  }
+
+  /** Every API call that failed for good: method, path, status, error code and message. */
+  readonly logApiError = ({ code, ...failure }: ApiFailure): void =>
+    // `code` is a redacted field name in the app log (pairing codes); the API error code goes as `errorCode`.
+    this.log('warn', 'api-error', { ...failure, errorCode: code });
 
   save(config: DaemonConfigInput): DaemonConfig {
     const saved = saveConfig(this.paths.config, config);

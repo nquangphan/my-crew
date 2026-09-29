@@ -21,9 +21,12 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 1. `apps/desktop/src/renderer/index.html`: Content-Security-Policy chặt (`default-src 'none'`, `script-src
    'self'`, không `connect-src` ra mạng ngoài); `webPreferences` của cửa sổ chứa nó đã bật `sandbox` và
    `contextIsolation` (flow `desktop-app`), nên renderer không có API Node hay mạng ngoài IPC.
-2. `apps/desktop/src/renderer/lib/ipc.ts` → `invoke()`, `useDesktopEvent()`: gọi `window.crew.invoke(method,
-   input)` (từ preload) và ném lỗi bằng đúng message tiếng Việt main/daemon trả về; hook subscribe một sự
-   kiện `DesktopEvents` cho vòng đời của component.
+2. `apps/desktop/src/renderer/lib/ipc.ts` → `invoke()`, `useDesktopEvent()`, `reportRendererErrors()`: gọi
+   `window.crew.invoke(method, input)` (từ preload) và ném lỗi bằng đúng message tiếng Việt main/daemon trả
+   về; hook subscribe một sự kiện `DesktopEvents` cho vòng đời của component; `reportRendererErrors()` (gọi
+   một lần từ `main.tsx` trước khi gắn `<App />`, nên lỗi render sớm nhất cũng được ghi) bắt lỗi chưa bắt và
+   promise bị reject của `window`, cắt ngắn message/stack rồi gửi qua `app.reportError` (flow `desktop-app`)
+   để vào `~/.crew/logs/app.log` — không đọc được input gây lỗi.
 3. `apps/desktop/src/renderer/app.tsx` → `parseHash()`/`toHash()`: route, section (bước wizard hay mục cài
    đặt cần mở) và `projectKey` mã hoá hai chiều trong hash URL, nên một điều hướng từ fix sức khỏe
    (`app.navigate`) hoặc bấm lại vẫn giữ đúng vị trí.
@@ -33,15 +36,28 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
    (`setup.checkClaude` + nút "Đăng nhập Claude" mở Terminal qua `setup.openClaudeLogin` + "Kiểm tra lại"),
    Project và thư mục, Docs và hook (tự cài hook còn thiếu/cũ qua `hooks.install`, hiện trạng thái docs mỗi
    project), Tài nguyên và model (bắt buộc `sonnet`), Hoàn tất (`setup.finish`: bật mở cùng máy, khởi động
-   daemon). Mỗi bước tự nạp/kiểm lại dữ liệu khi mở và chặn "Tiếp" tới khi hợp lệ.
+   daemon). Mỗi bước tự nạp/kiểm lại dữ liệu khi mở và chặn "Tiếp" tới khi hợp lệ. Bước Project và thư mục:
+   nút "Lưu và nhận project" trước tiên tạo project đang nháp ở khung `NewProjectForm` (nếu có, qua handle
+   `hasDraft()`/`submit()`) rồi mới `projects.apply` phần project đã tick — một thư mục đã điền ở khung "Thêm
+   project mới từ thư mục" không còn bị bỏ quên nếu chủ dự án bấm nhầm nút của bước; "Tiếp" bị khoá
+   (`draftPending`, cập nhật qua `onDraftChange`) và có `Notice` cảnh báo khi khung đó còn nháp chưa tạo; mỗi
+   dòng hook hiện thêm `hook.detail` (lý do hook chưa chạy hoặc bản đang chạy, flow `daemon-health`) khi chưa
+   "Đã cài hook".
 5. `apps/desktop/src/renderer/components/project-picker.tsx` → `ProjectPicker()`, `ownershipLabel()`: mỗi
    project trên server kèm nhãn sở hữu — "của máy này", "chưa có máy", "đang thuộc máy X" hoặc "Đang chờ
    duyệt trên web"; tick một project mở `FolderPicker` rồi validate thư mục ngay (`folder.validate`, dùng lại
    `repoFolderChecks` của flow `daemon-health` qua host) — git hợp lệ, đúng `origin`, đúng nhánh, quyền push,
-   working tree.
-6. `apps/desktop/src/renderer/components/new-project-form.tsx` → `NewProjectForm()`: "Thêm project mới từ thư
-   mục" — chọn thư mục điền sẵn key/tên/repo URL/nhánh từ `origin` (`folder.inspect`), chủ project tự gõ mô tả
-   (trợ lý dùng mô tả này để định tuyến ticket, không đọc từ repo), rồi `projects.create`.
+   working tree. `onChange(update, byOwner)`: `byOwner` là `false` khi chính component tự validate lại thư
+   mục đã lưu từ trước (mở lại bước) — chỉ chủ dự án tick/bỏ tick hay đổi thư mục (`byOwner: true`) mới đặt
+   lại "Tiếp" về chưa áp dụng, nên lượt tự kiểm tra lại đó không âm thầm bắt bấm "Lưu và nhận project" lần
+   nữa.
+6. `apps/desktop/src/renderer/components/new-project-form.tsx` → `NewProjectForm()`, `NewProjectFormHandle`,
+   `draftProblem()`: "Thêm project mới từ thư mục" — chọn thư mục điền sẵn key/tên/repo URL/nhánh từ `origin`
+   (`folder.inspect`), chủ project tự gõ mô tả (trợ lý dùng mô tả này để định tuyến ticket, không đọc từ
+   repo), rồi `projects.create`. `draftProblem()` nêu đúng phần còn thiếu (key/tên/repo URL/mô tả) bằng lời
+   thay vì chỉ khoá nút im lặng; component lộ một handle (`hasDraft()`, `submit()` qua `ref`) và gọi
+   `onDraftChange(pending)` mỗi khi còn nháp chưa tạo hoặc ẩn form, để `SetupWizard()` (bước 4) gọi được
+   `submit()` từ nút của bước.
 7. `apps/desktop/src/renderer/routes/health.tsx` → `HealthPage()`, `navigationFor()`: bảng sức khỏe nhóm theo
    `HealthGroup`, tự chạy khi mở trang và khi có `health.report` mới; một fix hoặc gọi `health.fix` tại chỗ,
    hoặc điều hướng sang trang khác — `repair` → bước Ghép máy, `repick-folder:KEY` → Settings → Projects đúng
@@ -52,8 +68,10 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 9. `apps/desktop/src/renderer/routes/logs.tsx` → `LogsPage()`, `matchesTicket()`: tail nhật ký daemon (tối đa
    500 dòng, lọc theo ticket qua `logs.tail` rồi khớp tiếp các dòng realtime của `log.line`).
 10. `apps/desktop/src/renderer/routes/settings.tsx` → `SettingsPage()`: bật/tắt mở cùng máy, kiểm và cài bản
-    mới (`app.checkUpdate`/`app.installUpdate`), nút "Chạy lại trình cài đặt" và "Project của máy này", và
-    cùng form tài nguyên/model của bước cuối trình cài đặt.
+    mới (`app.checkUpdate`/`app.installUpdate`, chữ cho `state: 'unpublished'` là "Chưa có bản phát hành nào;
+    đang dùng bản hiện tại." — không phải lỗi), nút "Chạy lại trình cài đặt", "Project của máy này" và "Mở
+    thư mục log" (`app.openLogFolder`, mở `~/.crew/logs` — ghi chú `app.log`/`daemon.log` chứa gì, không chứa
+    token/mật khẩu/mã ghép), và cùng form tài nguyên/model của bước cuối trình cài đặt.
 11. `apps/desktop/src/renderer/routes/settings-projects.tsx` → `SettingsProjectsPage()`, `ProjectPanel()`,
     `TestSetupSection()`: đổi thư mục (validate lại trước khi lưu); loại project và MCP test UI cho sửa tại
     chỗ (nút "Gửi yêu cầu đổi") nhưng chỉ có hiệu lực sau khi chủ dự án xác nhận TOTP trên web — trong lúc chờ,
@@ -80,7 +98,7 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 | `apps/desktop/src/renderer/app.tsx` | Định tuyến hash, khung điều hướng, badge daemon | `App`, `parseHash`, `toHash`, `daemonBadge` |
 | `apps/desktop/src/renderer/index.html` | HTML gốc, CSP | — |
 | `apps/desktop/src/renderer/styles.css` | Theme và class dùng chung (Tailwind) | — |
-| `apps/desktop/src/renderer/lib/ipc.ts` | Gọi IPC có kiểu, subscribe sự kiện | `invoke`, `useDesktopEvent` |
+| `apps/desktop/src/renderer/lib/ipc.ts` | Gọi IPC có kiểu, subscribe sự kiện, chuyển lỗi renderer sang app.log | `invoke`, `useDesktopEvent`, `reportRendererErrors` |
 | `apps/desktop/src/renderer/lib/format.ts` | Định dạng giờ/thời lượng/tiền theo `Asia/Ho_Chi_Minh` | `formatTime`, `formatElapsed`, `formatUsd`, `errorText` |
 | `apps/desktop/src/renderer/routes/setup-wizard.tsx` | Trình cài đặt 7 bước | `SetupWizard` |
 | `apps/desktop/src/renderer/routes/health.tsx` | Bảng sức khỏe | `HealthPage`, `navigationFor`, `groupResults` |
@@ -92,7 +110,7 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 | `apps/desktop/src/renderer/components/health-check-row.tsx` | Một dòng kết quả check + nút sửa | `HealthCheckRow` |
 | `apps/desktop/src/renderer/components/folder-picker.tsx` | Hộp thoại chọn thư mục native | `FolderPicker` |
 | `apps/desktop/src/renderer/components/project-picker.tsx` | Danh sách project để tick nhận | `ProjectPicker`, `ownershipLabel`, `readySelections` |
-| `apps/desktop/src/renderer/components/new-project-form.tsx` | Form tạo project từ thư mục | `NewProjectForm`, `PLATFORM_LABELS` |
+| `apps/desktop/src/renderer/components/new-project-form.tsx` | Form tạo project từ thư mục | `NewProjectForm`, `NewProjectFormHandle`, `draftProblem`, `PLATFORM_LABELS` |
 | `apps/desktop/src/renderer/components/resource-form.tsx` | Form giới hạn tài nguyên và model | `ResourceForm`, `resourceDraftError` |
 | `apps/desktop/src/renderer/components/ui.tsx` | Thành phần UI dùng chung | `Lozenge`, `StatusDot`, `Toggle`, `PageHeader`, `Notice`, `ErrorBox` |
 
@@ -120,6 +138,10 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 
 - `apps/desktop/test/e2e/onboarding.spec.ts` (Electron thật qua Playwright `_electron`): chạy hết lần đầu cài
   đặt — ghép máy, tick nhận và tạo project, cài hook — rồi kết thúc với dashboard sức khỏe toàn xanh.
+- `apps/desktop/test/e2e/first-project.spec.ts`: khung "Thêm project mới từ thư mục" nêu đúng phần còn thiếu
+  bằng lời và khoá "Tiếp" cho tới khi bấm "Lưu và nhận project" tạo xong project đang nháp; sau khi tạo, dòng
+  hook hiện "Đã cài hook" và ghi chú docs chưa có là xanh (không đỏ dashboard); nút "Mở thư mục log" ở Cài
+  đặt gọi đúng thao tác mở thư mục.
 - `apps/desktop/test/e2e/project-settings.spec.ts`: Settings → Projects gửi yêu cầu đổi loại project, khoá form
   và hiện đang chờ, rồi phản ánh đúng sau khi chủ dự án xác nhận TOTP trên web; một yêu cầu đang chờ tự rút và
   hiện đúng câu khi owner chuyển project sang máy khác trong lúc đó.

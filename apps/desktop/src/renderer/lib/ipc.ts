@@ -46,3 +46,22 @@ export function useDesktopEvent<E extends DesktopEventName>(
     [name],
   );
 }
+
+const clip = (text: string, max: number) => (text.length > max ? text.slice(0, max) : text);
+
+/**
+ * Sends the renderer's uncaught errors and unhandled rejections (React 19 reports uncaught render errors
+ * the same way) to the main process, which writes them to `~/.crew/logs/app.log`.
+ */
+export function reportRendererErrors(target: Window = window): void {
+  const report = (kind: 'error' | 'unhandledrejection', reason: unknown) => {
+    const error = reason instanceof Error ? reason : null;
+    const message = clip(error?.message ?? String(reason ?? 'lỗi không rõ'), 2_000);
+    const stack = error?.stack ? clip(error.stack, 10_000) : undefined;
+    target.crew
+      .invoke('app.reportError', { kind, message, ...(stack ? { stack } : {}) })
+      .catch(() => undefined);
+  };
+  target.addEventListener('error', (event) => report('error', event.error ?? event.message));
+  target.addEventListener('unhandledrejection', (event) => report('unhandledrejection', event.reason));
+}
