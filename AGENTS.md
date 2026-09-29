@@ -44,7 +44,7 @@ Biến môi trường đầy đủ của API nằm ở `apps/api/.env.example`.
 - File nguồn mới phải có mặt trong một flow của `docs/flows.yaml` (luật R2).
 - Sửa `docs/flows.yaml` xong thì chạy bundle `crew-docs generate` (build bằng
   `pnpm --filter @crew/docs-kit build`, ra `packages/docs-kit/dist/crew-docs.cjs`).
-- Không sửa `.claude/**`, `.githooks/**`, `CLAUDE.md` hay các mục `source`, `shared`, `unassigned` của
+- Không sửa `.claude/**`, `.githooks/**`, `CLAUDE.md`, `AGENTS.md` hay các mục `source`, `shared`, `unassigned` của
   `docs/flows.yaml` khi ticket không được chủ dự án cho phép (luật R6) — commit như vậy cần trailer
   `Crew-Owner-Approved: <ticket-key>`.
 - Commit khởi tạo docs (thêm `docs/flows.yaml` lần đầu) cần trailer `Crew-Docs-Init: true`.
