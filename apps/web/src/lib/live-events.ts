@@ -29,6 +29,9 @@ export function invalidationsFor(event: EventEnvelope): QueryKey[] {
     case 'machine.unhealthy':
       // Claims move tickets between machines, so ticket views refresh too.
       return [...MACHINE_KEYS, keys.tickets, ['ticket']];
+    // A machine's heartbeat changed what it reports doing with some tickets.
+    case 'agent.activity_changed':
+      return [...TICKET_KEYS, keys.machines, ['machine']];
     case 'project.created':
       return [keys.projects, keys.notices];
     case 'project.change_requested':

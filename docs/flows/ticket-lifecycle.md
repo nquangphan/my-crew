@@ -81,6 +81,16 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     đang chạy (heartbeat `runningJobs`) hay giữ trong hàng đợi/backoff (heartbeat `waitingJobs`, nhớ tối đa 2
     phút mỗi máy qua `WaitingJobsRegistry`) — mỗi lần im lặng như vậy chỉ phát đúng một sự kiện `ticket.stuck`
     (flow `event-delivery`, chỉ owner stream) cho tới khi có hoạt động mới.
+13. `apps/api/src/services/agent-activity-service.ts` → `loadAgentActivity()`: cho mỗi ticket, chọn báo cáo tốt
+    nhất giữa các máy chưa bị revoke — job đang chạy tươi > job đang chờ tươi > job vừa lỗi > mọi báo cáo cũ
+    (đọc `machines.runningJobs`/`waitingJobs`/`failedJobs`, flow `machine-pairing`); heartbeat cũ hơn
+    `AGENT_ACTIVITY_STALE_MS` (2 phút) hoặc máy offline đọc thành `unknown`, không bao giờ `running`. Ticket
+    `todo` không máy nào báo trả `unreported` kèm máy được gán (`assigneeMachineId`); trạng thái `failed`/
+    `unreported` bị ẩn với ticket đã đóng (`done`/`cancelled`). `withAgentActivity()` gắn kết quả vào DTO —
+    `ticketRoutes` (`GET /v1/tickets`, `GET /v1/tickets/:id`) dùng nó cho cả ticket và con; route daemon không
+    gọi, nên `Ticket.agentActivity` luôn vắng ở đó. `recordHeartbeat()` (flow `machine-pairing`) dùng
+    `activitySignatures()`/`changedTicketIds()`/`heartbeatFresh()` cùng file để biết ticket nào cần phát
+    `agent.activity_changed`.
 
 ## Files
 
@@ -94,13 +104,16 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/services/report-service.ts` | Report và agent-meta | `submitReport`, `recordAgentMeta`, `getReports`, `getCurrentReport` |
 | `apps/api/src/services/budget-service.ts` | Trần con, ngân sách, hold | `enforceChildCap`, `addCost`, `applyHold`, `liftHold`, `getBudgetStatus` |
 | `apps/api/src/jobs/stuck-ticket-alarm.ts` | Báo ticket đứng yên không ai xử lý | `findStuckTickets`, `raiseStuckTicketAlarms`, `startStuckTicketAlarm`, `WaitingJobsRegistry` |
+| `apps/api/src/services/agent-activity-service.ts` | Tính hoạt động agent hiển thị cho owner, từ heartbeat máy | `loadAgentActivity`, `withAgentActivity`, `activitySignatures`, `changedTicketIds`, `heartbeatFresh` |
 | `packages/shared/src/ticket-schemas.ts` | Enum trạng thái/loại/ưu tiên/actor ticket | `TicketStatus`, `TicketType`, `Actor` |
-| `packages/shared/src/agent-schemas.ts` | Enum role/complexity/model/effort/bước agent | `AgentRole`, `Complexity`, `ModelAlias`, `Effort`, `RoleStage`, `DOCS_MODEL` |
+| `packages/shared/src/agent-schemas.ts` | Enum role/complexity/model/effort/bước agent, lý do chờ job và hoạt động agent | `AgentRole`, `Complexity`, `ModelAlias`, `Effort`, `RoleStage`, `DOCS_MODEL`, `JobWaitReason`, `JobWaitDetail`, `AGENT_ACTIVITY_STALE_MS`, `AgentActivityStatus`, `AgentActivity` |
 | `packages/shared/src/status-workflow.ts` | Bảng cạnh workflow, kiểm tra transition | `canTransition`, `allowedTransitions`, `AGENT_EDGES`, `OWNER_EDGES`, `TERMINAL_STATUSES` |
 
 ## Dữ liệu
 
 - Bảng: `tickets`, `ticket_counters`, `comments`, `ticket_reports`, `budgets_usage`.
+- Trường tính không lưu DB: `Ticket.agentActivity` — `withAgentActivity()` đọc bảng `machines` (flow
+  `machine-pairing`) mỗi lần trả owner đọc, không cache.
 - Sự kiện: `ticket.assigned`, `ticket.status_changed`, `ticket.cancelled`, `ticket.comment_added`,
   `ticket.updated`, `ticket.reopened`, `ticket.unblocked`, `dependency.resolved`, `children.all_done`,
   `budget.exceeded`, `ticket.stuck`.
@@ -110,6 +123,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 
 - daemon-api: mọi ghi của agent (tạo subtask, file bug, report, transition, bình luận) gọi thẳng các hàm ở
   đây với `actor='agent'`, qua route `/v1/daemon/*`.
+- machine-pairing: `agent-activity-service.ts` đọc `machines.runningJobs`/`waitingJobs`/`failedJobs` (ghi bởi
+  `recordHeartbeat()`) để tính `AgentActivity` của từng ticket; `agent.activity_changed` do `recordHeartbeat()`
+  phát khi báo cáo đổi.
 - project-claims: `qcDefaultMcps()` (project-schemas) quyết định MCP bắt buộc của QC; `retargetOpenTickets()`
   ở đó cập nhật `assignee_machine_id` khi project đổi chủ.
 - event-delivery: mọi `NewEvent` sinh ra ở đây được `appendEvents()` ghi vào outbox `events` rồi phát qua SSE.
@@ -136,4 +152,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - `apps/api/test/stuck-ticket-alarm.test.ts`: báo đúng một lần mỗi lần im lặng, bỏ qua ticket chờ owner/còn
   con/còn dependency mở, bỏ qua ticket máy online đang chạy hoặc giữ trong hàng đợi/backoff, hết hạn
   `waitingJobs` sau `WAITING_JOBS_TTL_MS`, `POST /v1/daemon/heartbeat` nhận và validate `waitingJobs`.
+- `apps/api/test/agent-activity.test.ts`: ticket detail và danh sách hiện đúng job đang chạy (stage, model,
+  effort), lý do chờ và lỗi; chỉ ticket đổi báo cáo mới được nêu trong `agent.activity_changed` (số tải đổi
+  thì không); hai heartbeat cùng lúc của một máy đều xong; đọc máy im lặng/offline thành `unknown` rồi báo lại đủ ticket khi máy báo cáo tươi lần nữa; gán
+  ticket `todo` chưa ai nhận cho máy được giao; giữ báo cáo còn hoạt động dù lý do chờ lạ từ một daemon mới
+  hơn, và liệt kê job chờ theo từng máy.
 - `packages/shared/src/status-workflow.test.ts`: `canTransition`/`allowedTransitions` cho từng actor.

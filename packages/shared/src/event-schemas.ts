@@ -105,6 +105,15 @@ export const EventPayload = z.discriminatedUnion('type', [
       status: z.enum(['approved', 'rejected', 'withdrawn']),
     }),
   }),
+  /**
+   * A machine's heartbeat changed what it reports doing with these tickets (a job was taken, started,
+   * started waiting for another reason, failed or ended), or the machine came back after going silent.
+   * Owner stream only; the web refetches the tickets' agent activity.
+   */
+  z.object({
+    type: z.literal('agent.activity_changed'),
+    data: z.object({ machineId: z.string(), ticketIds: z.array(z.string()) }),
+  }),
   /** The owner's inbox read state changed on some device. Owner stream only. */
   z.object({ type: z.literal('inbox.read'), data: z.object({ unread: z.number().int().min(0) }) }),
   z.object({

@@ -54,7 +54,9 @@ owner tự đổi mật khẩu.
     bị đăng xuất.", `router.invalidate()`. Có nút chuyển sang dùng mã khôi phục thay TOTP.
 12. `apps/api/src/routes/auth-routes.ts` → `POST /v1/auth/password`: đứng sau `ownerGuard` (session + Origin +
     CSRF) và dùng cùng giới hạn tần suất theo IP với đăng nhập (`loginRateLimitPerMinute`); validate
-    `ChangePasswordRequest` (400 khi mật khẩu mới quá ngắn hoặc trùng mật khẩu hiện tại), gọi
+    `ChangePasswordRequest` (định nghĩa cùng `packages/shared/src/api-schemas.ts` với `Ticket` của flow
+    `ticket-lifecycle` — trường `agentActivity` mới của `Ticket` không ảnh hưởng gì tới schema này; 400 khi mật
+    khẩu mới quá ngắn hoặc trùng mật khẩu hiện tại), gọi
     `changeOwnerPassword()` rồi `setSessionCookies()` với session mới. Không dùng `Idempotency-Key` (route
     owner không dùng cơ chế này).
 13. `apps/api/src/auth/owner-auth.ts` → `changeOwnerPassword()`: xác minh mật khẩu hiện tại trước (để một

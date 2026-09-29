@@ -1,13 +1,14 @@
 import { mkdirSync } from 'node:fs';
-import type {
-  AgentRole,
-  Complexity,
-  Effort,
-  ModelAlias,
-  RoleStage,
-  SkillInventory,
-  Ticket,
-  TicketDetailResponse,
+import {
+  type AgentRole,
+  type Complexity,
+  canTransition,
+  type Effort,
+  type ModelAlias,
+  type RoleStage,
+  type SkillInventory,
+  type Ticket,
+  type TicketDetailResponse,
 } from '@crew/shared';
 import type { VpsClient } from '../api/vps-client.js';
 import type { DaemonConfig, ProjectConfig } from '../config.js';
@@ -45,6 +46,7 @@ import { cleanupJob, jobTmpDir } from './job-cleanup.js';
 import type { ResourceTracker } from './resource-tracker.js';
 import { classifyRetry, isBackoffError } from './retry-classifier.js';
 import { ScriptedCrash } from './scripted-runner.js';
+import { scrubSecrets } from './secret-scrubber.js';
 import { mcpServersUsed, skillsInvoked } from './skill-usage.js';
 
 // ---------------------------------------------------------------------------
@@ -330,6 +332,16 @@ export interface JobRunnerDeps {
 
 const nowIso = () => new Date().toISOString();
 
+/**
+ * One line naming an unexpected error for the ticket and the owner: its class (and errno code, e.g.
+ * `ENOENT`) and message, with credential-shaped strings removed.
+ */
+export function crashText(error: Error): string {
+  const code = (error as NodeJS.ErrnoException).code;
+  const name = `${error.name || 'Error'}${typeof code === 'string' ? ` ${code}` : ''}`;
+  return scrubSecrets(`${name}: ${error.message}`).text.slice(0, 500);
+}
+
 function formatSaigon(date: Date): string {
   return new Intl.DateTimeFormat('vi-VN', {
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -373,24 +385,25 @@ export class JobRunner {
       endedAt: null,
       retryAt: null,
       waitingDeps: false,
+      waitReason: null,
+      waitDetail: null,
       pgid: null,
     });
     const done = this.execute(running, controller)
       .catch(async (error: Error) => {
         this.deps.log('error', 'job crashed', { jobId: job.id, error: error.message });
         if (this.deps.halted() || error instanceof ScriptedCrash) return;
-        // An unexpected error (planner, workspace, API) must not leave the job "running" forever.
+        // An unexpected error (planner, prompt, workspace, API) must not leave the job "running" forever,
+        // and the owner must see it on the ticket, like a failed run.
         const { state } = this.deps;
+        const text = crashText(error);
         const failed = state.transaction(() => {
-          const ended = state.updateJob(job.id, {
-            status: 'failed',
-            error: error.message,
-            endedAt: nowIso(),
-          });
+          const ended = state.updateJob(job.id, { status: 'failed', error: text, endedAt: nowIso() });
           foldWakeups(state, ended);
           return ended;
         });
         this.deps.onJobChanged?.(failed);
+        await this.reportCrash(failed, text);
         await this.cleanup(failed);
       })
       .finally(() => this.controllers.delete(job.id));
@@ -400,6 +413,34 @@ export class JobRunner {
   }
 
   private readonly pending = new Set<Promise<void>>();
+
+  /**
+   * The failure policy of a run error, for a crash outside the agent run: a comment with the error, then
+   * `blocked` when the ticket's status allows an agent to block it. The owner's unblock (or, while the
+   * ticket cannot be blocked, a comment) queues a new job.
+   */
+  private async reportCrash(job: JobRow, text: string): Promise<void> {
+    let ticket: Ticket;
+    try {
+      ticket = (await this.deps.vps.getTicket(job.ticketId)).ticket;
+    } catch (error) {
+      this.deps.log('warn', 'crash report failed', { jobId: job.id, error: (error as Error).message });
+      return;
+    }
+    if (ticket.status === 'done' || ticket.status === 'cancelled') return;
+    const block = canTransition('agent', ticket.status, 'blocked');
+    const writer = new JobWriter(this.deps.state, job.id);
+    await this.comment(
+      writer,
+      ticket.id,
+      job.role,
+      `Job gặp lỗi trên máy trước khi agent chạy xong: \`${text}\`. ` +
+        (block
+          ? 'Ticket bị chặn; chủ dự án xem lại rồi mở chặn (unblock) để chạy lại.'
+          : 'Chủ dự án bình luận vào ticket để chạy lại.'),
+    );
+    if (block) await this.transition(writer, ticket, 'blocked');
+  }
 
   /** Resolves when every launched job has finished. */
   async idle(): Promise<void> {
@@ -457,20 +498,13 @@ export class JobRunner {
       return;
     }
 
-    let workspace: JobWorkspace;
-    try {
-      const base = (await this.qcBase(ticket)) ?? plan.worktreeBase;
-      workspace = this.deps.workspace({ job, ticket, project, base });
-    } catch (error) {
-      await this.finish(
-        job,
-        ticket,
-        null,
-        { status: 'failed', error: `worktree: ${(error as Error).message}` },
-        project,
-      );
-      return;
-    }
+    // A failed worktree preparation is a crash (reported on the ticket by `launch`).
+    const workspace: JobWorkspace = this.deps.workspace({
+      job,
+      ticket,
+      project,
+      base: (await this.qcBase(ticket)) ?? plan.worktreeBase,
+    });
     const prepared = await this.deps.planner.prepare?.({
       job,
       kind,
@@ -813,7 +847,7 @@ export class JobRunner {
   private async transition(writer: JobWriter, ticket: Ticket, to: 'blocked'): Promise<void> {
     try {
       const fresh = (await this.deps.vps.getTicket(ticket.id)).ticket;
-      if (fresh.status === to || fresh.status === 'done' || fresh.status === 'cancelled') return;
+      if (!canTransition('agent', fresh.status, to)) return;
       await writer.write((key) => this.deps.vps.transition(ticket.id, to, key));
     } catch (error) {
       this.deps.log('warn', 'transition failed', {

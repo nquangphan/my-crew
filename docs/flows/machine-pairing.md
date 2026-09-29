@@ -53,9 +53,13 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
     stream SSE đang mở qua `bus.revokeMachine()` trước khi transaction commit (rollback thì
     `bus.restoreMachine()`).
 11. `apps/api/src/services/machine-service.ts` → `recordHeartbeat()`, `putInventory()`: heartbeat ghi đè
-    `resources`/`running_jobs`/`health`/`paused`, phát `machine.unhealthy` một lần khi health chuyển sang đỏ
-    (`HeartbeatRequest.waitingJobs`, cạnh `runningJobs`, không được `recordHeartbeat()` lưu vào bảng `machines`
-    — route daemon ở flow `daemon-api` đọc riêng để nuôi cảnh báo "ticket đứng yên" của flow `ticket-lifecycle`);
+    `resources`/`running_jobs`/`waiting_jobs`/`failed_jobs`/`health`/`paused`, phát `machine.unhealthy` một lần
+    khi health chuyển sang đỏ. Trước khi ghi đè, so `activitySignatures()` (bỏ số tải/RAM/slot, flow
+    `ticket-lifecycle`) của báo cáo cũ và mới; ticket nào đổi (hoặc mọi ticket của cả hai bên, khi báo cáo cũ đã
+    đọc thành `unknown` — `heartbeatFresh()`) được gộp vào đúng một `agent.activity_changed {machineId,
+    ticketIds}` (owner stream). `HeartbeatRequest.waitingJobs` còn được route daemon ở flow `daemon-api` ghi
+    riêng vào `WaitingJobsRegistry` (bộ nhớ tạm, không phải cột `machines`) để nuôi cảnh báo "ticket đứng yên"
+    của flow `ticket-lifecycle` — hai nơi lưu độc lập cùng dữ liệu heartbeat cho hai mục đích khác nhau.
     `putInventory()` ghi đè kho skill/MCP theo máy (`projectKey=null`) hoặc theo project mà máy đó sở hữu —
     `InventoryMcpServer.disabled` (do daemon gửi lên khi chủ dự án tắt server đó cho project, flow
     `daemon-runtime`) được lưu nguyên vào `machine_skills` và đọc lại bởi `assertKnownCapabilities()`.
@@ -75,8 +79,10 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 ## Dữ liệu
 
 - Bảng: `pairing_codes`, `machine_tokens`, `machines`, `machine_skills` (inventory).
-- Sự kiện: `machine.unhealthy` (health chuyển đỏ), `machine.offline` (sweep). `machine.claimed`,
-  `machine.released` phát từ flow `project-claims` khi thu hồi giải phóng claim.
+- Sự kiện: `machine.unhealthy` (health chuyển đỏ), `machine.offline` (sweep), `agent.activity_changed` (báo
+  cáo job của một ticket đổi giữa hai heartbeat, owner stream — định nghĩa và tiêu thụ ở flow
+  `ticket-lifecycle`/`event-delivery`). `machine.claimed`, `machine.released` phát từ flow `project-claims` khi
+  thu hồi giải phóng claim.
 - Gọi ngoài: không.
 
 ## Flow liên quan
@@ -88,6 +94,9 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
   `packages/shared/src/machine-schemas.ts` (file dùng chung bởi flow này).
 - daemon-api: mọi route `/v1/daemon/*` dùng `machineGuard()`, `assertTicketInScope()`/`assertTicketReadable()`
   định nghĩa ở đây; `POST /v1/daemon/tickets` và `.../bugs` gọi `assertKnownCapabilities()` trước khi tạo.
+- ticket-lifecycle: `recordHeartbeat()` gọi `activitySignatures()`/`changedTicketIds()`/`heartbeatFresh()` của
+  `agent-activity-service.ts` để phát `agent.activity_changed`; `AgentActivity` mà owner đọc trên ticket đọc lại
+  `machines.runningJobs`/`waitingJobs`/`failedJobs` ghi ở đây.
 - agent-roles: PM đọc ticket `request` cha qua `assertTicketReadable()` để lấy `ownerRequest()`; đăng ký
   skill/MCP thiếu bị `assertKnownCapabilities()` chặn ngay khi tạo, không phải chờ tới lúc chạy.
 - event-delivery: `revokeMachine()` đóng stream SSE qua `EventBus.revokeMachine()`.

@@ -1,8 +1,9 @@
 import type { HealthStatus, Machine } from '@crew/shared';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Hourglass, Plus, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
+import { describeWait, formatClock } from '../components/agent-activity';
 import { PairingDialog } from '../components/pairing-dialog';
 import { Spinner } from '../components/role-avatar';
 import { TONE_CLASS } from '../components/status-lozenge';
@@ -103,36 +104,96 @@ function Inventory({ machineId }: { machineId: string }) {
   );
 }
 
-function RunningJobs({ machine }: { machine: Machine }) {
+const JOB_KIND: Record<string, string> = {
+  agent: 'agent',
+  docs_update: 'cập nhật docs',
+  docs_init: 'khởi tạo docs',
+};
+
+/** One job line: a status mark, the ticket key (linked once known), and what the job does or waits for. */
+function JobLine({
+  ticketId,
+  ticketKey,
+  mark,
+  children,
+}: {
+  ticketId: string;
+  ticketKey: string | undefined;
+  mark: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+      <span className="flex shrink-0">{mark}</span>
+      {ticketKey ? (
+        <Link to="/tickets/$ticketKey" params={{ ticketKey }} className="font-mono">
+          {ticketKey}
+        </Link>
+      ) : (
+        <span className="font-mono text-muted">{ticketId.slice(0, 8)}</span>
+      )}
+      <span className="min-w-0 break-words text-muted">{children}</span>
+    </li>
+  );
+}
+
+/** The machine's running, waiting and failed jobs from its latest heartbeat, with ticket keys and reasons. */
+function MachineJobs({ machine }: { machine: Machine }) {
+  const ids = [
+    ...new Set([
+      ...machine.runningJobs.map((job) => job.ticketId),
+      ...machine.waitingJobs.map((job) => job.ticketId),
+      ...machine.failedJobs.map((job) => job.ticketId),
+    ]),
+  ];
   const tickets = useQueries({
-    queries: machine.runningJobs.map((job) => ({
-      queryKey: ['ticket', job.ticketId],
-      queryFn: () => api.getTicket(job.ticketId),
+    queries: ids.map((id) => ({
+      queryKey: ['ticket', id],
+      queryFn: () => api.getTicket(id),
       staleTime: 60_000,
     })),
   });
-  if (machine.runningJobs.length === 0) return <>Không có</>;
+  const keyOf = (id: string) => tickets[ids.indexOf(id)]?.data?.ticket.key;
+  if (ids.length === 0) return <>Không có</>;
   return (
-    <ul className="m-0 flex list-none flex-col gap-1 p-0">
-      {machine.runningJobs.map((job, i) => {
-        const key = tickets[i]?.data?.ticket.key;
-        return (
-          <li key={`${job.ticketId}-${job.kind}`} className="flex items-center gap-1.5">
-            <Spinner label="Đang chạy" />
-            {key ? (
-              <Link to="/tickets/$ticketKey" params={{ ticketKey: key }} className="font-mono">
-                {key}
-              </Link>
-            ) : (
-              <span className="font-mono text-muted">{job.ticketId.slice(0, 8)}</span>
-            )}
-            <span className="text-muted">
-              {ROLE_META[job.role].short} · {job.kind}
-              {job.startedAt && ` · từ ${formatRelative(job.startedAt)}`}
-            </span>
-          </li>
-        );
-      })}
+    <ul aria-label={`Job trên ${machine.name}`} className="m-0 flex list-none flex-col gap-1 p-0">
+      {machine.runningJobs.map((job) => (
+        <JobLine
+          key={`run-${job.ticketId}`}
+          ticketId={job.ticketId}
+          ticketKey={keyOf(job.ticketId)}
+          mark={<Spinner label="Đang chạy" />}
+        >
+          {ROLE_META[job.role].short} · {JOB_KIND[job.kind] ?? job.kind}
+          {job.model && ` · ${job.model}${job.effort ? `/${job.effort}` : ''}`}
+          {job.startedAt && ` · chạy từ ${formatClock(job.startedAt)}`}
+        </JobLine>
+      ))}
+      {machine.waitingJobs.map((job) => (
+        <JobLine
+          key={`wait-${job.ticketId}`}
+          ticketId={job.ticketId}
+          ticketKey={keyOf(job.ticketId)}
+          mark={<Hourglass size={14} aria-label="Đang chờ" className="text-warn-ink" />}
+        >
+          {job.role ? `${ROLE_META[job.role].short} · ` : ''}
+          {describeWait(
+            job.waitReason ?? (job.status === 'backoff' ? 'retry_at' : null),
+            job.waitDetail ?? (job.retryAt ? { retryAt: job.retryAt } : null),
+          )}
+          {job.since && ` · nhận lúc ${formatClock(job.since)}`}
+        </JobLine>
+      ))}
+      {machine.failedJobs.map((job) => (
+        <JobLine
+          key={`fail-${job.ticketId}`}
+          ticketId={job.ticketId}
+          ticketKey={keyOf(job.ticketId)}
+          mark={<TriangleAlert size={14} aria-label="Lỗi" className="text-bad" />}
+        >
+          {ROLE_META[job.role].short} · lỗi lúc {formatClock(job.failedAt)}: {job.error}
+        </JobLine>
+      ))}
     </ul>
   );
 }
@@ -217,8 +278,8 @@ function MachineCard({ machine }: { machine: Machine }) {
               }`
             : '—'}
         </Fact>
-        <Fact label="Job đang chạy">
-          <RunningJobs machine={machine} />
+        <Fact label="Job">
+          <MachineJobs machine={machine} />
         </Fact>
         <Fact label="Dự án">
           {machine.projectKeys.length > 0 ? (

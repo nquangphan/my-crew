@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AgentRole, Effort } from './agent-schemas.js';
+import { AgentRole, Effort, JobWaitDetail, JobWaitReason, RoleStage } from './agent-schemas.js';
 import { CreateCommentRequest, TotpCode } from './api-schemas.js';
 import {
   CreateProjectRequest,
@@ -117,30 +117,62 @@ export const MachineResources = z.object({
 });
 export type MachineResources = z.infer<typeof MachineResources>;
 
+const JobKindSchema = z.enum(['agent', 'docs_update', 'docs_init']);
+const RunModel = z.string().trim().min(1).max(100);
+const RunEffort = z.string().trim().min(1).max(20);
+
 export const RunningJob = z.object({
   ticketId: z.uuid(),
   role: AgentRole,
-  kind: z.enum(['agent', 'docs_update', 'docs_init']),
+  kind: JobKindSchema,
   startedAt: z.iso.datetime().optional(),
+  /** The role step, model and effort of the run (set once the run is planned). */
+  stage: RoleStage.optional().catch(undefined),
+  model: RunModel.optional(),
+  effort: RunEffort.optional(),
 });
 export type RunningJob = z.infer<typeof RunningJob>;
 
 /**
  * A job the daemon holds but is not running: queued (waiting for a slot or a dependency) or parked in
- * backoff until `retryAt`. The server uses them only to tell a waiting ticket from a stuck one.
+ * backoff until `retryAt`. The server tells a waiting ticket from a stuck one by them, and shows the owner
+ * why each one waits (`waitReason`, from the daemon scheduler's last decision). Unknown reasons from a
+ * newer daemon are dropped rather than failing the heartbeat.
  */
 export const WaitingJob = z.object({
   ticketId: z.uuid(),
   status: z.enum(['queued', 'backoff']),
   retryAt: z.iso.datetime().optional(),
+  role: AgentRole.optional(),
+  kind: JobKindSchema.optional(),
+  stage: RoleStage.optional().catch(undefined),
+  /** When the machine took the job. */
+  since: z.iso.datetime().optional(),
+  waitReason: JobWaitReason.optional().catch(undefined),
+  waitDetail: JobWaitDetail.optional().catch(undefined),
 });
 export type WaitingJob = z.infer<typeof WaitingJob>;
+
+/**
+ * The latest job of a ticket on this machine failed (a crash before or during the start, or a run error)
+ * and no new job has started for the ticket since. Reported for a day after the failure.
+ */
+export const FailedJob = z.object({
+  ticketId: z.uuid(),
+  role: AgentRole,
+  stage: RoleStage.optional().catch(undefined),
+  failedAt: z.iso.datetime(),
+  /** Error class and message, scrubbed of secrets. */
+  error: z.string().max(500),
+});
+export type FailedJob = z.infer<typeof FailedJob>;
 
 /** `POST /v1/daemon/heartbeat`, every 30 s. A heartbeat replaces the previous state. */
 export const HeartbeatRequest = z.object({
   resources: MachineResources,
   runningJobs: z.array(RunningJob).max(200).default([]),
   waitingJobs: z.array(WaitingJob).max(500).default([]),
+  failedJobs: z.array(FailedJob).max(200).default([]),
   cliVersion: z.string().trim().min(1).max(50),
   appVersion: z.string().trim().min(1).max(50).optional(),
   paused: z.boolean().default(false),
@@ -182,6 +214,9 @@ export const Machine = z.object({
   health: HealthSummary.nullable(),
   resources: MachineResources.nullable(),
   runningJobs: z.array(RunningJob),
+  /** Queued and backoff jobs of the latest heartbeat, with their wait reasons. */
+  waitingJobs: z.array(WaitingJob),
+  failedJobs: z.array(FailedJob),
   cliVersion: z.string().nullable(),
   appVersion: z.string().nullable(),
   /** Latest expiry among the machine's live tokens; null when none is live. */

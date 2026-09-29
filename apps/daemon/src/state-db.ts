@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { chmodSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { AgentRole, RoleStage } from '@crew/shared';
+import type { AgentRole, JobWaitDetail, JobWaitReason, RoleStage } from '@crew/shared';
 import Database from 'better-sqlite3';
 
 export type JobKind = 'agent' | 'docs_update' | 'docs_init';
@@ -66,6 +66,9 @@ export interface JobRow {
   capabilities: CapabilityChoice | null;
   /** Recorded by the docs job's `return_to_dev`: why the commit failed and the hook output. */
   returnToDev: { summaryMd: string; output: string } | null;
+  /** Why the scheduler last left this queued or backoff job waiting; cleared when the job starts. */
+  waitReason: JobWaitReason | null;
+  waitDetail: JobWaitDetail | null;
 }
 
 /** What a run selected in its capability preflight, each with a one-line reason. */
@@ -147,7 +150,9 @@ create table if not exists jobs (
   stage text,
   failed_attempts integer not null default 0,
   capabilities text,
-  return_to_dev text
+  return_to_dev text,
+  wait_reason text,
+  wait_detail text
 );
 create unique index if not exists jobs_one_active_per_ticket
   on jobs (ticket_id) where status in ('queued', 'running', 'backoff');
@@ -186,6 +191,8 @@ const LATER_COLUMNS: readonly (readonly [string, string])[] = [
   ['failed_attempts', 'integer not null default 0'],
   ['capabilities', 'text'],
   ['return_to_dev', 'text'],
+  ['wait_reason', 'text'],
+  ['wait_detail', 'text'],
 ];
 
 type Row = Record<string, unknown>;
@@ -235,6 +242,8 @@ function toJob(row: Row): JobRow {
     failedAttempts: (row.failed_attempts as number | null) ?? 0,
     capabilities: json<CapabilityChoice | null>(row.capabilities, null),
     returnToDev: json<JobRow['returnToDev']>(row.return_to_dev, null),
+    waitReason: (row.wait_reason as JobWaitReason | null) ?? null,
+    waitDetail: json<JobWaitDetail | null>(row.wait_detail, null),
   };
 }
 
@@ -269,6 +278,8 @@ const JOB_COLUMNS = {
   failedAttempts: ['failed_attempts', (v: unknown) => v],
   capabilities: ['capabilities', (v: unknown) => (v === null ? null : JSON.stringify(v))],
   returnToDev: ['return_to_dev', (v: unknown) => (v === null ? null : JSON.stringify(v))],
+  waitReason: ['wait_reason', (v: unknown) => v],
+  waitDetail: ['wait_detail', (v: unknown) => (v === null ? null : JSON.stringify(v))],
 } as const satisfies Record<string, readonly [string, (v: unknown) => unknown]>;
 
 export type JobPatch = Partial<Pick<JobRow, keyof typeof JOB_COLUMNS>>;
@@ -401,6 +412,23 @@ export class StateDb {
     const rows = this.db
       .prepare('select * from jobs where ticket_id = ? order by created_at, rowid')
       .all(ticketId) as Row[];
+    return rows.map(toJob);
+  }
+
+  /**
+   * Failed jobs that ended at or after `since` and are still their ticket's latest job (no job was created
+   * for the ticket after them), oldest first.
+   */
+  latestFailures(since: Date): JobRow[] {
+    const rows = this.db
+      .prepare(
+        `select * from jobs j where j.status = 'failed' and j.ended_at >= ?
+           and not exists (
+             select 1 from jobs k where k.ticket_id = j.ticket_id
+               and (k.created_at > j.created_at or (k.created_at = j.created_at and k.rowid > j.rowid)))
+         order by j.ended_at, j.rowid`,
+      )
+      .all(since.toISOString()) as Row[];
     return rows.map(toJob);
   }
 

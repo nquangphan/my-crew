@@ -29,10 +29,12 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
    lại.
 3. `apps/api/src/routes/daemon-routes.ts` → token/heartbeat/inventory: `POST /v1/daemon/token/rotate` (không
    cần Idempotency-Key vì response là secret) gọi `rotateToken()`; `POST /v1/daemon/heartbeat` (không cần
-   key, là bản thay toàn trạng thái mỗi 30s) gọi `recordHeartbeat()` rồi ghi `waitingJobs` của body
-   (`HeartbeatRequest.waitingJobs`, tối đa 500, job `queued`/`backoff` daemon đang giữ) vào
-   `RouteDeps.waitingJobs` (`WaitingJobsRegistry`, flow `ticket-lifecycle`) theo máy; `PUT /v1/daemon/skills`
-   gọi `putInventory()`, cả hai từ `machine-service.ts` (flow `machine-pairing`).
+   key, là bản thay toàn trạng thái mỗi 30s) gọi `recordHeartbeat()` — nay cũng lưu `failedJobs` và lý do chờ
+   (`waitReason`/`waitDetail`) của mỗi `waitingJobs[]` (schema `HeartbeatRequest`, flow `machine-pairing`) vào
+   bảng `machines` — rồi route còn ghi riêng `waitingJobs` của body (tối đa 500, job `queued`/`backoff` daemon
+   đang giữ) vào `RouteDeps.waitingJobs` (`WaitingJobsRegistry`, flow `ticket-lifecycle`) theo máy, một bộ nhớ
+   tạm khác phục vụ cảnh báo "ticket đứng yên"; `PUT /v1/daemon/skills` gọi `putInventory()`, cả hai từ
+   `machine-service.ts` (flow `machine-pairing`).
 4. `apps/api/src/routes/daemon-routes.ts` → project/claim: `GET/POST /v1/daemon/projects`,
    `POST/DELETE /v1/daemon/claims*`, `GET /v1/projects/catalog` (chỉ máy host assistant,
    `assertAssistantHost()`) gọi thẳng `claim-service.ts` (flow `project-claims`). Mỗi `DaemonProject` trong

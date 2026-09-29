@@ -45,7 +45,10 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    (ví dụ `api.changePassword()` gọi `/v1/auth/password`, flow `owner-auth`) không gọi `onUnauthorized()` khi
    gặp 401, để trang tự quyết định xử lý.
 8. `apps/web/src/lib/queries.ts` → `keys`, `sessionQuery`, `useTickets`/`useTicket`/`useProjects`/`useNotices`/
-   `useProjectChanges`/…: định nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác.
+   `useProjectChanges`/…: định nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác;
+   `patchCachedTicket()` viết ticket vừa đổi vào mọi cache list/detail sau một lượt ghi — vì response ghi
+   không có `agentActivity` (trường chỉ owner đọc mới có, flow `ticket-lifecycle`), nó giữ lại giá trị đang
+   cache thay vì ghi đè bằng rỗng.
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
 

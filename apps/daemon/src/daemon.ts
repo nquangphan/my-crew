@@ -5,8 +5,11 @@ import { dirname, join } from 'node:path';
 import type { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk';
 import {
   type DaemonProject,
+  type FailedJob,
   type HealthSummary,
   type HeartbeatRequest,
+  type JobWaitDetail,
+  type JobWaitReason,
   type RunningJob,
   type SkillInventory,
   TERMINAL_STATUSES,
@@ -37,11 +40,11 @@ import { cleanupJob, sweepOrphans } from './runner/job-cleanup.js';
 import { JobRunner, type RolePlanner } from './runner/job-runner.js';
 import { ResourceOps, type WorktreeEntry } from './runner/resource-report.js';
 import { ResourceTracker } from './runner/resource-tracker.js';
-import { takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
+import { type ResourceSnapshot, takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
 import { Scheduler, type StartDecision } from './scheduler/scheduler.js';
 import { defaultTokenStore, type TokenStore } from './secrets.js';
 import { probeInventory } from './skills/skill-inventory.js';
-import { type CleanupRecord, type JobRow, StateDb } from './state-db.js';
+import { ACTIVE_JOB_STATUSES, type CleanupRecord, type JobRow, StateDb } from './state-db.js';
 import { type DispatchEffect, wakeTicket } from './stream/dispatcher.js';
 import { HeartbeatLoop, StreamClient } from './stream/stream-client.js';
 
@@ -144,6 +147,8 @@ export interface Daemon {
 }
 
 const MACHINE_INVENTORY = '';
+/** A failed job is reported to the server (as the ticket's agent activity) for a day. */
+const FAILED_JOB_REPORT_MS = 24 * 60 * 60 * 1000;
 /** The docs standard is installed next to the crew-docs bundle, for the docs-init prompt. */
 const STANDARD_FILE = 'STANDARD.md';
 
@@ -445,30 +450,82 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     cleanupGraceMs: timings.cleanupGraceMs,
   });
 
+  /** Ticket keys by id, for log lines (jobs only carry the ticket id). */
+  const ticketKeys = new Map<string, string>();
+
   async function decide(job: JobRow): Promise<StartDecision> {
     if (job.projectId) {
       const view = projectsView.get(job.projectId);
-      if (!view) return { action: 'defer', reason: 'project not in this machine view yet' };
+      if (!view)
+        return {
+          action: 'defer',
+          reason: 'project not in this machine view yet',
+          wait: 'project_not_here',
+        };
       if (view.ownerState !== 'mine')
-        return { action: 'defer', reason: `project ${view.key} is not owned here` };
+        return {
+          action: 'defer',
+          reason: `project ${view.key} is not owned here`,
+          wait: 'project_not_here',
+          detail: { projectKey: view.key },
+        };
       if (!localProject(view.key))
-        return { action: 'defer', reason: `project ${view.key} has no local folder` };
+        return {
+          action: 'defer',
+          reason: `project ${view.key} has no local folder`,
+          wait: 'no_local_folder',
+          detail: { projectKey: view.key },
+        };
     } else if (job.role === 'assistant' && !hostsAssistant) {
-      return { action: 'defer', reason: 'this machine does not host the assistant' };
+      return {
+        action: 'defer',
+        reason: 'this machine does not host the assistant',
+        wait: 'not_assistant_host',
+      };
     }
     const detail = await vps.getTicket(job.ticketId);
     const { ticket } = detail;
+    ticketKeys.set(ticket.id, ticket.key);
     if (ticket.status === 'done' || ticket.status === 'cancelled') {
       return { action: 'skip', reason: `ticket is ${ticket.status}` };
     }
+    const unfinished: string[] = [];
     for (const dependency of ticket.dependsOn) {
       const dep = await vps.getTicket(dependency);
-      if (dep.ticket.status !== 'done') return { action: 'wait_deps' };
+      if (dep.ticket.status !== 'done') unfinished.push(dep.ticket.key);
     }
+    if (unfinished.length > 0) return { action: 'wait_deps', dependsOn: unfinished };
     const budget = await vps.getBudget(ticket.id);
     // The server holds the pm_task for the owner; the job stays queued and starts once they approve.
-    if (budget.overBudget) return { action: 'defer', reason: 'over budget: waiting for the owner' };
+    if (budget.overBudget)
+      return { action: 'defer', reason: 'over budget: waiting for the owner', wait: 'over_budget' };
     return { action: 'start' };
+  }
+
+  /** Logs a job's new wait reason once, with its ticket key (fetched when the scheduler has not seen it). */
+  function logWaitChange(job: JobRow, reason: JobWaitReason, detail: JobWaitDetail | null): void {
+    reportSoon();
+    const write = (ticket: string) =>
+      log('info', 'job waiting', {
+        ticket,
+        jobId: job.id,
+        role: job.role,
+        reason,
+        ...(job.waitReason ? { previous: job.waitReason } : {}),
+        ...(detail ? { detail } : {}),
+      });
+    const known = ticketKeys.get(job.ticketId);
+    if (known) {
+      write(known);
+      return;
+    }
+    vps.getTicket(job.ticketId).then(
+      ({ ticket }) => {
+        ticketKeys.set(ticket.id, ticket.key);
+        write(ticket.key);
+      },
+      () => write(job.ticketId),
+    );
   }
 
   /**
@@ -547,6 +604,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     decide,
     launch: (job) => jobs.launch(job),
     onError: (error, job) => log('warn', 'scheduler', { jobId: job?.id, error: error.message }),
+    onWaitChange: logWaitChange,
     tickMs: timings.tickMs,
     recheckMs: timings.recheckMs,
   });
@@ -625,19 +683,57 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     }
   }
 
+  /**
+   * Why a held job waits, as the owner should read it now: paused and a pending retry time win over the
+   * scheduler's last decision, and a slot shortage carries the current load, memory and slot numbers.
+   */
+  function waitOf(
+    job: JobRow,
+    snapshot: ResourceSnapshot,
+    running: number,
+    now: number,
+  ): { waitReason?: JobWaitReason; waitDetail?: JobWaitDetail } {
+    if (paused) return { waitReason: 'paused' };
+    if (job.retryAt && Date.parse(job.retryAt) > now) {
+      return { waitReason: 'retry_at', waitDetail: { retryAt: job.retryAt } };
+    }
+    if (job.waitReason === 'no_slots') {
+      const { resources } = config;
+      return {
+        waitReason: 'no_slots',
+        waitDetail: {
+          loadAvg1: snapshot.loadAvg1,
+          cpus: snapshot.cpus,
+          maxLoad: Math.round(snapshot.cpus * resources.maxLoadPerCpu * 100) / 100,
+          freeMemGb: snapshot.freeMemGb,
+          minFreeMemGb: resources.minFreeMemGb,
+          slots: options.slots?.() ?? totalSlots(resources, snapshot),
+          runningJobs: running,
+        },
+      };
+    }
+    return {
+      ...(job.waitReason ? { waitReason: job.waitReason } : {}),
+      ...(job.waitDetail ? { waitDetail: job.waitDetail } : {}),
+    };
+  }
+
   async function heartbeat(): Promise<void> {
     const snapshot = takeSnapshot(home);
+    const now = Date.now();
     const isTicketId = (job: JobRow) => /^[0-9a-f-]{36}$/i.test(job.ticketId);
-    const runningJobs: RunningJob[] = state
-      .listJobs(['running'])
-      .filter(isTicketId)
-      .map((job) => ({
-        ticketId: job.ticketId,
-        role: job.role,
-        kind: job.kind,
-        ...(job.startedAt ? { startedAt: job.startedAt } : {}),
-      }));
-    // Held but not running: the server's stuck-ticket alarm must not report these tickets.
+    const running = state.listJobs(['running']);
+    const runningJobs: RunningJob[] = running.filter(isTicketId).map((job) => ({
+      ticketId: job.ticketId,
+      role: job.role,
+      kind: job.kind,
+      ...(job.startedAt ? { startedAt: job.startedAt } : {}),
+      ...(job.stage ? { stage: job.stage } : {}),
+      ...(job.model ? { model: job.model.slice(0, 100) } : {}),
+      ...(job.effort ? { effort: job.effort.slice(0, 20) } : {}),
+    }));
+    // Held but not running: the server's stuck-ticket alarm must not report these tickets, and the owner
+    // sees why each one waits.
     const waitingJobs: WaitingJob[] = state
       .listJobs(['queued', 'backoff'])
       .filter(isTicketId)
@@ -645,7 +741,23 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
         ticketId: job.ticketId,
         status: job.status === 'backoff' ? 'backoff' : 'queued',
         ...(job.retryAt ? { retryAt: job.retryAt } : {}),
+        role: job.role,
+        kind: job.kind,
+        ...(job.stage ? { stage: job.stage } : {}),
+        since: job.createdAt,
+        ...waitOf(job, snapshot, running.length, now),
       }));
+    const failedJobs: FailedJob[] = state
+      .latestFailures(new Date(now - FAILED_JOB_REPORT_MS))
+      .filter(isTicketId)
+      .map((job) => ({
+        ticketId: job.ticketId,
+        role: job.role,
+        ...(job.stage ? { stage: job.stage } : {}),
+        failedAt: job.endedAt ?? job.createdAt,
+        error: (job.error ?? 'không rõ lỗi').slice(0, 500),
+      }))
+      .slice(-200);
     const health = options.health?.();
     const body: HeartbeatRequest = {
       resources: {
@@ -658,6 +770,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       },
       runningJobs,
       waitingJobs,
+      failedJobs,
       cliVersion: claudeVersion ?? 'unknown',
       ...(options.appVersion ? { appVersion: options.appVersion } : {}),
       paused,
@@ -671,6 +784,20 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     intervalMs: timings.heartbeatMs,
     beat: heartbeat,
     onError: (error) => log('warn', 'heartbeat failed', { error: error.message }),
+  });
+
+  /** Sends a heartbeat now (coalesced), so the owner sees a job change without waiting for the 30 s beat. */
+  function reportSoon(): void {
+    if (started && !stopping && !halted) void heartbeatLoop.tick();
+  }
+
+  // A job was taken, started, parked or ended: report it at once. Other job updates wait for the timer.
+  const lastStatus = new Map<string, string>();
+  events.on('job', (job: JobRow) => {
+    if (lastStatus.get(job.id) === job.status) return;
+    if (ACTIVE_JOB_STATUSES.includes(job.status)) lastStatus.set(job.id, job.status);
+    else lastStatus.delete(job.id);
+    reportSoon();
   });
 
   async function sweepWorktrees(): Promise<number> {
@@ -798,6 +925,9 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     },
     pause() {
       paused = true;
+      log('info', 'daemon paused: held jobs wait until resumed', {
+        held: state.listJobs(['queued', 'backoff']).length,
+      });
       void heartbeatLoop.tick();
       events.emit('status', daemon.status());
     },

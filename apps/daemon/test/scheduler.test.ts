@@ -50,14 +50,18 @@ describe('slot math', () => {
 });
 
 describe('Scheduler', () => {
-  function harness(slots: number, decide: (job: JobRow) => StartDecision = () => ({ action: 'start' })) {
+  function harness(
+    slots: number | (() => number),
+    decide: (job: JobRow) => StartDecision = () => ({ action: 'start' }),
+  ) {
     const state = new StateDb(':memory:');
     const launched: string[] = [];
+    const waits: { jobId: string; reason: string }[] = [];
     let concurrent = 0;
     let peak = 0;
     const scheduler = new Scheduler({
       state,
-      slots: () => slots,
+      slots: typeof slots === 'function' ? slots : () => slots,
       paused: () => false,
       decide: async (job) => decide(job),
       launch: async (job) => {
@@ -66,6 +70,7 @@ describe('Scheduler', () => {
         concurrent += 1;
         peak = Math.max(peak, concurrent);
       },
+      onWaitChange: (job, reason) => waits.push({ jobId: job.id, reason }),
       tickMs: 20,
       recheckMs: 60_000,
     });
@@ -73,7 +78,7 @@ describe('Scheduler', () => {
       state.updateJob(id, { status: 'done' });
       concurrent -= 1;
     };
-    return { state, scheduler, launched, finish, peak: () => peak };
+    return { state, scheduler, launched, finish, waits, peak: () => peak };
   }
 
   it('runs at most maxConcurrentJobs of 4 independent dev jobs at once', async () => {
@@ -125,6 +130,55 @@ describe('Scheduler', () => {
     await h.scheduler.tick();
     expect(h.state.getJob(skip.id)).toMatchObject({ status: 'skipped', error: 'over budget' });
     expect(h.state.getJob(defer.id)?.status).toBe('queued');
+  });
+
+  it('records why each job waits and reports each change of reason once', async () => {
+    let free = 0;
+    let decision: StartDecision = { action: 'wait_deps', dependsOn: ['AST-3'] };
+    const h = harness(
+      () => free,
+      () => decision,
+    );
+    const job = h.state.insertJob({ ticketId: randomUUID(), projectId: null, role: 'dev', trigger: 't' });
+    // A full machine: every tick sees no slot, but the reason is recorded and reported once.
+    await h.scheduler.tick();
+    await h.scheduler.tick();
+    expect(h.state.getJob(job.id)).toMatchObject({ waitReason: 'no_slots', waitDetail: null });
+    expect(h.waits).toEqual([{ jobId: job.id, reason: 'no_slots' }]);
+
+    free = 2;
+    await h.scheduler.tick();
+    expect(h.state.getJob(job.id)).toMatchObject({
+      waitingDeps: true,
+      waitReason: 'waiting_deps',
+      waitDetail: { dependsOn: ['AST-3'] },
+    });
+
+    decision = {
+      action: 'defer',
+      reason: 'project WEB has no local folder',
+      wait: 'no_local_folder',
+      detail: { projectKey: 'WEB' },
+    };
+    await h.scheduler.recheckWaiting();
+    expect(h.state.getJob(job.id)).toMatchObject({
+      waitReason: 'no_local_folder',
+      waitDetail: { projectKey: 'WEB' },
+    });
+    await h.scheduler.tick();
+
+    decision = { action: 'defer', reason: 'API unreachable' };
+    await h.scheduler.tick();
+    expect(h.state.getJob(job.id)).toMatchObject({
+      waitReason: 'check_failed',
+      waitDetail: { message: 'API unreachable' },
+    });
+    expect(h.waits.map((w) => w.reason)).toEqual([
+      'no_slots',
+      'waiting_deps',
+      'no_local_folder',
+      'check_failed',
+    ]);
   });
 
   it('ticks on its own timer', async () => {

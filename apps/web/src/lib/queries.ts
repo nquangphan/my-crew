@@ -208,17 +208,21 @@ export function invalidateTicketData(queryClient: QueryClient) {
   ]);
 }
 
-/** Writes a changed ticket into every cached list and detail, so the UI updates before the refetch. */
+/**
+ * Writes a changed ticket into every cached list and detail, so the UI updates before the refetch. Write
+ * responses carry no agent activity, so the cached one is kept.
+ */
 function patchCachedTicket(queryClient: QueryClient, ticket: Ticket) {
+  const merge = (cached: Ticket): Ticket => ({ ...ticket, agentActivity: cached.agentActivity });
   queryClient.setQueriesData<Ticket[]>({ queryKey: keys.tickets }, (list) =>
-    list?.map((item) => (item.id === ticket.id ? ticket : item)),
+    list?.map((item) => (item.id === ticket.id ? merge(item) : item)),
   );
   queryClient.setQueriesData<TicketDetailResponse>({ queryKey: ['ticket'] }, (detail) => {
     if (!detail) return detail;
-    if (detail.ticket.id === ticket.id) return { ...detail, ticket };
+    if (detail.ticket.id === ticket.id) return { ...detail, ticket: merge(detail.ticket) };
     return {
       ...detail,
-      children: detail.children.map((child) => (child.id === ticket.id ? ticket : child)),
+      children: detail.children.map((child) => (child.id === ticket.id ? merge(child) : child)),
     };
   });
 }

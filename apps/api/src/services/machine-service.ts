@@ -30,6 +30,7 @@ import {
 } from '../db/schema.js';
 import { ApiError, notFound } from '../errors.js';
 import type { EventBus } from '../realtime/event-bus.js';
+import { activitySignatures, changedTicketIds, heartbeatFresh } from './agent-activity-service.js';
 import { releaseEverything } from './claim-service.js';
 import { appendEvents } from './event-service.js';
 
@@ -223,7 +224,9 @@ export async function revokeMachine(db: Executor, bus: EventBus, machineId: stri
 
 /**
  * Stores the latest machine state. A health summary that turns red (from anything else) sends a
- * `machine.unhealthy` alert to the owner stream once.
+ * `machine.unhealthy` alert to the owner stream once. When the reported job activity of any ticket changed
+ * (or the machine was silent long enough for its old report to read as unknown), one
+ * `agent.activity_changed` names those tickets, so the web refetches them.
  */
 export async function recordHeartbeat(
   db: Executor,
@@ -233,16 +236,31 @@ export async function recordHeartbeat(
   const data = HeartbeatRequest.parse(input);
   return db.transaction(async (tx) => {
     const [row] = await tx
-      .select({ health: machines.health })
+      .select({
+        health: machines.health,
+        online: machines.online,
+        lastHeartbeatAt: machines.lastHeartbeatAt,
+        runningJobs: machines.runningJobs,
+        waitingJobs: machines.waitingJobs,
+        failedJobs: machines.failedJobs,
+      })
       .from(machines)
       .where(eq(machines.id, machine.machineId))
       .for('update');
     if (!row) throw notFound('machine');
+    const before = activitySignatures(row);
+    const after = activitySignatures(data);
+    // A stale report already reads as unknown: every ticket it or this one names changes on the web.
+    const changed = heartbeatFresh(row)
+      ? changedTicketIds(before, after)
+      : [...new Set([...before.keys(), ...after.keys()])];
     await tx
       .update(machines)
       .set({
         resources: data.resources,
         runningJobs: data.runningJobs,
+        waitingJobs: data.waitingJobs,
+        failedJobs: data.failedJobs,
         cliVersion: data.cliVersion,
         ...(data.appVersion ? { appVersion: data.appVersion } : {}),
         paused: data.paused,
@@ -258,6 +276,16 @@ export async function recordHeartbeat(
           payload: {
             type: 'machine.unhealthy',
             data: { machineId: machine.machineId, failing: data.health.failing },
+          },
+        },
+      ]);
+    }
+    if (changed.length > 0) {
+      await appendEvents(tx, [
+        {
+          payload: {
+            type: 'agent.activity_changed',
+            data: { machineId: machine.machineId, ticketIds: changed },
           },
         },
       ]);
@@ -307,6 +335,8 @@ function toMachineDto(
     health: row.health,
     resources: row.resources,
     runningJobs: row.runningJobs,
+    waitingJobs: row.waitingJobs,
+    failedJobs: row.failedJobs,
     cliVersion: row.cliVersion,
     appVersion: row.appVersion,
     tokenExpiresAt: extras.tokenExpiresAt?.toISOString() ?? null,

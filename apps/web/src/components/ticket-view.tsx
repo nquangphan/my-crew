@@ -15,6 +15,7 @@ import {
   useUpdateTicket,
 } from '../lib/queries';
 import { useViewport } from '../lib/ui-state';
+import { AgentActivityLine } from './agent-activity';
 import { CancelDialog } from './cancel-dialog';
 import { CommentComposer, CommentList } from './comment-thread';
 import { DetailsBox } from './details-box';
@@ -22,7 +23,6 @@ import { EventTimeline } from './event-timeline';
 import { MarkdownEditor } from './markdown-editor';
 import { MarkdownView } from './markdown-view';
 import { ReportPanel } from './report-panel';
-import { Spinner } from './role-avatar';
 import { SubtaskTree } from './subtask-tree';
 import { TypeIcon } from './type-icon';
 import { Button } from './ui/button';
@@ -290,7 +290,7 @@ function TicketViewBody({
       siblings={siblings}
       machine={ticket.assigneeMachineId ? machines.get(ticket.assigneeMachineId) : undefined}
       project={project}
-      running={running.has(ticket.id)}
+      running={running.has(ticket.id) || ticket.agentActivity?.status === 'running'}
       onStatus={move}
       onPriority={(priority) =>
         update.mutate(
@@ -301,15 +301,6 @@ function TicketViewBody({
       busy={transition.isPending || update.isPending}
       collapsible={phone}
     />
-  );
-
-  const runningBox = running.has(ticket.id) && !phone && (
-    <div className="flex flex-col gap-1.5 rounded-md border border-line bg-panel px-3.5 py-3 text-[13px]">
-      <strong>Agent đang chạy</strong>
-      <span className="flex items-center gap-2">
-        <Spinner label="Agent đang chạy" /> Đang xử lý {ticket.key}…
-      </span>
-    </div>
   );
 
   const childHeading =
@@ -361,6 +352,7 @@ function TicketViewBody({
         />
       </div>
       {phone && details}
+      <AgentActivityLine ticket={ticket} />
       {needsInput && !pinReply && <NeedsInputBanner ticket={ticket} onReply={reply} />}
       {actions}
       {mode === 'panel' && !phone && details}
@@ -408,10 +400,7 @@ function TicketViewBody({
       {mode === 'page' && viewport === 'desktop' ? (
         <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-7">
           {main}
-          <aside className="flex flex-col gap-3.5">
-            {details}
-            {runningBox}
-          </aside>
+          <aside className="flex flex-col gap-3.5">{details}</aside>
         </div>
       ) : (
         main

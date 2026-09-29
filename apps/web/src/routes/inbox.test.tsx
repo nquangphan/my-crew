@@ -20,6 +20,8 @@ const machine = (id: string, name: string, online: boolean) => ({
   health: null,
   resources: null,
   runningJobs: [],
+  waitingJobs: [],
+  failedJobs: [],
   cliVersion: null,
   appVersion: null,
   tokenExpiresAt: null,

@@ -62,6 +62,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/drizzle/0001_machine_auth_and_delivery.sql` | Migration thêm bảng auth máy + `events.seq` | — |
 | `apps/api/drizzle/0003_project_changes_and_notice_reads.sql` | Migration thêm `project_change_requests` (flow `project-claims`) và `notice_reads` (flow `event-delivery`) | — |
 | `apps/api/drizzle/0004_project_change_withdrawn.sql` | Migration thêm giá trị `withdrawn` vào enum `project_change_status` (flow `project-claims`) | — |
+| `apps/api/drizzle/0005_machine_job_activity.sql` | Migration thêm `machines.waiting_jobs`/`machines.failed_jobs` jsonb (flow `machine-pairing`, đọc bởi `ticket-lifecycle` cho hoạt động agent) | — |
 | `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, và `secret-scrubber.ts` của flow `agent-runs`) | — |
 
 ## Dữ liệu
