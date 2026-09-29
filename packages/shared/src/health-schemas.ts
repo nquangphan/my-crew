@@ -25,10 +25,15 @@ export const HEALTH_GROUP_TITLES: Record<HealthGroup, string> = {
   app: 'Ứng dụng',
 };
 
-/** Fix ids are fixed, whitelisted operations (optionally scoped to a project or a server name). */
+/**
+ * Fix ids are fixed, whitelisted operations: `action`, optionally `:scope` (a project key or similar), then
+ * optionally `:argument`. The argument is the rest of the id and may itself hold colons and spaces, because
+ * MCP server names do (`plugin:engineering:google calendar`).
+ */
 export const HealthFixId = z
   .string()
-  .regex(/^[a-z][a-z0-9-]{1,40}(:[A-Za-z0-9_.-]{1,64}){0,2}$/, 'unknown fix id');
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what the class excludes
+  .regex(/^[a-z][a-z0-9-]{1,40}(:[A-Za-z0-9_.-]{1,64}(:[^\x00-\x1f\x7f]{1,200})?)?$/, 'unknown fix id');
 
 export const HealthFix = z.object({ id: HealthFixId, label: z.string().min(1).max(100) });
 export type HealthFix = z.infer<typeof HealthFix>;

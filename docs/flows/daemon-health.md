@@ -58,7 +58,12 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
    context model của lượt chạy job thật qua `disallowedTools`/`settings.deniedMcpServers` (flow `agent-runs`),
    không chỉ bị loại khỏi `allowedTools` như trước (server cấp user hay plugin/connector từng vẫn khởi động và
    tốn context dù bị tắt); việc dò inventory mà check này đọc lại không áp hai tuỳ chọn đó, nên vẫn thấy đúng
-   trạng thái của một server đã tắt và cho fix `mcp-enable`.
+   trạng thái của một server đã tắt và cho fix `mcp-enable`. `HealthFixId` (`packages/shared/src/health-schemas.ts`)
+   là schema kiểm fixId ở IPC app desktop trước khi tới `parseFixId` — trước đây cũng chỉ cho tối đa hai đoạn
+   `:[A-Za-z0-9_.-]` nên bị đỏ oan với fixId của server plugin/connector nhiều đoạn hoặc có khoảng trắng trong
+   tên (ví dụ `mcp-disable:VISINOTE:plugin:engineering:atlassian`, `…:google calendar`), khiến nút "Tắt cho
+   project này" không làm gì; giờ dạng `action[:scope[:argument]]` với `argument` là phần còn lại của id, được
+   phép chứa dấu `:`/khoảng trắng (tối đa 200 ký tự, không ký tự điều khiển).
 5. `apps/daemon/src/health/checks/skills.ts` → `skillChecks.run()`/`fix()`: mỗi project, kho skill đã dò
    (`storedInventory()`) — chưa có thì vàng, fix `skills-refresh:<key>`; khi có `probeCheckout` (không phải
    lượt nhanh), dò skill của checkout chính rồi so với inventory trong worktree job — thiếu skill nào → đỏ,
@@ -173,3 +178,6 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
   bằng đúng code dọn tài nguyên, hiện đúng trạng thái SSE và kết nối lại được, thêm đúng ba dòng riêng khi app
   desktop truyền facts, `app.version` xanh khi updater báo `unpublished` nhưng vàng khi lỗi mạng thật, và chạy
   đủ mọi nhóm theo đúng thứ tự dashboard (từ chối fix cho nhóm không có cách sửa).
+- `packages/shared/src/health-schemas.test.ts`: `HealthFixId` nhận fixId dạng `action:scope:argument` khi
+  `argument` (phần còn lại của id) chứa dấu `:` hoặc khoảng trắng, kể cả tên server plugin/connector nhiều
+  đoạn; từ chối action sai định dạng, argument rỗng, chứa ký tự điều khiển, hoặc dài hơn 200 ký tự.

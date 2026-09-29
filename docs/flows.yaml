@@ -471,6 +471,7 @@ flows:
     tests:
       - apps/daemon/test/health-checks.test.ts
       - apps/daemon/test/health-groups.test.ts
+      - packages/shared/src/health-schemas.test.ts
   desktop-app:
     title: Ứng dụng máy local 2P Crew (Electron)
     doc: docs/flows/desktop-app.md

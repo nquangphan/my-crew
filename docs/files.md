@@ -409,6 +409,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/shared/src/docs-schemas.test.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `packages/shared/src/docs-schemas.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung), [docs-check](flows/docs-check.md) (dùng chung) |
 | `packages/shared/src/event-schemas.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `packages/shared/src/health-schemas.test.ts` | [daemon-health](flows/daemon-health.md) (test) |
 | `packages/shared/src/health-schemas.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `packages/shared/src/index.ts` | [api-platform](flows/api-platform.md) (file) |
 | `packages/shared/src/machine-schemas.ts` | [machine-pairing](flows/machine-pairing.md) (dùng chung), [project-claims](flows/project-claims.md) (dùng chung), [daemon-api](flows/daemon-api.md) (dùng chung) |
