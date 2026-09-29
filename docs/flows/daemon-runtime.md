@@ -116,7 +116,7 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
     `runHealthChecks`, `applyHealthFix`, `repoFolderChecks`, `inspectFolder`, `inspectHooks`, `HookInspection`,
     `HookState`, `serverProjects`, `storedInventory`…, runner, tool scopes, cộng
     `rolePlanner`/`resolveModel`/`renderPrompt`/`setPromptsDir`/`resolveStage`/`STAGES` của flow `agent-roles`,
-    và `readBmadInstall`/`readBmadProfile`/`BMAD_MANIFEST`/`BmadInstall` của flow `agent-workspace`) cho CLI và
+    và `readBmadInstall`/`readBmadProfile`/`BMAD_DIR`/`BMAD_MANIFEST`/`BmadInstall` của flow `agent-workspace`) cho CLI và
     app desktop (`setup-ops.ts`, `health-ops.ts`, `activity.ts`, `bmad-install.ts`, flow `desktop-app`) dùng
     chung một nguồn.
 

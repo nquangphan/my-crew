@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { type BmadInstall, readBmadInstall } from '@crew/daemon';
+import { join } from 'node:path';
+import { BMAD_DIR, type BmadInstall, readBmadInstall } from '@crew/daemon';
 import type { BmadInstallPlan, BmadLocalInstall, BmadProfile, ProjectBmadView } from '@crew/shared';
 import { type HostContext, HostError } from './host-context.js';
 
@@ -119,61 +120,39 @@ export const npxRunner: BmadRunner = ({ args, cwd, env, timeoutMs, onLine }) =>
     });
   });
 
-/** Orders `6.10.0` after `6.9.0`, and a release after its pre-releases (`6.0.0-Beta.2` < `6.0.0`). */
-export function compareBmadVersions(a: string, b: string): number {
-  const split = (version: string) => {
-    const [core = '', pre = ''] = version.replace(/^v/, '').split('-', 2);
-    return { parts: core.split('.').map((part) => Number.parseInt(part, 10) || 0), pre };
-  };
-  const left = split(a);
-  const right = split(b);
-  for (let i = 0; i < 3; i += 1) {
-    const diff = (left.parts[i] ?? 0) - (right.parts[i] ?? 0);
-    if (diff !== 0) return Math.sign(diff);
-  }
-  if (left.pre === right.pre) return 0;
-  if (!left.pre) return 1;
-  if (!right.pre) return -1;
-  return left.pre.localeCompare(right.pre, 'en', { numeric: true }) < 0 ? -1 : 1;
-}
-
+/**
+ * `no_profile` without a profile; `installed` whenever the folder already has a BMAD install, whatever its
+ * version or modules (the app never reinstalls, updates or downgrades one); otherwise `install`.
+ */
 export function bmadInstallPlan(
   profile: BmadProfile | null,
   local: BmadLocalInstall | null,
 ): BmadInstallPlan {
   if (!profile) return 'no_profile';
-  if (!local) return 'install';
-  const order = compareBmadVersions(local.version, profile.version);
-  if (order > 0) return 'newer';
-  if (order === 0 && profile.modules.every((module) => local.modules.includes(module))) return 'skip';
-  return 'update';
+  return local ? 'installed' : 'install';
 }
 
-const union = (...lists: readonly (readonly string[])[]) => [...new Set(lists.flat())];
-
 /**
- * `npx` arguments of the non-interactive install. An update keeps the modules and tools already installed
- * here (the installer removes unselected ones); `core` is always installed, so it is not listed.
+ * `npx` arguments of the fresh non-interactive install. `core` is always installed, so it is not listed;
+ * external modules are pinned to the release tags the profile recorded.
  */
-export function bmadInstallerArgs(
-  profile: BmadProfile,
-  repoPath: string,
-  local: Pick<BmadInstall, 'modules' | 'tools'> | null,
-): string[] {
-  const modules = union(profile.modules, local?.modules ?? []).filter((module) => module !== 'core');
-  // A fresh `--yes` install requires tools; crew agents run Claude Code.
-  const tools = union(profile.tools, local?.tools ?? []);
+export function bmadInstallerArgs(profile: BmadProfile, repoPath: string): string[] {
+  const modules = profile.modules.filter((module) => module !== 'core');
   const args = ['-y', `bmad-method@${profile.version}`, 'install', '--yes', '--directory', repoPath];
   if (modules.length > 0) args.push('--modules', modules.join(','));
-  args.push('--tools', (tools.length > 0 ? tools : ['claude-code']).join(','));
+  // A fresh `--yes` install requires tools; crew agents run Claude Code.
+  args.push('--tools', (profile.tools.length > 0 ? profile.tools : ['claude-code']).join(','));
   if (profile.communicationLanguage) args.push('--communication-language', profile.communicationLanguage);
   if (profile.documentOutputLanguage) args.push('--document-output-language', profile.documentOutputLanguage);
   if (profile.outputFolder) args.push('--output-folder', profile.outputFolder);
   for (const setting of profile.settings)
     args.push('--set', `${setting.module}.${setting.key}=${setting.value}`);
-  if (local) args.push('--action', 'update');
+  for (const pin of profile.pins) args.push('--pin', `${pin.module}=${pin.tag}`);
   return args;
 }
+
+/** What the result says when the folder already has BMAD: the button never touches it. */
+const alreadyInstalledText = (version: string) => `Máy này đã có BMAD ${version}; không cài lại.`;
 
 /** The install in `repoPath`, or null when there is none (or the manifest cannot be read). */
 export function localBmadInstall(repoPath: string | null): BmadInstall | null {
@@ -185,10 +164,17 @@ export function localBmadInstall(repoPath: string | null): BmadInstall | null {
   }
 }
 
+/** True when the folder has any BMAD install: a readable manifest, or at least a `_bmad/` folder. */
+function hasBmad(repoPath: string, install: BmadInstall | null): boolean {
+  return install !== null || existsSync(join(repoPath, BMAD_DIR));
+}
+
 export function bmadView(profile: BmadProfile | null, repoPath: string | null): ProjectBmadView {
   const install = localBmadInstall(repoPath);
   const local = install ? { version: install.version, modules: install.modules } : null;
-  return { profile, local, plan: bmadInstallPlan(profile, local) };
+  if (!profile) return { profile, local, plan: 'no_profile' };
+  const present = repoPath !== null && existsSync(repoPath) && hasBmad(repoPath, install);
+  return { profile, local, plan: present ? 'installed' : 'install' };
 }
 
 const NETWORK =
@@ -226,13 +212,13 @@ export interface BmadInstallDeps {
 }
 
 export interface BmadInstallOutcome {
-  status: 'skipped' | 'installed' | 'updated';
+  status: 'skipped' | 'installed';
   message: string;
 }
 
 /**
- * Installs the project's BMAD profile into `repoPath`. Skips when this version with every profile module is
- * already there; refuses to downgrade; afterwards checks the manifest and re-probes the inventory.
+ * Installs the project's BMAD profile into a folder without BMAD. A folder that already has any BMAD install
+ * is left alone (skipped). Afterwards checks the manifest and re-probes the inventory.
  */
 export async function installBmad(
   ctx: HostContext,
@@ -245,17 +231,13 @@ export async function installBmad(
   if (!existsSync(repoPath)) throw new HostError(`Không thấy thư mục ${repoPath} của ${key} trên máy này.`);
   await ctx.folderAccess(repoPath);
   const before = localBmadInstall(repoPath);
-  const plan = bmadInstallPlan(profile, before);
-  if (plan === 'skip') {
-    return { status: 'skipped', message: `Đã có BMAD ${profile.version} với đủ module.` };
+  // Any `_bmad/` counts, even one whose manifest cannot be read.
+  if (hasBmad(repoPath, before)) {
+    return { status: 'skipped', message: alreadyInstalledText(before?.version ?? 'không rõ phiên bản') };
   }
-  if (plan === 'newer') {
-    throw new HostError(
-      `Máy này đã có BMAD ${before?.version} mới hơn cấu hình (${profile.version}); app không hạ cấp BMAD.`,
-    );
-  }
+  const plan = bmadInstallPlan(profile, null);
 
-  const args = bmadInstallerArgs(profile, repoPath, before);
+  const args = bmadInstallerArgs(profile, repoPath);
   const statusBefore = gitStatus(repoPath);
   const timeoutMs = deps.timeoutMs ?? BMAD_INSTALL_TIMEOUT_MS;
   const tail: string[] = [];
@@ -302,7 +284,7 @@ export async function installBmad(
 
   const after = localBmadInstall(repoPath);
   const missingModules = profile.modules.filter((module) => !after?.modules.includes(module));
-  if (!after || compareBmadVersions(after.version, profile.version) !== 0 || missingModules.length > 0) {
+  if (!after || after.version !== profile.version || missingModules.length > 0) {
     const found = after ? `BMAD ${after.version} (module: ${after.modules.join(', ')})` : 'không có _bmad';
     ctx.log('warn', 'bmad-install-failed', { project: key, ms, reason: 'mismatch', found });
     throw new HostError(
@@ -310,10 +292,8 @@ export async function installBmad(
     );
   }
 
-  const status = before ? 'updated' : 'installed';
-  const parts = [
-    `${before ? `Đã cập nhật BMAD ${before.version} lên` : 'Đã cài BMAD'} ${profile.version} (module: ${after.modules.join(', ')}).`,
-  ];
+  const status = 'installed';
+  const parts = [`Đã cài BMAD ${profile.version} (module: ${after.modules.join(', ')}).`];
   const files = leftUncommitted(statusBefore, repoPath);
   if (files.all.length > 0) {
     parts.push(`Không commit gì: ${files.all.length} file mới hoặc đã đổi đang chờ trong thư mục project.`);

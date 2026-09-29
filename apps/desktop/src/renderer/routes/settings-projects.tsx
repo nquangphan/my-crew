@@ -1,8 +1,8 @@
 import type {
-  BmadInstallPlan,
   ClaimOutcome,
   FolderValidation,
   PendingProjectChange,
+  ProjectBmadView,
   ProjectChangeStatus,
   ProjectDetail,
   ProjectPlatform,
@@ -205,13 +205,16 @@ function TestSetupSection({
 /** Output lines kept on screen while the installer runs. */
 const MAX_BMAD_LINES = 200;
 
-const LOCAL_STATE: Record<BmadInstallPlan, { tone: 'ok' | 'warn' | 'gray' | 'info'; text: string }> = {
-  no_profile: { tone: 'gray', text: 'Chưa có cấu hình' },
-  skip: { tone: 'ok', text: 'Khớp cấu hình' },
-  install: { tone: 'gray', text: 'Chưa cài' },
-  update: { tone: 'warn', text: 'Khác cấu hình' },
-  newer: { tone: 'info', text: 'Mới hơn cấu hình' },
-};
+type LocalState = { tone: 'ok' | 'warn' | 'gray'; text: string };
+
+/** This machine's install against the profile, for information only: an installed folder is never touched. */
+function localState({ profile, local, plan }: ProjectBmadView): LocalState {
+  if (!local) return { tone: 'gray', text: plan === 'installed' ? 'Đã cài' : 'Chưa cài' };
+  if (!profile) return { tone: 'gray', text: 'Đã cài' };
+  const same =
+    local.version === profile.version && profile.modules.every((module) => local.modules.includes(module));
+  return same ? { tone: 'ok', text: 'Khớp cấu hình' } : { tone: 'warn', text: 'Khác cấu hình' };
+}
 
 /**
  * "Cài BMAD": the project's BMAD profile (what the machine holding it installed) and this machine's install.
@@ -258,7 +261,7 @@ function BmadSection({
     }
   };
 
-  const state = LOCAL_STATE[plan];
+  const state = localState(detail.bmad);
   return (
     <section className="card space-y-3 p-5" data-section="bmad">
       <h2 className="font-semibold">BMAD</h2>
@@ -289,6 +292,8 @@ function BmadSection({
               BMAD <span className="font-mono">{local.version}</span> · module{' '}
               <span className="font-mono text-xs">{local.modules.join(', ') || '—'}</span>
             </>
+          ) : plan === 'installed' ? (
+            'có thư mục _bmad (không đọc được manifest)'
           ) : (
             'chưa cài BMAD'
           )}
@@ -297,12 +302,17 @@ function BmadSection({
       </div>
       <p className="text-sm text-muted">
         Cài bằng <code>npx bmad-method</code> vào thư mục project; không chép <code>_bmad/custom</code>,{' '}
-        <code>_bmad/memory</code> và không commit gì.
+        <code>_bmad/memory</code> và không commit gì. Thư mục đã có BMAD thì không cài lại.
       </p>
+      {plan === 'installed' && !result && (
+        <Notice tone="info">
+          Máy này đã có BMAD {local?.version ?? 'không rõ phiên bản'}; không cài lại.
+        </Notice>
+      )}
       <button
         type="button"
         className="btn btn-primary"
-        disabled={running || !profile || plan === 'newer'}
+        disabled={running || plan !== 'install'}
         onClick={() => void install()}
       >
         {running ? 'Đang cài BMAD…' : 'Cài BMAD'}

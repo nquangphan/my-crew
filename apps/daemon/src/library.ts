@@ -80,6 +80,7 @@ export { scrubSecrets } from './runner/secret-scrubber.js';
 export { takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
 export { defaultTokenStore, FileTokenStore, KeychainTokenStore, type TokenStore } from './secrets.js';
 export {
+  BMAD_DIR,
   BMAD_MANIFEST,
   type BmadInstall,
   readBmadInstall,

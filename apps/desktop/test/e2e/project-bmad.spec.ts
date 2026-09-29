@@ -7,7 +7,7 @@ import { call, fixtureRepo, launch, pairingCode, testEnv } from './helpers';
 
 const REPO_URL = 'https://github.com/2p/bmad-fixture.git';
 
-test('Settings → Projects reports the BMAD profile and "Cài BMAD" skips or installs it (stand-in installer)', async () => {
+test('Settings → Projects reports the BMAD profile; "Cài BMAD" installs only into a folder without BMAD (stand-in installer)', async () => {
   const env = testEnv();
   const { app, page } = await launch(env);
   try {
@@ -44,8 +44,9 @@ test('Settings → Projects reports the BMAD profile and "Cài BMAD" skips or in
     await page.getByRole('button', { name: 'Làm mới' }).click();
     await expect(section.getByText('core, bmm, bmb, cis, tea, bmad-loop').first()).toBeVisible();
     await expect(section.getByText('Khớp cấu hình')).toBeVisible();
-    await section.getByRole('button', { name: 'Cài BMAD' }).click();
-    await expect(section.getByText('Đã có BMAD 6.12.0 với đủ module.')).toBeVisible();
+    // A folder that already has BMAD is never reinstalled or updated.
+    await expect(section.getByText('Máy này đã có BMAD 6.12.0; không cài lại.')).toBeVisible();
+    await expect(section.getByRole('button', { name: 'Cài BMAD' })).toBeDisabled();
 
     // Without the local install, the button installs the profile (the test seam stands in for npx).
     rmSync(join(repo, '_bmad'), { recursive: true, force: true });

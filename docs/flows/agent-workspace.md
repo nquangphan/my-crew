@@ -32,7 +32,9 @@ danh mục lên server. Cũng là cầu nối chạy `crew-docs` bên trong work
    giữ lại để PM accept merge theo `head_sha`); liệt kê key hiện có dưới `.crew/worktrees` để daemon sweep
    (flow `resource-hygiene`) và báo cáo tài nguyên.
 5. `apps/daemon/src/skills/bmad-profile.ts` → `readBmadProfile()`: đọc `_bmad/_config/manifest.yaml` (phiên
-   bản installer, module, `ides` là `tools`) của checkout chính cộng câu trả lời phạm vi nhóm trong
+   bản installer, module, `ides` là `tools`, cộng `pins`: module có `source: external` với `version` là tag
+   phát hành, ví dụ `v2.2.2`, đưa vào `BmadPin`; module ở channel `next` — `version: main` — thì không ghim)
+   của checkout chính cộng câu trả lời phạm vi nhóm trong
    `_bmad/config.toml` (bản 6.9+, chỉ bảng `[core]` và `[modules.*]` của module đã cài, bỏ `[agents.*]`) hoặc
    `_bmad/core/config.yaml` (bố cục 6.0); từ `_bmad/config.user.toml` (cá nhân) chỉ đọc `communication_language`.
    Không bao giờ đọc `_bmad/custom` hay `_bmad/memory`; bỏ câu trả lời cá nhân, key giống credential và đường
@@ -112,6 +114,8 @@ danh mục lên server. Cũng là cầu nối chạy `crew-docs` bên trong work
   gỡ worktree đã quá giờ (khởi động lại daemon, sweep) và giữ nguyên worktree còn trong hạn; gỡ worktree không
   có thời điểm probe ghi lại nhưng không đụng worktree một probe đang dùng; `stop()` huỷ mọi lượt gỡ đang chờ.
 - `apps/daemon/test/bmad-profile.test.ts`: đọc đúng version/module/tools/ngôn ngữ/thư mục kết quả và câu trả
-  lời nhóm của bản 6.10-6.12 lẫn bố cục 6.0; bỏ đường dẫn tuyệt đối, key giống credential và câu trả lời của
-  module chưa cài; không bao giờ đọc `_bmad/custom`/`_bmad/memory` hay câu trả lời cá nhân; `null` khi không có
-  manifest; daemon báo hồ sơ project mình sở hữu lên server mỗi lần probe, chỉ khi manifest đổi.
+  lời nhóm của bản 6.10-6.12 lẫn bố cục 6.0; đọc đúng `pins` theo từng fixture (module `source: external` với
+  tag phát hành được ghim, module channel `next` thì không); bỏ đường dẫn tuyệt đối, key giống credential và
+  câu trả lời của module chưa cài; không bao giờ đọc `_bmad/custom`/`_bmad/memory` hay câu trả lời cá nhân;
+  `null` khi không có manifest; daemon báo hồ sơ project mình sở hữu lên server mỗi lần probe, chỉ khi manifest
+  đổi.

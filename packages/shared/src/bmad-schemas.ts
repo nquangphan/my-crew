@@ -61,6 +61,15 @@ const OutputFolder = z
   // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what is refused
   .refine((path) => !/[\u0000-\u001f\u007f]/.test(path), 'no control characters');
 
+/** An external module's release tag as the manifest records it (`v2.2.2`), replayed with `--pin`. */
+export const BmadPin = z.object({
+  module: BmadId,
+  tag: z
+    .string()
+    .regex(/^v?\d{1,4}\.\d{1,4}\.\d{1,4}(?:[-+][0-9A-Za-z.-]{1,40})?$/, 'a release tag like v2.2.2'),
+});
+export type BmadPin = z.infer<typeof BmadPin>;
+
 export const BmadProfile = z.object({
   /** `installation.version`: the `bmad-method` installer version to run. */
   version: BmadVersion,
@@ -75,6 +84,8 @@ export const BmadProfile = z.object({
   outputFolder: OutputFolder.nullable(),
   /** Every other team-scope answer, replayed with `--set <module>.<key>=<value>`. */
   settings: z.array(BmadSetting).max(200),
+  /** External modules installed from a release tag; a fresh install pins them to the same tags. */
+  pins: z.array(BmadPin).max(50).default([]),
 });
 export type BmadProfile = z.infer<typeof BmadProfile>;
 

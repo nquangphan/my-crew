@@ -132,12 +132,15 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 9. `apps/desktop/src/daemon-host/bmad-install.ts` → `installBmad()`: IPC `projects.installBmad` (Settings →
    Projects, nút "Cài BMAD") — `HostService.installBmad()` (`host-service.ts`) đọc `bmad` của `projectDetail()`
    (`setup-ops.ts`, `bmadView()` so hồ sơ server `DaemonProject.bmadProfile` với cài đặt cục bộ đọc qua
-   `readBmadInstall()` để ra `BmadInstallPlan`: `no_profile`/`skip`/`install`/`update`/`newer`, không bao giờ hạ
-   cấp), rồi chờ `ctx.folderAccess(repoPath)` (phương thức công khai mới của `HostContext`, dùng lại đúng cơ
-   chế `awaitFolderAccess()` chờ hộp thoại quyền macOS mà `repoAccess()` dùng, xem bước 7) trước khi chạy
+   `readBmadInstall()` để ra `BmadInstallPlan`: `no_profile`/`install`/`installed` — thư mục đã có bất kỳ bản
+   cài BMAD nào (manifest đọc được, hoặc chỉ cần có thư mục `_bmad/`) thì luôn là `installed`, nút không đụng
+   tới dù phiên bản hay module gì, không update, không hạ cấp), rồi chờ `ctx.folderAccess(repoPath)` (phương
+   thức công khai mới của `HostContext`, dùng lại đúng cơ chế `awaitFolderAccess()` chờ hộp thoại quyền macOS
+   mà `repoAccess()` dùng, xem bước 7) trước khi chạy
    `npx bmad-method@<version> install --yes --directory <repo> --modules <module ngoài core> --tools <tools,
    mặc định claude-code> [--communication-language] [--document-output-language] [--output-folder] [--set
-   <module>.<key>=<value> …] [--action update khi đã có bản cài]` qua `npxRunner` (tiến trình riêng nhóm, `CI=1
+   <module>.<key>=<value> …] [--pin <module>=<tag> …]` (một `--pin` cho mỗi module của `profile.pins`) qua
+   `npxRunner` (tiến trình riêng nhóm, `CI=1
    NO_COLOR=1`, hết 7 phút thì SIGTERM rồi SIGKILL). Mỗi dòng output phát sự kiện host `bmad.progress`
    `{key, line}` cho renderer và ghi `app.log` (`bmad-install-output`, tối đa 400 dòng đầu), cộng
    `bmad-install-started`/`-finished`/`-failed`; thông báo lỗi tiếng Việt rõ ràng khi thiếu `npx`, lỗi mạng, mã
@@ -341,12 +344,14 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 - `apps/desktop/test/role-prompts-bundle.test.ts`: chạy `copyRolePrompts.writeBundle()` vào một thư mục tạm
   rồi nạp mọi prompt của từng stage (`STAGES`, flow `agent-roles`) và các partial nó `{{> ... }}` từ thư mục
   đó, đúng như bundle đã đóng gói sẽ làm.
-- `apps/desktop/test/bmad-install.test.ts`: so phiên bản và quyết định plan đúng (bỏ qua/cài/cập nhật/không hạ
-  cấp), dựng đúng argv trình cài (giữ module/tool đã cài khi cập nhật, mặc định `claude-code`); với trình cài
-  giả lập — chặn khi chưa có hồ sơ, cài xong phát tiến độ và không commit gì, nêu đúng file R6 bảo vệ, bấm lại
-  thì bỏ qua; cập nhật bản cũ bằng `--action update`, không hạ cấp bản mới hơn; thông báo tiếng Việt đúng cho
-  thiếu `npx`, lỗi mạng, trình cài lỗi, hết giờ và manifest không khớp sau khi chạy; một lượt chạy `npx` thật
-  (`CREW_LIVE_BMAD_TEST=1`, tuỳ chọn) cài `core`/`bmm` cho Claude Code vào một repo git tạm rồi không commit gì.
+- `apps/desktop/test/bmad-install.test.ts`: quyết định plan đúng (`no_profile`/`install`/`installed`), dựng
+  đúng argv trình cài mới (mặc định `claude-code`, một `--pin` cho mỗi module đã ghim); với trình cài giả lập
+  — chặn khi chưa có hồ sơ, cài xong phát tiến độ và không commit gì, nêu đúng file R6 bảo vệ; thư mục đã có
+  bản cài cũ hơn/thiếu module/mới hơn/manifest không đọc được thì không bao giờ đụng tới (luôn bỏ qua); thông
+  báo tiếng Việt đúng cho thiếu `npx`, lỗi mạng, trình cài lỗi, hết giờ và manifest không khớp sau khi chạy;
+  một lượt chạy `npx` thật
+  (`CREW_LIVE_BMAD_TEST=1`, tuỳ chọn) cài `core`/`bmm` và module `cis` ghim ở tag `v0.2.1` cho Claude Code vào
+  một repo git tạm, kiểm manifest ghi đúng tag đó, rồi không commit gì.
 - `apps/desktop/test/e2e/health.spec.ts` (Electron thật qua Playwright `_electron`, bộ `test:e2e`): phá một
   check cho nó chuyển đỏ rồi tự sửa cho nó xanh lại; daemon sống sót qua việc đóng/mở lại cửa sổ và tự khởi
   động lại sau khi host bị kill.

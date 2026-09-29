@@ -89,7 +89,10 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
     `lastUpdated` cũ hơn hồ sơ đã lưu không được ghi đè (trả `{stored: false, profile: <hồ sơ đang lưu>}`), nên
     một máy nhận project với `_bmad` cũ hơn không xoá mất hồ sơ mới máy khác đã báo. `packages/shared/src/bmad-schemas.ts`
     → `BmadProfile`: từ chối câu trả lời cá nhân (`user_name`, `user_skill_level`, `communication_language` ở
-    dạng setting), key giống credential, đường dẫn tuyệt đối và ký tự điều khiển trước khi lưu.
+    dạng setting), key giống credential, đường dẫn tuyệt đối và ký tự điều khiển trước khi lưu; `pins`
+    (`BmadPin {module, tag}`, tag dạng `v2.2.2`) ghi lại module ngoài cài từ tag phát hành để máy khác cài lại
+    đúng tag đó, mặc định `[]` nên hồ sơ từ daemon cũ hơn (chưa biết `pins`) vẫn lưu được, chỉ không có ghim
+    nào.
 
 ## Files
 
@@ -101,7 +104,7 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
 | `apps/api/src/services/project-service.ts` | CRUD project và DTO | `createProject`, `updateProject`, `listProjects`, `getProject`, `toProjectDto` |
 | `apps/api/src/services/bmad-profile-service.ts` | Lưu hồ sơ cài BMAD do máy sở hữu project báo cáo, chỉ máy sở hữu mới ghi, bản mới nhất thắng | `putBmadProfile` |
 | `packages/shared/src/project-schemas.ts` | Schema project, `qcDefaultMcps`, giới hạn mặc định, tên MCP server | `CreateProjectRequest`, `UpdateProjectRequest`, `Project`, `qcDefaultMcps`, `McpServerName` |
-| `packages/shared/src/bmad-schemas.ts` | Schema hồ sơ cài BMAD dùng chung server/daemon/desktop, từ chối câu trả lời cá nhân/credential/đường dẫn tuyệt đối | `BmadProfile`, `BmadSetting`, `PutBmadProfileResponse`, `BMAD_PERSONAL_KEYS` |
+| `packages/shared/src/bmad-schemas.ts` | Schema hồ sơ cài BMAD dùng chung server/daemon/desktop, từ chối câu trả lời cá nhân/credential/đường dẫn tuyệt đối | `BmadProfile`, `BmadSetting`, `BmadPin`, `PutBmadProfileResponse`, `BMAD_PERSONAL_KEYS` |
 
 ## Dữ liệu
 

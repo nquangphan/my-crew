@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AppLogEntry, BmadInstallResult, BmadProfile, ProjectDetail } from '@crew/shared';
 import { describe, expect, inject, it } from 'vitest';
@@ -12,7 +12,6 @@ import {
   type BmadRunner,
   bmadInstallerArgs,
   bmadInstallPlan,
-  compareBmadVersions,
   installBmad,
   npxRunner,
 } from '../src/daemon-host/bmad-install.js';
@@ -23,7 +22,7 @@ import { fakeBmadRunner, testSeams } from '../src/daemon-host/test-seams.js';
 const PROFILE: BmadProfile = {
   version: '6.12.0',
   lastUpdated: '2026-09-24T15:27:41.562Z',
-  modules: ['core', 'bmm', 'tea'],
+  modules: ['core', 'bmm', 'tea', 'bmb'],
   tools: ['claude-code', 'codex'],
   communicationLanguage: 'Vietnamese',
   documentOutputLanguage: 'English',
@@ -33,30 +32,26 @@ const PROFILE: BmadProfile = {
     { module: 'bmm', key: 'project_knowledge', value: '{project-root}/docs' },
     { module: 'tea', key: 'tea_use_playwright_utils', value: 'true' },
   ],
+  pins: [
+    { module: 'tea', tag: 'v1.27.2' },
+    { module: 'bmb', tag: 'v2.2.2' },
+  ],
 };
 
 describe('BMAD install decision and installer arguments', () => {
-  it('orders installer versions numerically, pre-releases before the release', () => {
-    expect(compareBmadVersions('6.10.0', '6.9.0')).toBe(1);
-    expect(compareBmadVersions('6.12.0', '6.12.0')).toBe(0);
-    expect(compareBmadVersions('6.0.0-Beta.2', '6.0.0')).toBe(-1);
-    expect(compareBmadVersions('6.0.0-Beta.10', '6.0.0-Beta.2')).toBe(1);
-    expect(compareBmadVersions('6.11.3', '6.12.0')).toBe(-1);
-  });
-
-  it('skips the same version with every module, installs, updates an older or incomplete one, never downgrades', () => {
+  it('installs only into a folder without BMAD, whatever version or modules an existing install has', () => {
     const local = (version: string, modules: string[]) => ({ version, modules });
     expect(bmadInstallPlan(null, null)).toBe('no_profile');
     expect(bmadInstallPlan(null, local('6.12.0', ['core']))).toBe('no_profile');
     expect(bmadInstallPlan(PROFILE, null)).toBe('install');
-    expect(bmadInstallPlan(PROFILE, local('6.12.0', ['core', 'bmm', 'tea', 'cis']))).toBe('skip');
-    expect(bmadInstallPlan(PROFILE, local('6.12.0', ['core', 'bmm']))).toBe('update');
-    expect(bmadInstallPlan(PROFILE, local('6.10.0', ['core', 'bmm', 'tea']))).toBe('update');
-    expect(bmadInstallPlan(PROFILE, local('6.13.0', ['core']))).toBe('newer');
+    expect(bmadInstallPlan(PROFILE, local('6.12.0', ['core', 'bmm', 'tea', 'bmb']))).toBe('installed');
+    expect(bmadInstallPlan(PROFILE, local('6.12.0', ['core']))).toBe('installed');
+    expect(bmadInstallPlan(PROFILE, local('6.10.0', ['core', 'bmm']))).toBe('installed');
+    expect(bmadInstallPlan(PROFILE, local('6.13.0', ['core']))).toBe('installed');
   });
 
-  it('builds the exact argv of a fresh install', () => {
-    expect(bmadInstallerArgs(PROFILE, '/repos/shop', null)).toEqual([
+  it('builds the exact argv of a fresh install, pinning external modules to the profile tags', () => {
+    expect(bmadInstallerArgs(PROFILE, '/repos/shop')).toEqual([
       '-y',
       'bmad-method@6.12.0',
       'install',
@@ -64,7 +59,7 @@ describe('BMAD install decision and installer arguments', () => {
       '--directory',
       '/repos/shop',
       '--modules',
-      'bmm,tea',
+      'bmm,tea,bmb',
       '--tools',
       'claude-code,codex',
       '--communication-language',
@@ -79,26 +74,26 @@ describe('BMAD install decision and installer arguments', () => {
       'bmm.project_knowledge={project-root}/docs',
       '--set',
       'tea.tea_use_playwright_utils=true',
+      '--pin',
+      'tea=v1.27.2',
+      '--pin',
+      'bmb=v2.2.2',
     ]);
+    expect(bmadInstallerArgs(PROFILE, '/r')).not.toContain('--action');
   });
 
-  it('keeps the modules and tools already installed on an update, and defaults tools to Claude Code', () => {
-    const args = bmadInstallerArgs(PROFILE, '/repos/shop', {
-      modules: ['core', 'bmm', 'cis'],
-      tools: ['cursor'],
-    });
-    expect(args.slice(6, 10)).toEqual(['--modules', 'bmm,tea,cis', '--tools', 'claude-code,codex,cursor']);
-    expect(args.slice(-2)).toEqual(['--action', 'update']);
-
+  it('defaults tools to Claude Code and leaves out what the profile does not set', () => {
     const bare: BmadProfile = {
       ...PROFILE,
+      modules: ['core', 'bmm'],
       tools: [],
       communicationLanguage: null,
       documentOutputLanguage: null,
       outputFolder: null,
       settings: [],
+      pins: [],
     };
-    expect(bmadInstallerArgs(bare, '/r', null)).toEqual([
+    expect(bmadInstallerArgs(bare, '/r')).toEqual([
       '-y',
       'bmad-method@6.12.0',
       'install',
@@ -106,7 +101,7 @@ describe('BMAD install decision and installer arguments', () => {
       '--directory',
       '/r',
       '--modules',
-      'bmm,tea',
+      'bmm',
       '--tools',
       'claude-code',
     ]);
@@ -200,14 +195,14 @@ describe('daemon host: "Cài BMAD" with a stand-in installer', () => {
     });
     const installed = await call<BmadInstallResult>('projects.installBmad', { key: 'SHOP' });
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.args).toEqual(bmadInstallerArgs(PROFILE, repo, null));
+    expect(calls[0]?.args).toEqual(bmadInstallerArgs(PROFILE, repo));
     expect(calls[0]?.cwd).toBe(repo);
     expect(installed.status).toBe('installed');
-    expect(installed.message).toContain('Đã cài BMAD 6.12.0 (module: core, bmm, tea).');
+    expect(installed.message).toContain('Đã cài BMAD 6.12.0 (module: core, bmm, tea, bmb).');
     expect(installed.message).toContain('Không commit gì: 2 file mới');
     expect(installed.message).toContain('vùng luật R6 bảo vệ (.claude/skills/bmad-help/SKILL.md)');
     expect(installed.message).toContain('Daemon chưa chạy');
-    expect(installed.detail.bmad).toMatchObject({ local: { version: '6.12.0' }, plan: 'skip' });
+    expect(installed.detail.bmad).toMatchObject({ local: { version: '6.12.0' }, plan: 'installed' });
     expect(git(repo, 'rev-parse', 'HEAD').trim()).toBe(head);
     expect(git(repo, 'status', '--porcelain')).toContain('?? .claude/');
     expect(events.filter((event) => event.name === 'bmad.progress').map((event) => event.payload)).toEqual([
@@ -219,29 +214,42 @@ describe('daemon host: "Cài BMAD" with a stand-in installer', () => {
     );
 
     const again = await call<BmadInstallResult>('projects.installBmad', { key: 'SHOP' });
-    expect(again).toMatchObject({ status: 'skipped', message: 'Đã có BMAD 6.12.0 với đủ module.' });
+    expect(again).toMatchObject({ status: 'skipped', message: 'Máy này đã có BMAD 6.12.0; không cài lại.' });
     expect(calls).toHaveLength(1);
   });
 
-  it('updates an older install with --action update, and never downgrades a newer one', async () => {
+  it('never touches a folder that already has BMAD: older, incomplete, newer, or an unreadable _bmad', async () => {
     const { runner, calls } = stubRunner(fakeBmadRunner);
     const { call, repo } = await pairedHost(runner);
     await api.db.update(projects).set({ bmadProfile: PROFILE });
-    writeFiles(repo, BMAD_6_11);
-    expect((await call<ProjectDetail>('projects.detail', { key: 'SHOP' })).bmad.plan).toBe('update');
-    const updated = await call<BmadInstallResult>('projects.installBmad', { key: 'SHOP' });
-    expect(updated.status).toBe('updated');
-    expect(updated.message).toContain('Đã cập nhật BMAD 6.11.0 lên 6.12.0');
-    expect(calls[0]?.args.slice(-2)).toEqual(['--action', 'update']);
-    expect(calls[0]?.args).toContain('bmm,tea,bmb,automator');
 
-    writeFiles(repo, BMAD_6_12);
+    writeFiles(repo, BMAD_6_11);
+    expect((await call<ProjectDetail>('projects.detail', { key: 'SHOP' })).bmad).toMatchObject({
+      local: { version: '6.11.0' },
+      plan: 'installed',
+    });
+    expect(await call<BmadInstallResult>('projects.installBmad', { key: 'SHOP' })).toMatchObject({
+      status: 'skipped',
+      message: 'Máy này đã có BMAD 6.11.0; không cài lại.',
+    });
+
     await api.db.update(projects).set({ bmadProfile: { ...PROFILE, version: '6.11.0' } });
-    expect((await call<ProjectDetail>('projects.detail', { key: 'SHOP' })).bmad.plan).toBe('newer');
-    await expect(call('projects.installBmad', { key: 'SHOP' })).rejects.toThrow(
-      'Máy này đã có BMAD 6.12.0 mới hơn cấu hình (6.11.0); app không hạ cấp BMAD.',
-    );
-    expect(calls).toHaveLength(1);
+    writeFiles(repo, BMAD_6_12);
+    expect(await call<BmadInstallResult>('projects.installBmad', { key: 'SHOP' })).toMatchObject({
+      status: 'skipped',
+      message: 'Máy này đã có BMAD 6.12.0; không cài lại.',
+    });
+
+    rmSync(join(repo, '_bmad', '_config'), { recursive: true });
+    expect((await call<ProjectDetail>('projects.detail', { key: 'SHOP' })).bmad).toMatchObject({
+      local: null,
+      plan: 'installed',
+    });
+    expect(await call<BmadInstallResult>('projects.installBmad', { key: 'SHOP' })).toMatchObject({
+      status: 'skipped',
+      message: 'Máy này đã có BMAD không rõ phiên bản; không cài lại.',
+    });
+    expect(calls).toHaveLength(0);
   });
 
   it('explains a missing npx, a network failure, an installer failure, a timeout and an incomplete install', async () => {
@@ -284,7 +292,7 @@ describe('daemon host: "Cài BMAD" with a stand-in installer', () => {
 });
 
 describe.runIf(process.env.CREW_LIVE_BMAD_TEST === '1')('live: the real bmad-method installer', () => {
-  it('installs core and bmm for Claude Code into a temp git repo, commits nothing, then skips', async () => {
+  it('installs core, bmm and a pinned external module into a temp git repo, commits nothing, then skips', async () => {
     const repo = makeRepo({ 'README.md': '# live\n' });
     const head = git(repo, 'rev-parse', 'HEAD').trim();
     const home = tempDir('crew-live-bmad-home-');
@@ -299,9 +307,11 @@ describe.runIf(process.env.CREW_LIVE_BMAD_TEST === '1')('live: the real bmad-met
     });
     const profile: BmadProfile = {
       ...PROFILE,
-      modules: ['core', 'bmm'],
+      modules: ['core', 'bmm', 'cis'],
       tools: ['claude-code'],
       settings: [{ module: 'bmm', key: 'project_knowledge', value: '{project-root}/docs' }],
+      // An older cis tag than the current stable one, so the pin is what decides the installed version.
+      pins: [{ module: 'cis', tag: 'v0.2.1' }],
     };
     const outcome = await installBmad(ctx, 'LIVE', profile, repo, {
       runner: npxRunner,
@@ -312,10 +322,13 @@ describe.runIf(process.env.CREW_LIVE_BMAD_TEST === '1')('live: the real bmad-met
     expect(lines.length).toBeGreaterThan(0);
     expect(existsSync(join(repo, '.claude', 'skills'))).toBe(true);
     expect(git(repo, 'rev-parse', 'HEAD').trim()).toBe(head);
+    expect(readFileSync(join(repo, '_bmad', '_config', 'manifest.yaml'), 'utf8')).toMatch(
+      /- name: cis\n\s+version: v0\.2\.1/,
+    );
     const again = await installBmad(ctx, 'LIVE', profile, repo, {
       runner: npxRunner,
       reprobe: async () => null,
     });
-    expect(again).toEqual({ status: 'skipped', message: 'Đã có BMAD 6.12.0 với đủ module.' });
+    expect(again).toEqual({ status: 'skipped', message: 'Máy này đã có BMAD 6.12.0; không cài lại.' });
   }, 600_000);
 });

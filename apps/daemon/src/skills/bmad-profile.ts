@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BMAD_PERSONAL_KEYS, BmadId, BmadProfile, BmadSetting } from '@crew/shared';
+import { BMAD_PERSONAL_KEYS, BmadId, BmadPin, BmadProfile, BmadSetting } from '@crew/shared';
 import { parse as parseToml } from 'smol-toml';
 import { parse as parseYaml } from 'yaml';
 
@@ -21,6 +21,8 @@ export interface BmadInstall {
   /** Module codes, `core` included. */
   modules: string[];
   tools: string[];
+  /** External modules installed from a release tag (`source: external`, `version: v2.2.2`). */
+  pins: BmadPin[];
 }
 
 type Table = Record<string, unknown>;
@@ -40,9 +42,14 @@ export function readBmadInstall(repo: string): BmadInstall | null {
   if (!isTable(manifest) || !isTable(manifest.installation)) return null;
   const { version, lastUpdated, installDate } = manifest.installation;
   if (typeof version !== 'string') return null;
-  const modules = Array.isArray(manifest.modules)
-    ? manifest.modules.flatMap((item) => (isTable(item) && typeof item.name === 'string' ? [item.name] : []))
-    : [];
+  const entries = Array.isArray(manifest.modules) ? manifest.modules.filter(isTable) : [];
+  const modules = entries.flatMap((item) => (typeof item.name === 'string' ? [item.name] : []));
+  // A module on the `next` channel records a branch (`main`), not a tag: it is not pinned.
+  const pins = entries.flatMap((item) => {
+    if (item.source !== 'external') return [];
+    const pin = BmadPin.safeParse({ module: item.name, tag: item.version });
+    return pin.success ? [pin.data] : [];
+  });
   const tools = Array.isArray(manifest.ides)
     ? manifest.ides.filter((item): item is string => typeof item === 'string')
     : [];
@@ -54,6 +61,7 @@ export function readBmadInstall(repo: string): BmadInstall | null {
     lastUpdated: stamp ? new Date(stamp).toISOString() : new Date(0).toISOString(),
     modules,
     tools,
+    pins,
   };
 }
 
@@ -142,5 +150,6 @@ export function readBmadProfile(repo: string): BmadProfile | null {
     documentOutputLanguage: language(core.document_output_language),
     outputFolder: relativeFolder(core.output_folder),
     settings: settings.slice(0, 200),
+    pins: install.pins.filter((pin) => installed.has(pin.module)),
   });
 }

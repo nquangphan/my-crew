@@ -34,6 +34,7 @@ const PROFILE: BmadProfile = {
     { module: 'bmm', key: 'project_knowledge', value: '{project-root}/docs' },
     { module: 'tea', key: 'tea_use_playwright_utils', value: 'true' },
   ],
+  pins: [{ module: 'tea', tag: 'v1.27.2' }],
 };
 
 const put = (machine: PairedMachine, body: unknown, projectKey = 'WEB', key?: string) =>
@@ -91,6 +92,7 @@ describe('a machine reporting its project BMAD profile', () => {
       { ...PROFILE, modules: [] },
       { ...PROFILE, modules: ['Bad Module'] },
       { ...PROFILE, userName: 'Đại Ca' },
+      { ...PROFILE, pins: [{ module: 'tea', tag: 'main' }] },
     ];
     for (const body of bad) {
       const res = await put(a, body);
@@ -119,6 +121,14 @@ describe('a machine reporting its project BMAD profile', () => {
     const newer = { ...PROFILE, version: '6.13.0', lastUpdated: '2026-10-01T08:00:00.000Z' };
     expect((await put(b, newer)).json()).toEqual({ stored: true, profile: newer });
     expect(await stored()).toEqual(newer);
+  });
+
+  it('stores a profile from an older daemon without pins as having none', async () => {
+    await createTestProject(ctx.db, { ownerMachineId: a.machineId });
+    const { pins: _pins, ...withoutPins } = PROFILE;
+    const res = await put(a, withoutPins);
+    expect(res.statusCode).toBe(200);
+    expect(await stored()).toEqual({ ...PROFILE, pins: [] });
   });
 
   it('requires an idempotency key and replays the stored answer on retry', async () => {

@@ -1,6 +1,7 @@
 # "Cài BMAD": install a project's BMAD setup on another machine (Validation Session 19): Implementation Report
 
-Date: 2026-09-29 · Status: done · Branch: `worktree-agent-a442fe5879dd4e4b8` (one commit, not pushed) · Scope:
+Date: 2026-09-29 · Status: done, revised for the owner's decisions in plan.md Session 21 · Branch:
+`worktree-agent-a442fe5879dd4e4b8` (two commits, not pushed) · Scope:
 `apps/api`, `apps/daemon`, `apps/desktop`, `apps/web` (project settings only), `packages/shared` (additive),
 `docs/flows.yaml` (flows section only), nine flow docs, `docs/files.md` (generated).
 
@@ -8,7 +9,13 @@ A machine that holds a project with `_bmad/_config/manifest.yaml` now reports th
 server. Settings → Projects in the desktop app shows that profile next to this machine's install and offers a
 manual "Cài BMAD" button that runs the same `bmad-method` installer non-interactively. The web project settings
 page shows the profile read-only. Typecheck, the full test suite, lint, build, the web E2E and the desktop Electron
-E2E pass. The opt-in live test installed a real `bmad-method@6.12.0` into a temp git repo.
+E2E pass. The opt-in live test installed a real `bmad-method@6.12.0`, with an external module pinned, into a temp
+git repo.
+
+Session 21 revision (owner decisions): a folder that already has any BMAD install is never touched (no update, no
+`--action update`, no downgrade; the button stays disabled with "Máy này đã có BMAD <version>; không cài lại."),
+and a fresh install pins external modules to the profile's tags with `--pin`. The update path and its tests are
+gone.
 
 ## 1. Profile capture (daemon, shared, API)
 
@@ -31,6 +38,9 @@ E2E pass. The opt-in live test installed a real `bmad-method@6.12.0` into a temp
   `PUT /v1/daemon/projects/:projectKey/bmad-profile` lives in a new file registered in the machine scope. It
   needs an idempotency key and validates the body strictly. The service answers 403 to a machine that does not
   own the project and 404 to an unknown project.
+- **Module tags.** `BmadProfile.pins` (`[{module, tag}]`, default `[]`) records every external module
+  (`source: external` in the manifest) whose version is a release tag such as `v2.2.2`. A module on the `next`
+  channel records a branch (`main`) and is not pinned. A profile from an older daemon is stored with no pins.
 - **Newest install wins.** The profile is not cleared when the holding machine has no `_bmad`. A profile older
   than the stored one is not stored either; the answer is `{stored: false, profile: <stored>}`. Without this rule,
   a machine that took the project over with an outdated `_bmad` would overwrite the setup it is supposed to
@@ -41,17 +51,14 @@ E2E pass. The opt-in live test installed a real `bmad-method@6.12.0` into a temp
 - **Decision** (`apps/desktop/src/daemon-host/bmad-install.ts`, `bmadInstallPlan`):
   - `no_profile`: the button is disabled and the card says "Chưa có cấu hình BMAD (máy đang giữ project chưa có
     BMAD)".
-  - `skip`: this version with every profile module is already installed. The result is "Đã có BMAD <version> với
-    đủ module".
-  - `install`: there is no `_bmad` here.
-  - `update`: the local install is an older version or misses modules.
-  - `newer`: the local install is newer than the profile. The app never downgrades, so the button is disabled
-    and the host refuses the request.
+  - `install`: there is no `_bmad` here; the only state in which the button is enabled.
+  - `installed`: the folder has any BMAD install (a readable manifest or just a `_bmad/` folder), whatever its
+    version or modules. The button is disabled and the card says "Máy này đã có BMAD <version>; không cài lại."
+    A request that reaches the host anyway is answered `skipped` with that text; the installer never runs.
 - **Argv** (`bmadInstallerArgs`): `npx -y bmad-method@<version> install --yes --directory <repo> --modules
   <modules without core> --tools <tools> [--communication-language …] [--document-output-language …]
-  [--output-folder …] [--set <module>.<key>=<value> …] [--action update]`. `--action update` is added when any
-  install exists. On an update, `--modules` and `--tools` also keep what is already installed here, because the
-  installer removes unselected modules. A fresh `--yes` install requires `--tools`, so an empty tool list becomes
+  [--output-folder …] [--set <module>.<key>=<value> …] [--pin <module>=<tag> …]`, a fresh install only (no
+  `--action`). A fresh `--yes` install requires `--tools`, so an empty tool list becomes
   `claude-code`. `--user-name` is never passed, so the installer uses the system user name.
 - **Run**: the install waits for the folder-access guard (`HostContext.folderAccess`, the macOS Documents prompt)
   first. `npx` runs in its own process group with `CI=1 NO_COLOR=1`. After 7 minutes it is stopped (SIGTERM, then
@@ -67,7 +74,7 @@ E2E pass. The opt-in live test installed a real `bmad-method@6.12.0` into a temp
 - **Afterwards** the inventory is re-probed, waiting up to 90 s. That re-probe also reports the new profile. When
   the daemon is not running, or the probe is slow, the result text says so.
 - **UI**: a "BMAD" card in the project panel shows the profile (version, modules, tools, languages), this
-  machine's state with a lozenge (Chưa cài, Khớp cấu hình, Khác cấu hình, Mới hơn cấu hình), the button, the live
+  machine's state with a lozenge (informational: Chưa cài, Đã cài, Khớp cấu hình, Khác cấu hình), the button, the live
   installer output and the result.
 
 ## 3. Web
@@ -89,21 +96,26 @@ there is no profile it shows the same "Chưa có cấu hình BMAD…" text.
   - newest-wins;
   - the idempotency key and replay.
 - `apps/desktop/test/bmad-install.test.ts` covers:
-  - version ordering;
-  - the plan for every case;
-  - the exact argv for install and update;
+  - the plan for every case (any existing install is `installed`);
+  - the exact fresh-install argv, including `--pin tea=v1.27.2 --pin bmb=v2.2.2` and no `--action`;
   - host operations against the real API with a stub runner: no profile, install with streamed progress and no
-    commit, R6 note, skip on a second click, update with `--action update`, and refusal to downgrade;
+    commit, R6 note, skipped second click; an older, incomplete, newer or unreadable install is never touched and
+    the installer never runs;
   - errors for missing npx, a network failure, an installer failure, a timeout and a mismatch.
-- The opt-in `CREW_LIVE_BMAD_TEST=1` case ran once. It installed `bmad-method@6.12.0` (core, bmm, claude-code)
-  into a temp git repo in about 2 s: 234 untracked files, 214 of them under `.claude/`, HEAD unchanged. A second
-  run skipped. The temp repo was removed.
+- The opt-in `CREW_LIVE_BMAD_TEST=1` case ran once per commit. First run: `bmad-method@6.12.0` (core, bmm,
+  claude-code) into a temp git repo in about 2 s, 234 untracked files, 214 of them under `.claude/`, HEAD
+  unchanged. After the revision it also installs `cis` pinned to `v0.2.1` (older than its current stable tag)
+  and checks that the manifest records `v0.2.1`, so `--pin` is proven against the real installer. A second run
+  skipped. The temp repos were removed.
 - `apps/desktop/test/e2e/project-bmad.spec.ts` (Electron):
   - with no profile, the button is disabled;
-  - with a `_bmad` in the folder, "Làm mới" reports the profile and "Cài BMAD" skips;
+  - with a `_bmad` in the folder, "Làm mới" reports the profile, and the button is disabled with "Máy này đã có
+    BMAD 6.12.0; không cài lại.";
   - after `_bmad` is removed, the button installs through the test-mode stand-in runner (`fakeBmadRunner`, which
     downloads nothing) and shows the output, the R6 note and "Khớp cấu hình".
   The E2E pairing-code pool grows from 8 to 9.
+- `apps/api/test/bmad-profile.test.ts` also checks that a profile without pins is stored with `pins: []` and that a
+  non-tag pin (`main`) is refused.
 - `apps/web/src/routes/project-settings.test.tsx` covers the read-only section with and without a profile.
 
 Commands run in the worktree, one suite at a time, on my own databases (`crew_bmad_*`):
@@ -115,9 +127,7 @@ Commands run in the worktree, one suite at a time, on my own databases (`crew_bm
 
 ## 5. Decisions and deviations
 
-- External module versions are not pinned: the installer resolves each external module on its stable channel for
-  the profile's installer version. The skip rule compares the installer version and the module list, as asked.
-  `--pin <code>=<tag>` could reproduce module tags later if the owner wants that.
+- Only external modules with a release tag are pinned; `core` and `bmm` follow the installer version.
 - `core.project_name` is replayed with `--set`. It is a team answer, and the target folder may be named
   differently.
 - `--set` writes values verbatim, so TOML booleans come back as strings (`"true"`). This is the installer's
@@ -126,5 +136,4 @@ Commands run in the worktree, one suite at a time, on my own databases (`crew_bm
 
 ## Unresolved questions
 
-- Should the button also pin external module tags (`--pin`) so modules match exactly, not only the installer
-  version?
+None.

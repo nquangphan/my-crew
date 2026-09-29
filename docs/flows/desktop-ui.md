@@ -86,9 +86,11 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
     (có hộp xác nhận), "Nhận thêm project" và "Tạo project từ thư mục", bật/tắt vai trò trợ lý của máy. Mục
     `BmadSection` (`ProjectDetail.bmad`): hồ sơ cài BMAD server đang giữ (phiên bản, module, công cụ, ngôn ngữ)
     hoặc "Chưa có cấu hình BMAD (máy đang giữ project chưa có BMAD)" khi chưa máy nào báo; trạng thái cài trên
-    máy này qua một `Lozenge` (Chưa cài / Khớp cấu hình / Khác cấu hình / Mới hơn cấu hình); nút "Cài BMAD"
-    (`projects.installBmad`, chỉ bấm tay, khoá khi máy này mới hơn hồ sơ) hiện output của trình cài realtime
-    qua sự kiện `bmad.progress` rồi câu kết quả (ví dụ "Đã có BMAD 6.12.0 với đủ module.").
+    máy này chỉ để biết, không quyết định nút: một `Lozenge` (Chưa cài / Đã cài / Khớp cấu hình / Khác cấu
+    hình); nút "Cài BMAD" (`projects.installBmad`, chỉ bấm tay) chỉ bật khi plan là `install` (máy chưa có bất
+    kỳ bản cài BMAD nào), thư mục đã có bản cài rồi thì nút khoá và hiện thông báo "Máy này đã có BMAD
+    <version>; không cài lại."; khi bật, nút hiện output của trình cài realtime qua sự kiện `bmad.progress`
+    rồi câu kết quả cài xong.
 12. `apps/desktop/src/renderer/components/resource-form.tsx` → `ResourceForm()`, `resourceDraftError()`: số
     job chạy cùng lúc, RAM trống tối thiểu, tải tối đa mỗi CPU, danh sách model được phép (`sonnet` luôn bắt
     buộc, không tắt được) và model/effort theo từng mức độ phức tạp; validate tại chỗ trước khi cho lưu.
@@ -154,7 +156,8 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 - `apps/desktop/test/e2e/project-settings.spec.ts`: Settings → Projects gửi yêu cầu đổi loại project, khoá form
   và hiện đang chờ, rồi phản ánh đúng sau khi chủ dự án xác nhận TOTP trên web; một yêu cầu đang chờ tự rút và
   hiện đúng câu khi owner chuyển project sang máy khác trong lúc đó.
-- `apps/desktop/test/e2e/project-bmad.spec.ts`: Settings → Projects hiện đúng hồ sơ BMAD server đang giữ, và
-  "Cài BMAD" bỏ qua hoặc cài đặt bằng trình cài giả lập của chế độ E2E.
+- `apps/desktop/test/e2e/project-bmad.spec.ts`: Settings → Projects hiện đúng hồ sơ BMAD server đang giữ; còn
+  `_bmad` trên máy thì nút "Cài BMAD" khoá và hiện thông báo đã có bản cài, xoá `_bmad` đi thì nút bật và cài
+  được bằng trình cài giả lập của chế độ E2E.
 - `apps/desktop/test/new-project-form.test.ts`: `draftProblem()` trả về đúng câu cho key quá dài, key sai định
   dạng và các trường rỗng còn thiếu; `null` khi nháp đã đủ.

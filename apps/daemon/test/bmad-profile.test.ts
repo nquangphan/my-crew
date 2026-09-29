@@ -42,6 +42,12 @@ describe('BMAD profile reader', () => {
         { module: 'tea', key: 'risk_threshold', value: 'p1' },
         { module: 'tea', key: 'test_design_output', value: '_bmad-output/test-artifacts/test-design' },
       ],
+      pins: [
+        { module: 'bmb', tag: 'v2.2.2' },
+        { module: 'cis', tag: 'v0.3.2' },
+        { module: 'tea', tag: 'v1.27.2' },
+        { module: 'bmad-loop', tag: 'v0.12.0' },
+      ],
     });
   });
 
@@ -55,6 +61,8 @@ describe('BMAD profile reader', () => {
       communicationLanguage: 'Vietnamese',
       documentOutputLanguage: 'English',
       outputFolder: '_bmad-output',
+      // automator follows the `next` channel (`main`), so only bmb is pinned.
+      pins: [{ module: 'bmb', tag: 'v2.2.1' }],
     });
     expect(profile?.settings.map((s) => `${s.module}.${s.key}`)).toEqual([
       'core.project_name',
@@ -75,6 +83,10 @@ describe('BMAD profile reader', () => {
       communicationLanguage: 'English',
       documentOutputLanguage: 'Vietnamese',
       outputFolder: 'docs/bmad',
+      pins: [
+        { module: 'tea', tag: 'v1.21.3' },
+        { module: 'cis', tag: 'v0.2.1' },
+      ],
     });
     expect(profile?.settings).toEqual([
       { module: 'core', key: 'project_name', value: 'crazii-signal' },
@@ -108,6 +120,7 @@ describe('BMAD profile reader', () => {
       documentOutputLanguage: 'English',
       outputFolder: '_bmad-output',
       settings: [],
+      pins: [],
     });
   });
 
@@ -119,6 +132,7 @@ describe('BMAD profile reader', () => {
       lastUpdated: '2026-08-21T04:00:00.000Z',
       modules: ['core', 'bmm', 'bmb', 'automator'],
       tools: ['claude-code', 'codex', 'opencode'],
+      pins: [{ module: 'bmb', tag: 'v2.2.1' }],
     });
   });
 });

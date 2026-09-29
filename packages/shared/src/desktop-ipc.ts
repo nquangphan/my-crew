@@ -227,11 +227,11 @@ export const BmadLocalInstall = z.object({ version: z.string(), modules: z.array
 export type BmadLocalInstall = z.infer<typeof BmadLocalInstall>;
 
 /**
- * What "Cài BMAD" would do: `no_profile` (no machine reported one), `skip` (this version with every profile
- * module is already here), `install` (no BMAD here), `update` (an older or incomplete install), `newer`
- * (this machine already has a newer BMAD; the app never downgrades it).
+ * What "Cài BMAD" would do: `no_profile` (no machine reported one), `install` (no BMAD in this folder yet),
+ * `installed` (the folder already has a BMAD install, whatever its version or modules: the app never
+ * reinstalls, updates or downgrades it).
  */
-export const BmadInstallPlan = z.enum(['no_profile', 'skip', 'install', 'update', 'newer']);
+export const BmadInstallPlan = z.enum(['no_profile', 'install', 'installed']);
 export type BmadInstallPlan = z.infer<typeof BmadInstallPlan>;
 
 export const ProjectBmadView = z.object({
@@ -263,7 +263,7 @@ export const ProjectDetail = z.object({
 export type ProjectDetail = z.infer<typeof ProjectDetail>;
 
 export const BmadInstallResult = z.object({
-  status: z.enum(['skipped', 'installed', 'updated']),
+  status: z.enum(['skipped', 'installed']),
   /** What happened, in Vietnamese, including files the install left uncommitted. */
   message: z.string(),
   detail: ProjectDetail,

@@ -13,6 +13,7 @@ const PROFILE: BmadProfile = {
   documentOutputLanguage: 'English',
   outputFolder: '_bmad-output',
   settings: [{ module: 'bmm', key: 'project_knowledge', value: '{project-root}/docs' }],
+  pins: [{ module: 'tea', tag: 'v1.27.2' }],
 };
 
 function project(bmadProfile: BmadProfile | null): Project {
