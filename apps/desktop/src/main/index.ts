@@ -356,6 +356,8 @@ supervisor.on('host-event', (name: string, payload: unknown) => {
     send('log.line', payload as DesktopEventPayload<'log.line'>);
   } else if (name === 'job.blocked') {
     notifier.onJobBlocked(payload as BlockedJob);
+  } else if (name === 'bmad.progress') {
+    send('bmad.progress', payload as DesktopEventPayload<'bmad.progress'>);
   }
 });
 

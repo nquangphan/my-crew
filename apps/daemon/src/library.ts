@@ -79,6 +79,13 @@ export { createScriptedRunner, Script, ScriptedCrash } from './runner/scripted-r
 export { scrubSecrets } from './runner/secret-scrubber.js';
 export { takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
 export { defaultTokenStore, FileTokenStore, KeychainTokenStore, type TokenStore } from './secrets.js';
+export {
+  BMAD_DIR,
+  BMAD_MANIFEST,
+  type BmadInstall,
+  readBmadInstall,
+  readBmadProfile,
+} from './skills/bmad-profile.js';
 export { probeInventory } from './skills/skill-inventory.js';
 export { type JobKind, type JobRow, type JobStatus, StateDb } from './state-db.js';
 export { createDocsInitTicket, DocsHandoff } from './tools/ticket-mcp-server.js';

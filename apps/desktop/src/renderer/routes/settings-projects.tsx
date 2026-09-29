@@ -2,6 +2,7 @@ import type {
   ClaimOutcome,
   FolderValidation,
   PendingProjectChange,
+  ProjectBmadView,
   ProjectChangeStatus,
   ProjectDetail,
   ProjectPlatform,
@@ -21,7 +22,7 @@ import {
 } from '../components/project-picker';
 import { ErrorBox, Lozenge, Notice, PageHeader, Toggle } from '../components/ui';
 import { errorText } from '../lib/format';
-import { invoke } from '../lib/ipc';
+import { invoke, useDesktopEvent } from '../lib/ipc';
 
 /** How often the panel re-reads the project while a change waits for the owner. */
 const PENDING_POLL_MS = 5_000;
@@ -201,6 +202,135 @@ function TestSetupSection({
   );
 }
 
+/** Output lines kept on screen while the installer runs. */
+const MAX_BMAD_LINES = 200;
+
+type LocalState = { tone: 'ok' | 'warn' | 'gray'; text: string };
+
+/** This machine's install against the profile, for information only: an installed folder is never touched. */
+function localState({ profile, local, plan }: ProjectBmadView): LocalState {
+  if (!local) return { tone: 'gray', text: plan === 'installed' ? 'Đã cài' : 'Chưa cài' };
+  if (!profile) return { tone: 'gray', text: 'Đã cài' };
+  const same =
+    local.version === profile.version && profile.modules.every((module) => local.modules.includes(module));
+  return same ? { tone: 'ok', text: 'Khớp cấu hình' } : { tone: 'warn', text: 'Khác cấu hình' };
+}
+
+/**
+ * "Cài BMAD": the project's BMAD profile (what the machine holding it installed) and this machine's install.
+ * Manual only; the installer's output streams in while it runs, and nothing is committed.
+ */
+function BmadSection({
+  detail,
+  onInstalled,
+}: {
+  detail: ProjectDetail;
+  onInstalled: (next: ProjectDetail) => void;
+}) {
+  const { profile, local, plan } = detail.bmad;
+  const [running, setRunning] = useState(false);
+  const [lines, setLines] = useState<string[]>([]);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset when another project is shown
+  useEffect(() => {
+    setLines([]);
+    setResult(null);
+    setError(null);
+  }, [detail.key]);
+
+  useDesktopEvent('bmad.progress', (progress) => {
+    if (progress.key === detail.key)
+      setLines((current) => [...current.slice(1 - MAX_BMAD_LINES), progress.line]);
+  });
+
+  const install = async () => {
+    setRunning(true);
+    setLines([]);
+    setResult(null);
+    setError(null);
+    try {
+      const outcome = await invoke('projects.installBmad', { key: detail.key });
+      setResult(outcome.message);
+      onInstalled(outcome.detail);
+    } catch (caught) {
+      setError(errorText(caught));
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const state = localState(detail.bmad);
+  return (
+    <section className="card space-y-3 p-5" data-section="bmad">
+      <h2 className="font-semibold">BMAD</h2>
+      {profile ? (
+        <dl className="grid grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-sm">
+          <dt className="text-muted">Cấu hình</dt>
+          <dd>
+            BMAD <span className="font-mono">{profile.version}</span>
+          </dd>
+          <dt className="text-muted">Module</dt>
+          <dd className="font-mono text-xs">{profile.modules.join(', ')}</dd>
+          <dt className="text-muted">Công cụ</dt>
+          <dd className="font-mono text-xs">{profile.tools.join(', ') || '—'}</dd>
+          <dt className="text-muted">Ngôn ngữ</dt>
+          <dd>
+            trò chuyện {profile.communicationLanguage ?? 'mặc định'} · tài liệu{' '}
+            {profile.documentOutputLanguage ?? 'mặc định'}
+          </dd>
+        </dl>
+      ) : (
+        <p className="text-sm text-muted">Chưa có cấu hình BMAD (máy đang giữ project chưa có BMAD).</p>
+      )}
+      <div className="flex items-center gap-2 text-sm" data-bmad-local={plan}>
+        <span className="text-muted">Máy này:</span>
+        <span>
+          {local ? (
+            <>
+              BMAD <span className="font-mono">{local.version}</span> · module{' '}
+              <span className="font-mono text-xs">{local.modules.join(', ') || '—'}</span>
+            </>
+          ) : plan === 'installed' ? (
+            'có thư mục _bmad (không đọc được manifest)'
+          ) : (
+            'chưa cài BMAD'
+          )}
+        </span>
+        <Lozenge tone={state.tone}>{state.text}</Lozenge>
+      </div>
+      <p className="text-sm text-muted">
+        Cài bằng <code>npx bmad-method</code> vào thư mục project; không chép <code>_bmad/custom</code>,{' '}
+        <code>_bmad/memory</code> và không commit gì. Thư mục đã có BMAD thì không cài lại.
+      </p>
+      {plan === 'installed' && !result && (
+        <Notice tone="info">
+          Máy này đã có BMAD {local?.version ?? 'không rõ phiên bản'}; không cài lại.
+        </Notice>
+      )}
+      <button
+        type="button"
+        className="btn btn-primary"
+        disabled={running || plan !== 'install'}
+        onClick={() => void install()}
+      >
+        {running ? 'Đang cài BMAD…' : 'Cài BMAD'}
+      </button>
+      {lines.length > 0 && (
+        <pre
+          className="max-h-48 overflow-auto rounded border border-line2 bg-soft p-2 font-mono text-xs"
+          data-bmad-log
+        >
+          {lines.join('\n')}
+        </pre>
+      )}
+      {result && <Notice tone="ok">{result}</Notice>}
+      <ErrorBox message={error} />
+    </section>
+  );
+}
+
 function ProjectPanel({
   projectKey,
   onReleased,
@@ -273,6 +403,8 @@ function ProjectPanel({
         }
         onRefresh={setDetail}
       />
+
+      <BmadSection detail={detail} onInstalled={setDetail} />
 
       <section className="card p-5">
         <div className="mb-3 flex items-center justify-between">

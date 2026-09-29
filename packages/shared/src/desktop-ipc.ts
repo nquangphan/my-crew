@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Effort, SelectableModel } from './agent-schemas.js';
+import { BmadProfile } from './bmad-schemas.js';
 import { HealthCheckResult, HealthFixId, HealthGroup, HealthReport } from './health-schemas.js';
 import {
   DaemonCreateProjectRequest,
@@ -221,6 +222,25 @@ export const ResourcesView = z.object({
 });
 export type ResourcesView = z.infer<typeof ResourcesView>;
 
+/** What the project's `_bmad/_config/manifest.yaml` on this machine says is installed. */
+export const BmadLocalInstall = z.object({ version: z.string(), modules: z.array(z.string()) });
+export type BmadLocalInstall = z.infer<typeof BmadLocalInstall>;
+
+/**
+ * What "Cài BMAD" would do: `no_profile` (no machine reported one), `install` (no BMAD in this folder yet),
+ * `installed` (the folder already has a BMAD install, whatever its version or modules: the app never
+ * reinstalls, updates or downgrades it).
+ */
+export const BmadInstallPlan = z.enum(['no_profile', 'install', 'installed']);
+export type BmadInstallPlan = z.infer<typeof BmadInstallPlan>;
+
+export const ProjectBmadView = z.object({
+  profile: BmadProfile.nullable(),
+  local: BmadLocalInstall.nullable(),
+  plan: BmadInstallPlan,
+});
+export type ProjectBmadView = z.infer<typeof ProjectBmadView>;
+
 export const ProjectDetail = z.object({
   key: z.string(),
   localPath: z.string().nullable(),
@@ -237,8 +257,22 @@ export const ProjectDetail = z.object({
   pendingChange: PendingProjectChange.nullable(),
   /** This machine's latest change request for the project: how the owner decided, or that it was withdrawn. */
   lastChange: ProjectChangeOutcome.nullable(),
+  /** The project's BMAD profile on the server and the install in this machine's folder. */
+  bmad: ProjectBmadView,
 });
 export type ProjectDetail = z.infer<typeof ProjectDetail>;
+
+export const BmadInstallResult = z.object({
+  status: z.enum(['skipped', 'installed']),
+  /** What happened, in Vietnamese, including files the install left uncommitted. */
+  message: z.string(),
+  detail: ProjectDetail,
+});
+export type BmadInstallResult = z.infer<typeof BmadInstallResult>;
+
+/** One line of the BMAD installer's output while "Cài BMAD" runs. */
+export const BmadProgress = z.object({ key: z.string(), line: z.string() });
+export type BmadProgress = z.infer<typeof BmadProgress>;
 
 // ---------------------------------------------------------------------------
 // Requests (renderer → main → host)
@@ -326,6 +360,8 @@ export const DesktopRequests = {
   'projects.refreshInventory': request(z.object({ key: ProjectKey }).strict(), ProjectDetail),
   /** Asks the owner to change the project type and UI-test MCP mapping; nothing changes until approved. */
   'projects.requestTestSetup': request(ProjectTestSetup.extend({ key: ProjectKey }).strict(), ProjectDetail),
+  /** Installs the project's BMAD profile into its local folder (manual only; never commits). */
+  'projects.installBmad': request(z.object({ key: ProjectKey }).strict(), BmadInstallResult),
 
   'hooks.list': request(Empty, z.array(HookView)),
   'hooks.install': request(z.object({ key: ProjectKey }).strict(), HookView),
@@ -376,6 +412,7 @@ export const DesktopEvents = {
   'log.line': LogLine,
   'update.status': UpdateStatus,
   'app.navigate': Navigate,
+  'bmad.progress': BmadProgress,
 } as const;
 
 export type DesktopEventName = keyof typeof DesktopEvents;
@@ -430,6 +467,7 @@ export const HostEventName = z.enum([
   'jobs.changed',
   'log.line',
   'job.blocked',
+  'bmad.progress',
 ]);
 export type HostEventName = z.infer<typeof HostEventName>;
 

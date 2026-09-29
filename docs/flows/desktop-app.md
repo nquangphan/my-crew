@@ -131,31 +131,53 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    đã tick sẵn, không tạo project vừa nhập, nên trình cài đặt xong mà máy chưa nhận project nào; tạo lại từ
    Settings → Projects khi đó không cài hook, dashboard sức khỏe đỏ ngay lượt chạy kế tiếp và bấm lại gặp
    409.)
-9. `apps/desktop/src/daemon-host/health-ops.ts` → `HealthOps.run()`/`context()`: `run()` cũng
-   `await host.repoAccess()` trước tiên vì các check repo chạy git đồng bộ; rồi dựng `HealthContext` (thêm
-   `daemon`, `app` facts, `crewDocs: {source, runtime}`, `probeCheckout`, `quick`) rồi gọi `runHealthChecks()`
-   dùng chung với `crewd doctor` (flow `daemon-health`). `full` chạy khi mở cửa sổ và theo yêu cầu; `quick`
-   chạy mỗi 5 phút, bỏ qua lượt thử đăng nhập Claude, push dry-run và probe skill checkout (giữ lại dòng kết
-   quả probe gần nhất qua `known`); trạng thái đổi thì gọi `daemon.heartbeat()` ngay để trang Máy trên web
-   thấy cùng trạng thái với dashboard. Các lượt chạy chồng lên nhau (một fix, lịch 5 phút, một đổi project) —
-   `runsStarted`/`newestApplied` đảm bảo một lượt cũ không bao giờ ghi đè báo cáo của một lượt mới hơn.
-   `logChanges()` ghi một dòng `app.log` (`health-change`) cho mỗi check đổi trạng thái so với lần trước (lần
-   đầu: mọi check không xanh) và một dòng `health-summary` khi trạng thái tổng đổi.
-10. `apps/desktop/src/daemon-host/activity.ts` → `Activity.jobs()`/`tail()`/`logger`: danh sách job đang
+9. `apps/desktop/src/daemon-host/bmad-install.ts` → `installBmad()`: IPC `projects.installBmad` (Settings →
+   Projects, nút "Cài BMAD") — `HostService.installBmad()` (`host-service.ts`) đọc `bmad` của `projectDetail()`
+   (`setup-ops.ts`, `bmadView()` so hồ sơ server `DaemonProject.bmadProfile` với cài đặt cục bộ đọc qua
+   `readBmadInstall()` để ra `BmadInstallPlan`: `no_profile`/`install`/`installed` — thư mục đã có bất kỳ bản
+   cài BMAD nào (manifest đọc được, hoặc chỉ cần có thư mục `_bmad/`) thì luôn là `installed`, nút không đụng
+   tới dù phiên bản hay module gì, không update, không hạ cấp), rồi chờ `ctx.folderAccess(repoPath)` (phương
+   thức công khai mới của `HostContext`, dùng lại đúng cơ chế `awaitFolderAccess()` chờ hộp thoại quyền macOS
+   mà `repoAccess()` dùng, xem bước 7) trước khi chạy
+   `npx bmad-method@<version> install --yes --directory <repo> --modules <module ngoài core> --tools <tools,
+   mặc định claude-code> [--communication-language] [--document-output-language] [--output-folder] [--set
+   <module>.<key>=<value> …] [--pin <module>=<tag> …]` (một `--pin` cho mỗi module của `profile.pins`) qua
+   `npxRunner` (tiến trình riêng nhóm, `CI=1
+   NO_COLOR=1`, hết 7 phút thì SIGTERM rồi SIGKILL). Mỗi dòng output phát sự kiện host `bmad.progress`
+   `{key, line}` cho renderer và ghi `app.log` (`bmad-install-output`, tối đa 400 dòng đầu), cộng
+   `bmad-install-started`/`-finished`/`-failed`; thông báo lỗi tiếng Việt rõ ràng khi thiếu `npx`, lỗi mạng, mã
+   thoát khác 0, hết giờ, hoặc manifest sau khi cài không khớp cấu hình. Không bao giờ commit: sau khi cài xong
+   đếm số file mới/đổi chưa commit qua `git status`, nêu riêng file nằm trong vùng luật R6 bảo vệ (ví dụ
+   `.claude/**`) để chủ dự án tự quyết định commit. Xong thì dò lại inventory (chờ tối đa 90 giây) để kho skill
+   BMAD mới hiện ngay. `HostService` chỉ cho một lượt cài BMAD chạy mỗi project một lúc.
+   `apps/desktop/src/daemon-host/test-seams.ts` → `fakeBmadRunner`: bản giả lập cho E2E (`bmadRunner` của
+   `HostDeps`/`TestSeams`, bật khi `CREW_DESKTOP_TEST_MODE=1`) chỉ ghi một manifest giả, không tải gì; unit test
+   tự truyền `HostDeps.bmadRunner` khác để kiểm lỗi/timeout mà không gọi `npx` thật.
+10. `apps/desktop/src/daemon-host/health-ops.ts` → `HealthOps.run()`/`context()`: `run()` cũng
+    `await host.repoAccess()` trước tiên vì các check repo chạy git đồng bộ; rồi dựng `HealthContext`
+    (thêm `daemon`, `app` facts, `crewDocs: {source, runtime}`, `probeCheckout`, `quick`) rồi gọi
+    `runHealthChecks()` dùng chung với `crewd doctor` (flow `daemon-health`). `full` chạy khi mở cửa sổ và
+    theo yêu cầu; `quick` chạy mỗi 5 phút, bỏ qua lượt thử đăng nhập Claude, push dry-run và probe skill
+    checkout (giữ lại dòng kết quả probe gần nhất qua `known`); trạng thái đổi thì gọi `daemon.heartbeat()`
+    ngay để trang Máy trên web thấy cùng trạng thái với dashboard. Các lượt chạy chồng lên nhau (một fix, lịch
+    5 phút, một đổi project) — `runsStarted`/`newestApplied` đảm bảo một lượt cũ không bao giờ ghi đè báo cáo
+    của một lượt mới hơn. `logChanges()` ghi một dòng `app.log` (`health-change`) cho mỗi check đổi trạng thái
+    so với lần trước (lần đầu: mọi check không xanh) và một dòng `health-summary` khi trạng thái tổng đổi.
+11. `apps/desktop/src/daemon-host/activity.ts` → `Activity.jobs()`/`tail()`/`logger`: danh sách job đang
     chạy/chờ/chờ thử lại (kèm tên và tiêu đề ticket) và nhật ký daemon (`~/.crew/logs/daemon.log`, JSON
     Lines, xoay vòng ở 10 MB); `logger` vừa ghi file vừa phát sự kiện `log.line` cho renderer.
-11. `apps/desktop/src/main/quit-guard.ts` → `decideQuit()`: thoát app khi có job đang chạy hỏi trước — "Chờ
+12. `apps/desktop/src/main/quit-guard.ts` → `decideQuit()`: thoát app khi có job đang chạy hỏi trước — "Chờ
     job xong rồi thoát" (`drain`), "Dừng ngay, chạy tiếp lần sau" (`requeue`) hoặc "Huỷ"; không có job nào thì
     thoát ngay.
-12. `apps/desktop/src/main/login-item.ts` → `electronLoginItem()`: mở cùng máy dùng
+13. `apps/desktop/src/main/login-item.ts` → `electronLoginItem()`: mở cùng máy dùng
     `app.setLoginItemSettings`; khi launch tới từ login item, app chỉ hiện tray, không mở cửa sổ
     (`openedAtLogin()`), rồi báo sức khỏe qua heartbeat sau 15 giây.
-13. `apps/desktop/src/main/tray.ts`, `apps/desktop/src/main/tray-view.ts` → `CrewTray.update()`, `trayView()`:
+14. `apps/desktop/src/main/tray.ts`, `apps/desktop/src/main/tray-view.ts` → `CrewTray.update()`, `trayView()`:
     icon tray là một chấm màu vẽ trực tiếp vào bitmap BGRA (không cần file ảnh) — xám khi chưa cài đặt xong,
     đỏ khi daemon không chạy, hoặc theo màu sức khỏe; tiêu đề hiện số job đang chạy.
-14. `apps/desktop/src/main/notifications.ts` → `Notifier.onHealth()`/`onJobBlocked()`: thông báo macOS khi
+15. `apps/desktop/src/main/notifications.ts` → `Notifier.onHealth()`/`onJobBlocked()`: thông báo macOS khi
     sức khỏe chuyển đỏ (liệt kê tối đa 3 mục lỗi) hoặc khi một job chuyển `blocked`.
-15. `apps/desktop/src/main/updater.ts` → `Updater.check()`/`install()`, `isDeveloperIdSigned()`,
+16. `apps/desktop/src/main/updater.ts` → `Updater.check()`/`install()`, `isDeveloperIdSigned()`,
     `dmgAssetName()`, `isUnpublished()`: `electron-updater` kiểm bản mới từ GitHub Releases của
     `nquangphan/my-crew`; build ký Developer ID (có `TeamIdentifier` qua `codesign`) tải và cài luôn sau khi
     chờ hết job (`waitForIdle()` tạm dừng rồi `drain` daemon); build chưa ký chỉ mở link tải đúng file dmg của
@@ -165,21 +187,22 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
     `ERR_UPDATER_LATEST_VERSION_NOT_FOUND`/`ERR_UPDATER_CHANNEL_FILE_NOT_FOUND`, hoặc thông báo chứa "No
     published versions"/404) thành `state: 'unpublished'` — không phải lỗi, khác lỗi mạng/TLS thật vẫn
     `state: 'error'`. Tắt hẳn khi `!app.isPackaged` hoặc ở chế độ test.
-16. `apps/desktop/src/main/shell-env.ts` → `loginShellPath()`: app mở từ Finder hoặc login item nhận PATH tối
+17. `apps/desktop/src/main/shell-env.ts` → `loginShellPath()`: app mở từ Finder hoặc login item nhận PATH tối
     thiểu của `launchd`; hàm này chạy shell đăng nhập một lần lúc khởi động để lấy PATH đầy đủ (nơi
     Homebrew/`~/.local/bin` cài `git`, `claude`, `npx`, `maestro`), gộp với fallback các thư mục thường gặp.
-17. `apps/desktop/src/main/desktop-state.ts` → `DesktopStateStore`: trạng thái riêng của app
+18. `apps/desktop/src/main/desktop-state.ts` → `DesktopStateStore`: trạng thái riêng của app
     (`~/.crew/desktop.json`, ghi atomic 0600) — đã hoàn tất cài đặt lúc nào, có đang tạm dừng nhận job không;
     sống sót qua khởi động lại app/host.
-18. `apps/desktop/src/daemon-host/test-seams.ts` → `testSeams()`: chỉ bật khi
+19. `apps/desktop/src/daemon-host/test-seams.ts` → `testSeams()`: chỉ bật khi
     `CREW_DESKTOP_TEST_MODE=1` (bộ E2E) — thay lượt thử đăng nhập Claude và probe kho skill bằng bản giả lập
-    đọc/ghi file trong crew home của test; mọi phần khác (API, git, hook, config, daemon) vẫn chạy thật.
-19. Đóng gói và phát hành (ngoài `apps/*/src/**` nên không thuộc file nguồn của flow, nhưng là nơi lắp app
+    đọc/ghi file trong crew home của test (kể cả `fakeBmadRunner`, xem bước 9); mọi phần khác (API, git, hook,
+    config, daemon) vẫn chạy thật.
+20. Đóng gói và phát hành (ngoài `apps/*/src/**` nên không thuộc file nguồn của flow, nhưng là nơi lắp app
     chạy được): `pnpm --filter @crew/desktop package:mac` (`scripts/package-mac.mjs`) dựng **một dmg và một
     zip riêng cho mỗi kiến trúc** vào `apps/desktop/release/` (gitignored) — `2P-Crew-<version>-arm64.dmg`,
     `2P-Crew-<version>-x64.dmg`, `2P-Crew-<version>-arm64-mac.zip` và `2P-Crew-<version>-x64-mac.zip`
     (`electron-builder.yml` → `mac.target` gồm `dmg` và `zip`, cả hai với `arch: [arm64, x64]`;
-    `dmg.artifactName` cho dmg, `mac.artifactName` cho zip — tên dmg khớp `dmgAssetName()` ở bước 15, cả hai
+    `dmg.artifactName` cho dmg, `mac.artifactName` cho zip — tên dmg khớp `dmgAssetName()` ở bước 16, cả hai
     tên kiểm bởi `apps/desktop/test/main-logic.test.ts`). `scripts/stage-app.mjs --both-archs` đóng gói app ra
     ngoài workspace pnpm với một `node_modules` phẳng chỉ chứa các gói ngoài cần lúc chạy (`better-sqlite3`,
     Agent SDK, MCP SDK, `electron-updater`) cộng cả hai binary Claude Code của Agent SDK
@@ -193,7 +216,7 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
     `better-sqlite3` 13 nạp prebuild Node-API theo kiến trúc (`prebuilds/darwin-<arch>.node`) nên cùng một
     binary chạy được trong Electron. Chưa ký Developer ID và chưa notarize: lần đầu mở phải bấm chuột phải →
     Open (Gatekeeper), và cập nhật tự động vẫn chỉ mở link tải file dmg đúng kiến trúc (`Updater.check()`, bước
-    15) — zip đã được dựng và đăng cùng dmg, chỉ chưa dùng tới vì app chưa ký. Job CI phát hành trên tag `v*`
+    16) — zip đã được dựng và đăng cùng dmg, chỉ chưa dùng tới vì app chưa ký. Job CI phát hành trên tag `v*`
     (`.github/workflows/ci.yml`, xem flow `deployment`) chạy `package:mac` này (không `--publish`), rồi tạo
     đúng một GitHub Release cho tag bằng `gh release create` với mọi dmg/zip/blockmap và `latest-mac.yml` —
     publish song song của electron-builder từng tạo release cho cùng tag hai lần nên bước tạo release được
@@ -234,10 +257,11 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 | `apps/desktop/src/daemon-host/host-service.ts` | Chạy daemon thật và định tuyến mọi thao tác host | `HostService` |
 | `apps/desktop/src/daemon-host/host-context.ts` | State dùng chung của các thao tác host | `HostContext`, `HostError` |
 | `apps/desktop/src/daemon-host/folder-access.ts` | Chờ quyền đọc thư mục macOS trước khi git đồng bộ chạy | `awaitFolderAccess`, `FolderAccessHooks` |
-| `apps/desktop/src/daemon-host/setup-ops.ts` | Thao tác trình cài đặt và Settings → Projects | `checkServer`, `pairMachine`, `applyProjects`, `createProject`, `ensureHooks`, `repairBrokenHooks`, `installProjectHooks`, `requestTestSetup` |
+| `apps/desktop/src/daemon-host/setup-ops.ts` | Thao tác trình cài đặt và Settings → Projects | `checkServer`, `pairMachine`, `applyProjects`, `createProject`, `ensureHooks`, `repairBrokenHooks`, `installProjectHooks`, `requestTestSetup`, `projectDetail` |
+| `apps/desktop/src/daemon-host/bmad-install.ts` | Chạy trình cài `bmad-method` cho "Cài BMAD" | `installBmad`, `bmadInstallPlan`, `bmadInstallerArgs`, `npxRunner`, `bmadView` |
 | `apps/desktop/src/daemon-host/health-ops.ts` | Chạy health check dùng chung với `crewd doctor` | `HealthOps` |
 | `apps/desktop/src/daemon-host/activity.ts` | Danh sách job và nhật ký daemon | `Activity` |
-| `apps/desktop/src/daemon-host/test-seams.ts` | Thay SDK Claude bằng bản giả lập cho E2E | `testSeams`, `TestSeams` |
+| `apps/desktop/src/daemon-host/test-seams.ts` | Thay SDK Claude, probe skill và trình cài BMAD bằng bản giả lập cho E2E | `testSeams`, `TestSeams`, `fakeBmadRunner` |
 | `packages/shared/src/desktop-ipc.ts` | Hợp đồng IPC renderer↔main↔host | `DesktopRequests`, `DesktopEvents`, `HostOnlyRequests`, `ToHost`, `FromHost` |
 | `apps/desktop/electron.vite.config.ts` | Build electron-vite (main/preload/renderer); chép prompt vai trò cạnh bundle main | `copyRolePrompts`, `ROLE_PROMPTS_SOURCE` |
 
@@ -251,11 +275,12 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   host, lỗi updater, dòng stdout/stderr của host (`host-stdout`/`host-stderr`), host không báo `ready` kịp
   (`daemon-host-ready-timeout`), quyền đọc thư mục macOS đang chờ hay đã xong
   (`folder-access-waiting`/`folder-access-resolved`), và lỗi chưa bắt của main/host/renderer; đứng cạnh
-  `daemon.log` (hoạt động job, bước 10) chứ không thay nó.
+  `daemon.log` (hoạt động job, bước 11) chứ không thay nó.
 - Sự kiện: kênh IPC nội bộ Electron `crew:invoke`/`crew:event` (`DESKTOP_INVOKE_CHANNEL`/
   `DESKTOP_EVENT_CHANNEL`) giữa renderer và main; giao thức `ToHost`/`FromHost` (`request`/`facts` vào,
   `ready`/`response`/`event`/`log` ra — tên sự kiện: `daemon.status`, `health.report`, `jobs.changed`,
-  `log.line`, `job.blocked`) giữa main và daemon host qua `MessagePort` của `utilityProcess`.
+  `log.line`, `job.blocked`, `bmad.progress` — mỗi dòng output của trình cài BMAD) giữa main và daemon host qua
+  `MessagePort` của `utilityProcess`.
 - Gọi ngoài: VPS API và Agent SDK qua daemon thật (xem `daemon-runtime`, `daemon-health`); GitHub Releases
   của `nquangphan/my-crew` qua `electron-updater` (kiểm và tải bản mới) và `npm pack`/`gh`-style publish lúc
   đóng gói; `/usr/bin/osascript` mở Terminal; `/usr/bin/codesign` kiểm chữ ký lúc quyết định tự cài bản mới;
@@ -276,6 +301,9 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   cần Node cài riêng trên máy.
 - project-claims: `requestTestSetup()` gọi `POST /v1/daemon/projects/:projectKey/change-requests`; kết quả và
   trạng thái đang chờ hiển thị ở Settings → Projects (flow `desktop-ui`) tới khi chủ dự án quyết định.
+  `bmadView()` so `DaemonProject.bmadProfile` (server) với cài đặt cục bộ để ra `ProjectDetail.bmad`.
+- agent-workspace: `installBmad()` dùng lại `readBmadInstall()` (`@crew/daemon`) để đọc cài đặt BMAD cục bộ và
+  chạy đúng logic phiên bản mà daemon dùng để báo cáo lên server.
 
 ## Tests
 
@@ -318,6 +346,14 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 - `apps/desktop/test/role-prompts-bundle.test.ts`: chạy `copyRolePrompts.writeBundle()` vào một thư mục tạm
   rồi nạp mọi prompt của từng stage (`STAGES`, flow `agent-roles`) và các partial nó `{{> ... }}` từ thư mục
   đó, đúng như bundle đã đóng gói sẽ làm.
+- `apps/desktop/test/bmad-install.test.ts`: quyết định plan đúng (`no_profile`/`install`/`installed`), dựng
+  đúng argv trình cài mới (mặc định `claude-code`, một `--pin` cho mỗi module đã ghim); với trình cài giả lập
+  — chặn khi chưa có hồ sơ, cài xong phát tiến độ và không commit gì, nêu đúng file R6 bảo vệ; thư mục đã có
+  bản cài cũ hơn/thiếu module/mới hơn/manifest không đọc được thì không bao giờ đụng tới (luôn bỏ qua); thông
+  báo tiếng Việt đúng cho thiếu `npx`, lỗi mạng, trình cài lỗi, hết giờ và manifest không khớp sau khi chạy;
+  một lượt chạy `npx` thật
+  (`CREW_LIVE_BMAD_TEST=1`, tuỳ chọn) cài `core`/`bmm` và module `cis` ghim ở tag `v0.2.1` cho Claude Code vào
+  một repo git tạm, kiểm manifest ghi đúng tag đó, rồi không commit gì.
 - `apps/desktop/test/e2e/health.spec.ts` (Electron thật qua Playwright `_electron`, bộ `test:e2e`): phá một
   check cho nó chuyển đỏ rồi tự sửa cho nó xanh lại; daemon sống sót qua việc đóng/mở lại cửa sổ và tự khởi
   động lại sau khi host bị kill.

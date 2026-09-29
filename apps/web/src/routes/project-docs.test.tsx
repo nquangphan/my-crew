@@ -26,6 +26,7 @@ function project(overrides: Partial<Project> = {}): Project {
     maxChildrenPerTicket: 8,
     ticketTreeBudgetUsd: null,
     dailyBudgetUsd: null,
+    bmadProfile: null,
     createdAt: '2026-09-28T00:00:00.000Z',
     updatedAt: '2026-09-28T00:00:00.000Z',
     ...overrides,

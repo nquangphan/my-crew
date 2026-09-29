@@ -2,6 +2,7 @@ import {
   type AgentCommentRequest,
   type AgentMetaRequest,
   ApiErrorBody,
+  type BmadProfile,
   BudgetStatusResponse,
   ClaimResponse,
   type ClaimTarget,
@@ -23,6 +24,7 @@ import {
   ProjectCatalogResponse,
   type ProjectChangeBody,
   ProjectChangeResponse,
+  PutBmadProfileResponse,
   type PutSkillsRequest,
   type RateSubtaskRequest,
   ReleaseClaimResponse,
@@ -247,6 +249,17 @@ export class VpsClient {
       body,
       idempotencyKey,
       schema: ProjectChangeResponse,
+    });
+  }
+
+  /** Reports the BMAD profile read from this machine's checkout of a project it owns. */
+  putBmadProfile(projectKey: string, body: BmadProfile, idempotencyKey: string) {
+    return this.request({
+      method: 'PUT',
+      path: `/v1/daemon/projects/${encodeURIComponent(projectKey)}/bmad-profile`,
+      body,
+      idempotencyKey,
+      schema: PutBmadProfileResponse,
     });
   }
 

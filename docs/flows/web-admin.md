@@ -41,7 +41,10 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
    tuyến"), repo URL, platform, tên MCP test UI, giới hạn con/ngân sách cây/ngân sách ngày; `ReassignDialog()`
    gọi `api.assignToMachine()` (flow `project-claims`) kèm xác nhận.
 5. `apps/web/src/routes/project-settings.tsx` → `ProjectSettingsPage()`: cùng `ProjectForm` cho project hiện
-   tại (từ sidebar "Cài đặt project").
+   tại (từ sidebar "Cài đặt project"). `BmadProfileSection()` hiện hồ sơ cài BMAD mới nhất mà một máy giữ
+   project báo cáo (`Project.bmadProfile`, flow `project-claims`) — phiên bản và giờ cài (`Asia/Ho_Chi_Minh`),
+   module, công cụ, ngôn ngữ, thư mục kết quả, số cấu hình module — chỉ đọc, không sửa được trên web; chưa máy
+   nào báo thì hiện "Chưa có cấu hình BMAD (máy đang giữ project chưa có BMAD)".
 6. `apps/web/src/routes/machines.tsx` → `MachinesPage()`, `MachineCard()`: danh sách máy (online/paused/health
    với các check lỗi, tài nguyên, mục "Job" (`MachineJobs`) liệt kê job đang chạy (kèm model/effort), đang chờ
    (lý do qua `describeWait()` của flow `web-tickets`) và lỗi gần nhất của máy — mỗi dòng liên kết ticket khi
@@ -81,7 +84,8 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 ## Flow liên quan
 
 - project-claims: duyệt/từ chối claim, tạo/sửa project, chuyển máy sở hữu, duyệt/từ chối yêu cầu đổi loại
-  project và MCP test UI mà một máy tự đề nghị.
+  project và MCP test UI mà một máy tự đề nghị; `BmadProfileSection` hiện `Project.bmadProfile` chỉ đọc — cài
+  đặt BMAD trên máy khác chỉ làm được ở app desktop (flow `desktop-app`/`desktop-ui`), không phải trên web.
 - machine-pairing: tạo mã pairing, thu hồi máy, đặt máy trợ lý, đọc inventory skill/MCP.
 - ticket-lifecycle: nguồn thông báo `ticket.stuck` (báo ticket không máy nào đang xử lý).
 - event-delivery: nguồn thông báo (`/v1/notices`) và làm mới trực tiếp qua SSE.
@@ -94,6 +98,8 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 - `apps/web/src/routes/inbox.test.tsx`: duyệt claim kèm TOTP (và mã sai), đếm badge, nhóm hiển thị đúng, đánh
   dấu đã đọc (một thông báo và tất cả) phản ánh đúng số chưa đọc.
 - `apps/web/src/components/pairing-dialog.test.tsx`: tạo mã, đếm ngược, lỗi TOTP.
+- `apps/web/src/routes/project-settings.test.tsx`: hiện đúng hồ sơ BMAD chỉ đọc trên trang cài đặt project;
+  báo đúng câu khi chưa máy nào báo cáo hồ sơ.
 - `apps/web/e2e/owner-admin.spec.ts`: phím tắt (kể cả "Tạo thêm"), quick search, kéo-thả bị từ chối, đổi ưu
   tiên hàng loạt, ghép máy bằng TOTP, duyệt chuyển máy từ máy B trong Inbox rồi chuyển project về từ trang Dự
   án, chế độ tối.

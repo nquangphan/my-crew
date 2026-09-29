@@ -47,8 +47,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 5. `apps/daemon/src/api/vps-client.ts` → `VpsClient.request()`: mọi response được validate bằng schema
    `@crew/shared`, lỗi transient (mạng, 502/503/504) được thử lại với backoff nhân đôi, mọi ghi kèm header
    `Idempotency-Key` — ví dụ `requestProjectChange(projectKey, body, idempotencyKey)` (flow `project-claims`,
-   dùng bởi `setup-ops.ts` → `requestTestSetup()` của app desktop), hay `retrySubtask(pmTaskId, body,
-   idempotencyKey)` (`POST .../retry-subtask`, gọi bởi tool PM cùng tên, flow `agent-runs`/`ticket-lifecycle`). Tuỳ chọn `onError(failure: ApiFailure)`
+   dùng bởi `setup-ops.ts` → `requestTestSetup()` của app desktop), `putBmadProfile(projectKey, profile,
+   idempotencyKey)` (`PUT /v1/daemon/projects/:projectKey/bmad-profile`, cũng flow `project-claims`), hay
+   `retrySubtask(pmTaskId, body, idempotencyKey)` (`POST .../retry-subtask`, gọi bởi tool PM cùng tên, flow
+   `agent-runs`/`ticket-lifecycle`). Tuỳ chọn `onError(failure: ApiFailure)`
    được gọi đúng một lần cho mỗi request cuối cùng thất bại (sau khi hết lượt thử lại) với `method`, `path`,
    `status` (`0` khi request không có phản hồi — mạng/TLS/timeout), `code`, `message`, `attempts` — không bao
    giờ có header hay body; lỗi của chính `onError` không đổi kết quả request. `CreateDaemonOptions.onApiError`
@@ -69,9 +71,12 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `restart_resume` nếu có `sessionId`, ngược lại `restart_fresh`); `refreshProjects()`; `sweep()`; probe
    inventory máy và từng project (mỗi lần probe một project gọi `ProbeWorktreeKeeper.used()`, flow
    `agent-workspace`, để giữ worktree `_probe` của nó thêm một giờ); rồi khởi động stream, heartbeat, scheduler
-   và timer sweep mỗi 10 phút. `decide()` (dùng bởi `Scheduler`, flow `daemon-scheduling`): `pm_task` vượt ngân
-   sách cây trả `defer` (job ở nguyên `queued`, thử lại ở lượt sau) thay vì `skip` (kết thúc hẳn) — chủ dự án
-   duyệt xong thì job tự chạy mà không cần một sự kiện đánh thức mới.
+   và timer sweep mỗi 10 phút. `refreshInventory(projectKey)` gọi `reportBmadProfile()` trước probe: khi máy
+   này sở hữu project (`projectsView` đọc `ownerState: 'mine'`) và hồ sơ BMAD đọc được (`readBmadProfile()`,
+   flow `agent-workspace`) khác lần báo trước (so JSON với meta `bmad-profile:<key>`), gửi lên server qua
+   `VpsClient.putBmadProfile()`; lỗi chỉ ghi log, không chặn probe. `decide()` (dùng bởi `Scheduler`, flow
+   `daemon-scheduling`): `pm_task` vượt ngân sách cây trả `defer` (job ở nguyên `queued`, thử lại ở lượt sau)
+   thay vì `skip` (kết thúc hẳn) — chủ dự án duyệt xong thì job tự chạy mà không cần một sự kiện đánh thức mới.
    `sweep()` cũng gọi `ProbeWorktreeKeeper.expire()` cho mọi project đã cấu hình — dọn worktree probe quá một
    giờ (không tính vào `orphansCleaned`); `timings.probeWorktreeTtlMs`/`timings.probeClock` cho test kiểm soát
    thời gian này.
@@ -118,9 +123,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
     `VpsError`, `ApiFailure`, `StateDb`, mọi health check và helper của flow `daemon-health` — `HEALTH_CHECKS`,
     `runHealthChecks`, `applyHealthFix`, `repoFolderChecks`, `inspectFolder`, `inspectHooks`, `HookInspection`,
     `HookState`, `serverProjects`, `storedInventory`…, runner, tool scopes, cộng
-    `rolePlanner`/`resolveModel`/`renderPrompt`/`setPromptsDir`/`resolveStage`/`STAGES` của flow `agent-roles`)
-    cho CLI và app desktop (`setup-ops.ts`, `health-ops.ts`, `activity.ts`, flow `desktop-app`) dùng chung một
-    nguồn.
+    `rolePlanner`/`resolveModel`/`renderPrompt`/`setPromptsDir`/`resolveStage`/`STAGES` của flow `agent-roles`,
+    và `readBmadInstall`/`readBmadProfile`/`BMAD_DIR`/`BMAD_MANIFEST`/`BmadInstall` của flow `agent-workspace`) cho CLI và
+    app desktop (`setup-ops.ts`, `health-ops.ts`, `activity.ts`, `bmad-install.ts`, flow `desktop-app`) dùng
+    chung một nguồn.
 
 ## Files
 
@@ -155,7 +161,8 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
   `failed_attempts`, `capabilities`, `return_to_dev`) thuộc flow đó nhưng sống trong `state-db.ts` ở đây.
 - agent-workspace: `createDaemon()` gọi `ensureWorktree`/`detectSharedPaths`/`probeInventory` để chuẩn bị
   worktree và kho skill/MCP; `ProbeWorktreeKeeper` (sở hữu bởi flow đó) được lắp và điều khiển từ `daemon.ts`
-  (`used()` sau mỗi probe, `expire()` trong `sweep()`, `stop()` khi dừng daemon).
+  (`used()` sau mỗi probe, `expire()` trong `sweep()`, `stop()` khi dừng daemon); `reportBmadProfile()` gọi
+  `readBmadProfile()` của flow đó để đọc `_bmad/` trong checkout chính trước mỗi probe.
 - resource-hygiene: `createDaemon().sweep()` gọi `sweepOrphans()`; `ResourceOps` được lắp trong
   `JobRunnerDeps.resourceOps`.
 - daemon-health: `crewd doctor` (`runDoctor()` trong `cli.ts`) gọi `doctor()` của flow `daemon-health`.

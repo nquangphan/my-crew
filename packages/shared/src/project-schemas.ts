@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BmadProfile } from './bmad-schemas.js';
 
 /** Decides which UI-test MCP server QC tickets must use. */
 export const ProjectPlatform = z.enum(['web', 'mobile', 'web_mobile', 'backend']);
@@ -100,6 +101,8 @@ export const Project = z.object({
   maxChildrenPerTicket: z.number().int(),
   ticketTreeBudgetUsd: z.number().nullable(),
   dailyBudgetUsd: z.number().nullable(),
+  /** The BMAD setup the owning machine reported; read-only for the owner. */
+  bmadProfile: BmadProfile.nullable().default(null),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
 });

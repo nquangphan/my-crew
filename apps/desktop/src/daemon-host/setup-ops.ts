@@ -35,6 +35,7 @@ import {
   type ServerCheck,
   SkillInventory,
 } from '@crew/shared';
+import { bmadView } from './bmad-install.js';
 import { type HostContext, HostError } from './host-context.js';
 
 /** The UI text for a server failure: network and TLS problems, refused tokens, contract mismatches. */
@@ -406,6 +407,7 @@ export async function projectDetail(ctx: HostContext, key: string): Promise<Proj
     webSettingsUrl: ctx.webUrl(`/projects/${key}/settings`),
     pendingChange: view?.pendingChange ?? null,
     lastChange: view?.lastChange ?? null,
+    bmad: bmadView(view?.bmadProfile ?? null, project?.repoPath ?? null),
   };
 }
 

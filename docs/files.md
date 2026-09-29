@@ -16,6 +16,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/drizzle/0004_project_change_withdrawn.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0005_machine_job_activity.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0006_pm_complexity_reason.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0007_project_bmad_profile.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/app.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/auth/csrf.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
@@ -34,6 +35,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/realtime/event-bus.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `apps/api/src/realtime/sse.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `apps/api/src/routes/auth-routes.ts` | [owner-auth](flows/owner-auth.md) (điểm vào) |
+| `apps/api/src/routes/bmad-profile-routes.ts` | [daemon-api](flows/daemon-api.md) (file) |
 | `apps/api/src/routes/comment-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
 | `apps/api/src/routes/daemon-routes.ts` | [daemon-api](flows/daemon-api.md) (điểm vào) |
 | `apps/api/src/routes/docs-routes.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (điểm vào) |
@@ -45,6 +47,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/routes/ticket-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
 | `apps/api/src/server.ts` | [api-platform](flows/api-platform.md) (điểm vào) |
 | `apps/api/src/services/agent-activity-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `apps/api/src/services/bmad-profile-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/budget-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/claim-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/docs-service.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
@@ -61,6 +64,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/services/ticket-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/test/agent-activity.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/auth.test.ts` | [owner-auth](flows/owner-auth.md) (test) |
+| `apps/api/test/bmad-profile.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `apps/api/test/budget.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/bug-loop.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/claims.test.ts` | [project-claims](flows/project-claims.md) (test) |
@@ -140,6 +144,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/scheduler/scheduler.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
 | `apps/daemon/src/secrets.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
 | `apps/daemon/src/service/systemd.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/skills/bmad-profile.ts` | [agent-workspace](flows/agent-workspace.md) (file) |
 | `apps/daemon/src/skills/skill-inventory.ts` | [agent-workspace](flows/agent-workspace.md) (file) |
 | `apps/daemon/src/state-db.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
 | `apps/daemon/src/stream/dispatcher.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
@@ -147,6 +152,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/tools/ticket-mcp-server.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/tools/tool-scopes.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/test/agent-runner.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
+| `apps/daemon/test/bmad-profile.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/daemon/test/cli.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
 | `apps/daemon/test/daemon-extras.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
 | `apps/daemon/test/daemon.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
@@ -178,6 +184,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/worktree-manager.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/desktop/electron.vite.config.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/activity.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/daemon-host/bmad-install.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/folder-access.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/health-ops.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/host-context.ts` | [desktop-app](flows/desktop-app.md) (file) |
@@ -221,10 +228,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/src/renderer/routes/setup-wizard.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/styles.css` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/test/app-log.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/desktop/test/bmad-install.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/daemon-supervisor.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/e2e/first-project.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/e2e/health.spec.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/e2e/onboarding.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
+| `apps/desktop/test/e2e/project-bmad.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/e2e/project-settings.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/folder-access.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/host-service.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
@@ -319,6 +328,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/routes/my-requests.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
 | `apps/web/src/routes/project-docs.test.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `apps/web/src/routes/project-docs.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (điểm vào) |
+| `apps/web/src/routes/project-settings.test.tsx` | [web-admin](flows/web-admin.md) (test) |
 | `apps/web/src/routes/project-settings.tsx` | [web-admin](flows/web-admin.md) (điểm vào) |
 | `apps/web/src/routes/projects.tsx` | [web-admin](flows/web-admin.md) (điểm vào) |
 | `apps/web/src/routes/ticket-detail.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
@@ -373,6 +383,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/docs-kit/test/rules.test.ts` | [docs-check](flows/docs-check.md) (test) |
 | `packages/shared/src/agent-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `packages/shared/src/api-schemas.ts` | [owner-auth](flows/owner-auth.md) (dùng chung), [ticket-lifecycle](flows/ticket-lifecycle.md) (dùng chung) |
+| `packages/shared/src/bmad-schemas.ts` | [project-claims](flows/project-claims.md) (file) |
 | `packages/shared/src/comment-mentions.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `packages/shared/src/comment-mentions.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `packages/shared/src/desktop-ipc.ts` | [desktop-app](flows/desktop-app.md) (file) |

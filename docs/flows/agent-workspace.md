@@ -19,7 +19,7 @@ danh mục lên server. Cũng là cầu nối chạy `crew-docs` bên trong work
 1. `apps/daemon/src/git/worktree-manager.ts` → `ensureWorktree()`: tái dùng worktree đã có, hoặc branch đã có
    (`crew/<key>`), hoặc tạo `<repo>/.crew/worktrees/<key>` trên branch mới từ `base` (mặc định nhánh mặc định
    của project; QC dùng `head_sha` của report dev đã ghép cặp; probe dùng `detach: true` — worktree tách rời
-   không tạo branch, key cố định `_probe`, giữ lại theo `apps/daemon/src/git/probe-worktree.ts`, xem bước 10).
+   không tạo branch, key cố định `_probe`, giữ lại theo `apps/daemon/src/git/probe-worktree.ts`, xem bước 11).
 2. `apps/daemon/src/git/worktree-manager.ts` → `detectSharedPaths()`: agent config thường không được track
    (`.claude`, `CLAUDE.md`, `AGENTS.md` mặc định, cộng `sharedPaths` chủ dự án khai trong project) — chỉ path
    tồn tại ở checkout chính **và chưa được git track** mới được coi là shared; path đã track thì worktree có
@@ -31,24 +31,34 @@ danh mục lên server. Cũng là cầu nối chạy `crew-docs` bên trong work
 4. `apps/daemon/src/git/worktree-manager.ts` → `removeWorktree()`/`worktreeKeys()`: gỡ worktree (branch được
    giữ lại để PM accept merge theo `head_sha`); liệt kê key hiện có dưới `.crew/worktrees` để daemon sweep
    (flow `resource-hygiene`) và báo cáo tài nguyên.
-5. `apps/daemon/src/skills/skill-inventory.ts` → `probeInventory()`: mở một session Agent SDK **không gửi
+5. `apps/daemon/src/skills/bmad-profile.ts` → `readBmadProfile()`: đọc `_bmad/_config/manifest.yaml` (phiên
+   bản installer, module, `ides` là `tools`, cộng `pins`: module có `source: external` với `version` là tag
+   phát hành, ví dụ `v2.2.2`, đưa vào `BmadPin`; module ở channel `next` — `version: main` — thì không ghim)
+   của checkout chính cộng câu trả lời phạm vi nhóm trong
+   `_bmad/config.toml` (bản 6.9+, chỉ bảng `[core]` và `[modules.*]` của module đã cài, bỏ `[agents.*]`) hoặc
+   `_bmad/core/config.yaml` (bố cục 6.0); từ `_bmad/config.user.toml` (cá nhân) chỉ đọc `communication_language`.
+   Không bao giờ đọc `_bmad/custom` hay `_bmad/memory`; bỏ câu trả lời cá nhân, key giống credential và đường
+   dẫn tuyệt đối trước khi trả về `BmadProfile` (`packages/shared/src/bmad-schemas.ts`, flow `project-claims`)
+   — daemon dùng nó để báo hồ sơ cài BMAD lên server (`daemon.ts` → `reportBmadProfile()`, flow
+   `daemon-runtime`) cho tính năng "Cài BMAD" trên máy khác.
+6. `apps/daemon/src/skills/skill-inventory.ts` → `probeInventory()`: mở một session Agent SDK **không gửi
    turn nào** (không tốn chi phí model) trong worktree probe, đọc `initializationResult().commands` (lệnh
    không phải built-in → skill kèm mô tả SKILL.md và nguồn project/user/plugin qua `skillsFromCommands()`) và
    `mcpServerStatus()` (`mcpServersFromStatus()`); daemon chạy hàm này ở worktree `_probe` rồi gửi
    `PUT /v1/daemon/skills`. Một run thật có skill lạ trong `system/init` (chưa có trong kho) kích hoạt probe
    lại (`onInit` trong `daemon.ts`).
-6. `apps/daemon/src/skills/skill-inventory.ts` → `createToolLister()`: với MCP server stdio hoặc http/sse,
+7. `apps/daemon/src/skills/skill-inventory.ts` → `createToolLister()`: với MCP server stdio hoặc http/sse,
    kết nối trực tiếp qua MCP client để lấy mô tả từng tool (`listTools()`); server dạng connector chỉ giữ tên.
-7. `apps/daemon/src/git/docs-kit-bridge.ts` → `installCrewDocs()`: chép bundle `crew-docs.cjs` (đóng gói cùng
+8. `apps/daemon/src/git/docs-kit-bridge.ts` → `installCrewDocs()`: chép bundle `crew-docs.cjs` (đóng gói cùng
    `@crew/docs-kit`) vào `~/.crew/bin` và viết wrapper shell `crew-docs` (`ELECTRON_RUN_AS_NODE=1`), để agent
    và hook luôn gọi một đường dẫn tuyệt đối cố định — dùng được từ cả CLI Node lẫn app desktop (Electron chạy
    như Node).
-8. `apps/daemon/src/git/docs-kit-bridge.ts` → `runCrewDocs()`: chạy bundle với runtime tuyệt đối; các tool
+9. `apps/daemon/src/git/docs-kit-bridge.ts` → `runCrewDocs()`: chạy bundle với runtime tuyệt đối; các tool
    `docs_flow`/`docs_where` (flow `agent-runs`) gọi hàm này trong `cwd` của worktree.
-9. `apps/daemon/src/git/docs-kit-bridge.ts` → `docsSnapshot()`: đọc cây `docs/` và `AGENTS.md` tại một commit
-   của worktree, đóng gói cho `PUT /v1/daemon/projects/:key/docs` (đồng bộ docs lên server, flow
-   `docs-sync-viewer` phía server).
-10. `apps/daemon/src/git/probe-worktree.ts` → `ProbeWorktreeKeeper`: giữ worktree `_probe` của một project
+10. `apps/daemon/src/git/docs-kit-bridge.ts` → `docsSnapshot()`: đọc cây `docs/` và `AGENTS.md` tại một commit
+    của worktree, đóng gói cho `PUT /v1/daemon/projects/:key/docs` (đồng bộ docs lên server, flow
+    `docs-sync-viewer` phía server).
+11. `apps/daemon/src/git/probe-worktree.ts` → `ProbeWorktreeKeeper`: giữ worktree `_probe` của một project
     thêm `PROBE_WORKTREE_TTL_MS` (một giờ) sau lần probe gần nhất, để các lần probe gần nhau tái dùng cùng
     worktree thay vì tạo/gỡ liên tục. `used(projectKey, {arm})` ghi lại thời điểm probe (meta
     `probeWorktreeUsedAt:<projectKey>`) và đặt lại timer; `expire(projectKeys)` gỡ worktree đã quá giờ hoặc
@@ -63,6 +73,7 @@ danh mục lên server. Cũng là cầu nối chạy `crew-docs` bên trong work
 |-----------|---------|--------------|
 | `apps/daemon/src/git/worktree-manager.ts` | Tạo/gỡ worktree, link config chia sẻ | `ensureWorktree`, `removeWorktree`, `detectSharedPaths`, `worktreeKeys`, `git` |
 | `apps/daemon/src/skills/skill-inventory.ts` | Đọc kho skill/MCP qua một phiên SDK không tốn turn | `probeInventory`, `skillsFromCommands`, `mcpServersFromStatus`, `createToolLister` |
+| `apps/daemon/src/skills/bmad-profile.ts` | Đọc hồ sơ cài BMAD (`_bmad/`) của checkout chính | `readBmadInstall`, `readBmadProfile`, `BMAD_MANIFEST`, `BmadInstall` |
 | `apps/daemon/src/git/docs-kit-bridge.ts` | Cầu nối chạy crew-docs và đồng bộ docs | `installCrewDocs`, `runCrewDocs`, `hookStatus`, `installHooks`, `docsSnapshot` |
 | `apps/daemon/src/git/probe-worktree.ts` | Giữ rồi gỡ worktree probe theo TTL | `ProbeWorktreeKeeper`, `PROBE_WORKTREE_KEY`, `PROBE_WORKTREE_TTL_MS` |
 
@@ -86,6 +97,9 @@ danh mục lên server. Cũng là cầu nối chạy `crew-docs` bên trong work
 - resource-hygiene: `worktreeKeys()`/`removeWorktree()` được dùng khi sweep worktree của ticket đã đóng và
   trong `resource_report`/`cleanup_resources`.
 - docs-sync-viewer: `docsSnapshot()` là nguồn của `PUT /v1/daemon/projects/:key/docs` phía server.
+- project-claims: `readBmadProfile()` trả về `BmadProfile` (`packages/shared/src/bmad-schemas.ts`), daemon gửi
+  lên `PUT /v1/daemon/projects/:key/bmad-profile` qua `daemon.ts` → `reportBmadProfile()` (flow
+  `daemon-runtime`).
 
 ## Tests
 
@@ -99,3 +113,9 @@ danh mục lên server. Cũng là cầu nối chạy `crew-docs` bên trong work
 - `apps/daemon/test/probe-worktree.test.ts`: giữ worktree một giờ sau lần probe cuối rồi timer tự gỡ; `expire()`
   gỡ worktree đã quá giờ (khởi động lại daemon, sweep) và giữ nguyên worktree còn trong hạn; gỡ worktree không
   có thời điểm probe ghi lại nhưng không đụng worktree một probe đang dùng; `stop()` huỷ mọi lượt gỡ đang chờ.
+- `apps/daemon/test/bmad-profile.test.ts`: đọc đúng version/module/tools/ngôn ngữ/thư mục kết quả và câu trả
+  lời nhóm của bản 6.10-6.12 lẫn bố cục 6.0; đọc đúng `pins` theo từng fixture (module `source: external` với
+  tag phát hành được ghim, module channel `next` thì không); bỏ đường dẫn tuyệt đối, key giống credential và
+  câu trả lời của module chưa cài; không bao giờ đọc `_bmad/custom`/`_bmad/memory` hay câu trả lời cá nhân;
+  `null` khi không có manifest; daemon báo hồ sơ project mình sở hữu lên server mỗi lần probe, chỉ khi manifest
+  đổi.
