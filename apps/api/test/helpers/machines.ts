@@ -96,8 +96,14 @@ export interface TestServer {
 export async function startServer(
   db: Database,
   realtime: BuildAppOptions['realtime'] = {},
+  options: Pick<BuildAppOptions, 'closeDrainMs'> = {},
 ): Promise<TestServer> {
-  const app = await buildApp({ config: testConfig(), db, realtime: { sweeper: false, ...realtime } });
+  const app = await buildApp({
+    config: testConfig(),
+    db,
+    realtime: { sweeper: false, ...realtime },
+    ...options,
+  });
   await app.listen({ host: '127.0.0.1', port: 0 });
   const address = app.server.address();
   if (!address || typeof address === 'string') throw new Error('server has no TCP address');

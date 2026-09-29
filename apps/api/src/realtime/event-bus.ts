@@ -88,6 +88,11 @@ export class EventBus {
     await unlisten?.().catch(() => {});
   }
 
+  /** True once `stop()` began; a stream subscribing now would never be closed. */
+  get isStopped(): boolean {
+    return this.stopped;
+  }
+
   /** Highest sequence already fanned out; a fresh owner stream starts here. */
   get currentSeq(): bigint {
     return this.lastSeq;

@@ -177,3 +177,6 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
   kèm wrapper trên PATH của agent; giữ worktree probe một giờ sau lần probe rồi xoá, và một daemon khởi động
   lại xoá worktree probe đã quá hạn (đồng hồ giả kiểm soát được thời gian); và `stop()` không trả về khi một
   cuộc gọi API daemon tự bắn đi lúc chạy (refresh project khi stream kết nối, bị giữ lại trong test) còn mở.
+- `apps/daemon/test/test-cleanup.test.ts`: một daemon còn chạy khi test kết thúc bị `halt()` trước khi server
+  đóng, nên đóng server diễn ra ngay; một client vẫn còn giữ kết nối khiến đóng server thất bại với lỗi rõ
+  ràng ("... never stopped") thay vì treo tới hết deadline của hook.

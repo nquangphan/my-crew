@@ -8,7 +8,7 @@ import { ResourceTracker } from '../../src/runner/resource-tracker.js';
 import { createScriptedRunner, type ScriptInput } from '../../src/runner/scripted-runner.js';
 import { FileTokenStore } from '../../src/secrets.js';
 import type { Fixture } from './api.js';
-import { onCleanup, tempDir } from './git.js';
+import { onCleanup, tempDir, withDeadline } from './git.js';
 
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -96,6 +96,9 @@ export interface TestDaemon {
   config: DaemonConfig;
 }
 
+/** Inside the 60 s hook timeout, leaving room to close the API server after it. */
+const DAEMON_HALT_DEADLINE_MS = 30_000;
+
 /** A daemon on a temp home (file token store, fast timers, scripted runner, no Docker), stopped after the test. */
 export function makeDaemon(
   f: Fixture,
@@ -143,7 +146,8 @@ export function makeDaemon(
     await halt();
   };
   onCleanup(async () => {
-    if (!stopped) await daemon.halt();
+    if (!stopped)
+      await withDeadline(daemon.halt(), DAEMON_HALT_DEADLINE_MS, 'halting a daemon the test left running');
   });
   return { daemon, home, book, config };
 }

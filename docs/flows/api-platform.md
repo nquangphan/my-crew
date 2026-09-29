@@ -26,12 +26,22 @@ của mình vào app do flow này dựng lên.
 4. `apps/api/src/app.ts` → `buildApp()`: tạo instance Fastify (`trustProxy` theo whitelist CIDR,
    `bodyLimit=2MB`), đăng ký `@fastify/cookie`, `@fastify/rate-limit`, error handler chuyển `ApiError` thành
    JSON đúng mã lỗi, route `GET /v1/health` (ping DB), dựng `EventBus` và `WaitingJobsRegistry` (tham số
-   `waitingJobs`, mặc định một registry mới — test tự truyền registry riêng để xem), rồi đăng ký ba nhóm route:
+   `waitingJobs`, mặc định một registry mới — test tự truyền registry riêng để xem). Tham số `closeDrainMs`
+   chỉnh thời gian đóng app đợi request đang chạy trước khi cắt kết nối của chúng (mặc định `CLOSE_DRAIN_MS`,
+   test rút ngắn để không phải đợi). Sau đó đăng ký ba nhóm route:
    public (`authRoutes`, `pairRoutes`), owner (bọc hook `ownerGuard`) và daemon (bọc hook `machineGuard`). Hook
    `onReady` khởi động `EventBus`, `startHeartbeatSweeper` và `startStuckTicketAlarm()` (flow `ticket-lifecycle`,
    cả hai timer cùng tắt khi `realtime.sweeper: false`), cộng thêm timer dọn `idempotency_keys`/`sessions` hết
-   hạn mỗi giờ (`MAINTENANCE_INTERVAL_MS`). Hook `preClose` dừng cả hai timer và event bus trước khi đóng kết
-   nối, vì response SSE bị "hijack" khỏi vòng đời request thường.
+   hạn mỗi giờ (`MAINTENANCE_INTERVAL_MS`). Đóng app có giới hạn thời gian: khi `preClose` chạy, một cờ
+   `closing` bật lên, từ đó hook `onSend` gắn header `connection: close` vào mọi response và hook `onResponse`
+   tự kết thúc socket (`socket.end()`) — bù cho response đã gửi header kiểu keep-alive ngay trước khi đóng bắt
+   đầu, việc mà Fastify tự trả 503 cho request đến sau `close()` không che được, vì `server.close()` vẫn đợi
+   phía kia (daemon, hay kết nối upstream nginx giữ pool) tự ngắt, có thể tới hết thời gian keep-alive 72s của
+   Fastify. `preClose` cũng đặt timer `closeDrainMs` (mặc định `CLOSE_DRAIN_MS` = 10s, nằm trong
+   `stop_grace_period` 20s của container) gọi `app.server.closeAllConnections()` kèm log warn để cắt request còn
+   kẹt (ví dụ handler đang đợi DB); timer này bị huỷ khi server phát sự kiện `close`. Sau đó, như trước, `preClose` dừng
+   cả hai timer sweeper/stuck alarm và đóng event bus, vì response SSE bị "hijack" khỏi vòng đời request
+   thường.
 5. `apps/api/src/routes/route-deps.ts` → `parseInput()`, `idParam()`, `uuidParam()`: mọi route handler dùng ba
    hàm này ở biên để validate body/param, ném `ApiError('VALIDATION_FAILED', …)` khi sai.
 6. `apps/api/src/errors.ts` → `ApiError`, `STATUS_BY_CODE`: ánh xạ `ApiErrorCode` (định nghĩa ở
@@ -83,6 +93,9 @@ của mình vào app do flow này dựng lên.
 
 ## Tests
 
-- Không có file test riêng cho flow này (`tests: []` trong `docs/flows.yaml`); hành vi của `buildApp()` được
-  phủ gián tiếp qua test của mọi flow route khác (ví dụ `apps/api/test/auth.test.ts`,
-  `apps/api/test/machine-scope.test.ts`), vì các test đó đều dựng app thật qua `buildApp()`.
+- `apps/api/test/shutdown.test.ts`: một stream còn đang xác thực khi đóng bắt đầu bị kết thúc ngay và đóng
+  không đợi nó; client ngắt kết nối trong lúc xác thực không để lại subscriber nào; request trả lời xong sau
+  khi đóng bắt đầu mang header `connection: close`, nên đóng không đợi keep-alive; request còn kẹt bị cắt kết
+  nối sau khi hết `closeDrainMs`. Phần còn lại của hành vi `buildApp()` được phủ gián tiếp qua test của mọi
+  flow route khác (ví dụ `apps/api/test/auth.test.ts`, `apps/api/test/machine-scope.test.ts`), vì các test đó
+  đều dựng app thật qua `buildApp()`.

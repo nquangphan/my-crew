@@ -64,7 +64,7 @@ export async function openEventStream(options: OpenStreamOptions): Promise<void>
     closed = true;
     clearInterval(heartbeat);
     unsubscribe();
-    if (!res.writableEnded) res.end();
+    if (!res.writableEnded && !res.destroyed) res.end();
   };
 
   const send = (event: EventEnvelope) => {
@@ -87,21 +87,36 @@ export async function openEventStream(options: OpenStreamOptions): Promise<void>
     },
     close: () => close(),
   };
-  try {
-    unsubscribe = bus.subscribe(subscriber);
-  } catch {
-    throw new ApiError('UNAUTHORIZED', 'invalid, expired or revoked machine token');
+  // Authentication is async, so the server may have begun closing meanwhile. A stream subscribed after
+  // `bus.stop()` would never be ended and would hold the shutdown open; it is ended at once instead, like
+  // the streams `bus.stop()` closed, and its connection with it (the server has stopped listening).
+  const shuttingDown = bus.isStopped;
+  if (!shuttingDown) {
+    try {
+      unsubscribe = bus.subscribe(subscriber);
+    } catch {
+      throw new ApiError('UNAUTHORIZED', 'invalid, expired or revoked machine token');
+    }
   }
 
   reply.hijack();
+  res.on('close', close);
+  // The client may have disconnected during authentication, before the listener existed.
+  if (res.destroyed) {
+    close();
+    return;
+  }
   res.writeHead(200, {
     'content-type': 'text/event-stream; charset=utf-8',
     'cache-control': 'no-cache, no-transform',
-    connection: 'keep-alive',
+    connection: shuttingDown ? 'close' : 'keep-alive',
     'x-accel-buffering': 'no',
   });
   res.write(`retry: ${RETRY_MS}\n\n`);
-  res.on('close', close);
+  if (shuttingDown) {
+    close();
+    return;
+  }
 
   heartbeat = setInterval(() => {
     if (closed) return;
