@@ -501,7 +501,11 @@ export async function rateSubtask(db: Executor, pmTaskId: string, input: RateSub
     if (isTerminal(ticket.status)) {
       throw new ApiError('TICKET_CLOSED', `${ticket.key} is ${ticket.status}; only an open subtask is rated`);
     }
-    const requeue = ticket.status === 'blocked' && ticket.complexity === null;
+    const unrated = ticket.complexity === null;
+    const requeue = ticket.status === 'blocked' && unrated;
+    // An unrated `todo` ticket's run failed before it could start, and an agent cannot block a `todo` ticket,
+    // so rating it re-dispatches it instead of leaving it waiting for an owner comment.
+    const redispatch = ticket.status === 'todo' && unrated;
     const [row] = await tx
       .update(tickets)
       .set({
@@ -520,6 +524,14 @@ export async function rateSubtask(db: Executor, pmTaskId: string, input: RateSub
       out.push(
         statusChanged(ticket, 'blocked', 'in_progress'),
         toAssignee(ticket, { type: 'ticket.unblocked', data: { ticketId: ticket.id } }),
+      );
+    }
+    if (redispatch) {
+      out.push(
+        toAssignee(ticket, {
+          type: 'ticket.assigned',
+          data: { ticketId: ticket.id, role: ticket.assigneeRole },
+        }),
       );
     }
     await appendEvents(tx, out);

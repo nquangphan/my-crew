@@ -229,6 +229,30 @@ describe('rate_subtask', () => {
     });
   });
 
+  it('re-dispatches an unrated todo ticket whose run failed before it could start', async () => {
+    await clearRating(ctx.db, tree.dev.id);
+    await setStatus(ctx.db, tree.dev.id, 'todo');
+    const before = (await eventsOf(ctx.db)).length;
+
+    const res = await rate(a, tree.pmTask.id, { ticket: tree.dev.id, ...RATING });
+    expect(res.json()).toMatchObject({ status: 'todo', ...RATING });
+
+    const events = (await eventsOf(ctx.db)).slice(before);
+    expect(events.map((e) => e.type)).toEqual(['ticket.updated', 'ticket.assigned']);
+    expect(events[1]).toMatchObject({
+      ticketId: tree.dev.id,
+      targetMachineId: a.machineId,
+      targetRole: 'dev',
+    });
+  });
+
+  it('does not re-dispatch a rated todo ticket', async () => {
+    await setStatus(ctx.db, tree.dev.id, 'todo');
+    const before = (await eventsOf(ctx.db)).length;
+    await rate(a, tree.pmTask.id, { ticket: tree.dev.id, ...RATING });
+    expect((await eventsOf(ctx.db)).slice(before).map((e) => e.type)).toEqual(['ticket.updated']);
+  });
+
   it('leaves a ticket blocked for another reason blocked', async () => {
     await setStatus(ctx.db, tree.dev.id, 'blocked');
     const before = (await eventsOf(ctx.db)).length;

@@ -44,7 +44,11 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    flow `agent-roles`) được đánh giá xong thì tự chuyển `in_progress` trong cùng transaction, phát thêm
    `ticket.status_changed` và `ticket.unblocked` cho máy phụ trách — daemon tự chạy lại trên model mới mà
    không cần owner mở chặn; một ticket `blocked` vì lý do khác (đã có `complexity` từ trước) giữ nguyên
-   `blocked`.
+   `blocked`. Một ticket `todo` chưa từng có `complexity` (lượt chạy trước đó crash trước khi kịp bắt đầu, và
+   agent không tự chuyển được ticket `todo` sang `blocked` nên nó kẹt lại `todo`) được đánh giá xong thì đánh
+   thức lại bằng cách phát `ticket.assigned` (role = vai trò được giao của ticket) cho đúng máy — daemon xếp
+   một job mới (job cũ đã thất bại, không còn hoạt động) mà không cần owner bình luận; một ticket `todo` đã có
+   `complexity` từ trước thì không bị đánh thức lại kiểu này.
 4. `apps/api/src/services/ticket-service.ts` → `retrySubtask()`: PM chuyển một subtask `dev`/`qc`/`bug`/
    `docs_init` đang `blocked` **của chính pm_task đó** về `in_progress` và đánh thức agent của nó
    (`ticket.unblocked`), như owner tự bỏ chặn — dùng khi owner gọi PM bằng `@pm` và nguyên nhân chặn đã được xử
@@ -196,8 +200,10 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   subtask `dev` tại chỗ, thay hẳn override cũ, báo owner stream ngay; idempotent (retry cùng key chỉ ghi một
   lần); validate `complexity`/`complexityReason` bắt buộc như tạo mới; phạm vi giới hạn đúng PM của subtask đó
   (máy khác, không phải PM, cây khác, ticket đã đóng đều bị từ chối); một ticket `blocked` vì chưa có đánh giá
-  tự chuyển `in_progress` và đánh thức máy phụ trách, một ticket `blocked` vì lý do khác thì giữ nguyên; đánh
-  giá được cả ticket `bug` do QC báo lỗi.
+  tự chuyển `in_progress` và đánh thức máy phụ trách, một ticket `blocked` vì lý do khác thì giữ nguyên; một
+  ticket `todo` chưa có đánh giá mà lượt chạy trước đó crash trước khi kịp bắt đầu được đánh thức lại bằng
+  `ticket.assigned` (job cũ đã thất bại, không còn hoạt động), một ticket `todo` đã có đánh giá thì không bị
+  đánh thức lại kiểu này; đánh giá được cả ticket `bug` do QC báo lỗi.
 - `apps/api/test/budget.test.ts`: trần con và ngân sách cây/ngày, mỗi loại đẩy pm_task sang `needs_input`,
   cộng owner duyệt.
 - `apps/api/test/owner-web-support.test.ts`: `PATCH /v1/tickets/:id`, sự kiện `ticket.updated`.
