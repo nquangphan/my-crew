@@ -46,7 +46,13 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
    `pairsWith`, hiện chuỗi bug "vòng n/`BUG_CYCLE_CAP`" và phụ thuộc "Chờ KEY" chưa xong.
 9. `apps/web/src/components/comment-thread.tsx`, `event-timeline.tsx`, `report-panel.tsx`: danh sách bình
    luận + ô soạn (gắn CSRF qua `api-client`), dòng sự kiện từ `EventEnvelope`, report hiện hành kèm bộ chọn
-   phiên bản.
+   phiên bản. `CommentComposer` (`canCallPm`, mọi loại ticket trừ `request` — `TicketView` gán): gõ `@` (hoặc
+   `@p`/`@pm`) sau khoảng trắng/`(`/đầu dòng hiện listbox gợi ý "@pm — gọi PM của cây ticket (thay cho agent
+   của ticket này)"; Enter/Tab hoặc click chèn `@pm `, Escape ẩn gợi ý; Ctrl/Cmd+Enter vẫn gửi bình thường; một
+   tag bị từ chối hiện lỗi `PM_NOT_AVAILABLE` (`format.ts`, flow `web-shell`) và giữ nguyên nội dung ô soạn.
+   `CommentList` hiện badge nhỏ "Đã gọi PM" trên bình luận owner có `mentions` chứa `pm`, cộng nút "Xem
+   <pm_task key>" (khi bình luận nằm trên một subtask, `pmTaskKey` do `TicketView` truyền xuống cùng ticket cha)
+   mở ticket đó — nơi hoạt động PM hiện trên `AgentActivityLine` như bước 11.
 10. `apps/web/src/components/cancel-dialog.tsx`, `new-ticket-dialog.tsx`: hộp thoại Hủy (liệt kê mọi hậu duệ
     đang mở), hộp thoại Tạo ticket (gợi ý dự án, ưu tiên, markdown, "Cho phép sửa config", "Tạo thêm" — người
     nhận luôn là assistant).
@@ -112,7 +118,9 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 - `apps/web/src/components/status-dropdown.test.tsx`: chỉ hiện đích hợp lệ theo `canTransition('owner', …)`.
 - `apps/web/src/components/subtask-tree.test.tsx`: cặp dev↔QC, chuỗi bug, phụ thuộc.
 - `apps/web/src/components/comment-thread.test.tsx`: đăng bình luận (header CSRF, nội dung, xoá ô soạn,
-  đường lỗi).
+  đường lỗi); gõ `@` hiện gợi ý `@pm`, Enter/click chèn đúng và ẩn gợi ý, Escape ẩn, không gợi ý khi
+  `canCallPm` tắt hay khi tag nằm trong email; thông báo tiếng Việt khi server từ chối `PM_NOT_AVAILABLE`; badge
+  "Đã gọi PM" trên đúng bình luận và nút "Xem <key>" mở đúng pm_task.
 - `apps/web/src/components/cancel-dialog.test.tsx`: liệt kê hậu duệ đang mở qua nhiều cấp.
 - `apps/web/e2e/core-flows.spec.ts`: tạo ticket, mở panel, bình luận agent xuất hiện dưới 2s, đổi trạng thái bị
   từ chối rồi qua khi có report, mở docs từ chip flow, hủy pm_task kéo theo hủy QC con, "Lý do: …" của
@@ -123,3 +131,7 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
   `agent.activity_changed` làm mới ticket và máy.
 - `apps/web/e2e/agent-activity.spec.ts`: từ chờ slot tới đang chạy live trên card, panel và trang Máy, ở cả ba
   viewport, không tràn ngang.
+- `apps/web/e2e/pm-mention.spec.ts`: owner gõ `@` trên một subtask thấy gợi ý `@pm`, gửi xong bình luận hiện
+  badge "Đã gọi PM", nút "Xem <pm_task key>" mở pm_task và thấy đúng job PM máy vừa báo (heartbeat) trên
+  `AgentActivityLine`, dòng lịch sử "Bạn gọi PM (@pm) từ <key>" trên pm_task — ở cả ba viewport, không tràn
+  ngang.

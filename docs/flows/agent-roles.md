@@ -27,7 +27,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    `qc` → `qc`; `docs_init` → `docs_init`. `STAGES` giữ prompt, nhãn và các đường trạng thái hợp lệ của từng
    bước, được `role-contracts.test.ts` replay qua `canTransition('agent', …)`.
 2. `apps/daemon/src/roles/role-planner.ts` → `plan()`: ticket đang `needs_input`/`blocked`/`in_review` thì bỏ
-   qua lượt chạy (chờ chủ dự án); `pm_analyze` chạy cổng `docsInitGate()`; `qc` chạy cổng `missingUiServers()`
+   qua lượt chạy (chờ chủ dự án) — **trừ khi** job mang theo một lời gọi `@pm` đã ghi nhận
+   (`state.pmMentions(job.eventIds)`, flow `daemon-scheduling`, chỉ áp dụng khi ticket là `pm_task`): job đó vẫn
+   chạy, ở bước `pm_monitor` (ghi đè bước đã `resolveStage()` chọn), để trả lời owner mà không đổi trạng thái
+   pm_task đang chờ; một lần thức dậy không mang lời gọi nào của cùng ticket đang chờ vẫn bị bỏ qua như trước.
+   `pm_analyze` chạy cổng `docsInitGate()`; `qc` chạy cổng `missingUiServers()`
    trước khi chạy (MCP bắt buộc chưa kết nối hoặc bị tắt thì không chạy — khác với cổng lúc đóng ticket,
    `unusedUiServers()` ở `ticket-mcp-server.ts`, chặn QC đóng khi MCP đã kết nối nhưng chưa từng được gọi, xem
    flow `agent-runs`); còn lại gọi `resolveModel()`, dựng biến prompt (`promptVars()`) và `renderPrompt()`; với
@@ -35,7 +39,14 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug. `promptVars()` → `ownerRequest()`: ba bước PM
    (`pm_analyze`/`pm_monitor`/`pm_accept`) nhận thêm nguyên văn yêu cầu gốc của chủ dự án (tiêu đề, mô tả và
    bình luận của ticket `request` cha) nối vào `header` — **không bọc** vì chủ dự án tự viết, khác với mô tả
-   `pm_task` (tóm tắt của assistant, vẫn bị `wrapUntrusted()`).
+   `pm_task` (tóm tắt của assistant, vẫn bị `wrapUntrusted()`). `promptVars()` → `ownerCallsNote()`: khi job có
+   lời gọi `@pm`, thêm mục `## Chủ dự án gọi PM (@pm)` vào đầu ghi chú prompt (mọi bước PM) — mỗi lời gọi (mới
+   nhất 5, `MAX_OWNER_CALLS`) nêu ticket được tag (key/loại/trạng thái/`complexity`), lỗi job gần nhất của daemon
+   trên ticket đó (`lastJobError()`, bọc `<untrusted-data source="job error of KEY">`), bình luận agent/system
+   gần nhất khi ticket đang `blocked` (bọc `source="last agent comment on KEY"`), và nguyên văn bình luận của
+   owner — **không bọc**, vì owner tự viết — cộng danh sách việc PM có thể làm (`rate_subtask` khi thiếu
+   `complexity`, `retry_subtask` khi nguyên nhân chặn khác đã hết, `create_subtask` khi cần việc mới, `ask_owner`
+   khi cần huỷ hay chưa rõ ý owner) và luôn `comment` lại trên ticket được tag.
 3. `apps/daemon/src/roles/model-policy.ts` → `resolveModel()`: `docs_init`/`docs_update` luôn `sonnet`/`high`
    (`DOCS_MODEL`, quyết định của chủ dự án, không phụ thuộc ticket hay allowlist máy); `dev`/`qc` (kể cả `bug`)
    không có mặc định — lấy bản đồ độ phức tạp của máy theo `complexity` PM đã chấm cho subtask, model/effort
@@ -102,7 +113,9 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
     `context.capabilities` → `select_capabilities` với lý do từng mục → gọi skill qua công cụ `Skill` trước
     khi làm việc). Từng prompt theo vai trò (`assistant-triage`, `assistant-close`, `pm-analyze`, `pm-monitor`,
     `pm-accept`, `dev`, `docs-update`, `qc`, `docs-init`) thêm bước docs-trước-code, việc riêng của bước, và
-    luồng trạng thái hợp lệ khớp với `STAGES` của bước 1.
+    luồng trạng thái hợp lệ khớp với `STAGES` của bước 1. `pm-monitor.md` (bước 5, "bình luận và lời gọi @pm của
+    chủ dự án"): xử lý mục "Chủ dự án gọi PM" trước, theo đúng ticket được tag rồi `comment` lại trên nó, trước
+    khi trả lời bình luận thường khác trên chính pm_task.
 13. Ma trận vòng đời kịch bản (`apps/daemon/test/lifecycle.test.ts` + `apps/daemon/test/lifecycle/*.yaml`) và
     kịch bản thật (`apps/daemon/test/live-workflow.test.ts`), xem mục Tests.
 
@@ -110,7 +123,7 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/daemon/src/roles/role-planner.ts` | `RolePlanner` mặc định: prompt, cổng, model, report, follow-up theo bước | `rolePlanner`, `missingUiServers`, `cleanupLines`, `ownerRequest` |
+| `apps/daemon/src/roles/role-planner.ts` | `RolePlanner` mặc định: prompt, cổng, model, report, follow-up theo bước | `rolePlanner`, `missingUiServers`, `cleanupLines`, `ownerRequest`, `ownerCallsNote` |
 | `apps/daemon/src/roles/role-registry.ts` | Bảng bước, đường trạng thái hợp lệ, chọn bước | `STAGES`, `resolveStage`, `isTerminal`, `workChildren` |
 | `apps/daemon/src/roles/prompt-templates.ts` | Nạp và render template Markdown | `renderPrompt`, `loadPrompt`, `setPromptsDir` |
 | `apps/daemon/src/roles/model-policy.ts` | Model/effort theo bước, kẹp theo allowlist | `resolveModel`, `clampModel`, `MissingComplexityError` |
@@ -188,6 +201,16 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   crash giữa lúc PM chia việc, resume sau backoff, xung đột block docs sinh tự động khi merge, dự án chưa có
   docs, chạm trần con, budget hold, QC thiếu MCP bắt buộc, PM từ chối một ticket dev, PM chấm dev/QC riêng
   (`16-qc-own-rating.yaml`: dev `large` chạy `opus`, QC `trivial` chạy `haiku`, bug kế thừa mức của dev, retest
-  kế thừa mức của QC) — mỗi kịch bản kết thúc ở trạng thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
+  kế thừa mức của QC), owner gọi PM bằng `@pm` (`18-owner-calls-pm.yaml`, kịch bản `owner-calls-pm`: một dev mất
+  đánh giá độ phức tạp, lượt chạy tiếp theo không chọn được model nên `blocked`; owner tag `@pm` trên dev đó —
+  chỉ PM được đánh thức, dev không đổi trạng thái; PM chạy ở `pm_monitor`, `rate_subtask` rồi trả lời trên chính
+  dev đó; dev chạy lại theo mức mới qua `ticket.unblocked`, cả cây xong; trợ giúp kịch bản `clearRating` của
+  `apps/daemon/test/helpers/lifecycle.ts` xoá đánh giá đã có trước bước này) — mỗi kịch bản kết thúc ở trạng
+  thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
+- `apps/daemon/test/pm-mention.test.ts`: PM chạy với đúng ghi chú "Chủ dự án gọi PM" (ticket được tag, trạng
+  thái/complexity, lỗi job gần nhất và bình luận agent gần nhất bọc `<untrusted-data>`, bình luận owner nguyên
+  văn không bọc) và không đánh thức job nào trên ticket được tag; một pm_task đang chờ owner
+  (`needs_input`/`blocked`/`in_review`) vẫn chạy ở `pm_monitor` khi job mang lời gọi `@pm`, không đổi trạng thái
+  pm_task; một wake-up không mang tag của cùng pm_task đang chờ vẫn bị bỏ qua (`skipped`) như trước.
 - `apps/daemon/test/live-workflow.test.ts` (tuỳ chọn `CREW_LIVE_AGENT_TESTS=1`): toàn bộ luồng trên model
   thật (đăng nhập gói đăng ký), một repo fixture có docs, skill và MCP Playwright của dự án.

@@ -45,9 +45,10 @@ của mình vào app do flow này dựng lên.
 5. `apps/api/src/routes/route-deps.ts` → `parseInput()`, `idParam()`, `uuidParam()`: mọi route handler dùng ba
    hàm này ở biên để validate body/param, ném `ApiError('VALIDATION_FAILED', …)` khi sai.
 6. `apps/api/src/errors.ts` → `ApiError`, `STATUS_BY_CODE`: ánh xạ `ApiErrorCode` (định nghĩa ở
-   `packages/shared/src/api-schemas.ts`) sang HTTP status; `sideEffectsCommitted` đánh dấu lỗi mà service đã
-   ghi side effect trước khi từ chối (ví dụ đẩy pm_task sang `needs_input`), để tầng idempotency vẫn lưu và
-   phát lại response đó.
+   `packages/shared/src/api-schemas.ts`) sang HTTP status — ví dụ `PM_NOT_AVAILABLE` (owner tag `@pm` trên
+   ticket không thuộc cây pm_task nào đang mở, flow `ticket-lifecycle`) → 400; `sideEffectsCommitted` đánh dấu
+   lỗi mà service đã ghi side effect trước khi từ chối (ví dụ đẩy pm_task sang `needs_input`), để tầng
+   idempotency vẫn lưu và phát lại response đó.
 7. `apps/api/src/services/pg-errors.ts` → `isUniqueViolation()`: dò `SQLSTATE 23505` xuyên qua chuỗi
    `cause` mà driver Postgres bọc, dùng ở các service cần phân biệt "trùng khoá" với lỗi khác (ví dụ cấp key
    ticket, tạo project).
@@ -74,7 +75,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/drizzle/0004_project_change_withdrawn.sql` | Migration thêm giá trị `withdrawn` vào enum `project_change_status` (flow `project-claims`) | — |
 | `apps/api/drizzle/0005_machine_job_activity.sql` | Migration thêm `machines.waiting_jobs`/`machines.failed_jobs` jsonb (flow `machine-pairing`, đọc bởi `ticket-lifecycle` cho hoạt động agent) | — |
 | `apps/api/drizzle/0006_pm_complexity_reason.sql` | Migration thêm cột `tickets.complexity_reason` text (flow `ticket-lifecycle`: lý do PM đánh giá `complexity` của subtask dev/QC) | — |
-| `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, và `secret-scrubber.ts` của flow `agent-runs`) | — |
+| `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, `secret-scrubber.ts` của flow `agent-runs`, và `comment-mentions.ts` của flow `ticket-lifecycle`) | — |
 
 ## Dữ liệu
 

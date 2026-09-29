@@ -18,6 +18,19 @@ export const EventPayload = z.discriminatedUnion('type', [
     type: z.literal('ticket.comment_added'),
     data: TicketRef.extend({ commentId: z.string() }),
   }),
+  /**
+   * An owner comment tagged `@pm` on a ticket of a pm_task tree (the pm_task itself or one of its
+   * subtasks). `ticketId` is the pm_task whose PM wakes; the event goes to the machine that owns the
+   * project with role `pm`. It replaces `ticket.comment_added` for that comment: only the PM wakes.
+   */
+  z.object({
+    type: z.literal('ticket.pm_mentioned'),
+    data: TicketRef.extend({
+      sourceTicketId: z.string(),
+      sourceTicketKey: z.string(),
+      commentId: z.string(),
+    }),
+  }),
   /** Owner stream only. */
   z.object({
     type: z.literal('ticket.status_changed'),

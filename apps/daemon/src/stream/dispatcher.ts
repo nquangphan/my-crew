@@ -20,6 +20,7 @@ export type DispatchEffect =
 const WAKE_EVENTS = new Set([
   'ticket.assigned',
   'ticket.comment_added',
+  'ticket.pm_mentioned',
   'children.all_done',
   'ticket.reopened',
   'ticket.unblocked',
@@ -69,6 +70,14 @@ export function dispatchEvent(state: StateDb, envelope: EventEnvelope, now = new
   const ticketId = payload.data.ticketId;
   const role = roleOf(envelope);
   if (!role) return { kind: 'ignored', reason: `${payload.type} carries no target role` };
+  if (payload.type === 'ticket.pm_mentioned') {
+    // The PM run reads the owner's call (comment and tagged ticket) from here, whichever job answers it.
+    const { sourceTicketId, sourceTicketKey, commentId } = payload.data;
+    state.recordPmMention(
+      { eventId: envelope.id, pmTaskId: ticketId, sourceTicketId, sourceTicketKey, commentId },
+      now,
+    );
+  }
 
   const active = state.activeJob(ticketId);
   if (active) {

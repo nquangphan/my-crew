@@ -25,6 +25,87 @@ const assigned = (ticketId: string, role: 'dev' | 'qc' | 'pm' = 'dev') =>
 const comment = (ticketId: string) =>
   envelope({ type: 'ticket.comment_added', data: { ticketId, commentId: randomUUID() } });
 
+const pmMention = (pmTaskId: string, sourceTicketId = randomUUID(), sourceTicketKey = 'WEB-7') =>
+  envelope(
+    {
+      type: 'ticket.pm_mentioned',
+      data: { ticketId: pmTaskId, sourceTicketId, sourceTicketKey, commentId: randomUUID() },
+    },
+    'pm',
+  );
+
+describe('owner @pm tag', () => {
+  it("queues a PM job on the pm_task and records the call for the PM's prompt", () => {
+    const state = new StateDb(':memory:');
+    const pmTask = randomUUID();
+    const source = randomUUID();
+    const pmDone = state.insertJob({
+      ticketId: pmTask,
+      projectId: null,
+      role: 'pm',
+      trigger: 'ticket.assigned',
+    });
+    state.updateJob(pmDone.id, { status: 'done', sessionId: 'pm-session' });
+    const event = pmMention(pmTask, source, 'WEB-12');
+    const effect = dispatchEvent(state, event);
+    expect(effect.kind === 'enqueued' && effect.job).toMatchObject({
+      ticketId: pmTask,
+      role: 'pm',
+      kind: 'agent',
+      trigger: 'ticket.pm_mentioned',
+      sessionId: 'pm-session',
+      eventIds: [event.id],
+    });
+    // Nothing is queued for the tagged ticket itself.
+    expect(state.jobsForTicket(source)).toHaveLength(0);
+    expect(state.pmMentions([event.id])).toEqual([
+      expect.objectContaining({
+        eventId: event.id,
+        pmTaskId: pmTask,
+        sourceTicketId: source,
+        sourceTicketKey: 'WEB-12',
+      }),
+    ]);
+  });
+
+  it('is absorbed by a queued PM job, and folded into one follow-up run when the PM job is running', () => {
+    const state = new StateDb(':memory:');
+    const pmTask = randomUUID();
+    dispatchEvent(state, envelope({ type: 'children.all_done', data: { ticketId: pmTask } }, 'pm'));
+    const first = pmMention(pmTask);
+    expect(dispatchEvent(state, first).kind).toBe('absorbed');
+    const queued = state.activeJob(pmTask) as NonNullable<ReturnType<StateDb['getJob']>>;
+    expect(queued.eventIds).toContain(first.id);
+    expect(state.pmMentions(queued.eventIds)).toHaveLength(1);
+
+    state.updateJob(queued.id, { status: 'running', sessionId: 'pm-1' });
+    const second = pmMention(pmTask);
+    const third = pmMention(pmTask);
+    expect(dispatchEvent(state, second).kind).toBe('folded');
+    expect(dispatchEvent(state, third).kind).toBe('folded');
+    const followUp = state.transaction(() =>
+      foldWakeups(state, state.updateJob(queued.id, { status: 'done' })),
+    );
+    expect(followUp).toMatchObject({
+      ticketId: pmTask,
+      role: 'pm',
+      trigger: 'wakeup',
+      eventIds: [second.id, third.id],
+    });
+    expect(state.pmMentions(followUp?.eventIds ?? []).map((m) => m.eventId)).toEqual([second.id, third.id]);
+    expect(state.listJobs(['queued', 'running', 'backoff'])).toHaveLength(1);
+  });
+
+  it('records a redelivered event once', () => {
+    const state = new StateDb(':memory:');
+    const pmTask = randomUUID();
+    const event = pmMention(pmTask);
+    dispatchEvent(state, event);
+    dispatchEvent(state, event);
+    expect(state.pmMentions([event.id])).toHaveLength(1);
+  });
+});
+
 describe('dispatcher', () => {
   it('turns ticket.assigned into one queued job for the ticket role', () => {
     const state = new StateDb(':memory:');

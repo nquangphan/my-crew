@@ -1,5 +1,6 @@
 export * from './agent-schemas.js';
 export * from './api-schemas.js';
+export * from './comment-mentions.js';
 export * from './desktop-ipc.js';
 export * from './docs-schemas.js';
 export * from './event-schemas.js';

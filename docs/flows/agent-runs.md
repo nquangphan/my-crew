@@ -82,7 +82,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    `scrubSecrets()` (định nghĩa ở `packages/shared/src/secret-scrubber.ts`, export qua `@crew/shared`;
    `apps/daemon/src/runner/secret-scrubber.ts` chỉ re-export để nhật ký `app.log` của app desktop dùng chung
    một bộ luật) ẩn credential trước khi rời máy; `get_ticket`/`list_children` bọc mọi văn bản chủ dự án
-   không tự viết bằng `wrapTicketDetail()`/`wrapUntrusted()` (flow `agent-roles`); `submit_report` gọi
+   không tự viết bằng `wrapTicketDetail()`/`wrapUntrusted()` (flow `agent-roles`); `comment` nhận thêm `ticket`
+   (id/key) tuỳ chọn — mặc định là ticket của lượt chạy; chỉ một lượt PM trên chính `pm_task` mới được nhắm tới
+   ticket khác, và chỉ tới subtask của đúng `pm_task` đó (`ownTreeTicket()`, không thì lỗi tool), dùng để trả
+   lời owner ngay trên ticket họ vừa gắn thẻ `@pm` (flow `ticket-lifecycle`); `submit_report` gọi
    `ctx.reportOverlay()` (do role planner cấp: `docsFirst`, skill/MCP thiếu, tài nguyên để lại, `headSha`/
    `commits` cho job commit) và đăng cảnh báo nếu có, còn lượt `dev` (`codeOnly`) không được `submit_report`
    hay `update_status` sang `done`/`in_review`. Bốn tool mới của flow `agent-roles`/`local-merge`:
@@ -94,7 +97,11 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    ghi đè bảng độ phức tạp, chỉ nhận `haiku`/`sonnet`/`opus` (không có Fable). `rate_subtask` (PM-only) đánh
    giá lại `complexity`/`complexityReason`/`model`/`effort` của một subtask `dev`/`qc`/`bug` đã có của chính
    PM task này, ngay tại chỗ thay vì tạo subtask thay thế — kể cả để đánh thức một ticket đang `blocked` vì
-   chưa từng có đánh giá (`rateSubtask()`, flow `ticket-lifecycle`). `CHILD_CAP_EXCEEDED`/`BUDGET_HOLD` từ
+   chưa từng có đánh giá (`rateSubtask()`, flow `ticket-lifecycle`). `retry_subtask` (PM-only) chuyển một subtask
+   `blocked` của chính pm_task này về `in_progress` (`retrySubtask()`, flow `ticket-lifecycle`) khi nguyên nhân
+   chặn khác `complexity` đã hết; bị từ chối (lỗi tool, không ném) trừ khi lượt chạy hiện tại đang trả lời một
+   lời gọi `@pm` đã ghi nhận (`answersOwnerCall()`: `ctx.state.pmMentions(job.eventIds)` không rỗng, flow
+   `daemon-scheduling`) — PM không tự ý mở lại một ticket `blocked` ngoài luồng đó. `CHILD_CAP_EXCEEDED`/`BUDGET_HOLD` từ
    `create_subtask` và `BUG_CYCLE_CAP` từ `file_bug` kết thúc lượt chạy cho chủ dự án thay vì ném lỗi; PM không đóng ticket
    (`update_status` sang `done`/`in_review`) khi cây ticket còn tiến trình sống (`treeOrphans()`); QC không
    đóng ticket (`update_status` sang `done`) khi MCP server bắt buộc của ticket (`TicketToolContext.requiredMcps`,
@@ -193,7 +200,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   một MCP server bắt buộc chưa có lời gọi công cụ nào trong nhật ký (`unusedUiServers`), đóng được sau khi gọi;
   lỗi server kèm `details` xuất hiện trong thông báo trả về agent; PM đánh giá lại một subtask tại chỗ qua
   `rate_subtask`, tool này không nhận `model: 'fable'`, một dev/QC không phải PM bị `FORBIDDEN` và không thấy
-  tool này trong danh sách của vai trò mình.
+  tool này trong danh sách của vai trò mình. PM `comment` được vào một subtask của chính pm_task mình (dùng
+  `ticket`) nhưng bị từ chối trên ticket của cây khác; một vai trò không phải PM không `comment` được vào ticket
+  khác ticket của lượt chạy; `retry_subtask` bị từ chối ngoài lượt trả lời `@pm`, thành công khi
+  lượt chạy đang trả lời một lời gọi đã ghi nhận.
 - `apps/daemon/test/live-smoke.test.ts`: worktree của repo có `.claude` bị gitignore vẫn thấy đúng skill
   project như checkout chính; đăng nhập gói đăng ký hoạt động và không tính phí qua API key; một job haiku
   dùng đúng ticket tools, bị guard kiểm soát, và ghi đúng `total_cost_usd`.

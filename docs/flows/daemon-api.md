@@ -52,7 +52,9 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
    và gọi `assertKnownCapabilities()` trước khi tạo — skill/MCP bắt buộc ngoài kho máy đã báo cáo (hoặc MCP bị
    tắt cho project) bị từ chối ngay, không tới lúc job chạy mới phát hiện; `POST .../rate-subtask` (`:id` là
    `pm_task` của chính PM, cũng trong phạm vi máy như mọi ghi khác) gọi `rateSubtask()` (flow `ticket-lifecycle`)
-   để PM đánh giá lại một subtask `dev`/`qc`/`bug` ngay tại chỗ; `POST .../bugs` gọi
+   để PM đánh giá lại một subtask `dev`/`qc`/`bug` ngay tại chỗ; `POST .../retry-subtask` (`:id` là `pm_task`,
+   cùng phạm vi máy) gọi `retrySubtask()` (flow `ticket-lifecycle`) để PM chuyển một subtask `blocked` của chính
+   nó về `in_progress`, dùng khi owner gọi PM bằng `@pm`; `POST .../bugs` gọi
    `assertKnownCapabilities()` cho `requiredSkills` của bug trước khi tạo (dùng cho cả QC báo lỗi lẫn PM từ
    chối một ticket dev/bug, flow `ticket-lifecycle`); các `ticketWrite()` còn lại — `POST .../comments`,
    `POST .../transition`, `PUT .../report`, `PATCH .../agent-meta` — gọi thẳng các hàm của flow

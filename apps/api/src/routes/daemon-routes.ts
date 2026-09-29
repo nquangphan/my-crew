@@ -2,7 +2,6 @@ import {
   AgentCommentRequest,
   AgentMetaRequest,
   ClaimTarget,
-  type Comment,
   CreateSubtaskRequest,
   DaemonCreateProjectRequest,
   FileBugRequest,
@@ -11,6 +10,7 @@ import {
   ProjectKey,
   PutSkillsRequest,
   RateSubtaskRequest,
+  RetrySubtaskRequest,
   SubmitReportRequest,
   TransitionRequest,
 } from '@crew/shared';
@@ -50,6 +50,8 @@ import {
   fileBug,
   getTicketRow,
   rateSubtask,
+  retrySubtask,
+  toCommentDto,
   transitionTicket,
 } from '../services/ticket-service.js';
 import { idParam, parseInput, type RouteDeps } from './route-deps.js';
@@ -224,15 +226,7 @@ export async function daemonRoutes(
         authorKind: 'agent',
         authorRole: body.role ?? ticket.assigneeRole,
       });
-      const comment: Comment = {
-        id: row.id,
-        ticketId: row.ticketId,
-        authorKind: row.authorKind,
-        authorRole: row.authorRole,
-        body: row.body,
-        createdAt: row.createdAt.toISOString(),
-      };
-      return comment;
+      return toCommentDto(row);
     },
   );
 
@@ -253,6 +247,11 @@ export async function daemonRoutes(
   /** The PM (`:id` is its pm_task) rates or re-rates one of its open dev, qc or bug subtasks in place. */
   ticketWrite('POST', '/v1/daemon/tickets/:id/rate-subtask', RateSubtaskRequest, 200, (tx, ticket, body) =>
     rateSubtask(tx, ticket.id, body),
+  );
+
+  /** The PM (`:id` is its pm_task) sends one of its blocked subtasks back to work (after an owner `@pm`). */
+  ticketWrite('POST', '/v1/daemon/tickets/:id/retry-subtask', RetrySubtaskRequest, 200, (tx, ticket, body) =>
+    retrySubtask(tx, ticket.id, body),
   );
 
   ticketWrite('PATCH', '/v1/daemon/tickets/:id/agent-meta', AgentMetaRequest, 200, (tx, ticket, body) =>

@@ -10,6 +10,7 @@ export function invalidationsFor(event: EventEnvelope): QueryKey[] {
   switch (event.payload.type) {
     case 'ticket.assigned':
     case 'ticket.comment_added':
+    case 'ticket.pm_mentioned':
     case 'ticket.status_changed':
     case 'ticket.updated':
     case 'dependency.resolved':

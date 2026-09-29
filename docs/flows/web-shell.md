@@ -51,6 +51,11 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    cache thay vì ghi đè bằng rỗng.
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
+10. `apps/web/src/lib/format.ts` → `errorMessage()`: dịch `ApiErrorCode` (`ERROR_TEXT`) sang một câu tiếng
+    Việt cho form/toast đọc từ `ApiRequestError` — ví dụ `PM_NOT_AVAILABLE` ("Không gọi được PM: ticket này
+    không thuộc PM task nào đang mở. Bỏ @pm để gửi bình luận thường.", flow `ticket-lifecycle`). `describeEvent()`
+    dịch mỗi `EventEnvelope` sang một dòng lịch sử ticket — `ticket.pm_mentioned` thành "Bạn gọi PM (@pm) từ
+    <sourceTicketKey>", hiện trên tab Lịch sử của pm_task (flow `web-tickets`).
 
 ## Files
 
@@ -69,7 +74,7 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 | `apps/web/src/lib/search-params.ts` | Schema search URL theo route | `BoardSearch`, `ListSearch`, `DocsSearch`, `safeRedirect` |
 | `apps/web/src/lib/shortcuts.ts` | Phím tắt bàn phím | `useShortcuts`, `matchShortcut`, `SHORTCUT_HELP` |
 | `apps/web/src/lib/ui-state.ts` | Viewport, theme, state cục bộ | `useViewport`, `useTheme`, `useStoredState` |
-| `apps/web/src/lib/format.ts` | Nhãn/màu trạng thái, định dạng ngày/tiền, mô tả sự kiện | `STATUS_LABEL`, `TYPE_META`, `formatDateTime`, `formatUsd`, `describeEvent` |
+| `apps/web/src/lib/format.ts` | Nhãn/màu trạng thái, định dạng ngày/tiền, thông báo lỗi, mô tả sự kiện | `STATUS_LABEL`, `TYPE_META`, `formatDateTime`, `formatUsd`, `errorMessage`, `describeEvent` |
 | `apps/web/src/lib/cn.ts` | Ghép class Tailwind | `cn` |
 | `apps/web/src/styles/app.css` | Theme sáng/tối, biến CSS | — |
 | `apps/web/src/components/ui/button.tsx` | Nút dùng chung | — |

@@ -26,15 +26,20 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
    không phân tích được vẫn dịch cursor tới qua `skipUnknown()`, nên một sự kiện lạ không bao giờ làm kẹt
    stream.
 3. `apps/daemon/src/stream/dispatcher.ts` → `dispatchEvent()`: với `ticket.assigned`, `ticket.comment_added`,
-   `children.all_done`, `ticket.reopened`, `ticket.unblocked`, `dependency.resolved` — nếu ticket chưa có job
-   hoạt động thì tạo job mới (`enqueued`); nếu đã có job `queued`/`backoff` thì gộp id sự kiện vào job đó
-   (`absorbed`); nếu job đang `running` thì ghi vào `pending_wakeups` (`folded`) chờ job kết thúc. Một job mới
-   (không phải `ticket.assigned`) resume đúng loại job (`resumeKind()`): job cuối là
+   `ticket.pm_mentioned`, `children.all_done`, `ticket.reopened`, `ticket.unblocked`, `dependency.resolved` —
+   nếu ticket chưa có job hoạt động thì tạo job mới (`enqueued`); nếu đã có job `queued`/`backoff` thì gộp id sự
+   kiện vào job đó (`absorbed`); nếu job đang `running` thì ghi vào `pending_wakeups` (`folded`) chờ job kết
+   thúc. Một job mới (không phải `ticket.assigned`) resume đúng loại job (`resumeKind()`): job cuối là
    `docs_init` thì tiếp tục `docs_init`; job cuối là `docs_update` từng `ask_owner` thì tiếp tục `docs_update`
    (câu trả lời của chủ dự án thuộc phiên đó); còn lại resume phiên `agent` (dev/PM/QC/assistant). `ticket.cancelled`
    hủy job `queued`/`backoff` ngay hoặc đánh dấu `cancelRequested` cho job `running`. `claim.changed` và
    `project.change_decided` (owner duyệt/từ chối máy tự đổi `platform`/`uiTestMcp`, flow `project-claims`) đều
-   trả effect `refresh_projects` (không sinh job).
+   trả effect `refresh_projects` (không sinh job). Riêng `ticket.pm_mentioned` (`ticketId` là pm_task; owner tag
+   `@pm`, flow `ticket-lifecycle`): trước khi áp luật một-job-mỗi-ticket ở trên, `state.recordPmMention()` lưu
+   lời gọi (`event_id` khoá chính, nên sự kiện phát lại chỉ ghi một lần) vào bảng SQLite cục bộ `pm_mentions`
+   (flow `daemon-runtime`), để job PM dù được tạo mới, hấp thụ hay gộp follow-up đều đọc lại được qua
+   `state.pmMentions(job.eventIds)` — `role-planner.ts` dùng nó để dựng phần prompt "Chủ dự án gọi PM" (flow
+   `agent-roles`).
 4. `apps/daemon/src/stream/dispatcher.ts` → `foldWakeups()`: gọi trong transaction kết thúc job, gộp mọi
    `pending_wakeups` của ticket thành đúng một job tiếp theo (hoặc nối vào job vừa được tạo trong cùng
    transaction, ví dụ job docs sau khi dev handoff).
@@ -75,14 +80,15 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/daemon/src/stream/stream-client.ts` | Kết nối SSE, resume cursor, heartbeat | `StreamClient`, `HeartbeatLoop`, `parseSseFrames` |
-| `apps/daemon/src/stream/dispatcher.ts` | Ánh xạ sự kiện → job cục bộ | `dispatchEvent`, `foldWakeups`, `wakeTicket`, `DispatchEffect` |
+| `apps/daemon/src/stream/dispatcher.ts` | Ánh xạ sự kiện → job cục bộ, ghi nhận tag `@pm` | `dispatchEvent`, `foldWakeups`, `wakeTicket`, `DispatchEffect` |
 | `apps/daemon/src/scheduler/scheduler.ts` | Chọn job chạy trong giới hạn slot | `Scheduler`, `planSlots`, `runnableJobs`, `isCoordinatorRole`, `StartDecision` |
 | `apps/daemon/src/scheduler/resource-monitor.ts` | Snapshot tài nguyên máy và số slot | `takeSnapshot`, `totalSlots`, `availableMemBytes` |
 
 ## Dữ liệu
 
-- Bảng: đọc/ghi `meta` (cursor), `jobs`, `pending_wakeups` của `apps/daemon/src/state-db.ts` (flow
-  `daemon-runtime`) trong cùng transaction với mỗi sự kiện.
+- Bảng: đọc/ghi `meta` (cursor), `jobs`, `pending_wakeups`, `pm_mentions` (owner tag `@pm`, flow này ghi qua
+  `recordPmMention()`, sở hữu bởi `daemon-runtime`) của `apps/daemon/src/state-db.ts` (flow `daemon-runtime`)
+  trong cùng transaction với mỗi sự kiện.
 - Sự kiện: tiêu thụ mọi `EventEnvelope` của `/v1/daemon/stream` (định nghĩa ở
   `packages/shared/src/event-schemas.ts`, flow `event-delivery` phía server); không tự phát sự kiện mới.
 - Gọi ngoài: `GET /v1/daemon/stream` (SSE), `GET /v1/daemon/tickets/:id`, `GET /v1/daemon/budget/:id`,
@@ -112,7 +118,10 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
   chạy gộp thành đúng một job tiếp theo (kể cả khi job tiếp theo đã được tạo trong cùng transaction); bình
   luận chủ dự án resume session khi không có job hoạt động; `dependency.resolved` kiểm lại job đang chờ;
   `ticket.cancelled` hủy job `queued` ngay và đánh dấu job `running`; sự kiện không có job bị bỏ qua,
-  `claim.changed` và `project.change_decided` đều yêu cầu refresh project.
+  `claim.changed` và `project.change_decided` đều yêu cầu refresh project. `ticket.pm_mentioned` (tag `@pm`)
+  đánh thức đúng job PM của pm_task (không sinh job nào cho ticket được tag), được `absorbed`/`folded` như mọi
+  wake event khác, và mỗi lời gọi được `pmMentions()` đọc lại đúng dù job hấp thụ, gộp follow-up hay bị phát lại
+  (ghi một lần nhờ khoá `event_id`).
 - `apps/daemon/test/scheduler.test.ts`: công thức slot `min(maxConcurrentJobs, floor(cpus/2))` và 0 khi máy
   bận; PM/assistant có thêm một slot dự phòng; `runnableJobs()` liệt kê đúng job `queued` không chờ dependency
   và `backoff` đã tới hạn; `Scheduler` chạy tối đa `maxConcurrentJobs` job dev độc lập cùng lúc; job chờ

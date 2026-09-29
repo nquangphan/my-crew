@@ -103,6 +103,16 @@ export interface ToolLogEntry {
   at: string;
 }
 
+/** An owner comment tagged `@pm` that woke a pm_task's PM (from a `ticket.pm_mentioned` event). */
+export interface PmMention {
+  eventId: string;
+  pmTaskId: string;
+  sourceTicketId: string;
+  sourceTicketKey: string;
+  commentId: string;
+  createdAt: string;
+}
+
 export interface CleanupRecord {
   id: number;
   jobId: string;
@@ -164,6 +174,14 @@ create table if not exists pending_wakeups (
   created_at text not null
 );
 create index if not exists pending_wakeups_ticket on pending_wakeups (ticket_id);
+create table if not exists pm_mentions (
+  event_id text primary key,
+  pm_task_id text not null,
+  source_ticket_id text not null,
+  source_ticket_key text not null,
+  comment_id text not null,
+  created_at text not null
+);
 create table if not exists tool_log (
   job_id text not null,
   seq integer not null,
@@ -285,8 +303,8 @@ const JOB_COLUMNS = {
 export type JobPatch = Partial<Pick<JobRow, keyof typeof JOB_COLUMNS>>;
 
 /**
- * The daemon's local SQLite state (`~/.crew/state.db`): the stream cursor, jobs, folded wake-ups, the tool
- * log and cleanup records. Every method is synchronous, so a caller can group several of them in one
+ * The daemon's local SQLite state (`~/.crew/state.db`): the stream cursor, jobs, folded wake-ups, owner
+ * @pm tags, the tool log and cleanup records. Every method is synchronous, so a caller can group several of them in one
  * `transaction()` and either all or none of them persist.
  */
 export class StateDb {
@@ -481,6 +499,46 @@ export class StateDb {
 
   dropWakeups(ticketId: string): void {
     this.db.prepare('delete from pending_wakeups where ticket_id = ?').run(ticketId);
+  }
+
+  // -------------------------------------------------------------------------
+  // Owner @pm tags
+  // -------------------------------------------------------------------------
+
+  /** Keeps what a `ticket.pm_mentioned` event names, so the PM run it wakes can read the call. */
+  recordPmMention(mention: Omit<PmMention, 'createdAt'>, now = new Date()): void {
+    this.db
+      .prepare(
+        `insert into pm_mentions (event_id, pm_task_id, source_ticket_id, source_ticket_key, comment_id, created_at)
+         values (?, ?, ?, ?, ?, ?) on conflict (event_id) do nothing`,
+      )
+      .run(
+        mention.eventId,
+        mention.pmTaskId,
+        mention.sourceTicketId,
+        mention.sourceTicketKey,
+        mention.commentId,
+        now.toISOString(),
+      );
+  }
+
+  /** The owner @pm tags among these event ids (a job's `eventIds`), oldest first. */
+  pmMentions(eventIds: readonly string[]): PmMention[] {
+    if (eventIds.length === 0) return [];
+    const rows = this.db
+      .prepare(
+        `select * from pm_mentions where event_id in (${eventIds.map(() => '?').join(', ')})
+         order by created_at, rowid`,
+      )
+      .all(...eventIds) as Row[];
+    return rows.map((row) => ({
+      eventId: row.event_id as string,
+      pmTaskId: row.pm_task_id as string,
+      sourceTicketId: row.source_ticket_id as string,
+      sourceTicketKey: row.source_ticket_key as string,
+      commentId: row.comment_id as string,
+      createdAt: row.created_at as string,
+    }));
   }
 
   // -------------------------------------------------------------------------

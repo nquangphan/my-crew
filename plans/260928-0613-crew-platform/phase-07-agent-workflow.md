@@ -52,6 +52,18 @@ Every status path below is legal under `canTransition('agent', …)`. A test rep
 | pm (accept) | `children.all_done` | same as analyze | Verify every acceptance criterion against the reports; reject a skipped required skill unless it was justified. Merge each dev `head_sha` into `crew/<pm-key>` in dependency order, then into the default branch. Run `crew-docs generate` and commit. Push (the pre-push gate runs). Sync docs. `submit_report`. `in_progress→in_review→done`. On a merge conflict, `create_subtask` a dev "resolve conflicts" ticket instead of accepting |
 | docs-init | Created by the daemon as a child of the pm_task when `crew-docs check` exits 3 | **sonnet / high (fixed)** | `todo→in_progress`. Follow STANDARD.md, write every file, `crew-docs install-hooks`, `crew-docs ci-workflow`, pass `check --all`, commit with the `Crew-Docs-Init: true` trailer, sync. `submit_report`. `in_progress→done`. Every other subtask of that pm_task `depends_on` it |
 
+**Owner decision (Validation Session 20): the owner can wake the PM from any ticket of its tree.** An owner
+comment tagging `@pm` on the pm_task itself or on one of its dev/qc/bug/docs_init subtasks (open or already
+closed) wakes only that tree's PM instead of the tagged ticket's own agent — the tagged ticket's status and
+assignee are left untouched (a tag on the pm_task itself still answers its own `needs_input` like any owner
+reply there). The PM's prompt gets the owner's comment verbatim plus the tagged ticket's status, rating, latest
+daemon error and, if blocked, the latest agent comment, and handles it with `rate_subtask` (missing
+complexity), `retry_subtask` (a blocked subtask whose other cause is fixed), `create_subtask` (new work), or
+`ask_owner` (unclear intent, or to have the owner cancel on the web), then always replies with `comment` on the
+tagged ticket. An untagged comment behaves exactly as before. A tag on a ticket outside any open pm_task tree
+(a `request`, or a tree already `done`/`cancelled`) is refused with `400 PM_NOT_AVAILABLE` instead of being
+stored.
+
 ## Requirements
 
 - **PM resource management** (owner requirement):
@@ -99,6 +111,7 @@ Every status path below is legal under `canTransition('agent', …)`. A test rep
   - large → opus/high
   - **Owner decision (Validation Session 17): the PM rates every dev and QC subtask, and there is no default model for either.** `complexity` plus a one-line `complexityReason` is required on `create_subtask`; the server refuses a dev or QC subtask missing either one. `model`/`effort` on the subtask are only a deliberate override of this map, with the override's reason in `complexityReason`. The PM re-rates an existing dev/QC/bug subtask in place with the `rate_subtask` tool instead of creating a replacement one.
   - A ticket that reaches a run without a complexity rating (a legacy subtask created before the rating was required) is not given a default model: the run fails through the crash path, and the daemon comments asking the PM to rate it in place with `rate_subtask`. Rating a `blocked` ticket that had no rating moves it back to `in_progress` and it runs again automatically, without the owner unblocking it.
+  - **Owner decision (Validation Session 20):** for a subtask `blocked` for a reason other than a missing rating, the PM instead uses `retry_subtask` to move it back to `in_progress`, but only when answering an owner `@pm` call — it is refused outside that.
   - **Owner decision: Fable is not used at all.** `opus` is the strongest selectable model; a legacy ticket that still names `fable` runs on `opus` instead, with a notice comment.
   - The daemon clamps any choice outside the allowlist and comments the change.
 - **Docs model** (owner decision): all documentation work runs on `sonnet`. That is the docs-init ticket and every `docs_update` job. The complexity map, the PM and the allowlist clamp never change it, and `model-policy.ts` returns `sonnet` for `docs_init` and `docs_update` regardless of input. The dev model chosen by the PM covers code and tests only.

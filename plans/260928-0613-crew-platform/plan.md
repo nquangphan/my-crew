@@ -281,3 +281,12 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
 ### Session 19 — 2026-09-29 (owner follow-up)
 - **AgentKit sharing dropped:** AgentKit activates per device (the owner signs in by email OTP; only a device-bound session is stored, no license key), so copying its install or session to other machines is not done.
 - **Owner decision — BMAD on other machines:** BMAD (bmad-method, MIT) is installed per project and mostly not committed. The machine that holds a project records the project's BMAD profile (version, modules, tools, communication/document languages, output folder) from `_bmad/_config/manifest.yaml` and `config.toml` on the server. A **"Cài BMAD" button** in the desktop app's project settings (manual only, no automatic install) installs exactly that profile with `npx bmad-method@<version> install --yes …`, and skips when `_bmad` already has that version and those modules. Only the standard install: `_bmad/custom` and `_bmad/memory` are not copied. The inventory is re-probed afterwards.
+
+### Session 20 — 2026-09-29 (owner follow-up)
+- **Owner decision:** the owner can wake the PM from any stuck ticket by tagging it in a comment. An owner comment containing `@pm` on any ticket of a pm_task tree (dev, qc, bug, docs_init, or the pm_task itself) wakes that tree's PM with the comment text and the tagged ticket key as context; an untagged comment keeps waking the ticket's own agent. The web comment box suggests `@pm` and marks tagged comments.
+- A PM re-rating (`rate_subtask`) keeps replacing any earlier model override (kept as built).
+
+### Session 21 — 2026-09-29 (owner follow-up)
+- **Owner decisions on "Cài BMAD":**
+  1. If the machine already has any BMAD install in the project (`_bmad` present), the button does nothing, whatever its version or modules. No update and no downgrade.
+  2. A fresh install pins external modules to the exact tags recorded in the profile with the installer's `--pin` option, so every machine gets the same setup.

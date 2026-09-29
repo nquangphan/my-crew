@@ -7,6 +7,7 @@ import {
   ModelAlias,
   SelectableModel,
 } from './agent-schemas.js';
+import { CommentMention } from './comment-mentions.js';
 import { EventEnvelope } from './event-schemas.js';
 import { McpServerName } from './project-schemas.js';
 import { TicketPriority, TicketStatus, TicketType } from './ticket-schemas.js';
@@ -33,6 +34,8 @@ export const ApiErrorCode = z.enum([
   'PARENT_CLOSED',
   'TICKET_CLOSED',
   'QC_ALREADY_PAIRED',
+  /** An owner comment tags `@pm` on a ticket that has no open pm_task tree to wake. */
+  'PM_NOT_AVAILABLE',
   'IDEMPOTENCY_KEY_REQUIRED',
   'IDEMPOTENCY_KEY_REUSED',
   'RATE_LIMITED',
@@ -247,6 +250,16 @@ export const RateSubtaskRequest = z.object({
 });
 export type RateSubtaskRequest = z.input<typeof RateSubtaskRequest>;
 
+/**
+ * `POST /v1/daemon/tickets/:id/retry-subtask`: the PM (`:id` is its pm_task) moves one of its blocked
+ * subtasks back to `in_progress` and wakes its agent, when the owner asked it to with `@pm`.
+ */
+export const RetrySubtaskRequest = z.object({
+  /** Id or key of the subtask. */
+  ticket: z.string().trim().min(1).max(100),
+});
+export type RetrySubtaskRequest = z.infer<typeof RetrySubtaskRequest>;
+
 /** `PATCH /v1/tickets/:id`: owner inline edits (title, description, priority). */
 export const UpdateTicketRequest = z
   .object({ title: Title, description: Description, priority: TicketPriority })
@@ -319,6 +332,11 @@ export const Comment = z.object({
   authorKind: CommentAuthorKind,
   authorRole: AgentRole.nullable(),
   body: z.string(),
+  /**
+   * Tags the owner wrote (`@pm`), read from the text outside code; always empty for agent and system
+   * comments. A tagged owner comment is only stored when the server woke that tree's PM.
+   */
+  mentions: z.array(CommentMention).default([]),
   createdAt: z.iso.datetime(),
 });
 export type Comment = z.infer<typeof Comment>;

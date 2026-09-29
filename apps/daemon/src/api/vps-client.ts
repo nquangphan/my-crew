@@ -27,6 +27,7 @@ import {
   type RateSubtaskRequest,
   ReleaseClaimResponse,
   Report,
+  type RetrySubtaskRequest,
   type SubmitReportRequest,
   Ticket,
   TicketDetailResponse,
@@ -330,6 +331,16 @@ export class VpsClient {
     return this.request({
       method: 'POST',
       path: `/v1/daemon/tickets/${encodeURIComponent(pmTaskId)}/rate-subtask`,
+      body,
+      idempotencyKey,
+      schema: Ticket,
+    });
+  }
+
+  retrySubtask(pmTaskId: string, body: RetrySubtaskRequest, idempotencyKey: string) {
+    return this.request({
+      method: 'POST',
+      path: `/v1/daemon/tickets/${encodeURIComponent(pmTaskId)}/retry-subtask`,
       body,
       idempotencyKey,
       schema: Ticket,

@@ -15,7 +15,7 @@ import {
   type RolePlanner,
   restartNote,
 } from '../runner/job-runner.js';
-import type { JobKind, JobRow, StateDb, ToolLogEntry } from '../state-db.js';
+import type { JobKind, JobRow, PmMention, StateDb, ToolLogEntry } from '../state-db.js';
 import type { DocsHandoff, MergeHandoff, ReportOverlay } from '../tools/ticket-mcp-server.js';
 import { docsFirst } from './docs-first-check.js';
 import { docsInitGate } from './docs-init-gate.js';
@@ -34,6 +34,7 @@ const WAITING_FOR_OWNER = new Set<TicketStatus>(['needs_input', 'blocked', 'in_r
 const TRIGGER_TEXT: Record<string, string> = {
   'ticket.assigned': 'ticket vừa được giao cho bạn',
   'ticket.comment_added': 'chủ dự án vừa bình luận (đọc bình luận mới nhất trong get_ticket)',
+  'ticket.pm_mentioned': 'chủ dự án gắn thẻ @pm để gọi bạn (xem mục "Chủ dự án gọi PM" bên dưới)',
   'children.all_done': 'mọi ticket con đã kết thúc',
   'ticket.reopened': 'chủ dự án mở lại ticket (đọc bình luận mới nhất)',
   'ticket.unblocked': 'chủ dự án mở chặn ticket (đọc bình luận mới nhất)',
@@ -205,6 +206,80 @@ async function ownerRequest(ctx: PlannerContext, requestId: string): Promise<str
   ].join('\n');
 }
 
+/** At most this many owner calls are spelled out in one PM prompt (the newest). */
+const MAX_OWNER_CALLS = 5;
+
+/** The daemon's latest recorded error on a ticket (a failed or blocked job), if any. */
+function lastJobError(state: StateDb, ticketId: string): string | null {
+  return (
+    state
+      .jobsForTicket(ticketId)
+      .filter((job) => job.error)
+      .at(-1)?.error ?? null
+  );
+}
+
+/**
+ * The owner's `@pm` calls this PM run answers: the owner's comment verbatim (the owner wrote it), and the
+ * tagged ticket's key, status, rating, the daemon's last error and, when blocked, the last agent or system
+ * comment (both wrapped: the owner did not write them), plus what the PM may do about it.
+ */
+async function ownerCallsNote(
+  ctx: PlannerContext,
+  pmTask: Ticket,
+  mentions: readonly PmMention[],
+): Promise<string> {
+  const calls: string[] = [];
+  for (const mention of mentions.slice(-MAX_OWNER_CALLS)) {
+    const detail = await ctx.vps.getTicket(mention.sourceTicketId);
+    const source = detail.ticket;
+    const comment = detail.comments.find((entry) => entry.id === mention.commentId);
+    const error = lastJobError(ctx.state, source.id);
+    const blockedBy =
+      source.status === 'blocked'
+        ? detail.comments.filter((entry) => entry.authorKind !== 'owner').at(-1)
+        : undefined;
+    calls.push(
+      [
+        `### Gọi từ ${source.key}${source.id === pmTask.id ? ' (chính PM task này)' : ''}`,
+        '',
+        `- Ticket: **${source.key}** (loại \`${source.type}\`, trạng thái \`${source.status}\`, complexity ${source.complexity ? `\`${source.complexity}\`` : 'chưa đánh giá'})`,
+        `- Tiêu đề: ${ticketText(source).title}`,
+        `- Lỗi gần nhất daemon ghi nhận: ${error ? `\n${wrapUntrusted(`job error of ${source.key}`, error.slice(0, 2_000))}` : 'không có'}`,
+        ...(blockedBy
+          ? [
+              `- Lý do bị chặn (bình luận gần nhất của agent/hệ thống):\n${wrapUntrusted(`last agent comment on ${source.key}`, blockedBy.body.slice(0, 2_000))}`,
+            ]
+          : []),
+        '',
+        'Bình luận của chủ dự án (do chủ dự án viết):',
+        '',
+        comment ? comment.body : '(không tìm thấy bình luận; đọc bằng `get_ticket`)',
+      ].join('\n'),
+    );
+  }
+  const waiting = WAITING_FOR_OWNER.has(pmTask.status)
+    ? [
+        `- PM task đang \`${pmTask.status}\` (chờ chủ dự án): chỉ xử lý lời gọi và trả lời, không đổi trạng thái PM task.`,
+      ]
+    : [];
+  return [
+    '## Chủ dự án gọi PM (@pm)',
+    '',
+    'Chủ dự án gắn thẻ @pm trong bình luận để gọi bạn. Xử lý các lời gọi dưới đây **trước** mọi bước khác:',
+    '',
+    '- Subtask `blocked` vì chưa có `complexity`: `rate_subtask` ngay trên ticket đó (server tự chuyển về `in_progress` và daemon chạy lại).',
+    '- Subtask `blocked` vì lý do khác mà nguyên nhân đã được xử lý (chủ dự án nói đã sửa, hoặc lỗi tạm thời): `retry_subtask`.',
+    '- Cần sửa code hay làm thêm việc: `create_subtask` (dev kèm QC, mỗi ticket có `complexity` và `complexityReason`).',
+    '- Chủ dự án muốn huỷ việc: agent không tự huỷ ticket; `ask_owner` để xác nhận và nhắc chủ dự án huỷ trên web.',
+    '- Chưa rõ chủ dự án muốn gì: `ask_owner`.',
+    '- Sau khi xử lý, **luôn** `comment` với `ticket` là ticket được gắn thẻ, nói rõ bạn đã làm gì (hoặc vì sao chưa làm).',
+    ...waiting,
+    '',
+    ...calls,
+  ].join('\n');
+}
+
 /** Session to resume: the job's own, else the ticket's latest of the same kind; docs jobs start fresh. */
 function resumeSession(job: JobRow, kind: JobKind, state: StateDb, ticketId: string): string | null {
   if (job.resumeMode === 'restart_fresh') return null;
@@ -272,10 +347,14 @@ async function siblingHeads(ctx: PlannerContext, siblings: readonly Ticket[]): P
 async function plan(input: PlanInput): Promise<PlannedRun> {
   const { job, kind, detail, config, project, inventory, ctx } = input;
   const { ticket } = detail;
-  const stage = resolveStage({ job, kind, detail, state: ctx.state });
+  let stage = resolveStage({ job, kind, detail, state: ctx.state });
+  const mentions = ticket.type === 'pm_task' ? ctx.state.pmMentions(job.eventIds) : [];
 
   if (WAITING_FOR_OWNER.has(ticket.status)) {
-    return skipRun(stage, `ticket đang ${ticket.status}: chờ chủ dự án`);
+    if (mentions.length === 0) return skipRun(stage, `ticket đang ${ticket.status}: chờ chủ dự án`);
+    // The owner called the PM with @pm: it answers even while its own ticket waits for the owner, in the
+    // stage that replies to the owner (never a breakdown or an accept on a waiting ticket).
+    stage = 'pm_monitor';
   }
   if (stage === 'pm_analyze' && project) {
     const gate = await docsInitGate({
@@ -300,7 +379,7 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
   }
 
   const choice = resolveModel({ config, stage, ticket });
-  const vars = await promptVars({ stage, job, kind, detail, config, project, ctx });
+  const vars = await promptVars({ stage, job, kind, detail, config, project, ctx, mentions });
   const prompt = renderPrompt(STAGES[stage].prompt, vars);
   let worktreeBase: string | undefined = project?.defaultBranch;
   if (ticket.type === 'bug' && ticket.parentId) {
@@ -327,10 +406,12 @@ async function promptVars(input: {
   config: DaemonConfig;
   project: ProjectConfig | null;
   ctx: PlannerContext;
+  mentions: readonly PmMention[];
 }): Promise<Record<string, string>> {
-  const { stage, job, detail, config, project, ctx } = input;
+  const { stage, job, detail, config, project, ctx, mentions } = input;
   const { ticket } = detail;
   const notes: string[] = [];
+  if (mentions.length > 0) notes.push(await ownerCallsNote(ctx, ticket, mentions));
   const restart = restartNote(job, detail);
   if (restart) notes.push(`## Khởi động lại\n\n${restart}`);
   if (job.trigger.startsWith('retry:')) {

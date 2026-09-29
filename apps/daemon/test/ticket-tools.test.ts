@@ -8,7 +8,16 @@ import {
   type TicketToolContext,
 } from '../src/tools/ticket-mcp-server.js';
 import { allowedToolsFor, ticketToolsFor } from '../src/tools/tool-scopes.js';
-import { commentsOf, devTicket, fixture, getTicket, pmTask, RATED, useApi } from './helpers/api.js';
+import {
+  commentsOf,
+  devTicket,
+  fixture,
+  getTicket,
+  pmTask,
+  RATED,
+  setStatus,
+  useApi,
+} from './helpers/api.js';
 
 const api = useApi();
 
@@ -32,6 +41,7 @@ describe('tool scopes', () => {
     expect(extras('pm')).toEqual([
       'create_subtask',
       'rate_subtask',
+      'retry_subtask',
       'resource_report',
       'cleanup_resources',
       'reject_work',
@@ -276,6 +286,69 @@ describe('ticket MCP tools against the real API', () => {
     expect(
       tools({ vps, state, jobId: devJob.id, ticketId: dev.id, role: 'dev' }).list.map((x) => x.name),
     ).not.toContain('rate_subtask');
+  });
+
+  it('PM answers an owner @pm call on the tagged subtask, and retries a blocked subtask only then', async () => {
+    const f = await fixture(api);
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Làm giỏ hàng');
+    const otherPm = await pmTask(api, f);
+    const stranger = await devTicket(api, otherPm.id, 'Việc cây khác');
+    const state = new StateDb(':memory:');
+    const vps = new VpsClient({ apiUrl: f.server.url, token: () => f.machine.token });
+    const job = state.insertJob({ ticketId: pm.id, projectId: f.projectId, role: 'pm', trigger: 't' });
+    const t = tools({ vps, state, jobId: job.id, ticketId: pm.id, role: 'pm', ticketType: 'pm_task' });
+    const errorOf = (result: Awaited<ReturnType<typeof t.call>>) =>
+      result.isError ? (result.content[0] as { text: string }).text : null;
+
+    const reply = await t.call('comment', { ticket: dev.key, body: 'Đã đánh giá lại và cho chạy lại.' });
+    expect(errorOf(reply)).toBeNull();
+    expect((await commentsOf(api.db, dev.id)).map((c) => [c.authorKind, c.authorRole, c.body])).toEqual([
+      ['agent', 'pm', 'Đã đánh giá lại và cho chạy lại.'],
+    ]);
+    expect(errorOf(await t.call('comment', { ticket: stranger.key, body: 'x' }))).toContain(
+      'không phải subtask của PM task này',
+    );
+    expect(await commentsOf(api.db, stranger.id)).toHaveLength(0);
+    // Only the PM writes to another ticket.
+    const devJob = state.insertJob({ ticketId: dev.id, projectId: f.projectId, role: 'dev', trigger: 't' });
+    const asDev = tools({ vps, state, jobId: devJob.id, ticketId: dev.id, role: 'dev' });
+    expect(errorOf(await asDev.call('comment', { ticket: pm.key, body: 'x' }))).toContain('Chỉ PM');
+
+    await setStatus(api.db, dev.id, 'blocked');
+    expect(errorOf(await t.call('retry_subtask', { ticket: dev.key }))).toContain('@pm');
+    expect((await getTicket(api.db, dev.id)).status).toBe('blocked');
+
+    state.recordPmMention({
+      eventId: 'evt-1',
+      pmTaskId: pm.id,
+      sourceTicketId: dev.id,
+      sourceTicketKey: dev.key,
+      commentId: 'c-1',
+    });
+    state.updateJob(job.id, { status: 'done' });
+    const called = state.insertJob({
+      ticketId: pm.id,
+      projectId: f.projectId,
+      role: 'pm',
+      trigger: 'ticket.pm_mentioned',
+      eventIds: ['evt-1'],
+    });
+    const answering = tools({
+      vps,
+      state,
+      jobId: called.id,
+      ticketId: pm.id,
+      role: 'pm',
+      ticketType: 'pm_task',
+    });
+    const retried = await answering.call('retry_subtask', { ticket: dev.key });
+    expect(errorOf(retried)).toBeNull();
+    expect(JSON.parse((retried.content[0] as { text: string }).text)).toEqual({
+      key: dev.key,
+      status: 'in_progress',
+    });
+    expect((await getTicket(api.db, dev.id)).status).toBe('in_progress');
   });
 
   it('refuses PM-only resource tools to a context without resource access', async () => {

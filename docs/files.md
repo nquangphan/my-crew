@@ -73,6 +73,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/owner-web-support.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/pairing.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
 | `apps/api/test/password-change.test.ts` | [owner-auth](flows/owner-auth.md) (test) |
+| `apps/api/test/pm-mention.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/project-changes.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `apps/api/test/rate-subtask.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/revoke-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
@@ -161,6 +162,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/live-workflow.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/merge-policy.test.ts` | [local-merge](flows/local-merge.md) (test) |
 | `apps/daemon/test/model-policy.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
+| `apps/daemon/test/pm-mention.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/probe-worktree.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/daemon/test/resources.test.ts` | [resource-hygiene](flows/resource-hygiene.md) (test) |
 | `apps/daemon/test/role-contracts.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
@@ -234,6 +236,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/docs-space.spec.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `apps/web/e2e/owner-admin.spec.ts` | [web-admin](flows/web-admin.md) (test) |
+| `apps/web/e2e/pm-mention.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/agent-activity.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/agent-activity.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/board-view.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
@@ -370,6 +373,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/docs-kit/test/rules.test.ts` | [docs-check](flows/docs-check.md) (test) |
 | `packages/shared/src/agent-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `packages/shared/src/api-schemas.ts` | [owner-auth](flows/owner-auth.md) (dùng chung), [ticket-lifecycle](flows/ticket-lifecycle.md) (dùng chung) |
+| `packages/shared/src/comment-mentions.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `packages/shared/src/comment-mentions.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `packages/shared/src/desktop-ipc.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `packages/shared/src/docs-schemas.test.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `packages/shared/src/docs-schemas.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung), [docs-check](flows/docs-check.md) (dùng chung) |

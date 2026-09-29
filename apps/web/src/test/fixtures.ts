@@ -51,6 +51,7 @@ export function comment(overrides: Partial<Comment> = {}): Comment {
     authorKind: 'agent',
     authorRole: 'pm',
     body: 'Câu hỏi',
+    mentions: [],
     createdAt: '2026-09-28T02:00:00.000Z',
     ...overrides,
   };

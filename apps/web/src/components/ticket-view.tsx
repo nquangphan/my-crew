@@ -241,6 +241,9 @@ function TicketViewBody({
     onOpenTicket ??
     ((key: string) => void navigate({ to: '/tickets/$ticketKey', params: { ticketKey: key } }));
   const project = projects.data?.find((p) => p.id === (ticket.projectId ?? ticket.projectHintId));
+  // `@pm` reaches the PM of a pm_task tree: from the pm_task itself or any of its subtasks, never a request.
+  const canCallPm = ticket.type !== 'request';
+  const pmTaskKey = parent.data?.ticket.type === 'pm_task' ? parent.data.ticket.key : null;
   const siblings = parent.data?.children ?? [];
   const family =
     parent.data && parent.data.ticket.type === 'pm_task' && children.length === 0 ? siblings : children;
@@ -314,12 +317,13 @@ function TicketViewBody({
         <TabsTrigger value="report">Report</TabsTrigger>
       </TabsList>
       <TabsContent value="comments" className="flex flex-col gap-4 pt-3">
-        <CommentList comments={comments} />
+        <CommentList comments={comments} pmTaskKey={pmTaskKey} onOpenTicket={open} />
         {!pinReply && (
           <CommentComposer
             ref={composerRef}
             ticketKey={ticket.key}
             label={needsInput ? 'Trả lời' : 'Thêm bình luận'}
+            canCallPm={canCallPm}
           />
         )}
       </TabsContent>
@@ -408,7 +412,13 @@ function TicketViewBody({
       {pinReply && (
         <div className="sticky bottom-0 z-10 -mx-3 mt-2 flex flex-col gap-2 border-t border-line bg-panel px-3 py-2.5">
           <NeedsInputBanner ticket={ticket} />
-          <CommentComposer ref={composerRef} ticketKey={ticket.key} label="Trả lời" compact />
+          <CommentComposer
+            ref={composerRef}
+            ticketKey={ticket.key}
+            label="Trả lời"
+            compact
+            canCallPm={canCallPm}
+          />
         </div>
       )}
       <CancelDialog

@@ -48,8 +48,10 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 7. `apps/web/src/lib/live-events.ts` → `startLiveEvents()`: mở `EventSource` tới `/v1/stream`, map mỗi
    `EventEnvelope` sang danh sách query key cần invalidate (`invalidationsFor()`; `budget.exceeded` và
    `ticket.stuck` làm mới cả ticket lẫn danh sách thông báo của inbox, `agent.activity_changed` làm mới ticket
-   và máy liên quan), gộp theo lô 100ms (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với `?cursor=<lastEventId>`
-   sau `retryMs`, và invalidate toàn bộ query sau mỗi lần nối lại (vì có thể đã lỡ sự kiện lúc mất kết nối).
+   và máy liên quan, `ticket.pm_mentioned` làm mới ticket như `ticket.comment_added`/`ticket.status_changed`),
+   gộp theo lô 100ms (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với
+   `?cursor=<lastEventId>` sau `retryMs`, và invalidate toàn bộ query sau mỗi lần nối lại (vì có thể đã lỡ sự
+   kiện lúc mất kết nối).
 8. `apps/api/src/services/notice-read-service.ts` → `listOwnerNotices()`: mỗi thông báo (loại sự kiện trong
    `NOTICE_EVENT_TYPES`) kèm cờ `read` của owner (tra bảng `notice_reads` theo `seq`), cộng `unread` là số
    thông báo chưa đọc trong **toàn bộ lịch sử**, không chỉ trang đang lấy — đây là số cho badge Inbox.
@@ -74,7 +76,10 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
   thông báo nào, khoá `owner_id`+`event_seq`, cũng sở hữu bởi flow này qua `notice-read-service.ts`).
 - Sự kiện: đây là hạ tầng phát mọi loại sự kiện định nghĩa ở `packages/shared/src/event-schemas.ts`, kể cả
   `ticket.stuck` (thêm vào `NOTICE_EVENT_TYPES`, chỉ owner stream — `targetMachineId=null`); các flow
-  khác (ticket-lifecycle, project-claims, machine-pairing) là nguồn phát thật. `inbox.read {unread}` (owner
+  khác (ticket-lifecycle, project-claims, machine-pairing) là nguồn phát thật. `ticket.pm_mentioned` (owner tag
+  `@pm` trên một ticket của cây pm_task, flow `ticket-lifecycle` → `addComment()`) nhắm đúng một máy
+  (`targetMachineId` của chủ dự án, `targetRole: 'pm'`) như mọi sự kiện đánh thức daemon khác — nó thay hẳn
+  `ticket.comment_added` của cùng bình luận đó, không phát cả hai. `inbox.read {unread}` (owner
   stream) là sự kiện riêng của flow này, phát mỗi lần `markNoticesRead()`/`markAllNoticesRead()` chạy, để mọi
   thiết bị của owner thấy cùng số chưa đọc. `agent.activity_changed {machineId, ticketIds}` (owner stream,
   không phải notice) phát bởi `recordHeartbeat()` (flow `machine-pairing`) khi báo cáo job của một ticket đổi.

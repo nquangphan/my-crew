@@ -30,7 +30,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    (`assertPairable`), `dependsOn` chỉ được là ticket anh em (`assertSiblings`), QC luôn được cộng thêm MCP
    test UI mặc định theo platform (`qcDefaultMcps`, từ flow `project-claims`). Subtask `dev`/`qc` bắt buộc có
    `complexity` và một dòng `complexityReason` (`CreateSubtaskRequest.superRefine`, cùng file `api-schemas.ts`
-   nói ở bước 9) — không có model mặc định cho hai loại này (flow `agent-roles`); thiếu một trong hai trường bị
+   nói ở bước 10) — không có model mặc định cho hai loại này (flow `agent-roles`); thiếu một trong hai trường bị
    từ chối `VALIDATION_FAILED` với `details` nêu đúng trường còn thiếu.
 3. `apps/api/src/services/ticket-service.ts` → `rateSubtask()`: PM đánh giá (hoặc đánh giá lại) `complexity` của
    một subtask `dev`/`qc`/`bug` **của chính pm_task đó**, ngay tại chỗ, không tạo subtask thay thế —
@@ -45,7 +45,14 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    `ticket.status_changed` và `ticket.unblocked` cho máy phụ trách — daemon tự chạy lại trên model mới mà
    không cần owner mở chặn; một ticket `blocked` vì lý do khác (đã có `complexity` từ trước) giữ nguyên
    `blocked`.
-4. `apps/api/src/services/ticket-service.ts` → `fileBug()`: hai nguồn tạo `bug` — QC báo lỗi trên ticket dev/bug
+4. `apps/api/src/services/ticket-service.ts` → `retrySubtask()`: PM chuyển một subtask `dev`/`qc`/`bug`/
+   `docs_init` đang `blocked` **của chính pm_task đó** về `in_progress` và đánh thức agent của nó
+   (`ticket.unblocked`), như owner tự bỏ chặn — dùng khi owner gọi PM bằng `@pm` và nguyên nhân chặn đã được xử
+   lý (không phải thiếu `complexity`, việc đó dùng `rateSubtask()` ở bước 3). `:id` không phải `pm_task`, hay
+   ticket đích không phải con của đúng `pm_task` đó đều `FORBIDDEN`; ticket đích không `blocked` thì
+   `ILLEGAL_TRANSITION`. Route `POST /v1/daemon/tickets/:id/retry-subtask` (flow `daemon-api`) idempotent như
+   mọi ghi khác của daemon.
+5. `apps/api/src/services/ticket-service.ts` → `fileBug()`: hai nguồn tạo `bug` — QC báo lỗi trên ticket dev/bug
    nó verify (`pairsWith`), hoặc PM từ chối một ticket dev/bug đã `done` khi nghiệm thu (`reject_work`, flow
    `agent-roles`; ticket nguồn khi đó chính là ticket bị từ chối, không phải QC). Tính `cycle = bugCycle + 1`
    của dev gốc (`originDevId`); vượt `MAX_BUG_CYCLES` (3) thì không tạo ticket, gọi `applyHold()` park pm_task
@@ -57,51 +64,65 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    chối** (tìm qua `pairsWith`), không phải của ticket nguồn, kể cả khi nguồn là PM từ chối chứ không phải
    chính QC đó báo lỗi, với `complexityReason` = `kế thừa từ <QC-KEY>: <lý do>`; một lý do đã bắt đầu bằng
    `kế thừa từ ` (retest của retest) được giữ nguyên, không lồng thêm tiền tố.
-5. `apps/api/src/services/ticket-service.ts` → `transitionTicket()`: `canTransition(actor, from, to)` (từ
+6. `apps/api/src/services/ticket-service.ts` → `transitionTicket()`: `canTransition(actor, from, to)` (từ
    `packages/shared/src/status-workflow.ts`) gác cổng; `to='done'` bắt buộc đã có report hiện hành
    (`REPORT_REQUIRED`); sau khi cập nhật trạng thái trong cùng transaction: `cascadeCancel()` khi huỷ,
    `resolveDependents()` phát `dependency.resolved` cho ticket đang chờ khi `done`, `ownerWakeUp()` phát
    `ticket.reopened`/`ticket.unblocked` khi owner mở lại/bỏ chặn, `childrenAllDone()` phát
    `children.all_done` khi con cuối cùng đóng (dù `done` hay `cancelled`).
-6. `packages/shared/src/status-workflow.ts` → `canTransition()`/`allowedTransitions()`: bảng cạnh hợp lệ theo
+7. `packages/shared/src/status-workflow.ts` → `canTransition()`/`allowedTransitions()`: bảng cạnh hợp lệ theo
    actor (`AGENT_EDGES`, `OWNER_EDGES`); `system` (dùng cho cascade cancel) được thêm cạnh `* → cancelled`.
    `packages/shared/src/agent-schemas.ts` → `RoleStage`: bước của một agent run (`assistant_triage`,
    `pm_analyze`, `dev`, `docs_update`, `qc`, `docs_init`, …); mỗi bước có đường trạng thái riêng phải hợp lệ
    với `canTransition('agent', …)` (định nghĩa và kiểm ở flow `agent-roles`, không lặp lại ở đây). `DOCS_MODEL`
    (`= 'sonnet'`) là model cố định của `docs_init`/`docs_update`.
-7. `apps/api/src/services/ticket-service.ts` → `addComment()`: bình luận owner trên ticket đang
+8. `apps/api/src/services/ticket-service.ts` → `addComment()`: bình luận owner trên ticket đang
    `needs_input` tự chuyển nó về `in_progress` và gọi `liftHold()`; bình luận agent/system chỉ phát
-   `ticket.updated{change:'comment'}`, không đánh thức ai.
-8. `apps/api/src/services/ticket-service.ts` → `updateTicket()`: owner sửa tiêu đề/mô tả/ưu tiên tại chỗ,
+   `ticket.updated{change:'comment'}`, không đánh thức ai. Bình luận owner tag `@pm` (không phân biệt hoa
+   thường; `packages/shared/src/comment-mentions.ts` → `parseMentions()`, bỏ qua tag trong code block/inline
+   code và trong địa chỉ email/URL) trên **bất kỳ ticket nào của một cây pm_task** (chính pm_task, hay con
+   dev/qc/bug/docs_init của nó, kể cả con đã đóng) thay hẳn hiệu ứng ở trên: `pmTaskToWake()` tìm pm_task đang
+   coi sóc ticket đó (`governingPmTask()`: chính ticket nếu là pm_task, không thì cha pm_task), rồi `pmMentioned()` phát `ticket.pm_mentioned` (không phát
+   `ticket.comment_added`) nhắm `ticketId=<pm_task>`, `targetMachineId` là máy chủ dự án
+   (`project.ownerMachineId`, dự phòng máy phụ trách pm_task), `targetRole: 'pm'` — agent của ticket được tag không bị
+   đánh thức và trạng thái của nó không đổi (kể cả `needs_input`); riêng tag ngay trên chính pm_task vẫn trả nó
+   về `in_progress` như một câu trả lời owner bình thường (`answerNeedsInput()`, dùng chung với nhánh không có
+   tag). Ticket không thuộc cây pm_task nào (ví dụ `request`) hay pm_task đã đóng (`done`/`cancelled`) bị từ
+   chối `PM_NOT_AVAILABLE` (400, `packages/shared/src/api-schemas.ts` → `ApiErrorCode`, flow `api-platform`) —
+   không lưu bình luận, không phát sự kiện nào. `toCommentDto()` dựng DTO `Comment` cho mọi phản hồi (owner
+   POST, daemon POST, chi tiết ticket ở bước 13) với trường `mentions` tính từ text, chỉ cho bình luận owner
+   (agent/system luôn `[]`); một bình luận owner có tag đã lưu trong DB luôn từng đánh thức được PM, vì tag bị
+   từ chối ngay khi không có PM nào để gọi.
+9. `apps/api/src/services/ticket-service.ts` → `updateTicket()`: owner sửa tiêu đề/mô tả/ưu tiên tại chỗ,
    không bao giờ đánh thức agent, chỉ phát `ticket.updated{change:'fields'}`.
-9. `apps/api/src/services/report-service.ts` → `submitReport()`: lưu report mới là bản hiện hành (bản cũ mất
+10. `apps/api/src/services/report-service.ts` → `submitReport()`: lưu report mới là bản hiện hành (bản cũ mất
    `is_current`), cộng `costUsd` của report vào ticket/ngân sách qua `addCost()` (flow này gọi sang
    `budget-service.ts`), phát `ticket.updated{change:'report'}`. `SubmitReportRequest`/subtask (`requiredMcps`)
    ở `packages/shared/src/api-schemas.ts` validate tên MCP server (`mcpsUsed`, `mcpsSelected`) bằng
    `McpServerName` của `packages/shared/src/project-schemas.ts` (flow `project-claims`), nên một report ghi
    đúng tên plugin/connector Claude Code báo cáo không bị từ chối. Cùng file `api-schemas.ts` này còn chứa
    schema xác thực owner, gồm `ChangePasswordRequest` và `MIN_PASSWORD_LENGTH` (flow `owner-auth`).
-10. `apps/api/src/services/report-service.ts` → `recordAgentMeta()`: daemon ghi `agentSessionId`/`agentModel`/
+11. `apps/api/src/services/report-service.ts` → `recordAgentMeta()`: daemon ghi `agentSessionId`/`agentModel`/
     `agentEffort` và cộng `costDeltaUsd` cho lượt chạy không kết thúc bằng report (hợp đồng: chi phí một lượt
     chạy chỉ được cộng đúng một lần, hoặc qua report hoặc qua delta này, không bao giờ cả hai).
-11. `apps/api/src/services/budget-service.ts` → `enforceChildCap()`, `addCost()`, `applyHold()`, `liftHold()`:
+12. `apps/api/src/services/budget-service.ts` → `enforceChildCap()`, `addCost()`, `applyHold()`, `liftHold()`:
     kiểm tra trần con mỗi ticket (`maxChildrenPerTicket`), ngân sách cây pm_task
     (`ticketTreeBudgetUsd`) và ngân sách ngày dự án (`dailyBudgetUsd`, theo múi giờ project); vượt trần thì
     park pm_task (`budgetHold`), bình luận hệ thống giải thích, phát `budget.exceeded`; owner bình luận hoặc
     chuyển `needs_input → in_progress` sẽ gỡ hold cho toàn bộ cây pm_task đó (`childCapLifted`/
     `costBudgetLifted`), không chỉ một batch.
-12. `apps/api/src/services/ticket-query-service.ts` → `listTickets()`, `getTicketDetail()`, `search()`: danh
+13. `apps/api/src/services/ticket-query-service.ts` → `listTickets()`, `getTicketDetail()`, `search()`: danh
     sách có lọc/sắp xếp/keyset-pagination (cursor mã hoá base64url), chi tiết ticket kèm con/bình luận/report
     hiện hành/dòng sự kiện, tìm kiếm nhanh (ticket theo key/tiêu đề, cộng docs qua `searchAllDocs()` của flow
-    `docs-sync-viewer`).
-13. `apps/api/src/jobs/stuck-ticket-alarm.ts` → `findStuckTickets()`/`raiseStuckTicketAlarms()`: mỗi
+    `docs-sync-viewer`); bình luận trong chi tiết ticket qua `toCommentDto()` (bước 8) nên cũng có `mentions`.
+14. `apps/api/src/jobs/stuck-ticket-alarm.ts` → `findStuckTickets()`/`raiseStuckTicketAlarms()`: mỗi
     `STUCK_CHECK_INTERVAL_MS` (5 phút) tìm ticket không kết thúc, im lặng quá `STUCK_AFTER_MS` (30 phút, tính
     theo lần đổi trường ticket gần nhất hoặc bất kỳ sự kiện nào khác ngoài cảnh báo trước đó), không đang chờ
     owner (`needs_input`/`blocked`/`request` ở `in_review`), không còn con hay `dependsOn` mở, và không máy nào
     đang chạy (heartbeat `runningJobs`) hay giữ trong hàng đợi/backoff (heartbeat `waitingJobs`, nhớ tối đa 2
     phút mỗi máy qua `WaitingJobsRegistry`) — mỗi lần im lặng như vậy chỉ phát đúng một sự kiện `ticket.stuck`
     (flow `event-delivery`, chỉ owner stream) cho tới khi có hoạt động mới.
-14. `apps/api/src/services/agent-activity-service.ts` → `loadAgentActivity()`: cho mỗi ticket, chọn báo cáo tốt
+15. `apps/api/src/services/agent-activity-service.ts` → `loadAgentActivity()`: cho mỗi ticket, chọn báo cáo tốt
     nhất giữa các máy chưa bị revoke — job đang chạy tươi > job đang chờ tươi > job vừa lỗi > mọi báo cáo cũ
     (đọc `machines.runningJobs`/`waitingJobs`/`failedJobs`, flow `machine-pairing`); heartbeat cũ hơn
     `AGENT_ACTIVITY_STALE_MS` (2 phút) hoặc máy offline đọc thành `unknown`, không bao giờ `running`. Ticket
@@ -119,8 +140,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/routes/ticket-routes.ts` | Route ticket owner + search | `ticketRoutes` |
 | `apps/api/src/routes/comment-routes.ts` | Route bình luận owner | `commentRoutes` |
 | `apps/api/src/routes/report-routes.ts` | Route đọc report owner | `reportRoutes` |
-| `apps/api/src/services/ticket-service.ts` | Tạo, đánh giá lại, transition, bug loop, bình luận, sửa ticket | `createRequestTicket`, `createSubtask`, `rateSubtask`, `fileBug`, `transitionTicket`, `addComment`, `updateTicket`, `lockWithParent`, `governingPmTask` |
+| `apps/api/src/services/ticket-service.ts` | Tạo, đánh giá lại, transition, bug loop, bình luận (kể cả tag `@pm`), sửa ticket | `createRequestTicket`, `createSubtask`, `rateSubtask`, `retrySubtask`, `fileBug`, `transitionTicket`, `addComment`, `toCommentDto`, `updateTicket`, `lockWithParent`, `governingPmTask` |
 | `apps/api/src/services/ticket-query-service.ts` | Danh sách, chi tiết, tìm kiếm | `listTickets`, `getTicketDetail`, `search` |
+| `packages/shared/src/comment-mentions.ts` | Tag `@pm` trong bình luận owner | `CommentMention`, `parseMentions` |
 | `apps/api/src/services/report-service.ts` | Report và agent-meta | `submitReport`, `recordAgentMeta`, `getReports`, `getCurrentReport` |
 | `apps/api/src/services/budget-service.ts` | Trần con, ngân sách, hold | `enforceChildCap`, `addCost`, `applyHold`, `liftHold`, `getBudgetStatus` |
 | `apps/api/src/jobs/stuck-ticket-alarm.ts` | Báo ticket đứng yên không ai xử lý | `findStuckTickets`, `raiseStuckTicketAlarms`, `startStuckTicketAlarm`, `WaitingJobsRegistry` |
@@ -135,8 +157,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - Trường tính không lưu DB: `Ticket.agentActivity` — `withAgentActivity()` đọc bảng `machines` (flow
   `machine-pairing`) mỗi lần trả owner đọc, không cache.
 - Sự kiện: `ticket.assigned`, `ticket.status_changed`, `ticket.cancelled`, `ticket.comment_added`,
-  `ticket.updated`, `ticket.reopened`, `ticket.unblocked`, `dependency.resolved`, `children.all_done`,
-  `budget.exceeded`, `ticket.stuck`.
+  `ticket.pm_mentioned` (owner tag `@pm`, thay hẳn `ticket.comment_added` của bình luận đó — chi tiết ở flow
+  `event-delivery`), `ticket.updated`, `ticket.reopened`, `ticket.unblocked`, `dependency.resolved`,
+  `children.all_done`, `budget.exceeded`, `ticket.stuck`.
 - Gọi ngoài: không.
 
 ## Flow liên quan
@@ -187,3 +210,13 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   ticket `todo` chưa ai nhận cho máy được giao; giữ báo cáo còn hoạt động dù lý do chờ lạ từ một daemon mới
   hơn, và liệt kê job chờ theo từng máy.
 - `packages/shared/src/status-workflow.test.ts`: `canTransition`/`allowedTransitions` cho từng actor.
+- `packages/shared/src/comment-mentions.test.ts`: `@pm` nhận diện không phân biệt hoa thường, bỏ qua trong code
+  block/inline code và trong email/URL (`team@pm.example.com`), không nhận `@pm-x`/`@pm.x`.
+- `apps/api/test/pm-mention.test.ts`: tag `@pm` từ mọi loại ticket của cây (pm_task, dev, qc, bug, docs_init, kể
+  cả con đã đóng của cây còn mở) đều đánh thức đúng PM của cây, nhắm đúng máy chủ dự án; chỉ PM được đánh thức —
+  ticket được tag không đổi trạng thái `needs_input`; tag ngay trên pm_task còn trả nó về `in_progress`; tag
+  trong code/email không tính, vẫn đánh thức agent của ticket như cũ; bình luận agent chứa `@pm` không bao giờ
+  tính; response và chi tiết ticket trả đúng `mentions`; tag trên ticket ngoài cây pm_task (`request`) hay cây
+  đã đóng bị từ chối `400 PM_NOT_AVAILABLE`, không lưu gì; `retrySubtask()` chuyển đúng subtask `blocked` về
+  `in_progress` và đánh thức agent của nó, từ chối ticket không `blocked`/không phải con của đúng pm_task/caller
+  không phải pm_task; route daemon idempotent.

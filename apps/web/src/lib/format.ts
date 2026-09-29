@@ -135,6 +135,8 @@ const ERROR_TEXT: Partial<Record<string, string>> = {
   RATE_LIMITED: 'Thử quá nhiều lần, hãy đợi một chút.',
   VALIDATION_FAILED: 'Dữ liệu không hợp lệ.',
   TICKET_CLOSED: 'Ticket đã đóng.',
+  PM_NOT_AVAILABLE:
+    'Không gọi được PM: ticket này không thuộc PM task nào đang mở. Bỏ @pm để gửi bình luận thường.',
   NETWORK: 'Không kết nối được máy chủ.',
   INVALID_RESPONSE: 'Phản hồi từ máy chủ không hợp lệ.',
 };
@@ -175,6 +177,8 @@ export function describeEvent(event: EventEnvelope): string {
       return `Trạng thái: ${STATUS_LABEL[p.data.from]} → ${STATUS_LABEL[p.data.to]}`;
     case 'ticket.comment_added':
       return 'Bạn bình luận';
+    case 'ticket.pm_mentioned':
+      return `Bạn gọi PM (@pm) từ ${p.data.sourceTicketKey}`;
     case 'ticket.updated':
       return CHANGE_LABEL[p.data.change] ?? 'Cập nhật';
     case 'dependency.resolved':

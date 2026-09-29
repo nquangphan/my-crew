@@ -14,7 +14,7 @@ import type { AgentRunner, RunAgentOptions } from '../../src/runner/agent-runner
 import { createScriptedRunner, ScriptedCrash, type ScriptInput } from '../../src/runner/scripted-runner.js';
 import { runnableJobs } from '../../src/scheduler/scheduler.js';
 import type { JobRow } from '../../src/state-db.js';
-import { commentsOf, type Fixture, ownerComment, ownerTransition, type useApi } from './api.js';
+import { clearRating, commentsOf, type Fixture, ownerComment, ownerTransition, type useApi } from './api.js';
 import { makeDaemon, sleep, type TestDaemon } from './daemon.js';
 import { tempDir } from './git.js';
 import { DOCS_FILES, makeWorkflowRepo, type WorkflowRepo } from './workflow.js';
@@ -49,6 +49,8 @@ const OwnerAction = z.object({
   }),
   /** The ticket the owner acts on (default: the one in `when`). */
   target: z.object({ title: z.string(), type: TicketType.optional() }).optional(),
+  /** Removes the PM's rating first, like a ticket created before the rating was required. */
+  clearRating: z.boolean().optional(),
   comment: z.string().min(1).optional(),
   cancel: z.boolean().optional(),
   unblock: z.boolean().optional(),
@@ -703,6 +705,7 @@ export async function runScenario(
       const target = action.target ? await byTitle(action.target.title, action.target.type) : row;
       if (!target) continue;
       done.add(index);
+      if (action.clearRating) await clearRating(db, target.id);
       if (action.comment) await ownerComment(f, target.id, action.comment);
       if (action.cancel) await ownerTransition(f, target.id, 'cancelled');
       if (action.unblock) await ownerTransition(f, target.id, 'in_progress');

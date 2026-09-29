@@ -2,7 +2,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { ticketReports, tickets } from '../../api/src/db/schema.js';
+import { events, ticketReports, tickets } from '../../api/src/db/schema.js';
 import { commentsOf, RATED, useApi } from './helpers/api.js';
 import { git } from './helpers/git.js';
 import { type LifecycleResult, loadScenario, runScenario, stuckTickets } from './helpers/lifecycle.js';
@@ -395,6 +395,52 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(firstLog).toContain('mcp__tickets__reject_work');
     expect(git(r.repo.remote, 'show', 'main:src/orders-fix.js')).toBeTruthy();
     expect((await report(pm.id))?.headSha).toBe(git(r.repo.remote, 'rev-parse', 'main').trim());
+  },
+
+  async 'owner-calls-pm'(r) {
+    await assertDocsJobCommits(r);
+    const pm = await one(/^Tính thuế đơn hàng$/, 'pm_task');
+    const dev = await one(/^Áp thuế vào đơn hàng$/, 'dev');
+    expect(dev).toMatchObject({
+      complexity: 'medium',
+      complexityReason: 'Thuế áp lên tổng đơn, ảnh hưởng thanh toán và hoá đơn',
+    });
+    // The tag woke the PM only: one ticket.pm_mentioned for the PM, no wake-up of the dev from that comment.
+    const tagged = (await commentsOf(api.db, dev.id)).find((c) => c.body.startsWith('@pm'));
+    const woken = (await api.db.select().from(events)).filter(
+      (e) => e.type === 'ticket.pm_mentioned' || e.type === 'ticket.comment_added',
+    );
+    const byTag = woken.filter(
+      (e) => (e.payload as { data: { commentId?: string } }).data.commentId === tagged?.id,
+    );
+    expect(byTag.map((e) => [e.type, e.ticketId, e.targetRole])).toEqual([
+      ['ticket.pm_mentioned', pm.id, 'pm'],
+    ]);
+    // The PM's monitor run got the owner's comment and the tagged ticket, rated it and replied on it.
+    const monitor = r.runs.find((run) => run.ticketId === pm.id && run.stage === 'pm_monitor');
+    expect(monitor?.prompt).toContain('## Chủ dự án gọi PM (@pm)');
+    expect(monitor?.prompt).toContain(`### Gọi từ ${dev.key}`);
+    expect(monitor?.prompt).toContain('trạng thái `blocked`, complexity chưa đánh giá');
+    expect(monitor?.prompt).toContain('@pm ticket này chưa được đánh giá độ phức tạp');
+    const monitorJob = jobsOf(r, pm.id).find((j) => j.stage === 'pm_monitor');
+    expect(
+      r.daemon.daemon.state
+        .toolLog(monitorJob?.id ?? '')
+        .filter((e) => e.decision === 'allow')
+        .map((e) => e.tool),
+    ).toEqual(expect.arrayContaining(['mcp__tickets__rate_subtask', 'mcp__tickets__comment']));
+    const replies = (await commentsOf(api.db, dev.id)).filter((c) => c.authorRole === 'pm');
+    expect(replies.map((c) => c.body)).toEqual([
+      'PM đã đánh giá độ phức tạp medium; ticket chạy lại trên model theo mức này.',
+    ]);
+    // Dev: the question, the run that could not choose a model, then the rerun on the new rating.
+    expect(jobsOf(r, dev.id).map((j) => [j.kind, j.status, j.model])).toEqual([
+      ['agent', 'done', 'sonnet'],
+      ['agent', 'failed', null],
+      ['agent', 'done', 'sonnet'],
+      ['docs_update', 'done', 'sonnet'],
+    ]);
+    expect(jobsOf(r, dev.id)[2]?.trigger).toBe('ticket.unblocked');
   },
 
   async 'qc-mcp-missing'(r) {

@@ -316,13 +316,24 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
     }),
     comment: tool(
       'comment',
-      'Viết bình luận (tiếng Việt) vào ticket. Credential bị ẩn tự động.',
-      { body: z.string().trim().min(1).max(50_000) },
-      async ({ body }) => {
+      'Viết bình luận (tiếng Việt) vào ticket của lượt chạy. PM có thể bình luận vào một subtask của PM task này bằng `ticket` (ví dụ trả lời chủ dự án trên ticket đã gắn @pm). Credential bị ẩn tự động.',
+      {
+        body: z.string().trim().min(1).max(50_000),
+        ticket: z
+          .string()
+          .trim()
+          .min(1)
+          .max(100)
+          .optional()
+          .describe('PM: id hoặc key của subtask (ví dụ WEB-12); mặc định là ticket của lượt chạy'),
+      },
+      async ({ body, ticket }) => {
+        const target = ticket === undefined ? ctx.ticketId : await ownTreeTicket(ctx, ticket);
+        if (typeof target !== 'string') return target;
         const comment = await writer.write((key) =>
-          ctx.vps.comment(ctx.ticketId, { body: scrub(body), role: ctx.role }, key),
+          ctx.vps.comment(target, { body: scrub(body), role: ctx.role }, key),
         );
-        return text({ commentId: comment.id });
+        return text({ commentId: comment.id, ticketId: target });
       },
     ),
     ask_owner: tool(
@@ -504,6 +515,20 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
           model: ticket.model,
           effort: ticket.effort,
         });
+      },
+    ),
+    retry_subtask: tool(
+      'retry_subtask',
+      'PM, chỉ khi chủ dự án gọi bạn bằng @pm: chuyển một subtask đang `blocked` của PM task này về `in_progress` và đánh thức agent của nó chạy lại. Chỉ dùng khi nguyên nhân bị chặn đã được xử lý (ví dụ chủ dự án đã sửa môi trường); subtask thiếu complexity thì dùng `rate_subtask`.',
+      { ticket: z.string().trim().min(1).max(100).describe('Id hoặc key của subtask (ví dụ WEB-12)') },
+      async (input) => {
+        if (!answersOwnerCall(ctx)) {
+          return failure(
+            'retry_subtask chỉ dùng trong lượt chạy trả lời chủ dự án gọi PM bằng @pm; không thì hỏi chủ dự án (ask_owner).',
+          );
+        }
+        const ticket = await writer.write((key) => ctx.vps.retrySubtask(ctx.ticketId, input, key));
+        return text({ key: ticket.key, status: ticket.status });
       },
     ),
     resource_report: tool(
@@ -752,6 +777,28 @@ async function treeOrphans(ctx: TicketToolContext): Promise<string[]> {
       (proc) =>
         `${keys.get(proc.ticketId as string)}: pid ${proc.pid}${proc.ports.length ? ` cổng ${proc.ports.join(',')}` : ''}`,
     );
+}
+
+/** True when the run's job answers an owner `@pm` tag (a `ticket.pm_mentioned` event it absorbed). */
+function answersOwnerCall(ctx: TicketToolContext): boolean {
+  const job = ctx.state.getJob(ctx.jobId);
+  return job !== null && ctx.state.pmMentions(job.eventIds).length > 0;
+}
+
+/**
+ * The id of a ticket the PM may write to besides its own: its pm_task or one of that pm_task's subtasks.
+ * Any other ticket, or another role, gets a tool error.
+ */
+async function ownTreeTicket(ctx: TicketToolContext, idOrKey: string): Promise<string | CallToolResult> {
+  const found = (await ctx.vps.getTicket(idOrKey)).ticket;
+  if (found.id === ctx.ticketId) return found.id;
+  if (ctx.role !== 'pm' || ctx.ticketType !== 'pm_task') {
+    return failure('Chỉ PM bình luận được vào ticket khác, và chỉ vào subtask của PM task của mình.');
+  }
+  if (found.parentId !== ctx.ticketId) {
+    return failure(`${found.key} không phải subtask của PM task này; chỉ bình luận vào subtask của mình.`);
+  }
+  return found.id;
 }
 
 /** Turns thrown errors into tool errors the agent can read, instead of failing the run. */

@@ -13,7 +13,7 @@ import { searchAllDocs } from './docs-service.js';
 import { listTicketEvents } from './event-service.js';
 import { likePattern } from './like-pattern.js';
 import { getCurrentReport } from './report-service.js';
-import { getTicketRow, toTicketDto } from './ticket-service.js';
+import { getTicketRow, toCommentDto, toTicketDto } from './ticket-service.js';
 
 const PRIORITY_RANK = sql`(case ${tickets.priority} when 'low' then 0 when 'medium' then 1 when 'high' then 2 else 3 end)`;
 
@@ -100,14 +100,7 @@ export async function getTicketDetail(db: Executor, idOrKey: string): Promise<Ti
   return {
     ticket: toTicketDto(ticket),
     children: children.map(toTicketDto),
-    comments: commentRows.map((c) => ({
-      id: c.id,
-      ticketId: c.ticketId,
-      authorKind: c.authorKind,
-      authorRole: c.authorRole,
-      body: c.body,
-      createdAt: c.createdAt.toISOString(),
-    })),
+    comments: commentRows.map(toCommentDto),
     report,
     events,
   };

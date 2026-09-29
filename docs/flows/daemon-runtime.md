@@ -35,7 +35,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    một phần `jobs_one_active_per_ticket` — một ticket chỉ giữ nhiều nhất một job đang `queued`/`running`/
    `backoff`; cột `stage`, `failed_attempts`, `capabilities`, `return_to_dev` của flow `agent-roles`, cột
    `wait_reason`/`wait_detail` mà `Scheduler` ghi qua `updateJob()` (flow `daemon-scheduling`)),
-   `pending_wakeups`, `tool_log`, `job_cleanup`. Mọi thao tác đồng bộ nên `transaction()` gộp nhiều ghi thành
+   `pending_wakeups`, `pm_mentions` (khoá chính `event_id`; `pm_task_id`, `source_ticket_id`,
+   `source_ticket_key`, `comment_id`, `created_at` — mỗi owner tag `@pm` nhận được, ghi bởi
+   `recordPmMention()`/đọc bằng `pmMentions(eventIds)`, dùng bởi flow `daemon-scheduling`/`agent-roles`),
+   `tool_log`, `job_cleanup`. Mọi thao tác đồng bộ nên `transaction()` gộp nhiều ghi thành
    một. `StateDb.latestFailures(since)` trả job `failed` mới nhất mỗi ticket kể từ `since` (bỏ qua ticket đã có
    job mới hơn), dùng bởi `heartbeat()` (bước 7 dưới) để báo `failedJobs`. `StateDb.migrate()` chạy sau
    `SCHEMA` mỗi lần mở: `pragma table_info(jobs)` rồi `alter table … add column` cho cột nào một state DB được
@@ -44,7 +47,8 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 5. `apps/daemon/src/api/vps-client.ts` → `VpsClient.request()`: mọi response được validate bằng schema
    `@crew/shared`, lỗi transient (mạng, 502/503/504) được thử lại với backoff nhân đôi, mọi ghi kèm header
    `Idempotency-Key` — ví dụ `requestProjectChange(projectKey, body, idempotencyKey)` (flow `project-claims`,
-   dùng bởi `setup-ops.ts` → `requestTestSetup()` của app desktop). Tuỳ chọn `onError(failure: ApiFailure)`
+   dùng bởi `setup-ops.ts` → `requestTestSetup()` của app desktop), hay `retrySubtask(pmTaskId, body,
+   idempotencyKey)` (`POST .../retry-subtask`, gọi bởi tool PM cùng tên, flow `agent-runs`/`ticket-lifecycle`). Tuỳ chọn `onError(failure: ApiFailure)`
    được gọi đúng một lần cho mỗi request cuối cùng thất bại (sau khi hết lượt thử lại) với `method`, `path`,
    `status` (`0` khi request không có phản hồi — mạng/TLS/timeout), `code`, `message`, `attempts` — không bao
    giờ có header hay body; lỗi của chính `onError` không đổi kết quả request. `CreateDaemonOptions.onApiError`
@@ -127,14 +131,14 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 | `apps/daemon/src/library.ts` | Điểm export thư viện dùng chung CLI/app desktop | (re-export) |
 | `apps/daemon/src/config.ts` | Cấu hình `~/.crew/config.yaml` | `DaemonConfig`, `loadConfig`, `saveConfig`, `crewHome`, `homePaths` |
 | `apps/daemon/src/secrets.ts` | Lưu token máy | `TokenStore`, `FileTokenStore`, `KeychainTokenStore`, `defaultTokenStore` |
-| `apps/daemon/src/state-db.ts` | Trạng thái cục bộ SQLite | `StateDb`, `JobRow`, `ACTIVE_JOB_STATUSES` |
+| `apps/daemon/src/state-db.ts` | Trạng thái cục bộ SQLite | `StateDb`, `JobRow`, `ACTIVE_JOB_STATUSES`, `PmMention` |
 | `apps/daemon/src/api/vps-client.ts` | Client HTTP typed tới VPS | `VpsClient`, `VpsError`, `ApiFailure` |
 | `apps/daemon/src/service/systemd.ts` | Cài đặt systemd user unit (Linux) | `systemdUnit`, `installService` |
 
 ## Dữ liệu
 
 - Bảng SQLite (`~/.crew/state.db`, sở hữu bởi flow này, dùng chung bởi mọi flow daemon khác): `meta`, `jobs`,
-  `pending_wakeups`, `tool_log`, `job_cleanup`.
+  `pending_wakeups`, `pm_mentions`, `tool_log`, `job_cleanup`.
 - Sự kiện: không phát sự kiện; nhận effect `refresh_projects` từ flow `daemon-scheduling` để chạy
   `releaseLostProjects()`.
 - Gọi ngoài: VPS API (mọi route `/v1/daemon/*`, `/v1/machines/pair`) qua `VpsClient`; Keychain macOS qua binary

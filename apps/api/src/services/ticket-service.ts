@@ -1,6 +1,7 @@
 import {
   type Actor,
   type AgentRole,
+  type Comment,
   type CreateRequestTicket as CreateRequestInput,
   CreateRequestTicket,
   type CreateSubtaskRequest as CreateSubtaskInput,
@@ -8,10 +9,13 @@ import {
   canTransition,
   type FileBugRequest as FileBugInput,
   FileBugRequest,
+  parseMentions,
   qcDefaultMcps,
   type RateSubtaskRequest as RateSubtaskInput,
   RateSubtaskRequest,
   REQUEST_KEY_SCOPE,
+  type RetrySubtaskRequest as RetrySubtaskInput,
+  RetrySubtaskRequest,
   TERMINAL_STATUSES,
   type Ticket,
   type TicketStatus,
@@ -523,6 +527,57 @@ export async function rateSubtask(db: Executor, pmTaskId: string, input: RateSub
   });
 }
 
+/** Subtasks the PM may send back to work after the owner asked it to with `@pm`. */
+const RETRYABLE_TYPES: readonly TicketType[] = ['dev', 'qc', 'bug', 'docs_init'];
+
+/**
+ * The PM moves one of its blocked subtasks back to `in_progress` and wakes the subtask's agent
+ * (`ticket.unblocked`), as the owner's own unblock does. The daemon offers this only to a PM run that
+ * answers an owner `@pm` tag.
+ */
+export async function retrySubtask(
+  db: Executor,
+  pmTaskId: string,
+  input: RetrySubtaskInput,
+): Promise<Ticket> {
+  const data = RetrySubtaskRequest.parse(input);
+  return db.transaction(async (tx) => {
+    const pmTask = await lockTicket(tx, pmTaskId);
+    if (pmTask.type !== 'pm_task') {
+      throw new ApiError(
+        'FORBIDDEN',
+        `only the PM retries subtasks; ${pmTask.key} is a ${pmTask.type} ticket`,
+      );
+    }
+    const found = await getTicketRow(tx, data.ticket);
+    if (found.parentId !== pmTask.id || !RETRYABLE_TYPES.includes(found.type)) {
+      throw new ApiError(
+        'FORBIDDEN',
+        `${found.key} is not a subtask of ${pmTask.key}; the PM retries only its own subtasks`,
+      );
+    }
+    const ticket = await lockTicket(tx, found.id);
+    if (ticket.status !== 'blocked') {
+      throw new ApiError(
+        'ILLEGAL_TRANSITION',
+        `${ticket.key} is ${ticket.status}; only a blocked subtask is retried`,
+        { from: ticket.status, to: 'in_progress' },
+      );
+    }
+    const [row] = await tx
+      .update(tickets)
+      .set({ status: 'in_progress', updatedAt: new Date() })
+      .where(eq(tickets.id, ticket.id))
+      .returning();
+    if (!row) throw new Error('ticket update returned no row');
+    await appendEvents(tx, [
+      statusChanged(ticket, 'blocked', 'in_progress'),
+      toAssignee(ticket, { type: 'ticket.unblocked', data: { ticketId: ticket.id } }),
+    ]);
+    return toTicketDto(row);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Transitions and lifecycle side effects
 // ---------------------------------------------------------------------------
@@ -732,9 +787,49 @@ export interface AddCommentInput {
   authorRole?: AgentRole | null;
 }
 
+/** A stored comment as the API returns it; `mentions` is read from owner text only. */
+export function toCommentDto(row: CommentRow): Comment {
+  return {
+    id: row.id,
+    ticketId: row.ticketId,
+    authorKind: row.authorKind,
+    authorRole: row.authorRole,
+    body: row.body,
+    mentions: row.authorKind === 'owner' ? parseMentions(row.body) : [],
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+/**
+ * The open pm_task an owner `@pm` tag on `ticket` wakes: the ticket itself or its pm_task parent. Throws
+ * PM_NOT_AVAILABLE when the ticket belongs to no pm_task tree (a request) or the tree is closed, so the
+ * comment is not stored with a call nobody answers.
+ */
+function pmTaskToWake(ticket: TicketRow, parent: TicketRow | null): TicketRow {
+  const pmTask = governingPmTask(ticket, parent);
+  if (!pmTask) {
+    throw new ApiError(
+      'PM_NOT_AVAILABLE',
+      `${ticket.key} belongs to no pm_task, so @pm has no PM to wake; send the comment without @pm`,
+    );
+  }
+  if (isTerminal(pmTask.status)) {
+    throw new ApiError(
+      'PM_NOT_AVAILABLE',
+      `the PM of ${ticket.key} finished: ${pmTask.key} is ${pmTask.status}; send the comment without @pm`,
+    );
+  }
+  return pmTask;
+}
+
 /**
  * Stores a comment. An owner comment wakes the assignee (`ticket.comment_added`), resumes a `needs_input`
  * ticket, and counts as approval when the ticket was parked by a cap or budget.
+ *
+ * An owner comment tagged `@pm` wakes the PM of the ticket's pm_task tree instead (`ticket.pm_mentioned`,
+ * sent to the machine that owns the project), from any ticket of the tree, open or closed. The tag is
+ * explicit, so the tagged ticket's own agent is not woken and its status is left alone; only a tag on the
+ * pm_task itself also resumes it from `needs_input`, as any owner answer there does.
  */
 export async function addComment(db: Executor, input: AddCommentInput): Promise<CommentRow> {
   const body = input.body.trim();
@@ -743,33 +838,31 @@ export async function addComment(db: Executor, input: AddCommentInput): Promise<
     throw new ApiError('VALIDATION_FAILED', 'agent comments need an authorRole');
   }
   return db.transaction(async (tx) => {
-    const { ticket } = await lockWithParent(tx, input.ticketId);
+    const { ticket, parent } = await lockWithParent(tx, input.ticketId);
+    const owner = input.authorKind === 'owner';
+    const pmTask = owner && parseMentions(body).includes('pm') ? pmTaskToWake(ticket, parent) : null;
     const [comment] = await tx
       .insert(comments)
       .values({
         ticketId: ticket.id,
         authorKind: input.authorKind,
-        authorRole: input.authorKind === 'owner' ? null : (input.authorRole ?? null),
+        authorRole: owner ? null : (input.authorRole ?? null),
         body,
       })
       .returning();
     if (!comment) throw new Error('comment insert returned no row');
-    if (input.authorKind !== 'owner') {
+    if (!owner) {
       // Agent and system comments wake nobody; the owner's web app still shows them live.
       await appendEvents(tx, [ticketUpdated(ticket, 'comment')]);
       return comment;
     }
+    if (pmTask) {
+      await appendEvents(tx, await pmMentioned(tx, { ticket, pmTask, commentId: comment.id }));
+      return comment;
+    }
     if (isTerminal(ticket.status)) return comment;
 
-    const out: NewEvent[] = [];
-    if (ticket.status === 'needs_input') {
-      await tx
-        .update(tickets)
-        .set({ status: 'in_progress', updatedAt: new Date() })
-        .where(eq(tickets.id, ticket.id));
-      await liftHold(tx, ticket);
-      out.push(statusChanged(ticket, 'needs_input', 'in_progress'));
-    }
+    const out = await answerNeedsInput(tx, ticket);
     out.push(
       toAssignee(ticket, {
         type: 'ticket.comment_added',
@@ -779,4 +872,36 @@ export async function addComment(db: Executor, input: AddCommentInput): Promise<
     await appendEvents(tx, out);
     return comment;
   });
+}
+
+/** An owner comment answers a `needs_input` ticket: back to `in_progress`, any cap or budget hold lifted. */
+async function answerNeedsInput(tx: Executor, ticket: TicketRow): Promise<NewEvent[]> {
+  if (ticket.status !== 'needs_input') return [];
+  await tx
+    .update(tickets)
+    .set({ status: 'in_progress', updatedAt: new Date() })
+    .where(eq(tickets.id, ticket.id));
+  await liftHold(tx, ticket);
+  return [statusChanged(ticket, 'needs_input', 'in_progress')];
+}
+
+/** Events of an owner `@pm` tag: the pm_task's own needs_input answer, then the PM wake-up. */
+async function pmMentioned(
+  tx: Executor,
+  input: { ticket: TicketRow; pmTask: TicketRow; commentId: string },
+): Promise<NewEvent[]> {
+  const { ticket, pmTask, commentId } = input;
+  const out = ticket.id === pmTask.id ? await answerNeedsInput(tx, ticket) : [];
+  const project = await findProject(tx, pmTask.projectId);
+  out.push({
+    payload: {
+      type: 'ticket.pm_mentioned',
+      data: { ticketId: pmTask.id, sourceTicketId: ticket.id, sourceTicketKey: ticket.key, commentId },
+    },
+    ticketId: pmTask.id,
+    projectId: pmTask.projectId,
+    targetMachineId: project?.ownerMachineId ?? pmTask.assigneeMachineId,
+    targetRole: 'pm',
+  });
+  return out;
 }
