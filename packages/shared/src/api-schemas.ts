@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AgentRole, Complexity, Effort, ModelAlias } from './agent-schemas.js';
+import { AgentActivity, AgentRole, Complexity, Effort, ModelAlias } from './agent-schemas.js';
 import { EventEnvelope } from './event-schemas.js';
 import { McpServerName } from './project-schemas.js';
 import { TicketPriority, TicketStatus, TicketType } from './ticket-schemas.js';
@@ -143,6 +143,11 @@ export const Ticket = z.object({
   budgetHold: z.enum(['children', 'cost']).nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  /**
+   * Owner reads only (ticket list and detail): what an agent machine reports doing with the ticket, or null
+   * when no agent is expected to work on it. Absent from daemon responses.
+   */
+  agentActivity: AgentActivity.nullable().optional(),
 });
 export type Ticket = z.infer<typeof Ticket>;
 

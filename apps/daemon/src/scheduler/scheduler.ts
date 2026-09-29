@@ -1,5 +1,5 @@
-import type { AgentRole } from '@crew/shared';
-import type { JobRow, StateDb } from '../state-db.js';
+import type { AgentRole, JobWaitDetail, JobWaitReason } from '@crew/shared';
+import type { JobPatch, JobRow, StateDb } from '../state-db.js';
 
 /** PM and assistant jobs coordinate everyone else, so one slot beyond the dev/QC limit is kept for them. */
 export function isCoordinatorRole(role: AgentRole): boolean {
@@ -47,12 +47,18 @@ export function planSlots(
 
 export type StartDecision =
   | { action: 'start' }
-  /** At least one `depends_on` ticket is not done: wait for `dependency.resolved` or the next re-check. */
-  | { action: 'wait_deps' }
+  /**
+   * At least one `depends_on` ticket is not done: wait for `dependency.resolved` or the next re-check.
+   * `dependsOn` lists the keys of the unfinished ones.
+   */
+  | { action: 'wait_deps'; dependsOn?: string[] }
   /** Never start this job (ticket closed, over budget, project not run here). */
   | { action: 'skip'; reason: string }
-  /** Try again on a later tick (e.g. the API is unreachable). */
-  | { action: 'defer'; reason: string };
+  /**
+   * Try again on a later tick. `wait` is the reason reported to the owner (`check_failed` when absent,
+   * with `reason` as its message).
+   */
+  | { action: 'defer'; reason: string; wait?: JobWaitReason; detail?: JobWaitDetail };
 
 export interface SchedulerDeps {
   state: StateDb;
@@ -64,6 +70,8 @@ export interface SchedulerDeps {
   /** Launches the job; resolves once it is marked running (the run itself continues in the background). */
   launch: (job: JobRow) => Promise<void>;
   onError?: (error: Error, job?: JobRow) => void;
+  /** A queued or backoff job started waiting for a different reason (called once per change, not per tick). */
+  onWaitChange?: (job: JobRow, reason: JobWaitReason, detail: JobWaitDetail | null) => void;
   now?: () => Date;
   tickMs?: number;
   recheckMs?: number;
@@ -136,7 +144,10 @@ export class Scheduler {
     // Decide one job at a time: each start changes what the next job may use.
     for (const candidate of pending) {
       const running = state.listJobs(['running']);
-      if (planSlots(slots, running, [candidate]).start.length === 0) continue;
+      if (planSlots(slots, running, [candidate]).start.length === 0) {
+        this.setWait(candidate, 'no_slots', null);
+        continue;
+      }
       const current = state.getJob(candidate.id);
       if (!current || (current.status !== 'queued' && current.status !== 'backoff')) continue;
       let decision: StartDecision;
@@ -144,10 +155,22 @@ export class Scheduler {
         decision = await this.deps.decide(current);
       } catch (error) {
         this.deps.onError?.(error as Error, current);
+        this.setWait(current, 'check_failed', { message: (error as Error).message.slice(0, 500) });
         continue;
       }
       if (decision.action === 'wait_deps') {
-        state.updateJob(current.id, { waitingDeps: true });
+        this.setWait(
+          current,
+          'waiting_deps',
+          decision.dependsOn ? { dependsOn: decision.dependsOn.slice(0, 50) } : null,
+          { waitingDeps: true },
+        );
+      } else if (decision.action === 'defer') {
+        this.setWait(
+          current,
+          decision.wait ?? 'check_failed',
+          decision.detail ?? (decision.wait ? null : { message: decision.reason.slice(0, 500) }),
+        );
       } else if (decision.action === 'skip') {
         state.updateJob(current.id, {
           status: 'skipped',
@@ -162,5 +185,23 @@ export class Scheduler {
         }
       }
     }
+  }
+
+  /**
+   * Records why a job waits (only when it changed, so a busy machine does not rewrite every job each
+   * tick) and reports a change of reason once.
+   */
+  private setWait(
+    job: JobRow,
+    reason: JobWaitReason,
+    detail: JobWaitDetail | null,
+    extra: JobPatch = {},
+  ): void {
+    const changed = job.waitReason !== reason;
+    const same = !changed && JSON.stringify(job.waitDetail) === JSON.stringify(detail);
+    if (!same || Object.keys(extra).length > 0) {
+      this.deps.state.updateJob(job.id, { ...extra, waitReason: reason, waitDetail: detail });
+    }
+    if (changed) this.deps.onWaitChange?.(job, reason, detail);
   }
 }

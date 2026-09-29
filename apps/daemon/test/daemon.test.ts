@@ -2,8 +2,11 @@ import { spawn } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { describe, expect, it } from 'vitest';
+import { machines } from '../../api/src/db/schema.js';
+import { transitionTicket } from '../../api/src/services/ticket-service.js';
 import { homePaths } from '../src/config.js';
 import { jobTmpDir } from '../src/runner/job-cleanup.js';
+import { defaultPlanner } from '../src/runner/job-runner.js';
 import { StateDb } from '../src/state-db.js';
 import {
   commentsOf,
@@ -166,6 +169,67 @@ describe('daemon', () => {
       ).toBeLessThanOrEqual(1);
     }
     await second.daemon.stop();
+  });
+
+  it('reports a job that crashes before its agent runs on the ticket, blocks it, and runs it again after the unblock', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    let crashFor = '';
+    const t = makeDaemon(f, {
+      repoPath: repo,
+      extra: {
+        planner: {
+          ...defaultPlanner,
+          plan: async (input) => {
+            if (input.detail.ticket.id === crashFor) {
+              crashFor = '';
+              throw Object.assign(
+                new Error("ENOENT: no such file or directory, open '/app/out/main/prompts/dev.md'"),
+                { code: 'ENOENT' },
+              );
+            }
+            return defaultPlanner.plan(input);
+          },
+        },
+      },
+    });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Việc gặp lỗi khi chuẩn bị');
+    crashFor = dev.id;
+    await transitionTicket(api.db, { ticketId: dev.id, to: 'in_progress', actor: 'agent' });
+    t.book.byTicket.set(dev.id, { steps: [tool('comment', { body: 'Chạy lại được rồi' })] });
+    await t.daemon.start();
+
+    await waitFor(
+      async () => (await getTicket(api.db, dev.id)).status === 'blocked',
+      15_000,
+      'ticket blocked',
+    );
+    const [notice] = (await commentsOf(api.db, dev.id)).map((c) => c.body);
+    expect(notice).toContain('Job gặp lỗi');
+    expect(notice).toContain('Error ENOENT');
+    expect(notice).toContain('prompts/dev.md');
+    expect(t.book.runs.filter((run) => run.ticketId === dev.id)).toHaveLength(0);
+    const [failed] = t.daemon.state.jobsForTicket(dev.id);
+    expect(failed).toMatchObject({ status: 'failed', error: expect.stringContaining('Error ENOENT') });
+
+    // The failure is the ticket's agent activity until a new job starts, reported without waiting for
+    // the next timed heartbeat (the test timer is a minute).
+    const failedJobs = async () => (await api.db.select().from(machines))[0]?.failedJobs ?? [];
+    await waitFor(async () => (await failedJobs()).length === 1, 5_000, 'failure reported');
+    expect(await failedJobs()).toEqual([
+      expect.objectContaining({ ticketId: dev.id, error: expect.stringContaining('ENOENT') }),
+    ]);
+
+    await ownerTransition(f, dev.id, 'in_progress');
+    await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).some((j) => j.status === 'done'),
+      15_000,
+      'job after the unblock done',
+    );
+    expect((await commentsOf(api.db, dev.id)).map((c) => c.body)).toContain('Chạy lại được rồi');
+    await waitFor(async () => (await failedJobs()).length === 0, 5_000, 'failure cleared');
+    await t.daemon.stop();
   });
 
   it('starts a QC job right after dependency.resolved and resumes a session on an owner comment', async () => {

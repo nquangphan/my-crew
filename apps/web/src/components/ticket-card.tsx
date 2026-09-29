@@ -1,6 +1,7 @@
 import type { Ticket } from '@crew/shared';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '../lib/cn';
+import { AgentActivityMark } from './agent-activity';
 import { RoleAvatar } from './role-avatar';
 import { PriorityArrow, StatusLozenge } from './status-lozenge';
 import { TypeIcon } from './type-icon';
@@ -14,7 +15,10 @@ export interface TicketCardProps {
   onOpen?: (ticket: Ticket) => void;
 }
 
-/** A board card's face: type icon, key, title, priority, assignee role (spinner while running), badges. */
+/**
+ * A board card's face: type icon, key, title, priority, assignee role (spinner while running), badges and
+ * the agent activity mark (waiting, failed or unknown).
+ */
 export function TicketCardFace({ ticket, running }: { ticket: Ticket; running?: boolean }) {
   const badge =
     ticket.status === 'needs_input' ? (
@@ -34,7 +38,12 @@ export function TicketCardFace({ ticket, running }: { ticket: Ticket; running?: 
         <span className="ml-auto flex items-center gap-1.5">
           {ticket.budgetHold && <StatusLozenge status="blocked" label="Vượt giới hạn" />}
           {badge}
-          <RoleAvatar agent={ticket.assigneeRole} size={26} running={running} />
+          <AgentActivityMark ticket={ticket} />
+          <RoleAvatar
+            agent={ticket.assigneeRole}
+            size={26}
+            running={running || ticket.agentActivity?.status === 'running'}
+          />
         </span>
       </span>
     </>

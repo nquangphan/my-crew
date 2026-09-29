@@ -52,18 +52,23 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
 8. `apps/daemon/src/scheduler/scheduler.ts` → `planSlots()`: job PM/assistant (`isCoordinatorRole`) được thêm
    một slot dự phòng ngoài `slots`, nên máy đầy vẫn nhận việc điều phối, lên kế hoạch và đóng ticket.
 9. `apps/daemon/src/scheduler/scheduler.ts` → `Scheduler.pass()`: mỗi 5s (`tickMs`) xét từng job runnable
-   (`runnableJobs()`: `queued` không chờ dependency, hoặc `backoff` đã tới `retryAt`), gọi `decide()` (trong
+   (`runnableJobs()`: `queued` không chờ dependency, hoặc `backoff` đã tới `retryAt`); không còn slot thì ghi
+   lý do chờ `no_slots` (`setWait()`) và bỏ qua job đó ở lượt này; còn slot thì gọi `decide()` (trong
    `daemon.ts`) — kiểm project còn thuộc máy và có thư mục cục bộ, trạng thái ticket, mọi `depends_on` đã
-   `done` (không thì đặt `waitingDeps: true`, chờ `dependency.resolved` hoặc lần kiểm lại), rồi ngân sách qua
-   `GET /v1/daemon/budget/:id` (`pm_task` vượt ngân sách cây trả `defer`, không phải `skip`, xem flow
-   `daemon-runtime`); `recheckWaiting()` xóa mọi cờ `waitingDeps` mỗi 60s và khi stream kết nối lại.
+   `done` (không thì `waitingDeps: true` cộng lý do `waiting_deps` kèm khoá các ticket phụ thuộc chưa xong),
+   rồi ngân sách qua `GET /v1/daemon/budget/:id` (`pm_task` vượt ngân sách cây trả `defer` với lý do
+   `over_budget`, không phải `skip`, xem flow `daemon-runtime`); `decide()` ném lỗi thì lý do là `check_failed`.
+   `setWait()` chỉ ghi `jobs.wait_reason`/`wait_detail` khi lý do đổi (máy bận không viết lại mỗi tick) và gọi
+   `SchedulerDeps.onWaitChange` đúng một lần mỗi lần lý do đổi (`logWaitChange()` ở `daemon.ts`, flow
+   `daemon-runtime`). `recheckWaiting()` xóa mọi cờ `waitingDeps` mỗi 60s và khi stream kết nối lại.
 10. `apps/daemon/src/stream/stream-client.ts` → `HeartbeatLoop`: gửi heartbeat ngay khi `start()` rồi mỗi 30s
     (`intervalMs`); một lượt được yêu cầu trong khi lượt trước đang gửi được gộp và gửi ngay sau đó
-    (`pause()`/`resume()` trong `daemon.ts` đều gọi `tick()` một lần để phản ánh ngay). Nội dung mỗi heartbeat
-    do `apps/daemon/src/daemon.ts` → `heartbeat()` dựng và gửi qua `POST /v1/daemon/heartbeat`: tài nguyên máy
-    (gồm `orphansCleaned`), job đang `running`, cờ `paused`, phiên bản runtime Claude (`sdkRuntimeVersion()` lúc
-    khởi động, cập nhật từ `system/init` của mỗi run), health summary tùy chọn; response lưu `tokenExpiresAt`
-    vào `meta`.
+    (`pause()`/`resume()` trong `daemon.ts` đều gọi `tick()` một lần để phản ánh ngay, cũng như `reportSoon()`
+    mỗi khi một job đổi trạng thái hay đổi lý do chờ, flow `daemon-runtime`). Nội dung mỗi heartbeat do
+    `apps/daemon/src/daemon.ts` → `heartbeat()` dựng và gửi qua `POST /v1/daemon/heartbeat`: tài nguyên máy
+    (gồm `orphansCleaned`), job đang `running`/`queued`/`backoff` (kèm lý do chờ) và job vừa `failed`, cờ
+    `paused`, phiên bản runtime Claude (`sdkRuntimeVersion()` lúc khởi động, cập nhật từ `system/init` của mỗi
+    run), health summary tùy chọn; response lưu `tokenExpiresAt` vào `meta`.
 
 ## Files
 
@@ -71,7 +76,7 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
 |-----------|---------|--------------|
 | `apps/daemon/src/stream/stream-client.ts` | Kết nối SSE, resume cursor, heartbeat | `StreamClient`, `HeartbeatLoop`, `parseSseFrames` |
 | `apps/daemon/src/stream/dispatcher.ts` | Ánh xạ sự kiện → job cục bộ | `dispatchEvent`, `foldWakeups`, `wakeTicket`, `DispatchEffect` |
-| `apps/daemon/src/scheduler/scheduler.ts` | Chọn job chạy trong giới hạn slot | `Scheduler`, `planSlots`, `runnableJobs`, `isCoordinatorRole` |
+| `apps/daemon/src/scheduler/scheduler.ts` | Chọn job chạy trong giới hạn slot | `Scheduler`, `planSlots`, `runnableJobs`, `isCoordinatorRole`, `StartDecision` |
 | `apps/daemon/src/scheduler/resource-monitor.ts` | Snapshot tài nguyên máy và số slot | `takeSnapshot`, `totalSlots`, `availableMemBytes` |
 
 ## Dữ liệu
@@ -111,5 +116,6 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
 - `apps/daemon/test/scheduler.test.ts`: công thức slot `min(maxConcurrentJobs, floor(cpus/2))` và 0 khi máy
   bận; PM/assistant có thêm một slot dự phòng; `runnableJobs()` liệt kê đúng job `queued` không chờ dependency
   và `backoff` đã tới hạn; `Scheduler` chạy tối đa `maxConcurrentJobs` job dev độc lập cùng lúc; job chờ
-  dependency chạy khi kiểm lại thấy đã xong; job bị `skip`/`defer` được xử lý đúng; scheduler tự tick theo
-  timer.
+  dependency chạy khi kiểm lại thấy đã xong; job bị `skip`/`defer` được xử lý đúng; ghi đúng lý do chờ mỗi lần
+  đổi (`no_slots` → `waiting_deps` → `no_local_folder` → `check_failed`) và báo `onWaitChange` đúng một lần mỗi
+  lần đổi; scheduler tự tick theo timer.

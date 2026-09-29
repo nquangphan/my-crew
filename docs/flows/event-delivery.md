@@ -41,8 +41,8 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
    `sessionStillValid()`.
 7. `apps/web/src/lib/live-events.ts` → `startLiveEvents()`: mở `EventSource` tới `/v1/stream`, map mỗi
    `EventEnvelope` sang danh sách query key cần invalidate (`invalidationsFor()`; `budget.exceeded` và
-   `ticket.stuck` làm mới cả ticket lẫn danh sách thông báo của inbox), gộp theo lô 100ms
-   (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với `?cursor=<lastEventId>`
+   `ticket.stuck` làm mới cả ticket lẫn danh sách thông báo của inbox, `agent.activity_changed` làm mới ticket
+   và máy liên quan), gộp theo lô 100ms (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với `?cursor=<lastEventId>`
    sau `retryMs`, và invalidate toàn bộ query sau mỗi lần nối lại (vì có thể đã lỡ sự kiện lúc mất kết nối).
 8. `apps/api/src/services/notice-read-service.ts` → `listOwnerNotices()`: mỗi thông báo (loại sự kiện trong
    `NOTICE_EVENT_TYPES`) kèm cờ `read` của owner (tra bảng `notice_reads` theo `seq`), cộng `unread` là số
@@ -70,13 +70,15 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
   `ticket.stuck` (thêm vào `NOTICE_EVENT_TYPES`, chỉ owner stream — `targetMachineId=null`); các flow
   khác (ticket-lifecycle, project-claims, machine-pairing) là nguồn phát thật. `inbox.read {unread}` (owner
   stream) là sự kiện riêng của flow này, phát mỗi lần `markNoticesRead()`/`markAllNoticesRead()` chạy, để mọi
-  thiết bị của owner thấy cùng số chưa đọc.
+  thiết bị của owner thấy cùng số chưa đọc. `agent.activity_changed {machineId, ticketIds}` (owner stream,
+  không phải notice) phát bởi `recordHeartbeat()` (flow `machine-pairing`) khi báo cáo job của một ticket đổi.
 - Gọi ngoài: không (chỉ Postgres LISTEN/NOTIFY nội bộ).
 
 ## Flow liên quan
 
 - api-platform: `EventBus` được tạo/khởi động/dừng theo vòng đời `buildApp()`.
-- machine-pairing: `EventBus.revokeMachine()`/`restoreMachine()` gọi từ `revokeMachine()` khi thu hồi máy.
+- machine-pairing: `EventBus.revokeMachine()`/`restoreMachine()` gọi từ `revokeMachine()` khi thu hồi máy;
+  `recordHeartbeat()` phát `agent.activity_changed` qua `appendEvents()` khi báo cáo job của ticket đổi.
 - ticket-lifecycle, project-claims: nguồn phát sự kiện chính qua `appendEvents()`; `project.change_requested`
   là một loại thông báo (`NOTICE_EVENT_TYPES`); `project.change_decided {status: approved/rejected/withdrawn}`
   nhắm đúng máy đã hỏi (`withdrawn` khi `withdrawProjectChanges()` tự rút yêu cầu vì máy đó mất project) —

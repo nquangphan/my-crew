@@ -138,6 +138,14 @@ export class Agent {
   ) {
     return this.call<{ fileCount: number }>('PUT', `/v1/daemon/projects/${projectKey}/docs`, body);
   }
+  /** A heartbeat: replaces the machine's reported resources and running, waiting and failed jobs. */
+  heartbeat(body: { runningJobs?: unknown[]; waitingJobs?: unknown[]; failedJobs?: unknown[] }) {
+    return this.call('POST', '/v1/daemon/heartbeat', {
+      resources: { cpus: 12, loadAvg1: 22.97, freeMemGb: 9, totalMemGb: 32 },
+      cliVersion: '2.1.283',
+      ...body,
+    });
+  }
   claimProject(projectKey: string) {
     return this.call<{ status: string; claimRequestId: string | null }>('POST', '/v1/daemon/claims', {
       projectKey,

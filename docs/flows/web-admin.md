@@ -43,9 +43,11 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 5. `apps/web/src/routes/project-settings.tsx` → `ProjectSettingsPage()`: cùng `ProjectForm` cho project hiện
    tại (từ sidebar "Cài đặt project").
 6. `apps/web/src/routes/machines.tsx` → `MachinesPage()`, `MachineCard()`: danh sách máy (online/paused/health
-   với các check lỗi, tài nguyên, job đang chạy liên kết ticket, project sở hữu, phiên bản app/CLI, hạn token —
-   đỏ khi dưới `TOKEN_WARN_DAYS=14`), nút "Ghép máy mới" (`PairingDialog`), "Đặt làm máy trợ lý"/"Thu hồi" (xác
-   nhận rồi gọi `api.assignToMachine`/`api.revokeMachine`, flow `machine-pairing`).
+   với các check lỗi, tài nguyên, mục "Job" (`MachineJobs`) liệt kê job đang chạy (kèm model/effort), đang chờ
+   (lý do qua `describeWait()` của flow `web-tickets`) và lỗi gần nhất của máy — mỗi dòng liên kết ticket khi
+   đã biết key —, project sở hữu, phiên bản app/CLI, hạn token — đỏ khi dưới `TOKEN_WARN_DAYS=14`), nút "Ghép
+   máy mới" (`PairingDialog`), "Đặt làm máy trợ lý"/"Thu hồi" (xác nhận rồi gọi
+   `api.assignToMachine`/`api.revokeMachine`, flow `machine-pairing`).
 7. `apps/web/src/routes/machines.tsx` → `Inventory()`: xổ danh sách skill/MCP theo từng project (và cấp máy)
    từ `MachineDetailResponse.inventories`, mỗi skill có tooltip chạm (`InfoTip`, flow `web-shell`) hiện nguồn
    và mô tả.
@@ -61,7 +63,7 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 | `apps/web/src/routes/inbox.tsx` | Trang Inbox | `InboxPage` |
 | `apps/web/src/routes/projects.tsx` | Danh sách/tạo/sửa project | `ProjectsPage`, `DocsStatusLozenge` |
 | `apps/web/src/routes/project-settings.tsx` | Cài đặt project hiện tại | `ProjectSettingsPage` |
-| `apps/web/src/routes/machines.tsx` | Danh sách/chi tiết máy | `MachinesPage`, `MachineCard`, `Inventory` |
+| `apps/web/src/routes/machines.tsx` | Danh sách/chi tiết máy | `MachinesPage`, `MachineCard`, `Inventory`, `MachineJobs` |
 | `apps/web/src/lib/inbox.ts` | Gộp dữ liệu Inbox + đếm chưa đọc | `useInboxSummary`, `InboxSummary` |
 | `apps/web/src/components/project-form.tsx` | Form project + chuyển máy | `ProjectForm`, `ReassignDialog`, `PLATFORM_LABEL` |
 | `apps/web/src/components/pairing-dialog.tsx` | Tạo mã pairing | `PairingDialog` |
@@ -83,6 +85,8 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 - machine-pairing: tạo mã pairing, thu hồi máy, đặt máy trợ lý, đọc inventory skill/MCP.
 - ticket-lifecycle: nguồn thông báo `ticket.stuck` (báo ticket không máy nào đang xử lý).
 - event-delivery: nguồn thông báo (`/v1/notices`) và làm mới trực tiếp qua SSE.
+- web-tickets: `MachineJobs` (`machines.tsx`) dùng lại `describeWait()`/`formatClock()` của
+  `agent-activity.tsx` để hiện lý do chờ và giờ nhận job.
 - web-shell: dùng chung `Breadcrumbs`, `StatusLozenge`, `ui/*`, `useStoredState`.
 
 ## Tests

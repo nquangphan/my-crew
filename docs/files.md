@@ -14,6 +14,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/drizzle/0002_docs_snapshots.sql` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
 | `apps/api/drizzle/0003_project_changes_and_notice_reads.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0004_project_change_withdrawn.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0005_machine_job_activity.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/app.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/auth/csrf.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
@@ -42,6 +43,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/routes/stream-routes.ts` | [event-delivery](flows/event-delivery.md) (điểm vào) |
 | `apps/api/src/routes/ticket-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
 | `apps/api/src/server.ts` | [api-platform](flows/api-platform.md) (điểm vào) |
+| `apps/api/src/services/agent-activity-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/budget-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/claim-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/docs-service.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
@@ -56,6 +58,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/services/report-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/ticket-query-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/ticket-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `apps/api/test/agent-activity.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/auth.test.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/api/test/budget.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/bug-loop.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
@@ -220,9 +223,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/test/new-project-form.test.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/role-prompts-bundle.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/web/e2e/account-password.spec.ts` | [owner-auth](flows/owner-auth.md) (test) |
+| `apps/web/e2e/agent-activity.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/docs-space.spec.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `apps/web/e2e/owner-admin.spec.ts` | [web-admin](flows/web-admin.md) (test) |
+| `apps/web/src/components/agent-activity.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/src/components/agent-activity.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/board-view.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/board-view.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/cancel-dialog.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |

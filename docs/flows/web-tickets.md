@@ -26,7 +26,8 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
    pm_task/loại, kéo-thả gọi API chuyển trạng thái lạc quan — bị từ chối (`REPORT_REQUIRED`, chuyển không hợp
    lệ) thì hiện toast và thẻ bật lại vị trí cũ; click thẻ mở `TicketSidePanel`.
 3. `apps/web/src/components/ticket-card.tsx` → `TicketCard`, `TicketCardFace`: hiển thị icon loại, key, mũi
-   tên ưu tiên, avatar vai trò (có spinner khi đang chạy job), badge trạng thái.
+   tên ưu tiên, avatar vai trò (spinner khi đang chạy job cục bộ hoặc khi `agentActivity.status==='running'`),
+   `AgentActivityMark`, badge trạng thái.
 4. `apps/web/src/routes/list.tsx` → `ListPage`: lọc/sắp xếp qua `parseStatuses`/`parseTypes`/… (`search-params.ts`,
    flow `web-shell`), sắp xếp phía client trên toàn bộ dữ liệu đã tải (`sortTickets()`), sửa trạng thái/ưu
    tiên tại chỗ (`useTransition`/`useUpdateTicket`), thao tác hàng loạt (`runBulk()`, `Promise.allSettled`,
@@ -38,7 +39,8 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 7. `apps/web/src/components/ticket-view.tsx` → `TicketView()`: một component dùng chung cho panel
    (`ticket-side-panel.tsx`) và trang toàn màn hình — tiêu đề/mô tả sửa tại chỗ, banner vàng khi
    `needs_input` (nút "Trả lời" focus ô soạn), tabs Hoạt động (Bình luận/Lịch sử/Report), `DetailsBox` (dropdown
-   trạng thái chỉ hiện `allowedTransitions('owner', …)`), nút Hủy/Mở lại/Bỏ chặn.
+   trạng thái chỉ hiện `allowedTransitions('owner', …)`), nút Hủy/Mở lại/Bỏ chặn, và `AgentActivityLine` (thay
+   ô "Agent đang chạy" cũ) ngay dưới tiêu đề.
 8. `apps/web/src/components/subtask-tree.tsx` → `buildSubtaskTree()`, `SubtaskTree`: nhóm dev↔QC theo cặp
    `pairsWith`, hiện chuỗi bug "vòng n/`BUG_CYCLE_CAP`" và phụ thuộc "Chờ KEY" chưa xong.
 9. `apps/web/src/components/comment-thread.tsx`, `event-timeline.tsx`, `report-panel.tsx`: danh sách bình
@@ -47,6 +49,13 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 10. `apps/web/src/components/cancel-dialog.tsx`, `new-ticket-dialog.tsx`: hộp thoại Hủy (liệt kê mọi hậu duệ
     đang mở), hộp thoại Tạo ticket (gợi ý dự án, ưu tiên, markdown, "Cho phép sửa config", "Tạo thêm" — người
     nhận luôn là assistant).
+11. `apps/web/src/components/agent-activity.tsx` → `describeActivity()`, `AgentActivityLine`,
+    `AgentActivityMark`: một dòng tiếng Việt kể máy nào đang chạy ticket (kèm model/effort/giờ bắt đầu), đang
+    chờ vì sao (`describeWait()`, không nêu tên máy), lỗi gần nhất, hay "chưa máy nào nhận"; báo cáo cũ hơn
+    `AGENT_ACTIVITY_STALE_MS` (2 phút, từ `@crew/shared`) tự đọc thành "không rõ" phía client trước khi kịp
+    refetch. `AgentActivityLine` tự làm mới mỗi 30s để giờ tương đối và trạng thái cũ luôn đúng.
+    `AgentActivityMark` là icon nhỏ trên `TicketCardFace` cho trạng thái chờ/lỗi/không rõ (đang chạy vẫn chỉ
+    dùng spinner avatar có sẵn) — cả hai đọc `ticket.agentActivity` (flow `ticket-lifecycle`).
 
 ## Files
 
@@ -75,6 +84,7 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 | `apps/web/src/components/type-icon.tsx` | Icon loại ticket | `TypeIcon` |
 | `apps/web/src/components/markdown-view.tsx` | Hiển thị markdown đã khử trùng (dùng chung) | `MarkdownView` |
 | `apps/web/src/components/status-lozenge.tsx` | Badge trạng thái/ưu tiên (dùng chung) | `StatusLozenge`, `PriorityArrow` |
+| `apps/web/src/components/agent-activity.tsx` | Dòng/mark hoạt động agent trên ticket và board | `describeActivity`, `describeWait`, `AgentActivityLine`, `AgentActivityMark`, `formatClock` |
 
 ## Dữ liệu
 
@@ -85,10 +95,13 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 
 ## Flow liên quan
 
-- ticket-lifecycle: mọi hành động (tạo, transition, bình luận, report) gọi route owner của flow này.
+- ticket-lifecycle: mọi hành động (tạo, transition, bình luận, report) gọi route owner của flow này;
+  `Ticket.agentActivity` (đọc bởi `describeActivity()`) xuất phát từ flow đó.
 - web-shell: dùng chung `queries.ts`, `format.ts`, `shortcuts.ts`, `ShellContext`, component `ui/*`.
+- event-delivery: sự kiện `agent.activity_changed` làm mới ticket và máy qua `invalidationsFor()`.
 - docs-sync-viewer: `TicketView` hiển thị "Docs liên quan" từ `flows[]`, dùng `docsFlow()`.
-- web-admin: `RoleAvatar`/`role_avatar` và badge trạng thái dùng lại ở Inbox và trang Máy.
+- web-admin: `RoleAvatar`/`role_avatar` và badge trạng thái dùng lại ở Inbox và trang Máy; trang Máy dùng lại
+  `describeWait()`/`formatClock()` của `agent-activity.tsx` cho job đang chờ của từng máy.
 
 ## Tests
 
@@ -102,3 +115,9 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 - `apps/web/src/components/cancel-dialog.test.tsx`: liệt kê hậu duệ đang mở qua nhiều cấp.
 - `apps/web/e2e/core-flows.spec.ts`: tạo ticket, mở panel, bình luận agent xuất hiện dưới 2s, đổi trạng thái bị
   từ chối rồi qua khi có report, mở docs từ chip flow, hủy pm_task kéo theo hủy QC con.
+- `apps/web/src/components/agent-activity.test.tsx`: mô tả đúng từng trạng thái/lý do chờ và lỗi; báo "không
+  rõ" (không phải "đang chạy") khi máy im lặng lâu hơn `AGENT_ACTIVITY_STALE_MS`; ticket `todo` chưa ai nhận
+  hiện đúng máy được giao; dòng hoạt động hiện trên ticket, mark trên card chỉ hiện khi job không chạy;
+  `agent.activity_changed` làm mới ticket và máy.
+- `apps/web/e2e/agent-activity.spec.ts`: từ chờ slot tới đang chạy live trên card, panel và trang Máy, ở cả ba
+  viewport, không tràn ngang.

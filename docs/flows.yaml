@@ -32,6 +32,7 @@ flows:
       - apps/api/drizzle/0001_machine_auth_and_delivery.sql
       - apps/api/drizzle/0003_project_changes_and_notice_reads.sql
       - apps/api/drizzle/0004_project_change_withdrawn.sql
+      - apps/api/drizzle/0005_machine_job_activity.sql
       - packages/shared/src/index.ts
     tests: []
   owner-auth:
@@ -67,6 +68,7 @@ flows:
       - apps/api/src/services/report-service.ts
       - apps/api/src/services/budget-service.ts
       - apps/api/src/jobs/stuck-ticket-alarm.ts
+      - apps/api/src/services/agent-activity-service.ts
       - packages/shared/src/ticket-schemas.ts
       - packages/shared/src/agent-schemas.ts
       - packages/shared/src/status-workflow.ts
@@ -78,6 +80,7 @@ flows:
       - apps/api/test/budget.test.ts
       - apps/api/test/owner-web-support.test.ts
       - apps/api/test/stuck-ticket-alarm.test.ts
+      - apps/api/test/agent-activity.test.ts
       - packages/shared/src/status-workflow.test.ts
   machine-pairing:
     title: Ghép máy và xác thực máy
@@ -262,6 +265,7 @@ flows:
       - apps/web/src/components/markdown-editor.tsx
       - apps/web/src/components/role-avatar.tsx
       - apps/web/src/components/type-icon.tsx
+      - apps/web/src/components/agent-activity.tsx
     tests:
       - apps/web/src/components/board-view.test.ts
       - apps/web/src/components/ticket-view.test.tsx
@@ -270,6 +274,8 @@ flows:
       - apps/web/src/components/comment-thread.test.tsx
       - apps/web/src/components/cancel-dialog.test.tsx
       - apps/web/e2e/core-flows.spec.ts
+      - apps/web/src/components/agent-activity.test.tsx
+      - apps/web/e2e/agent-activity.spec.ts
   web-admin:
     title: Inbox, dự án và máy trên web
     doc: docs/flows/web-admin.md

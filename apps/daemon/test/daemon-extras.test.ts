@@ -157,7 +157,7 @@ describe('daemon wiring', () => {
     await t.daemon.stop();
   });
 
-  it('reports queued and backoff jobs as waiting jobs in the heartbeat', async () => {
+  it('reports queued and backoff jobs with their wait reasons, and failed jobs, in the heartbeat', async () => {
     const f = await fixture(api);
     // The client keeps the fetch it was built with, so spy before the daemon exists.
     const sent: unknown[] = [];
@@ -179,14 +179,71 @@ describe('daemon wiring', () => {
         trigger: 'test',
       });
       t.daemon.state.updateJob(backoff.id, { status: 'backoff', retryAt });
+      const busy = await createRequestTicket(api.db, { title: 'Máy bận' });
+      const noSlot = t.daemon.state.insertJob({
+        ticketId: busy.id,
+        projectId: null,
+        role: 'assistant',
+        trigger: 'test',
+      });
+      t.daemon.state.updateJob(noSlot.id, { waitReason: 'no_slots' });
+      const broken = await createRequestTicket(api.db, { title: 'Lỗi' });
+      const crashed = t.daemon.state.insertJob({
+        ticketId: broken.id,
+        projectId: null,
+        role: 'assistant',
+        trigger: 'test',
+      });
+      t.daemon.state.updateJob(crashed.id, {
+        status: 'failed',
+        error: 'Error ENOENT: no such file',
+        endedAt: new Date().toISOString(),
+      });
       await t.daemon.heartbeat();
       expect(sent).toHaveLength(1);
-      expect((sent[0] as { waitingJobs: unknown[] }).waitingJobs).toEqual(
+      const body = sent[0] as { waitingJobs: unknown[]; failedJobs: unknown[] };
+      expect(body.waitingJobs).toEqual(
         expect.arrayContaining([
-          { ticketId: queued.id, status: 'queued' },
-          { ticketId: parked.id, status: 'backoff', retryAt },
+          expect.objectContaining({
+            ticketId: queued.id,
+            status: 'queued',
+            role: 'assistant',
+            kind: 'agent',
+          }),
+          expect.objectContaining({
+            ticketId: parked.id,
+            status: 'backoff',
+            retryAt,
+            waitReason: 'retry_at',
+            waitDetail: { retryAt },
+          }),
+          expect.objectContaining({
+            ticketId: busy.id,
+            waitReason: 'no_slots',
+            // The test daemon's slot count is its configured limit; the load numbers are live.
+            waitDetail: expect.objectContaining({ slots: 4, runningJobs: 0, cpus: expect.any(Number) }),
+          }),
         ]),
       );
+      expect(body.failedJobs).toEqual([
+        expect.objectContaining({
+          ticketId: broken.id,
+          role: 'assistant',
+          error: 'Error ENOENT: no such file',
+        }),
+      ]);
+      // Paused: every held job waits for the owner to resume the machine (pause() sends a heartbeat).
+      t.daemon.pause();
+      await waitFor(
+        async () => {
+          const [row] = await api.db.select().from(machines);
+          const reasons = (row?.waitingJobs ?? []).map((job) => job.waitReason);
+          return reasons.length === 3 && reasons.every((reason) => reason === 'paused');
+        },
+        5_000,
+        'paused heartbeat',
+      );
+      await t.daemon.halt();
     } finally {
       spy.mockRestore();
     }

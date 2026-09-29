@@ -110,8 +110,10 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
   `machine-pairing`/`daemon-api`, không thuộc file của flow này: nguồn của nó là `ProjectConfig.disabledMcpServers`
   cục bộ trên máy (`apps/daemon/src/config.ts`, flow `daemon-runtime`), không phải bảng `projects` hay claim ở
   đây; daemon đánh dấu nó khi báo cáo inventory và server dùng để từ chối ticket yêu cầu server đó cho project
-  này. Cùng file còn có `WaitingJob`/`HeartbeatRequest.waitingJobs`, cũng không thuộc claim/project ở đây —
-  dùng bởi cảnh báo "ticket đứng yên" của flow `ticket-lifecycle` (xem flow `daemon-api`).
+  này. Cùng file còn có `WaitingJob` (nay thêm `waitReason`/`waitDetail`) và `FailedJob` mới, cạnh
+  `HeartbeatRequest.waitingJobs`/`failedJobs`, cũng không thuộc claim/project ở đây — dùng bởi cảnh báo
+  "ticket đứng yên" và bởi `AgentActivity` mà owner đọc trên ticket, cả hai của flow `ticket-lifecycle` (xem
+  flow `daemon-api`).
 - Sự kiện: `machine.claimed`, `claim.requested`, `claim.changed`, `machine.released`, `project.created`,
   `ticket.assigned {reassigned: true}`, `project.change_requested {requestId, projectId, machineId}` (owner
   stream, cũng là một loại thông báo trong `NOTICE_EVENT_TYPES`), `project.change_decided {requestId,

@@ -17,9 +17,14 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
 ## Các bước
 
 1. `apps/daemon/src/runner/job-runner.ts` → `JobRunner.launch()`: đánh dấu job `running` ngay (đồng bộ, để
-   scheduler đếm đúng slot) rồi chạy `execute()` trong nền; nếu `execute()` ném lỗi bất ngờ (planner,
-   workspace, API) mà daemon chưa `halted()`, job được chuyển `failed`, `foldWakeups()` chạy và `cleanup()`
-   được gọi — nên không job nào kẹt ở trạng thái `running` mãi mãi.
+   scheduler đếm đúng slot, xoá `waitReason`/`waitDetail` cũ) rồi chạy `execute()` trong nền; nếu `execute()`
+   ném lỗi bất ngờ (planner, dựng prompt, chuẩn bị worktree — trước đây một lỗi worktree kết thúc job âm thầm,
+   API) mà daemon chưa `halted()`, job được chuyển `failed` với `crashText()` (tên lớp lỗi, mã errno như
+   `ENOENT`, thông điệp, đã `scrubSecrets()`, tối đa 500 ký tự), `foldWakeups()` chạy, rồi `reportCrash()` đăng
+   bình luận lỗi này lên ticket và chuyển ticket `blocked` khi `canTransition('agent', status, 'blocked')` cho
+   phép (không thì chỉ bình luận, chờ owner tự bình luận để chạy lại) trước khi `cleanup()` — nên không job
+   nào kẹt ở trạng thái `running` mãi mãi, và owner luôn thấy lỗi này trên ticket như một lượt chạy thất bại.
+   Owner mở chặn (`ticket.unblocked`) sau đó tự đưa ticket vào hàng đợi job mới.
 2. `apps/daemon/src/runner/job-runner.ts` → `JobRunner.execute()` → `planner.plan()`: `RolePlanner` là điểm
    mở rộng vai trò (prompt, policy, dữ liệu report, follow-up); `rolePlanner` (flow `agent-roles`) là bản
    `createDaemon()` dùng mặc định, `defaultPlanner` (trong file này) là bản chung tối giản còn lại cho test.
@@ -114,7 +119,7 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/daemon/src/runner/job-runner.ts` | Chạy một job từ đầu đến cuối | `JobRunner`, `defaultPlanner`, `chooseModel`, `RolePlanner`, `PlannerContext`, `PlannedRun`, `AfterRunDecision` |
+| `apps/daemon/src/runner/job-runner.ts` | Chạy một job từ đầu đến cuối | `JobRunner`, `defaultPlanner`, `chooseModel`, `crashText`, `RolePlanner`, `PlannerContext`, `PlannedRun`, `AfterRunDecision` |
 | `apps/daemon/src/runner/agent-runner.ts` | Runner SDK thật | `createSdkRunner`, `RunControl`, `agentEnv`, `AgentRunResult` |
 | `apps/daemon/src/runner/scripted-runner.ts` | Runner kịch bản YAML cho test | `createScriptedRunner`, `Script`, `ScriptedCrash` |
 | `apps/daemon/src/runner/guard-hook.ts` | Chặn ghi/Bash ngoài phạm vi | `evaluateToolCall`, `createGuardHook` |
@@ -157,7 +162,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   gắn thẻ; sống sót qua crash giữa run (không mất sự kiện, một job hoạt động mỗi ticket, không tạo bản ghi
   trùng); job QC bắt đầu ngay sau `dependency.resolved` và resume session khi chủ dự án bình luận; run bị rate
   limit tạm dừng ở backoff với `retry_at` tăng dần rồi `blocked` sau 4 lần; job đang chạy bị hủy khi ticket bị
-  hủy và worktree được gỡ; job được re-queue khi daemon dừng nhẹ nhàng và resume ở lần chạy sau.
+  hủy và worktree được gỡ; job được re-queue khi daemon dừng nhẹ nhàng và resume ở lần chạy sau; một job crash
+  trước khi agent chạy xong (lỗi khi chuẩn bị) đăng bình luận lỗi, chuyển ticket `blocked`, báo qua
+  `failedJobs` trong heartbeat tới khi owner mở chặn cho job mới chạy xong.
 - `apps/daemon/test/agent-runner.test.ts`: `query()` chạy với đúng `settingSources`, `dontAsk`, allowlist,
   guard hook và env sạch; truyền đúng `resume` và ngân sách, báo đúng lớp lỗi API cuối; ngắt turn sau khi một
   tool yêu cầu kết thúc run và coi đó là kết thúc bình thường; run không có message `result` bị đánh dấu lỗi.

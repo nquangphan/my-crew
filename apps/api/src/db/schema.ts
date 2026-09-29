@@ -6,6 +6,7 @@ import {
   DocsPageKind,
   DocsStatus,
   Effort,
+  type FailedJob,
   type FlowsManifest,
   type HealthSummary,
   type InventoryMcpServer,
@@ -20,6 +21,7 @@ import {
   TicketStatus,
   TicketType,
   type UiTestMcp,
+  type WaitingJob,
 } from '@crew/shared';
 import { sql } from 'drizzle-orm';
 import {
@@ -117,6 +119,10 @@ export const machines = pgTable(
     health: jsonb('health').$type<HealthSummary>(),
     resources: jsonb('resources').$type<MachineResources>(),
     runningJobs: jsonb('running_jobs').$type<RunningJob[]>().notNull().default([]),
+    /** Queued and backoff jobs of the latest heartbeat, with their wait reasons. */
+    waitingJobs: jsonb('waiting_jobs').$type<WaitingJob[]>().notNull().default([]),
+    /** Tickets whose latest job on this machine failed, from the latest heartbeat. */
+    failedJobs: jsonb('failed_jobs').$type<FailedJob[]>().notNull().default([]),
     cliVersion: text('cli_version'),
     appVersion: text('app_version'),
     /** A revoked machine keeps its row for history; it can never authenticate again. */
