@@ -457,11 +457,13 @@ flows:
       - apps/desktop/src/daemon-host/activity.ts
       - apps/desktop/src/daemon-host/test-seams.ts
       - packages/shared/src/desktop-ipc.ts
+      - apps/desktop/electron.vite.config.ts
     tests:
       - apps/desktop/test/daemon-supervisor.test.ts
       - apps/desktop/test/main-logic.test.ts
       - apps/desktop/test/app-log.test.ts
       - apps/desktop/test/host-service.test.ts
+      - apps/desktop/test/role-prompts-bundle.test.ts
       - apps/desktop/test/e2e/health.spec.ts
   desktop-ui:
     title: Giao diện app desktop (cài đặt, sức khỏe, job, project)

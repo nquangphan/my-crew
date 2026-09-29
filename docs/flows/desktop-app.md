@@ -52,7 +52,12 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    `event`); `SIGTERM` hoặc `uncaughtException` gọi `shutdown()` và thoát với mã khác 0 để supervisor khởi
    động lại cả host lẫn daemon; `deps.log` gửi mỗi dòng log của host (`HostContext.log()`) thành message
    `{kind: 'log', entry}` qua `parentPort`; `uncaughtException`/`unhandledRejection` của tiến trình host cũng
-   được ghi trước khi thoát.
+   được ghi trước khi thoát. Prompt vai trò của flow `agent-roles` là file Markdown, không phải code nên
+   `electron-vite` không tự bundle: `apps/desktop/electron.vite.config.ts` (plugin `copyRolePrompts`, hook
+   `writeBundle` của build main) chép `apps/daemon/src/roles/prompts/*.md` vào `out/main/prompts/` cạnh
+   bundle main; vì code planner có thể nằm ở chunk khác, `daemon-host/index.ts` gọi `setPromptsDir()` ngay
+   khi khởi động, chỉ thẳng vào `./prompts/` cạnh chính nó thay vì để `prompt-templates.ts` tự suy ra từ vị
+   trí bundle của nó.
 6. `apps/desktop/src/daemon-host/host-service.ts` → `HostService.startDaemon()`/`dispatch()`: gọi
    `createDaemon()` (flow `daemon-runtime`) **bên trong tiến trình host này** — daemon chạy độc lập với cửa
    sổ và renderer; `dispatch()` định tuyến method sang `setup-ops.ts` (trình cài đặt, Settings → Projects),
@@ -195,6 +200,7 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 | `apps/desktop/src/daemon-host/activity.ts` | Danh sách job và nhật ký daemon | `Activity` |
 | `apps/desktop/src/daemon-host/test-seams.ts` | Thay SDK Claude bằng bản giả lập cho E2E | `testSeams`, `TestSeams` |
 | `packages/shared/src/desktop-ipc.ts` | Hợp đồng IPC renderer↔main↔host | `DesktopRequests`, `DesktopEvents`, `HostOnlyRequests`, `ToHost`, `FromHost` |
+| `apps/desktop/electron.vite.config.ts` | Build electron-vite (main/preload/renderer); chép prompt vai trò cạnh bundle main | `copyRolePrompts`, `ROLE_PROMPTS_SOURCE` |
 
 ## Dữ liệu
 
@@ -262,6 +268,9 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   thứ tự field cố định trước, giới hạn độ dài chuỗi/độ sâu object, giờ local kèm offset đúng; ghi JSON Lines
   mode 0600, xoay vòng đúng ở giới hạn kích thước giữ hai bản cũ, siết lại mode của file cũ và không ném lỗi
   khi đĩa từ chối ghi.
+- `apps/desktop/test/role-prompts-bundle.test.ts`: chạy `copyRolePrompts.writeBundle()` vào một thư mục tạm
+  rồi nạp mọi prompt của từng stage (`STAGES`, flow `agent-roles`) và các partial nó `{{> ... }}` từ thư mục
+  đó, đúng như bundle đã đóng gói sẽ làm.
 - `apps/desktop/test/e2e/health.spec.ts` (Electron thật qua Playwright `_electron`, bộ `test:e2e`): phá một
   check cho nó chuyển đỏ rồi tự sửa cho nó xanh lại; daemon sống sót qua việc đóng/mở lại cửa sổ và tự khởi
   động lại sau khi host bị kill.

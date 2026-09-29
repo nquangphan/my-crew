@@ -1,4 +1,5 @@
-import { crewHome } from '@crew/daemon';
+import { fileURLToPath } from 'node:url';
+import { crewHome, setPromptsDir } from '@crew/daemon';
 import { type FromHost, type HostEventName, ToHost } from '@crew/shared';
 import { HostService } from './host-service.js';
 import { describeError } from './setup-ops.js';
@@ -10,6 +11,10 @@ import { testSeams } from './test-seams.js';
  */
 const port = process.parentPort;
 const post = (message: FromHost) => port.postMessage(message);
+
+// The role prompts ship beside this entry (electron.vite.config.ts copies them); the bundled daemon code may sit
+// in a chunk elsewhere, so point the planner at them explicitly.
+setPromptsDir(fileURLToPath(new URL('./prompts/', import.meta.url)));
 
 const home = crewHome(process.env);
 const service = new HostService({
