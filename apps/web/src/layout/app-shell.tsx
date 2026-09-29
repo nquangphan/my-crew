@@ -7,7 +7,7 @@ import {
   useRouter,
   useRouterState,
 } from '@tanstack/react-router';
-import { Bell, Keyboard, LogOut, Menu, Moon, Plus, Search, Sun } from 'lucide-react';
+import { Bell, Keyboard, LogOut, Menu, Moon, Plus, Search, Sun, UserCog } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NewTicketDialog } from '../components/new-ticket-dialog';
 import { Button } from '../components/ui/button';
@@ -96,6 +96,9 @@ function OwnerMenu({ onShortcuts }: { onShortcuts: () => void }) {
             <span className="text-bad">Còn {session.recoveryCodesLeft} mã khôi phục</span>
           </MenuLabel>
         )}
+        <MenuItem onSelect={() => void router.navigate({ to: '/account' })}>
+          <UserCog size={16} aria-hidden /> Tài khoản
+        </MenuItem>
         <MenuItem onSelect={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
           {theme === 'dark' ? <Sun size={16} aria-hidden /> : <Moon size={16} aria-hidden />}
           {theme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'}

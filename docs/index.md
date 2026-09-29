@@ -68,7 +68,7 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Phát sự kiện và SSE](flows/event-delivery.md) | `event-delivery` | `apps/api/src/routes/stream-routes.ts` |
 | [Nghiệm thu: merge cục bộ, cổng pre-push và push](flows/local-merge.md) | `local-merge` | `apps/daemon/src/roles/merge-policy.ts` |
 | [Ghép máy và xác thực máy](flows/machine-pairing.md) | `machine-pairing` | `apps/api/src/routes/machine-routes.ts` |
-| [Đăng nhập chủ dự án](flows/owner-auth.md) | `owner-auth` | `apps/api/src/routes/auth-routes.ts`, `apps/web/src/routes/login.tsx` |
+| [Đăng nhập chủ dự án](flows/owner-auth.md) | `owner-auth` | `apps/api/src/routes/auth-routes.ts`, `apps/web/src/routes/login.tsx`, `apps/web/src/routes/account.tsx` |
 | [Dự án và quyền sở hữu máy](flows/project-claims.md) | `project-claims` | `apps/api/src/routes/project-routes.ts` |
 | [Dọn tài nguyên sau mỗi job](flows/resource-hygiene.md) | `resource-hygiene` | `apps/daemon/src/runner/job-cleanup.ts` |
 | [Vòng đời ticket](flows/ticket-lifecycle.md) | `ticket-lifecycle` | `apps/api/src/routes/ticket-routes.ts`, `apps/api/src/routes/comment-routes.ts`, `apps/api/src/routes/report-routes.ts` |

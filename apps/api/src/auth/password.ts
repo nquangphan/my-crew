@@ -1,9 +1,10 @@
+import { MIN_PASSWORD_LENGTH } from '@crew/shared';
 import { hash, verify } from '@node-rs/argon2';
+
+export { MIN_PASSWORD_LENGTH };
 
 /** OWASP-recommended argon2id parameters (19 MiB, 2 passes, 1 lane). argon2id is the library default. */
 const OPTIONS = { memoryCost: 19_456, timeCost: 2, parallelism: 1 } as const;
-
-export const MIN_PASSWORD_LENGTH = 12;
 
 export function hashPassword(password: string): Promise<string> {
   if (password.length < MIN_PASSWORD_LENGTH) {

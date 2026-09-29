@@ -1,6 +1,7 @@
 import {
   ApiErrorBody,
   type ApiErrorCode,
+  type ChangePasswordRequest,
   ClaimRequest,
   ClaimRequestListResponse,
   type ClaimRequestStatus,
@@ -185,6 +186,9 @@ export const api = {
   loginTotp: (body: LoginTotpRequest) =>
     request('/v1/auth/login/totp', { method: 'POST', body, schema: SessionResponse, quiet401: true }),
   logout: () => request('/v1/auth/logout', { method: 'POST', schema: null, quiet401: true }),
+  /** A 401 here usually means a wrong password or code, so the caller decides whether the session is gone. */
+  changePassword: (body: ChangePasswordRequest) =>
+    request('/v1/auth/password', { method: 'POST', body, schema: SessionResponse, quiet401: true }),
 
   listTickets: (query: ListTicketsQuery) => listAllTickets(query),
   getTicket: (idOrKey: string) =>

@@ -12,6 +12,7 @@ import { AppShell } from './layout/app-shell';
 import { ApiRequestError, setCsrfToken } from './lib/api-client';
 import { sessionQuery } from './lib/queries';
 import { BoardSearch, DocsSearch, ListSearch, LoginSearch, searchOf } from './lib/search-params';
+import { AccountPage } from './routes/account';
 import { BoardPage } from './routes/board';
 import { HomeRedirect } from './routes/home';
 import { InboxPage } from './routes/inbox';
@@ -102,6 +103,11 @@ const ticketRoute = createRoute({
   component: TicketView,
 });
 const inboxRoute = createRoute({ getParentRoute: () => appRoute, path: '/inbox', component: InboxPage });
+const accountRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/account',
+  component: AccountPage,
+});
 const machinesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/machines',
@@ -144,6 +150,7 @@ export const routeTree = rootRoute.addChildren([
     ticketRoute,
     inboxRoute,
     machinesRoute,
+    accountRoute,
   ]),
 ]);
 

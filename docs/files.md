@@ -68,6 +68,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/machine-scope.test.ts` | [daemon-api](flows/daemon-api.md) (test) |
 | `apps/api/test/owner-web-support.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/pairing.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
+| `apps/api/test/password-change.test.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/api/test/project-changes.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `apps/api/test/revoke-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
 | `apps/api/test/stuck-ticket-alarm.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
@@ -212,6 +213,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/test/e2e/project-settings.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/host-service.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/main-logic.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/web/e2e/account-password.spec.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/docs-space.spec.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `apps/web/e2e/owner-admin.spec.ts` | [web-admin](flows/web-admin.md) (test) |
@@ -282,6 +284,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/lib/ui-state.ts` | [web-shell](flows/web-shell.md) (file) |
 | `apps/web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
 | `apps/web/src/router.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
+| `apps/web/src/routes/account.test.tsx` | [owner-auth](flows/owner-auth.md) (test) |
+| `apps/web/src/routes/account.tsx` | [owner-auth](flows/owner-auth.md) (điểm vào) |
 | `apps/web/src/routes/board.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
 | `apps/web/src/routes/home.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `apps/web/src/routes/inbox.test.tsx` | [web-admin](flows/web-admin.md) (test) |

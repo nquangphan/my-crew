@@ -76,6 +76,31 @@ export const SessionResponse = z.object({
 });
 export type SessionResponse = z.infer<typeof SessionResponse>;
 
+/** Shortest owner password the seed CLI and the change-password route accept. */
+export const MIN_PASSWORD_LENGTH = 12;
+export const MAX_PASSWORD_LENGTH = 1024;
+
+const CurrentPassword = z.string().min(1).max(MAX_PASSWORD_LENGTH);
+const NewPassword = z
+  .string()
+  .min(MIN_PASSWORD_LENGTH, `passwords have at least ${MIN_PASSWORD_LENGTH} characters`)
+  .max(MAX_PASSWORD_LENGTH);
+
+/**
+ * Owner password change: the current password plus a TOTP code or a one-time recovery code, and a new
+ * password that differs from the current one. The response is the rotated session.
+ */
+export const ChangePasswordRequest = z
+  .union([
+    z.object({ currentPassword: CurrentPassword, newPassword: NewPassword, code: TotpCode }),
+    z.object({ currentPassword: CurrentPassword, newPassword: NewPassword, recoveryCode: RecoveryCode }),
+  ])
+  .refine((body) => body.newPassword !== body.currentPassword, {
+    path: ['newPassword'],
+    message: 'the new password must differ from the current one',
+  });
+export type ChangePasswordRequest = z.infer<typeof ChangePasswordRequest>;
+
 // ---------------------------------------------------------------------------
 // Tickets
 // ---------------------------------------------------------------------------

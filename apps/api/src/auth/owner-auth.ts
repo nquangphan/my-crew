@@ -7,7 +7,7 @@ import type { Executor } from '../db/client.js';
 import { type OwnerRow, owner, sessions } from '../db/schema.js';
 import { ApiError } from '../errors.js';
 import { assertAllowedOrigin, assertCsrfToken, CSRF_COOKIE, csrfTokenFor, isMutating } from './csrf.js';
-import { verifyAgainstDummy, verifyPassword } from './password.js';
+import { hashPassword, verifyAgainstDummy, verifyPassword } from './password.js';
 import { hashRecoveryCode, verifyTotp } from './totp.js';
 
 export const SESSION_COOKIE = 'crew_session';
@@ -116,7 +116,15 @@ export async function completeLogin(
       ? await consumeRecoveryCode(db, ownerId, input.recoveryCode)
       : false;
   if (!ok) throw new ApiError('UNAUTHORIZED', 'invalid verification code');
+  return issueSession(db, config, ownerId);
+}
 
+/** Stores a new session for the owner and returns its id (for the cookie) and the session response. */
+async function issueSession(
+  db: Executor,
+  config: AppConfig,
+  ownerId: string,
+): Promise<{ sessionId: string; session: SessionResponse }> {
   const sessionId = randomBytes(32).toString('base64url');
   const sessionIdHash = sha256(sessionId);
   const now = Date.now();
@@ -136,6 +144,49 @@ export async function completeLogin(
       recoveryCodesLeft: row.recoveryCodeHashes.length,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Password change
+// ---------------------------------------------------------------------------
+
+const PASSWORD_CHANGE_REJECTED = 'invalid password or verification code';
+
+/**
+ * Changes the owner's password. The current password is checked first, so a stolen session alone cannot
+ * burn TOTP steps or recovery codes; then the TOTP code (no reuse) or a recovery code (consumed). Either
+ * failure gives the same 401. On success every session of the owner is deleted and a new one is issued,
+ * so other devices are signed out and the calling device continues under a new session id.
+ */
+export async function changeOwnerPassword(
+  db: Executor,
+  config: AppConfig,
+  ownerId: string,
+  input: { currentPassword: string; newPassword: string; code?: string; recoveryCode?: string },
+): Promise<{ sessionId: string; session: SessionResponse }> {
+  const [row] = await db.select().from(owner).where(eq(owner.id, ownerId));
+  if (!row || !(await verifyPassword(row.passwordHash, input.currentPassword))) {
+    throw new ApiError('UNAUTHORIZED', PASSWORD_CHANGE_REJECTED);
+  }
+  const confirmed = input.code
+    ? await verifyOwnerTotp(db, ownerId, input.code)
+    : input.recoveryCode
+      ? await consumeRecoveryCode(db, ownerId, input.recoveryCode)
+      : false;
+  if (!confirmed) throw new ApiError('UNAUTHORIZED', PASSWORD_CHANGE_REJECTED);
+
+  const passwordHash = await hashPassword(input.newPassword);
+  return db.transaction(async (tx) => {
+    // Matching the hash that was verified makes two concurrent changes resolve to one winner.
+    const updated = await tx
+      .update(owner)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(and(eq(owner.id, ownerId), eq(owner.passwordHash, row.passwordHash)))
+      .returning({ id: owner.id });
+    if (updated.length !== 1) throw new ApiError('UNAUTHORIZED', PASSWORD_CHANGE_REJECTED);
+    await tx.delete(sessions).where(eq(sessions.ownerId, ownerId));
+    return issueSession(tx, config, ownerId);
+  });
 }
 
 // ---------------------------------------------------------------------------

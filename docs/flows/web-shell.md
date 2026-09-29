@@ -23,12 +23,13 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    đăng nhập thì `redirect({to:'/login', search:{redirect: location.href}})`; đã đăng nhập thì
    `setCsrfToken()` rồi mọi route con render trong `AppShell`. Toàn bộ path (`/`, `/requests`,
    `/projects/$projectKey/board|list|docs|settings`, `/tickets/$ticketKey`, `/projects`, `/inbox`,
-   `/machines`, `/login`) khai báo tại đây; `search` của mỗi route được validate bằng schema ở
+   `/machines`, `/account`, `/login`) khai báo tại đây; `search` của mỗi route được validate bằng schema ở
    `lib/search-params.ts`.
 3. `apps/web/src/layout/app-shell.tsx` → `AppShell()`: dựng top bar (logo, `QuickSearch`, nút "Tạo", chuông
    Inbox, menu owner), chọn `ProjectSidebar` theo `useViewport()` (full/rail/drawer), gắn `useShortcuts()`
    toàn cục, và `useEffect` gọi `startLiveEvents()` (flow `event-delivery`) — khi stream đóng hẳn, kiểm tra lại
-   session và điều hướng về login nếu mất.
+   session và điều hướng về login nếu mất. `OwnerMenu()` trong cùng file có mục "Tài khoản" dẫn tới `/account`
+   (flow `owner-auth`).
 4. `apps/web/src/layout/project-sidebar.tsx` → `ProjectSidebar()`, `useCurrentProjectKey()`: sidebar chọn
    project, "Tất cả request của tôi", Board/Danh sách/Docs/Cài đặt, rồi Inbox/Dự án/Máy; suy ra project hiện
    tại từ route param.
@@ -40,7 +41,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 7. `apps/web/src/lib/api-client.ts` → `api`, `ApiRequestError`: mọi lời gọi kiểm tra response bằng schema zod
    dùng chung, tự gắn header CSRF (`setCsrfToken()`) trên request ghi, gọi `onUnauthorized()` khi gặp 401 —
    gồm cả các route chỉ owner mới thấy như `/v1/project-change-requests*` (flow `project-claims`) và
-   `/v1/notices/read*` (flow `event-delivery`) mà trang Inbox (flow `web-admin`) dùng.
+   `/v1/notices/read*` (flow `event-delivery`) mà trang Inbox (flow `web-admin`) dùng. Ngoại lệ `quiet401`
+   (ví dụ `api.changePassword()` gọi `/v1/auth/password`, flow `owner-auth`) không gọi `onUnauthorized()` khi
+   gặp 401, để trang tự quyết định xử lý.
 8. `apps/web/src/lib/queries.ts` → `keys`, `sessionQuery`, `useTickets`/`useTicket`/`useProjects`/`useNotices`/
    `useProjectChanges`/…: định nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác.
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint

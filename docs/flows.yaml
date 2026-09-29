@@ -40,6 +40,7 @@ flows:
     entrypoints:
       - apps/api/src/routes/auth-routes.ts
       - apps/web/src/routes/login.tsx
+      - apps/web/src/routes/account.tsx
     files:
       - apps/api/src/auth/owner-auth.ts
       - apps/api/src/auth/csrf.ts
@@ -50,6 +51,9 @@ flows:
       - apps/api/test/auth.test.ts
       - apps/api/test/csrf.test.ts
       - apps/web/src/routes/login.test.tsx
+      - apps/api/test/password-change.test.ts
+      - apps/web/src/routes/account.test.tsx
+      - apps/web/e2e/account-password.spec.ts
   ticket-lifecycle:
     title: Vòng đời ticket
     doc: docs/flows/ticket-lifecycle.md
