@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { events, ticketReports, tickets } from '../../api/src/db/schema.js';
+import { isDocsPath } from '../src/runner/guard-hook.js';
 import { commentsOf, RATED, useApi } from './helpers/api.js';
 import { git } from './helpers/git.js';
 import { type LifecycleResult, loadScenario, runScenario, stuckTickets } from './helpers/lifecycle.js';
@@ -54,7 +55,7 @@ async function assertDocsJobCommits(r: LifecycleResult) {
         .toolLog(job.id)
         .filter((e) => ['Write', 'Edit'].includes(e.tool) && e.decision === 'allow');
       expect(
-        writes.every((e) => !String(e.target).startsWith('docs/')),
+        writes.every((e) => !isDocsPath(String(e.target))),
         `${row.key} dev wrote docs`,
       ).toBe(true);
     }
@@ -449,6 +450,38 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     const bodies = (await commentsOf(api.db, qc.id)).map((c) => c.body);
     expect(bodies.some((b) => b.includes('`playwright`') && b.includes('chưa kết nối'))).toBe(true);
     expect(r.runs.some((run) => run.ticketId === qc.id)).toBe(false);
+  },
+
+  async 'docs-only-readme'(r) {
+    const dev = await one(/^Viết mục cài đặt trong README$/, 'dev');
+    const devJobs = jobsOf(r, dev.id);
+    expect(devJobs.map((j) => [j.kind, j.status])).toEqual([
+      ['agent', 'done'],
+      ['docs_update', 'done'],
+    ]);
+    // The dev run was refused README.md and handed off without touching code.
+    const devLog = r.daemon.daemon.state.toolLog(devJobs[0]?.id ?? '');
+    const readme = devLog.find((e) => e.tool === 'Write' && e.target === 'README.md');
+    expect(readme?.decision).toBe('deny');
+    expect(readme?.reason).toContain('README.md');
+    // The docs job's commit holds README.md alone and passed the crew-docs hooks.
+    const devReport = await report(dev.id);
+    const commit = devReport?.commits[0] as string;
+    expect(git(r.repo.repo, 'show', '--name-only', '--format=', commit).split('\n').filter(Boolean)).toEqual([
+      'README.md',
+    ]);
+    // QC kept Playwright on the ticket but reviewed the docs-only diff statically and said why.
+    const qc = await one(/^QC: Viết mục cài đặt trong README$/);
+    expect(qc.requiredMcps).toEqual(['playwright']);
+    const qcRun = r.runs.find((run) => run.ticketId === qc.id && run.stage === 'qc');
+    expect(qcRun?.prompt).toContain('diff chỉ đổi docs');
+    const qcReport = await report(qc.id);
+    expect(qcReport?.summaryMd).toContain('Không có thay đổi giao diện (chỉ docs) nên không chạy test UI.');
+    expect(qcReport?.mcpsUsed).toEqual([]);
+    expect(qcReport?.mcpsMissing).toEqual([]);
+    const qcBodies = (await commentsOf(api.db, qc.id)).map((c) => c.body);
+    expect(qcBodies.some((b) => b.includes('`playwright`'))).toBe(false);
+    expect(git(r.repo.remote, 'show', 'main:README.md')).toContain('## Cài đặt');
   },
 };
 

@@ -15,8 +15,8 @@ export interface GuardContext {
   tmpDir?: string;
   home?: string;
   /**
-   * A dev or bug run: it writes code and tests only. Writes under `docs/` and `git commit` are denied; the
-   * docs-update job updates the docs and commits everything together.
+   * A dev or bug run: it writes code and tests only. Writes to docs (see `isDocsPath`) and `git commit` are
+   * denied; the docs-update job updates the docs and commits everything together.
    */
   codeOnly?: boolean;
 }
@@ -51,6 +51,20 @@ export function isProtectedPath(rel: string): boolean {
     posix === '.github/workflows/crew-docs.yml' ||
     posix.startsWith('.github/crew-docs/')
   );
+}
+
+/** Repo-root Markdown files that are agent config, not docs (`CLAUDE.md` is also R6-protected). */
+const ROOT_AGENT_FILES = new Set(['agents.md', 'claude.md']);
+
+/**
+ * Docs written by the docs-update job, never by a dev run: everything under `docs/` and the Markdown files
+ * directly at the repo root (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, …) except `AGENTS.md` and
+ * `CLAUDE.md`. Case-insensitive, as a macOS worktree is.
+ */
+export function isDocsPath(rel: string): boolean {
+  const name = rel.split(sep).join('/').toLowerCase();
+  if (name.startsWith('docs/')) return true;
+  return !name.includes('/') && name.endsWith('.md') && !ROOT_AGENT_FILES.has(name);
 }
 
 const isInside = (root: string, target: string) => {
@@ -160,13 +174,18 @@ function checkWrite(ctx: GuardContext, tool: string, input: Input): GuardVerdict
       };
     }
   }
-  if (ctx.kind === 'docs_update' && !rel.split(sep).join('/').startsWith('docs/')) {
-    return { decision: 'deny', reason: 'job docs_update chỉ được ghi dưới docs/', target: rel };
-  }
-  if (ctx.codeOnly && rel.split(sep).join('/').startsWith('docs/')) {
+  if (ctx.kind === 'docs_update' && !isDocsPath(rel)) {
     return {
       decision: 'deny',
-      reason: 'dev không sửa docs: job docs_update (sonnet) cập nhật docs sau khi bạn gọi handoff_docs',
+      reason: 'job docs_update chỉ được ghi docs: dưới docs/ và file Markdown ở gốc repo (README.md, …)',
+      target: rel,
+    };
+  }
+  if (ctx.codeOnly && isDocsPath(rel)) {
+    return {
+      decision: 'deny',
+      reason:
+        'dev không sửa docs (docs/, README.md và file Markdown ở gốc repo): job docs_update (sonnet) cập nhật docs sau khi bạn gọi handoff_docs',
       target: rel,
     };
   }

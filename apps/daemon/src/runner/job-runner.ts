@@ -91,6 +91,11 @@ export interface PlannedRun {
   /** Comments to post before the run (e.g. a model clamped to the allowlist). */
   notices?: string[];
   /**
+   * The MCP servers this run must use, when narrower than the ticket's `requiredMcps` (QC of a docs-only diff:
+   * none). The ticket keeps its list; the done-gate, the report fields and the capability warnings use this.
+   */
+  requiredMcps?: string[];
+  /**
    * Do not run: the planner already did what the job needed (a gate that waits or blocks). The job ends with
    * this status and reason.
    */
@@ -538,6 +543,8 @@ export class JobRunner {
       return;
     }
     const prompt = prepared?.note ? `${plan.prompt}\n\n${prepared.note}` : plan.prompt;
+    // The ticket as this run's report checks see it: the MCP servers the run must use may be narrower.
+    const runTicket: Ticket = plan.requiredMcps ? { ...ticket, requiredMcps: plan.requiredMcps } : ticket;
     for (const notice of plan.notices ?? []) await this.comment(ctx.writer, ticket.id, job.role, notice);
 
     const tmpDir = jobTmpDir(this.deps.tmpRoot, job.id);
@@ -566,7 +573,7 @@ export class JobRunner {
         return this.deps.planner.reportOverlay({
           job: current,
           kind,
-          ticket,
+          ticket: runTicket,
           toolLog: log,
           inventory,
           project,
@@ -577,15 +584,15 @@ export class JobRunner {
         });
       }
       const fields =
-        this.deps.planner.reportFields?.({ job: current, kind, ticket, toolLog: log }) ??
-        defaultReportFields(ticket, log, inventory, false);
+        this.deps.planner.reportFields?.({ job: current, kind, ticket: runTicket, toolLog: log }) ??
+        defaultReportFields(runTicket, log, inventory, false);
       return { fields, skillsSelected: draft.skillsSelected, mcpsSelected: draft.mcpsSelected };
     };
     const tools: TicketToolContext = {
       jobId: job.id,
       ticketId: ticket.id,
       ticketType: ticket.type,
-      requiredMcps: ticket.requiredMcps,
+      requiredMcps: runTicket.requiredMcps,
       role: job.role,
       kind,
       stage: plan.stage ?? null,
@@ -737,7 +744,7 @@ export class JobRunner {
     const afterRun = await this.deps.planner.afterRun?.({
       job,
       kind,
-      ticket,
+      ticket: runTicket,
       result,
       toolLog: log,
       inventory,

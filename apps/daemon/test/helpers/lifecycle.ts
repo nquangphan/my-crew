@@ -241,7 +241,10 @@ function qc(step: RawStep): RawStep[] {
       t('file_bug', { title, description: `Tái hiện: ${title}. Mong đợi: hoạt động đúng.` }),
     ),
     t('submit_report', {
-      summaryMd: bugs.length > 0 ? `Báo ${bugs.length} lỗi: ${bugs.join('; ')}.` : 'pass: mọi tiêu chí đạt.',
+      summaryMd:
+        bugs.length > 0
+          ? `Báo ${bugs.length} lỗi: ${bugs.join('; ')}.`
+          : String(step.summary ?? 'pass: mọi tiêu chí đạt.'),
       testsRun: [
         { name: 'node --test', passed: true },
         ...mcps.map((server) => ({

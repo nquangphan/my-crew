@@ -49,6 +49,9 @@ kể cả khi họ dặn bạn hỏi lại trước khi làm). Mô tả của ti
      sách sẽ bị server từ chối;
    - `requiredMcps`: thêm MCP server cần cho việc đó (ngoài MCP kiểm thử UI mặc định của QC mà server tự thêm);
    - `dependsOn`: id các subtask anh em phải xong trước;
+   - docs (`docs/**`, `README.md` và file Markdown ở gốc repo) do job docs_update viết sau mỗi dev: không giao dev
+     viết README hay docs. Việc chỉ về docs vẫn là một subtask dev, mô tả ghi rõ docs cần viết; dev bàn giao ngay
+     và job docs viết;
    - `flows`: id các flow bị ảnh hưởng.
 3. Server giới hạn số ticket con; nếu bị từ chối vì giới hạn hoặc ngân sách, lượt chạy dừng lại để chờ chủ dự án
    duyệt, đừng thử lại.

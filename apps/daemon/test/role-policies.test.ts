@@ -1,9 +1,9 @@
 import type { TicketDetailResponse } from '@crew/shared';
 import { describe, expect, it } from 'vitest';
-import { missingUiServers } from '../src/roles/role-planner.js';
+import { diffNeedsUiTest, missingUiServers } from '../src/roles/role-planner.js';
 import { wrapTicketDetail, wrapUntrusted } from '../src/roles/untrusted-wrap.js';
 import { evaluateToolCall } from '../src/runner/guard-hook.js';
-import { tempDir } from './helpers/git.js';
+import { git, makeRepo, tempDir, writeFiles } from './helpers/git.js';
 
 describe('untrusted data', () => {
   it('wraps text and defuses a delimiter inside it', () => {
@@ -79,6 +79,52 @@ describe('QC UI-test gate', () => {
   });
 });
 
+describe('QC UI test only for a diff that changes more than docs', () => {
+  /** A branch off main with `files` committed; returns the repo and the branch head. */
+  function branchWith(files: Record<string, string>, remove: string[] = []) {
+    const repo = makeRepo({
+      'README.md': '# app\n',
+      'docs/index.md': '# docs\n',
+      'src/app.ts': 'export {};\n',
+    });
+    git(repo, 'checkout', '-q', '-b', 'crew/WEB-1');
+    writeFiles(repo, files);
+    for (const path of remove) git(repo, 'rm', '-q', path);
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-q', '--allow-empty', '-m', 'change');
+    const head = git(repo, 'rev-parse', 'HEAD').trim();
+    git(repo, 'checkout', '-q', 'main');
+    return { repo, head };
+  }
+
+  it('skips the UI test for README, other root Markdown and docs/ changes', () => {
+    const { repo, head } = branchWith({
+      'README.md': '# app\n\nCài đặt.\n',
+      'CHANGELOG.md': '# Thay đổi\n',
+      'docs/architecture.md': '# Kiến trúc\n',
+    });
+    expect(diffNeedsUiTest(repo, 'main', head)).toBe(false);
+  });
+
+  it('keeps the UI test when any source file, AGENTS.md or nested Markdown changes', () => {
+    const source = branchWith({ 'README.md': '# app v2\n', 'src/app.ts': 'export const a = 1;\n' });
+    expect(diffNeedsUiTest(source.repo, 'main', source.head)).toBe(true);
+    const agents = branchWith({ 'AGENTS.md': '# agents\n' });
+    expect(diffNeedsUiTest(agents.repo, 'main', agents.head)).toBe(true);
+    const nested = branchWith({ 'src/notes.md': '# ghi chú\n' });
+    expect(diffNeedsUiTest(nested.repo, 'main', nested.head)).toBe(true);
+    // A source file moved under docs/ still removes source.
+    const moved = branchWith({ 'docs/app.ts': 'export {};\n' }, ['src/app.ts']);
+    expect(diffNeedsUiTest(moved.repo, 'main', moved.head)).toBe(true);
+  });
+
+  it('keeps the UI test when the diff cannot be proven docs-only', () => {
+    const empty = branchWith({});
+    expect(diffNeedsUiTest(empty.repo, 'main', empty.head)).toBe(true);
+    expect(diffNeedsUiTest(empty.repo, 'main', 'f'.repeat(40))).toBe(true);
+  });
+});
+
 describe('dev guard', () => {
   it('keeps a dev run out of docs/ and away from git commit', () => {
     const ctx = { cwd: tempDir('crewd-guard-'), kind: 'agent' as const, codeOnly: true };
@@ -86,6 +132,10 @@ describe('dev guard', () => {
       'deny',
     );
     expect(evaluateToolCall(ctx, 'Write', { file_path: 'src/app.ts', content: '' }).decision).toBe('allow');
+    const readme = evaluateToolCall(ctx, 'Write', { file_path: 'README.md', content: '# app' });
+    expect(readme.decision).toBe('deny');
+    expect(readme.reason).toContain('README.md');
+    expect(evaluateToolCall(ctx, 'Write', { file_path: 'CHANGELOG.md', content: '' }).decision).toBe('deny');
     expect(evaluateToolCall(ctx, 'Bash', { command: 'git add -A && git commit -m x' }).decision).toBe('deny');
     expect(evaluateToolCall(ctx, 'Bash', { command: 'git -C . commit -m x' }).decision).toBe('deny');
     expect(evaluateToolCall(ctx, 'Bash', { command: 'git status && git diff' }).decision).toBe('allow');

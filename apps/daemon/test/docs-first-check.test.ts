@@ -37,6 +37,7 @@ describe('docs-first check', () => {
       e('Read', '/tmp/job/notes.txt'),
       e('Read', `${cwd}/.claude/skills/shop/SKILL.md`),
       e('Read', `${cwd}/AGENTS.md`),
+      e('Read', `${cwd}/README.md`),
       e('Read', `${cwd}/docs/flows/cart.md`),
       e('Read', `${cwd}/src/secret.ts`, 'deny'),
       e('Read', `${cwd}/docs/index.md`),

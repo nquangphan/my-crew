@@ -1,4 +1,4 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import {
   Agent,
   expectNoHorizontalOverflow,
@@ -11,10 +11,28 @@ import {
   viewportOf,
 } from './helpers';
 
-/** A second project per viewport, sorted after SHOP so other specs keep SHOP as the default project. */
-const SECOND_PROJECT: Record<Viewport, string> = { phone: 'XPP', tablet: 'XPT', desktop: 'XPD' };
+/**
+ * A second project per viewport, sorted after SHOP so other specs keep SHOP as the default project. The keys
+ * have the maximum length (10), the widest project badge a card can carry.
+ */
+const SECOND_PROJECT: Record<Viewport, string> = {
+  phone: 'XPPHONELAN',
+  tablet: 'XPTABLETLA',
+  desktop: 'XPDESKTOPL',
+};
 
 const card = (page: Page, key: string) => page.locator(`button[data-ticket-key="${key}"]`);
+
+/** The project badge stays inside its card or row: it wraps or truncates, never spills into the next column. */
+async function expectBadgeInside(container: Locator, projectKey: string): Promise<void> {
+  const outer = await container.boundingBox();
+  const badge = await container.locator(`[data-project="${projectKey}"]`).boundingBox();
+  if (!outer || !badge) throw new Error(`no box for the ${projectKey} badge or its container`);
+  expect(badge.x, `${projectKey} badge left edge`).toBeGreaterThanOrEqual(outer.x - 0.5);
+  expect(badge.x + badge.width, `${projectKey} badge right edge`).toBeLessThanOrEqual(
+    outer.x + outer.width + 0.5,
+  );
+}
 
 /**
  * A request routed to two projects: the "Tất cả dự án" board and list show both pm_tasks and their
@@ -72,6 +90,15 @@ test('all-projects board and list, project filter, and the request ticket tree',
   await expect(page.locator('[data-lane]', { hasText: `${request.key} · ` }).first()).toBeVisible();
   await expect(card(page, pmShop.key).locator(`[data-project="${state.project.key}"]`)).toBeVisible();
   await expect(card(page, docs.key).locator(`[data-project="${second.key}"]`)).toBeVisible();
+  for (const [ticket, key] of [
+    [pmShop, state.project.key],
+    [pmApp, second.key],
+    [docs, second.key],
+    [dev, state.project.key],
+  ] as const) {
+    await card(page, ticket.key).scrollIntoViewIfNeeded();
+    await expectBadgeInside(card(page, ticket.key), key);
+  }
   await expectNoHorizontalOverflow(page);
   await snap(page, testInfo, 'all-board');
 
@@ -101,6 +128,11 @@ test('all-projects board and list, project filter, and the request ticket tree',
   for (const ticket of [request, pmApp, docs]) {
     await expect(page.getByText(ticket.key, { exact: true }).first()).toBeVisible();
   }
+  // In the list the badge stays inside its row (phone) or its "Dự án" cell (tablet, desktop).
+  await expectBadgeInside(
+    page.locator(`[data-project="${second.key}"]`).first().locator('xpath=..'),
+    second.key,
+  );
   await expectNoHorizontalOverflow(page);
   await snap(page, testInfo, 'all-list-filtered');
 
@@ -113,6 +145,8 @@ test('all-projects board and list, project filter, and the request ticket tree',
   await expect(row(pmShop.key).locator(`[data-project="${state.project.key}"]`)).toBeVisible();
   await expect(row(pmApp.key)).toContainText('Đang làm');
   await expect(row(pmApp.key).locator(`[data-project="${second.key}"]`)).toBeVisible();
+  await expectBadgeInside(row(pmApp.key), second.key);
+  await expectBadgeInside(row(pmShop.key), state.project.key);
   await expect(row(dev.key)).toContainText('Đang làm');
   await expect(row(docs.key)).toContainText('Cần làm');
   await expectNoHorizontalOverflow(page);

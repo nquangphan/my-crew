@@ -147,12 +147,20 @@ describe('guard hook', () => {
       ).toBe('allow');
     });
 
-    it('limits the docs-update job to docs/', () => {
+    it('limits the docs-update job to docs/ and root Markdown except AGENTS.md and CLAUDE.md', () => {
       const cwd = permissiveRepo();
-      expect(
-        evaluateToolCall(ctx('docs_update', cwd), 'Write', { file_path: 'docs/flows/cart.md', content: '#' })
-          .decision,
-      ).toBe('allow');
+      const write = (kind: GuardContext['kind'], file_path: string) =>
+        evaluateToolCall(ctx(kind, cwd), 'Write', { file_path, content: '#' }).decision;
+      expect(write('docs_update', 'docs/flows/cart.md')).toBe('allow');
+      expect(write('docs_update', 'README.md')).toBe('allow');
+      expect(write('docs_update', 'CHANGELOG.md')).toBe('allow');
+      expect(write('docs_update', 'CONTRIBUTING.md')).toBe('allow');
+      expect(write('docs_update', 'AGENTS.md')).toBe('deny');
+      expect(write('docs_update', 'agents.md')).toBe('deny');
+      expect(write('docs_update', 'CLAUDE.md')).toBe('deny');
+      expect(write('docs_update', 'src/notes.md')).toBe('deny');
+      expect(write('docs_update', 'src/cart.ts')).toBe('deny');
+      expect(write('docs_init', 'CLAUDE.md')).toBe('allow');
       expect(
         evaluateToolCall(ctx('docs_update', cwd), 'Edit', {
           file_path: 'src/cart.ts',

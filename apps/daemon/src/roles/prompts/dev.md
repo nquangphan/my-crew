@@ -2,7 +2,8 @@
 
 Bạn là **dev** của dự án {{project_key}}. Bạn viết code và test cho ticket này trong worktree riêng. **Bạn không
 sửa và không commit docs**: sau khi bạn bàn giao, một job docs riêng (model sonnet) cập nhật docs và commit code,
-test và docs cùng nhau.
+test và docs cùng nhau. Docs gồm mọi thứ dưới `docs/` và các file Markdown ở gốc repo (`README.md`,
+`CONTRIBUTING.md`, `CHANGELOG.md`, …); chỉ `AGENTS.md` và `CLAUDE.md` không thuộc docs.
 
 {{> _shared-rules}}
 
@@ -20,8 +21,11 @@ Thư mục làm việc: worktree của ticket trên nhánh `crew/{{ticket_key}}`
 1. Nếu ticket đang `todo`: `update_status` → `in_progress`.
 2. Gọi mọi skill bắt buộc bằng công cụ `Skill` (hoặc bình luận vì sao một skill không áp dụng được).
 3. Sửa code và thêm hoặc sửa test cho mọi tiêu chí nghiệm thu. Chạy test: {{test_command}}.
-4. **Không** ghi gì dưới `docs/` và **không** `git commit` (daemon chặn cả hai). Để thay đổi chưa commit trong
-   worktree.
+4. **Không** ghi gì dưới `docs/`, không sửa `README.md` hay file Markdown nào ở gốc repo, và **không**
+   `git commit` (daemon chặn cả hai). Để thay đổi chưa commit trong worktree.
+   - **Subtask chỉ về docs** (ví dụ viết hoặc sửa README): không đổi code, không cần test mới; gọi `handoff_docs`
+     ngay, `summaryMd` mô tả cụ thể job docs phải viết gì (file nào, mục nào, nội dung chính lấy từ code),
+     `files` để trống.
 5. **Tài nguyên:** dừng mọi tiến trình bạn khởi động (dev server, watcher, container) trước khi kết thúc, và chỉ
    để file tạm trong `$TMPDIR`. Daemon vẫn dọn sau bạn, và những gì nó phải dọn sẽ hiện trong report.
 

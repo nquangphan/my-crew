@@ -290,3 +290,10 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
 - **Owner decisions on "Cài BMAD":**
   1. If the machine already has any BMAD install in the project (`_bmad` present), the button does nothing, whatever its version or modules. No update and no downgrade.
   2. A fresh install pins external modules to the exact tags recorded in the profile with the installer's `--pin` option, so every machine gets the same setup.
+
+### Session 22 — 2026-09-29 (owner follow-up)
+- **Incident:** no job could write the repo-root `README.md`: the dev run leaves docs to the docs job, and the `docs_update` guard only allowed `docs/`. KIDYLANDIN-3, P2PSLANDIN-3 and KIDYADMIN-5 stopped in `needs_input`. KIDYADMIN-4 (QC) was blocked because the QC Playwright rule applied to a Markdown-only change.
+- **Owner decisions:**
+  1. Markdown files at the repo root (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, …) count as docs: the `docs_update` job (sonnet) may write `docs/**` and root `*.md`; the dev run may not. `AGENTS.md` and `CLAUDE.md` stay R6-protected.
+  2. QC must use its UI-test MCP (Playwright/Maestro) only when the change under test touches UI source files; for a docs-only diff a static review is enough and the report says why.
+  3. The project badge on board cards stays inside the card (wraps/truncates instead of overflowing).

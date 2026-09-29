@@ -95,7 +95,10 @@ export interface TicketToolContext {
   jobId: string;
   ticketId: string;
   ticketType: TicketType;
-  /** MCP servers the ticket requires (QC's UI-test servers must be used before QC closes). */
+  /**
+   * MCP servers this run must use: QC's UI-test servers before it closes. Empty for QC of a docs-only diff
+   * (the ticket still lists them).
+   */
   requiredMcps?: readonly string[];
   role: AgentRole;
   kind: JobKind;

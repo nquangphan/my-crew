@@ -30,7 +30,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    `createDaemon()` dùng mặc định, `defaultPlanner` (trong file này) là bản chung tối giản còn lại cho test.
    `plan()` nhận thêm `PlannerContext` (VPS client, state, `crewDocs`, `JobWriter` idempotent riêng của job,
    đường dẫn `STANDARD.md`) và trả `PlannedRun.stage` (ghi vào job) cộng `notices` (bình luận đăng trước khi
-   chạy) hoặc `skip` (không chạy: job kết thúc `skipped`/`blocked` ngay với lý do, ví dụ một cổng chờ hay chặn).
+   chạy) hoặc `skip` (không chạy: job kết thúc `skipped`/`blocked` ngay với lý do, ví dụ một cổng chờ hay chặn);
+   `PlannedRun.requiredMcps` hẹp hơn `ticket.requiredMcps` khi có (lượt QC review diff chỉ đổi docs đặt rỗng,
+   flow `agent-roles`) — `execute()` dùng nó thay ticket gốc cho tool ticket, report và done-gate (bước 8).
    `chooseModel()` (dùng bởi `defaultPlanner`) chọn model/effort: `docs_init`/`docs_update` luôn `sonnet`/
    `high`; job khác ưu tiên lựa chọn của ticket, rồi bản đồ độ phức tạp của config. `dev`/`qc` không còn mặc
    định theo vai trò — ticket chưa được PM chấm `complexity` làm `chooseModel()` ném `MissingComplexityError`
@@ -69,9 +71,11 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    từ chối khi ra ngoài `cwd` hoặc đi qua symlink ra ngoài `cwd` (trừ shared path đã link), khi chạm đường dẫn
    được bảo vệ (`.claude/**`, `.githooks/**`, `CLAUDE.md`, `.husky/**`, cấu hình lefthook, file CI crew-docs,
    `isProtectedPath()` được export cho `merge-policy.ts` dùng lại ở cổng pre-push) — trừ job `docs_init` — hoặc
-   khi sửa mục `source`/`shared`/`unassigned` của `docs/flows.yaml`; job `docs_update` chỉ được ghi dưới
-   `docs/`; một lượt `dev` (`codeOnly`, theo `stage`, flow `agent-roles`) không được ghi dưới `docs/` **và**
-   không được `git commit` (chỉ job `docs_update` sau đó mới commit code, test và docs cùng nhau). `Bash` bị
+   khi sửa mục `source`/`shared`/`unassigned` của `docs/flows.yaml`; job `docs_update` chỉ được ghi docs
+   (`isDocsPath()`: mọi thứ dưới `docs/` và file Markdown ở gốc repo trừ `AGENTS.md`, `CLAUDE.md`, không phân
+   biệt hoa thường); một lượt `dev` (`codeOnly`, theo `stage`, flow `agent-roles`) không được ghi đường dẫn docs
+   nào (kể cả `README.md`) **và** không được `git commit` (chỉ job `docs_update` sau đó mới commit code, test
+   và docs cùng nhau). `Bash` bị
    chặn khi `git push --force`, `git commit` của lượt `codeOnly`, `rm -rf` ra ngoài `cwd`/thư mục tạm job, hay
    đổi `core.hooksPath`. Một lời gọi được phép không trả quyết định gì, nên `dontAsk` + `allowedTools` vẫn áp
    dụng sau đó; mọi lời gọi được ghi vào `tool_log`.
@@ -104,9 +108,11 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    `daemon-scheduling`) — PM không tự ý mở lại một ticket `blocked` ngoài luồng đó. `CHILD_CAP_EXCEEDED`/`BUDGET_HOLD` từ
    `create_subtask` và `BUG_CYCLE_CAP` từ `file_bug` kết thúc lượt chạy cho chủ dự án thay vì ném lỗi; PM không đóng ticket
    (`update_status` sang `done`/`in_review`) khi cây ticket còn tiến trình sống (`treeOrphans()`); QC không
-   đóng ticket (`update_status` sang `done`) khi MCP server bắt buộc của ticket (`TicketToolContext.requiredMcps`,
-   điền từ `ticket.requiredMcps` ở `job-runner.ts`) chưa có lời gọi công cụ nào trong bất kỳ lượt nào của
-   ticket (`unusedUiServers()`, đọc `tool_log`) — QC không thể âm thầm bỏ qua kiểm thử UI dù server có kết nối;
+   đóng ticket (`update_status` sang `done`) khi MCP server bắt buộc của lượt chạy (`TicketToolContext.requiredMcps`,
+   điền từ `PlannedRun.requiredMcps` nếu role planner thu hẹp nó, không thì từ `ticket.requiredMcps`, ở
+   `job-runner.ts`) chưa có lời gọi công cụ nào trong bất kỳ lượt nào của ticket (`unusedUiServers()`, đọc
+   `tool_log`) — QC không thể âm thầm bỏ qua kiểm thử UI dù server có kết nối; diff chỉ đổi docs khiến danh
+   sách đó rỗng nên không chặn gì (flow `agent-roles`);
    `create_pm_ticket` nhận thêm `complexity`; `errorText()` nối thêm `details` của lỗi server (ví dụ trường nào
    sai) vào thông báo cho agent tự sửa input. `createDocsInitTicket()` là hàm nội bộ của daemon (không phải
    tool agent): tạo ticket con `docs_init` của một `pm_task`.
@@ -138,7 +144,7 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
 | `apps/daemon/src/runner/job-runner.ts` | Chạy một job từ đầu đến cuối | `JobRunner`, `defaultPlanner`, `chooseModel`, `crashText`, `RolePlanner`, `PlannerContext`, `PlannedRun`, `AfterRunDecision` |
 | `apps/daemon/src/runner/agent-runner.ts` | Runner SDK thật | `createSdkRunner`, `RunControl`, `agentEnv`, `AgentRunResult` |
 | `apps/daemon/src/runner/scripted-runner.ts` | Runner kịch bản YAML cho test | `createScriptedRunner`, `Script`, `ScriptedCrash` |
-| `apps/daemon/src/runner/guard-hook.ts` | Chặn ghi/Bash ngoài phạm vi | `evaluateToolCall`, `createGuardHook` |
+| `apps/daemon/src/runner/guard-hook.ts` | Chặn ghi/Bash ngoài phạm vi | `evaluateToolCall`, `createGuardHook`, `isDocsPath` |
 | `apps/daemon/src/runner/skill-usage.ts` | Skill/MCP dùng trong run, từ tool log | `skillsInvoked`, `mcpServersUsed`, `mcpToolPrefix`, `slashCommandsIn` |
 | `apps/daemon/src/runner/retry-classifier.ts` | Phân loại lỗi API thành backoff/blocked | `classifyRetry`, `isBackoffError`, `BACKOFF_ERRORS` |
 | `packages/shared/src/secret-scrubber.ts` | Luật ẩn credential dùng chung (daemon + app desktop) | `scrubSecrets`, `ScrubResult` |
@@ -189,7 +195,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   tool yêu cầu kết thúc run và coi đó là kết thúc bình thường; run không có message `result` bị đánh dấu lỗi.
 - `apps/daemon/test/guard-hook.test.ts`: từ chối ghi ngoài `cwd` và vào `.githooks` dù có file settings được
   cài đặt cho phép; lời gọi được phép không trả quyết định (để `dontAsk`/`allowedTools` vẫn áp dụng); đường
-  dẫn được bảo vệ theo từng loại job; các mẫu Bash bị chặn (force push, `rm -rf` ngoài phạm vi, đổi
+  dẫn được bảo vệ theo từng loại job (job `docs_update` được ghi `docs/` và Markdown gốc như `README.md`,
+  `CHANGELOG.md`, `CONTRIBUTING.md` nhưng không được ghi `AGENTS.md`/`CLAUDE.md`/Markdown lồng trong `src/`;
+  job `docs_init` vẫn được ghi `CLAUDE.md`); các mẫu Bash bị chặn (force push, `rm -rf` ngoài phạm vi, đổi
   `core.hooksPath`).
 - `apps/daemon/test/ticket-tools.test.ts`: mỗi vai trò có đúng bộ tool ticket riêng (kể cả `return_to_dev` chỉ
   cho `docs_update`, `handoff_docs` chỉ cho lượt `dev`); mọi tool của MCP server đã bật được phép, server bị
@@ -198,6 +206,7 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   một ticket) và bị từ chối khi yêu cầu MCP server đã bị dự án tắt; tool tài nguyên PM-only bị từ chối ngoài
   ngữ cảnh PM; lượt `dev` (`codeOnly`) không `submit_report`/đóng ticket được; QC không đóng ticket được khi
   một MCP server bắt buộc chưa có lời gọi công cụ nào trong nhật ký (`unusedUiServers`), đóng được sau khi gọi;
+  QC của một diff chỉ đổi docs đóng được ngay không cần gọi MCP nào (`requiredMcps: []` của lượt chạy);
   lỗi server kèm `details` xuất hiện trong thông báo trả về agent; PM đánh giá lại một subtask tại chỗ qua
   `rate_subtask`, tool này không nhận `model: 'fable'`, một dev/QC không phải PM bị `FORBIDDEN` và không thấy
   tool này trong danh sách của vai trò mình. PM `comment` được vào một subtask của chính pm_task mình (dùng

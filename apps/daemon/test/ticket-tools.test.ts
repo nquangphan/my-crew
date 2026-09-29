@@ -186,6 +186,37 @@ describe('ticket MCP tools against the real API', () => {
     expect(JSON.stringify(next.content)).toMatch(/REPORT_REQUIRED/);
   });
 
+  it('QC of a docs-only diff closes without the UI-test MCP (the run requires none)', async () => {
+    const f = await fixture(api);
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id);
+    const { createSubtask } = await import('../../api/src/services/ticket-service.js');
+    const qc = await createSubtask(api.db, {
+      type: 'qc',
+      ...RATED,
+      parentId: pm.id,
+      title: 'QC',
+      pairsWith: dev.id,
+    });
+    const state = new StateDb(':memory:');
+    const job = state.insertJob({ ticketId: qc.id, projectId: f.projectId, role: 'qc', trigger: 't' });
+    const vps = new VpsClient({ apiUrl: f.server.url, token: () => f.machine.token });
+    // The planner narrows the run's required MCP servers to none for a docs-only diff.
+    const t = tools({
+      vps,
+      state,
+      jobId: job.id,
+      ticketId: qc.id,
+      role: 'qc',
+      stage: 'qc',
+      requiredMcps: [],
+    });
+    await t.call('update_status', { to: 'in_progress' });
+    const next = await t.call('update_status', { to: 'done' });
+    expect(JSON.stringify(next.content)).not.toContain('playwright');
+    expect(JSON.stringify(next.content)).toMatch(/REPORT_REQUIRED/);
+  });
+
   it('records a docs handoff on the job and ends the run', async () => {
     const f = await fixture(api);
     const pm = await pmTask(api, f);

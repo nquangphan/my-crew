@@ -1,0 +1,56 @@
+name: docs-only-readme
+description: >-
+  A docs-only subtask: the dev run may not write README.md (the guard denies it), so it hands off at once
+  with what to write; the docs_update job writes README.md and commits it alone through the crew-docs
+  hooks; QC of that docs-only diff reviews it statically and closes without the Playwright MCP (not
+  connected on this machine), saying why; PM accept merges and pushes.
+inventory:
+  mcpServers: [{ name: playwright, status: failed }]
+request:
+  title: Viết README
+  description: README cần có mục cài đặt.
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Viết README }]
+  - stage: pm_analyze
+    steps:
+      - macro: pm_analyze
+        subtasks: [{ title: Viết mục cài đặt trong README, complexity: trivial, qcComplexity: trivial }]
+  - stage: dev
+    steps:
+      - macro: dev_start
+      - write: { path: README.md, content: "# Shop\n\n## Cài đặt\n" }
+      - tool: mcp__tickets__handoff_docs
+        input:
+          summaryMd: 'Subtask chỉ về docs, không đổi code: job docs viết mục "Cài đặt" trong README.md (lệnh `npm install`, chạy `node --test`).'
+          files: []
+          tests: []
+          flows: [app]
+  - stage: docs_update
+    steps:
+      - macro: preflight
+      - { tool: Read, input: { file_path: docs/index.md } }
+      - { bash: 'git status --short' }
+      - write:
+          path: README.md
+          content: "# Shop\n\nCửa hàng thử nghiệm.\n\n## Cài đặt\n\n- `npm install`\n- `node --test`\n"
+      - bash: 'crew-docs generate > /dev/null && git add -A && git commit -q -m "docs: thêm mục cài đặt vào README" > "$TMPDIR/hook.txt" 2>&1'
+      - tool: mcp__tickets__submit_report
+        input:
+          summaryMd: 'Subtask chỉ về docs: đã viết mục "Cài đặt" trong README.md.'
+          filesChanged: [README.md]
+      - { tool: mcp__tickets__update_status, input: { to: done } }
+  - stage: qc
+    steps:
+      - macro: qc
+        summary: 'pass: README có mục cài đặt đúng với repo. Không có thay đổi giao diện (chỉ docs) nên không chạy test UI.'
+  - stage: pm_accept
+    steps: [{ macro: pm_accept }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Viết README$', type: request, status: in_review }
+    - { title: '^Viết README$', type: pm_task, status: done }
+    - { title: '^Viết mục cài đặt trong README$', type: dev, status: done }
+    - { title: '^QC: Viết mục cài đặt trong README$', status: done }

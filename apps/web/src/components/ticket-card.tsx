@@ -40,8 +40,8 @@ export function TicketCardFace({
   return (
     <>
       <span className="text-sm leading-[1.35] break-words md:text-sm">{ticket.title}</span>
-      <span className="flex flex-wrap items-center gap-1.5">
-        <span className="flex items-center gap-1.5">
+      <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
           <TypeIcon type={ticket.type} />
           <span className="font-mono text-xs whitespace-nowrap text-muted">{ticket.key}</span>
           <PriorityArrow priority={ticket.priority} />
@@ -84,7 +84,7 @@ export function TicketCard({ ticket, selected, focused, running, projectKey, onO
       aria-label={`${ticket.key}: ${ticket.title}`}
       onClick={() => onOpen?.(ticket)}
       className={cn(
-        'flex w-full min-h-11 touch-manipulation flex-col gap-2 rounded-md border border-line bg-panel px-3 py-2.5 text-left hover:border-accent',
+        'flex w-full min-w-0 min-h-11 touch-manipulation flex-col gap-2 rounded-md border border-line bg-panel px-3 py-2.5 text-left hover:border-accent',
         selected && 'outline-2 -outline-offset-1 outline-accent',
         focused && !selected && 'ring-2 ring-accent/50',
         attention && 'max-md:outline-2 max-md:-outline-offset-1 max-md:outline-warn-line',

@@ -39,7 +39,9 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
    Menu "Nhóm theo" chỉ liệt kê các mode của board hiện tại; mode mặc định không có trong URL.
 3. `apps/web/src/components/ticket-card.tsx` → `TicketCard`, `TicketCardFace`: hiển thị icon loại, key, mũi
    tên ưu tiên, avatar vai trò (spinner khi đang chạy job cục bộ hoặc khi `agentActivity.status==='running'`),
-   `AgentActivityMark`, badge trạng thái, và (prop `projectKey`, board "Tất cả dự án") badge dự án.
+   `AgentActivityMark`, badge trạng thái, và (prop `projectKey`, board "Tất cả dự án") badge dự án; hàng
+   key/badge xuống dòng khi chật (`flex-wrap`, `min-w-0`) và nút thẻ có `min-w-0`, nên `ProjectBadge` không
+   tràn sang cột kế bên với khóa dài.
 4. `apps/web/src/routes/list.tsx` → `ListPage({ projectKey: string | null, search: AllListSearch })`: lọc/sắp
    xếp qua `parseStatuses`/`parseTypes`/… (`search-params.ts`, flow `web-shell`), sắp xếp phía client trên toàn
    bộ dữ liệu đã tải (`sortTickets()`), sửa trạng thái/ưu tiên tại chỗ (`useTransition`/`useUpdateTicket`), thao
@@ -54,7 +56,8 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
    điện thoại, và `sortTickets()` nhận thêm giá trị sắp xếp `project` (`ListSort`).
 6. `apps/web/src/components/project-badge.tsx` → `ProjectBadge`, `projectKeyResolver()`: badge khóa dự án
    (mono, `data-project`) và hàm quy ticket → khóa dự án (request không có), dùng lại trên card, dòng danh sách
-   và cây ticket.
+   và cây ticket; co lại và kết thúc bằng dấu ba chấm khi khung chứa hẹp thay vì tràn ra ngoài, khóa đầy đủ vẫn
+   nằm trong tooltip (`title`).
 7. `apps/web/src/routes/ticket-detail.tsx` → `TicketDetailPage`: dựng breadcrumb (dự án hoặc "Request", cha
    nếu có), render `TicketView` chế độ `mode="page"`.
 8. `apps/web/src/components/ticket-view.tsx` → `TicketView()`: một component dùng chung cho panel
@@ -180,4 +183,6 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 - `apps/web/e2e/cross-project-views.spec.ts`: ở cả ba viewport, một request được route tới hai dự án hiện đủ
   pm_task và con của chúng trên board "Tất cả dự án" (vào từ sidebar) và danh sách; bộ lọc dự án thu hẹp cả
   hai; "Cây ticket" của request liệt kê đủ bốn hậu duệ kèm dự án/trạng thái và tự cập nhật khi ticket dev
-  chuyển sang review; không tràn ngang.
+  chuyển sang review; không tràn ngang; dự án thứ hai dùng khóa dài tối đa (`XPPHONELAN`/`XPTABLETLA`/
+  `XPDESKTOPL` theo viewport) và `expectBadgeInside()` kiểm tra khung `ProjectBadge` luôn nằm trong thẻ board,
+  dòng/cột danh sách và dòng cây ticket.

@@ -9,14 +9,17 @@ export function projectKeyResolver(
   return (ticket) => (ticket.projectId ? byId.get(ticket.projectId) : undefined);
 }
 
-/** The project key on cross-project cards, rows and tree entries. */
+/**
+ * The project key on cross-project cards, rows and tree entries. It never grows past its container: in a
+ * narrow card or cell it shrinks and ends in an ellipsis (the full key stays in the tooltip).
+ */
 export function ProjectBadge({ projectKey, className }: { projectKey: string; className?: string }) {
   return (
     <span
       data-project={projectKey}
       title={`Dự án ${projectKey}`}
       className={cn(
-        'inline-flex shrink-0 items-center rounded border border-line bg-soft px-1.5 font-mono text-[11px] leading-5 whitespace-nowrap text-neutral-ink',
+        'inline-block min-w-0 max-w-full truncate rounded border border-line bg-soft px-1.5 align-middle font-mono text-[11px] leading-5 text-neutral-ink',
         className,
       )}
     >

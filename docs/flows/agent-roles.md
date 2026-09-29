@@ -31,10 +31,16 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    (`state.pmMentions(job.eventIds)`, flow `daemon-scheduling`, chỉ áp dụng khi ticket là `pm_task`): job đó vẫn
    chạy, ở bước `pm_monitor` (ghi đè bước đã `resolveStage()` chọn), để trả lời owner mà không đổi trạng thái
    pm_task đang chờ; một lần thức dậy không mang lời gọi nào của cùng ticket đang chờ vẫn bị bỏ qua như trước.
-   `pm_analyze` chạy cổng `docsInitGate()`; `qc` chạy cổng `missingUiServers()`
+   `pm_analyze` chạy cổng `docsInitGate()`; `qc` trước tiên gọi `qcNeedsUiTest()` (nội bộ): diff
+   `<base>...<head>` giữa nhánh mặc định và `head_sha` của report dev ghép cặp có đổi gì ngoài docs không
+   (`diffNeedsUiTest()`, dùng `isDocsPath()` của flow `agent-runs`; lỗi git, commit lạ hay diff rỗng luôn tính
+   là cần kiểm thử UI) — chỉ khi có mới chạy cổng `missingUiServers()`
    trước khi chạy (MCP bắt buộc chưa kết nối hoặc bị tắt thì không chạy — khác với cổng lúc đóng ticket,
    `unusedUiServers()` ở `ticket-mcp-server.ts`, chặn QC đóng khi MCP đã kết nối nhưng chưa từng được gọi, xem
-   flow `agent-runs`); còn lại gọi `resolveModel()`, dựng biến prompt (`promptVars()`) và `renderPrompt()`; với
+   flow `agent-runs`); diff chỉ đổi docs thì bỏ qua cổng này, prompt QC nêu rõ lý do không cần kiểm thử UI và
+   yêu cầu report ghi đúng câu cố định (`DOCS_ONLY_QC_NOTE`), còn `PlannedRun.requiredMcps` của lượt chạy đó
+   đặt rỗng (flow `agent-runs`); còn lại gọi `resolveModel()`, dựng biến prompt (`promptVars()`) và
+   `renderPrompt()`; với
    một ticket `bug`,
    `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug. `promptVars()` → `ownerRequest()`: ba bước PM
    (`pm_analyze`/`pm_monitor`/`pm_accept`) nhận thêm nguyên văn yêu cầu gốc của chủ dự án (tiêu đề, mô tả và
@@ -86,8 +92,9 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    để agent ghi lại.
 8. `apps/daemon/src/roles/docs-first-check.ts` → `docsFirst()`: `true` khi lần Read/Grep file nguồn đầu tiên
    trong worktree đến sau một lần tra docs (`docs_flow`, `docs_where`, `crew-docs flow|where`, hoặc Read
-   `docs/index.md`); Read ngoài worktree, dưới `docs/`, `.claude/`, `.crew/`, `AGENTS.md`, `CLAUDE.md` không
-   tính là đọc nguồn. Không đọc file nguồn nào thì mặc định đạt.
+   `docs/index.md`); Read ngoài worktree, dưới `docs/`, file Markdown ở gốc repo như `README.md`
+   (`isDocsPath()` của flow `agent-runs`), `.claude/`, `.crew/`, `AGENTS.md`, `CLAUDE.md` không tính là đọc
+   nguồn. Không đọc file nguồn nào thì mặc định đạt.
 9. `apps/daemon/src/roles/role-planner.ts` → `afterRun()`: một lượt kết thúc mà không nộp report và không
    `handoff_docs` (các bước không nộp report: assistant/PM ngoài `pm_accept`) vẫn bị đối chiếu skill/MCP —
    cảnh báo tính theo **phiên**, không theo từng job: một lượt resume một phiên đã `select_capabilities` ở
@@ -123,7 +130,7 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/daemon/src/roles/role-planner.ts` | `RolePlanner` mặc định: prompt, cổng, model, report, follow-up theo bước | `rolePlanner`, `missingUiServers`, `cleanupLines`, `ownerRequest`, `ownerCallsNote` |
+| `apps/daemon/src/roles/role-planner.ts` | `RolePlanner` mặc định: prompt, cổng, model, report, follow-up theo bước | `rolePlanner`, `missingUiServers`, `diffNeedsUiTest`, `DOCS_ONLY_QC_NOTE`, `cleanupLines`, `ownerRequest`, `ownerCallsNote` |
 | `apps/daemon/src/roles/role-registry.ts` | Bảng bước, đường trạng thái hợp lệ, chọn bước | `STAGES`, `resolveStage`, `isTerminal`, `workChildren` |
 | `apps/daemon/src/roles/prompt-templates.ts` | Nạp và render template Markdown | `renderPrompt`, `loadPrompt`, `setPromptsDir` |
 | `apps/daemon/src/roles/model-policy.ts` | Model/effort theo bước, kẹp theo allowlist | `resolveModel`, `clampModel`, `MissingComplexityError` |
@@ -158,10 +165,10 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 
 ## Flow liên quan
 
-- agent-runs: `JobRunner` gọi bốn hook của `rolePlanner`; `stage`, `notices`, `skip` của `PlannedRun` và
-  `AfterRunDecision` (comment/block/status) được định nghĩa ở đó; `guard-hook.ts` chặn dev ghi `docs/` hay
-  `git commit` khi `stage === 'dev'` (`codeOnly`); công cụ ticket `select_capabilities`, `return_to_dev`,
-  `reject_work`, `merge_and_push` gọi vào các hàm của flow này.
+- agent-runs: `JobRunner` gọi bốn hook của `rolePlanner`; `stage`, `notices`, `skip`, `requiredMcps` của
+  `PlannedRun` và `AfterRunDecision` (comment/block/status) được định nghĩa ở đó; `guard-hook.ts` (`isDocsPath()`)
+  chặn dev ghi docs (`docs/**` và Markdown gốc) hay `git commit` khi `stage === 'dev'` (`codeOnly`); công cụ
+  ticket `select_capabilities`, `return_to_dev`, `reject_work`, `merge_and_push` gọi vào các hàm của flow này.
 - local-merge: `merge_and_push` (tool PM) gọi `mergeAndPush()`; `pm-accept.md` mô tả đúng luồng nghiệm thu đó.
 - daemon-runtime: `rolePlanner` là `RolePlanner` mặc định của `createDaemon()`; cột job của flow này sống
   trong `state-db.ts` (migration cộng cột, không phá schema cũ).
@@ -186,14 +193,17 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 - `apps/daemon/test/skill-enforcement.test.ts`: skill/MCP dùng thật từ nhật ký công cụ và slash command; gộp
   lựa chọn nhiều lượt của cùng ticket; khoảng trống bắt buộc/đã chọn trừ đã dùng; nội dung cảnh báo.
 - `apps/daemon/test/docs-first-check.test.ts`: docs trước code đạt/không đạt theo thứ tự Read/Grep thật, Read
-  ngoài worktree hay dưới `docs/` không tính, một run không đọc gì mặc định đạt.
+  ngoài worktree hay dưới `docs/` (kể cả `README.md` ở gốc repo) không tính, một run không đọc gì mặc định đạt.
 - `apps/daemon/test/docs-init-gate.test.ts`: dự án chưa có docs tạo đúng một `docs_init` con (idempotent), dự
   án đã có docs cho `pm_analyze` chạy ngay.
 - `apps/daemon/test/docs-update-handoff.test.ts`: `handoff_docs` xếp đúng job `docs_update` tiếp theo;
   `return_to_dev`, thiếu `handoff_docs`, ticket chưa đóng đều thành lượt thất bại đúng lý do; `decideFailure()`
   thử lại rồi chặn ở `MAX_ATTEMPTS`.
 - `apps/daemon/test/role-policies.test.ts`: bọc dữ liệu không tin cậy và vô hiệu hoá delimiter bên trong; QC
-  phát hiện đúng MCP bắt buộc chưa kết nối/bị tắt; guard giữ lượt dev ngoài `docs/` và tránh `git commit`.
+  phát hiện đúng MCP bắt buộc chưa kết nối/bị tắt; `diffNeedsUiTest()` coi diff chỉ đổi `README.md`,
+  `CHANGELOG.md` hay `docs/` là không cần kiểm thử UI, còn đổi bất kỳ file nào ngoài docs (file nguồn, `AGENTS.md`,
+  một file `.md` lồng trong `src/`) hay khi không suy ra được (lỗi git, diff rỗng) vẫn cần; guard giữ lượt dev
+  ngoài docs (`docs/`, `README.md`, Markdown gốc khác) và tránh `git commit`.
 - `apps/daemon/test/lifecycle.test.ts` (kịch bản dưới `apps/daemon/test/lifecycle/*.yaml`, mỗi file có
   `description` riêng): toàn bộ vòng đời qua API và daemon thật, runner kịch bản (không tốn phí model), git
   worktree và hook crew-docs thật — happy path, docs bị hook từ chối rồi commit lại, capability preflight, dọn
@@ -205,7 +215,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   đánh giá độ phức tạp, lượt chạy tiếp theo không chọn được model nên `blocked`; owner tag `@pm` trên dev đó —
   chỉ PM được đánh thức, dev không đổi trạng thái; PM chạy ở `pm_monitor`, `rate_subtask` rồi trả lời trên chính
   dev đó; dev chạy lại theo mức mới qua `ticket.unblocked`, cả cây xong; trợ giúp kịch bản `clearRating` của
-  `apps/daemon/test/helpers/lifecycle.ts` xoá đánh giá đã có trước bước này) — mỗi kịch bản kết thúc ở trạng
+  `apps/daemon/test/helpers/lifecycle.ts` xoá đánh giá đã có trước bước này), subtask chỉ về docs
+  (`19-docs-only-readme.yaml`: subtask dev "Viết mục cài đặt trong README" bị guard từ chối ghi `README.md` nên
+  bàn giao ngay không đụng code, job `docs_update` commit một mình `README.md` và qua đúng hook crew-docs, QC
+  giữ `playwright` trên ticket nhưng review tĩnh diff chỉ đổi docs, report ghi đúng câu `DOCS_ONLY_QC_NOTE` và
+  `mcpsUsed`/`mcpsMissing` rỗng) — mỗi kịch bản kết thúc ở trạng
   thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
 - `apps/daemon/test/pm-mention.test.ts`: PM chạy với đúng ghi chú "Chủ dự án gọi PM" (ticket được tag, trạng
   thái/complexity, lỗi job gần nhất và bình luận agent gần nhất bọc `<untrusted-data>`, bình luận owner nguyên

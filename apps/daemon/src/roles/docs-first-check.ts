@@ -1,15 +1,16 @@
 import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { isDocsPath } from '../runner/guard-hook.js';
 import type { ToolLogEntry } from '../state-db.js';
 
 /** Ticket tools that look the docs up (`crew-docs flow` and `crew-docs where`). */
 const DOCS_TOOLS = new Set(['mcp__tickets__docs_flow', 'mcp__tickets__docs_where']);
 
-/** Paths inside the worktree that are not source: the docs themselves and agent config. */
+/** Paths inside the worktree that are not source: the docs themselves (incl. root README) and agent config. */
 function isNonSource(rel: string): boolean {
   const posix = rel.split(sep).join('/');
   return (
     posix === 'docs' ||
-    posix.startsWith('docs/') ||
+    isDocsPath(posix) ||
     posix === '.claude' ||
     posix.startsWith('.claude/') ||
     posix.startsWith('.crew/') ||

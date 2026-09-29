@@ -3,6 +3,7 @@ import type { RoleStage, SkillInventory, Ticket, TicketDetailResponse, TicketSta
 import type { DaemonConfig, ProjectConfig } from '../config.js';
 import { docsSnapshot } from '../git/docs-kit-bridge.js';
 import type { AgentRunResult } from '../runner/agent-runner.js';
+import { isDocsPath } from '../runner/guard-hook.js';
 import {
   type AfterRunDecision,
   type AfterRunInput,
@@ -125,7 +126,16 @@ function complexityText(config: DaemonConfig): string {
   ].join('; ');
 }
 
-function uiTestText(ticket: Ticket): string {
+/** What QC reports when the diff under test is docs-only and it skipped the UI test. */
+export const DOCS_ONLY_QC_NOTE = 'Không có thay đổi giao diện (chỉ docs) nên không chạy test UI.';
+
+function uiTestText(ticket: Ticket, uiTest: boolean): string {
+  if (!uiTest) {
+    return (
+      'không cần: diff chỉ đổi docs (`docs/**`, file Markdown ở gốc repo), không đụng file nguồn nên review tĩnh là đủ. ' +
+      `Trong \`summaryMd\` của report ghi đúng câu: "${DOCS_ONLY_QC_NOTE}"`
+    );
+  }
   const lines: string[] = [];
   for (const server of ticket.requiredMcps) {
     if (/maestro/i.test(server)) {
@@ -288,6 +298,30 @@ function resumeSession(job: JobRow, kind: JobKind, state: StateDb, ticketId: str
   return state.latestSession(ticketId, kind === 'docs_init' ? 'docs_init' : 'agent');
 }
 
+/**
+ * True when the diff QC tests (`<base>...<head>`, the one it reviews) changes anything but docs (see
+ * `isDocsPath`), so QC must run its UI test. Whatever cannot be proven docs-only counts as a UI change: a
+ * git error, an unknown commit or an empty diff.
+ */
+export function diffNeedsUiTest(repo: string, base: string, head: string): boolean {
+  const out = gitOut(repo, ['diff', '--name-only', '--no-renames', '-z', `${base}...${head}`, '--']);
+  if (out === null) return true;
+  const files = out.split('\0').filter(Boolean);
+  return files.length === 0 || files.some((file) => !isDocsPath(file));
+}
+
+/** Whether this QC run must use the ticket's UI-test MCP servers: not for a docs-only dev (or bug) diff. */
+async function qcNeedsUiTest(
+  ctx: PlannerContext,
+  ticket: Ticket,
+  project: ProjectConfig | null,
+): Promise<boolean> {
+  if (!project || !ticket.pairsWith || ticket.requiredMcps.length === 0) return true;
+  const head = (await ctx.vps.getTicket(ticket.pairsWith)).report?.headSha;
+  if (!head) return true;
+  return diffNeedsUiTest(project.repoPath, project.defaultBranch, head);
+}
+
 /** Required MCP servers of a QC ticket that are not connected (or are switched off) on this machine. */
 export function missingUiServers(
   ticket: Pick<Ticket, 'requiredMcps'>,
@@ -366,7 +400,9 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
     });
     if (gate.action === 'wait') return skipRun(stage, `chờ docs-init ${gate.docsInit.key}`);
   }
-  if (stage === 'qc') {
+  // QC of a docs-only diff reviews it statically: its UI-test servers are neither required nor blocking.
+  const uiTest = stage === 'qc' ? await qcNeedsUiTest(ctx, ticket, project) : true;
+  if (stage === 'qc' && uiTest) {
     const missing = missingUiServers(ticket, inventory, project);
     if (missing.length > 0) {
       await blockQc(ctx, ticket, missing);
@@ -379,7 +415,7 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
   }
 
   const choice = resolveModel({ config, stage, ticket });
-  const vars = await promptVars({ stage, job, kind, detail, config, project, ctx, mentions });
+  const vars = await promptVars({ stage, job, kind, detail, config, project, ctx, mentions, uiTest });
   const prompt = renderPrompt(STAGES[stage].prompt, vars);
   let worktreeBase: string | undefined = project?.defaultBranch;
   if (ticket.type === 'bug' && ticket.parentId) {
@@ -395,6 +431,7 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
     ...(worktreeBase ? { worktreeBase } : {}),
     stage,
     notices: choice.notice ? [choice.notice] : [],
+    ...(uiTest ? {} : { requiredMcps: [] }),
   };
 }
 
@@ -407,6 +444,8 @@ async function promptVars(input: {
   project: ProjectConfig | null;
   ctx: PlannerContext;
   mentions: readonly PmMention[];
+  /** QC only: false when the diff under test is docs-only. */
+  uiTest: boolean;
 }): Promise<Record<string, string>> {
   const { stage, job, detail, config, project, ctx, mentions } = input;
   const { ticket } = detail;
@@ -448,7 +487,7 @@ async function promptVars(input: {
       : 'chạy `crew-docs init` và làm đúng checklist nó in ra.',
     hooks_note: 'daemon cài hook và chép file hook vào worktree trước lượt chạy, xem ghi chú cuối',
     review_base: project?.defaultBranch ?? 'main',
-    ui_test: uiTestText(ticket),
+    ui_test: uiTestText(ticket, input.uiTest),
     handoff: '',
     paired_head: '(chưa có)',
     paired_key: '(chưa có)',
