@@ -5,6 +5,7 @@ import { project, ticket } from '../test/fixtures';
 import { mockFetch, renderWithApp } from '../test/render';
 import { AllProjectsBoardPage } from './all-board';
 import { ListPage } from './list';
+import { MyRequestsPage } from './my-requests';
 
 /** AST-2 routed to WEB and APP, each pm_task with a child, plus an unrouted request. */
 function scenario() {
@@ -177,5 +178,27 @@ describe('ListPage across projects', () => {
     expect(new URL(list?.path ?? '', 'http://x').searchParams.get('projectId')).toBe(s.web.id);
     expect(screen.queryByRole('columnheader', { name: /Dự án/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Dự án:/ })).toBeNull();
+  });
+});
+
+describe('MyRequestsPage project filter', () => {
+  it('asks the server for the requests routed or hinted to the chosen projects', async () => {
+    const s = scenario();
+    const calls = mockFetch([
+      ['GET /v1/projects', () => ({ body: { items: [s.app, s.web] } })],
+      ['GET /v1/machines', () => ({ body: { items: [] } })],
+      ['GET /v1/tickets', () => ({ body: { items: [s.request], nextCursor: null } })],
+    ]);
+    const { router } = renderWithApp(<MyRequestsPage search={{ project: 'APP' }} />);
+    await screen.findByText('Giỏ hàng mọi nơi');
+    const list = calls.find((c) => c.path.startsWith('/v1/tickets?'));
+    const params = new URL(list?.path ?? '', 'http://x').searchParams;
+    expect(params.get('projectIds')).toBe(s.app.id);
+    expect(params.get('type')).toBe('request');
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /^Dự án: 1/ }));
+    await user.click(await screen.findByRole('menuitem', { name: /WEB/ }));
+    expect(router.state.location.search).toMatchObject({ project: 'APP,WEB' });
   });
 });

@@ -2,7 +2,8 @@ import { EventEnvelope } from '@crew/shared';
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import { keys } from './queries';
 
-const TICKET_KEYS: QueryKey[] = [keys.tickets, ['ticket'], ['descendants'], ['report']];
+/** Ticket events also refresh the docs home: a docs_init ticket's status explains an empty docs space. */
+const TICKET_KEYS: QueryKey[] = [keys.tickets, ['ticket'], ['descendants'], ['report'], keys.docsOverview];
 const MACHINE_KEYS: QueryKey[] = [keys.machines, ['machine'], ['claims'], keys.notices, keys.projects];
 
 /** The query-key prefixes an owner-stream event makes stale. */

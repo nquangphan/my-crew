@@ -6,6 +6,7 @@ import {
   Inbox,
   KanbanSquare,
   Layers,
+  Library,
   List,
   type LucideIcon,
   Monitor,
@@ -37,6 +38,20 @@ export function useCurrentProjectKey(): string | undefined {
   const known = (key: string | null | undefined) =>
     key && (projects.data === undefined || projects.data.some((p) => p.key === key)) ? key : undefined;
   return known(params.projectKey) ?? known(stored) ?? projects.data?.[0]?.key;
+}
+
+/** The per-project pages; switching project keeps the one open now. */
+const PROJECT_SECTIONS = {
+  board: '/projects/$projectKey/board',
+  list: '/projects/$projectKey/list',
+  docs: '/projects/$projectKey/docs',
+  settings: '/projects/$projectKey/settings',
+} as const;
+
+/** The project page open at `path` (`/projects/KEY/list` → `list`), or the board elsewhere. */
+export function projectSectionOf(path: string): keyof typeof PROJECT_SECTIONS {
+  const match = /^\/projects\/[^/]+\/(board|list|docs|settings)\/?$/.exec(path);
+  return (match?.[1] as keyof typeof PROJECT_SECTIONS | undefined) ?? 'board';
 }
 
 interface NavEntry {
@@ -89,7 +104,7 @@ export function ProjectSidebar({
           icon: BookOpen,
           to: '/projects/$projectKey/docs',
           params: { projectKey },
-          match: (p) => p.includes('/docs'),
+          match: (p) => p.startsWith('/projects/') && p.endsWith('/docs'),
         },
         {
           label: 'Cài đặt project',
@@ -194,7 +209,10 @@ export function ProjectSidebar({
                 key={p.id}
                 onSelect={() => {
                   onNavigate?.();
-                  void navigate({ to: '/projects/$projectKey/board', params: { projectKey: p.key } });
+                  void navigate({
+                    to: PROJECT_SECTIONS[projectSectionOf(path)],
+                    params: { projectKey: p.key },
+                  });
                 }}
               >
                 <span className="font-mono text-xs text-muted">{p.key}</span> {p.name}
@@ -224,6 +242,7 @@ export function ProjectSidebar({
         to: '/requests',
         match: (p) => p === '/requests',
       })}
+      {item({ label: 'Tài liệu', icon: Library, to: '/docs', match: (p) => p === '/docs' })}
       {projectNav.length > 0 && section('Dự án')}
       {projectNav.map(item)}
       {section('Quản lý')}

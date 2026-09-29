@@ -116,20 +116,24 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     chuyển `needs_input → in_progress` sẽ gỡ hold cho toàn bộ cây pm_task đó (`childCapLifted`/
     `costBudgetLifted`), không chỉ một batch.
 13. `apps/api/src/services/ticket-query-service.ts` → `listTickets()`, `getTicketDetail()`, `getTicketTree()`,
-    `search()`: danh sách có lọc/sắp xếp/keyset-pagination (cursor mã hoá base64url) — lọc `projectId` (một dự
-    án) hoặc `projectIds` (tối đa 100 uuid, `ListTicketsQuery` ở `packages/shared/src/api-schemas.ts`): không
-    lọc dự án nào trả về ticket mọi dự án cộng mọi request; có `projectIds` thì giữ ticket có `projectId` nằm
-    trong tập đó, cộng ticket `request` được route tới một trong các dự án đó (một con — pm_task — có
-    `projectId` nằm trong tập, qua `EXISTS` subquery) hoặc chỉ mới gợi ý (`projectHintId`), kết hợp với các bộ
-    lọc khác và phân trang; chi tiết ticket kèm con/bình luận/report hiện hành/dòng sự kiện. `getTicketTree()`
-    (route `GET /v1/tickets/:id/tree`, owner): mọi hậu duệ (mở và đã đóng) của một ticket theo id hay key, mỗi
-    cấp một truy vấn (cha trước con, cũ nhất trước, tối đa 4 cấp — request → pm_task → dev/qc/bug/docs_init),
-    chặn ở `TREE_LIMIT` (1000) kèm cờ `truncated: true` khi bị cắt; mỗi ticket có `agentActivity`
-    (`withAgentActivity()`). Response theo schema `TicketTreeResponse { items: Ticket[], truncated: boolean }`
-    (`api-schemas.ts`). Chọn cách này thay vì web tự liệt kê từng cấp, để một request nhiều pm_task chỉ tốn một
-    lượt gọi HTTP thay vì một lượt mỗi node/cấp. Ticket không tồn tại → 404, không có session owner → 401. Tìm
-    kiếm nhanh (ticket theo key/tiêu đề, cộng docs qua `searchAllDocs()` của flow `docs-sync-viewer`); bình
-    luận trong chi tiết ticket qua `toCommentDto()` (bước 8) nên cũng có `mentions`.
+    `search()`, `inProjectsFilter()`: danh sách có lọc/sắp xếp/keyset-pagination (cursor mã hoá base64url) —
+    lọc `projectId` (một dự án) hoặc `projectIds` (tối đa 100 uuid, `ListTicketsQuery` ở
+    `packages/shared/src/api-schemas.ts`): không lọc dự án nào trả về ticket mọi dự án cộng mọi request; có
+    `projectIds` thì `inProjectsFilter()` giữ ticket có `projectId` nằm trong tập đó, cộng ticket `request`
+    được route tới một trong các dự án đó (một con — pm_task — có `projectId` nằm trong tập, qua `EXISTS`
+    subquery) hoặc chỉ mới gợi ý (`projectHintId`), kết hợp với các bộ lọc khác và phân trang; chi tiết ticket
+    kèm con/bình luận/report hiện hành/dòng sự kiện. `getTicketTree()` (route `GET /v1/tickets/:id/tree`,
+    owner): mọi hậu duệ (mở và đã đóng) của một ticket theo id hay key, mỗi cấp một truy vấn (cha trước con,
+    cũ nhất trước, tối đa 4 cấp — request → pm_task → dev/qc/bug/docs_init), chặn ở `TREE_LIMIT` (1000) kèm cờ
+    `truncated: true` khi bị cắt; mỗi ticket có `agentActivity` (`withAgentActivity()`). Response theo schema
+    `TicketTreeResponse { items: Ticket[], truncated: boolean }` (`api-schemas.ts`). Chọn cách này thay vì web
+    tự liệt kê từng cấp, để một request nhiều pm_task chỉ tốn một lượt gọi HTTP thay vì một lượt mỗi node/cấp.
+    Ticket không tồn tại → 404, không có session owner → 401. `search()` (`GET /v1/search`, `SearchQuery`):
+    tìm kiếm nhanh (ticket theo key/tiêu đề, cộng docs qua `searchAllDocs()` của flow `docs-sync-viewer`);
+    mỗi ticket trả kèm `projectId` (`null` cho request); `projectIds` (nếu có, cùng `ProjectIdsFilter` mà
+    `ListTicketsQuery` dùng) thu hẹp cả ticket (qua `inProjectsFilter()`, gồm request được route hoặc gợi ý)
+    lẫn docs (`searchAllDocs(db, q, projectIds)`) về đúng các dự án đó; bình luận trong chi tiết ticket qua
+    `toCommentDto()` (bước 8) nên cũng có `mentions`.
 14. `apps/api/src/jobs/stuck-ticket-alarm.ts` → `findStuckTickets()`/`raiseStuckTicketAlarms()`: mỗi
     `STUCK_CHECK_INTERVAL_MS` (5 phút) tìm ticket không kết thúc, im lặng quá `STUCK_AFTER_MS` (30 phút, tính
     theo lần đổi trường ticket gần nhất hoặc bất kỳ sự kiện nào khác ngoài cảnh báo trước đó), không đang chờ
@@ -156,7 +160,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/routes/comment-routes.ts` | Route bình luận owner | `commentRoutes` |
 | `apps/api/src/routes/report-routes.ts` | Route đọc report owner | `reportRoutes` |
 | `apps/api/src/services/ticket-service.ts` | Tạo, đánh giá lại, transition, bug loop, bình luận (kể cả tag `@pm`), sửa ticket | `createRequestTicket`, `createSubtask`, `rateSubtask`, `retrySubtask`, `fileBug`, `transitionTicket`, `addComment`, `toCommentDto`, `updateTicket`, `lockWithParent`, `governingPmTask` |
-| `apps/api/src/services/ticket-query-service.ts` | Danh sách, chi tiết, cây hậu duệ, tìm kiếm | `listTickets`, `getTicketDetail`, `getTicketTree`, `search`, `TREE_LIMIT` |
+| `apps/api/src/services/ticket-query-service.ts` | Danh sách, chi tiết, cây hậu duệ, tìm kiếm | `listTickets`, `getTicketDetail`, `getTicketTree`, `search`, `inProjectsFilter`, `TREE_LIMIT` |
 | `packages/shared/src/comment-mentions.ts` | Tag `@pm` trong bình luận owner | `CommentMention`, `parseMentions` |
 | `apps/api/src/services/report-service.ts` | Report và agent-meta | `submitReport`, `recordAgentMeta`, `getReports`, `getCurrentReport` |
 | `apps/api/src/services/budget-service.ts` | Trần con, ngân sách, hold | `enforceChildCap`, `addCost`, `applyHold`, `liftHold`, `getBudgetStatus` |

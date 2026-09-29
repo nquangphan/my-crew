@@ -15,14 +15,17 @@ import {
   AllBoardSearch,
   AllListSearch,
   BoardSearch,
+  DocsHomeSearch,
   DocsSearch,
   ListSearch,
   LoginSearch,
+  ProjectFilterSearch,
   searchOf,
 } from './lib/search-params';
 import { AccountPage } from './routes/account';
 import { AllProjectsBoardPage } from './routes/all-board';
 import { BoardPage } from './routes/board';
+import { DocsHomePage } from './routes/docs-home';
 import { HomeRedirect } from './routes/home';
 import { InboxPage } from './routes/inbox';
 import { ListPage } from './routes/list';
@@ -74,7 +77,7 @@ const homeRoute = createRoute({ getParentRoute: () => appRoute, path: '/', compo
 const requestsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/requests',
-  validateSearch: searchOf(BoardSearch),
+  validateSearch: searchOf(AllBoardSearch),
   component: RequestsView,
 });
 /** "Tất cả dự án": every project's tickets and the owner's requests. */
@@ -102,6 +105,13 @@ const listRoute = createRoute({
   validateSearch: searchOf(ListSearch),
   component: ListView,
 });
+/** The docs home: every project's docs status and a docs search across projects. */
+const docsHomeRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/docs',
+  validateSearch: searchOf(DocsHomeSearch),
+  component: DocsHomeView,
+});
 /** The project's read-only, Confluence-like docs space. */
 export const docsRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -124,7 +134,12 @@ const ticketRoute = createRoute({
   path: '/tickets/$ticketKey',
   component: TicketView,
 });
-const inboxRoute = createRoute({ getParentRoute: () => appRoute, path: '/inbox', component: InboxPage });
+const inboxRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/inbox',
+  validateSearch: searchOf(ProjectFilterSearch),
+  component: InboxView,
+});
 const accountRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/account',
@@ -133,7 +148,8 @@ const accountRoute = createRoute({
 const machinesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/machines',
-  component: MachinesPage,
+  validateSearch: searchOf(ProjectFilterSearch),
+  component: MachinesView,
 });
 
 // Route views bind URL params and search to the page props (explicit return types break the inference cycle).
@@ -155,6 +171,15 @@ function BoardView(): ReactElement {
 function ListView(): ReactElement {
   return <ListPage projectKey={listRoute.useParams().projectKey} search={listRoute.useSearch()} />;
 }
+function DocsHomeView(): ReactElement {
+  return <DocsHomePage search={docsHomeRoute.useSearch()} />;
+}
+function InboxView(): ReactElement {
+  return <InboxPage search={inboxRoute.useSearch()} />;
+}
+function MachinesView(): ReactElement {
+  return <MachinesPage search={machinesRoute.useSearch()} />;
+}
 function DocsView(): ReactElement {
   return <ProjectDocsPage projectKey={docsRoute.useParams().projectKey} search={docsRoute.useSearch()} />;
 }
@@ -174,6 +199,7 @@ export const routeTree = rootRoute.addChildren([
     allListRoute,
     boardRoute,
     listRoute,
+    docsHomeRoute,
     docsRoute,
     projectSettingsRoute,
     projectsRoute,

@@ -99,7 +99,7 @@ test('docs space: tree, flow page, TOC, related tickets, search and file lookup'
   await page.goto(`/projects/${state.project.key}/docs?flow=payments`);
   await expect(page.getByRole('heading', { level: 1, name: 'Thanh toán' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(
-    `${state.project.name}/Flows/Thanh toán`,
+    `Tài liệu/${state.project.name}/Flows/Thanh toán`,
   );
   await expect(page.getByRole('link', { name: /Xem trên GitHub/ })).toHaveAttribute(
     'href',
@@ -174,8 +174,14 @@ test('docs space: tree, flow page, TOC, related tickets, search and file lookup'
   if (viewport === 'desktop') {
     await page.keyboard.press('/');
     await page.keyboard.type('Kiến trúc');
-    await expect(page.getByRole('option', { name: /Kiến trúc/ })).toBeVisible();
-    await page.keyboard.press('Enter');
+    // Other specs sync docs with the same page for other projects: narrow the search to this project.
+    await page.getByRole('button', { name: 'Phạm vi tìm kiếm: tất cả dự án' }).click();
+    await page.getByRole('menuitem', { name: new RegExp(`^${state.project.key}`) }).click();
+    const hit = page.getByRole('option', { name: /Kiến trúc/ });
+    await expect(hit).toHaveCount(1);
+    await expect(hit).toContainText(state.project.key);
+    // The pointer still rests where the scope menu was, over the results, so pick the page by clicking it.
+    await hit.click();
     await expect(page.getByRole('heading', { level: 1, name: 'Kiến trúc' })).toBeVisible();
     await expect(page).toHaveURL(/\?path=docs%2Farchitecture\.md$/);
 

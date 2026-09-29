@@ -48,7 +48,7 @@ export async function ticketRoutes(app: FastifyInstance, { db }: RouteDeps): Pro
   });
 
   app.get('/v1/search', async (request) => {
-    const { q } = parseInput(SearchQuery, request.query);
-    return search(db, q);
+    const { q, projectIds } = parseInput(SearchQuery, request.query);
+    return search(db, q, projectIds);
   });
 }

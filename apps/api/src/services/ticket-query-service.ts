@@ -50,6 +50,22 @@ function decodeCursor(cursor: string, valid: (value: string) => boolean): [strin
   throw new ApiError('VALIDATION_FAILED', 'invalid cursor');
 }
 
+/**
+ * Tickets of any of these projects, plus the requests routed to one of them (a child in the project) or
+ * hinted at one: a request belongs to no project, but the owner filters by the projects it went to.
+ */
+function inProjectsFilter(db: Executor, ids: string[]): SQL | undefined {
+  const child = alias(tickets, 'child');
+  const routed = db
+    .select({ one: sql`1` })
+    .from(child)
+    .where(and(eq(child.parentId, tickets.id), inArray(child.projectId, ids)));
+  return or(
+    inArray(tickets.projectId, ids),
+    and(eq(tickets.type, 'request'), or(inArray(tickets.projectHintId, ids), exists(routed))),
+  );
+}
+
 /** Filtered, sorted, keyset-paginated ticket list for the board and list views. */
 export async function listTickets(db: Executor, input: ListTicketsInput): Promise<TicketListResponse> {
   const query = ListTicketsQuery.parse(input);
@@ -57,16 +73,7 @@ export async function listTickets(db: Executor, input: ListTicketsInput): Promis
   const filters: SQL[] = [];
   if (query.projectId) filters.push(eq(tickets.projectId, query.projectId));
   if (query.projectIds?.length) {
-    const ids = query.projectIds;
-    const child = alias(tickets, 'child');
-    const routed = db
-      .select({ one: sql`1` })
-      .from(child)
-      .where(and(eq(child.parentId, tickets.id), inArray(child.projectId, ids)));
-    const inProjects = or(
-      inArray(tickets.projectId, ids),
-      and(eq(tickets.type, 'request'), or(inArray(tickets.projectHintId, ids), exists(routed))),
-    );
+    const inProjects = inProjectsFilter(db, query.projectIds);
     if (inProjects) filters.push(inProjects);
   }
   if (query.parentId) filters.push(eq(tickets.parentId, query.parentId));
@@ -158,9 +165,13 @@ export async function getTicketTree(
 
 const SEARCH_LIMIT = 10;
 
-/** Quick search: tickets by key or title (exact key first), and synced docs pages by title, path or text. */
-export async function search(db: Executor, q: string): Promise<SearchResponse> {
+/**
+ * Quick search: tickets by key or title (exact key first), and synced docs pages by title, path or text.
+ * `projectIds` narrows both to those projects (requests routed or hinted to one of them included).
+ */
+export async function search(db: Executor, q: string, projectIds?: string[]): Promise<SearchResponse> {
   const pattern = likePattern(q.trim());
+  const match = or(ilike(tickets.key, pattern), ilike(tickets.title, pattern));
   const ticketRows = db
     .select({
       id: tickets.id,
@@ -168,11 +179,12 @@ export async function search(db: Executor, q: string): Promise<SearchResponse> {
       title: tickets.title,
       type: tickets.type,
       status: tickets.status,
+      projectId: tickets.projectId,
     })
     .from(tickets)
-    .where(or(ilike(tickets.key, pattern), ilike(tickets.title, pattern)))
+    .where(projectIds?.length ? and(match, inProjectsFilter(db, projectIds)) : match)
     .orderBy(sql`(upper(${tickets.key}) = upper(${q.trim()})) desc`, desc(tickets.updatedAt))
     .limit(SEARCH_LIMIT);
-  const [rows, docs] = await Promise.all([ticketRows, searchAllDocs(db, q)]);
+  const [rows, docs] = await Promise.all([ticketRows, searchAllDocs(db, q, projectIds)]);
   return { tickets: rows, docs };
 }

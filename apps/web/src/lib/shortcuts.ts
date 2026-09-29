@@ -25,7 +25,7 @@ export const SHORTCUT_HELP: readonly { keys: string; label: string }[] = [
   { keys: 'g a', label: 'Tới board Tất cả dự án' },
   { keys: 'g b', label: 'Tới Board' },
   { keys: 'g l', label: 'Tới Danh sách' },
-  { keys: 'g d', label: 'Tới Docs' },
+  { keys: 'g d', label: 'Tới Docs (dự án đang mở, nếu không thì trang Tài liệu)' },
   { keys: 'g i', label: 'Tới Inbox' },
   { keys: 'j / k', label: 'Card hoặc dòng tiếp theo / trước' },
   { keys: 'Enter', label: 'Mở ticket đang chọn' },

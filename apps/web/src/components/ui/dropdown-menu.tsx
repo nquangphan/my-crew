@@ -5,11 +5,21 @@ import { cn } from '../../lib/cn';
 export const MenuRoot = M.Root;
 export const MenuTrigger = M.Trigger;
 
-export function MenuContent({ children, align = 'start' }: { children: ReactNode; align?: 'start' | 'end' }) {
+export function MenuContent({
+  children,
+  align = 'start',
+  onCloseAutoFocus,
+}: {
+  children: ReactNode;
+  align?: 'start' | 'end';
+  /** Where focus goes when the menu closes (default: back to the trigger). */
+  onCloseAutoFocus?: (event: Event) => void;
+}) {
   return (
     <M.Portal>
       <M.Content
         align={align}
+        onCloseAutoFocus={onCloseAutoFocus}
         sideOffset={4}
         className="z-50 min-w-44 rounded-md border border-line bg-panel p-1 shadow-lg"
       >

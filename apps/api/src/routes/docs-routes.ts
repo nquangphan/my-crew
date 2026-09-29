@@ -1,4 +1,5 @@
 import {
+  CrossDocsSearchQuery,
   DOCS_SNAPSHOT_MAX_BYTES,
   DocsPageQuery,
   DocsSearchQuery,
@@ -7,7 +8,14 @@ import {
 } from '@crew/shared';
 import type { FastifyInstance } from 'fastify';
 import { requireMachine } from '../auth/machine-auth.js';
-import { getDocsPage, getDocsSpace, searchDocs, syncDocsSnapshot } from '../services/docs-service.js';
+import {
+  getDocsOverview,
+  getDocsPage,
+  getDocsSpace,
+  searchDocs,
+  searchDocsAcrossProjects,
+  syncDocsSnapshot,
+} from '../services/docs-service.js';
 import { replyIdempotent } from '../services/idempotency.js';
 import { parseInput, type RouteDeps, uuidParam } from './route-deps.js';
 
@@ -19,6 +27,15 @@ const SYNC_BODY_LIMIT = DOCS_SNAPSHOT_MAX_BYTES + 1024 * 1024;
 
 /** Owner reads of the read-only docs space. Registered inside the owner-guarded scope. */
 export async function docsRoutes(app: FastifyInstance, { db }: RouteDeps): Promise<void> {
+  /** The docs home: every project's docs status. */
+  app.get('/v1/docs', async () => getDocsOverview(db));
+
+  /** Docs search across projects (all, or `projectIds`). */
+  app.get('/v1/docs/search', async (request) => {
+    const { q, projectIds } = parseInput(CrossDocsSearchQuery, request.query);
+    return searchDocsAcrossProjects(db, q, projectIds);
+  });
+
   app.get('/v1/projects/:id/docs', async (request) => getDocsSpace(db, uuidParam(request.params, 'project')));
 
   app.get('/v1/projects/:id/docs/page', async (request) => {

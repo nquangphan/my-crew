@@ -46,12 +46,14 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
    nhận sự kiện mới); daemon dùng `stillAuthorized = authenticateTokenHash`, owner dùng
    `sessionStillValid()`.
 7. `apps/web/src/lib/live-events.ts` → `startLiveEvents()`: mở `EventSource` tới `/v1/stream`, map mỗi
-   `EventEnvelope` sang danh sách query key cần invalidate (`invalidationsFor()`; `budget.exceeded` và
-   `ticket.stuck` làm mới cả ticket lẫn danh sách thông báo của inbox, `agent.activity_changed` làm mới ticket
-   và máy liên quan, `ticket.pm_mentioned` làm mới ticket như `ticket.comment_added`/`ticket.status_changed`),
-   gộp theo lô 100ms (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với
-   `?cursor=<lastEventId>` sau `retryMs`, và invalidate toàn bộ query sau mỗi lần nối lại (vì có thể đã lỡ sự
-   kiện lúc mất kết nối).
+   `EventEnvelope` sang danh sách query key cần invalidate (`invalidationsFor()`; sự kiện ticket
+   (`TICKET_KEYS`) làm mới `keys.tickets`/`['ticket']`/`['descendants']`/`['report']` cộng
+   `keys.docsOverview` — vì trạng thái ticket `docs_init` là lý do trang chủ docs của flow `docs-sync-viewer`
+   còn hiện "Chưa có docs"; `budget.exceeded` và `ticket.stuck` làm mới thêm danh sách thông báo của inbox,
+   `agent.activity_changed` làm mới thêm ticket và máy liên quan, `ticket.pm_mentioned` làm mới ticket như
+   `ticket.comment_added`/`ticket.status_changed`), gộp theo lô 100ms (`batchMs`). Khi trình duyệt tự đóng hẳn
+   stream (`readyState CLOSED`), mở lại với `?cursor=<lastEventId>` sau `retryMs`, và invalidate toàn bộ query
+   sau mỗi lần nối lại (vì có thể đã lỡ sự kiện lúc mất kết nối).
 8. `apps/api/src/services/notice-read-service.ts` → `listOwnerNotices()`: mỗi thông báo (loại sự kiện trong
    `NOTICE_EVENT_TYPES`) kèm cờ `read` của owner (tra bảng `notice_reads` theo `seq`), cộng `unread` là số
    thông báo chưa đọc trong **toàn bộ lịch sử**, không chỉ trang đang lấy — đây là số cho badge Inbox.
@@ -95,7 +97,8 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
   nhắm đúng máy đã hỏi (`withdrawn` khi `withdrawProjectChanges()` tự rút yêu cầu vì máy đó mất project) —
   owner stream vẫn nhận vì không lọc theo `targetMachineId` (`invalidationsFor()` phía web làm mới
   `projectChanges`), chỉ là không phải loại thông báo trong `/v1/notices`.
-- docs-sync-viewer: sự kiện `docs.synced` (định nghĩa ở event-schemas) khiến web làm mới `['docs']`.
+- docs-sync-viewer: sự kiện `docs.synced` (định nghĩa ở event-schemas) khiến web làm mới `['docs']`; sự kiện
+  ticket cũng làm mới `keys.docsOverview` của trang chủ docs (`/docs`).
 - web-shell: `startLiveEvents()` được gắn vào app shell để mọi trang nhận cập nhật realtime.
 - web-admin: trang Inbox gọi `markRead()`/`markAllRead()` (qua `useInboxSummary()`) và làm mới khi nhận
   `inbox.read` từ thiết bị khác của owner.
@@ -108,7 +111,8 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
   stream xử lý `Last-Event-ID` và auth.
 - `apps/api/test/revoke-stream.test.ts`: thu hồi đóng stream đang mở ngay lập tức, token hết hạn đóng trong một
   heartbeat, đăng xuất đóng owner stream.
-- `apps/web/src/lib/live-events.test.ts`: ánh xạ sự kiện, resume theo cursor, invalidate sau khi nối lại.
+- `apps/web/src/lib/live-events.test.ts`: ánh xạ sự kiện (gồm sự kiện ticket cũng invalidate
+  `keys.docsOverview`), resume theo cursor, invalidate sau khi nối lại.
 
 `listOwnerNotices()`/`markNoticesRead()`/`markAllNoticesRead()` được kiểm bởi
 `apps/api/test/owner-web-support.test.ts` (flow `ticket-lifecycle`, nơi test đó sống): đánh dấu một hay tất cả

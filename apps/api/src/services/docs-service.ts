@@ -1,4 +1,7 @@
 import {
+  type CrossDocsSearchResponse,
+  type DocsInitTicketInfo,
+  type DocsOverviewResponse,
   type DocsPageKind,
   type DocsPageResponse,
   type DocsPageSummary,
@@ -12,11 +15,11 @@ import {
   normalizeDocsPath,
   type SearchResponse,
 } from '@crew/shared';
-import { and, asc, eq, ilike, or, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, or, type SQL, sql } from 'drizzle-orm';
 import { parse as parseYaml } from 'yaml';
 import type { z } from 'zod';
 import type { Executor, Transaction } from '../db/client.js';
-import { type DocsSnapshotRow, docsFiles, docsSnapshots, projects } from '../db/schema.js';
+import { type DocsSnapshotRow, docsFiles, docsSnapshots, projects, tickets } from '../db/schema.js';
 import { ApiError, notFound } from '../errors.js';
 import { appendEvents } from './event-service.js';
 import { likePattern } from './like-pattern.js';
@@ -34,6 +37,7 @@ const FIXED_PAGES: Record<string, { kind: DocsPageKind; title: string }> = {
 const INSERT_BATCH = 200;
 const SPACE_SEARCH_LIMIT = 20;
 const GLOBAL_SEARCH_LIMIT = 10;
+const CROSS_SEARCH_LIMIT = 50;
 const SNIPPET_RADIUS = 80;
 
 /** Parses and validates `docs/flows.yaml`; a snapshot whose manifest is invalid is refused. */
@@ -227,13 +231,97 @@ export async function searchDocs(db: Executor, projectId: string, q: string): Pr
   };
 }
 
-/** Docs pages of every project for the global quick search; title matches first. */
-export async function searchAllDocs(db: Executor, q: string): Promise<SearchResponse['docs']> {
+/** Only the pages of these projects, when a project filter is given. */
+function inProjects(projectIds: readonly string[] | undefined, text: string): SQL | undefined {
+  return projectIds?.length
+    ? and(inArray(docsFiles.projectId, [...projectIds]), matchesQuery(text))
+    : matchesQuery(text);
+}
+
+/**
+ * Docs search across projects (the docs home and the space search's "Mọi dự án" scope): every project, or
+ * only `projectIds`; title matches first, then by project and path.
+ */
+export async function searchDocsAcrossProjects(
+  db: Executor,
+  q: string,
+  projectIds?: readonly string[],
+): Promise<CrossDocsSearchResponse> {
+  const text = q.trim();
+  const rows = await db
+    .select({ ...summaryColumns, projectId: docsFiles.projectId, content: docsFiles.content })
+    .from(docsFiles)
+    .innerJoin(projects, eq(projects.id, docsFiles.projectId))
+    .where(inProjects(projectIds, text))
+    .orderBy(
+      sql`(${docsFiles.title} ilike ${likePattern(text)}) desc`,
+      asc(projects.key),
+      asc(docsFiles.path),
+    )
+    .limit(CROSS_SEARCH_LIMIT);
+  return {
+    items: rows.map(({ content, ...page }) => ({ ...page, snippet: snippetOf(content, text) })),
+  };
+}
+
+/**
+ * The docs home: every project's docs status, its latest snapshot with the file count, and its newest
+ * docs_init ticket (why a space is still empty: blocked, in progress, …).
+ */
+export async function getDocsOverview(db: Executor): Promise<DocsOverviewResponse> {
+  const [projectRows, snapshots, counts, inits] = await Promise.all([
+    db.select({ id: projects.id, docsStatus: projects.docsStatus }).from(projects).orderBy(asc(projects.key)),
+    db.select().from(docsSnapshots),
+    db
+      .select({ projectId: docsFiles.projectId, files: count() })
+      .from(docsFiles)
+      .groupBy(docsFiles.projectId),
+    db
+      .select({
+        id: tickets.id,
+        key: tickets.key,
+        title: tickets.title,
+        status: tickets.status,
+        updatedAt: tickets.updatedAt,
+        projectId: tickets.projectId,
+      })
+      .from(tickets)
+      .where(eq(tickets.type, 'docs_init'))
+      .orderBy(desc(tickets.createdAt), desc(tickets.id)),
+  ]);
+  const snapshotOf = new Map(snapshots.map((row) => [row.projectId, row]));
+  const countOf = new Map(counts.map((row) => [row.projectId, row.files]));
+  const initOf = new Map<string, DocsInitTicketInfo>();
+  for (const { projectId, updatedAt, ...ticket } of inits) {
+    if (projectId && !initOf.has(projectId)) {
+      initOf.set(projectId, { ...ticket, updatedAt: updatedAt.toISOString() });
+    }
+  }
+  return {
+    items: projectRows.map((project) => {
+      const snapshot = snapshotOf.get(project.id);
+      return {
+        projectId: project.id,
+        docsStatus: project.docsStatus,
+        snapshot: snapshot ? toSnapshotInfo(snapshot) : null,
+        fileCount: countOf.get(project.id) ?? 0,
+        docsInit: initOf.get(project.id) ?? null,
+      };
+    }),
+  };
+}
+
+/** Docs pages of every project (or only `projectIds`) for the global quick search; title matches first. */
+export async function searchAllDocs(
+  db: Executor,
+  q: string,
+  projectIds?: readonly string[],
+): Promise<SearchResponse['docs']> {
   const text = q.trim();
   return db
     .select({ projectId: docsFiles.projectId, path: docsFiles.path, title: docsFiles.title })
     .from(docsFiles)
-    .where(matchesQuery(text))
+    .where(inProjects(projectIds, text))
     .orderBy(sql`(${docsFiles.title} ilike ${likePattern(text)}) desc`, asc(docsFiles.title))
     .limit(GLOBAL_SEARCH_LIMIT);
 }
