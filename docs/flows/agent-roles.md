@@ -37,10 +37,13 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    bình luận của ticket `request` cha) nối vào `header` — **không bọc** vì chủ dự án tự viết, khác với mô tả
    `pm_task` (tóm tắt của assistant, vẫn bị `wrapUntrusted()`).
 3. `apps/daemon/src/roles/model-policy.ts` → `resolveModel()`: `docs_init`/`docs_update` luôn `sonnet`/`high`
-   (`DOCS_MODEL`, quyết định của chủ dự án, không phụ thuộc ticket hay allowlist máy); `dev`/`qc` lấy
-   model/effort của subtask, rồi bản đồ độ phức tạp của máy, rồi mặc định theo bước; PM chạy `sonnet`, hoặc
-   `opus` khi `pm_task.complexity === 'large'`; một model ngoài `models.allow` bị `clampModel()` kẹp xuống
-   model được phép mạnh nhất ngay dưới nó kèm một bình luận thông báo.
+   (`DOCS_MODEL`, quyết định của chủ dự án, không phụ thuộc ticket hay allowlist máy); `dev`/`qc` (kể cả `bug`)
+   không có mặc định — lấy bản đồ độ phức tạp của máy theo `complexity` PM đã chấm cho subtask, model/effort
+   PM tự đặt trên subtask (ghi đè có chủ đích) thắng bản đồ đó; ticket chưa có `complexity` (subtask cũ tạo
+   trước khi bắt buộc đánh giá) làm `resolveModel()` ném `MissingComplexityError`, rơi vào đường crash của
+   `job-runner.ts` (flow `agent-runs`) thay vì âm thầm chọn một model; PM chạy `sonnet`, hoặc `opus` khi
+   `pm_task.complexity === 'large'`; một model ngoài `models.allow` bị `clampModel()` kẹp xuống model được
+   phép mạnh nhất ngay dưới nó kèm một bình luận thông báo.
 4. `apps/daemon/src/roles/prompt-templates.ts` → `renderPrompt()`: `{{> partial}}` chèn `prompts/<partial>.md`
    (một lớp), rồi `{{var}}` thay giá trị của `vars`; thiếu biến là lỗi (không để `{{…}}` lọt tới agent), giá
    trị chèn vào không bao giờ được quét lại nên không tự mở rộng thành template. Template nằm cạnh module này
@@ -107,7 +110,7 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 | `apps/daemon/src/roles/role-planner.ts` | `RolePlanner` mặc định: prompt, cổng, model, report, follow-up theo bước | `rolePlanner`, `missingUiServers`, `cleanupLines`, `ownerRequest` |
 | `apps/daemon/src/roles/role-registry.ts` | Bảng bước, đường trạng thái hợp lệ, chọn bước | `STAGES`, `resolveStage`, `isTerminal`, `workChildren` |
 | `apps/daemon/src/roles/prompt-templates.ts` | Nạp và render template Markdown | `renderPrompt`, `loadPrompt`, `setPromptsDir` |
-| `apps/daemon/src/roles/model-policy.ts` | Model/effort theo bước, kẹp theo allowlist | `resolveModel`, `clampModel` |
+| `apps/daemon/src/roles/model-policy.ts` | Model/effort theo bước, kẹp theo allowlist | `resolveModel`, `clampModel`, `MissingComplexityError` |
 | `apps/daemon/src/roles/skill-enforcement.ts` | Skill/MCP đã dùng so với bắt buộc/đã chọn | `capabilityUse`, `capabilityGaps`, `capabilityWarning`, `mergeChoices` |
 | `apps/daemon/src/roles/docs-first-check.ts` | Kiểm tra đọc docs trước code | `docsFirst` |
 | `apps/daemon/src/roles/docs-init-gate.ts` | Cổng docs-init của PM analyze | `docsInitGate` |
@@ -159,8 +162,10 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 - `apps/daemon/test/role-contracts.test.ts`: mọi đường trong `STAGES[...].paths` và `FAILURE_PATHS` hợp lệ
   với `canTransition('agent', …)`; `resolveStage()` cho từng tổ hợp loại ticket/con/job; template render đúng
   partial và biến, báo lỗi khi thiếu biến.
-- `apps/daemon/test/model-policy.test.ts`: docs luôn `sonnet`/`high` bất kể lựa chọn; dev/qc/pm theo đúng thứ
-  tự ưu tiên; kẹp model ngoài allowlist xuống model mạnh nhất còn được phép.
+- `apps/daemon/test/model-policy.test.ts`: docs luôn `sonnet`/`high` bất kể lựa chọn; dev/qc theo đúng bản đồ
+  độ phức tạp của máy, model/effort PM tự đặt trên subtask thắng bản đồ; dev/qc không `complexity` ném
+  `MissingComplexityError` dù có đặt `model`; pm theo đúng thứ tự ưu tiên; kẹp model ngoài allowlist xuống
+  model mạnh nhất còn được phép.
 - `apps/daemon/test/skill-enforcement.test.ts`: skill/MCP dùng thật từ nhật ký công cụ và slash command; gộp
   lựa chọn nhiều lượt của cùng ticket; khoảng trống bắt buộc/đã chọn trừ đã dùng; nội dung cảnh báo.
 - `apps/daemon/test/docs-first-check.test.ts`: docs trước code đạt/không đạt theo thứ tự Read/Grep thật, Read
@@ -177,7 +182,8 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   worktree và hook crew-docs thật — happy path, docs bị hook từ chối rồi commit lại, capability preflight, dọn
   tài nguyên và đánh thức PM, nhiều bug liên tiếp, chạm trần chu kỳ bug, huỷ ticket giữa lúc dev đang chạy,
   crash giữa lúc PM chia việc, resume sau backoff, xung đột block docs sinh tự động khi merge, dự án chưa có
-  docs, chạm trần con, budget hold, QC thiếu MCP bắt buộc, PM từ chối một ticket dev — mỗi kịch bản kết thúc ở
-  trạng thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
+  docs, chạm trần con, budget hold, QC thiếu MCP bắt buộc, PM từ chối một ticket dev, PM chấm dev/QC riêng
+  (`16-qc-own-rating.yaml`: dev `large` chạy `opus`, QC `trivial` chạy `haiku`, bug kế thừa mức của dev, retest
+  kế thừa mức của QC) — mỗi kịch bản kết thúc ở trạng thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
 - `apps/daemon/test/live-workflow.test.ts` (tuỳ chọn `CREW_LIVE_AGENT_TESTS=1`): toàn bộ luồng trên model
   thật (đăng nhập gói đăng ký), một repo fixture có docs, skill và MCP Playwright của dự án.

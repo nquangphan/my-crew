@@ -11,6 +11,7 @@ import {
   eventsOf,
   getTicket,
   minimalReport,
+  RATED,
   setStatus,
   useTestDb,
 } from './helpers/test-db.js';
@@ -21,10 +22,10 @@ describe('child cap', () => {
   it('enforces the default cap of 12 and parks the pm_task in needs_input', async () => {
     const { pmTask } = await createTree(ctx.db);
     for (let i = 0; i < 12; i++)
-      await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: `Dev ${i}` });
+      await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: `Dev ${i}` });
 
     await expect(
-      createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev 13' }),
+      createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev 13' }),
     ).rejects.toMatchObject({
       code: 'CHILD_CAP_EXCEEDED',
       sideEffectsCommitted: true,
@@ -46,13 +47,13 @@ describe('child cap', () => {
     await updateProject(ctx.db, project.id, { maxChildrenPerTicket: 2 });
     await createDevWithQc(ctx.db, pmTask.id);
     await expect(
-      createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'x' }),
+      createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'x' }),
     ).rejects.toMatchObject({
       code: 'CHILD_CAP_EXCEEDED',
     });
     // A retry while parked adds no second comment or event.
     await expect(
-      createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'x' }),
+      createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'x' }),
     ).rejects.toMatchObject({
       code: 'BUDGET_HOLD',
     });
@@ -66,7 +67,7 @@ describe('child cap', () => {
     const resumed = await getTicket(ctx.db, pmTask.id);
     expect(resumed).toMatchObject({ status: 'in_progress', budgetHold: null, childCapLifted: true });
     await expect(
-      createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Thêm' }),
+      createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Thêm' }),
     ).resolves.toMatchObject({
       type: 'dev',
     });
@@ -87,7 +88,7 @@ describe('child cap', () => {
 describe('cost budgets', () => {
   it('has no limit by default', async () => {
     const { pmTask } = await createTree(ctx.db);
-    const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev' });
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
     await submitReport(ctx.db, dev.id, minimalReport({ costUsd: 5_000 }));
     expect((await getTicket(ctx.db, pmTask.id)).status).toBe('in_progress');
     expect((await getTicket(ctx.db, dev.id)).costUsd).toBe(5_000);
@@ -97,7 +98,7 @@ describe('cost budgets', () => {
   it('parks the pm_task when the ticket tree budget is exceeded, until the owner approves', async () => {
     const { pmTask, project } = await createTree(ctx.db);
     await updateProject(ctx.db, project.id, { ticketTreeBudgetUsd: 10 });
-    const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev' });
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
     await submitReport(ctx.db, pmTask.id, minimalReport({ costUsd: 4 }));
     await submitReport(ctx.db, dev.id, minimalReport({ costUsd: 5 }));
     expect((await getTicket(ctx.db, pmTask.id)).status).toBe('in_progress');
@@ -124,7 +125,7 @@ describe('cost budgets', () => {
   it('parks the pm_task when the project daily budget is exceeded', async () => {
     const { pmTask, project } = await createTree(ctx.db);
     await updateProject(ctx.db, project.id, { dailyBudgetUsd: 1 });
-    const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev' });
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
     await submitReport(ctx.db, dev.id, minimalReport({ costUsd: 0.6 }));
     await submitReport(ctx.db, dev.id, minimalReport({ costUsd: 0.6 }));
 

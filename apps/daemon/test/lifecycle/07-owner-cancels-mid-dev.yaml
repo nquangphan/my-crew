@@ -14,7 +14,10 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Việc sẽ bị huỷ }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Việc dài }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Việc dài, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     title: '^Việc dài$'
     steps:

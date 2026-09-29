@@ -125,6 +125,8 @@ export const Ticket = z.object({
   priority: TicketPriority,
   allowConfigChange: z.boolean(),
   complexity: Complexity.nullable(),
+  /** The PM's one-line reason for `complexity` (dev and QC subtasks; a bug inherits its dev's). */
+  complexityReason: z.string().nullable(),
   model: ModelAlias.nullable(),
   effort: Effort.nullable(),
   requiredSkills: z.array(z.string()),
@@ -163,8 +165,10 @@ export const CreateRequestTicket = z.object({
 });
 export type CreateRequestTicket = z.input<typeof CreateRequestTicket>;
 
-/** Agents create pm_task (under a request) and dev/qc/bug/docs_init (under a pm_task). */
-export const CreateSubtaskRequest = z.object({
+/** Types whose model the PM chooses by rating the subtask's complexity: there is no default model. */
+const RATED_TYPES: readonly string[] = ['dev', 'qc'];
+
+const SubtaskFields = z.object({
   type: z.enum(['pm_task', 'dev', 'qc', 'docs_init']),
   parentId: z.uuid(),
   /** Required for pm_task; children inherit the parent's project. */
@@ -173,6 +177,8 @@ export const CreateSubtaskRequest = z.object({
   description: Description.default(''),
   priority: TicketPriority.optional(),
   complexity: Complexity.optional(),
+  /** Required with `complexity` for dev and qc: why the PM rated it so (one line). */
+  complexityReason: z.string().trim().min(1).max(500).optional(),
   model: ModelAlias.optional(),
   effort: Effort.optional(),
   requiredSkills: z.array(SkillName).max(50).default([]),
@@ -182,6 +188,30 @@ export const CreateSubtaskRequest = z.object({
   /** Required for qc: the dev or bug ticket it verifies. */
   pairsWith: z.uuid().optional(),
   flows: z.array(FlowRef).max(100).default([]),
+});
+
+/**
+ * Agents create pm_task (under a request) and dev/qc/bug/docs_init (under a pm_task). A dev or QC subtask
+ * needs `complexity` and a one-line `complexityReason`: the run's model comes from that rating.
+ */
+export const CreateSubtaskRequest = SubtaskFields.superRefine((data, ctx) => {
+  if (!RATED_TYPES.includes(data.type)) return;
+  if (!data.complexity) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['complexity'],
+      message:
+        `Subtask ${data.type} bắt buộc có complexity (trivial | small | medium | large): PM đánh giá độ ` +
+        'phức tạp để chọn model, không có model mặc định cho dev và QC.',
+    });
+  }
+  if (!data.complexityReason) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['complexityReason'],
+      message: `Subtask ${data.type} bắt buộc có complexityReason: một dòng lý do cho mức complexity đã chọn.`,
+    });
+  }
 });
 export type CreateSubtaskRequest = z.input<typeof CreateSubtaskRequest>;
 

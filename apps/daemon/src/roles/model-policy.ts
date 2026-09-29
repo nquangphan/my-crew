@@ -15,18 +15,33 @@ export interface ModelChoice {
   notice: string | null;
 }
 
-/** Stage defaults when neither the ticket nor its complexity names a model. */
-const STAGE_DEFAULTS: Record<RoleStage, { model: ModelAlias; effort: Effort }> = {
+/** Stages whose model the PM chooses by rating the subtask's complexity: they have no default. */
+type RatedStage = 'dev' | 'qc';
+type DefaultedStage = Exclude<RoleStage, RatedStage | 'docs_init' | 'docs_update'>;
+
+/** Models of the assistant and PM stages (docs stages are fixed on DOCS_MODEL). */
+const STAGE_DEFAULTS: Record<DefaultedStage, { model: ModelAlias; effort: Effort }> = {
   assistant_triage: { model: 'haiku', effort: 'medium' },
   assistant_close: { model: 'haiku', effort: 'low' },
   pm_analyze: { model: 'sonnet', effort: 'high' },
   pm_monitor: { model: 'sonnet', effort: 'high' },
   pm_accept: { model: 'sonnet', effort: 'high' },
-  dev: { model: 'sonnet', effort: 'high' },
-  docs_update: { model: DOCS_MODEL, effort: 'high' },
-  qc: { model: 'sonnet', effort: 'high' },
-  docs_init: { model: DOCS_MODEL, effort: 'high' },
 };
+
+/**
+ * A dev, bug or QC ticket without the PM's complexity rating (a ticket created before the rating was
+ * required). The run fails through the crash path, which comments this message and blocks the ticket.
+ */
+export class MissingComplexityError extends Error {
+  constructor(stage: RatedStage) {
+    super(
+      `Ticket này chưa được PM đánh giá độ phức tạp (complexity) nên không chọn được model cho lượt ${stage === 'qc' ? 'QC' : 'dev'}: ` +
+        'không có model mặc định cho dev và QC. PM cần đánh giá lại: tạo subtask thay thế có complexity ' +
+        '(trivial | small | medium | large) và complexityReason (một dòng lý do), rồi nhờ chủ dự án huỷ ticket này.',
+    );
+    this.name = 'MissingComplexity';
+  }
+}
 
 /** Strongest first: a model outside the allowlist falls back to the next allowed one below it. */
 const STRENGTH: readonly ModelAlias[] = ['fable', 'opus', 'sonnet', 'haiku'];
@@ -39,7 +54,9 @@ type TicketModelFields = Pick<Ticket, 'model' | 'effort' | 'complexity'>;
  * - Docs work (docs-init, docs-update) is always `sonnet` / `high`, whatever the ticket, its complexity, the
  *   PM or the allowlist say (owner decision; the config refuses an allowlist without sonnet).
  * - The PM runs on sonnet, or opus when its task is rated `large` (cross-cutting work).
- * - Dev and QC take the subtask's model and effort, else the machine's complexity map, else the default.
+ * - Dev (and bug) and QC runs take the machine's complexity map entry for the PM's rating; a model or effort
+ *   the PM set on the subtask overrides it (the rating and its reason are still required). A ticket
+ *   without a rating throws MissingComplexityError: there is no default model for dev or QC.
  * - A model outside `models.allow` is clamped to the next allowed model below it and a notice is returned,
  *   which the daemon posts as a comment. Fable is therefore only used where the owner allowed it.
  */
@@ -49,24 +66,22 @@ export function resolveModel(input: {
   ticket: TicketModelFields;
 }): ModelChoice {
   const { config, stage, ticket } = input;
-  const base = STAGE_DEFAULTS[stage];
   if (stage === 'docs_init' || stage === 'docs_update') {
     return { model: DOCS_MODEL, effort: 'high', notice: null };
   }
   let wanted: { model: ModelAlias; effort: Effort };
   if (stage === 'dev' || stage === 'qc') {
-    const mapped = ticket.complexity ? config.models.complexityMap[ticket.complexity as Complexity] : null;
-    wanted = {
-      model: ticket.model ?? mapped?.model ?? base.model,
-      effort: ticket.effort ?? mapped?.effort ?? base.effort,
-    };
+    if (!ticket.complexity) throw new MissingComplexityError(stage);
+    const mapped = config.models.complexityMap[ticket.complexity as Complexity];
+    wanted = { model: ticket.model ?? mapped.model, effort: ticket.effort ?? mapped.effort };
   } else if (stage.startsWith('pm_')) {
+    const base = STAGE_DEFAULTS[stage];
     wanted = {
       model: ticket.model ?? (ticket.complexity === 'large' ? 'opus' : base.model),
       effort: ticket.effort ?? base.effort,
     };
   } else {
-    wanted = base;
+    wanted = STAGE_DEFAULTS[stage];
   }
   const model = clampModel(wanted.model, config.models.allow);
   const notice =

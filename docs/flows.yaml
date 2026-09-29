@@ -33,6 +33,7 @@ flows:
       - apps/api/drizzle/0003_project_changes_and_notice_reads.sql
       - apps/api/drizzle/0004_project_change_withdrawn.sql
       - apps/api/drizzle/0005_machine_job_activity.sql
+      - apps/api/drizzle/0006_pm_complexity_reason.sql
       - packages/shared/src/index.ts
     tests:
       - apps/api/test/shutdown.test.ts

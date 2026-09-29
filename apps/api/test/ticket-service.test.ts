@@ -9,6 +9,7 @@ import {
   createTestProject,
   createTree,
   eventsOf,
+  RATED,
   setStatus,
   useTestDb,
 } from './helpers/test-db.js';
@@ -25,7 +26,7 @@ describe('ticket keys', () => {
 
   it('numbers subtasks per project key', async () => {
     const { pmTask } = await createTree(ctx.db);
-    const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev' });
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
     expect(pmTask.key).toBe('WEB-1');
     expect(dev.key).toBe('WEB-2');
   });
@@ -70,6 +71,7 @@ describe('assignment', () => {
     });
     const dev = await createSubtask(ctx.db, {
       type: 'dev',
+      ...RATED,
       parentId: pmTask.id,
       title: 'Dev',
       complexity: 'medium',
@@ -96,13 +98,15 @@ describe('assignment', () => {
 describe('hierarchy', () => {
   it('allows at most request -> pm_task -> work tickets', async () => {
     const { request, pmTask } = await createTree(ctx.db);
-    const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev' });
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
     await expect(
-      createSubtask(ctx.db, { type: 'dev', parentId: request.id, title: 'x' }),
+      createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: request.id, title: 'x' }),
     ).rejects.toMatchObject({
       code: 'INVALID_HIERARCHY',
     });
-    await expect(createSubtask(ctx.db, { type: 'dev', parentId: dev.id, title: 'x' })).rejects.toMatchObject({
+    await expect(
+      createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: dev.id, title: 'x' }),
+    ).rejects.toMatchObject({
       code: 'INVALID_HIERARCHY',
     });
     await expect(
@@ -119,7 +123,7 @@ describe('hierarchy', () => {
     const { pmTask } = await createTree(ctx.db);
     await setStatus(ctx.db, pmTask.id, 'cancelled');
     await expect(
-      createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'x' }),
+      createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'x' }),
     ).rejects.toMatchObject({
       code: 'PARENT_CLOSED',
     });
@@ -130,6 +134,7 @@ describe('hierarchy', () => {
     const docs = await createSubtask(ctx.db, { type: 'docs_init', parentId: pmTask.id, title: 'Docs init' });
     const dev = await createSubtask(ctx.db, {
       type: 'dev',
+      ...RATED,
       parentId: pmTask.id,
       title: 'Dev',
       dependsOn: [docs.id],
@@ -137,7 +142,13 @@ describe('hierarchy', () => {
     expect(docs.assigneeRole).toBe('dev');
     expect(dev.dependsOn).toEqual([docs.id]);
     await expect(
-      createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'x', dependsOn: [request.id] }),
+      createSubtask(ctx.db, {
+        type: 'dev',
+        ...RATED,
+        parentId: pmTask.id,
+        title: 'x',
+        dependsOn: [request.id],
+      }),
     ).rejects.toMatchObject({ code: 'INVALID_DEPENDENCY' });
   });
 });
@@ -163,9 +174,10 @@ describe('qc tickets', () => {
           uiTestMcp: { maestro: 'sim-maestro', playwright: 'playwright' },
         });
       }
-      const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev' });
+      const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
       const qc = await createSubtask(ctx.db, {
         type: 'qc',
+        ...RATED,
         parentId: pmTask.id,
         title: 'QC',
         pairsWith: dev.id,
@@ -179,15 +191,15 @@ describe('qc tickets', () => {
     const { pmTask } = await createTree(ctx.db);
     const { dev } = await createDevWithQc(ctx.db, pmTask.id);
     await expect(
-      createSubtask(ctx.db, { type: 'qc', parentId: pmTask.id, title: 'QC' }),
+      createSubtask(ctx.db, { type: 'qc', ...RATED, parentId: pmTask.id, title: 'QC' }),
     ).rejects.toMatchObject({
       code: 'VALIDATION_FAILED',
     });
     await expect(
-      createSubtask(ctx.db, { type: 'qc', parentId: pmTask.id, title: 'QC 2', pairsWith: dev.id }),
+      createSubtask(ctx.db, { type: 'qc', ...RATED, parentId: pmTask.id, title: 'QC 2', pairsWith: dev.id }),
     ).rejects.toMatchObject({ code: 'QC_ALREADY_PAIRED' });
     await expect(
-      createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'x', pairsWith: dev.id }),
+      createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'x', pairsWith: dev.id }),
     ).rejects.toBeInstanceOf(ApiError);
   });
 });
@@ -224,12 +236,14 @@ describe('reads', () => {
     const { pmTask, project } = await createTree(ctx.db);
     const dev = await createSubtask(ctx.db, {
       type: 'dev',
+      ...RATED,
       parentId: pmTask.id,
       title: 'Giỏ hàng 100%_done',
       flows: ['cart'],
     });
     await createSubtask(ctx.db, {
       type: 'dev',
+      ...RATED,
       parentId: pmTask.id,
       title: 'Thanh toán',
       flows: ['checkout'],
@@ -279,7 +293,7 @@ describe('reads', () => {
 
   it('returns the ticket detail with children, comments, report and events', async () => {
     const { pmTask } = await createTree(ctx.db);
-    await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev' });
+    await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
     await addComment(ctx.db, {
       ticketId: pmTask.id,
       body: 'Câu hỏi?',

@@ -21,7 +21,7 @@ Gọi `list_children`, rồi `get_ticket` từng subtask để đọc report. V�
    chấp nhận giải thích, đưa ticket vào `acceptedExceptions` của `merge_and_push` kèm lý do.
 4. Report có `left_resources=true` được xử lý như thiếu skill: từ chối trừ khi có giải thích.
 5. Từ chối một ticket: `reject_work` với id ticket và mô tả lỗi; server tạo ticket `bug` cho dev kèm QC kiểm thử
-   lại. Sau khi từ chối thì bình luận tóm tắt và **dừng** (bạn sẽ được đánh thức khi các ticket mới xong).
+   lại (bug kế thừa `complexity` của ticket dev gốc, QC kiểm thử lại kế thừa của QC đi kèm). Sau khi từ chối thì bình luận tóm tắt và **dừng** (bạn sẽ được đánh thức khi các ticket mới xong).
 
 ## Bước 4: tài nguyên
 
@@ -37,7 +37,8 @@ vào `crew/{{ticket_key}}` theo thứ tự phụ thuộc, chạy `crew-docs gene
 
 - `status: rejected`: làm theo bước 3 cho từng vi phạm.
 - `status: conflict`: `create_subtask` một ticket dev "Giải quyết xung đột" (phụ thuộc các ticket liên quan, mô
-  tả file xung đột) kèm QC, bình luận rồi dừng.
+  tả file xung đột) kèm QC, mỗi ticket có `complexity` và `complexityReason` do bạn đánh giá riêng (như bước chia
+  việc), bình luận rồi dừng.
 - `status: gate_failed`: daemon đã chuyển ticket sang `blocked` kèm output của cổng; dừng lại.
 
 ## Bước 6: report và đóng

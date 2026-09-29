@@ -1,7 +1,7 @@
 import { Complexity, Effort, ModelAlias, RoleStage } from '@crew/shared';
 import { describe, expect, it } from 'vitest';
 import { parseConfig } from '../src/config.js';
-import { clampModel, resolveModel } from '../src/roles/model-policy.js';
+import { clampModel, MissingComplexityError, resolveModel } from '../src/roles/model-policy.js';
 
 const config = (allow?: ModelAlias[]) =>
   parseConfig({ apiUrl: 'http://127.0.0.1:1', machineName: 'm', ...(allow ? { models: { allow } } : {}) });
@@ -34,22 +34,56 @@ describe('model policy', () => {
     }
   });
 
-  it('maps complexity for dev and QC, and the subtask model and effort win', () => {
+  it('maps the PM rating for dev and QC through the machine complexity map', () => {
     const c = config();
-    const dev = (complexity: Complexity) =>
-      resolveModel({ config: c, stage: 'dev', ticket: ticket(null, null, complexity) });
-    expect(dev('trivial')).toMatchObject({ model: 'haiku', effort: 'low' });
-    expect(dev('small')).toMatchObject({ model: 'sonnet', effort: 'medium' });
-    expect(dev('medium')).toMatchObject({ model: 'sonnet', effort: 'high' });
-    expect(dev('large')).toMatchObject({ model: 'opus', effort: 'high' });
+    for (const stage of ['dev', 'qc'] as const) {
+      const run = (complexity: Complexity) =>
+        resolveModel({ config: c, stage, ticket: ticket(null, null, complexity) });
+      expect(run('trivial')).toEqual({ model: 'haiku', effort: 'low', notice: null });
+      expect(run('small')).toEqual({ model: 'sonnet', effort: 'medium', notice: null });
+      expect(run('medium')).toEqual({ model: 'sonnet', effort: 'high', notice: null });
+      expect(run('large')).toEqual({ model: 'opus', effort: 'high', notice: null });
+    }
+    // The machine's own map is used, not a built-in table.
+    const custom = parseConfig({
+      apiUrl: 'http://127.0.0.1:1',
+      machineName: 'm',
+      models: { complexityMap: { small: { model: 'opus', effort: 'xhigh' } } },
+    });
+    expect(resolveModel({ config: custom, stage: 'qc', ticket: ticket(null, null, 'small') })).toMatchObject({
+      model: 'opus',
+      effort: 'xhigh',
+    });
+  });
+
+  it('lets a model or effort the PM set on the subtask override the map', () => {
+    const c = config();
     expect(resolveModel({ config: c, stage: 'qc', ticket: ticket('opus', 'xhigh', 'small') })).toMatchObject({
       model: 'opus',
       effort: 'xhigh',
     });
-    expect(resolveModel({ config: c, stage: 'dev', ticket: ticket(null, null, null) })).toMatchObject({
-      model: 'sonnet',
+    expect(resolveModel({ config: c, stage: 'dev', ticket: ticket('haiku', null, 'large') })).toMatchObject({
+      model: 'haiku',
       effort: 'high',
     });
+    expect(resolveModel({ config: c, stage: 'dev', ticket: ticket(null, 'max', 'trivial') })).toMatchObject({
+      model: 'haiku',
+      effort: 'max',
+    });
+  });
+
+  it('has no default model for dev or QC: a ticket without a rating fails, even with a model set', () => {
+    const c = config();
+    for (const stage of ['dev', 'qc'] as const) {
+      for (const model of [null, ...ModelAlias.options]) {
+        expect(() => resolveModel({ config: c, stage, ticket: ticket(model, 'high', null) })).toThrow(
+          MissingComplexityError,
+        );
+      }
+    }
+    expect(() => resolveModel({ config: c, stage: 'qc', ticket: ticket(null, null, null) })).toThrow(
+      /chưa được PM đánh giá độ phức tạp.*lượt QC/,
+    );
   });
 
   it('uses the stage defaults: haiku for the assistant, sonnet for the PM, opus for large PM work', () => {
@@ -76,14 +110,21 @@ describe('model policy', () => {
 
   it('clamps a model outside the allowlist to the next allowed one below and says so', () => {
     const c = config(['haiku', 'sonnet']);
-    const clamped = resolveModel({ config: c, stage: 'dev', ticket: ticket('fable', 'max', null) });
+    const clamped = resolveModel({ config: c, stage: 'dev', ticket: ticket('fable', 'max', 'large') });
     expect(clamped).toMatchObject({ model: 'sonnet', effort: 'max' });
     expect(clamped.notice).toContain('fable');
     expect(clamped.notice).toContain('sonnet');
     // Fable is only used where the owner allowed it.
-    expect(resolveModel({ config: config(), stage: 'dev', ticket: ticket('fable', null, null) }).model).toBe(
-      'opus',
-    );
+    expect(
+      resolveModel({ config: config(), stage: 'dev', ticket: ticket('fable', null, 'large') }).model,
+    ).toBe('opus');
+    expect(
+      resolveModel({
+        config: config(['haiku', 'sonnet', 'opus', 'fable']),
+        stage: 'dev',
+        ticket: ticket('fable', null, 'large'),
+      }).model,
+    ).toBe('fable');
     expect(clampModel('haiku', ['sonnet', 'opus'])).toBe('sonnet');
     expect(clampModel('opus', ['haiku', 'sonnet'])).toBe('sonnet');
     for (const stage of RoleStage.options) {

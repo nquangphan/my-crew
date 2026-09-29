@@ -23,7 +23,7 @@ scripts:
     steps:
       - macro: pm_analyze
         skills: [planning]
-        subtasks: [{ title: Viết route /health, skills: [api-design], complexity: trivial }]
+        subtasks: [{ title: Viết route /health, skills: [api-design], complexity: trivial, qcComplexity: trivial }]
   - stage: dev
     title: Viết route /health
     steps: [{ macro: dev, skills: [api-design], file: src/health.js }]

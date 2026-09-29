@@ -14,7 +14,10 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Trang khuyến mãi }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Banner khuyến mãi }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Banner khuyến mãi, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     costUsd: 0.25
     steps: [{ macro: dev, file: src/promo.js }]

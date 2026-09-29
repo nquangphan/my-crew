@@ -180,6 +180,8 @@ export const tickets = pgTable(
     priority: ticketPriorityEnum('priority').notNull().default('medium'),
     allowConfigChange: boolean('allow_config_change').notNull().default(false),
     complexity: complexityEnum('complexity'),
+    /** The PM's one-line reason for `complexity`. */
+    complexityReason: text('complexity_reason'),
     model: modelAliasEnum('model'),
     effort: effortEnum('effort'),
     requiredSkills: textArray('required_skills'),

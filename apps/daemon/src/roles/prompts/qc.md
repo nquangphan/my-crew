@@ -26,7 +26,8 @@ diff và file nguồn.
 ## Bước 4: kết quả
 
 1. Mỗi lỗi một lần `file_bug` (tiêu đề, mô tả cách tái hiện và kết quả mong đợi, flow). Server tạo ticket `bug`
-   cho dev và một QC kiểm thử lại; chuỗi sửa lỗi dừng ở 3 vòng.
+   cho dev (kế thừa `complexity` mà PM đánh giá cho ticket dev gốc) và một QC kiểm thử lại (kế thừa mức của ticket
+   QC này); chuỗi sửa lỗi dừng ở 3 vòng.
 2. `submit_report`: `summaryMd` liệt kê các bug đã báo hoặc ghi "pass", các flow hoặc script kiểm thử UI đã chạy
    kèm tóm tắt kết quả; `testsRun`; `bugsFiled`.
 3. `update_status` → `done`.

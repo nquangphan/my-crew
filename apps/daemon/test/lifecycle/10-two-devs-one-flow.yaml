@@ -10,7 +10,11 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Hai tính năng cùng flow }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Tính năng Beta }, { title: Tính năng Bravo }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Tính năng Beta, complexity: trivial, qcComplexity: trivial }
+          - { title: Tính năng Bravo, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     title: Beta
     steps: [{ macro: dev, file: src/beta.js }]

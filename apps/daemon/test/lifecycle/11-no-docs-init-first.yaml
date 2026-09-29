@@ -15,7 +15,10 @@ scripts:
   - stage: docs_init
     steps: [{ macro: docs_init, skills: [docs-writer] }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Trang sản phẩm }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Trang sản phẩm, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     steps: [{ macro: dev, file: src/product.js }]
   - stage: docs_update

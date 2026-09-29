@@ -50,7 +50,7 @@ const modelText = (model: string | null, effort: string | null) =>
 
 /**
  * The Jira "Details" box: status (legal owner moves only), assignee role and machine, priority, planned
- * and actual model, complexity, required skills and MCP servers, dependencies, cost against budget, and
+ * and actual model, complexity and the PM's reason for it, required skills and MCP servers, dependencies, cost against budget, and
  * timestamps.
  */
 export function DetailsBox(props: DetailsBoxProps) {
@@ -98,7 +98,12 @@ export function DetailsBox(props: DetailsBoxProps) {
           </select>
         </span>
       </Item>
-      <Item label="Độ phức tạp">{ticket.complexity ?? '—'}</Item>
+      <Item label="Độ phức tạp">
+        {ticket.complexity ?? '—'}
+        {ticket.complexityReason && (
+          <span className="block text-xs text-muted">Lý do: {ticket.complexityReason}</span>
+        )}
+      </Item>
       <Item label="Model">
         {modelText(ticket.model, ticket.effort)}
         {ticket.agentModel && (

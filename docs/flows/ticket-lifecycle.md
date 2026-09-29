@@ -28,15 +28,22 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    (`pm_task` dưới `request`, `dev/qc/docs_init` dưới `pm_task`), cha chưa đóng, `enforceChildCap()` (flow này
    gọi sang `budget-service.ts`), QC bắt buộc `pairsWith` một dev/bug còn sống và chưa có QC khác
    (`assertPairable`), `dependsOn` chỉ được là ticket anh em (`assertSiblings`), QC luôn được cộng thêm MCP
-   test UI mặc định theo platform (`qcDefaultMcps`, từ flow `project-claims`).
+   test UI mặc định theo platform (`qcDefaultMcps`, từ flow `project-claims`). Subtask `dev`/`qc` bắt buộc có
+   `complexity` và một dòng `complexityReason` (`CreateSubtaskRequest.superRefine`, cùng file `api-schemas.ts`
+   nói ở bước 8) — không có model mặc định cho hai loại này (flow `agent-roles`); thiếu một trong hai trường bị
+   từ chối `VALIDATION_FAILED` với `details` nêu đúng trường còn thiếu.
 3. `apps/api/src/services/ticket-service.ts` → `fileBug()`: hai nguồn tạo `bug` — QC báo lỗi trên ticket dev/bug
    nó verify (`pairsWith`), hoặc PM từ chối một ticket dev/bug đã `done` khi nghiệm thu (`reject_work`, flow
    `agent-roles`; ticket nguồn khi đó chính là ticket bị từ chối, không phải QC). Tính `cycle = bugCycle + 1`
    của dev gốc (`originDevId`); vượt `MAX_BUG_CYCLES` (3) thì không tạo ticket, gọi `applyHold()` park pm_task
    và trả lỗi `BUG_CYCLE_CAP` (side effect đã commit); còn lại tạo một `bug` ticket cộng một `qc` retest phụ
-   thuộc nó, cùng `pairsWith` bug đó, `bugCycle` tăng dần — retest kế thừa `complexity`/`model`/`effort`/
-   `requiredSkills`/`requiredMcps` của **QC ticket đang kiểm ticket bị từ chối** (tìm qua `pairsWith`), không
-   phải của ticket nguồn, kể cả khi nguồn là PM từ chối chứ không phải chính QC đó báo lỗi.
+   thuộc nó, cùng `pairsWith` bug đó, `bugCycle` tăng dần. `bug` lấy `complexity`/`model`/`effort` của **dev
+   ticket gốc** (`originDevId`, không phải ticket vừa verify) — PM không tự chấm lại bug, nó chạy đúng mức PM
+   đã chấm cho dev — với `complexityReason` = `kế thừa từ <DEV-KEY>: <lý do>` (`inheritedReason()`); retest kế
+   thừa `complexity`/`model`/`effort`/`requiredSkills`/`requiredMcps` của **QC ticket đang kiểm ticket bị từ
+   chối** (tìm qua `pairsWith`), không phải của ticket nguồn, kể cả khi nguồn là PM từ chối chứ không phải
+   chính QC đó báo lỗi, với `complexityReason` = `kế thừa từ <QC-KEY>: <lý do>`; một lý do đã bắt đầu bằng
+   `kế thừa từ ` (retest của retest) được giữ nguyên, không lồng thêm tiền tố.
 4. `apps/api/src/services/ticket-service.ts` → `transitionTicket()`: `canTransition(actor, from, to)` (từ
    `packages/shared/src/status-workflow.ts`) gác cổng; `to='done'` bắt buộc đã có report hiện hành
    (`REPORT_REQUIRED`); sau khi cập nhật trạng thái trong cùng transaction: `cascadeCancel()` khi huỷ,
@@ -145,7 +152,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - `apps/api/test/lifecycle-effects.test.ts`: `dependency.resolved`, đúng một `children.all_done` khi tuần tự
   lẫn đồng thời, cascade cancel phát đúng một `ticket.cancelled` mỗi máy, đánh thức owner, rollback nguyên tử.
 - `apps/api/test/bug-loop.test.ts`: vòng lặp bug từ QC lẫn từ PM từ chối, chặn ở chu kỳ 4, retest kế thừa
-  cấu hình của QC ticket đang kiểm ticket bị từ chối.
+  cấu hình của QC ticket đang kiểm ticket bị từ chối; `bug` kế thừa `complexity`/`model`/`effort` của dev
+  ticket gốc kèm `complexityReason` "kế thừa từ …", retest kế thừa của QC tương ứng, một vòng lặp lỗi tiếp
+  theo trong chuỗi vẫn quy về đúng dev gốc và không lồng tiền tố "kế thừa từ ".
 - `apps/api/test/budget.test.ts`: trần con và ngân sách cây/ngày, mỗi loại đẩy pm_task sang `needs_input`,
   cộng owner duyệt.
 - `apps/api/test/owner-web-support.test.ts`: `PATCH /v1/tickets/:id`, sự kiện `ticket.updated`.

@@ -32,8 +32,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    đường dẫn `STANDARD.md`) và trả `PlannedRun.stage` (ghi vào job) cộng `notices` (bình luận đăng trước khi
    chạy) hoặc `skip` (không chạy: job kết thúc `skipped`/`blocked` ngay với lý do, ví dụ một cổng chờ hay chặn).
    `chooseModel()` (dùng bởi `defaultPlanner`) chọn model/effort: `docs_init`/`docs_update` luôn `sonnet`/
-   `high`; job khác ưu tiên lựa chọn của ticket, rồi bản đồ độ phức tạp của config, rồi mặc định theo vai trò —
-   `rolePlanner` dùng chính sách chi tiết hơn của nó (`resolveModel()`, flow `agent-roles`).
+   `high`; job khác ưu tiên lựa chọn của ticket, rồi bản đồ độ phức tạp của config. `dev`/`qc` không còn mặc
+   định theo vai trò — ticket chưa được PM chấm `complexity` làm `chooseModel()` ném `MissingComplexityError`
+   (`model-policy.ts`, flow `agent-roles`); `assistant`/`pm` vẫn rơi về mặc định vai trò khi ticket chưa có
+   độ phức tạp. `rolePlanner` dùng chính sách chi tiết hơn của nó (`resolveModel()`, flow `agent-roles`).
 3. `apps/daemon/src/runner/job-runner.ts` → `execute()` → `workspace()`: dựng worktree (flow
    `agent-workspace`); QC bắt đầu tại `head_sha` của report dev đã ghép cặp (`qcBase()`); tạo thư mục tạm
    riêng của job (`jobTmpDir`); env qua `agentEnv()` (bỏ `ANTHROPIC_API_KEY`, thêm `CREW_JOB_ID`,
@@ -85,7 +87,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    `select_capabilities` (ghi lựa chọn skill/MCP có lý do), `return_to_dev` (job docs trả việc về dev kèm
    output hook), `reject_work` (PM từ chối một ticket dev/bug đã xong, gọi `fileBug()`), `merge_and_push` (PM
    gọi `mergeAndPush()`, flow `local-merge`); `create_subtask` từ chối MCP server bị dự án tắt và tự thêm
-   `docs_init` (nếu có) vào `dependsOn`; `CHILD_CAP_EXCEEDED`/`BUDGET_HOLD` từ `create_subtask` và
+   `docs_init` (nếu có) vào `dependsOn`; subtask `dev`/`qc` bắt buộc `complexity` và `complexityReason` (không
+   có model mặc định cho hai loại này, flow `ticket-lifecycle`/`agent-roles`); `model` chỉ nên đặt khi PM cố ý
+   ghi đè bảng độ phức tạp. `CHILD_CAP_EXCEEDED`/`BUDGET_HOLD` từ `create_subtask` và
    `BUG_CYCLE_CAP` từ `file_bug` kết thúc lượt chạy cho chủ dự án thay vì ném lỗi; PM không đóng ticket
    (`update_status` sang `done`/`in_review`) khi cây ticket còn tiến trình sống (`treeOrphans()`); QC không
    đóng ticket (`update_status` sang `done`) khi MCP server bắt buộc của ticket (`TicketToolContext.requiredMcps`,
@@ -164,7 +168,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   limit tạm dừng ở backoff với `retry_at` tăng dần rồi `blocked` sau 4 lần; job đang chạy bị hủy khi ticket bị
   hủy và worktree được gỡ; job được re-queue khi daemon dừng nhẹ nhàng và resume ở lần chạy sau; một job crash
   trước khi agent chạy xong (lỗi khi chuẩn bị) đăng bình luận lỗi, chuyển ticket `blocked`, báo qua
-  `failedJobs` trong heartbeat tới khi owner mở chặn cho job mới chạy xong.
+  `failedJobs` trong heartbeat tới khi owner mở chặn cho job mới chạy xong; một ticket dev cũ chưa có
+  `complexity` (tạo trước khi bắt buộc đánh giá) đi qua đúng đường crash này với `MissingComplexityError` thay
+  vì tự chọn model mặc định.
 - `apps/daemon/test/agent-runner.test.ts`: `query()` chạy với đúng `settingSources`, `dontAsk`, allowlist,
   guard hook và env sạch; truyền đúng `resume` và ngân sách, báo đúng lớp lỗi API cuối; ngắt turn sau khi một
   tool yêu cầu kết thúc run và coi đó là kết thúc bình thường; run không có message `result` bị đánh dấu lỗi.

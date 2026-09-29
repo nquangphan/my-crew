@@ -12,6 +12,7 @@ import {
 } from '@crew/shared';
 import type { VpsClient } from '../api/vps-client.js';
 import type { DaemonConfig, ProjectConfig } from '../config.js';
+import { MissingComplexityError } from '../roles/model-policy.js';
 import type {
   CleanupRecord,
   JobKind,
@@ -166,14 +167,16 @@ export interface RolePlanner {
   afterRun?(input: AfterRunInput): Promise<AfterRunDecision>;
 }
 
-const ROLE_DEFAULTS: Record<AgentRole, { model: ModelAlias; effort: Effort }> = {
+/** Models of the roles that have a default; dev and QC run on the PM's complexity rating only. */
+const ROLE_DEFAULTS: Record<'assistant' | 'pm', { model: ModelAlias; effort: Effort }> = {
   assistant: { model: 'haiku', effort: 'medium' },
   pm: { model: 'sonnet', effort: 'high' },
-  dev: { model: 'sonnet', effort: 'high' },
-  qc: { model: 'sonnet', effort: 'high' },
 };
 
-/** Model and effort for a run: docs work is always sonnet/high; otherwise the ticket, its complexity, the role. */
+/**
+ * Model and effort for a run: docs work is always sonnet/high; otherwise the ticket, its complexity, the
+ * role. A dev or QC ticket without a complexity rating throws MissingComplexityError (no default model).
+ */
 export function chooseModel(
   config: DaemonConfig,
   kind: JobKind,
@@ -182,8 +185,15 @@ export function chooseModel(
 ): { model: ModelAlias; effort: Effort } {
   if (kind === 'docs_init' || kind === 'docs_update') return { model: 'sonnet', effort: 'high' };
   const fromComplexity = ticket.complexity ? config.models.complexityMap[ticket.complexity] : null;
-  const model = ticket.model ?? fromComplexity?.model ?? ROLE_DEFAULTS[role].model;
-  const effort = ticket.effort ?? fromComplexity?.effort ?? ROLE_DEFAULTS[role].effort;
+  let fallback: { model: ModelAlias; effort: Effort };
+  if (role === 'dev' || role === 'qc') {
+    if (!fromComplexity) throw new MissingComplexityError(role);
+    fallback = fromComplexity;
+  } else {
+    fallback = fromComplexity ?? ROLE_DEFAULTS[role];
+  }
+  const model = ticket.model ?? fallback.model;
+  const effort = ticket.effort ?? fallback.effort;
   return { model: config.models.allow.includes(model) ? model : 'sonnet', effort };
 }
 

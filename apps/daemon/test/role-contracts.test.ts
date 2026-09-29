@@ -21,6 +21,7 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     priority: 'medium',
     allowConfigChange: false,
     complexity: null,
+    complexityReason: null,
     model: null,
     effort: null,
     requiredSkills: [],

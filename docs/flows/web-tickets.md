@@ -39,7 +39,8 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 7. `apps/web/src/components/ticket-view.tsx` → `TicketView()`: một component dùng chung cho panel
    (`ticket-side-panel.tsx`) và trang toàn màn hình — tiêu đề/mô tả sửa tại chỗ, banner vàng khi
    `needs_input` (nút "Trả lời" focus ô soạn), tabs Hoạt động (Bình luận/Lịch sử/Report), `DetailsBox` (dropdown
-   trạng thái chỉ hiện `allowedTransitions('owner', …)`), nút Hủy/Mở lại/Bỏ chặn, và `AgentActivityLine` (thay
+   trạng thái chỉ hiện `allowedTransitions('owner', …)`; mục "Độ phức tạp" hiện thêm dòng "Lý do: …" từ
+   `ticket.complexityReason` khi PM đã ghi lý do đánh giá), nút Hủy/Mở lại/Bỏ chặn, và `AgentActivityLine` (thay
    ô "Agent đang chạy" cũ) ngay dưới tiêu đề.
 8. `apps/web/src/components/subtask-tree.tsx` → `buildSubtaskTree()`, `SubtaskTree`: nhóm dev↔QC theo cặp
    `pairsWith`, hiện chuỗi bug "vòng n/`BUG_CYCLE_CAP`" và phụ thuộc "Chờ KEY" chưa xong.
@@ -114,7 +115,8 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
   đường lỗi).
 - `apps/web/src/components/cancel-dialog.test.tsx`: liệt kê hậu duệ đang mở qua nhiều cấp.
 - `apps/web/e2e/core-flows.spec.ts`: tạo ticket, mở panel, bình luận agent xuất hiện dưới 2s, đổi trạng thái bị
-  từ chối rồi qua khi có report, mở docs từ chip flow, hủy pm_task kéo theo hủy QC con.
+  từ chối rồi qua khi có report, mở docs từ chip flow, hủy pm_task kéo theo hủy QC con, "Lý do: …" của
+  `complexityReason` hiện trong Details.
 - `apps/web/src/components/agent-activity.test.tsx`: mô tả đúng từng trạng thái/lý do chờ và lỗi; báo "không
   rõ" (không phải "đang chạy") khi máy im lặng lâu hơn `AGENT_ACTIVITY_STALE_MS`; ticket `todo` chưa ai nhận
   hiện đúng máy được giao; dòng hoạt động hiện trên ticket, mark trên card chỉ hiện khi job không chạy;

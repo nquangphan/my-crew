@@ -7,7 +7,7 @@ import { createRequestTicket } from '../../api/src/services/ticket-service.js';
 import { VpsClient } from '../src/api/vps-client.js';
 import { homePaths } from '../src/config.js';
 import { docsSnapshot, installCrewDocs } from '../src/git/docs-kit-bridge.js';
-import { commentsOf, devTicket, fixture, pmTask, useApi } from './helpers/api.js';
+import { commentsOf, devTicket, fixture, pmTask, RATED, useApi } from './helpers/api.js';
 import { manualClock } from './helpers/clock.js';
 import { makeDaemon, TEST_TIMINGS, waitFor } from './helpers/daemon.js';
 import { git, makeRepo, writeFiles } from './helpers/git.js';
@@ -323,7 +323,13 @@ describe('daemon wiring', () => {
     const { submitReport } = await import('../../api/src/services/report-service.js');
     const pm = await pmTask(api, f);
     const dev = await devTicket(api, pm.id, 'Tính năng có commit');
-    const qc = await createSubtask(api.db, { type: 'qc', parentId: pm.id, title: 'QC', pairsWith: dev.id });
+    const qc = await createSubtask(api.db, {
+      type: 'qc',
+      ...RATED,
+      parentId: pm.id,
+      title: 'QC',
+      pairsWith: dev.id,
+    });
     // The dev branch has a commit the default branch does not.
     git(repo, 'checkout', '-q', '-b', 'crew/feature');
     writeFiles(repo, { 'feature.ts': 'export const feature = 1;\n' });

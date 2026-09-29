@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { tickets } from '../src/db/schema.js';
-import { fileBug, MAX_BUG_CYCLES } from '../src/services/ticket-service.js';
+import { createSubtask, fileBug, MAX_BUG_CYCLES } from '../src/services/ticket-service.js';
 import {
   commentsOf,
   createDevWithQc,
@@ -110,6 +110,57 @@ describe('QC bug loop', () => {
     await reportAndFinish(ctx.db, bug.id);
     const again = await fileBug(ctx.db, bug.id, { title: 'Sửa lần hai' });
     expect(again.bug).toMatchObject({ originDevId: dev.id, bugCycle: 2 });
+  });
+
+  it('a bug inherits the PM rating of its origin dev ticket; the retest keeps the QC rating', async () => {
+    const { pmTask } = await createTree(ctx.db);
+    const dev = await createSubtask(ctx.db, {
+      type: 'dev',
+      parentId: pmTask.id,
+      title: 'Đổi luồng thanh toán',
+      complexity: 'large',
+      complexityReason: 'Sửa nhiều module thanh toán',
+      model: 'opus',
+      effort: 'xhigh',
+    });
+    const qc = await createSubtask(ctx.db, {
+      type: 'qc',
+      parentId: pmTask.id,
+      title: 'QC thanh toán',
+      pairsWith: dev.id,
+      complexity: 'small',
+      complexityReason: 'Một flow UI',
+    });
+    await reportAndFinish(ctx.db, dev.id);
+
+    const first = await qcFilesBug(qc.id, 'Lỗi vòng 1');
+    expect(first.bug).toMatchObject({
+      complexity: 'large',
+      complexityReason: `kế thừa từ ${dev.key}: Sửa nhiều module thanh toán`,
+      model: 'opus',
+      effort: 'xhigh',
+    });
+    expect(first.retest).toMatchObject({
+      complexity: 'small',
+      complexityReason: `kế thừa từ ${qc.key}: Một flow UI`,
+    });
+
+    // One cycle further down the chain the bug still names the origin dev, and the reason does not nest.
+    await reportAndFinish(ctx.db, first.bug.id);
+    const second = await qcFilesBug(first.retest.id, 'Lỗi vòng 2');
+    expect(second.bug).toMatchObject({
+      complexity: 'large',
+      complexityReason: `kế thừa từ ${dev.key}: Sửa nhiều module thanh toán`,
+    });
+    expect(second.retest.complexityReason).toBe(`kế thừa từ ${qc.key}: Một flow UI`);
+
+    // A PM rejection of the bug fix inherits from the origin dev the same way.
+    await reportAndFinish(ctx.db, second.bug.id);
+    const rejected = await fileBug(ctx.db, second.bug.id, { title: 'PM từ chối' });
+    expect(rejected.bug).toMatchObject({
+      complexity: 'large',
+      complexityReason: `kế thừa từ ${dev.key}: Sửa nhiều module thanh toán`,
+    });
   });
 
   it('only accepts bugs from an open, paired QC ticket or a PM rejection of a done dev ticket', async () => {

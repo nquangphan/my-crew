@@ -20,7 +20,7 @@ scripts:
       - tool: mcp__figma__browser_navigate
         input: { url: 'figma://cart' }
       - macro: pm_analyze
-        subtasks: [{ title: Trang giỏ hàng, skills: [api-design] }]
+        subtasks: [{ title: Trang giỏ hàng, complexity: trivial, qcComplexity: trivial, skills: [api-design] }]
   - stage: dev
     title: Trang giỏ hàng
     steps:

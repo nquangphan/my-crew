@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { ticketReports, tickets } from '../../api/src/db/schema.js';
-import { commentsOf, useApi } from './helpers/api.js';
+import { commentsOf, RATED, useApi } from './helpers/api.js';
 import { git } from './helpers/git.js';
 import { type LifecycleResult, loadScenario, runScenario, stuckTickets } from './helpers/lifecycle.js';
 import { crewDocs } from './helpers/workflow.js';
@@ -183,8 +183,14 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
         projectId: project.id,
         title: 'p',
       });
-      const d = await createSubtask(api.db, { type: 'dev', parentId: task.id, title: 'd' });
-      const q = await createSubtask(api.db, { type: 'qc', parentId: task.id, title: 'q', pairsWith: d.id });
+      const d = await createSubtask(api.db, { type: 'dev', ...RATED, parentId: task.id, title: 'd' });
+      const q = await createSubtask(api.db, {
+        type: 'qc',
+        ...RATED,
+        parentId: task.id,
+        title: 'q',
+        pairsWith: d.id,
+      });
       expect([...q.requiredMcps].sort(), key).toEqual([...expected]);
     }
   },
@@ -219,6 +225,33 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     git(r.repo.repo, 'worktree', 'add', '-q', '--detach', check, head);
     expect(crewDocs(check, 'check', '--all')).toBeDefined();
     git(r.repo.repo, 'worktree', 'remove', '--force', check);
+  },
+
+  async 'qc-own-rating'(r) {
+    await assertDocsJobCommits(r);
+    const agentModels = (ticketId: string) =>
+      jobsOf(r, ticketId)
+        .filter((j) => j.kind === 'agent' && j.status === 'done')
+        .map((j) => [j.model, j.effort]);
+    const dev = await one(/^Tính thuế theo vùng$/, 'dev');
+    const qc = await one(/^QC: Tính thuế/, 'qc');
+    expect(dev).toMatchObject({ complexity: 'large', complexityReason: 'Đổi lõi tính giá ở nhiều module' });
+    expect(qc).toMatchObject({
+      complexity: 'trivial',
+      complexityReason: 'Một hàm thuần, kiểm bằng test đơn vị',
+    });
+    expect(agentModels(dev.id)).toEqual([['opus', 'high']]);
+    // QC runs on its own rating, not the dev one.
+    expect(agentModels(qc.id)).toEqual([['haiku', 'low']]);
+    const bug = await one(/^Lỗi làm tròn thuế$/, 'bug');
+    expect(bug).toMatchObject({
+      complexity: 'large',
+      complexityReason: `kế thừa từ ${dev.key}: Đổi lõi tính giá ở nhiều module`,
+    });
+    expect(agentModels(bug.id)).toEqual([['opus', 'high']]);
+    const retest = await one(/^Kiểm thử lại/, 'qc');
+    expect(retest).toMatchObject({ complexity: 'trivial' });
+    expect(agentModels(retest.id)).toEqual([['haiku', 'low']]);
   },
 
   async 'bug-cycle-cap'(r) {
@@ -281,7 +314,7 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
   async 'no-docs-init-first'(r) {
     await assertDocsJobCommits(r);
     const init = await one(/^Khởi tạo docs/);
-    const dev = await one(/^Trang sản phẩm$/);
+    const dev = await one(/^Trang sản phẩm$/, 'dev');
     const qc = await one(/^QC: Trang sản phẩm$/);
     expect(init.type).toBe('docs_init');
     expect(init.createdAt.getTime()).toBeLessThan(dev.createdAt.getTime());

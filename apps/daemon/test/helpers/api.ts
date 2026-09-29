@@ -7,13 +7,15 @@ import {
   type TestServer,
 } from '../../../api/test/helpers/machines.js';
 import { type LoggedInOwner, seedAndLogin } from '../../../api/test/helpers/owner-session.js';
-import { createTestProject, setStatus, useTestDb } from '../../../api/test/helpers/test-db.js';
+import { createTestProject, RATED, setStatus, useTestDb } from '../../../api/test/helpers/test-db.js';
 import { onCleanup, withDeadline } from './git.js';
 
 export {
+  clearRating,
   commentsOf,
   eventsOf,
   getTicket,
+  RATED,
   reportAndFinish,
   setStatus,
 } from '../../../api/test/helpers/test-db.js';
@@ -105,7 +107,7 @@ export async function devTicket(
   title = 'Làm việc',
   extra: { dependsOn?: string[] } = {},
 ) {
-  return createSubtask(api.db, { type: 'dev', parentId, title, ...extra });
+  return createSubtask(api.db, { type: 'dev', ...RATED, parentId, title, ...extra });
 }
 
 /** An owner comment through the real owner route (it emits `ticket.comment_added`). */

@@ -15,10 +15,18 @@ scripts:
     steps: [{ macro: triage, title: Hai trang tĩnh }]
   - stage: pm_analyze
     run: 1
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Trang A }, { title: Trang B }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Trang A, complexity: trivial, qcComplexity: trivial }
+          - { title: Trang B, complexity: trivial, qcComplexity: trivial }
   - stage: pm_analyze
     run: 2
-    steps: [{ macro: pm_analyze, continued: true, subtasks: [{ title: Trang B }] }]
+    steps:
+      - macro: pm_analyze
+        continued: true
+        subtasks:
+          - { title: Trang B, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     title: Trang A
     steps: [{ macro: dev, file: src/beta.js }]

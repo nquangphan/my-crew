@@ -99,6 +99,11 @@ export async function setStatus(db: Database, ticketId: string, status: TicketSt
   await db.update(tickets).set({ status }).where(eq(tickets.id, ticketId));
 }
 
+/** Removes the PM's complexity rating, like a ticket created before the rating was required. */
+export async function clearRating(db: Database, ticketId: string): Promise<void> {
+  await db.update(tickets).set({ complexity: null, complexityReason: null }).where(eq(tickets.id, ticketId));
+}
+
 export async function getTicket(db: Database, ticketId: string) {
   const [row] = await db.select().from(tickets).where(eq(tickets.id, ticketId));
   if (!row) throw new Error(`ticket ${ticketId} not found`);
@@ -152,10 +157,14 @@ export async function createTree(
   return { assistantMachine, projectMachine, project, request, pmTask };
 }
 
+/** The PM's complexity rating that every dev and QC subtask needs (the API refuses one without it). */
+export const RATED = { complexity: 'small', complexityReason: 'Việc nhỏ trong test' } as const;
+
 export async function createDevWithQc(db: Database, pmTaskId: string, title = 'Làm giỏ hàng') {
-  const dev = await createSubtask(db, { type: 'dev', parentId: pmTaskId, title });
+  const dev = await createSubtask(db, { type: 'dev', ...RATED, parentId: pmTaskId, title });
   const qc = await createSubtask(db, {
     type: 'qc',
+    ...RATED,
     parentId: pmTaskId,
     title: `QC ${title}`,
     pairsWith: dev.id,

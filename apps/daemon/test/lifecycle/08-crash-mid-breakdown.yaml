@@ -10,7 +10,10 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Thêm trang liên hệ }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Trang liên hệ, crashAfter: true }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Trang liên hệ, complexity: trivial, qcComplexity: trivial, crashAfter: true }
   - stage: dev
     steps: [{ macro: dev, file: src/contact.js }]
   - stage: docs_update

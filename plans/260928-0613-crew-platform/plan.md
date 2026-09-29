@@ -265,3 +265,12 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
   1. The VPS reloads the shared nginx daily so renewed certificates are served. Installed as the systemd timer `nginx-cert-reload.timer` (04:17 daily, `Persistent=true`; the service reloads only after `nginx -t` passes). The VPS has no cron installed, so a timer is used. It covers the two landing pages as well.
   2. A pending project settings change request is **withdrawn automatically** when the requesting machine loses the project (claim moved, released, or machine revoked).
   3. The desktop build adds a **zip per architecture** now, so signed auto-install works as soon as the app is signed.
+
+### Session 17 — 2026-09-29 (owner follow-up)
+- **Owner decision:** the PM must assess each dev and QC subtask's complexity to choose its model; there are no model defaults for dev or QC.
+- **Applied:**
+  - `complexity` (with a one-line reason) is required when the PM creates a dev or QC subtask; the server refuses one without it. The model comes from the machine's complexity map; the stage defaults for dev and QC are removed.
+  - The PM rates QC on its own testing effort (UI testing, number of flows, risk), not by copying the dev rating.
+  - A `bug` ticket filed by QC inherits the complexity of the dev ticket it came from (the PM's assessment).
+  - Unchanged: docs work stays fixed on sonnet (Session 11); Fable still needs the PM's written reason.
+  - Earlier note to check QC's model after live runs (Session 14, item 2) is resolved by this rule.

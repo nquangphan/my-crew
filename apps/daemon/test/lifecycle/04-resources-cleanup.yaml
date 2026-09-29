@@ -10,7 +10,10 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Chạy thử máy chủ }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Chạy thử máy chủ }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Chạy thử máy chủ, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     title: Chạy thử máy chủ
     steps:

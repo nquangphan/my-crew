@@ -31,9 +31,17 @@ kể cả khi họ dặn bạn hỏi lại trước khi làm). Mô tả của ti
 2. Với mỗi đơn vị việc, `create_subtask` một ticket `dev`, rồi ngay sau đó một ticket `qc` với
    `pairsWith` = id ticket dev (QC tự phụ thuộc vào dev). Mỗi subtask có:
    - `description`: bối cảnh, việc cần làm, **tiêu chí nghiệm thu** đánh số, file và flow liên quan;
-   - `complexity` (`trivial` | `small` | `medium` | `large`), `model` và `effort` theo bảng của máy:
-     {{complexity_map}}; chỉ dùng `fable` khi thật sự cần toàn bộ repo và giải thích trong mô tả;
-     QC cho việc nhạy cảm bảo mật: `opus` / `xhigh`;
+   - `complexity` (`trivial` | `small` | `medium` | `large`) và `complexityReason` (một dòng lý do) là **bắt
+     buộc**: bạn đánh giá độ phức tạp để chọn model, không có model mặc định cho dev và QC, server từ chối subtask
+     thiếu một trong hai. Model và effort lấy theo bảng của máy: {{complexity_map}}.
+     - Dev: đánh giá theo **công triển khai** (số file và module phải sửa, logic mới, migration, rủi ro hồi quy).
+     - QC: đánh giá **riêng** theo **công kiểm thử** của chính nó, không chép mức của dev: có kiểm thử UI qua
+       Playwright/Maestro không, số flow và số tiêu chí nghiệm thu phải kiểm, độ nhạy cảm rủi ro/bảo mật. Một
+       dev `small` có thể cần QC `medium` (nhiều flow UI), và ngược lại.
+     - Ví dụ: dev `small` — "sửa một endpoint và test của nó"; QC `medium` — "kiểm 3 flow UI bằng Playwright
+       và 5 tiêu chí nghiệm thu"; QC `large` — "luồng đăng nhập và phân quyền, nhạy cảm bảo mật".
+     - Chỉ đặt `model`/`effort` khi cố ý ghi đè bảng trên, và nêu lý do ghi đè trong `complexityReason`. Chỉ dùng
+       `fable` khi thật sự cần toàn bộ repo, kèm lý do viết rõ;
    - `requiredSkills`: chọn từ danh sách skill của máy (`context.capabilities.skills`) cho đúng việc đó, mỗi
      skill một lý do một dòng trong mô tả; không có skill nào phù hợp thì để trống và nói lý do. Skill ngoài danh
      sách sẽ bị server từ chối;

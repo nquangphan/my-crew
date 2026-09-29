@@ -270,13 +270,18 @@ function pmAnalyze(step: RawStep): RawStep[] {
   const subtasks = (Array.isArray(step.subtasks) ? step.subtasks : []) as RawStep[];
   const creates = subtasks.flatMap((sub) => {
     const title = String(sub.title);
+    // The PM rates dev and QC separately; the fixtures name both ratings (there is no default model).
+    if (!sub.complexity || !sub.qcComplexity) {
+      throw new Error(`subtask "${title}" needs complexity and qcComplexity in the scenario`);
+    }
     const dependsOn = list(sub.dependsOn).map((dep) => `@{ticket:${titleRe(dep)}}`);
     return [
       t('create_subtask', {
         type: 'dev',
         title,
         description: `Làm "${title}".\n\nTiêu chí nghiệm thu:\n1. Có test.\n\nSkill: ${list(sub.skills).join(', ') || 'không cần (không có skill phù hợp)'}.`,
-        complexity: sub.complexity ?? 'trivial',
+        complexity: sub.complexity,
+        complexityReason: String(sub.reason ?? 'Việc nhỏ: một file và test của nó'),
         ...(sub.model ? { model: sub.model } : {}),
         requiredSkills: list(sub.skills),
         requiredMcps: list(sub.mcps),
@@ -289,6 +294,8 @@ function pmAnalyze(step: RawStep): RawStep[] {
         title: `QC: ${title}`,
         description: `Kiểm thử "${title}".`,
         pairsWith: `@{ticket:${titleRe(title)}}`,
+        complexity: sub.qcComplexity,
+        complexityReason: String(sub.qcReason ?? 'Một flow kiểm thử'),
         flows: ['app'],
       }),
     ];

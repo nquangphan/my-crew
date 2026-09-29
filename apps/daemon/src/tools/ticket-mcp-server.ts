@@ -200,8 +200,18 @@ const SubtaskShape = {
   title: z.string().trim().min(1).max(300),
   description: z.string().max(100_000).default(''),
   priority: TicketPriority.optional(),
-  complexity: Complexity.optional(),
-  model: ModelAlias.optional(),
+  complexity: Complexity.describe(
+    'Bắt buộc: độ phức tạp PM đánh giá riêng cho subtask này (dev: việc triển khai; QC: công kiểm thử); model lấy theo bảng của máy',
+  ),
+  complexityReason: z
+    .string()
+    .trim()
+    .min(1)
+    .max(500)
+    .describe('Bắt buộc: một dòng lý do cho mức complexity (và cho model nếu bạn tự đặt model)'),
+  model: ModelAlias.optional().describe(
+    'Chỉ đặt khi cố ý ghi đè bảng complexity, nêu lý do trong complexityReason',
+  ),
   effort: Effort.optional(),
   requiredSkills: z.array(z.string().trim().min(1).max(200)).max(50).default([]),
   requiredMcps: z.array(McpServerName).max(50).default([]),
@@ -432,7 +442,7 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
     ),
     create_subtask: tool(
       'create_subtask',
-      'PM: tạo subtask dev/qc/docs_init dưới ticket này (mỗi dev có một qc đi kèm qua pairsWith).',
+      'PM: tạo subtask dev/qc dưới ticket này (mỗi dev có một qc đi kèm qua pairsWith); mỗi subtask bắt buộc có complexity và complexityReason.',
       SubtaskShape,
       async (input) => {
         const off = input.requiredMcps.filter((server) => disabledMcps.has(server));

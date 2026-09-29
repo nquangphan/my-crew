@@ -10,7 +10,10 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Giỏ hàng }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Tính tổng giỏ hàng }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Tính tổng giỏ hàng, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     title: '^Tính tổng giỏ hàng$'
     steps: [{ macro: dev, file: src/cart.js }]

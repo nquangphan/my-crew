@@ -12,7 +12,10 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Trang đơn hàng }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Danh sách đơn hàng, skills: [api-design] }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Danh sách đơn hàng, complexity: trivial, qcComplexity: trivial, skills: [api-design] }
   - stage: dev
     title: '^Danh sách đơn hàng$'
     steps:

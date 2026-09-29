@@ -10,7 +10,10 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Trang tìm kiếm }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Trang tìm kiếm }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Trang tìm kiếm, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     steps: [{ macro: dev, file: src/search.js }]
   - stage: docs_update

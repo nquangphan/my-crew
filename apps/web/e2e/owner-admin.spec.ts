@@ -62,11 +62,19 @@ test('shortcuts, quick search, pairing and takeover approval with TOTP', async (
     projectId: state.project.id,
     title: 'Kéo thả',
   });
-  const dev = await agent.createSubtask({ type: 'dev', parentId: pm.id, title: 'Kéo tôi sang Xong' });
+  const dev = await agent.createSubtask({
+    type: 'dev',
+    parentId: pm.id,
+    title: 'Kéo tôi sang Xong',
+    complexity: 'trivial',
+    complexityReason: 'Việc nhỏ trong kịch bản',
+  });
   const qc = await agent.createSubtask({
     type: 'qc',
     parentId: pm.id,
     title: 'QC kéo thả',
+    complexity: 'trivial',
+    complexityReason: 'Một flow kéo thả',
     pairsWith: dev.id,
   });
   await agent.transition(dev.id, 'in_progress');

@@ -6,7 +6,7 @@ import { ApiError } from '../src/errors.js';
 import { replyIdempotent, withIdempotency } from '../src/services/idempotency.js';
 import { updateProject } from '../src/services/project-service.js';
 import { createSubtask } from '../src/services/ticket-service.js';
-import { createMachine, createTree, getTicket, useTestDb } from './helpers/test-db.js';
+import { createMachine, createTree, getTicket, RATED, useTestDb } from './helpers/test-db.js';
 
 const ctx = useTestDb();
 
@@ -17,7 +17,12 @@ describe('idempotency', () => {
     let runs = 0;
     const handler = async (tx: Parameters<Parameters<typeof withIdempotency>[2]>[0]) => {
       runs++;
-      const dev = await createSubtask(tx, { type: 'dev', parentId: pmTask.id, title: 'Idempotent' });
+      const dev = await createSubtask(tx, {
+        type: 'dev',
+        ...RATED,
+        parentId: pmTask.id,
+        title: 'Idempotent',
+      });
       return { statusCode: 201, body: dev };
     };
     const args = { machineId, key: 'job-1:call-1', fingerprint: 'POST /v1/daemon/tickets abc' };
@@ -42,12 +47,12 @@ describe('idempotency', () => {
   it('stores refusals that committed side effects and does not store plain failures', async () => {
     const { pmTask, project } = await createTree(ctx.db);
     await updateProject(ctx.db, project.id, { maxChildrenPerTicket: 1 });
-    await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Một' });
+    await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Một' });
     const machineId = await createMachine(ctx.db, 'daemon');
     const args = { machineId, key: 'job-2:call-1', fingerprint: 'POST /v1/daemon/tickets' };
     const handler = async (tx: Parameters<Parameters<typeof withIdempotency>[2]>[0]) => ({
       statusCode: 201,
-      body: await createSubtask(tx, { type: 'dev', parentId: pmTask.id, title: 'Hai' }),
+      body: await createSubtask(tx, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Hai' }),
     });
 
     const first = await withIdempotency(ctx.db, args, handler);

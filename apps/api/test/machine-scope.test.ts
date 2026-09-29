@@ -6,7 +6,7 @@ import { updateProject } from '../src/services/project-service.js';
 import { createRequestTicket, createSubtask } from '../src/services/ticket-service.js';
 import { type PairedMachine, pairTestMachine, writeHeaders } from './helpers/machines.js';
 import { type LoggedInOwner, makeApp, seedAndLogin } from './helpers/owner-session.js';
-import { createTestProject, eventsOf, getTicket, setStatus, useTestDb } from './helpers/test-db.js';
+import { createTestProject, eventsOf, getTicket, RATED, setStatus, useTestDb } from './helpers/test-db.js';
 
 const ctx = useTestDb();
 let app: FastifyInstance;
@@ -30,9 +30,16 @@ async function buildTree() {
     title: 'Phân tích',
   });
   await setStatus(ctx.db, pmTask.id, 'in_progress');
-  const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'API', model: 'opus' });
+  const dev = await createSubtask(ctx.db, {
+    type: 'dev',
+    ...RATED,
+    parentId: pmTask.id,
+    title: 'API',
+    model: 'opus',
+  });
   const qc = await createSubtask(ctx.db, {
     type: 'qc',
+    ...RATED,
     parentId: pmTask.id,
     title: 'QC API',
     pairsWith: dev.id,
@@ -79,7 +86,7 @@ describe('scope', () => {
       {
         method: 'POST',
         url: '/v1/daemon/tickets',
-        payload: { type: 'dev', parentId: tree.pmTask.id, title: 'X' },
+        payload: { type: 'dev', ...RATED, parentId: tree.pmTask.id, title: 'X' },
       },
     ];
     for (const call of calls) {
@@ -142,12 +149,15 @@ describe('scope', () => {
     expect(nested.statusCode).toBe(422);
     expect(nested.json().error.code).toBe('INVALID_HIERARCHY');
     // The host does not own WEB, so it cannot add dev work there.
-    expect((await post(host, { type: 'dev', parentId: tree.pmTask.id, title: 'Dev' })).statusCode).toBe(403);
+    expect(
+      (await post(host, { type: 'dev', ...RATED, parentId: tree.pmTask.id, title: 'Dev' })).statusCode,
+    ).toBe(403);
 
-    const dev = await post(a, { type: 'dev', parentId: tree.pmTask.id, title: 'Dev 2' });
+    const dev = await post(a, { type: 'dev', ...RATED, parentId: tree.pmTask.id, title: 'Dev 2' });
     expect(dev.statusCode).toBe(201);
     const qc = await post(a, {
       type: 'qc',
+      ...RATED,
       parentId: tree.pmTask.id,
       title: 'QC 2',
       pairsWith: dev.json().id,
@@ -155,6 +165,76 @@ describe('scope', () => {
     expect(qc.json().requiredMcps).toContain('playwright');
     const docs = await post(a, { type: 'docs_init', parentId: tree.pmTask.id, title: 'Khởi tạo docs' });
     expect(docs.json()).toMatchObject({ type: 'docs_init', assigneeRole: 'dev' });
+  });
+
+  it('refuses a dev or QC subtask without the PM complexity rating and its reason', async () => {
+    const post = (payload: object) =>
+      callAs(a, {
+        method: 'POST',
+        url: '/v1/daemon/tickets',
+        payload: { parentId: tree.pmTask.id, ...payload },
+      });
+    const issues = (res: Awaited<ReturnType<typeof post>>) =>
+      res.json().error.details as { path: string; message: string }[];
+
+    const noRating = await post({ type: 'dev', title: 'Dev chưa đánh giá' });
+    expect(noRating.statusCode).toBe(400);
+    expect(noRating.json().error.code).toBe('VALIDATION_FAILED');
+    expect(
+      issues(noRating)
+        .map((issue) => issue.path)
+        .sort(),
+    ).toEqual(['complexity', 'complexityReason']);
+    expect(issues(noRating).find((issue) => issue.path === 'complexity')?.message).toContain(
+      'bắt buộc có complexity',
+    );
+
+    const noReason = await post({ type: 'dev', title: 'Dev thiếu lý do', complexity: 'medium' });
+    expect(noReason.statusCode).toBe(400);
+    expect(issues(noReason)).toEqual([
+      { path: 'complexityReason', message: expect.stringContaining('một dòng lý do') },
+    ]);
+    const blankReason = await post({
+      type: 'dev',
+      title: 'Dev',
+      complexity: 'medium',
+      complexityReason: '  ',
+    });
+    expect(blankReason.statusCode).toBe(400);
+
+    const dev = await post({
+      type: 'dev',
+      title: 'Dev đã đánh giá',
+      complexity: 'medium',
+      complexityReason: 'Sửa 3 module và thêm migration',
+      model: 'opus',
+    });
+    expect(dev.statusCode).toBe(201);
+    expect(dev.json()).toMatchObject({
+      complexity: 'medium',
+      complexityReason: 'Sửa 3 module và thêm migration',
+      model: 'opus',
+    });
+
+    const qcNoRating = await post({ type: 'qc', title: 'QC', pairsWith: dev.json().id });
+    expect(qcNoRating.statusCode).toBe(400);
+    expect(
+      issues(qcNoRating)
+        .map((issue) => issue.path)
+        .sort(),
+    ).toEqual(['complexity', 'complexityReason']);
+    const qc = await post({
+      type: 'qc',
+      title: 'QC',
+      pairsWith: dev.json().id,
+      complexity: 'large',
+      complexityReason: 'Kiểm 4 flow UI bằng Playwright, luồng thanh toán',
+    });
+    expect(qc.statusCode).toBe(201);
+    expect(qc.json()).toMatchObject({ complexity: 'large' });
+
+    // pm_task and docs_init keep their own model rules: no rating needed.
+    expect((await post({ type: 'docs_init', title: 'Khởi tạo docs' })).statusCode).toBe(201);
   });
 
   it('the triage catalog is for the assistant host and carries owner-entered text only', async () => {
@@ -383,11 +463,11 @@ describe('heartbeat and inventory', () => {
         url: '/v1/daemon/tickets',
         payload: { parentId: tree.pmTask.id, ...payload },
       });
-    const noInventory = await create({ type: 'dev', title: 'X', requiredSkills: ['api-design'] });
+    const noInventory = await create({ type: 'dev', ...RATED, title: 'X', requiredSkills: ['api-design'] });
     expect(noInventory.statusCode).toBe(400);
     expect(noInventory.json().error.code).toBe('VALIDATION_FAILED');
     // Without requirements there is nothing to check.
-    expect((await create({ type: 'dev', title: 'Không cần skill' })).statusCode).toBe(201);
+    expect((await create({ type: 'dev', ...RATED, title: 'Không cần skill' })).statusCode).toBe(201);
 
     const put = (projectKey: string | null, body: object) =>
       app.inject({
@@ -407,6 +487,7 @@ describe('heartbeat and inventory', () => {
 
     const ok = await create({
       type: 'dev',
+      ...RATED,
       title: 'Có skill',
       requiredSkills: ['api-design', 'ak:plan'],
       requiredMcps: ['figma'],
@@ -414,6 +495,7 @@ describe('heartbeat and inventory', () => {
     expect(ok.statusCode).toBe(201);
     const unknown = await create({
       type: 'dev',
+      ...RATED,
       title: 'Sai',
       requiredSkills: ['nope'],
       requiredMcps: ['maestro'],
@@ -421,7 +503,7 @@ describe('heartbeat and inventory', () => {
     expect(unknown.statusCode).toBe(400);
     expect(unknown.json().error.details).toEqual({ unknownSkills: ['nope'], unknownMcps: ['maestro'] });
     // The QC default UI-test server is added by the server and never checked against the inventory.
-    const qc = await create({ type: 'qc', title: 'QC có skill', pairsWith: ok.json().id });
+    const qc = await create({ type: 'qc', ...RATED, title: 'QC có skill', pairsWith: ok.json().id });
     expect(qc.statusCode).toBe(201);
     expect(qc.json().requiredMcps).toEqual(['playwright']);
     const bug = await callAs(a, {

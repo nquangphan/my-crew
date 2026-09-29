@@ -10,7 +10,10 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Sửa lỗi lặp lại }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Tính phí vận chuyển }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Tính phí vận chuyển, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     title: '^Tính phí'
     steps: [{ macro: dev, file: src/ship.js }]

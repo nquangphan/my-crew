@@ -5,10 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { machines } from '../../api/src/db/schema.js';
 import { transitionTicket } from '../../api/src/services/ticket-service.js';
 import { homePaths } from '../src/config.js';
+import { rolePlanner } from '../src/roles/role-planner.js';
 import { jobTmpDir } from '../src/runner/job-cleanup.js';
 import { defaultPlanner } from '../src/runner/job-runner.js';
 import { StateDb } from '../src/state-db.js';
 import {
+  clearRating,
   commentsOf,
   devTicket,
   fixture,
@@ -16,6 +18,7 @@ import {
   ownerComment,
   ownerTransition,
   pmTask,
+  RATED,
   useApi,
 } from './helpers/api.js';
 import { makeDaemon, sleep, waitFor } from './helpers/daemon.js';
@@ -232,6 +235,31 @@ describe('daemon', () => {
     await t.daemon.stop();
   });
 
+  it('fails a dev ticket without the PM complexity rating through the crash path instead of picking a model', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo, extra: { planner: rolePlanner } });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Việc tạo trước khi bắt buộc đánh giá');
+    // A ticket created before the rating was required.
+    await clearRating(api.db, dev.id);
+    await transitionTicket(api.db, { ticketId: dev.id, to: 'in_progress', actor: 'agent' });
+    await t.daemon.start();
+
+    await waitFor(
+      async () => (await getTicket(api.db, dev.id)).status === 'blocked',
+      15_000,
+      'ticket blocked',
+    );
+    const [notice] = (await commentsOf(api.db, dev.id)).map((c) => c.body);
+    expect(notice).toContain('chưa được PM đánh giá độ phức tạp');
+    expect(notice).toContain('không có model mặc định cho dev và QC');
+    expect(t.book.runs.filter((run) => run.ticketId === dev.id)).toHaveLength(0);
+    const [failed] = t.daemon.state.jobsForTicket(dev.id);
+    expect(failed).toMatchObject({ status: 'failed', error: expect.stringContaining('MissingComplexity') });
+    await t.daemon.stop();
+  });
+
   it('starts a QC job right after dependency.resolved and resumes a session on an owner comment', async () => {
     const f = await fixture(api);
     const repo = makeRepo();
@@ -244,6 +272,7 @@ describe('daemon', () => {
     const { createSubtask } = await import('../../api/src/services/ticket-service.js');
     const qc = await createSubtask(api.db, {
       type: 'qc',
+      ...RATED,
       parentId: pm.id,
       title: 'QC tính năng',
       pairsWith: dev.id,

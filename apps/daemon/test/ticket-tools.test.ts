@@ -8,7 +8,7 @@ import {
   type TicketToolContext,
 } from '../src/tools/ticket-mcp-server.js';
 import { allowedToolsFor, ticketToolsFor } from '../src/tools/tool-scopes.js';
-import { commentsOf, devTicket, fixture, getTicket, pmTask, useApi } from './helpers/api.js';
+import { commentsOf, devTicket, fixture, getTicket, pmTask, RATED, useApi } from './helpers/api.js';
 
 const api = useApi();
 
@@ -140,7 +140,13 @@ describe('ticket MCP tools against the real API', () => {
     const pm = await pmTask(api, f);
     const dev = await devTicket(api, pm.id);
     const { createSubtask } = await import('../../api/src/services/ticket-service.js');
-    const qc = await createSubtask(api.db, { type: 'qc', parentId: pm.id, title: 'QC', pairsWith: dev.id });
+    const qc = await createSubtask(api.db, {
+      type: 'qc',
+      ...RATED,
+      parentId: pm.id,
+      title: 'QC',
+      pairsWith: dev.id,
+    });
     const state = new StateDb(':memory:');
     const job = state.insertJob({ ticketId: qc.id, projectId: f.projectId, role: 'qc', trigger: 't' });
     const vps = new VpsClient({ apiUrl: f.server.url, token: () => f.machine.token });
@@ -213,7 +219,7 @@ describe('ticket MCP tools against the real API', () => {
         return response;
       },
     });
-    const body = { type: 'dev', title: 'Làm giỏ hàng', parentId: pm.id } as const;
+    const body = { type: 'dev', ...RATED, title: 'Làm giỏ hàng', parentId: pm.id } as const;
     const before = new JobWriter(state, job.id);
     await expect(before.write((key) => lossy.createSubtask(body, key))).rejects.toBeInstanceOf(VpsError);
     expect(state.getJob(job.id)?.toolSeq).toBe(0);

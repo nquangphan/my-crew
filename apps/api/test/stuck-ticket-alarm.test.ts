@@ -11,7 +11,7 @@ import {
 import { listNotices } from '../src/services/event-service.js';
 import { createRequestTicket, createSubtask } from '../src/services/ticket-service.js';
 import { pairTestMachine } from './helpers/machines.js';
-import { createTestProject, eventsOf, setStatus, testConfig, useTestDb } from './helpers/test-db.js';
+import { createTestProject, eventsOf, RATED, setStatus, testConfig, useTestDb } from './helpers/test-db.js';
 
 const ctx = useTestDb();
 const NONE: ReadonlySet<string> = new Set();
@@ -130,8 +130,14 @@ describe('stuck-ticket alarm', () => {
       projectId: project.id,
       title: 'PM',
     });
-    const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pm.id, title: 'Dev' });
-    const qc = await createSubtask(ctx.db, { type: 'qc', parentId: pm.id, title: 'QC', pairsWith: dev.id });
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pm.id, title: 'Dev' });
+    const qc = await createSubtask(ctx.db, {
+      type: 'qc',
+      ...RATED,
+      parentId: pm.id,
+      title: 'QC',
+      pairsWith: dev.id,
+    });
     for (const id of [request.id, pm.id, dev.id, qc.id]) {
       await setStatus(ctx.db, id, 'in_progress');
       await age(id, QUIET);

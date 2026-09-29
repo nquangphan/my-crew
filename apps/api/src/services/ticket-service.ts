@@ -65,6 +65,7 @@ export function toTicketDto(row: TicketRow): Ticket {
     priority: row.priority,
     allowConfigChange: row.allowConfigChange,
     complexity: row.complexity,
+    complexityReason: row.complexityReason,
     model: row.model,
     effort: row.effort,
     requiredSkills: row.requiredSkills,
@@ -266,6 +267,7 @@ export async function createSubtask(db: Executor, input: CreateSubtaskInput): Pr
       allowConfigChange: parent.allowConfigChange,
       assigneeMachineId: project.ownerMachineId,
       complexity: data.complexity ?? null,
+      complexityReason: data.complexityReason ?? null,
       model: data.model ?? null,
       effort: data.effort ?? null,
       requiredSkills: [...new Set(data.requiredSkills)],
@@ -380,20 +382,25 @@ export async function fileBug(
 
     const cycle = verified.bugCycle + 1;
     const originDevId = verified.originDevId ?? verified.id;
+    // The bug runs on the PM's rating of the dev ticket it came from; the retest on the QC's own rating.
+    const [origin] =
+      originDevId === verified.id
+        ? [verified]
+        : await tx.select().from(tickets).where(eq(tickets.id, originDevId));
+    if (!origin) throw notFound('origin dev ticket');
     if (cycle > MAX_BUG_CYCLES) {
-      const [origin] = await tx.select({ key: tickets.key }).from(tickets).where(eq(tickets.id, originDevId));
       const who = rejection ? `PM từ chối ${source.key}` : `QC (${source.key}) báo thêm lỗi`;
       await applyHold(
         tx,
         pmTask,
         'bug_cycles',
-        `${who} cho ${origin?.key ?? verified.key}, nhưng chuỗi sửa lỗi đã đạt giới hạn ` +
+        `${who} cho ${origin.key}, nhưng chuỗi sửa lỗi đã đạt giới hạn ` +
           `${MAX_BUG_CYCLES} vòng nên lỗi mới chưa được tạo: "${data.title}". ` +
           'Hãy bình luận để quyết định bước tiếp theo.',
       );
       return new ApiError(
         'BUG_CYCLE_CAP',
-        `bug chain of ${origin?.key ?? verified.key} reached ${MAX_BUG_CYCLES} cycles`,
+        `bug chain of ${origin.key} reached ${MAX_BUG_CYCLES} cycles`,
         { originDevId, cycle },
         true,
       );
@@ -419,9 +426,10 @@ export async function fileBug(
       type: 'bug',
       title: data.title,
       description: data.description,
-      complexity: verified.complexity,
-      model: verified.model,
-      effort: verified.effort,
+      complexity: origin.complexity,
+      complexityReason: inheritedReason(origin),
+      model: origin.model,
+      effort: origin.effort,
       requiredSkills: mergeUnique(verified.requiredSkills, data.requiredSkills),
       requiredMcps: verified.requiredMcps,
     });
@@ -431,6 +439,7 @@ export async function fileBug(
       title: `Kiểm thử lại ${bug.key}: ${data.title}`,
       description: `Kiểm thử lại sau khi sửa lỗi ${bug.key} (vòng ${cycle}/${MAX_BUG_CYCLES}).`,
       complexity: qcTemplate?.complexity ?? null,
+      complexityReason: qcTemplate ? inheritedReason(qcTemplate) : null,
       model: qcTemplate?.model ?? null,
       effort: qcTemplate?.effort ?? null,
       requiredSkills: qcTemplate?.requiredSkills ?? [],
@@ -443,6 +452,16 @@ export async function fileBug(
     });
     return { bug: toTicketDto(bug), retest: toTicketDto(retest) };
   });
+}
+
+const INHERITED_PREFIX = 'kế thừa từ ';
+
+/** The rating reason a bug or retest copies from the ticket it inherits its complexity from. */
+function inheritedReason(from: TicketRow): string | null {
+  if (!from.complexity) return null;
+  // A retest of a retest keeps the first ticket's reason instead of nesting the prefix.
+  if (from.complexityReason?.startsWith(INHERITED_PREFIX)) return from.complexityReason;
+  return `${INHERITED_PREFIX}${from.key}${from.complexityReason ? `: ${from.complexityReason}` : ''}`;
 }
 
 // ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ import { claimRequests, machines, projects } from '../src/db/schema.js';
 import { createRequestTicket, createSubtask } from '../src/services/ticket-service.js';
 import { freshTotp, type PairedMachine, pairTestMachine, writeHeaders } from './helpers/machines.js';
 import { type LoggedInOwner, makeApp, seedAndLogin } from './helpers/owner-session.js';
-import { createTestProject, eventsOf, getTicket, setStatus, useTestDb } from './helpers/test-db.js';
+import { createTestProject, eventsOf, getTicket, RATED, setStatus, useTestDb } from './helpers/test-db.js';
 
 const ctx = useTestDb();
 let app: FastifyInstance;
@@ -56,10 +56,10 @@ async function webTree(holder: string | null) {
     title: 'PM giỏ hàng',
   });
   await setStatus(ctx.db, pmTask.id, 'in_progress');
-  const todo = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Làm API' });
-  const review = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Làm UI' });
+  const todo = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Làm API' });
+  const review = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Làm UI' });
   await setStatus(ctx.db, review.id, 'in_review');
-  const done = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Xong rồi' });
+  const done = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Xong rồi' });
   await setStatus(ctx.db, done.id, 'done');
   return { project, request, pmTask, todo, review, done };
 }

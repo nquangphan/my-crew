@@ -62,6 +62,8 @@ test('docs space: tree, flow page, TOC, related tickets, search and file lookup'
     type: 'dev',
     parentId: pm.id,
     title: `Tách service thanh toán ${viewport}`,
+    complexity: 'medium',
+    complexityReason: 'Tách một service và giữ API cũ',
     flows: ['payments'],
   });
 

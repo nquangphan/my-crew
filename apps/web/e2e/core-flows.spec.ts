@@ -61,12 +61,16 @@ test('create, open, answer needs_input, change status, open docs, cancel', async
     type: 'dev',
     parentId: pm.id,
     title: 'Làm endpoint /health',
+    complexity: 'small',
+    complexityReason: 'Một endpoint mới và test của nó',
     flows: ['health-check'],
   });
   const qc = await agent.createSubtask({
     type: 'qc',
     parentId: pm.id,
     title: 'QC endpoint /health',
+    complexity: 'trivial',
+    complexityReason: 'Gọi một endpoint, không có UI',
     pairsWith: dev.id,
   });
   await agent.comment(pm.id, 'PM hỏi: /health kiểm tra cả Redis hay chỉ Postgres?');
@@ -117,6 +121,9 @@ test('create, open, answer needs_input, change status, open docs, cancel', async
   await panel.getByRole('link', { name: 'Mở toàn trang' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Làm endpoint /health' })).toBeVisible();
   await expectNoHorizontalOverflow(page);
+  // Details show the PM's complexity rating with its reason.
+  if (viewport === 'phone') await page.getByRole('button', { name: 'Chi tiết' }).click();
+  await expect(page.getByText('Lý do: Một endpoint mới và test của nó')).toBeVisible();
   await page.getByRole('button', { name: /^Trạng thái: Review/ }).click();
   const menu = page.getByRole('menu');
   await expect(menu.getByRole('menuitem')).toHaveText(['Xong', 'Đang làm', 'Đã hủy']);

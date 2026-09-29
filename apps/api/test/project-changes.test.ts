@@ -5,7 +5,7 @@ import { projectChangeRequests, projects } from '../src/db/schema.js';
 import { createRequestTicket, createSubtask } from '../src/services/ticket-service.js';
 import { freshTotp, type PairedMachine, pairTestMachine, writeHeaders } from './helpers/machines.js';
 import { type LoggedInOwner, makeApp, seedAndLogin } from './helpers/owner-session.js';
-import { createTestProject, eventsOf, useTestDb } from './helpers/test-db.js';
+import { createTestProject, eventsOf, RATED, useTestDb } from './helpers/test-db.js';
 
 const ctx = useTestDb();
 let app: FastifyInstance;
@@ -56,8 +56,13 @@ describe('a machine changing its own project type and UI-test MCP mapping', () =
     const web = await createTestProject(ctx.db, { ownerMachineId: a.machineId, platform: 'web' });
     const pmTask = await pmTaskIn(web.id);
     const qcFor = async (title: string) => {
-      const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: `Dev ${title}` });
-      return createSubtask(ctx.db, { type: 'qc', parentId: pmTask.id, title, pairsWith: dev.id });
+      const dev = await createSubtask(ctx.db, {
+        type: 'dev',
+        ...RATED,
+        parentId: pmTask.id,
+        title: `Dev ${title}`,
+      });
+      return createSubtask(ctx.db, { type: 'qc', ...RATED, parentId: pmTask.id, title, pairsWith: dev.id });
     };
     const before = await qcFor('QC trước');
     expect(before.requiredMcps).toEqual(['playwright']);

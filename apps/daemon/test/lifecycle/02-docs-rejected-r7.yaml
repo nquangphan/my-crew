@@ -12,7 +12,10 @@ scripts:
   - stage: assistant_triage
     steps: [{ macro: triage, title: Đọc cấu hình }]
   - stage: pm_analyze
-    steps: [{ macro: pm_analyze, subtasks: [{ title: Đọc cấu hình từ env }] }]
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - { title: Đọc cấu hình từ env, complexity: trivial, qcComplexity: trivial }
   - stage: dev
     title: Đọc cấu hình từ env
     run: 1

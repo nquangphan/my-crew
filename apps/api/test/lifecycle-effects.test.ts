@@ -8,6 +8,7 @@ import {
   eventsOf,
   getTicket,
   minimalReport,
+  RATED,
   reportAndFinish,
   setStatus,
   useTestDb,
@@ -21,11 +22,12 @@ describe('dependency.resolved', () => {
     const { dev, qc } = await createDevWithQc(ctx.db, pmTask.id);
     const other = await createSubtask(ctx.db, {
       type: 'dev',
+      ...RATED,
       parentId: pmTask.id,
       title: 'Khác',
       dependsOn: [dev.id],
     });
-    await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Độc lập' });
+    await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Độc lập' });
 
     await reportAndFinish(ctx.db, dev.id);
 
@@ -67,8 +69,8 @@ describe('children.all_done', () => {
         projectId: project.id,
         title: `Vòng ${round}`,
       });
-      const a = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'A' });
-      const b = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'B' });
+      const a = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'A' });
+      const b = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'B' });
       for (const t of [a, b]) {
         await submitReport(ctx.db, t.id, minimalReport());
         await setStatus(ctx.db, t.id, 'in_progress');
@@ -158,7 +160,7 @@ describe('owner wake-ups', () => {
 
   it('done -> in_progress emits ticket.reopened and blocked -> in_progress emits ticket.unblocked', async () => {
     const { pmTask, projectMachine } = await createTree(ctx.db);
-    const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev' });
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
     await reportAndFinish(ctx.db, dev.id);
     await transitionTicket(ctx.db, { ticketId: dev.id, to: 'in_progress', actor: 'owner' });
     await transitionTicket(ctx.db, { ticketId: dev.id, to: 'blocked', actor: 'agent' });
@@ -174,7 +176,7 @@ describe('owner wake-ups', () => {
 describe('atomic events', () => {
   it('rolls back the status change and its events when the surrounding transaction fails', async () => {
     const { pmTask } = await createTree(ctx.db);
-    const dev = await createSubtask(ctx.db, { type: 'dev', parentId: pmTask.id, title: 'Dev' });
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
     await submitReport(ctx.db, dev.id, minimalReport());
     await setStatus(ctx.db, dev.id, 'in_progress');
     const before = (await eventsOf(ctx.db)).length;
