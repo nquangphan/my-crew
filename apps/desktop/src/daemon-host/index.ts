@@ -1,72 +1,41 @@
+import { writeSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { crewHome, setPromptsDir } from '@crew/daemon';
-import { type FromHost, type HostEventName, ToHost } from '@crew/shared';
-import { HostService } from './host-service.js';
-import { describeError } from './setup-ops.js';
-import { testSeams } from './test-seams.js';
+import type { HostHandlers } from './host-main.js';
 
 /**
- * Entry of the daemon host, an Electron utility process forked by the main process's supervisor. It talks
- * only over its parent MessagePort; a crash here is restarted with backoff by the supervisor.
+ * Entry of the daemon host, an Electron utility process forked by the main process's supervisor. It installs
+ * the crash handlers before anything else runs, then loads the host (and every library it bundles) with a
+ * dynamic import: an error while loading is written to stderr, which the main process forwards to app.log, and
+ * ends the process so the supervisor restarts it, instead of leaving a host that never reports ready.
  */
-const port = process.parentPort;
-const post = (message: FromHost) => port.postMessage(message);
 
-// The role prompts ship beside this entry (electron.vite.config.ts copies them); the bundled daemon code may sit
-// in a chunk elsewhere, so point the planner at them explicitly.
-setPromptsDir(fileURLToPath(new URL('./prompts/', import.meta.url)));
-
-const home = crewHome(process.env);
-const service = new HostService({
-  home,
-  runtime: process.env.CREW_APP_EXECUTABLE ?? process.execPath,
-  crewDocsSource: process.env.CREW_DOCS_SOURCE ?? '',
-  appVersion: process.env.CREW_APP_VERSION ?? '0.0.0',
-  env: process.env,
-  emit: (name: HostEventName, payload: unknown) => post({ kind: 'event', name, payload }),
-  log: (entry) => post({ kind: 'log', entry: { ...entry, fields: entry.fields ?? {} } }),
-  ...(process.env.CREW_DESKTOP_TEST_MODE === '1' ? { seams: testSeams(home) } : {}),
-});
-
-port.on('message', (event: Electron.MessageEvent) => {
-  const parsed = ToHost.safeParse(event.data);
-  if (!parsed.success) return;
-  const message = parsed.data;
-  if (message.kind === 'facts') {
-    service.setFacts(message.facts);
-    return;
+/** Synchronous: on macOS a write to a pipe through `process.stderr` is lost when `process.exit` follows. */
+function toStderr(text: string): void {
+  try {
+    writeSync(2, `${text}\n`);
+  } catch {
+    // no stderr to report to
   }
-  service.handle(message.method, message.params).then(
-    (result) => post({ kind: 'response', id: message.id, ok: true, result: result ?? null }),
-    (error: unknown) =>
-      post({
-        kind: 'response',
-        id: message.id,
-        ok: false,
-        error: { message: describeError(error), code: (error as { code?: string }).code },
-      }),
-  );
-});
-
-let stopping = false;
-async function shutdown(code: number): Promise<void> {
-  if (stopping) return;
-  stopping = true;
-  await service.shutdown().catch(() => undefined);
-  process.exit(code);
 }
-process.on('SIGTERM', () => void shutdown(0));
-process.on('uncaughtException', (error) => {
-  service.activity.logger('error', 'daemon host crashed', { error: error.stack ?? error.message });
-  service.host.log('error', 'uncaught-exception', { error: error.stack ?? error.message });
-  // Exit non-zero: the supervisor restarts the host (and the daemon) with backoff.
-  void shutdown(1);
-});
-process.on('unhandledRejection', (reason) => {
-  service.activity.logger('warn', 'unhandled rejection', { error: String(reason) });
-  service.host.log('error', 'unhandled-rejection', {
-    error: reason instanceof Error ? (reason.stack ?? reason.message) : String(reason),
-  });
-});
 
-post({ kind: 'ready' });
+let handlers: HostHandlers = {
+  crash: (error) => {
+    toStderr(`daemon host crashed while starting: ${error.stack ?? error.message}`);
+    process.exit(1);
+  },
+  rejection: (reason) => {
+    const detail = reason instanceof Error ? (reason.stack ?? reason.message) : String(reason);
+    toStderr(`daemon host unhandled rejection while starting: ${detail}`);
+  },
+};
+process.on('uncaughtException', (error) => handlers.crash(error));
+process.on('unhandledRejection', (reason) => handlers.rejection(reason));
+
+// The role prompts are copied next to this entry, not next to the chunk the host code lands in.
+const promptsDir = fileURLToPath(new URL('./prompts/', import.meta.url));
+import('./host-main.js').then(
+  ({ runHost }) => {
+    handlers = runHost(promptsDir);
+  },
+  (error: unknown) => handlers.crash(error instanceof Error ? error : new Error(String(error))),
+);

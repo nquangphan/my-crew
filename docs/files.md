@@ -172,8 +172,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/worktree-manager.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/desktop/electron.vite.config.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/activity.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/daemon-host/folder-access.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/health-ops.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/host-context.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/daemon-host/host-main.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/host-service.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/index.ts` | [desktop-app](flows/desktop-app.md) (điểm vào) |
 | `apps/desktop/src/daemon-host/setup-ops.ts` | [desktop-app](flows/desktop-app.md) (file) |
@@ -218,6 +220,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/test/e2e/health.spec.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/e2e/onboarding.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/e2e/project-settings.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
+| `apps/desktop/test/folder-access.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/host-service.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/main-logic.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/new-project-form.test.ts` | [desktop-ui](flows/desktop-ui.md) (test) |

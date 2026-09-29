@@ -12,6 +12,7 @@ import {
   VpsClient,
 } from '@crew/daemon';
 import type { AppLogEntry, HostEventName } from '@crew/shared';
+import { awaitFolderAccess } from './folder-access.js';
 import type { TestSeams } from './test-seams.js';
 
 export interface HostDeps {
@@ -51,9 +52,45 @@ export class HostContext {
   readonly tokenStore: TokenStore;
   daemon: Daemon | null = null;
 
+  /** One read per repo folder for the host's lifetime: later callers share it (and its wait) instead of piling up. */
+  private readonly folderReads = new Map<string, Promise<void>>();
+
   constructor(readonly deps: HostDeps) {
     this.paths = homePaths(deps.home);
     this.tokenStore = deps.tokenStore ?? defaultTokenStore(this.paths.tokenFile, deps.env);
+  }
+
+  /**
+   * Resolves once every project folder has answered a read (allowed or refused). Await it before synchronous
+   * git work in the repos: see `awaitFolderAccess` for the macOS permission prompt this waits out.
+   */
+  async repoAccess(): Promise<void> {
+    let config: DaemonConfig | null;
+    try {
+      config = this.config();
+    } catch {
+      return;
+    }
+    for (const project of config?.projects ?? []) {
+      if (existsSync(project.repoPath)) await this.folderRead(project.repoPath);
+    }
+  }
+
+  private folderRead(path: string): Promise<void> {
+    let read = this.folderReads.get(path);
+    if (!read) {
+      read = awaitFolderAccess([path], {
+        onWaiting: (folder) =>
+          this.log('warn', 'folder-access-waiting', {
+            path: folder,
+            hint: 'macOS đang hỏi quyền cho 2P Crew đọc thư mục này: bấm "Allow" (Cho phép) trong hộp thoại.',
+          }),
+        onResolved: (folder, ms, error) =>
+          this.log(error ? 'warn' : 'info', 'folder-access-resolved', { path: folder, ms, error }),
+      });
+      this.folderReads.set(path, read);
+    }
+    return read;
   }
 
   config(): DaemonConfig | null {

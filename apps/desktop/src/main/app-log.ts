@@ -58,6 +58,23 @@ export function formatEntry(entry: AppLogEntry, now: Date): string {
   return scrubSecrets(line).text;
 }
 
+/**
+ * Splits a text stream (the daemon host's stdout or stderr) into lines for the app log. A line longer than
+ * `maxLine` is passed on in pieces, so a stream without newlines cannot grow the buffer without bound.
+ */
+export function lineSplitter(onLine: (line: string) => void, maxLine = MAX_STRING): (chunk: string) => void {
+  let rest = '';
+  return (chunk) => {
+    const lines = (rest + chunk).split('\n');
+    rest = lines.pop() ?? '';
+    while (rest.length > maxLine) {
+      lines.push(rest.slice(0, maxLine));
+      rest = rest.slice(maxLine);
+    }
+    for (const line of lines) if (line.trim() !== '') onLine(line);
+  };
+}
+
 export interface AppLogOptions {
   /** Rotate once the file would grow past this size (default 2 MB). */
   maxBytes?: number;

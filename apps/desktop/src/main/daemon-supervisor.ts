@@ -16,7 +16,10 @@ export interface HostProcess {
   postMessage(message: ToHost): void;
   onMessage(listener: (message: unknown) => void): void;
   onExit(listener: (code: number) => void): void;
+  /** Graceful stop (SIGTERM): the host stops its daemon, then exits. */
   kill(): void;
+  /** SIGKILL, for a host whose event loop is blocked and so cannot run its SIGTERM handler. */
+  forceKill(): void;
 }
 
 export type ForkHost = () => HostProcess;
@@ -28,8 +31,15 @@ export interface SupervisorOptions {
   /** A host that ran this long before crashing restarts with the initial backoff again. */
   stableMs?: number;
   requestTimeoutMs?: number;
+  /** A host that has not reported ready this long after its fork is killed and restarted. */
+  readyTimeoutMs?: number;
+  /** A host that never reported ready and ignores SIGTERM this long is killed with SIGKILL. */
+  killGraceMs?: number;
   now?: () => number;
 }
+
+/** The first daemon start may wait for the owner to answer macOS's folder-permission prompt. */
+const DAEMON_START_TIMEOUT_MS = 30 * 60 * 1000;
 
 interface Pending {
   resolve: (value: unknown) => void;
@@ -49,7 +59,10 @@ export class HostUnavailableError extends Error {
  * backoff (1 s, 2 s, 4 s … 30 s), the daemon is started again when the machine is set up, and a pause is
  * re-applied. A graceful stop either waits for running jobs (`drain`) or re-queues them (`requeue`).
  *
- * Events: `runtime` (DaemonRuntime), `host-event` (name, payload), `host-log` (AppLogEntry for app.log).
+ * A host that does not report ready within `readyTimeoutMs` is killed and restarted the same way.
+ *
+ * Events: `runtime` (DaemonRuntime), `host-event` (name, payload), `host-log` (AppLogEntry for app.log),
+ * `ready-timeout` ({ pid, ms }).
  */
 export class DaemonSupervisor extends EventEmitter {
   private child: HostProcess | null = null;
@@ -66,6 +79,9 @@ export class DaemonSupervisor extends EventEmitter {
   private startedAt = 0;
   private backoffMs: number;
   private restartTimer: NodeJS.Timeout | null = null;
+  private readyTimer: NodeJS.Timeout | null = null;
+  private forceKillTimer: NodeJS.Timeout | null = null;
+  private readyTimedOut = false;
   private nextId = 1;
   private readonly pending = new Map<number, Pending>();
   private readonly options: Required<Omit<SupervisorOptions, 'fork'>> & { fork: ForkHost };
@@ -77,6 +93,8 @@ export class DaemonSupervisor extends EventEmitter {
       maxBackoffMs: 30_000,
       stableMs: 60_000,
       requestTimeoutMs: 120_000,
+      readyTimeoutMs: 30_000,
+      killGraceMs: 5_000,
       now: Date.now,
       ...options,
     };
@@ -107,12 +125,40 @@ export class DaemonSupervisor extends EventEmitter {
   private spawn(): void {
     this.restartTimer = null;
     this.ready = false;
+    this.readyTimedOut = false;
     this.startedAt = this.options.now();
     const child = this.options.fork();
     this.child = child;
     child.onMessage((raw) => this.onMessage(child, raw));
     child.onExit((code) => this.onExit(child, code));
+    this.readyTimer = setTimeout(() => this.onReadyTimeout(child), this.options.readyTimeoutMs);
     this.setState(this.restarts > 0 ? 'restarting' : 'starting');
+  }
+
+  /** A host that never reports ready would leave every request waiting: kill it, the exit restarts it. */
+  private onReadyTimeout(child: HostProcess): void {
+    this.readyTimer = null;
+    if (child !== this.child || this.ready) return;
+    this.readyTimedOut = true;
+    this.emit('ready-timeout', { pid: child.pid ?? null, ms: this.options.readyTimeoutMs });
+    this.killHost(child);
+  }
+
+  /** SIGTERM; a host that never reported ready runs no daemon, so SIGKILL it if SIGTERM does not end it. */
+  private killHost(child: HostProcess): void {
+    child.kill();
+    if (this.ready || this.forceKillTimer) return;
+    this.forceKillTimer = setTimeout(() => {
+      this.forceKillTimer = null;
+      if (child === this.child) child.forceKill();
+    }, this.options.killGraceMs);
+  }
+
+  private clearHostTimers(): void {
+    if (this.readyTimer) clearTimeout(this.readyTimer);
+    if (this.forceKillTimer) clearTimeout(this.forceKillTimer);
+    this.readyTimer = null;
+    this.forceKillTimer = null;
   }
 
   private onMessage(child: HostProcess, raw: unknown): void {
@@ -137,6 +183,8 @@ export class DaemonSupervisor extends EventEmitter {
   }
 
   private async onReady(): Promise<void> {
+    if (this.readyTimer) clearTimeout(this.readyTimer);
+    this.readyTimer = null;
     this.ready = true;
     for (const waiter of this.readyWaiters.splice(0)) waiter.resolve();
     if (this.facts) this.child?.postMessage({ kind: 'facts', facts: this.facts });
@@ -146,7 +194,7 @@ export class DaemonSupervisor extends EventEmitter {
 
   private async bootDaemon(): Promise<void> {
     try {
-      await this.request('host.startDaemon', {});
+      await this.request('host.startDaemon', {}, DAEMON_START_TIMEOUT_MS);
       if (this.paused) await this.request('daemon.pause', {});
       this.daemonStarted = true;
     } catch (error) {
@@ -159,6 +207,7 @@ export class DaemonSupervisor extends EventEmitter {
 
   private onExit(child: HostProcess, code: number): void {
     if (child !== this.child) return;
+    this.clearHostTimers();
     this.child = null;
     this.ready = false;
     this.daemonStarted = false;
@@ -167,7 +216,9 @@ export class DaemonSupervisor extends EventEmitter {
       pending.reject(new HostUnavailableError());
       this.pending.delete(id);
     }
-    this.lastExit = `thoát với mã ${code}`;
+    this.lastExit = this.readyTimedOut
+      ? `không báo sẵn sàng sau ${Math.round(this.options.readyTimeoutMs / 1000)} giây nên bị dừng (mã ${code})`
+      : `thoát với mã ${code}`;
     if (!this.wantHost) {
       for (const waiter of this.readyWaiters.splice(0))
         waiter.reject(new HostUnavailableError('Daemon đã dừng.'));
@@ -251,7 +302,7 @@ export class DaemonSupervisor extends EventEmitter {
       this.spawn();
       return;
     }
-    if (this.child) this.child.kill();
+    if (this.child) this.killHost(this.child);
     else if (this.wantHost) this.spawn();
   }
 
@@ -274,7 +325,7 @@ export class DaemonSupervisor extends EventEmitter {
         () => undefined,
       );
     }
-    child.kill();
+    this.killHost(child);
     await exited;
   }
 }

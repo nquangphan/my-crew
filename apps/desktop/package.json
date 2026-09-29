@@ -14,7 +14,8 @@
     "test": "vitest run",
     "stage": "electron-vite build && node scripts/stage-app.mjs",
     "test:e2e": "node scripts/stage-app.mjs --if-missing && playwright test",
-    "package:mac": "electron-vite build && node scripts/package-mac.mjs"
+    "package:mac": "electron-vite build && node scripts/package-mac.mjs",
+    "smoke:mac": "node scripts/smoke-packaged.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.283",

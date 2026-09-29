@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { AppLog, formatEntry, localTimestamp, redactFields } from '../src/main/app-log.js';
+import { AppLog, formatEntry, lineSplitter, localTimestamp, redactFields } from '../src/main/app-log.js';
 
 const dirs: string[] = [];
 const temp = () => {
@@ -121,5 +121,18 @@ describe('app log file', () => {
     expect(statSync(file).mode & 0o777).toBe(0o600);
     const blocked = new AppLog(join(file, 'not-a-dir', 'app.log'));
     expect(() => blocked.write({ level: 'error', source: 'main', event: 'x', fields: {} })).not.toThrow();
+  });
+});
+
+describe('lineSplitter (the daemon host stdout/stderr into app.log)', () => {
+  it('joins chunks into lines, skips blank ones and splits an endless line into bounded pieces', () => {
+    const lines: string[] = [];
+    const push = lineSplitter((line) => lines.push(line), 25);
+    push('Error: boom\n    at ');
+    push('load (x.js:1)\n\n');
+    push('x'.repeat(30));
+    expect(lines).toEqual(['Error: boom', '    at load (x.js:1)', 'x'.repeat(25)]);
+    push('\n');
+    expect(lines.at(-1)).toBe('xxxxx');
   });
 });

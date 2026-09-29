@@ -342,7 +342,7 @@ describe('daemon host: setup wizard operations against the real API', () => {
     expect(loadConfig(join(home, 'config.yaml')).projects).toEqual([]);
   });
 
-  it('repairs hooks whose runtime vanished (the app moved) at start, and leaves working hooks alone', async () => {
+  it('repairs hooks whose runtime vanished (the app moved) after start, never while constructing, and leaves working hooks alone', async () => {
     const server = await api.server();
     const home = join(tempDir('crew-desktop-home-'), 'crew');
     const first = host(home);
@@ -374,7 +374,11 @@ describe('daemon host: setup wizard operations against the real API', () => {
     git(moved, 'config', 'crew-docs.runtime', gone);
     git(kept, 'config', 'crew-docs.runtime', other);
 
+    // Constructing the service touches no repo: the host reports ready before any repo work, which can wait
+    // on a macOS folder-permission prompt.
     const second = host(home);
+    expect(git(moved, 'config', '--get', 'crew-docs.runtime').trim()).toBe(gone);
+    await second.service.start();
     expect(git(moved, 'config', '--get', 'crew-docs.runtime').trim()).toBe(process.execPath);
     expect(git(kept, 'config', '--get', 'crew-docs.runtime').trim()).toBe(other);
     expect(second.logs).toEqual(

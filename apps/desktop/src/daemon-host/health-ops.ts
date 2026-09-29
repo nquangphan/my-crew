@@ -88,6 +88,8 @@ export class HealthOps {
   }
 
   async run(mode: HealthMode): Promise<HealthReport> {
+    // The repo checks run synchronous git in the project folders.
+    await this.host.repoAccess();
     const ticket = ++this.runsStarted;
     const ctx = this.context(mode);
     const results = await runHealthChecks(ctx);

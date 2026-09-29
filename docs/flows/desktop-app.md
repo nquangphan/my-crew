@@ -14,8 +14,8 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 
 - `apps/desktop/src/main/index.ts` — tiến trình main: cửa sổ, tray, mở cùng máy, cập nhật, thông báo, mở
   Terminal, IPC với renderer.
-- `apps/desktop/src/daemon-host/index.ts` — tiến trình con "daemon host": nhận lệnh qua `MessagePort` của
-  `utilityProcess`, chạy `HostService`.
+- `apps/desktop/src/daemon-host/index.ts` — điểm vào tiến trình con "daemon host": chỉ cài crash handler rồi
+  nạp `host-main.ts`, nơi host thật nhận lệnh qua `MessagePort` của `utilityProcess` và chạy `HostService`.
 
 ## Các bước
 
@@ -38,33 +38,53 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    promise bị reject từ renderer (`reportRendererErrors()`, flow `desktop-ui`) và ghi thẳng vào log; sự kiện
    khác được ghi: `app-start` (kèm `temporaryLocation: true` khi exe đang chạy từ dmg gắn tạm hay macOS App
    Translocation — `/Volumes/`/`AppTranslocation/`), `daemon-host` (đổi trạng thái từ sự kiện `runtime` của
-   supervisor), `updater-error`/`updater-unpublished`, `health-run-failed` (khi `runHealth()` không gọi được
-   host), và `uncaught-exception`/`unhandled-rejection` của chính main.
+   supervisor), `daemon-host-ready-timeout` (host không báo `ready` kịp, từ sự kiện `ready-timeout` của
+   supervisor — pid, ms, xem bước 4), `host-stdout`/`host-stderr` (mỗi dòng stdout/stderr của host — host được
+   fork với `stdio: 'pipe'` vì mở từ Finder hay login item thì stdio riêng của app không đi đâu cả, xem bước 4),
+   `updater-error`/`updater-unpublished`, `health-run-failed` (khi `runHealth()` không gọi được host), và
+   `uncaught-exception`/`unhandled-rejection` của chính main.
 4. `apps/desktop/src/main/daemon-supervisor.ts` → `DaemonSupervisor.spawn()`/`onExit()`/`startDaemon()`: fork
    `daemon-host.js` bằng `utilityProcess.fork()`; một host chết được khởi động lại với backoff nhân đôi (1 s →
    2 s → … → 30 s), backoff về lại 1 s nếu host đã sống quá 60 s (`stableMs`) trước khi chết; sau mỗi lần khởi
    động lại, nếu máy đã hoàn tất cài đặt thì daemon runtime được khởi động lại và trạng thái tạm dừng
-   (`setPaused`) được áp lại. `stop('drain' | 'requeue')` dừng có kiểm soát: `drain` tạm dừng nhận job rồi chờ
+   (`setPaused`) được áp lại. Một host không báo `ready` trong `readyTimeoutMs` (mặc định 30 s) bị coi là kẹt
+   (event loop bị chặn) — sự kiện `ready-timeout` phát ra, host bị kill (SIGTERM) rồi khởi động lại theo backoff
+   như trên; nếu SIGTERM không có tác dụng trong `killGraceMs` (mặc định 5 s) thì `forceKill()` (SIGKILL) chấm
+   dứt hẳn — chỉ áp dụng cho host chưa từng báo `ready` (nên chưa chạy daemon nào), một host đã `ready` không
+   bao giờ bị force-kill hay tính timeout nữa. `bootDaemon()` gọi `host.startDaemon` với timeout 30 phút vì lần
+   khởi động daemon đầu tiên có thể phải chờ chủ dự án trả lời hộp thoại quyền macOS (xem bước 7).
+   `stop('drain' | 'requeue')` dừng có kiểm soát: `drain` tạm dừng nhận job rồi chờ
    job đang chạy xong, `requeue` dừng ngay để job resume ở lần chạy sau. Sự kiện `host-log` chuyển tiếp mỗi
    dòng `app.log` mà host gửi (`kind: 'log'`) cho main ghi vào `AppLog`.
-5. `apps/desktop/src/daemon-host/index.ts` → `port.on('message')`, `shutdown()`: host nhận `ToHost` qua
-   `process.parentPort`, validate bằng zod, gọi `HostService.handle()` rồi trả `FromHost` (`response`/
-   `event`); `SIGTERM` hoặc `uncaughtException` gọi `shutdown()` và thoát với mã khác 0 để supervisor khởi
-   động lại cả host lẫn daemon; `deps.log` gửi mỗi dòng log của host (`HostContext.log()`) thành message
-   `{kind: 'log', entry}` qua `parentPort`; `uncaughtException`/`unhandledRejection` của tiến trình host cũng
-   được ghi trước khi thoát. Prompt vai trò của flow `agent-roles` là file Markdown, không phải code nên
-   `electron-vite` không tự bundle: `apps/desktop/electron.vite.config.ts` (plugin `copyRolePrompts`, hook
-   `writeBundle` của build main) chép `apps/daemon/src/roles/prompts/*.md` vào `out/main/prompts/` cạnh
-   bundle main; vì code planner có thể nằm ở chunk khác, `daemon-host/index.ts` gọi `setPromptsDir()` ngay
-   khi khởi động, chỉ thẳng vào `./prompts/` cạnh chính nó thay vì để `prompt-templates.ts` tự suy ra từ vị
-   trí bundle của nó.
-6. `apps/desktop/src/daemon-host/host-service.ts` → `HostService.startDaemon()`/`dispatch()`: gọi
-   `createDaemon()` (flow `daemon-runtime`) **bên trong tiến trình host này** — daemon chạy độc lập với cửa
-   sổ và renderer; `dispatch()` định tuyến method sang `setup-ops.ts` (trình cài đặt, Settings → Projects),
-   `health-ops.ts` (sức khỏe), `activity.ts` (job, log) hoặc gọi thẳng `daemon.pause()/resume()`. Ngay sau khi
-   cài crew-docs (`installShippedCrewDocs()`), `repairBrokenHooks()` (`setup-ops.ts`) chạy một lần để sửa hook
-   của project nào có runtime/bundle không còn chạy được (ví dụ app đã bị chuyển chỗ), giữ nguyên hook đang
-   chạy tốt của project khác. `createDaemon()` nhận `onApiError: this.host.logApiError` nên mọi lỗi API của
+5. `apps/desktop/src/daemon-host/index.ts` là điểm vào tối thiểu của tiến trình host: đăng ký
+   `uncaughtException`/`unhandledRejection` (`handlers`) trước khi nạp bất cứ gì khác, tính `./prompts/` cạnh
+   chính nó rồi nạp `host-main.js` bằng `import()` động — lỗi lúc nạp hay crash trước khi host chạy được ghi
+   thẳng ra stderr bằng `toStderr()` (`writeSync(2, …)`, vì trên macOS một write qua `process.stderr` vào pipe
+   bị mất nếu theo ngay sau bởi `process.exit`) rồi thoát mã 1 để supervisor khởi động lại. `host-main.ts` →
+   `runHost(promptsDir)` là host thật: gọi `setPromptsDir(promptsDir)` với thư mục do entry tính ở trên (vì
+   code planner có thể nằm ở chunk khác với entry), dựng `HostService`, lắng nghe `port.on('message')` để
+   nhận `ToHost` qua `process.parentPort`, validate bằng zod, gọi `HostService.handle()` rồi trả `FromHost`
+   (`response`/`event`); `SIGTERM` gọi `shutdown()` và thoát mã 0. Host báo `post({kind: 'ready'})` **trước
+   khi** có bất kỳ thao tác đĩa hay repo nào — `void service.start()` chạy sau, không chờ nó xong — để một
+   hộp thoại quyền macOS còn treo (xem bước 7) không bao giờ chặn dòng báo `ready`; `deps.log` gửi mỗi dòng
+   log của host (`HostContext.log()`) thành message `{kind: 'log', entry}` qua `parentPort`. `runHost()` trả
+   về cặp handler crash/rejection thay cho handler tối thiểu của entry: `crash` ghi qua
+   `service.activity.logger` và `service.host.log` rồi `shutdown(1)` (mã khác 0 để supervisor khởi động lại
+   cả host lẫn daemon); `rejection` chỉ ghi log, không thoát. Prompt vai trò của flow `agent-roles` là file
+   Markdown, không phải code nên `electron-vite` không tự bundle: `apps/desktop/electron.vite.config.ts`
+   (plugin `copyRolePrompts`, hook `writeBundle` của build main) chép `apps/daemon/src/roles/prompts/*.md`
+   vào `out/main/prompts/` cạnh bundle main.
+6. `apps/desktop/src/daemon-host/host-service.ts` → `HostService`: constructor không đụng đĩa hay repo — chỉ
+   dựng `HostContext`/`HealthOps`/`Activity` — để host báo `ready` (bước 5) trước khi làm gì tốn thời gian.
+   `start()` (chạy một lần, nhớ lại promise) là việc dọn dẹp lúc khởi động, chạy sau khi đã báo `ready`: cài
+   lại crew-docs (`installShippedCrewDocs()`), rồi `await this.host.repoAccess()` (chờ quyền đọc thư mục
+   macOS, xem bước 7), rồi `repairBrokenHooks()` (`setup-ops.ts`) sửa hook của project nào có runtime/bundle
+   không còn chạy được (ví dụ app đã bị chuyển chỗ), giữ nguyên hook đang chạy tốt của project khác.
+   `startDaemon()`/`dispatch()`: `startDaemon()` cũng `await repoAccess()` trước (daemon khởi động chạy git
+   đồng bộ trong repo) rồi mới gọi `createDaemon()` (flow `daemon-runtime`) **bên trong tiến trình host
+   này** — daemon chạy độc lập với cửa sổ và renderer; `dispatch()` định tuyến method sang `setup-ops.ts`
+   (trình cài đặt, Settings → Projects), `health-ops.ts` (sức khỏe), `activity.ts` (job, log) hoặc gọi thẳng
+   `daemon.pause()/resume()`. `createDaemon()` nhận `onApiError: this.host.logApiError` nên mọi lỗi API của
    daemon (không riêng của setup-ops) cũng vào `app.log`. `handle()` bọc `dispatch()`: lỗi nào cũng ghi một
    dòng `host-op-failed` (method, ms, message, `errorCode`, `status`) trước khi ném lại cho main. Health chạy
    sau một đổi project (`afterProjectChange()`) không chờ trả lời (`this.background`, một `Set<Promise>`) —
@@ -75,7 +95,17 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    `ctx.log(level, event, fields)` gửi một dòng `app.log` nguồn `host` qua `deps.log`; `ctx.logApiError`
    (lắp vào mọi `VpsClient` mà host dựng, kể cả của `ctx.vps()`) chuyển `ApiFailure` (flow `daemon-runtime`)
    thành dòng `api-error` — đổi tên trường `code` (mã lỗi API) thành `errorCode` vì `code` khớp mẫu tên trường
-   bị ẩn (mã ghép máy).
+   bị ẩn (mã ghép máy). `ctx.repoAccess()` chờ mọi thư mục repo của project đang cấu hình được đọc xong (một
+   lần cho đời host, chia sẻ qua Map `folderReads` cho các lời gọi đồng thời) trước khi có ai gọi git đồng bộ
+   trong repo — macOS bảo vệ quyền riêng tư (TCC) chặn lần đọc đầu tiên của một thư mục dưới
+   `~/Documents`/`~/Desktop`/`~/Downloads`/iCloud/ổ rời tới khi chủ dự án bấm "Allow" trên hộp thoại (quyền
+   gắn với chữ ký app, nên app ký ad-hoc bị hỏi lại mỗi lần build lại); gọi git đồng bộ trong lúc hộp thoại
+   còn treo sẽ chặn cả event loop của host. `apps/desktop/src/daemon-host/folder-access.ts` →
+   `awaitFolderAccess(paths, hooks)` làm việc đọc đó bất đồng bộ (`readdir` tuần tự, một thư mục một lúc) để
+   cái treo rơi vào một worker thread của libuv chứ không phải event loop; quá 5 giây chưa xong thì gọi
+   `onWaiting` (host ghi dòng `folder-access-waiting`, mức `warn`, kèm gợi ý bấm Allow), xong rồi thì gọi
+   `onResolved(path, ms, errorCode|null)` (host ghi `folder-access-resolved`) — bị từ chối trả lời ngay bằng
+   mã lỗi (ví dụ `EPERM`) và các lệnh git gọi sau đó báo đúng lỗi ấy.
 8. `apps/desktop/src/daemon-host/setup-ops.ts` → `checkServer()`, `pairMachine()`, `applyProjects()`,
    `createProject()`, `setFolder()`, `releaseProject()`, `ensureHooks()`, `repairBrokenHooks()`,
    `installProjectHooks()`, `requestTestSetup()`: các thao tác của trình cài đặt và Settings → Projects —
@@ -99,7 +129,8 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    đã tick sẵn, không tạo project vừa nhập, nên trình cài đặt xong mà máy chưa nhận project nào; tạo lại từ
    Settings → Projects khi đó không cài hook, dashboard sức khỏe đỏ ngay lượt chạy kế tiếp và bấm lại gặp
    409.)
-9. `apps/desktop/src/daemon-host/health-ops.ts` → `HealthOps.run()`/`context()`: dựng `HealthContext` (thêm
+9. `apps/desktop/src/daemon-host/health-ops.ts` → `HealthOps.run()`/`context()`: `run()` cũng
+   `await host.repoAccess()` trước tiên vì các check repo chạy git đồng bộ; rồi dựng `HealthContext` (thêm
    `daemon`, `app` facts, `crewDocs: {source, runtime}`, `probeCheckout`, `quick`) rồi gọi `runHealthChecks()`
    dùng chung với `crewd doctor` (flow `daemon-health`). `full` chạy khi mở cửa sổ và theo yêu cầu; `quick`
    chạy mỗi 5 phút, bỏ qua lượt thử đăng nhập Claude, push dry-run và probe skill checkout (giữ lại dòng kết
@@ -178,23 +209,25 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/desktop/src/main/index.ts` | Tiến trình main: khởi động, IPC, tray, health/update schedule | `mainHandlers`, `APP_FIXES`, `openWindow`, `runHealth`, `appInfo`, `quit` |
-| `apps/desktop/src/daemon-host/index.ts` | Điểm vào tiến trình con daemon host | `port.on('message')`, `shutdown` |
-| `apps/desktop/src/main/daemon-supervisor.ts` | Fork, giám sát và giao tiếp với daemon host | `DaemonSupervisor`, `HostUnavailableError` |
+| `apps/desktop/src/daemon-host/index.ts` | Điểm vào tiến trình con daemon host: cài crash handler rồi nạp host-main | `handlers`, `toStderr` |
+| `apps/desktop/src/main/daemon-supervisor.ts` | Fork, giám sát và giao tiếp với daemon host | `DaemonSupervisor`, `HostUnavailableError`, `HostProcess` |
 | `apps/desktop/src/main/ipc-handlers.ts` | Validate và định tuyến lời gọi IPC từ renderer | `dispatchDesktopRequest`, `isTrustedSender`, `ipcLogEntry`, `MainHandlers` |
 | `apps/desktop/src/main/window.ts` | Cửa sổ chính (sandbox, context isolation, không Node) | `createMainWindow` |
 | `apps/desktop/src/main/tray.ts` | Icon và menu trên thanh menu bar | `CrewTray` |
 | `apps/desktop/src/main/tray-view.ts` | Suy ra màu/nhãn tray từ trạng thái | `trayView`, `RGB`, `DotColor` |
 | `apps/desktop/src/main/login-item.ts` | Mở cùng máy (login item macOS) | `electronLoginItem`, `fileLoginItem` |
 | `apps/desktop/src/main/updater.ts` | Kiểm và cài bản mới qua electron-updater | `Updater`, `isDeveloperIdSigned`, `dmgAssetName`, `isUnpublished`, `RELEASES_URL` |
-| `apps/desktop/src/main/app-log.ts` | Ghi `~/.crew/logs/app.log` (JSON Lines, ẩn credential, xoay vòng) | `AppLog`, `formatEntry`, `redactFields`, `localTimestamp` |
+| `apps/desktop/src/main/app-log.ts` | Ghi `~/.crew/logs/app.log` (JSON Lines, ẩn credential, xoay vòng) | `AppLog`, `formatEntry`, `redactFields`, `localTimestamp`, `lineSplitter` |
 | `apps/desktop/src/main/notifications.ts` | Thông báo macOS (sức khỏe đỏ, job blocked) | `Notifier` |
 | `apps/desktop/src/main/terminal-launcher.ts` | Mở Terminal chạy `claude` để `/login` | `macTerminalLauncher`, `recordingTerminalLauncher` |
 | `apps/desktop/src/main/quit-guard.ts` | Hỏi trước khi thoát nếu còn job chạy | `decideQuit`, `quitMessage`, `QUIT_BUTTONS` |
 | `apps/desktop/src/main/shell-env.ts` | PATH của shell đăng nhập | `loginShellPath` |
 | `apps/desktop/src/main/desktop-state.ts` | Trạng thái riêng của app (`desktop.json`) | `DesktopStateStore` |
 | `apps/desktop/src/preload/index.ts` | Cầu nối `invoke`/`on` duy nhất cho renderer | `contextBridge.exposeInMainWorld` |
+| `apps/desktop/src/daemon-host/host-main.ts` | Host thật: nhận lệnh qua MessagePort, báo `ready` rồi mới chạy startup | `runHost`, `HostHandlers` |
 | `apps/desktop/src/daemon-host/host-service.ts` | Chạy daemon thật và định tuyến mọi thao tác host | `HostService` |
 | `apps/desktop/src/daemon-host/host-context.ts` | State dùng chung của các thao tác host | `HostContext`, `HostError` |
+| `apps/desktop/src/daemon-host/folder-access.ts` | Chờ quyền đọc thư mục macOS trước khi git đồng bộ chạy | `awaitFolderAccess`, `FolderAccessHooks` |
 | `apps/desktop/src/daemon-host/setup-ops.ts` | Thao tác trình cài đặt và Settings → Projects | `checkServer`, `pairMachine`, `applyProjects`, `createProject`, `ensureHooks`, `repairBrokenHooks`, `installProjectHooks`, `requestTestSetup` |
 | `apps/desktop/src/daemon-host/health-ops.ts` | Chạy health check dùng chung với `crewd doctor` | `HealthOps` |
 | `apps/desktop/src/daemon-host/activity.ts` | Danh sách job và nhật ký daemon | `Activity` |
@@ -209,8 +242,10 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   `~/.crew/desktop.json` (`DesktopStateStore`), không phải bảng SQL.
 - Log: `~/.crew/logs/app.log` (`AppLog`, JSON Lines, mode 0600, thư mục 0700, xoay vòng ở 2 MB giữ `app.log.1`/
   `app.log.2`) — chỉ tiến trình main viết; ghi thao tác IPC, lỗi gọi VPS API, đổi trạng thái sức khỏe/daemon
-  host, lỗi updater, và lỗi chưa bắt của main/host/renderer; đứng cạnh `daemon.log` (hoạt động job, bước 10)
-  chứ không thay nó.
+  host, lỗi updater, dòng stdout/stderr của host (`host-stdout`/`host-stderr`), host không báo `ready` kịp
+  (`daemon-host-ready-timeout`), quyền đọc thư mục macOS đang chờ hay đã xong
+  (`folder-access-waiting`/`folder-access-resolved`), và lỗi chưa bắt của main/host/renderer; đứng cạnh
+  `daemon.log` (hoạt động job, bước 10) chứ không thay nó.
 - Sự kiện: kênh IPC nội bộ Electron `crew:invoke`/`crew:event` (`DESKTOP_INVOKE_CHANNEL`/
   `DESKTOP_EVENT_CHANNEL`) giữa renderer và main; giao thức `ToHost`/`FromHost` (`request`/`facts` vào,
   `ready`/`response`/`event`/`log` ra — tên sự kiện: `daemon.status`, `health.report`, `jobs.changed`,
@@ -242,7 +277,9 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   lại daemon kèm áp lại trạng thái tạm dừng; backoff tăng gấp đôi ở lần chết liên tiếp; request đang chờ bị
   từ chối khi host chết và được trả lời lại sau khi khởi động lại; sự kiện host và facts được chuyển tiếp
   đúng, kể cả dòng `app.log` của host qua sự kiện `host-log`; dừng có kiểm soát theo từng chế độ không khởi
-  động lại; `restart()` thay host ngay cho fix "khởi động lại daemon".
+  động lại; `restart()` thay host ngay cho fix "khởi động lại daemon"; một host không báo `ready` kịp bị kill
+  rồi force-kill (SIGKILL) khi SIGTERM không có tác dụng, và được khởi động lại vẫn trả lời được request đang
+  chờ; một host đã báo `ready` thì không bao giờ bị force-kill hay tính ready-timeout.
 - `apps/desktop/test/main-logic.test.ts`: `decideQuit()` hỏi đúng khi có job chạy; biên IPC từ chối method lạ
   và input sai trước khi chạy gì, trả lời method của main, forward phần còn lại, biến lỗi thành message, chỉ
   nhận renderer đã bundle, tên kênh preload khớp hợp đồng dùng chung; `ipcLogEntry()` ghi đúng outcome/ms/lỗi
@@ -258,12 +295,16 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   ở máy khác) rồi chạy được sau khi chủ dự án duyệt, kiểm `crew-docs.runtime` được ghi vào hook git đúng
   binary; tạo project từ thư mục cài hook ngay và không đỏ dashboard, từ chối key trùng của repo khác, tạo lại
   đúng key + repo máy này đã sở hữu là `already_owned` không phải lỗi, sửa cấu hình project khi đang chạy
-  (không cần khởi động lại) và trả project; hook có runtime đã biến mất được sửa lại lúc host khởi động, hook
-  đang chạy tốt bằng runtime khác (mô phỏng CLI node cạnh binary app) được giữ nguyên; mọi lỗi gọi API và lỗi
+  (không cần khởi động lại) và trả project; dựng `HostService` không đụng repo nào, hook có runtime đã biến
+  mất chỉ được sửa lại sau khi gọi `start()`, hook đang chạy tốt bằng runtime khác (mô phỏng CLI node cạnh
+  binary app) được giữ nguyên; mọi lỗi gọi API và lỗi
   thao tác host vào `app.log` không kèm token; `requestTestSetup()` trả về đúng `pendingChange`, chặn máy
   không sở hữu và yêu cầu trùng khi đang chờ, phản ánh đúng khi chủ dự án duyệt, và tự rút
   (`lastChange.status: 'withdrawn'`) khi máy trả project trong lúc yêu cầu còn chờ — tất cả chạy trên API
   thật.
+- `apps/desktop/test/folder-access.test.ts`: đọc một thư mục chậm không chặn tick của event loop và vẫn ghi
+  đúng thứ tự sự kiện chờ/xong, đọc từng thư mục một lúc (thư mục sau chỉ bắt đầu khi thư mục trước xong); một
+  thư mục bị từ chối báo đúng mã lỗi (`EPERM`) qua `onResolved`, một thư mục đọc được báo `null`.
 - `apps/desktop/test/app-log.test.ts`: ẩn field tên giống credential và mọi mẫu credential trong dòng, giữ
   thứ tự field cố định trước, giới hạn độ dài chuỗi/độ sâu object, giờ local kèm offset đúng; ghi JSON Lines
   mode 0600, xoay vòng đúng ở giới hạn kích thước giữ hai bản cũ, siết lại mode của file cũ và không ném lỗi
@@ -281,3 +322,7 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   kèm ghi chú); tạo lại đúng project từ trang Project là thành công, key trùng của project khác vẫn báo lỗi rõ
   ràng; "Mở thư mục log" gọi đúng `shell.openPath`; `app.log` có đủ các dòng mong đợi, không lộ mã ghép hay
   token, và file ở mode 0600.
+- `pnpm --filter @crew/desktop smoke:mac` (`scripts/smoke-packaged.mjs`, thủ công, chỉ macOS): mở app đã
+  đóng gói qua LaunchServices (`open -n`, giống Finder/login item nên stdio đi vào `/dev/null`) với
+  `CREW_HOME`/`CREW_DESKTOP_USER_DATA` tạm, chờ tới 60 s cho `app.log` báo `daemon-host` ở trạng thái
+  `running` rồi dừng tiến trình và xoá thư mục tạm — không đụng app hay `~/.crew` thật của chủ máy.

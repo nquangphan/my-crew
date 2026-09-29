@@ -49,17 +49,31 @@ export class HostService {
   private jobsTimer: NodeJS.Timeout | null = null;
   private lastStatus = '';
 
+  private startup: Promise<void> | null = null;
+
+  /** Cheap on purpose: the host reports ready right after this, before any disk or repo work. */
   constructor(deps: HostDeps) {
     this.host = new HostContext(deps);
     this.health = new HealthOps(this.host);
     this.activity = new Activity(this.host);
-    try {
-      installShippedCrewDocs(this.host);
-    } catch (error) {
-      this.activity.logger('warn', 'crew-docs install failed', { error: (error as Error).message });
-      this.host.log('error', 'crew-docs-install-failed', { error: (error as Error).message });
-    }
-    repairBrokenHooks(this.host);
+  }
+
+  /**
+   * Startup maintenance, run once after the host reported ready: refresh the shipped crew-docs bundle, then
+   * repair broken hooks once the repo folders can be read (a pending macOS permission prompt only delays this).
+   */
+  start(): Promise<void> {
+    this.startup ??= (async () => {
+      try {
+        installShippedCrewDocs(this.host);
+      } catch (error) {
+        this.activity.logger('warn', 'crew-docs install failed', { error: (error as Error).message });
+        this.host.log('error', 'crew-docs-install-failed', { error: (error as Error).message });
+      }
+      await this.host.repoAccess();
+      repairBrokenHooks(this.host);
+    })();
+    return this.startup;
   }
 
   setFacts(facts: AppFacts): void {
@@ -102,6 +116,8 @@ export class HostService {
   }
 
   async startDaemon(): Promise<DaemonStatusView | null> {
+    // The daemon's startup runs synchronous git in the repos.
+    await this.host.repoAccess();
     if (this.host.daemon) return this.status();
     const config = this.host.requireConfig();
     const { deps } = this.host;

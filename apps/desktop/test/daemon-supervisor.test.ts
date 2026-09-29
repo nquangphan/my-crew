@@ -3,6 +3,13 @@ import type { FromHost, ToHost } from '@crew/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DaemonSupervisor, type HostProcess } from '../src/main/daemon-supervisor.js';
 
+interface HostBehaviour {
+  /** Stuck before reporting ready (a blocked event loop). */
+  neverReady?: boolean;
+  /** SIGTERM does nothing (a blocked event loop never runs the handler); only SIGKILL ends it. */
+  ignoresTerm?: boolean;
+}
+
 /** A scripted stand-in for the utility process: answers requests, can crash, records what it received. */
 class FakeHost implements HostProcess {
   static nextPid = 1000;
@@ -10,9 +17,14 @@ class FakeHost implements HostProcess {
   readonly received: ToHost[] = [];
   private readonly events = new EventEmitter();
   alive = true;
+  terminated = false;
+  forceKilled = false;
 
-  constructor(private readonly answer: (method: string) => unknown = () => null) {
-    setTimeout(() => this.send({ kind: 'ready' }), 5);
+  constructor(
+    private readonly answer: (method: string) => unknown = () => null,
+    private readonly behaviour: HostBehaviour = {},
+  ) {
+    if (!behaviour.neverReady) setTimeout(() => this.send({ kind: 'ready' }), 5);
   }
 
   send(message: FromHost): void {
@@ -37,7 +49,13 @@ class FakeHost implements HostProcess {
   }
 
   kill(): void {
-    this.crash(0);
+    this.terminated = true;
+    if (!this.behaviour.ignoresTerm) this.crash(0);
+  }
+
+  forceKill(): void {
+    this.forceKilled = true;
+    this.crash(137);
   }
 
   crash(code = 1): void {
@@ -64,17 +82,27 @@ afterEach(async () => {
   for (const supervisor of supervisors.splice(0)) await supervisor.stop('requeue');
 });
 
-function setup(options: { initialBackoffMs?: number; stableMs?: number } = {}) {
+function setup(
+  options: {
+    initialBackoffMs?: number;
+    stableMs?: number;
+    readyTimeoutMs?: number;
+    killGraceMs?: number;
+    behaviour?: (index: number) => HostBehaviour;
+  } = {},
+) {
   const hosts: FakeHost[] = [];
   const supervisor = new DaemonSupervisor({
     fork: () => {
-      const host = new FakeHost();
+      const host = new FakeHost(undefined, options.behaviour?.(hosts.length));
       hosts.push(host);
       return host;
     },
     initialBackoffMs: options.initialBackoffMs ?? 20,
     maxBackoffMs: 200,
     stableMs: options.stableMs ?? 60_000,
+    ...(options.readyTimeoutMs ? { readyTimeoutMs: options.readyTimeoutMs } : {}),
+    ...(options.killGraceMs ? { killGraceMs: options.killGraceMs } : {}),
   });
   supervisors.push(supervisor);
   return { supervisor, hosts };
@@ -96,6 +124,37 @@ describe('daemon supervisor', () => {
     await until(() => supervisor.runtime().daemonStarted && hosts.length === 2);
     expect(supervisor.runtime().pid).not.toBe(firstPid);
     expect(hosts[1]?.methods()).toEqual(['host.startDaemon', 'daemon.pause']);
+  });
+
+  it('kills a host that never reports ready (SIGKILL when SIGTERM is ignored) and restarts it', async () => {
+    const { supervisor, hosts } = setup({
+      readyTimeoutMs: 60,
+      killGraceMs: 30,
+      behaviour: (index) => (index === 0 ? { neverReady: true, ignoresTerm: true } : {}),
+    });
+    const timeouts: unknown[] = [];
+    supervisor.on('ready-timeout', (fields) => timeouts.push(fields));
+    await supervisor.startDaemon();
+    // A request made while the host hangs is answered by the restarted host.
+    const pending = supervisor.request('jobs.list', {});
+    await until(() => supervisor.runtime().daemonStarted && hosts.length === 2);
+    await expect(pending).resolves.toBeNull();
+    expect(timeouts).toEqual([{ pid: hosts[0]?.pid, ms: 60 }]);
+    expect(hosts[0]).toMatchObject({ terminated: true, forceKilled: true });
+    expect(supervisor.runtime()).toMatchObject({ state: 'running', restarts: 1 });
+    expect(supervisor.runtime().lastExit).toContain('không báo sẵn sàng sau');
+    expect(hosts[1]?.methods().sort()).toEqual(['host.startDaemon', 'jobs.list']);
+  });
+
+  it('never force-kills or times out a host that reported ready', async () => {
+    const { supervisor, hosts } = setup({ readyTimeoutMs: 40, killGraceMs: 10, initialBackoffMs: 10 });
+    await supervisor.startDaemon();
+    await until(() => supervisor.runtime().daemonStarted);
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(hosts).toHaveLength(1);
+    supervisor.restart();
+    await until(() => hosts.length === 2 && supervisor.runtime().daemonStarted);
+    expect(hosts[0]).toMatchObject({ terminated: true, forceKilled: false });
   });
 
   it('passes the host app-log lines on to the main process', async () => {

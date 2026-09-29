@@ -17,7 +17,7 @@ import {
 } from '@crew/shared';
 import { app, type BrowserWindow, dialog, ipcMain, Notification, shell, utilityProcess } from 'electron';
 import electronUpdater from 'electron-updater';
-import { AppLog } from './app-log.js';
+import { AppLog, lineSplitter } from './app-log.js';
 import { DaemonSupervisor, type HostProcess } from './daemon-supervisor.js';
 import { DesktopStateStore } from './desktop-state.js';
 import { dispatchDesktopRequest, ipcLogEntry, isTrustedSender, type MainHandlers } from './ipc-handlers.js';
@@ -95,7 +95,8 @@ const supervisor = new DaemonSupervisor({
   fork: (): HostProcess => {
     const child = utilityProcess.fork(join(here, 'daemon-host.js'), [], {
       serviceName: '2P Crew daemon',
-      stdio: 'inherit',
+      // Piped into app.log: launched from Finder or at login the app's own stdio goes nowhere.
+      stdio: 'pipe',
       env: {
         ...process.env,
         CREW_HOME: home,
@@ -104,6 +105,16 @@ const supervisor = new DaemonSupervisor({
         CREW_APP_VERSION: app.getVersion(),
       },
     });
+    for (const [stream, level, event] of [
+      [child.stdout, 'info', 'host-stdout'],
+      [child.stderr, 'warn', 'host-stderr'],
+    ] as const) {
+      stream?.setEncoding('utf8');
+      stream?.on(
+        'data',
+        lineSplitter((line) => appLog.write({ level, source: 'host', event, fields: { line } })),
+      );
+    }
     return {
       get pid() {
         return child.pid;
@@ -112,6 +123,14 @@ const supervisor = new DaemonSupervisor({
       onMessage: (listener) => child.on('message', listener),
       onExit: (listener) => child.on('exit', listener),
       kill: () => void child.kill(),
+      forceKill: () => {
+        if (child.pid === undefined) return;
+        try {
+          process.kill(child.pid, 'SIGKILL');
+        } catch {
+          // already gone
+        }
+      },
     };
   },
 });
@@ -318,6 +337,9 @@ supervisor.on('runtime', (runtime: DaemonRuntime) => {
   refreshTray();
 });
 supervisor.on('host-log', (entry: AppLogEntry) => appLog.write({ ...entry, source: 'host' }));
+supervisor.on('ready-timeout', (fields: { pid: number | null; ms: number }) =>
+  log('error', 'daemon-host-ready-timeout', fields),
+);
 supervisor.on('host-event', (name: string, payload: unknown) => {
   if (name === 'daemon.status') {
     latestStatus = payload as DaemonStatusView | null;
