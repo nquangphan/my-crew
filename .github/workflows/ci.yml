@@ -1,6 +1,6 @@
 # 2P Crew CI: every push and pull request runs the full check (types, lint, all tests including the daemon's
 # scripted lifecycle matrix, the crew-docs gate, all builds) and the E2E suite against the compose stack.
-# A `v*` tag additionally builds the macOS dmgs and publishes them to GitHub Releases.
+# A `v*` tag additionally builds the macOS dmgs and zips and publishes them to GitHub Releases.
 name: ci
 
 on:
@@ -131,15 +131,19 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: crew-docs bundle (shipped inside the app)
         run: pnpm --filter @crew/docs-kit build
-      - name: Build the dmgs and publish them to the GitHub Release
+      - name: Build the dmgs and zips and publish them to the GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # One dmg per architecture (arm64 and x64); the packaging script and electron-builder.yml decide the
-        # targets, and electron-builder uploads every dmg it produces to the release of this tag.
+        # One dmg and one zip per architecture (arm64 and x64); the packaging script and electron-builder.yml
+        # decide the targets, and electron-builder uploads every dmg, zip, blockmap and latest-mac.yml it
+        # produces to the release of this tag (the updater reads latest-mac.yml and installs the zip).
         run: pnpm --filter @crew/desktop package:mac --publish
-      - name: Keep the dmgs as workflow artifacts
+      - name: Keep the dmgs and zips as workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: dmgs
-          path: apps/desktop/release/*.dmg
+          name: mac-release
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/latest-mac.yml
           if-no-files-found: error

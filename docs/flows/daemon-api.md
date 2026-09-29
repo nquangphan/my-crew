@@ -35,7 +35,10 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
    gọi `putInventory()`, cả hai từ `machine-service.ts` (flow `machine-pairing`).
 4. `apps/api/src/routes/daemon-routes.ts` → project/claim: `GET/POST /v1/daemon/projects`,
    `POST/DELETE /v1/daemon/claims*`, `GET /v1/projects/catalog` (chỉ máy host assistant,
-   `assertAssistantHost()`) gọi thẳng `claim-service.ts` (flow `project-claims`).
+   `assertAssistantHost()`) gọi thẳng `claim-service.ts` (flow `project-claims`). Mỗi `DaemonProject` trong
+   `GET /v1/daemon/projects` kèm `lastChange: {requestId, status} | null` (`ProjectChangeOutcome`, mặc định
+   `null`) — yêu cầu đổi `platform`/MCP test UI mới nhất của chính máy đó cho project, dù trạng thái là gì
+   (`pending`/`approved`/`rejected`/`withdrawn`).
 5. `apps/api/src/routes/daemon-routes.ts` → `POST /v1/daemon/projects/:projectKey/change-requests` (body
    `ProjectChangeBody`, cũng bọc `replyIdempotent()`) gọi `requestProjectChange()` — máy sở hữu project mới
    được đổi `platform`/`uiTestMcp` của nó, và chỉ có hiệu lực sau khi owner duyệt bằng TOTP (flow

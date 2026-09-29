@@ -372,6 +372,7 @@ export async function projectDetail(ctx: HostContext, key: string): Promise<Proj
     sharedPaths: { detected, extra: project?.sharedPaths ?? [] },
     webSettingsUrl: ctx.webUrl(`/projects/${key}/settings`),
     pendingChange: view?.pendingChange ?? null,
+    lastChange: view?.lastChange ?? null,
   };
 }
 

@@ -7,6 +7,7 @@ import {
   OwnerState,
   PairingCode,
   PendingProjectChange,
+  ProjectChangeOutcome,
   ProjectTestSetup,
   SkillInventory,
 } from './machine-schemas.js';
@@ -230,6 +231,8 @@ export const ProjectDetail = z.object({
   webSettingsUrl: z.string().nullable(),
   /** This machine's type and MCP change waiting for the owner's confirmation on the web. */
   pendingChange: PendingProjectChange.nullable(),
+  /** This machine's latest change request for the project: how the owner decided, or that it was withdrawn. */
+  lastChange: ProjectChangeOutcome.nullable(),
 });
 export type ProjectDetail = z.infer<typeof ProjectDetail>;
 

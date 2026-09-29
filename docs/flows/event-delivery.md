@@ -78,8 +78,10 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 - api-platform: `EventBus` được tạo/khởi động/dừng theo vòng đời `buildApp()`.
 - machine-pairing: `EventBus.revokeMachine()`/`restoreMachine()` gọi từ `revokeMachine()` khi thu hồi máy.
 - ticket-lifecycle, project-claims: nguồn phát sự kiện chính qua `appendEvents()`; `project.change_requested`
-  là một loại thông báo (`NOTICE_EVENT_TYPES`), `project.change_decided` nhắm đúng máy đã hỏi nên không qua
-  `/v1/notices`.
+  là một loại thông báo (`NOTICE_EVENT_TYPES`); `project.change_decided {status: approved/rejected/withdrawn}`
+  nhắm đúng máy đã hỏi (`withdrawn` khi `withdrawProjectChanges()` tự rút yêu cầu vì máy đó mất project) —
+  owner stream vẫn nhận vì không lọc theo `targetMachineId` (`invalidationsFor()` phía web làm mới
+  `projectChanges`), chỉ là không phải loại thông báo trong `/v1/notices`.
 - docs-sync-viewer: sự kiện `docs.synced` (định nghĩa ở event-schemas) khiến web làm mới `['docs']`.
 - web-shell: `startLiveEvents()` được gắn vào app shell để mọi trang nhận cập nhật realtime.
 - web-admin: trang Inbox gọi `markRead()`/`markAllRead()` (qua `useInboxSummary()`) và làm mới khi nhận

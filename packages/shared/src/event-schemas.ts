@@ -92,14 +92,17 @@ export const EventPayload = z.discriminatedUnion('type', [
     type: z.literal('project.change_requested'),
     data: z.object({ requestId: z.string(), projectId: z.string(), machineId: z.string() }),
   }),
-  /** The owner approved (the project changed) or rejected a change request. Sent to the requesting machine. */
+  /**
+   * The owner approved (the project changed) or rejected a change request, or it was withdrawn because the
+   * requesting machine lost the project. Sent to the requesting machine.
+   */
   z.object({
     type: z.literal('project.change_decided'),
     data: z.object({
       requestId: z.string(),
       projectId: z.string(),
       machineId: z.string(),
-      status: z.enum(['approved', 'rejected']),
+      status: z.enum(['approved', 'rejected', 'withdrawn']),
     }),
   }),
   /** The owner's inbox read state changed on some device. Owner stream only. */

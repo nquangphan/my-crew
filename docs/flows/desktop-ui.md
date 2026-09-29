@@ -58,7 +58,9 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
     `TestSetupSection()`: đổi thư mục (validate lại trước khi lưu); loại project và MCP test UI cho sửa tại
     chỗ (nút "Gửi yêu cầu đổi") nhưng chỉ có hiệu lực sau khi chủ dự án xác nhận TOTP trên web — trong lúc chờ,
     form bị khoá và hiện "Đang chờ chủ dự án xác nhận…" (tự đọc lại project mỗi `PENDING_POLL_MS` = 5 giây tới
-    khi hết `pendingChange`), quyết định xong hiện "Chủ dự án đã xác nhận…"/"Chủ dự án đã từ chối…"; một nút
+    khi hết `pendingChange`), quyết định xong hiện đúng câu theo `lastChange.status` của yêu cầu máy này đang
+    chờ — "Chủ dự án đã xác nhận…", "Chủ dự án đã từ chối…", hoặc khi máy mất project trước khi owner quyết
+    định "Yêu cầu đổi đã tự rút vì máy này không còn giữ project; loại project giữ nguyên."; một nút
     phụ vẫn mở cài đặt project trên web; kho skill/MCP dò được trong worktree với công tắc bật/tắt từng MCP
     server (trừ server QC bắt buộc dùng), thư mục dùng chung cho worktree (tự nhận + thêm/bỏ tay), trả project
     (có hộp xác nhận), "Nhận thêm project" và "Tạo project từ thư mục", bật/tắt vai trò trợ lý của máy.
@@ -111,11 +113,13 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
   `crewd doctor` cũng dùng.
 - project-claims: `ProjectPicker`/`SettingsProjectsPage` phản ánh trạng thái sở hữu (`ownerState`,
   `pendingClaim`) mà API `project-claims` cấp qua daemon; `TestSetupSection` gửi và theo dõi yêu cầu đổi
-  `platform`/`uiTestMcp` (`ProjectDetail.pendingChange`) qua `projects.requestTestSetup` (flow `desktop-app`).
+  `platform`/`uiTestMcp` (`ProjectDetail.pendingChange`) qua `projects.requestTestSetup` (flow `desktop-app`),
+  rồi hiện kết quả theo `ProjectDetail.lastChange` (duyệt, từ chối, hoặc tự rút khi máy mất project).
 
 ## Tests
 
 - `apps/desktop/test/e2e/onboarding.spec.ts` (Electron thật qua Playwright `_electron`): chạy hết lần đầu cài
   đặt — ghép máy, tick nhận và tạo project, cài hook — rồi kết thúc với dashboard sức khỏe toàn xanh.
 - `apps/desktop/test/e2e/project-settings.spec.ts`: Settings → Projects gửi yêu cầu đổi loại project, khoá form
-  và hiện đang chờ, rồi phản ánh đúng sau khi chủ dự án xác nhận TOTP trên web.
+  và hiện đang chờ, rồi phản ánh đúng sau khi chủ dự án xác nhận TOTP trên web; một yêu cầu đang chờ tự rút và
+  hiện đúng câu khi owner chuyển project sang máy khác trong lúc đó.

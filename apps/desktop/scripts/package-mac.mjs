@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * Builds one macOS dmg per architecture into `apps/desktop/release/`: `2P-Crew-<version>-arm64.dmg` and
- * `2P-Crew-<version>-x64.dmg`. The app is staged in a temp folder outside the pnpm workspace, so
- * electron-builder collects the staged npm tree (both Claude Code binaries, better-sqlite3) instead of
- * resolving the workspace's pnpm store. One electron-builder run packs both architectures from that stage,
- * so `latest-mac.yml` lists both dmgs; after each pack, before signing, the other architecture's Claude
- * Code binary and the other better-sqlite3 prebuilds are removed, so each app carries only its own.
+ * Builds one macOS dmg and one zip per architecture into `apps/desktop/release/`: `2P-Crew-<version>-arm64.dmg`,
+ * `2P-Crew-<version>-x64.dmg`, `2P-Crew-<version>-arm64-mac.zip` and `2P-Crew-<version>-x64-mac.zip` (the zip
+ * is what electron-updater installs on a signed app). The app is staged in a temp folder outside the pnpm
+ * workspace, so electron-builder collects the staged npm tree (both Claude Code binaries, better-sqlite3)
+ * instead of resolving the workspace's pnpm store. One electron-builder run packs both architectures from
+ * that stage, so `latest-mac.yml` lists every dmg and zip; after each pack, before signing and before the
+ * dmg and zip are made from it, the other architecture's Claude Code binary and the other better-sqlite3
+ * prebuilds are removed, so each app, and so each of its artifacts, carries only its own.
  * `--publish` uploads to GitHub Releases (the release job; needs GH_TOKEN).
  */
 import { execFileSync } from 'node:child_process';
@@ -75,7 +77,7 @@ try {
   const artifacts = await build({
     projectDir: app,
     config,
-    targets: Platform.MAC.createTarget(['dmg'], ...ARCHS.map((arch) => Arch[arch])),
+    targets: Platform.MAC.createTarget(['dmg', 'zip'], ...ARCHS.map((arch) => Arch[arch])),
     publish: process.argv.includes('--publish') ? 'always' : 'never',
   });
   console.log(artifacts.join('\n'));

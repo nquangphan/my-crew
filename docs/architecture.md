@@ -66,10 +66,11 @@ PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migrat
   dòng lệnh cục bộ mà daemon gọi (worktree, dọn tài nguyên, kiểm tra sức khỏe) — không phải dịch vụ mạng.
 - GitHub lưu mã nguồn; `crew-docs ci-workflow` sinh workflow GitHub Actions cho `packages/docs-kit`. App
   desktop (`apps/desktop`) cũng phát hành qua GitHub Releases của cùng repo và tự kiểm bản mới từ đó
-  (`docs/flows/desktop-app.md`); mỗi bản phát hành có hai file dmg, một cho mỗi kiến trúc (`arm64`, `x64`),
-  mỗi app chỉ chứa Claude Code binary và native module của kiến trúc của nó. Hiện ký ad-hoc, chưa notarize, nên
-  lần đầu mở phải bấm chuột phải → Open và cập nhật tự động rơi về đường link tải đúng dmg kiến trúc máy đó
-  thay vì cài thẳng.
+  (`docs/flows/desktop-app.md`); mỗi bản phát hành có một dmg và một zip cho mỗi kiến trúc (`arm64`, `x64`),
+  mỗi app (và cả dmg, zip dựng từ nó) chỉ chứa Claude Code binary và native module của kiến trúc của nó. Hiện
+  ký ad-hoc, chưa notarize, nên lần đầu mở phải bấm chuột phải → Open và cập nhật tự động rơi về đường link tải
+  đúng dmg kiến trúc máy đó thay vì cài thẳng; zip đã được dựng và đăng sẵn cho khi bật ký (Squirrel.Mac cài từ
+  zip).
 
 ## Triển khai
 

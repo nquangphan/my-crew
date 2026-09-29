@@ -187,3 +187,125 @@ describe('a machine changing its own project type and UI-test MCP mapping', () =
     expect(unknown.statusCode).toBe(404);
   });
 });
+
+describe('a pending change of a project the requesting machine loses', () => {
+  const claimAs = (machine: PairedMachine, body: object) =>
+    app.inject({ method: 'POST', url: '/v1/daemon/claims', headers: writeHeaders(machine), payload: body });
+  const decideClaim = async (id: string, decision: 'approve' | 'reject') =>
+    app.inject({
+      method: 'POST',
+      url: `/v1/claim-requests/${id}/${decision}`,
+      headers: owner.headers,
+      payload: { code: await freshTotp(ctx.db, owner.totpSecret) },
+    });
+
+  /** WEB owned by mac-a, with mac-a's type change waiting for the owner. */
+  async function pendingChangeOfA() {
+    const web = await createTestProject(ctx.db, { ownerMachineId: a.machineId, platform: 'web' });
+    const res = await requestAs(a, MOBILE);
+    expect(res.statusCode).toBe(202);
+    return { web, requestId: res.json().requestId as string };
+  }
+
+  /** The request is withdrawn, mac-a and the owner stream were told, and deciding it now conflicts. */
+  async function expectWithdrawn(requestId: string, projectId: string) {
+    const [row] = await ctx.db
+      .select()
+      .from(projectChangeRequests)
+      .where(eq(projectChangeRequests.id, requestId));
+    expect(row?.status).toBe('withdrawn');
+    expect(row?.decidedAt).toBeInstanceOf(Date);
+    const decided = await eventsOf(ctx.db, 'project.change_decided');
+    expect(decided).toHaveLength(1);
+    expect(decided[0]).toMatchObject({ targetMachineId: a.machineId, projectId });
+    expect(decided[0]?.payload).toEqual({
+      type: 'project.change_decided',
+      data: { requestId, projectId, machineId: a.machineId, status: 'withdrawn' },
+    });
+    expect(await project()).toMatchObject({ platform: 'web' });
+    const listed = await app.inject({
+      method: 'GET',
+      url: '/v1/project-change-requests',
+      headers: owner.headers,
+    });
+    expect(listed.json().items).toMatchObject([{ id: requestId, status: 'withdrawn' }]);
+    const pending = await app.inject({
+      method: 'GET',
+      url: '/v1/project-change-requests?status=pending',
+      headers: owner.headers,
+    });
+    expect(pending.json().items).toEqual([]);
+    for (const decision of ['approve', 'reject'] as const) {
+      const late = await decide(requestId, decision);
+      expect(late.statusCode).toBe(409);
+      expect(late.json().error.message).toContain('withdrawn');
+    }
+    expect(await project()).toMatchObject({ platform: 'web' });
+  }
+
+  it('is withdrawn when an approved takeover moves the project to another machine', async () => {
+    const { web, requestId } = await pendingChangeOfA();
+    const claim = await claimAs(b, { projectKey: 'WEB' });
+    expect(claim.json().status).toBe('pending');
+    // A takeover request alone does not move the project, so the change still waits.
+    expect((await daemonView(a)).pendingChange).toMatchObject({ requestId });
+
+    expect((await decideClaim(claim.json().claimRequestId, 'approve')).statusCode).toBe(200);
+    await expectWithdrawn(requestId, web.id);
+    expect(await daemonView(a)).toMatchObject({
+      ownerState: 'other',
+      pendingChange: null,
+      lastChange: { requestId, status: 'withdrawn' },
+    });
+    expect((await daemonView(b)).lastChange).toBeNull();
+    // The new holder may ask for its own change.
+    expect((await requestAs(b, MOBILE)).statusCode).toBe(202);
+  });
+
+  it('is withdrawn when the owner reassigns the project to another machine', async () => {
+    const { web, requestId } = await pendingChangeOfA();
+    const assign = await app.inject({
+      method: 'POST',
+      url: `/v1/machines/${b.machineId}/claims`,
+      headers: owner.headers,
+      payload: { projectId: web.id },
+    });
+    expect(assign.json().status).toBe('granted');
+    await expectWithdrawn(requestId, web.id);
+  });
+
+  it('stays pending when the owner rejects the takeover', async () => {
+    const { requestId } = await pendingChangeOfA();
+    const claim = await claimAs(b, { projectKey: 'WEB' });
+    expect((await decideClaim(claim.json().claimRequestId, 'reject')).statusCode).toBe(200);
+    expect((await daemonView(a)).pendingChange).toMatchObject({ requestId });
+    expect(await eventsOf(ctx.db, 'project.change_decided')).toHaveLength(0);
+  });
+
+  it('is withdrawn when the machine releases the project', async () => {
+    const { web, requestId } = await pendingChangeOfA();
+    const released = await app.inject({
+      method: 'DELETE',
+      url: '/v1/daemon/claims/WEB',
+      headers: writeHeaders(a),
+    });
+    expect(released.json()).toEqual({ status: 'released' });
+    await expectWithdrawn(requestId, web.id);
+    expect(await daemonView(a)).toMatchObject({
+      ownerState: 'unowned',
+      pendingChange: null,
+      lastChange: { requestId, status: 'withdrawn' },
+    });
+  });
+
+  it('is withdrawn when the owner revokes the machine', async () => {
+    const { web, requestId } = await pendingChangeOfA();
+    const revoked = await app.inject({
+      method: 'POST',
+      url: `/v1/machines/${a.machineId}/revoke`,
+      headers: owner.headers,
+    });
+    expect(revoked.statusCode).toBe(200);
+    await expectWithdrawn(requestId, web.id);
+  });
+});

@@ -11,11 +11,18 @@ directories:
 asar: false
 npmRebuild: true
 mac:
-  # One dmg per architecture: each app carries only its own Electron, Claude Code binary and native
-  # modules (package-mac.mjs drops the other architecture's copies after packing, before signing).
+  # One dmg and one zip per architecture: each app carries only its own Electron, Claude Code binary and
+  # native modules (package-mac.mjs drops the other architecture's copies after packing, before signing and
+  # before either target is made). The dmg is for people; the zip is what electron-updater (Squirrel.Mac)
+  # installs once the app is Developer ID signed.
   target:
     - target: dmg
       arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  # The zips (the dmg has its own name below): 2P-Crew-<version>-arm64-mac.zip and 2P-Crew-<version>-x64-mac.zip,
+  # listed in latest-mac.yml; electron-updater picks the arm64 one by the `arm64` in its name.
+  artifactName: 2P-Crew-${version}-${arch}-mac.${ext}
   category: public.app-category.developer-tools
   icon: build/icon.png
   # Ad-hoc signature: no Developer ID certificate yet. The app runs after right-click → Open on first launch,

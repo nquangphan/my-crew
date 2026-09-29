@@ -230,16 +230,22 @@ describe('updater', () => {
     return { fake, updater, statuses, opened, idleWaits: () => idleWaits };
   };
 
-  it('names each architecture dmg as electron-builder does', () => {
+  it('names each architecture dmg and zip as electron-builder does', () => {
     const config = parse(readFileSync(join(import.meta.dirname, '..', 'electron-builder.yml'), 'utf8'));
-    expect(config.mac.target).toEqual([{ target: 'dmg', arch: ['arm64', 'x64'] }]);
+    expect(config.mac.target).toEqual([
+      { target: 'dmg', arch: ['arm64', 'x64'] },
+      { target: 'zip', arch: ['arm64', 'x64'] },
+    ]);
+    const expand = (pattern: unknown, macros: Record<string, string>) =>
+      String(pattern).replace(/\$\{(\w+)\}/g, (_, key: string) => macros[key] ?? '');
     for (const arch of ['arm64', 'x64']) {
-      const macros: Record<string, string> = { version: '0.2.0', arch, ext: 'dmg' };
-      const name = String(config.dmg.artifactName).replace(
-        /\$\{(\w+)\}/g,
-        (_, key: string) => macros[key] ?? '',
+      expect(expand(config.dmg.artifactName, { version: '0.2.0', arch, ext: 'dmg' })).toBe(
+        dmgAssetName('0.2.0', arch),
       );
-      expect(name).toBe(dmgAssetName('0.2.0', arch));
+      // Distinct per architecture, with `arm64` in the Apple Silicon name (electron-updater picks by it).
+      expect(expand(config.mac.artifactName, { version: '0.2.0', arch, ext: 'zip' })).toBe(
+        `2P-Crew-0.2.0-${arch}-mac.zip`,
+      );
     }
   });
 

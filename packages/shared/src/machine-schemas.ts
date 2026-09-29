@@ -293,11 +293,19 @@ export const ProjectChangeResponse = z.object({
 });
 export type ProjectChangeResponse = z.infer<typeof ProjectChangeResponse>;
 
-export const ProjectChangeStatus = z.enum(['pending', 'approved', 'rejected']);
+/**
+ * `withdrawn`: the requesting machine lost the project (the claim moved, it released the project, or it was
+ * revoked) before the owner decided, so the request was dropped with that ownership change.
+ */
+export const ProjectChangeStatus = z.enum(['pending', 'approved', 'rejected', 'withdrawn']);
 export type ProjectChangeStatus = z.infer<typeof ProjectChangeStatus>;
 
 export const PendingProjectChange = ProjectTestSetup.extend({ requestId: z.string() });
 export type PendingProjectChange = z.infer<typeof PendingProjectChange>;
+
+/** How a machine's latest change request for a project ended (or that it still waits). */
+export const ProjectChangeOutcome = z.object({ requestId: z.string(), status: ProjectChangeStatus });
+export type ProjectChangeOutcome = z.infer<typeof ProjectChangeOutcome>;
 
 export const ProjectChangeRequest = z.object({
   id: z.string(),
@@ -342,6 +350,8 @@ export const DaemonProject = z.object({
   pendingClaim: z.boolean(),
   /** This machine's type and UI-test MCP change waiting for the owner's confirmation. */
   pendingChange: PendingProjectChange.nullable().default(null),
+  /** This machine's latest type and UI-test MCP change request for the project, whatever its status. */
+  lastChange: ProjectChangeOutcome.nullable().default(null),
 });
 export type DaemonProject = z.infer<typeof DaemonProject>;
 

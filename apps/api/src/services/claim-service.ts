@@ -26,7 +26,7 @@ import {
 import { ApiError, notFound } from '../errors.js';
 import { appendEvents, type NewEvent } from './event-service.js';
 import { isUniqueViolation } from './pg-errors.js';
-import { pendingChangesOf } from './project-change-service.js';
+import { changesOf, withdrawProjectChanges } from './project-change-service.js';
 import { toProjectDto } from './project-service.js';
 
 /** A project (`projectId`) or the assistant role (`projectId` null). */
@@ -115,20 +115,27 @@ async function retargetOpenTickets(tx: Executor, scope: ClaimScope, to: string |
     }));
 }
 
-/** Gives a locked scope to `to` (or to nobody) and re-targets its open tickets. */
+/**
+ * Gives a locked scope to `to` (or to nobody) and re-targets its open tickets. A project's pending type and
+ * UI-test MCP change from the machine that loses it is withdrawn in the same transaction.
+ */
 async function bindScope(tx: Executor, scope: LockedScope, to: string | null): Promise<NewEvent[]> {
+  const out: NewEvent[] = [];
   if (scope.assistant) {
     if (scope.holder) {
       await tx.update(machines).set({ hostsAssistant: false }).where(eq(machines.id, scope.holder));
     }
     if (to) await tx.update(machines).set({ hostsAssistant: true }).where(eq(machines.id, to));
   } else {
+    const projectId = scope.projectId ?? '';
     await tx
       .update(projects)
       .set({ ownerMachineId: to, updatedAt: new Date() })
-      .where(eq(projects.id, scope.projectId ?? ''));
+      .where(eq(projects.id, projectId));
+    out.push(...(await withdrawProjectChanges(tx, projectId, to)));
   }
-  return retargetOpenTickets(tx, scope, to);
+  out.push(...(await retargetOpenTickets(tx, scope, to)));
+  return out;
 }
 
 const scopeWhere = (scope: ClaimScope) =>
@@ -459,7 +466,7 @@ export async function listDaemonProjects(db: Executor, machineId: string): Promi
       .select({ id: machines.id, name: machines.name })
       .from(machines)
       .where(and(eq(machines.hostsAssistant, true), isNull(machines.revokedAt))),
-    pendingChangesOf(db, machineId),
+    changesOf(db, machineId),
   ]);
   const pendingProjects = new Set(pending.map((p) => p.projectId));
   const stateOf = (owner: string | null) =>
@@ -480,7 +487,8 @@ export async function listDaemonProjects(db: Executor, machineId: string): Promi
         ownerState,
         ownerMachineName: ownerState === 'other' ? ownerName : null,
         pendingClaim: pendingProjects.has(project.id),
-        pendingChange: changes.get(project.id) ?? null,
+        pendingChange: changes.get(project.id)?.pending ?? null,
+        lastChange: changes.get(project.id)?.last ?? null,
       };
     }),
     assistant: {

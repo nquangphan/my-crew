@@ -61,6 +61,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/drizzle/0000_init.sql` | Migration khởi tạo | — |
 | `apps/api/drizzle/0001_machine_auth_and_delivery.sql` | Migration thêm bảng auth máy + `events.seq` | — |
 | `apps/api/drizzle/0003_project_changes_and_notice_reads.sql` | Migration thêm `project_change_requests` (flow `project-claims`) và `notice_reads` (flow `event-delivery`) | — |
+| `apps/api/drizzle/0004_project_change_withdrawn.sql` | Migration thêm giá trị `withdrawn` vào enum `project_change_status` (flow `project-claims`) | — |
 | `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts` và `health-schemas.ts` của flow `desktop-app`/`daemon-health`) | — |
 
 ## Dữ liệu

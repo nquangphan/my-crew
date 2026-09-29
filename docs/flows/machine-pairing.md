@@ -46,9 +46,12 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 9. `apps/api/src/services/machine-service.ts` → `rotateToken()`: cấp token mới, token cũ còn hiệu lực thêm tối
    đa `ROTATION_GRACE_MS` (10 phút) rồi hết hạn (dùng `least()` trên `expires_at`).
 10. `apps/api/src/services/machine-service.ts` → `revokeMachine()`: trong transaction — gọi
-    `releaseEverything()` (flow `project-claims`) để giải phóng mọi claim, đặt `revoked_at`/`hosts_assistant
-    = false` trên `machines`, thu hồi mọi `machine_tokens`, phát event, và đóng stream SSE đang mở qua
-    `bus.revokeMachine()` trước khi transaction commit (rollback thì `bus.restoreMachine()`).
+    `releaseEverything()` (flow `project-claims`) để giải phóng mọi claim (`bindScope()` cũng rút luôn mọi yêu
+    cầu đổi platform/MCP test UI còn `pending` của project máy đó vừa mất, phát `project.change_decided
+    {status: 'withdrawn'}` cho máy đó — một duyệt/từ chối muộn sau đó nhận `CONFLICT` 409), đặt
+    `revoked_at`/`hosts_assistant = false` trên `machines`, thu hồi mọi `machine_tokens`, phát event, và đóng
+    stream SSE đang mở qua `bus.revokeMachine()` trước khi transaction commit (rollback thì
+    `bus.restoreMachine()`).
 11. `apps/api/src/services/machine-service.ts` → `recordHeartbeat()`, `putInventory()`: heartbeat ghi đè
     `resources`/`running_jobs`/`health`/`paused`, phát `machine.unhealthy` một lần khi health chuyển sang đỏ
     (`HeartbeatRequest.waitingJobs`, cạnh `runningJobs`, không được `recordHeartbeat()` lưu vào bảng `machines`

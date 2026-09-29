@@ -330,6 +330,21 @@ describe('daemon host: setup wizard operations against the real API', () => {
       uiTestMcp: setup.uiTestMcp,
       requiredMcps: ['pw-cloud'],
       pendingChange: null,
+      lastChange: { requestId: pending.pendingChange?.requestId, status: 'approved' },
+    });
+
+    // Releasing the project withdraws a change that still waits for the owner.
+    const again = await call<ProjectDetail>('projects.requestTestSetup', {
+      key: 'NEW',
+      platform: 'backend',
+      uiTestMcp: setup.uiTestMcp,
+    });
+    expect(again.lastChange).toEqual({ requestId: again.pendingChange?.requestId, status: 'pending' });
+    expect((await call<ClaimOutcome>('projects.release', { key: 'NEW' })).status).toBe('released');
+    expect(await call<ProjectDetail>('projects.detail', { key: 'NEW' })).toMatchObject({
+      platform: 'web',
+      pendingChange: null,
+      lastChange: { requestId: again.pendingChange?.requestId, status: 'withdrawn' },
     });
   });
 });

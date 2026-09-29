@@ -93,31 +93,36 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
     `CREW_DESKTOP_TEST_MODE=1` (bộ E2E) — thay lượt thử đăng nhập Claude và probe kho skill bằng bản giả lập
     đọc/ghi file trong crew home của test; mọi phần khác (API, git, hook, config, daemon) vẫn chạy thật.
 19. Đóng gói và phát hành (ngoài `apps/*/src/**` nên không thuộc file nguồn của flow, nhưng là nơi lắp app
-    chạy được): `pnpm --filter @crew/desktop package:mac` (`scripts/package-mac.mjs`) dựng **một dmg riêng cho
-    mỗi kiến trúc** vào `apps/desktop/release/` (gitignored) — `2P-Crew-<version>-arm64.dmg` và
-    `2P-Crew-<version>-x64.dmg` (`electron-builder.yml` → `mac.target` dmg với `arch: [arm64, x64]`,
-    `dmg.artifactName`; tên này khớp với `dmgAssetName()` ở bước 15, kiểm bởi
-    `apps/desktop/test/main-logic.test.ts`). `scripts/stage-app.mjs --both-archs` đóng gói app ra ngoài
-    workspace pnpm với một `node_modules` phẳng chỉ chứa các gói ngoài cần lúc chạy (`better-sqlite3`, Agent
-    SDK, MCP SDK, `electron-updater`) cộng cả hai binary Claude Code của Agent SDK
+    chạy được): `pnpm --filter @crew/desktop package:mac` (`scripts/package-mac.mjs`) dựng **một dmg và một
+    zip riêng cho mỗi kiến trúc** vào `apps/desktop/release/` (gitignored) — `2P-Crew-<version>-arm64.dmg`,
+    `2P-Crew-<version>-x64.dmg`, `2P-Crew-<version>-arm64-mac.zip` và `2P-Crew-<version>-x64-mac.zip`
+    (`electron-builder.yml` → `mac.target` gồm `dmg` và `zip`, cả hai với `arch: [arm64, x64]`;
+    `dmg.artifactName` cho dmg, `mac.artifactName` cho zip — tên dmg khớp `dmgAssetName()` ở bước 15, cả hai
+    tên kiểm bởi `apps/desktop/test/main-logic.test.ts`). `scripts/stage-app.mjs --both-archs` đóng gói app ra
+    ngoài workspace pnpm với một `node_modules` phẳng chỉ chứa các gói ngoài cần lúc chạy (`better-sqlite3`,
+    Agent SDK, MCP SDK, `electron-updater`) cộng cả hai binary Claude Code của Agent SDK
     (`@anthropic-ai/claude-agent-sdk-darwin-arm64` và `-x64`), tắt `asar`. Một lượt `electron-builder` dựng cả
-    hai kiến trúc từ stage đó (nên `latest-mac.yml` liệt kê cả hai dmg); `afterPack` (`keepOnlyArch()` trong
-    `package-mac.mjs`) chạy trước khi ký, xoá binary Claude Code của kiến trúc còn lại và mọi prebuild
-    `better-sqlite3` trừ `prebuilds/darwin-<arch>.node` của chính app đó, nên mỗi app chỉ chứa đúng Electron,
-    Claude Code binary và native module của kiến trúc của nó. Ký ad-hoc (`identity: "-"` trong `electron-builder.yml`), `hardenedRuntime: false`.
+    hai kiến trúc và cả hai target từ stage đó (nên `latest-mac.yml` liệt kê mọi dmg và zip); `afterPack`
+    (`keepOnlyArch()` trong `package-mac.mjs`) chạy một lần cho mỗi kiến trúc, trước khi ký và trước khi dmg
+    hay zip được dựng từ app đó, xoá binary Claude Code của kiến trúc còn lại và mọi prebuild `better-sqlite3`
+    trừ `prebuilds/darwin-<arch>.node` của chính app đó, nên mỗi app — và cả dmg, zip dựng từ nó — chỉ chứa
+    đúng Electron, Claude Code binary và native module của kiến trúc của nó. Ký ad-hoc (`identity: "-"` trong
+    `electron-builder.yml`), `hardenedRuntime: false`.
     `better-sqlite3` 13 nạp prebuild Node-API theo kiến trúc (`prebuilds/darwin-<arch>.node`) nên cùng một
     binary chạy được trong Electron. Chưa ký Developer ID và chưa notarize: lần đầu mở phải bấm chuột phải →
-    Open (Gatekeeper), và cập nhật tự động rơi về đường link tải file dmg đúng kiến trúc; job CI phát hành
-    (`.github/workflows`) chưa được tạo (thuộc Phase 8). Bước ký và notarize sau này: xin chứng chỉ Developer
-    ID Application; trên CI đặt `CSC_LINK` (file `.p12` mã hoá base64) và `CSC_KEY_PASSWORD`, cùng `APPLE_ID`,
-    `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`; trong `electron-builder.yml` bỏ `identity: "-"` (tự dò
-    identity Developer ID), bật `hardenedRuntime: true`, thêm `notarize: true` dưới `mac` cùng entitlements cho
-    phép `com.apple.security.cs.allow-jit`, `allow-unsigned-executable-memory`, `disable-library-validation`
-    (Electron cần) — `afterPack` chạy trước khi ký nên app đã ký không còn binary của kiến trúc khác, và cả hai
-    app kiến trúc được ký/notarize riêng trong cùng một lượt build. Squirrel.Mac (electron-updater tự cài trên
-    build đã ký) cài từ file zip, không phải dmg, nên khi bật ký phải thêm target `zip` (mỗi kiến trúc) cạnh
-    `dmg` trong `mac.target` — thiếu nó, bản ký vẫn không có zip để tự cài. Rồi chạy
-    `node scripts/package-mac.mjs --publish` để tải lên GitHub Releases (cần `GH_TOKEN`).
+    Open (Gatekeeper), và cập nhật tự động vẫn chỉ mở link tải file dmg đúng kiến trúc (`Updater.check()`, bước
+    15) — zip đã được dựng và đăng cùng dmg, chỉ chưa dùng tới vì app chưa ký. Job CI phát hành trên tag `v*`
+    (`.github/workflows/ci.yml`, xem flow `deployment`) chạy chính `package:mac --publish` này. Bước ký và
+    notarize sau này: xin chứng chỉ Developer ID Application; trên CI đặt `CSC_LINK` (file `.p12` mã hoá
+    base64) và `CSC_KEY_PASSWORD`, cùng `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`; trong
+    `electron-builder.yml` bỏ `identity: "-"` (tự dò identity Developer ID), bật `hardenedRuntime: true`, thêm
+    `notarize: true` dưới `mac` cùng entitlements cho phép `com.apple.security.cs.allow-jit`,
+    `allow-unsigned-executable-memory`, `disable-library-validation` (Electron cần) — zip đã có sẵn cho mỗi
+    kiến trúc từ trước, không cần đổi `mac.target` khi bật ký; `afterPack` chạy trước khi ký nên app đã ký (và
+    cả dmg, zip dựng từ nó) không còn binary của kiến trúc khác, và cả hai kiến trúc được ký/notarize riêng
+    trong cùng một lượt build. Squirrel.Mac (electron-updater tự cài trên build đã ký) cài từ file zip, không
+    phải dmg — dmg vẫn là file cho người tải tay. Rồi chạy `node scripts/package-mac.mjs --publish` (hoặc job
+    CI ở trên) để tải mọi dmg, zip, blockmap và `latest-mac.yml` lên GitHub Releases (cần `GH_TOKEN`).
 
 ## Files
 
@@ -188,13 +193,15 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   chuyển đỏ và khi job bị chặn; tray hiện đúng chấm màu/số job/nhãn tạm dừng; trạng thái cài đặt xong và tạm
   dừng sống sót qua khởi động lại (login item test không đụng macOS thật); updater: build chưa ký chỉ mở link
   tải đúng dmg kiến trúc máy này, build đã ký tải về rồi chờ hết job mới cài, tắt ở bản dev/test và phát hiện
-  thiếu Developer ID; `dmg.artifactName` của `electron-builder.yml` khớp đúng `dmgAssetName()` cho cả hai kiến
-  trúc.
+  thiếu Developer ID; `mac.target` của `electron-builder.yml` có cả `dmg` và `zip` cho hai kiến trúc,
+  `dmg.artifactName` khớp đúng `dmgAssetName()` và `mac.artifactName` đặt đúng tên zip
+  (`2P-Crew-<version>-<arch>-mac.zip`) cho cả hai kiến trúc.
 - `apps/desktop/test/host-service.test.ts`: kiểm tra server, ghép máy, claim project (202 chờ duyệt khi đang
   ở máy khác) rồi chạy được sau khi chủ dự án duyệt, kiểm `crew-docs.runtime` được ghi vào hook git đúng
   binary; tạo project từ thư mục, từ chối key trùng, sửa cấu hình project khi đang chạy (không cần khởi động
   lại) và trả project; `requestTestSetup()` trả về đúng `pendingChange`, chặn máy không sở hữu và yêu cầu
-  trùng khi đang chờ, phản ánh đúng khi chủ dự án duyệt — tất cả chạy trên API thật.
+  trùng khi đang chờ, phản ánh đúng khi chủ dự án duyệt, và tự rút (`lastChange.status: 'withdrawn'`) khi máy
+  trả project trong lúc yêu cầu còn chờ — tất cả chạy trên API thật.
 - `apps/desktop/test/e2e/health.spec.ts` (Electron thật qua Playwright `_electron`, bộ `test:e2e`): phá một
   check cho nó chuyển đỏ rồi tự sửa cho nó xanh lại; daemon sống sót qua việc đóng/mở lại cửa sổ và tự khởi
   động lại sau khi host bị kill.

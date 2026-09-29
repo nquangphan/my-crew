@@ -1,6 +1,8 @@
 import type {
   ClaimOutcome,
   FolderValidation,
+  PendingProjectChange,
+  ProjectChangeStatus,
   ProjectDetail,
   ProjectPlatform,
   ProjectsView,
@@ -23,6 +25,14 @@ import { invoke } from '../lib/ipc';
 
 /** How often the panel re-reads the project while a change waits for the owner. */
 const PENDING_POLL_MS = 5_000;
+
+/** What the panel says once the machine's change request is no longer pending. */
+const OUTCOME_TEXT: Record<ProjectChangeStatus, string | null> = {
+  pending: null,
+  approved: 'Chủ dự án đã xác nhận: đã đổi loại project và MCP test UI.',
+  rejected: 'Chủ dự án đã từ chối thay đổi; loại project giữ nguyên.',
+  withdrawn: 'Yêu cầu đổi đã tự rút vì máy này không còn giữ project; loại project giữ nguyên.',
+};
 
 const sameSetup = (a: ProjectTestSetup, b: ProjectTestSetup) =>
   a.platform === b.platform &&
@@ -48,7 +58,7 @@ function TestSetupSection({
     detail.platform && detail.uiTestMcp ? { platform: detail.platform, uiTestMcp: detail.uiTestMcp } : null;
   const pending = detail.pendingChange;
   const [draft, setDraft] = useState<ProjectTestSetup | null>(pending ?? current);
-  const [asked, setAsked] = useState<ProjectTestSetup | null>(null);
+  const [asked, setAsked] = useState<PendingProjectChange | null>(null);
   const [outcome, setOutcome] = useState<string | null>(null);
 
   // A new detail (another project, or a decision) resets the form to what the server has.
@@ -63,7 +73,7 @@ function TestSetupSection({
     current?.uiTestMcp.maestro,
   ]);
 
-  // While pending, re-read the project until the owner decides; then say how it went.
+  // While pending, re-read the project until the owner decides or the request is withdrawn.
   useEffect(() => {
     if (!pending) return;
     setAsked(pending);
@@ -79,15 +89,13 @@ function TestSetupSection({
     return () => clearInterval(timer);
   }, [pending, detail.key, onRefresh]);
 
+  // The request left pending: say how it ended (the server keeps the machine's latest request).
   useEffect(() => {
-    if (pending || !asked || !current) return;
-    setOutcome(
-      sameSetup(asked, current)
-        ? 'Chủ dự án đã xác nhận: đã đổi loại project và MCP test UI.'
-        : 'Chủ dự án đã từ chối thay đổi; loại project giữ nguyên.',
-    );
+    if (pending || !asked) return;
+    const ended = detail.lastChange?.requestId === asked.requestId ? detail.lastChange.status : null;
+    setOutcome(ended ? OUTCOME_TEXT[ended] : null);
     setAsked(null);
-  }, [pending, asked, current]);
+  }, [pending, asked, detail.lastChange]);
 
   if (!current || !draft) {
     return (

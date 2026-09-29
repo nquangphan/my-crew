@@ -1,14 +1,16 @@
 import type {
+  PendingProjectChange,
+  ProjectChangeOutcome,
   ProjectChangeRequest,
   ProjectChangeResponse,
   ProjectChangeStatus,
   ProjectTestSetup,
 } from '@crew/shared';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, ne } from 'drizzle-orm';
 import type { Executor } from '../db/client.js';
 import { machines, type ProjectChangeRequestRow, projectChangeRequests, projects } from '../db/schema.js';
 import { ApiError, notFound } from '../errors.js';
-import { appendEvents } from './event-service.js';
+import { appendEvents, type NewEvent } from './event-service.js';
 
 const sameSetup = (a: ProjectTestSetup, b: ProjectTestSetup) =>
   a.platform === b.platform &&
@@ -124,6 +126,43 @@ export async function decideProjectChange(
   return getProjectChange(db, requestId);
 }
 
+/**
+ * For an ownership change of a project (inside the caller's transaction, with the project row locked): a
+ * pending change request from any machine other than the new holder `to` is withdrawn, since only the
+ * machine that owns the project may change it. Returns the `project.change_decided` events that tell the
+ * requesting machine and the owner stream; a later approve or reject of such a request gets 409.
+ */
+export async function withdrawProjectChanges(
+  tx: Executor,
+  projectId: string,
+  to: string | null,
+): Promise<NewEvent[]> {
+  const withdrawn = await tx
+    .update(projectChangeRequests)
+    .set({ status: 'withdrawn', decidedAt: new Date() })
+    .where(
+      and(
+        eq(projectChangeRequests.projectId, projectId),
+        eq(projectChangeRequests.status, 'pending'),
+        ...(to ? [ne(projectChangeRequests.machineId, to)] : []),
+      ),
+    )
+    .returning();
+  return withdrawn.map((request) => ({
+    payload: {
+      type: 'project.change_decided' as const,
+      data: {
+        requestId: request.id,
+        projectId: request.projectId,
+        machineId: request.machineId,
+        status: 'withdrawn' as const,
+      },
+    },
+    projectId: request.projectId,
+    targetMachineId: request.machineId,
+  }));
+}
+
 const requestedOf = (row: ProjectChangeRequestRow): ProjectTestSetup => ({
   platform: row.platform,
   uiTestMcp: row.uiTestMcp,
@@ -172,14 +211,27 @@ export async function listProjectChanges(
   return rows.map(toDto);
 }
 
-/** The calling machine's pending change per project id, for the daemon project view. */
-export async function pendingChangesOf(
+/**
+ * The calling machine's latest change request per project id, for the daemon project view: `pending` is
+ * set while it waits for the owner (at most one per project, always the machine's newest), `last` tells how
+ * it ended once decided or withdrawn.
+ */
+export async function changesOf(
   db: Executor,
   machineId: string,
-): Promise<Map<string, ProjectTestSetup & { requestId: string }>> {
+): Promise<Map<string, { pending: PendingProjectChange | null; last: ProjectChangeOutcome }>> {
   const rows = await db
-    .select()
+    .selectDistinctOn([projectChangeRequests.projectId])
     .from(projectChangeRequests)
-    .where(and(eq(projectChangeRequests.machineId, machineId), eq(projectChangeRequests.status, 'pending')));
-  return new Map(rows.map((row) => [row.projectId, { requestId: row.id, ...requestedOf(row) }]));
+    .where(eq(projectChangeRequests.machineId, machineId))
+    .orderBy(asc(projectChangeRequests.projectId), desc(projectChangeRequests.createdAt));
+  return new Map(
+    rows.map((row) => [
+      row.projectId,
+      {
+        pending: row.status === 'pending' ? { requestId: row.id, ...requestedOf(row) } : null,
+        last: { requestId: row.id, status: row.status },
+      },
+    ]),
+  );
 }

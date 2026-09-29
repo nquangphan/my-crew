@@ -71,7 +71,7 @@ async function main(): Promise<void> {
       username,
       password,
       totpSecret: owner.totpSecret,
-      pairingCodes: await Promise.all(Array.from({ length: 6 }, () => pairingCode())),
+      pairingCodes: await Promise.all(Array.from({ length: 8 }, () => pairingCode())),
       project: { key: 'SHOP', repoUrl },
     };
     mkdirSync(dirname(E2E_STATE_FILE), { recursive: true });

@@ -73,8 +73,9 @@ build/test/kiểm docs trước khi merge.
 11. CI (`.github/workflows/ci.yml`, một workflow trên push/pull_request, service Postgres 17): `pnpm install`,
     typecheck, lint, toàn bộ test (kể cả ma trận vòng đời job scripted của daemon), build web, `crew-docs check
     --range` và `check --all`, build daemon, build desktop (electron-vite), shellcheck các script deploy; job
-    `e2e` chạy bộ E2E; job `release` (runner macOS) trên tag `v*` build và đăng dmg từng kiến trúc (arm64, x64)
-    lên GitHub Releases. Bộ E2E (`e2e/`, Playwright ở viewport điện thoại/
+    `e2e` chạy bộ E2E; job `release` (runner macOS) trên tag `v*` build và đăng dmg và zip từng kiến trúc
+    (arm64, x64), cùng blockmap và `latest-mac.yml`, lên GitHub Releases (workflow artifact `mac-release`). Bộ
+    E2E (`e2e/`, Playwright ở viewport điện thoại/
     tablet/desktop, chạy `deploy/compose.yml` + `deploy/compose.test.yml` cộng một daemon với config test)
     chạy bằng `pnpm --filter @crew/e2e test:e2e`, cần Docker.
 
@@ -99,7 +100,7 @@ build/test/kiểm docs trước khi merge.
 | `scripts/restore.sh` | Khôi phục dump vào DB scratch hoặc DB thật | `usage`, `backup` |
 | `scripts/seed-owner.sh` | Tạo/reset tài khoản owner duy nhất qua CLI trong `crew-api` | — |
 | `.dockerignore` | Loại trừ khỏi build context Docker | — |
-| `.github/workflows/ci.yml` | CI: typecheck/lint/test/build/docs check, release dmg trên tag `v*` | — |
+| `.github/workflows/ci.yml` | CI: typecheck/lint/test/build/docs check, release dmg và zip trên tag `v*` | — |
 | `deploy/compose.test.yml` | Lớp test trên `compose.yml` cho E2E: nginx biên `crew-edge` render đúng `crew-http.conf` trên `127.0.0.1:18180`, `COOKIE_SECURE=false`, tắt `crew-backup` | — |
 
 ## Dữ liệu
@@ -117,7 +118,7 @@ build/test/kiểm docs trước khi merge.
   được `deploy.sh` và nginx dùng để kiểm sức khỏe.
 - owner-auth: `scripts/seed-owner.sh` tạo tài khoản owner đầu tiên mà flow đó xác thực.
 - desktop-app: cùng dùng GitHub Releases của repo để phát hành (app desktop tự kiểm bản mới từ đó); job
-  `release` của `.github/workflows/ci.yml` là nơi build dmg thay cho lệnh tay `package-mac.mjs --publish`.
+  `release` của `.github/workflows/ci.yml` là nơi build dmg và zip thay cho lệnh tay `package-mac.mjs --publish`.
 - daemon-setup: sau khi VPS đã chạy theo flow này, owner mới cấu hình máy local để trỏ về đúng
   `https://$CREW_DOMAIN`.
 
