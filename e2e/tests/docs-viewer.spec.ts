@@ -30,7 +30,7 @@ test('docs viewer: space home, page tree, flow page, table of contents', async (
   await page.goto(`/projects/${state.project.key}/docs?flow=payments`);
   await expect(page.getByRole('heading', { level: 1, name: 'Thanh toán' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toHaveText(
-    `${state.project.name}/Flows/Thanh toán`,
+    `Tài liệu/${state.project.name}/Flows/Thanh toán`,
   );
   if (compact) await page.locator('article details > summary', { hasText: 'Trên trang này' }).click();
   await page.getByRole('navigation', { name: 'Mục lục' }).getByRole('link', { name: 'Tests' }).click();
