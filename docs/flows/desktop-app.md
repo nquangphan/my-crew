@@ -90,8 +90,10 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    sau một đổi project (`afterProjectChange()`) không chờ trả lời (`this.background`, một `Set<Promise>`) —
    `settled()` chờ mọi lượt health nền đã bắt đầu xong, gọi khi `shutdown()` để không rớt báo cáo giữa đường.
 7. `apps/desktop/src/daemon-host/host-context.ts` → `HostContext`, `HostError`: trạng thái dùng chung của các
-   thao tác host — đọc lại config từ đĩa mỗi lần gọi (để CLI `crewd` và app luôn thấy cùng cấu hình), lưu là
-   áp dụng cho daemon đang chạy ngay (`ctx.save()` gọi `daemon.updateConfig()`), không cần khởi động lại.
+   thao tác host — đọc lại config từ đĩa mỗi lần gọi (để CLI `crewd` và app luôn thấy cùng cấu hình; `ctx.config()`
+   truyền một `ConfigWarn` ghi dòng `app.log` sự kiện `config-legacy-model` khi file còn đặt `fable`, flow
+   `daemon-runtime`), lưu là áp dụng cho daemon đang chạy ngay (`ctx.save()` gọi `daemon.updateConfig()`), không
+   cần khởi động lại.
    `ctx.log(level, event, fields)` gửi một dòng `app.log` nguồn `host` qua `deps.log`; `ctx.logApiError`
    (lắp vào mọi `VpsClient` mà host dựng, kể cả của `ctx.vps()`) chuyển `ApiFailure` (flow `daemon-runtime`)
    thành dòng `api-error` — đổi tên trường `code` (mã lỗi API) thành `errorCode` vì `code` khớp mẫu tên trường

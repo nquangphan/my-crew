@@ -15,6 +15,7 @@ export const TICKET_TOOL_NAMES = [
   'docs_flow',
   'docs_where',
   'create_subtask',
+  'rate_subtask',
   'resource_report',
   'cleanup_resources',
   'file_bug',
@@ -41,7 +42,14 @@ const EVERY_ROLE: readonly TicketToolName[] = [
 ];
 
 const ROLE_EXTRAS: Record<AgentRole, readonly TicketToolName[]> = {
-  pm: ['create_subtask', 'resource_report', 'cleanup_resources', 'reject_work', 'merge_and_push'],
+  pm: [
+    'create_subtask',
+    'rate_subtask',
+    'resource_report',
+    'cleanup_resources',
+    'reject_work',
+    'merge_and_push',
+  ],
   qc: ['file_bug'],
   // Dev and bug tickets are assigned to the dev role; the docs job takes over after `handoff_docs`.
   dev: ['handoff_docs', 'return_to_dev'],

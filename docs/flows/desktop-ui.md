@@ -86,7 +86,9 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
     (có hộp xác nhận), "Nhận thêm project" và "Tạo project từ thư mục", bật/tắt vai trò trợ lý của máy.
 12. `apps/desktop/src/renderer/components/resource-form.tsx` → `ResourceForm()`, `resourceDraftError()`: số
     job chạy cùng lúc, RAM trống tối thiểu, tải tối đa mỗi CPU, danh sách model được phép (`sonnet` luôn bắt
-    buộc, không tắt được) và model/effort theo từng mức độ phức tạp; validate tại chỗ trước khi cho lưu.
+    buộc, không tắt được) và model/effort theo từng mức độ phức tạp; validate tại chỗ trước khi cho lưu. Cả
+    checkbox allowlist lẫn select model theo độ phức tạp đều dựng từ `SelectableModel.options` (`haiku`,
+    `sonnet`, `opus`) — không có Fable để chọn.
 13. `apps/desktop/src/renderer/components/health-check-row.tsx`, `apps/desktop/src/renderer/components/ui.tsx`
     → `HealthCheckRow()`, `StatusDot`, `Lozenge`, `Toggle`, `PageHeader`, `Notice`, `ErrorBox`: bộ thành phần
     dùng chung cho một dòng check (chấm màu, giải thích, nút sửa) và khung trang/thông báo/nhãn trạng thái
@@ -139,7 +141,9 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
 ## Tests
 
 - `apps/desktop/test/e2e/onboarding.spec.ts` (Electron thật qua Playwright `_electron`): chạy hết lần đầu cài
-  đặt — ghép máy, tick nhận và tạo project, cài hook — rồi kết thúc với dashboard sức khỏe toàn xanh.
+  đặt — ghép máy, tick nhận và tạo project, cài hook — rồi kết thúc với dashboard sức khỏe toàn xanh; bước Tài
+  nguyên và model không có checkbox `fable`, danh sách allowlist và select model theo độ phức tạp chỉ có
+  `haiku`/`sonnet`/`opus`.
 - `apps/desktop/test/e2e/first-project.spec.ts`: khung "Thêm project mới từ thư mục" nêu đúng phần còn thiếu
   bằng lời và khoá "Tiếp" cho tới khi bấm "Lưu và nhận project" tạo xong project đang nháp; sau khi tạo, dòng
   hook hiện "Đã cài hook" và ghi chú docs chưa có là xanh (không đỏ dashboard); nút "Mở thư mục log" ở Cài

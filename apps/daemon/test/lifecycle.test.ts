@@ -254,6 +254,33 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(agentModels(retest.id)).toEqual([['haiku', 'low']]);
   },
 
+  async 'pm-rates-in-place'(r) {
+    await assertDocsJobCommits(r);
+    const agentModels = (ticketId: string) =>
+      jobsOf(r, ticketId)
+        .filter((j) => j.kind === 'agent' && j.status === 'done')
+        .map((j) => [j.model, j.effort]);
+    const first = await one(/^Bảng phí theo vùng$/, 'dev');
+    const second = await one(/^Áp phí vào đơn hàng$/, 'dev');
+    expect(first).toMatchObject({ complexity: 'small', complexityReason: 'Một bảng tra và test của nó' });
+    // Re-rated in place: the same ticket, the new rating, no replacement.
+    expect(second).toMatchObject({
+      complexity: 'large',
+      complexityReason: 'Tổng đơn hàng dùng ở thanh toán, hoá đơn và báo cáo, rủi ro hồi quy cao',
+      model: null,
+    });
+    expect((await all()).filter((t) => t.type === 'dev')).toHaveLength(2);
+    expect(agentModels(first.id)).toEqual([['sonnet', 'medium']]);
+    expect(agentModels(second.id)).toEqual([['opus', 'high']]);
+    // The PM's tool call is in the log of its breakdown run.
+    const pm = await one(/^Tính phí vận chuyển$/, 'pm_task');
+    const analyze = jobsOf(r, pm.id).find((j) => j.stage === 'pm_analyze');
+    const rateCalls = r.daemon.daemon.state
+      .toolLog(analyze?.id ?? '')
+      .filter((e) => e.tool === 'mcp__tickets__rate_subtask');
+    expect(rateCalls).toHaveLength(1);
+  },
+
   async 'bug-cycle-cap'(r) {
     const pm = await one(/^Sửa lỗi lặp lại$/, 'pm_task');
     expect(pm.status).toBe('needs_input');

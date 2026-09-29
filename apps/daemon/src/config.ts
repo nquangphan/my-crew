@@ -1,7 +1,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
-import { type Complexity, Effort, ModelAlias, ProjectKey } from '@crew/shared';
+import { type Complexity, Effort, ModelAlias, ProjectKey, type SelectableModel } from '@crew/shared';
 import { parse, stringify } from 'yaml';
 import { z } from 'zod';
 
@@ -67,7 +67,14 @@ export const ProjectConfig = z.object({
 });
 export type ProjectConfig = z.infer<typeof ProjectConfig>;
 
-const ModelChoice = z.object({ model: ModelAlias, effort: Effort });
+/**
+ * Fable is not used at all (owner decision), but a config saved before that may still name it, possibly on
+ * another machine. It stays valid: `fable` in `models.allow` is dropped and a complexity map entry on fable
+ * runs on opus. `loadConfig` warns once per file, and the next save writes the cleaned values.
+ */
+const toSelectable = (model: ModelAlias): SelectableModel => (model === 'fable' ? 'opus' : model);
+
+const ModelChoice = z.object({ model: ModelAlias.transform(toSelectable), effort: Effort });
 export type ModelChoice = z.infer<typeof ModelChoice>;
 
 export const DEFAULT_COMPLEXITY_MAP: Record<Complexity, ModelChoice> = {
@@ -96,7 +103,11 @@ export const DaemonConfig = z.object({
     .prefault({}),
   models: z
     .object({
-      allow: z.array(ModelAlias).min(1).default(['haiku', 'sonnet', 'opus']),
+      allow: z
+        .array(ModelAlias)
+        .min(1)
+        .transform((list) => list.filter((model): model is SelectableModel => model !== 'fable'))
+        .default(['haiku', 'sonnet', 'opus']),
       complexityMap: z
         .object({
           trivial: ModelChoice.default(DEFAULT_COMPLEXITY_MAP.trivial),
@@ -129,7 +140,35 @@ export function parseConfig(input: unknown): DaemonConfig {
   return result.data;
 }
 
-export function loadConfig(path: string): DaemonConfig {
+/** The `models` fields of a stored config that still name `fable` (the parse replaces them). */
+export function legacyFableFields(input: unknown): string[] {
+  const models = (input as { models?: unknown } | null)?.models;
+  if (!models || typeof models !== 'object') return [];
+  const { allow, complexityMap } = models as { allow?: unknown; complexityMap?: unknown };
+  const fields: string[] = [];
+  if (Array.isArray(allow) && allow.includes('fable')) fields.push('models.allow');
+  if (complexityMap && typeof complexityMap === 'object') {
+    for (const [key, choice] of Object.entries(complexityMap)) {
+      if ((choice as { model?: unknown } | null)?.model === 'fable')
+        fields.push(`models.complexityMap.${key}`);
+    }
+  }
+  return fields;
+}
+
+/** Receives a one-line warning about the config file (the daemon's stderr log by default). */
+export type ConfigWarn = (message: string, fields: Record<string, unknown>) => void;
+
+const stderrWarn: ConfigWarn = (message, fields) => {
+  process.stderr.write(
+    `${JSON.stringify({ at: new Date().toISOString(), level: 'warn', message, ...fields })}\n`,
+  );
+};
+
+/** Config files already warned about a legacy `fable`: the config is read often, the warning is logged once. */
+const warnedLegacyFable = new Set<string>();
+
+export function loadConfig(path: string, warn: ConfigWarn = stderrWarn): DaemonConfig {
   if (!existsSync(path)) throw new ConfigError(`no config at ${path}; run "crewd pair" first`);
   let raw: unknown;
   try {
@@ -137,7 +176,20 @@ export function loadConfig(path: string): DaemonConfig {
   } catch (error) {
     throw new ConfigError(`cannot parse ${path}: ${(error as Error).message}`);
   }
-  return parseConfig(raw ?? {});
+  const config = parseConfig(raw ?? {});
+  const legacy = legacyFableFields(raw);
+  if (legacy.length > 0 && !warnedLegacyFable.has(path)) {
+    warnedLegacyFable.add(path);
+    warn(
+      'config names fable, which is no longer used: dropped from models.allow, opus in the complexity map',
+      {
+        path,
+        fields: legacy,
+        note: 'the file is rewritten without fable on the next save',
+      },
+    );
+  }
+  return config;
 }
 
 /** Writes the config atomically (temp file + rename), readable by the owner only. */

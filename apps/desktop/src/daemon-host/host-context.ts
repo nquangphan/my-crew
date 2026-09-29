@@ -94,7 +94,11 @@ export class HostContext {
   }
 
   config(): DaemonConfig | null {
-    return existsSync(this.paths.config) ? loadConfig(this.paths.config) : null;
+    return existsSync(this.paths.config)
+      ? loadConfig(this.paths.config, (message, fields) =>
+          this.log('warn', 'config-legacy-model', { message, ...fields }),
+        )
+      : null;
   }
 
   requireConfig(): DaemonConfig {

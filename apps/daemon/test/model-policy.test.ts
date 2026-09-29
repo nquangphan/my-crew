@@ -1,9 +1,9 @@
-import { Complexity, Effort, ModelAlias, RoleStage } from '@crew/shared';
+import { Complexity, Effort, ModelAlias, RoleStage, SelectableModel } from '@crew/shared';
 import { describe, expect, it } from 'vitest';
 import { parseConfig } from '../src/config.js';
 import { clampModel, MissingComplexityError, resolveModel } from '../src/roles/model-policy.js';
 
-const config = (allow?: ModelAlias[]) =>
+const config = (allow?: SelectableModel[]) =>
   parseConfig({ apiUrl: 'http://127.0.0.1:1', machineName: 'm', ...(allow ? { models: { allow } } : {}) });
 
 const ticket = (model: ModelAlias | null, effort: Effort | null, complexity: Complexity | null) => ({
@@ -14,11 +14,7 @@ const ticket = (model: ModelAlias | null, effort: Effort | null, complexity: Com
 
 describe('model policy', () => {
   it('runs docs-init and docs-update on sonnet/high for every complexity, PM choice and allowlist', () => {
-    const allowlists: ModelAlias[][] = [
-      ['sonnet'],
-      ['haiku', 'sonnet'],
-      ['haiku', 'sonnet', 'opus', 'fable'],
-    ];
+    const allowlists: SelectableModel[][] = [['sonnet'], ['haiku', 'sonnet'], ['haiku', 'sonnet', 'opus']];
     for (const stage of ['docs_init', 'docs_update'] as const) {
       for (const allow of allowlists) {
         for (const complexity of [null, ...Complexity.options]) {
@@ -110,21 +106,10 @@ describe('model policy', () => {
 
   it('clamps a model outside the allowlist to the next allowed one below and says so', () => {
     const c = config(['haiku', 'sonnet']);
-    const clamped = resolveModel({ config: c, stage: 'dev', ticket: ticket('fable', 'max', 'large') });
+    const clamped = resolveModel({ config: c, stage: 'dev', ticket: ticket('opus', 'max', 'large') });
     expect(clamped).toMatchObject({ model: 'sonnet', effort: 'max' });
-    expect(clamped.notice).toContain('fable');
+    expect(clamped.notice).toContain('opus');
     expect(clamped.notice).toContain('sonnet');
-    // Fable is only used where the owner allowed it.
-    expect(
-      resolveModel({ config: config(), stage: 'dev', ticket: ticket('fable', null, 'large') }).model,
-    ).toBe('opus');
-    expect(
-      resolveModel({
-        config: config(['haiku', 'sonnet', 'opus', 'fable']),
-        stage: 'dev',
-        ticket: ticket('fable', null, 'large'),
-      }).model,
-    ).toBe('fable');
     expect(clampModel('haiku', ['sonnet', 'opus'])).toBe('sonnet');
     expect(clampModel('opus', ['haiku', 'sonnet'])).toBe('sonnet');
     for (const stage of RoleStage.options) {
@@ -134,6 +119,33 @@ describe('model policy', () => {
         ticket: ticket('opus', null, 'large'),
       });
       expect(choice.model).toBe('sonnet');
+    }
+  });
+
+  it('never resolves to fable: a legacy ticket model fable runs on opus with a notice', () => {
+    const c = config();
+    for (const stage of ['dev', 'qc', 'pm_analyze', 'pm_monitor', 'pm_accept'] as const) {
+      const choice = resolveModel({ config: c, stage, ticket: ticket('fable', 'max', 'large') });
+      expect(choice).toMatchObject({ model: 'opus', effort: 'max' });
+      expect(choice.notice).toContain('Fable không còn được dùng');
+    }
+    // Opus not allowed on this machine: both notices, and the next allowed model below.
+    const clamped = resolveModel({
+      config: config(['haiku', 'sonnet']),
+      stage: 'dev',
+      ticket: ticket('fable', null, 'large'),
+    });
+    expect(clamped.model).toBe('sonnet');
+    expect(clamped.notice).toContain('Fable không còn được dùng');
+    expect(clamped.notice).toContain('`opus` không nằm trong danh sách được phép');
+    // Whatever the ticket, the rating and the allowlist say, the run model is a selectable one.
+    for (const stage of RoleStage.options) {
+      for (const model of [null, ...ModelAlias.options]) {
+        for (const complexity of Complexity.options) {
+          const choice = resolveModel({ config: c, stage, ticket: ticket(model, null, complexity) });
+          expect(SelectableModel.options).toContain(choice.model);
+        }
+      }
     }
   });
 });

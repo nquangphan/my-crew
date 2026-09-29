@@ -31,6 +31,7 @@ describe('tool scopes', () => {
     ]);
     expect(extras('pm')).toEqual([
       'create_subtask',
+      'rate_subtask',
       'resource_report',
       'cleanup_resources',
       'reject_work',
@@ -237,6 +238,44 @@ describe('ticket MCP tools against the real API', () => {
     const other = await after.write((key) => real.createSubtask({ ...body, title: 'Làm thanh toán' }, key));
     expect(other.title).toBe('Làm thanh toán');
     expect(state.getJob(job.id)?.toolSeq).toBe(2);
+  });
+
+  it('PM rates a subtask in place; Fable and tickets outside its tree are refused', async () => {
+    const f = await fixture(api);
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Làm giỏ hàng');
+    const state = new StateDb(':memory:');
+    const job = state.insertJob({ ticketId: pm.id, projectId: f.projectId, role: 'pm', trigger: 't' });
+    const vps = new VpsClient({ apiUrl: f.server.url, token: () => f.machine.token });
+    const t = tools({ vps, state, jobId: job.id, ticketId: pm.id, role: 'pm' });
+    const rating = {
+      ticket: dev.key,
+      complexity: 'medium',
+      complexityReason: 'Sửa 3 module và thêm migration',
+    };
+
+    const rated = await t.call('rate_subtask', rating);
+    expect(rated.isError).toBeFalsy();
+    expect(JSON.parse((rated.content[0] as { text: string }).text)).toMatchObject({
+      key: dev.key,
+      complexity: 'medium',
+      complexityReason: 'Sửa 3 module và thêm migration',
+      model: null,
+    });
+    expect(await getTicket(api.db, dev.id)).toMatchObject({ complexity: 'medium' });
+
+    // The tool input does not offer Fable.
+    await expect(t.call('rate_subtask', { ...rating, model: 'fable' })).rejects.toThrow();
+    // A dev run is not the PM: the server refuses (its ticket is not a pm_task), shown as a tool error.
+    const devJob = state.insertJob({ ticketId: dev.id, projectId: f.projectId, role: 'dev', trigger: 't' });
+    const asDev = tools({ vps, state, jobId: devJob.id, ticketId: dev.id, role: 'pm' });
+    const refused = await asDev.call('rate_subtask', rating);
+    expect(refused.isError).toBe(true);
+    expect((refused.content[0] as { text: string }).text).toContain('FORBIDDEN');
+    // The dev role does not even see the tool.
+    expect(
+      tools({ vps, state, jobId: devJob.id, ticketId: dev.id, role: 'dev' }).list.map((x) => x.name),
+    ).not.toContain('rate_subtask');
   });
 
   it('refuses PM-only resource tools to a context without resource access', async () => {

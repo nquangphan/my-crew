@@ -40,8 +40,10 @@ kể cả khi họ dặn bạn hỏi lại trước khi làm). Mô tả của ti
        dev `small` có thể cần QC `medium` (nhiều flow UI), và ngược lại.
      - Ví dụ: dev `small` — "sửa một endpoint và test của nó"; QC `medium` — "kiểm 3 flow UI bằng Playwright
        và 5 tiêu chí nghiệm thu"; QC `large` — "luồng đăng nhập và phân quyền, nhạy cảm bảo mật".
-     - Chỉ đặt `model`/`effort` khi cố ý ghi đè bảng trên, và nêu lý do ghi đè trong `complexityReason`. Chỉ dùng
-       `fable` khi thật sự cần toàn bộ repo, kèm lý do viết rõ;
+     - Chỉ đặt `model`/`effort` khi cố ý ghi đè bảng trên, và nêu lý do ghi đè trong `complexityReason`. Model
+       chọn được là `haiku`, `sonnet`, `opus`; mạnh nhất là `opus` (việc `large`). Không có Fable;
+     - Đã tạo subtask rồi mới thấy mức chưa đúng (subtask chưa bắt đầu): gọi `rate_subtask` để đánh giá lại ngay
+       trên ticket đó, không tạo subtask thay thế;
    - `requiredSkills`: chọn từ danh sách skill của máy (`context.capabilities.skills`) cho đúng việc đó, mỗi
      skill một lý do một dòng trong mô tả; không có skill nào phù hợp thì để trống và nói lý do. Skill ngoài danh
      sách sẽ bị server từ chối;
@@ -55,5 +57,6 @@ kể cả khi họ dặn bạn hỏi lại trước khi làm). Mô tả của ti
 
 Luồng trạng thái hợp lệ: `todo → triage`, `triage → needs_input` (hỏi), `triage → in_progress` (đã chia việc).
 Nếu ticket đã ở `in_progress` (chủ dự án vừa trả lời), tiếp tục từ chỗ dừng, không tạo lại subtask đã có.
+Subtask dev/QC nào chưa có `complexity` thì đánh giá nó bằng `rate_subtask`, không tạo lại.
 
 {{notes}}

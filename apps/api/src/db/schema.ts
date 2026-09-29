@@ -13,7 +13,7 @@ import {
   type InventorySkill,
   type MachineHardware,
   type MachineResources,
-  ModelAlias,
+  type ModelAlias,
   ProjectChangeStatus,
   ProjectPlatform,
   type RunningJob,
@@ -57,7 +57,15 @@ export const ticketTypeEnum = pgEnum('ticket_type', enumValues(TicketType));
 export const ticketPriorityEnum = pgEnum('ticket_priority', enumValues(TicketPriority));
 export const agentRoleEnum = pgEnum('agent_role', enumValues(AgentRole));
 export const complexityEnum = pgEnum('complexity', enumValues(Complexity));
-export const modelAliasEnum = pgEnum('model_alias', enumValues(ModelAlias));
+/**
+ * Spelled out instead of derived from ModelAlias: Postgres cannot drop an enum value safely, so the stored
+ * values must never follow a changed TS enum silently. `fable` stays only for legacy rows; every input accepts
+ * SelectableModel (haiku, sonnet, opus).
+ */
+export const modelAliasEnum = pgEnum('model_alias', ['haiku', 'sonnet', 'opus', 'fable'] satisfies [
+  ModelAlias,
+  ...ModelAlias[],
+]);
 export const effortEnum = pgEnum('effort', enumValues(Effort));
 export const projectPlatformEnum = pgEnum('project_platform', enumValues(ProjectPlatform));
 export const docsStatusEnum = pgEnum('docs_status', enumValues(DocsStatus));

@@ -35,7 +35,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    `high`; job khác ưu tiên lựa chọn của ticket, rồi bản đồ độ phức tạp của config. `dev`/`qc` không còn mặc
    định theo vai trò — ticket chưa được PM chấm `complexity` làm `chooseModel()` ném `MissingComplexityError`
    (`model-policy.ts`, flow `agent-roles`); `assistant`/`pm` vẫn rơi về mặc định vai trò khi ticket chưa có
-   độ phức tạp. `rolePlanner` dùng chính sách chi tiết hơn của nó (`resolveModel()`, flow `agent-roles`).
+   độ phức tạp; một lựa chọn `fable` cũ (không còn được dùng, quyết định của chủ dự án) cũng được ánh xạ sang
+   `opus` ở đây như `resolveModel()`. `rolePlanner` dùng chính sách chi tiết hơn của nó (`resolveModel()`,
+   flow `agent-roles`).
 3. `apps/daemon/src/runner/job-runner.ts` → `execute()` → `workspace()`: dựng worktree (flow
    `agent-workspace`); QC bắt đầu tại `head_sha` của report dev đã ghép cặp (`qcBase()`); tạo thư mục tạm
    riêng của job (`jobTmpDir`); env qua `agentEnv()` (bỏ `ANTHROPIC_API_KEY`, thêm `CREW_JOB_ID`,
@@ -89,8 +91,11 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    gọi `mergeAndPush()`, flow `local-merge`); `create_subtask` từ chối MCP server bị dự án tắt và tự thêm
    `docs_init` (nếu có) vào `dependsOn`; subtask `dev`/`qc` bắt buộc `complexity` và `complexityReason` (không
    có model mặc định cho hai loại này, flow `ticket-lifecycle`/`agent-roles`); `model` chỉ nên đặt khi PM cố ý
-   ghi đè bảng độ phức tạp. `CHILD_CAP_EXCEEDED`/`BUDGET_HOLD` từ `create_subtask` và
-   `BUG_CYCLE_CAP` từ `file_bug` kết thúc lượt chạy cho chủ dự án thay vì ném lỗi; PM không đóng ticket
+   ghi đè bảng độ phức tạp, chỉ nhận `haiku`/`sonnet`/`opus` (không có Fable). `rate_subtask` (PM-only) đánh
+   giá lại `complexity`/`complexityReason`/`model`/`effort` của một subtask `dev`/`qc`/`bug` đã có của chính
+   PM task này, ngay tại chỗ thay vì tạo subtask thay thế — kể cả để đánh thức một ticket đang `blocked` vì
+   chưa từng có đánh giá (`rateSubtask()`, flow `ticket-lifecycle`). `CHILD_CAP_EXCEEDED`/`BUDGET_HOLD` từ
+   `create_subtask` và `BUG_CYCLE_CAP` từ `file_bug` kết thúc lượt chạy cho chủ dự án thay vì ném lỗi; PM không đóng ticket
    (`update_status` sang `done`/`in_review`) khi cây ticket còn tiến trình sống (`treeOrphans()`); QC không
    đóng ticket (`update_status` sang `done`) khi MCP server bắt buộc của ticket (`TicketToolContext.requiredMcps`,
    điền từ `ticket.requiredMcps` ở `job-runner.ts`) chưa có lời gọi công cụ nào trong bất kỳ lượt nào của
@@ -170,7 +175,8 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   trước khi agent chạy xong (lỗi khi chuẩn bị) đăng bình luận lỗi, chuyển ticket `blocked`, báo qua
   `failedJobs` trong heartbeat tới khi owner mở chặn cho job mới chạy xong; một ticket dev cũ chưa có
   `complexity` (tạo trước khi bắt buộc đánh giá) đi qua đúng đường crash này với `MissingComplexityError` thay
-  vì tự chọn model mặc định.
+  vì tự chọn model mặc định, bình luận lỗi hướng PM dùng `rate_subtask`; PM đánh giá ticket đó xong (`rateSubtask()`)
+  thì ticket tự chạy lại (không cần owner mở chặn) trên model theo mức mới.
 - `apps/daemon/test/agent-runner.test.ts`: `query()` chạy với đúng `settingSources`, `dontAsk`, allowlist,
   guard hook và env sạch; truyền đúng `resume` và ngân sách, báo đúng lớp lỗi API cuối; ngắt turn sau khi một
   tool yêu cầu kết thúc run và coi đó là kết thúc bình thường; run không có message `result` bị đánh dấu lỗi.
@@ -185,7 +191,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   một ticket) và bị từ chối khi yêu cầu MCP server đã bị dự án tắt; tool tài nguyên PM-only bị từ chối ngoài
   ngữ cảnh PM; lượt `dev` (`codeOnly`) không `submit_report`/đóng ticket được; QC không đóng ticket được khi
   một MCP server bắt buộc chưa có lời gọi công cụ nào trong nhật ký (`unusedUiServers`), đóng được sau khi gọi;
-  lỗi server kèm `details` xuất hiện trong thông báo trả về agent.
+  lỗi server kèm `details` xuất hiện trong thông báo trả về agent; PM đánh giá lại một subtask tại chỗ qua
+  `rate_subtask`, tool này không nhận `model: 'fable'`, một dev/QC không phải PM bị `FORBIDDEN` và không thấy
+  tool này trong danh sách của vai trò mình.
 - `apps/daemon/test/live-smoke.test.ts`: worktree của repo có `.claude` bị gitignore vẫn thấy đúng skill
   project như checkout chính; đăng nhập gói đăng ký hoạt động và không tính phí qua API key; một job haiku
   dùng đúng ticket tools, bị guard kiểm soát, và ghi đúng `total_cost_usd`.

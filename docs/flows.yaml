@@ -79,6 +79,7 @@ flows:
       - apps/api/test/transition.test.ts
       - apps/api/test/lifecycle-effects.test.ts
       - apps/api/test/bug-loop.test.ts
+      - apps/api/test/rate-subtask.test.ts
       - apps/api/test/budget.test.ts
       - apps/api/test/owner-web-support.test.ts
       - apps/api/test/stuck-ticket-alarm.test.ts

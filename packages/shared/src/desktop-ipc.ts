@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Effort, ModelAlias } from './agent-schemas.js';
+import { Effort, SelectableModel } from './agent-schemas.js';
 import { HealthCheckResult, HealthFixId, HealthGroup, HealthReport } from './health-schemas.js';
 import {
   DaemonCreateProjectRequest,
@@ -196,11 +196,11 @@ export const ResourceSettings = z.object({
 });
 export type ResourceSettings = z.infer<typeof ResourceSettings>;
 
-const ModelChoice = z.object({ model: ModelAlias, effort: Effort });
+const ModelChoice = z.object({ model: SelectableModel, effort: Effort });
 
 export const ModelSettings = z.object({
   allow: z
-    .array(ModelAlias)
+    .array(SelectableModel)
     .min(1)
     .refine((list) => list.includes('sonnet'), 'sonnet phải luôn được cho phép (docs chạy trên sonnet)'),
   complexityMap: z.object({

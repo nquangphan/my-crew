@@ -10,6 +10,7 @@ import {
   ProjectChangeBody,
   ProjectKey,
   PutSkillsRequest,
+  RateSubtaskRequest,
   SubmitReportRequest,
   TransitionRequest,
 } from '@crew/shared';
@@ -48,6 +49,7 @@ import {
   createSubtask,
   fileBug,
   getTicketRow,
+  rateSubtask,
   transitionTicket,
 } from '../services/ticket-service.js';
 import { idParam, parseInput, type RouteDeps } from './route-deps.js';
@@ -247,6 +249,11 @@ export async function daemonRoutes(
     await assertKnownCapabilities(tx, { projectId: ticket.projectId, skills: body.requiredSkills, mcps: [] });
     return fileBug(tx, ticket.id, body);
   });
+
+  /** The PM (`:id` is its pm_task) rates or re-rates one of its open dev, qc or bug subtasks in place. */
+  ticketWrite('POST', '/v1/daemon/tickets/:id/rate-subtask', RateSubtaskRequest, 200, (tx, ticket, body) =>
+    rateSubtask(tx, ticket.id, body),
+  );
 
   ticketWrite('PATCH', '/v1/daemon/tickets/:id/agent-meta', AgentMetaRequest, 200, (tx, ticket, body) =>
     recordAgentMeta(tx, ticket.id, body, { timezone }),

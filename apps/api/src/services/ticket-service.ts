@@ -9,6 +9,8 @@ import {
   type FileBugRequest as FileBugInput,
   FileBugRequest,
   qcDefaultMcps,
+  type RateSubtaskRequest as RateSubtaskInput,
+  RateSubtaskRequest,
   REQUEST_KEY_SCOPE,
   TERMINAL_STATUSES,
   type Ticket,
@@ -462,6 +464,63 @@ function inheritedReason(from: TicketRow): string | null {
   // A retest of a retest keeps the first ticket's reason instead of nesting the prefix.
   if (from.complexityReason?.startsWith(INHERITED_PREFIX)) return from.complexityReason;
   return `${INHERITED_PREFIX}${from.key}${from.complexityReason ? `: ${from.complexityReason}` : ''}`;
+}
+
+// ---------------------------------------------------------------------------
+// PM rating of an existing subtask
+// ---------------------------------------------------------------------------
+
+/** Subtasks whose model comes from the PM's complexity rating. */
+const RATEABLE_TYPES: readonly TicketType[] = ['dev', 'qc', 'bug'];
+
+/**
+ * The PM rates (or re-rates) one of its open dev, qc or bug subtasks in place. The rating replaces the
+ * previous one, including a model or effort override: a running job keeps its model and the next run uses
+ * the new rating. A ticket blocked because it had no rating (its run could not choose a model) is moved back
+ * to `in_progress` and its assignee is woken, so it runs again on the new rating.
+ */
+export async function rateSubtask(db: Executor, pmTaskId: string, input: RateSubtaskInput): Promise<Ticket> {
+  const data = RateSubtaskRequest.parse(input);
+  return db.transaction(async (tx) => {
+    const pmTask = await lockTicket(tx, pmTaskId);
+    if (pmTask.type !== 'pm_task') {
+      throw new ApiError('FORBIDDEN', `only the PM rates subtasks; ${pmTask.key} is a ${pmTask.type} ticket`);
+    }
+    const found = await getTicketRow(tx, data.ticket);
+    if (found.parentId !== pmTask.id || !RATEABLE_TYPES.includes(found.type)) {
+      throw new ApiError(
+        'FORBIDDEN',
+        `${found.key} is not a dev, qc or bug subtask of ${pmTask.key}; the PM rates only its own subtasks`,
+      );
+    }
+    const ticket = await lockTicket(tx, found.id);
+    if (isTerminal(ticket.status)) {
+      throw new ApiError('TICKET_CLOSED', `${ticket.key} is ${ticket.status}; only an open subtask is rated`);
+    }
+    const requeue = ticket.status === 'blocked' && ticket.complexity === null;
+    const [row] = await tx
+      .update(tickets)
+      .set({
+        complexity: data.complexity,
+        complexityReason: data.complexityReason,
+        model: data.model ?? null,
+        effort: data.effort ?? null,
+        ...(requeue ? { status: 'in_progress' as const } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(tickets.id, ticket.id))
+      .returning();
+    if (!row) throw new Error('ticket update returned no row');
+    const out: NewEvent[] = [ticketUpdated(row, 'fields')];
+    if (requeue) {
+      out.push(
+        statusChanged(ticket, 'blocked', 'in_progress'),
+        toAssignee(ticket, { type: 'ticket.unblocked', data: { ticketId: ticket.id } }),
+      );
+    }
+    await appendEvents(tx, out);
+    return toTicketDto(row);
+  });
 }
 
 // ---------------------------------------------------------------------------

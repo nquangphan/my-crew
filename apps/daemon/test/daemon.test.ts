@@ -3,7 +3,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { describe, expect, it } from 'vitest';
 import { machines } from '../../api/src/db/schema.js';
-import { transitionTicket } from '../../api/src/services/ticket-service.js';
+import { rateSubtask, transitionTicket } from '../../api/src/services/ticket-service.js';
 import { homePaths } from '../src/config.js';
 import { rolePlanner } from '../src/roles/role-planner.js';
 import { jobTmpDir } from '../src/runner/job-cleanup.js';
@@ -235,7 +235,7 @@ describe('daemon', () => {
     await t.daemon.stop();
   });
 
-  it('fails a dev ticket without the PM complexity rating through the crash path instead of picking a model', async () => {
+  it('blocks a dev ticket without the PM rating through the crash path, and reruns it once the PM rates it', async () => {
     const f = await fixture(api);
     const repo = makeRepo();
     const t = makeDaemon(f, { repoPath: repo, extra: { planner: rolePlanner } });
@@ -255,8 +255,38 @@ describe('daemon', () => {
     expect(notice).toContain('chưa được PM đánh giá độ phức tạp');
     expect(notice).toContain('không có model mặc định cho dev và QC');
     expect(t.book.runs.filter((run) => run.ticketId === dev.id)).toHaveLength(0);
+    expect(notice).toContain('rate_subtask');
     const [failed] = t.daemon.state.jobsForTicket(dev.id);
     expect(failed).toMatchObject({ status: 'failed', error: expect.stringContaining('MissingComplexity') });
+
+    // The PM rates it in place: the server moves it back to in_progress and the daemon runs it on the
+    // model of the new rating, without the owner.
+    t.book.byTicket.set(dev.id, { steps: [tool('comment', { body: 'Chạy theo mức mới' })] });
+    await rateSubtask(api.db, pm.id, {
+      ticket: dev.key,
+      complexity: 'large',
+      complexityReason: 'Đổi lõi tính giá ở nhiều module',
+    });
+    await waitFor(
+      () => t.book.runs.some((run) => run.ticketId === dev.id),
+      15_000,
+      'agent run after the rating',
+    );
+    expect(t.book.runs.find((run) => run.ticketId === dev.id)?.model).toBe('opus');
+    const rerun = await waitFor(
+      () =>
+        t.daemon.state
+          .jobsForTicket(dev.id)
+          .find((j) => j.id !== failed?.id && !['queued', 'running'].includes(j.status)),
+      15_000,
+      'job after the rating finished',
+    );
+    expect(rerun).toMatchObject({
+      kind: 'agent',
+      trigger: 'ticket.unblocked',
+      model: 'opus',
+      effort: 'high',
+    });
     await t.daemon.stop();
   });
 

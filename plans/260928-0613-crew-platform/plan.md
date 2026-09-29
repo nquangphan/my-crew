@@ -274,3 +274,10 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
   - A `bug` ticket filed by QC inherits the complexity of the dev ticket it came from (the PM's assessment).
   - Unchanged: docs work stays fixed on sonnet (Session 11); Fable still needs the PM's written reason.
   - Earlier note to check QC's model after live runs (Session 14, item 2) is resolved by this rule.
+
+### Session 18 — 2026-09-29 (owner follow-up)
+- **Owner decision:** Fable is not used at all. No agent run may choose it: the server rejects `model: fable` on any ticket, the model policy never resolves to it, the desktop app does not offer it in the model allowlist, and the PM prompt no longer mentions it. The "Fable only with a written reason" rule from Phase 7 is removed. The strongest model the PM can pick is opus (complexity `large`).
+
+### Session 19 — 2026-09-29 (owner follow-up)
+- **AgentKit sharing dropped:** AgentKit activates per device (the owner signs in by email OTP; only a device-bound session is stored, no license key), so copying its install or session to other machines is not done.
+- **Owner decision — BMAD on other machines:** BMAD (bmad-method, MIT) is installed per project and mostly not committed. The machine that holds a project records the project's BMAD profile (version, modules, tools, communication/document languages, output folder) from `_bmad/_config/manifest.yaml` and `config.toml` on the server. A **"Cài BMAD" button** in the desktop app's project settings (manual only, no automatic install) installs exactly that profile with `npx bmad-method@<version> install --yes …`, and skips when `_bmad` already has that version and those modules. Only the standard install: `_bmad/custom` and `_bmad/memory` are not copied. The inventory is re-probed afterwards.

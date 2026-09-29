@@ -1,6 +1,7 @@
-import type { ModelSettings, ResourceSettings, ResourcesView } from '@crew/shared';
+import { type ModelSettings, type ResourceSettings, type ResourcesView, SelectableModel } from '@crew/shared';
 
-const MODELS = ['haiku', 'sonnet', 'opus', 'fable'] as const;
+/** Fable is not offered: it is not used at all (owner decision). */
+const MODELS = SelectableModel.options;
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
 const COMPLEXITY: { key: keyof ModelSettings['complexityMap']; label: string }[] = [
   { key: 'trivial', label: 'Rất nhỏ' },

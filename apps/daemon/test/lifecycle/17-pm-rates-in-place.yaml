@@ -1,0 +1,56 @@
+name: pm-rates-in-place
+description: >-
+  The PM creates two rated dev subtasks, the second waiting on the first, then learns more and re-rates the
+  second in place with rate_subtask (small to large) before it starts. No replacement ticket is created, and
+  the second dev runs on the model of its new rating (opus) while the first keeps its own (sonnet).
+project:
+  platform: backend
+request:
+  title: Tính phí vận chuyển
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Tính phí vận chuyển }]
+  - stage: pm_analyze
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - title: Bảng phí theo vùng
+            complexity: small
+            reason: Một bảng tra và test của nó
+            qcComplexity: trivial
+            qcReason: Kiểm bằng test đơn vị
+          - title: Áp phí vào đơn hàng
+            complexity: small
+            reason: Gọi bảng phí khi tính tổng
+            qcComplexity: trivial
+            qcReason: Kiểm bằng test đơn vị
+            dependsOn: [Bảng phí theo vùng]
+        rates:
+          - title: Áp phí vào đơn hàng
+            complexity: large
+            reason: Tổng đơn hàng dùng ở thanh toán, hoá đơn và báo cáo, rủi ro hồi quy cao
+  - stage: dev
+    title: '^Bảng phí theo vùng$'
+    steps: [{ macro: dev, file: src/shipping-table.js }]
+  - stage: docs_update
+    title: '^Bảng phí theo vùng$'
+    steps: [{ macro: docs_update, files: [src/shipping-table.js] }]
+  - stage: dev
+    title: '^Áp phí vào đơn hàng$'
+    steps: [{ macro: dev, file: src/shipping-fee.js }]
+  - stage: docs_update
+    title: '^Áp phí vào đơn hàng$'
+    steps: [{ macro: docs_update, files: [src/shipping-fee.js] }]
+  - stage: qc
+    title: '^QC: '
+    steps: [{ macro: qc }]
+  - stage: pm_accept
+    steps: [{ macro: pm_accept }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Tính phí vận chuyển$', type: pm_task, status: done }
+    - { title: '^Bảng phí theo vùng$', status: done }
+    - { title: '^Áp phí vào đơn hàng$', count: 1, status: done }
+    - { title: '^QC: ', type: qc, count: 2, status: done }

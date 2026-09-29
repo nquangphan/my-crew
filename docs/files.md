@@ -74,6 +74,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/pairing.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
 | `apps/api/test/password-change.test.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/api/test/project-changes.test.ts` | [project-claims](flows/project-claims.md) (test) |
+| `apps/api/test/rate-subtask.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/revoke-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
 | `apps/api/test/shutdown.test.ts` | [api-platform](flows/api-platform.md) (test) |
 | `apps/api/test/stuck-ticket-alarm.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |

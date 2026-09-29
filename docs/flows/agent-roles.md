@@ -41,9 +41,12 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    không có mặc định — lấy bản đồ độ phức tạp của máy theo `complexity` PM đã chấm cho subtask, model/effort
    PM tự đặt trên subtask (ghi đè có chủ đích) thắng bản đồ đó; ticket chưa có `complexity` (subtask cũ tạo
    trước khi bắt buộc đánh giá) làm `resolveModel()` ném `MissingComplexityError`, rơi vào đường crash của
-   `job-runner.ts` (flow `agent-runs`) thay vì âm thầm chọn một model; PM chạy `sonnet`, hoặc `opus` khi
-   `pm_task.complexity === 'large'`; một model ngoài `models.allow` bị `clampModel()` kẹp xuống model được
-   phép mạnh nhất ngay dưới nó kèm một bình luận thông báo.
+   `job-runner.ts` (flow `agent-runs`) thay vì âm thầm chọn một model — bình luận báo lỗi này hướng PM đánh giá
+   ngay bằng tool `rate_subtask` (flow `agent-runs`), không tạo subtask thay thế; PM chạy `sonnet`, hoặc `opus`
+   khi `pm_task.complexity === 'large'`; một model ngoài `models.allow` bị `clampModel()` kẹp xuống model được
+   phép mạnh nhất ngay dưới nó kèm một bình luận thông báo. **Fable không được dùng (quyết định của chủ dự
+   án): `opus` là model mạnh nhất chọn được** — một ticket cũ còn đặt model `fable` (giá trị enum chỉ còn giữ
+   cho hàng cũ) chạy trên `opus` kèm bình luận giải thích, rồi mới qua bước kẹp allowlist ở trên.
 4. `apps/daemon/src/roles/prompt-templates.ts` → `renderPrompt()`: `{{> partial}}` chèn `prompts/<partial>.md`
    (một lớp), rồi `{{var}}` thay giá trị của `vars`; thiếu biến là lỗi (không để `{{…}}` lọt tới agent), giá
    trị chèn vào không bao giờ được quét lại nên không tự mở rộng thành template. Template nằm cạnh module này
@@ -165,7 +168,8 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 - `apps/daemon/test/model-policy.test.ts`: docs luôn `sonnet`/`high` bất kể lựa chọn; dev/qc theo đúng bản đồ
   độ phức tạp của máy, model/effort PM tự đặt trên subtask thắng bản đồ; dev/qc không `complexity` ném
   `MissingComplexityError` dù có đặt `model`; pm theo đúng thứ tự ưu tiên; kẹp model ngoài allowlist xuống
-  model mạnh nhất còn được phép.
+  model mạnh nhất còn được phép; không bao giờ chọn `fable` — ticket cũ đặt `fable` luôn chạy `opus` kèm bình
+  luận thông báo.
 - `apps/daemon/test/skill-enforcement.test.ts`: skill/MCP dùng thật từ nhật ký công cụ và slash command; gộp
   lựa chọn nhiều lượt của cùng ticket; khoảng trống bắt buộc/đã chọn trừ đã dùng; nội dung cảnh báo.
 - `apps/daemon/test/docs-first-check.test.ts`: docs trước code đạt/không đạt theo thứ tự Read/Grep thật, Read

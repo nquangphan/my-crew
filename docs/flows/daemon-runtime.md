@@ -22,7 +22,11 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `TokenStore`, ghi `apiUrl`/`machineName`/`machineId` vào config.
 2. `apps/daemon/src/config.ts` → `loadConfig()`/`saveConfig()`: schema zod `DaemonConfig` (bắt buộc `sonnet`
    nằm trong `models.allow` vì docs-init/docs-update luôn chạy sonnet), ghi atomic (file tạm + rename) với
-   quyền 0600, đọc dưới `crewHome()` (`$CREW_HOME` hoặc `~/.crew`).
+   quyền 0600, đọc dưới `crewHome()` (`$CREW_HOME` hoặc `~/.crew`). Fable không được dùng (quyết định của chủ
+   dự án) nhưng một config ghi từ trước còn đặt nó vẫn hợp lệ: `fable` trong `models.allow` bị bỏ khi parse,
+   một mục `complexityMap` đặt `fable` đọc thành `opus`; `loadConfig()` cảnh báo đúng một lần mỗi file (mặc
+   định một dòng JSON ra stderr, app desktop truyền `ConfigWarn` riêng ghi vào `app.log` sự kiện
+   `config-legacy-model`, flow `desktop-app`), rồi lần `saveConfig()` kế tiếp ghi lại file đã sạch `fable`.
 3. `apps/daemon/src/secrets.ts` → `defaultTokenStore()`: Keychain macOS qua `KeychainTokenStore` (ghi bằng
    `security -i` nhận lệnh trên stdin, token không bao giờ nằm trong argv của tiến trình) hoặc
    `FileTokenStore` (file 0600, atomic) khi `CREW_TOKEN_STORE=file` hoặc không phải macOS.
@@ -164,7 +168,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 - `apps/daemon/test/cli.test.ts`: ghép máy rồi claim project với thư mục cục bộ, tạo project mới (sở hữu
   ngay), `status` hiển thị đúng, `rotate-token` đổi token, `project release`; lỗi cú pháp trả exit code 2.
 - `apps/daemon/test/units.test.ts`: `config` điền mặc định và validate, từ chối `models.allow` thiếu `sonnet`,
-  từ chối đường dẫn tương đối/trùng key/đường dẫn thoát khỏi repo, lưu atomic mode 0600 và đọc lại đúng;
+  từ chối đường dẫn tương đối/trùng key/đường dẫn thoát khỏi repo, lưu atomic mode 0600 và đọc lại đúng; một
+  config cũ còn đặt `fable` ở `models.allow`/`complexityMap` đọc thành `opus` và cảnh báo đúng một lần mỗi
+  file;
   `secrets` giữ token trong file 0600 và ghi Keychain qua `security -i` (token không lộ trong argv);
   `onError` của `VpsClient` được gọi đúng một lần cho mỗi request cuối cùng thất bại, sau khi hết lượt thử
   lại, không kèm header/body và không lộ token.

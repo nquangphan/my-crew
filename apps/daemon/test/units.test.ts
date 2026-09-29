@@ -65,6 +65,53 @@ describe('config', () => {
     });
     expect(() => loadConfig(join(tempDir('crewd-cfg-'), 'missing.yaml'))).toThrow(/crewd pair/);
   });
+
+  it('keeps a config saved with fable valid: drops it, runs opus instead, warns once, rewrites on save', () => {
+    const path = join(tempDir('crewd-cfg-'), 'config.yaml');
+    // Saved before Fable was dropped, possibly on another machine.
+    writeFileSync(
+      path,
+      [
+        'apiUrl: https://x.test',
+        'machineName: m',
+        'models:',
+        '  allow: [haiku, sonnet, opus, fable]',
+        '  complexityMap:',
+        '    large: { model: fable, effort: max }',
+        '    medium: { model: sonnet, effort: high }',
+        '',
+      ].join('\n'),
+    );
+    const warnings: { message: string; fields: Record<string, unknown> }[] = [];
+    const warn = (message: string, fields: Record<string, unknown>) => warnings.push({ message, fields });
+
+    const config = loadConfig(path, warn);
+    expect(config.models.allow).toEqual(['haiku', 'sonnet', 'opus']);
+    expect(config.models.complexityMap.large).toEqual({ model: 'opus', effort: 'max' });
+    expect(config.models.complexityMap.medium).toEqual({ model: 'sonnet', effort: 'high' });
+    expect(warnings).toEqual([
+      {
+        message: expect.stringContaining('fable'),
+        fields: expect.objectContaining({
+          path,
+          fields: ['models.allow', 'models.complexityMap.large'],
+        }),
+      },
+    ]);
+    // The config is read often; the warning is logged once per file.
+    loadConfig(path, warn);
+    expect(warnings).toHaveLength(1);
+
+    // The next save writes the cleaned values; the file no longer names fable.
+    saveConfig(path, { ...config, machineName: 'm2' });
+    const text = readFileSync(path, 'utf8');
+    expect(text).not.toContain('fable');
+    expect(loadConfig(path, warn).models).toEqual(config.models);
+    // Only fable in the allowlist leaves no sonnet: invalid, as before.
+    expect(() =>
+      parseConfig({ apiUrl: 'https://x.test', machineName: 'm', models: { allow: ['fable'] } }),
+    ).toThrow(/models.allow must include sonnet/);
+  });
 });
 
 describe('secrets', () => {

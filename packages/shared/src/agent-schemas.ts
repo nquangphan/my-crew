@@ -6,8 +6,18 @@ export type AgentRole = z.infer<typeof AgentRole>;
 export const Complexity = z.enum(['trivial', 'small', 'medium', 'large']);
 export type Complexity = z.infer<typeof Complexity>;
 
+/**
+ * Every model alias a stored ticket may carry. `fable` is only a legacy value: no run uses it and no input
+ * accepts it (owner decision). Inputs, the machine allowlist and the complexity map use SelectableModel.
+ */
 export const ModelAlias = z.enum(['haiku', 'sonnet', 'opus', 'fable']);
 export type ModelAlias = z.infer<typeof ModelAlias>;
+
+/** The models an agent run may use and any input may name. Fable is not used at all (owner decision). */
+export const SelectableModel = z.enum(['haiku', 'sonnet', 'opus'], {
+  error: 'model phải là haiku, sonnet hoặc opus: Fable không được dùng (quyết định của chủ dự án).',
+});
+export type SelectableModel = z.infer<typeof SelectableModel>;
 
 export const Effort = z.enum(['low', 'medium', 'high', 'xhigh', 'max']);
 export type Effort = z.infer<typeof Effort>;
@@ -30,7 +40,7 @@ export const RoleStage = z.enum([
 export type RoleStage = z.infer<typeof RoleStage>;
 
 /** All documentation work (the docs-init ticket and every docs-update job) runs on this model (owner decision). */
-export const DOCS_MODEL: ModelAlias = 'sonnet';
+export const DOCS_MODEL: SelectableModel = 'sonnet';
 
 // ---------------------------------------------------------------------------
 // Agent activity: what a machine is doing with a ticket's job

@@ -6,6 +6,7 @@ import {
   type Effort,
   type ModelAlias,
   type RoleStage,
+  type SelectableModel,
   type SkillInventory,
   type Ticket,
   type TicketDetailResponse,
@@ -78,7 +79,7 @@ export interface PlanInput {
 
 export interface PlannedRun {
   prompt: string;
-  model: ModelAlias;
+  model: SelectableModel;
   effort: Effort;
   /** Session to resume, or null for a fresh session. */
   resumeSessionId: string | null;
@@ -168,7 +169,7 @@ export interface RolePlanner {
 }
 
 /** Models of the roles that have a default; dev and QC run on the PM's complexity rating only. */
-const ROLE_DEFAULTS: Record<'assistant' | 'pm', { model: ModelAlias; effort: Effort }> = {
+const ROLE_DEFAULTS: Record<'assistant' | 'pm', { model: SelectableModel; effort: Effort }> = {
   assistant: { model: 'haiku', effort: 'medium' },
   pm: { model: 'sonnet', effort: 'high' },
 };
@@ -182,17 +183,18 @@ export function chooseModel(
   kind: JobKind,
   role: AgentRole,
   ticket: { model: ModelAlias | null; effort: Effort | null; complexity: Complexity | null },
-): { model: ModelAlias; effort: Effort } {
+): { model: SelectableModel; effort: Effort } {
   if (kind === 'docs_init' || kind === 'docs_update') return { model: 'sonnet', effort: 'high' };
   const fromComplexity = ticket.complexity ? config.models.complexityMap[ticket.complexity] : null;
-  let fallback: { model: ModelAlias; effort: Effort };
+  let fallback: { model: SelectableModel; effort: Effort };
   if (role === 'dev' || role === 'qc') {
     if (!fromComplexity) throw new MissingComplexityError(role);
     fallback = fromComplexity;
   } else {
     fallback = fromComplexity ?? ROLE_DEFAULTS[role];
   }
-  const model = ticket.model ?? fallback.model;
+  // Fable is not used at all: a legacy ticket that still names it runs on opus.
+  const model = ticket.model === 'fable' ? 'opus' : (ticket.model ?? fallback.model);
   const effort = ticket.effort ?? fallback.effort;
   return { model: config.models.allow.includes(model) ? model : 'sonnet', effort };
 }

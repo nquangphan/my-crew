@@ -10,9 +10,9 @@ import {
   type CreateSubtaskRequest,
   Effort,
   McpServerName,
-  ModelAlias,
   type Report,
   type RoleStage,
+  SelectableModel,
   type SkillInventory,
   TicketPriority,
   TicketStatus,
@@ -209,8 +209,8 @@ const SubtaskShape = {
     .min(1)
     .max(500)
     .describe('Bắt buộc: một dòng lý do cho mức complexity (và cho model nếu bạn tự đặt model)'),
-  model: ModelAlias.optional().describe(
-    'Chỉ đặt khi cố ý ghi đè bảng complexity, nêu lý do trong complexityReason',
+  model: SelectableModel.optional().describe(
+    'Chỉ đặt khi cố ý ghi đè bảng complexity (haiku | sonnet | opus), nêu lý do trong complexityReason',
   ),
   effort: Effort.optional(),
   requiredSkills: z.array(z.string().trim().min(1).max(200)).max(50).default([]),
@@ -475,6 +475,35 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
           }
           throw error;
         }
+      },
+    ),
+    rate_subtask: tool(
+      'rate_subtask',
+      'PM: đánh giá (hoặc đánh giá lại) complexity của một subtask dev/qc/bug chưa xong của PM task này, ngay trên ticket đó, không tạo subtask thay thế. Mức mới thay mức cũ (kể cả model/effort ghi đè cũ). Job đang chạy giữ model hiện tại, lượt chạy sau dùng mức mới; ticket bị chặn vì chưa có complexity sẽ tự chạy lại.',
+      {
+        ticket: z.string().trim().min(1).max(100).describe('Id hoặc key của subtask (ví dụ WEB-12)'),
+        complexity: Complexity.describe('Bắt buộc: độ phức tạp PM đánh giá; model lấy theo bảng của máy'),
+        complexityReason: z
+          .string()
+          .trim()
+          .min(1)
+          .max(500)
+          .describe('Bắt buộc: một dòng lý do cho mức complexity (và cho model nếu bạn tự đặt model)'),
+        model: SelectableModel.optional().describe(
+          'Chỉ đặt khi cố ý ghi đè bảng complexity (haiku | sonnet | opus), nêu lý do trong complexityReason',
+        ),
+        effort: Effort.optional(),
+      },
+      async (input) => {
+        const ticket = await writer.write((key) => ctx.vps.rateSubtask(ctx.ticketId, input, key));
+        return text({
+          key: ticket.key,
+          status: ticket.status,
+          complexity: ticket.complexity,
+          complexityReason: ticket.complexityReason,
+          model: ticket.model,
+          effort: ticket.effort,
+        });
       },
     ),
     resource_report: tool(

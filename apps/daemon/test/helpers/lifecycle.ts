@@ -300,6 +300,15 @@ function pmAnalyze(step: RawStep): RawStep[] {
       }),
     ];
   });
+  // The PM re-rates subtasks it already created (by key), before they start.
+  const rates = ((Array.isArray(step.rates) ? step.rates : []) as RawStep[]).map((rate) =>
+    t('rate_subtask', {
+      ticket: `@{key:${titleRe(String(rate.title))}}`,
+      complexity: rate.complexity,
+      complexityReason: String(rate.reason),
+      ...(rate.model ? { model: rate.model } : {}),
+    }),
+  );
   return [
     ...head,
     ...(step.continued
@@ -308,6 +317,7 @@ function pmAnalyze(step: RawStep): RawStep[] {
     ...(step.continued ? [] : [t('comment', { body: 'Requirement confirmed' })]),
     t('resource_report'),
     ...creates,
+    ...rates,
     t('comment', { body: 'Kế hoạch thực thi: chạy song song trong số slot trống.' }),
     t('update_status', { to: 'in_progress' }),
   ];

@@ -21,7 +21,15 @@ Nếu cần xem code để trả lời, đọc `docs/index.md` và `docs_flow <i
 Daemon ghi nhận sau khi job kết thúc:
 {{cleanup_notes}}
 
-## Bước 4: bình luận của chủ dự án
+## Bước 4: đánh giá lại subtask
+
+- Subtask dev/QC/bug bị `blocked` vì chưa có `complexity` (bình luận "chưa được PM đánh giá độ phức tạp"): gọi
+  `rate_subtask` với `complexity` và `complexityReason` ngay trên ticket đó. Không tạo subtask thay thế; server
+  tự chuyển ticket về `in_progress` và daemon chạy lại trên model theo mức mới.
+- Biết thêm điều gì làm mức đã đánh giá của một subtask chưa bắt đầu không còn đúng: `rate_subtask` để đánh giá
+  lại. Job đang chạy giữ model hiện tại; mức mới áp dụng cho lượt chạy sau.
+
+## Bước 5: bình luận của chủ dự án
 
 Nếu có bình luận mới của chủ dự án, trả lời bằng `comment`. Cần đổi phạm vi thì tạo thêm subtask (dev kèm QC)
 như khi chia việc; cần hỏi lại thì `ask_owner`.

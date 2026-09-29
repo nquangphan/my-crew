@@ -24,6 +24,7 @@ import {
   type ProjectChangeBody,
   ProjectChangeResponse,
   type PutSkillsRequest,
+  type RateSubtaskRequest,
   ReleaseClaimResponse,
   Report,
   type SubmitReportRequest,
@@ -321,6 +322,17 @@ export class VpsClient {
       body,
       idempotencyKey,
       schema: Report,
+    });
+  }
+
+  /** The PM (`pmTaskId`) rates or re-rates one of its open dev, qc or bug subtasks in place. */
+  rateSubtask(pmTaskId: string, body: RateSubtaskRequest, idempotencyKey: string) {
+    return this.request({
+      method: 'POST',
+      path: `/v1/daemon/tickets/${encodeURIComponent(pmTaskId)}/rate-subtask`,
+      body,
+      idempotencyKey,
+      schema: Ticket,
     });
   }
 

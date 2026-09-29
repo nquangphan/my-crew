@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { AgentActivity, AgentRole, Complexity, Effort, ModelAlias } from './agent-schemas.js';
+import {
+  AgentActivity,
+  AgentRole,
+  Complexity,
+  Effort,
+  ModelAlias,
+  SelectableModel,
+} from './agent-schemas.js';
 import { EventEnvelope } from './event-schemas.js';
 import { McpServerName } from './project-schemas.js';
 import { TicketPriority, TicketStatus, TicketType } from './ticket-schemas.js';
@@ -127,6 +134,7 @@ export const Ticket = z.object({
   complexity: Complexity.nullable(),
   /** The PM's one-line reason for `complexity` (dev and QC subtasks; a bug inherits its dev's). */
   complexityReason: z.string().nullable(),
+  /** A stored override; a legacy ticket may still carry `fable`, which runs on opus. */
   model: ModelAlias.nullable(),
   effort: Effort.nullable(),
   requiredSkills: z.array(z.string()),
@@ -165,6 +173,9 @@ export const CreateRequestTicket = z.object({
 });
 export type CreateRequestTicket = z.input<typeof CreateRequestTicket>;
 
+/** The PM's one-line reason for a complexity rating. */
+const ComplexityReason = z.string().trim().min(1).max(500);
+
 /** Types whose model the PM chooses by rating the subtask's complexity: there is no default model. */
 const RATED_TYPES: readonly string[] = ['dev', 'qc'];
 
@@ -178,8 +189,8 @@ const SubtaskFields = z.object({
   priority: TicketPriority.optional(),
   complexity: Complexity.optional(),
   /** Required with `complexity` for dev and qc: why the PM rated it so (one line). */
-  complexityReason: z.string().trim().min(1).max(500).optional(),
-  model: ModelAlias.optional(),
+  complexityReason: ComplexityReason.optional(),
+  model: SelectableModel.optional(),
   effort: Effort.optional(),
   requiredSkills: z.array(SkillName).max(50).default([]),
   requiredMcps: z.array(McpServerName).max(50).default([]),
@@ -214,6 +225,27 @@ export const CreateSubtaskRequest = SubtaskFields.superRefine((data, ctx) => {
   }
 });
 export type CreateSubtaskRequest = z.input<typeof CreateSubtaskRequest>;
+
+/**
+ * `POST /v1/daemon/tickets/:id/rate-subtask`, where `:id` is the PM's pm_task: the PM rates (or re-rates) one
+ * of its open dev, qc or bug subtasks in place. The rating replaces the previous one, including any model or
+ * effort override; a running job keeps its model and the next run uses the new rating.
+ */
+export const RateSubtaskRequest = z.object({
+  /** Id or key of the subtask. */
+  ticket: z.string().trim().min(1).max(100),
+  complexity: z.enum(Complexity.options, {
+    error: 'complexity bắt buộc: trivial | small | medium | large (PM đánh giá độ phức tạp để chọn model).',
+  }),
+  complexityReason: z
+    .string({ error: 'complexityReason bắt buộc: một dòng lý do cho mức complexity đã chọn.' })
+    .trim()
+    .min(1, 'complexityReason bắt buộc: một dòng lý do cho mức complexity đã chọn.')
+    .max(500),
+  model: SelectableModel.optional(),
+  effort: Effort.optional(),
+});
+export type RateSubtaskRequest = z.input<typeof RateSubtaskRequest>;
 
 /** `PATCH /v1/tickets/:id`: owner inline edits (title, description, priority). */
 export const UpdateTicketRequest = z

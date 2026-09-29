@@ -84,6 +84,14 @@ test('first run: pair, pick and create projects, install hooks, finish with an a
     await page.getByRole('button', { name: 'Tiếp', exact: true }).click();
 
     // 6. Resources and models (no pressure limits, so this busy test machine counts as free)
+    // Fable is not offered: the allowlist and the complexity map pick from haiku, sonnet and opus only.
+    await expect(page.getByRole('checkbox', { name: 'opus', exact: true })).toBeVisible();
+    await expect(page.getByRole('checkbox', { name: /fable/i })).toHaveCount(0);
+    await expect(page.getByLabel('Model cho độ phức tạp Lớn').locator('option')).toHaveText([
+      'haiku',
+      'sonnet',
+      'opus',
+    ]);
     await page.getByLabel('RAM trống tối thiểu (GB)').fill('0');
     await page.getByLabel('Tải tối đa mỗi CPU').fill('64');
     await page.getByRole('button', { name: 'Lưu', exact: true }).click();
