@@ -1,4 +1,4 @@
-import type { Comment } from '@crew/shared';
+import { type Comment, parseMentions } from '@crew/shared';
 import {
   forwardRef,
   type KeyboardEvent,
@@ -110,13 +110,25 @@ const PARTIAL_TAG = /(^|[\s(])@(p|pm)?$/i;
 
 /**
  * Comment box. Answering a `needs_input` ticket moves it back to in progress and wakes its agent
- * (server side). Ctrl/Cmd + Enter sends. With `canCallPm`, typing `@` suggests `@pm`, which wakes the PM of
+ * (server side); so does a comment on a `blocked` ticket (`unblocks` shows that hint, hidden while the text
+ * tags `@pm`, which leaves the ticket blocked for the PM to decide). Ctrl/Cmd + Enter sends. With `canCallPm`, typing `@` suggests `@pm`, which wakes the PM of
  * the ticket's pm_task tree instead of the ticket's own agent (Enter or Tab picks it, Escape hides it).
  */
 export const CommentComposer = forwardRef<
   HTMLTextAreaElement,
-  { ticketKey: string; label?: string; compact?: boolean; canCallPm?: boolean; onSent?: () => void }
->(function CommentComposer({ ticketKey, label = 'Thêm bình luận', compact, canCallPm, onSent }, ref) {
+  {
+    ticketKey: string;
+    label?: string;
+    compact?: boolean;
+    canCallPm?: boolean;
+    /** The ticket is blocked: an owner comment (without `@pm`) unblocks it. */
+    unblocks?: boolean;
+    onSent?: () => void;
+  }
+>(function CommentComposer(
+  { ticketKey, label = 'Thêm bình luận', compact, canCallPm, unblocks, onSent },
+  ref,
+) {
   const [body, setBody] = useState('');
   const [caret, setCaret] = useState(0);
   const [dismissed, setDismissed] = useState(false);
@@ -128,6 +140,7 @@ export const CommentComposer = forwardRef<
 
   const partial = canCallPm && !dismissed ? PARTIAL_TAG.exec(body.slice(0, caret)) : null;
   const suggesting = partial !== null;
+  const unblockHint = unblocks && !parseMentions(body).includes('pm');
 
   const send = () => {
     const text = body.trim();
@@ -207,12 +220,18 @@ export const CommentComposer = forwardRef<
         rows={compact ? 2 : 3}
         maxLength={50_000}
         aria-controls={suggesting ? `${id}-tags` : undefined}
+        aria-describedby={unblockHint ? `${id}-unblock` : undefined}
         aria-autocomplete={canCallPm ? 'list' : undefined}
         className={cn(
           'w-full resize-y rounded border-2 border-accent bg-panel p-2 text-sm text-ink outline-none',
           compact ? 'min-h-14' : 'min-h-[72px]',
         )}
       />
+      {unblockHint && (
+        <p id={`${id}-unblock`} className="m-0 text-xs text-muted">
+          Bình luận sẽ mở chặn ticket
+        </p>
+      )}
       {suggesting && (
         <div
           id={`${id}-tags`}

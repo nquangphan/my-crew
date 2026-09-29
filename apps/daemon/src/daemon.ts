@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import type { query as sdkQuery } from '@anthropic-ai/claude-agent-sdk';
@@ -37,7 +37,7 @@ import {
   type InitInfo,
   sdkRuntimeVersion,
 } from './runner/agent-runner.js';
-import { cleanupJob, sweepOrphans } from './runner/job-cleanup.js';
+import { cleanupJob, ensureTmpRoot, sweepOrphans } from './runner/job-cleanup.js';
 import { JobRunner, type RolePlanner } from './runner/job-runner.js';
 import { ResourceOps, type WorktreeEntry } from './runner/resource-report.js';
 import { ResourceTracker } from './runner/resource-tracker.js';
@@ -926,7 +926,9 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       started = true;
       stopping = false;
       halted = false;
-      mkdirSync(paths.tmp, { recursive: true, mode: 0o700 });
+      ensureTmpRoot(paths.tmp);
+      // Temp dirs of older versions lived at `<home>/tmp`; the pid lock makes them this daemon's to drop.
+      rmSync(join(home, 'tmp'), { recursive: true, force: true });
       installBundle();
       await reconcileRestart();
       await refreshProjects().catch((error: Error) =>
@@ -959,6 +961,12 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       const final = { ...daemon.status(), running: false };
       state.close();
       rmSync(paths.pidFile, { force: true });
+      // The temp root sits in /tmp, outside the home: drop it when no job left anything behind.
+      try {
+        rmdirSync(paths.tmp);
+      } catch {
+        // not empty, or already gone
+      }
       started = false;
       events.emit('status', final);
     },

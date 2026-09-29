@@ -90,6 +90,7 @@ describe('daemon wiring', () => {
     expect(run.deniedMcpServers).toEqual(['maestro']);
     expect(run.env.CREW_JOB_ID).toBe(t.daemon.state.jobsForTicket(dev.id)[0]?.id);
     expect(run.env.TMPDIR).toContain(join(homePaths(t.home).tmp));
+    expect(run.env.PWTEST_SOCKETS_DIR).toBe(join(run.env.TMPDIR as string, 'pw'));
     expect(run.env).not.toHaveProperty('ANTHROPIC_API_KEY');
     const context = (await run.ticketTools.find((x) => x.name === 'get_ticket')?.handler({}, {})) as {
       content: { text: string }[];

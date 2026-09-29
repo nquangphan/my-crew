@@ -84,6 +84,9 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
     `@p`/`@pm`) sau khoảng trắng/`(`/đầu dòng hiện listbox gợi ý "@pm — gọi PM của cây ticket (thay cho agent
     của ticket này)"; Enter/Tab hoặc click chèn `@pm `, Escape ẩn gợi ý; Ctrl/Cmd+Enter vẫn gửi bình thường; một
     tag bị từ chối hiện lỗi `PM_NOT_AVAILABLE` (`format.ts`, flow `web-shell`) và giữ nguyên nội dung ô soạn.
+    `unblocks` (`TicketView` gán `ticket.status === 'blocked'`) hiện gợi ý "Bình luận sẽ mở chặn ticket" dưới ô
+    soạn (nối bằng `aria-describedby`), ẩn khi nội dung đang tag `@pm` (bình luận đó chỉ đánh thức PM, không mở
+    chặn, flow `ticket-lifecycle`).
     `CommentList` hiện badge nhỏ "Đã gọi PM" trên bình luận owner có `mentions` chứa `pm`, cộng nút "Xem
     <pm_task key>" (khi bình luận nằm trên một subtask, `pmTaskKey` do `TicketView` truyền xuống cùng ticket cha)
     mở ticket đó — nơi hoạt động PM hiện trên `AgentActivityLine` như bước cuối.
@@ -151,7 +154,7 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 
 - `apps/web/src/components/board-view.test.ts`: lọc, nhóm cột/lane.
 - `apps/web/src/components/ticket-view.test.tsx`: từ chối `REPORT_REQUIRED`, bật lại thẻ khi kéo-thả bị từ
-  chối.
+  chối; ticket `blocked` hiện gợi ý mở chặn trên ô soạn bình luận, ticket đang mở thì không.
 - `apps/web/src/components/ticket-tree.test.tsx`: lồng cây theo `parentId`, badge dự án, trạng thái, "Chờ
   KEY", mark hoạt động (chờ/lỗi; đang chạy chỉ hiện spinner), click mở ticket; `TicketView` của một request nạp
   cây bằng đúng một lần gọi `/tree` (không gọi danh sách theo từng cấp), làm mới khi có invalidation
@@ -165,7 +168,8 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 - `apps/web/src/components/comment-thread.test.tsx`: đăng bình luận (header CSRF, nội dung, xoá ô soạn,
   đường lỗi); gõ `@` hiện gợi ý `@pm`, Enter/click chèn đúng và ẩn gợi ý, Escape ẩn, không gợi ý khi
   `canCallPm` tắt hay khi tag nằm trong email; thông báo tiếng Việt khi server từ chối `PM_NOT_AVAILABLE`; badge
-  "Đã gọi PM" trên đúng bình luận và nút "Xem <key>" mở đúng pm_task.
+  "Đã gọi PM" trên đúng bình luận và nút "Xem <key>" mở đúng pm_task; `unblocks` hiện gợi ý mở chặn dưới ô
+  soạn (đọc được qua `aria-describedby`), ẩn khi gõ `@pm`.
 - `apps/web/src/components/cancel-dialog.test.tsx`: liệt kê hậu duệ đang mở qua nhiều cấp.
 - `apps/web/e2e/core-flows.spec.ts`: tạo ticket, mở panel, bình luận agent xuất hiện dưới 2s, đổi trạng thái bị
   từ chối rồi qua khi có report, mở docs từ chip flow, hủy pm_task kéo theo hủy QC con, "Lý do: …" của

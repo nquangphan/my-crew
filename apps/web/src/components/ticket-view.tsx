@@ -331,6 +331,7 @@ function TicketViewBody({
             ticketKey={ticket.key}
             label={needsInput ? 'Trả lời' : 'Thêm bình luận'}
             canCallPm={canCallPm}
+            unblocks={ticket.status === 'blocked'}
           />
         )}
       </TabsContent>

@@ -121,9 +121,9 @@ describe('owner @pm tag wakes the PM of the tree', () => {
     const t = makeDaemon(f, { repoPath: makeRepo(), extra: { planner: rolePlanner } });
     const pm = await pmTask(api, f, 'Kho');
     await devTicket(api, pm.id, 'Nhập kho');
-    await setStatus(api.db, pm.id, 'blocked');
+    await setStatus(api.db, pm.id, 'in_review');
     await startAfterSetup(t);
-    // An owner comment on a blocked pm_task wakes its PM, which has nothing to do until it is unblocked.
+    // An owner comment on a pm_task in review wakes its PM, which has nothing to do until the owner decides.
     await ownerComment(f, pm.id, 'Tôi sẽ xem sau');
     const job = await waitFor(
       () => t.daemon.state.jobsForTicket(pm.id).find((j) => j.status === 'skipped'),
@@ -132,6 +132,28 @@ describe('owner @pm tag wakes the PM of the tree', () => {
     );
     expect(job.trigger).toBe('ticket.comment_added');
     expect(t.book.runs.filter((r) => r.ticketId === pm.id)).toHaveLength(0);
+    await t.daemon.stop();
+  });
+
+  it('runs the agent of a blocked ticket the owner comments on, as an unblock that carries the comment', async () => {
+    const f = await fixture(api);
+    const t = makeDaemon(f, { repoPath: makeRepo(), extra: { planner: rolePlanner } });
+    const pm = await pmTask(api, f, 'Kho');
+    await devTicket(api, pm.id, 'Nhập kho');
+    await setStatus(api.db, pm.id, 'blocked');
+    t.book.byTicket.set(pm.id, { steps: [tool('get_ticket')] });
+    await startAfterSetup(t);
+    await ownerComment(f, pm.id, 'Đã cấp quyền, làm tiếp đi');
+    const run = await waitFor(
+      () => t.book.runs.find((r) => r.ticketId === pm.id),
+      15_000,
+      'the PM run after the unblocking comment',
+    );
+    expect(run.prompt).toContain('chủ dự án mở chặn ticket (đọc bình luận mới nhất)');
+    expect((await getTicket(api.db, pm.id)).status).not.toBe('blocked');
+    const job = t.daemon.state.jobsForTicket(pm.id)[0];
+    expect(job?.trigger).toBe('ticket.unblocked');
+    expect(job?.eventIds).toHaveLength(2);
     await t.daemon.stop();
   });
 });

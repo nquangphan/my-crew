@@ -1,8 +1,7 @@
-import { existsSync, readdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { rmSync } from 'node:fs';
 import type { ResourceSnapshot } from '../scheduler/resource-monitor.js';
 import type { CleanupRecord, JobRow, StateDb } from '../state-db.js';
-import { jobTmpDir } from './job-cleanup.js';
+import { jobTmpDir, jobTmpTag, listJobTmpDirs } from './job-cleanup.js';
 import { pathSize, type ResourceTracker } from './resource-tracker.js';
 
 export interface WorktreeEntry {
@@ -113,19 +112,19 @@ export async function buildResourceReport(deps: ResourceReportDeps): Promise<Res
       };
     });
 
-  const tmpDirs = existsSync(deps.tmpRoot)
-    ? readdirSync(deps.tmpRoot).map((jobId) => {
-        const path = join(deps.tmpRoot, jobId);
-        return {
-          id: `tmp:${jobId}`,
-          jobId,
-          path,
-          bytes: pathSize(path),
-          jobStatus: jobOf(jobId)?.status ?? null,
-          cleanable: !running.has(jobId),
-        };
-      })
-    : [];
+  const runningTags = new Set([...running].map(jobTmpTag));
+  const tmpDirs = listJobTmpDirs(deps.tmpRoot, deps.state).map((entry) => {
+    // A dir of a job this DB does not know keeps its short name as the job id.
+    const jobId = entry.job?.id ?? entry.tag;
+    return {
+      id: `tmp:${jobId}`,
+      jobId,
+      path: entry.path,
+      bytes: pathSize(entry.path),
+      jobStatus: entry.job?.status ?? null,
+      cleanable: !runningTags.has(entry.tag),
+    };
+  });
 
   const worktrees = (await deps.worktrees()).map((entry) => ({
     ...entry,

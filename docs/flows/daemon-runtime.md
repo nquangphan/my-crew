@@ -27,6 +27,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    một mục `complexityMap` đặt `fable` đọc thành `opus`; `loadConfig()` cảnh báo đúng một lần mỗi file (mặc
    định một dòng JSON ra stderr, app desktop truyền `ConfigWarn` riêng ghi vào `app.log` sự kiện
    `config-legacy-model`, flow `desktop-app`), rồi lần `saveConfig()` kế tiếp ghi lại file đã sạch `fable`.
+   `homePaths()` cấp một đường dẫn nằm ngoài `home`: `tmp` là `jobTmpRoot(home)` = `/tmp/crew-<uid>/<8 hex
+   sha256(home)>` (flow `resource-hygiene`) — ngắn cho giới hạn socket Unix của macOS, và riêng theo user hệ
+   điều hành cộng home của daemon nên hai daemon không đụng thư mục tạm của nhau.
 3. `apps/daemon/src/secrets.ts` → `defaultTokenStore()`: Keychain macOS qua `KeychainTokenStore` (ghi bằng
    `security -i` nhận lệnh trên stdin, token không bao giờ nằm trong argv của tiến trình) hoặc
    `FileTokenStore` (file 0600, atomic) khi `CREW_TOKEN_STORE=file` hoặc không phải macOS.
@@ -42,7 +45,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `recordPmMention()`/đọc bằng `pmMentions(eventIds)`, dùng bởi flow `daemon-scheduling`/`agent-roles`),
    `tool_log`, `job_cleanup`. Mọi thao tác đồng bộ nên `transaction()` gộp nhiều ghi thành
    một. `StateDb.latestFailures(since)` trả job `failed` mới nhất mỗi ticket kể từ `since` (bỏ qua ticket đã có
-   job mới hơn), dùng bởi `heartbeat()` (bước 7 dưới) để báo `failedJobs`. `StateDb.migrate()` chạy sau
+   job mới hơn), dùng bởi `heartbeat()` (bước 7 dưới) để báo `failedJobs`. `StateDb.getJobByIdPrefix(prefix)`
+   trả job mới nhất có id bắt đầu bằng `prefix` — dùng bởi flow `resource-hygiene` để tra ngược tên thư mục tạm
+   ngắn (8 ký tự đầu id) về đúng job. `StateDb.migrate()` chạy sau
    `SCHEMA` mỗi lần mở: `pragma table_info(jobs)` rồi `alter table … add column` cho cột nào một state DB được
    ghi bởi daemon cũ còn thiếu (SQLite không có `add column if not exists`), nên nâng cấp tại chỗ không mất
    job đang chờ.
@@ -69,7 +74,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `machine-pairing`/`daemon-api`), dù `inventoryFor()` cục bộ (cấp cho `allowedToolsFor()`) vẫn giữ danh sách
    gốc.
 7. `apps/daemon/src/daemon.ts` → `createDaemon().start()`: `takePidLock()` chặn hai daemon cùng chạy trên một
-   home; `reconcileRestart()` dọn rồi re-queue job còn `running` từ lần chạy trước (`resumeMode` =
+   home; `ensureTmpRoot(paths.tmp)` (flow `resource-hygiene`) dựng an toàn gốc thư mục tạm ngắn rồi xóa
+   `<home>/tmp` cũ (thư mục tạm của bản daemon trước — pid lock vừa lấy coi nó thuộc daemon này để dọn);
+   `reconcileRestart()` dọn rồi re-queue job còn `running` từ lần chạy trước (`resumeMode` =
    `restart_resume` nếu có `sessionId`, ngược lại `restart_fresh`); `refreshProjects()`; `sweep()`; probe
    inventory máy và từng project (mỗi lần probe một project gọi `ProbeWorktreeKeeper.used()`, flow
    `agent-workspace`, để giữ worktree `_probe` của nó thêm một giờ); rồi khởi động stream, heartbeat, scheduler
@@ -111,9 +118,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
     `cancelled` thì huỷ job đó (`running` → abort, `queued`/`backoff` → `cancelled` tại chỗ) và gỡ worktree của
     nó, nên không job con nào của một cây bị huỷ còn sống sót trên máy.
 11. `apps/daemon/src/daemon.ts` → `createDaemon().stop()`/`halt()`: `stop()` dừng nhẹ nhàng (abort job đang
-    chạy để chúng tự re-queue nhờ `stopping()`), `halt()` là mô phỏng crash cho test (dừng ngay, không ghi
-    thêm gì); cả hai đều gọi `ProbeWorktreeKeeper.stop()` để huỷ timer dọn worktree probe đang chờ. Trước
-    khi đóng state DB, cả hai còn đợi `backgroundIdle()` cho các cuộc gọi API mà daemon tự bắn đi không chờ
+    chạy để chúng tự re-queue nhờ `stopping()`), rồi (khác `halt()`) xóa gốc thư mục tạm (`paths.tmp`, nằm
+    ngoài home dưới `/tmp`) khi nó đã rỗng, bỏ qua lỗi nếu còn sót gì; `halt()` là mô phỏng crash cho test (dừng
+    ngay, không ghi/dọn thêm gì); cả hai đều gọi `ProbeWorktreeKeeper.stop()` để huỷ timer dọn worktree probe
+    đang chờ. Trước khi đóng state DB, cả hai còn đợi `backgroundIdle()` cho các cuộc gọi API mà daemon tự bắn đi không chờ
     (`inBackground()`): refresh project khi stream kết nối, refresh project sau effect `refresh_projects`
     (sự kiện `claim.changed`), `wakePmForLeftovers()` từ `onCleaned`, `cancelDescendants()` và `getTicket`
     dọn worktree khi huỷ — nên khi `stop()`/`halt()` trả về, daemon không còn request nào bỏ ngỏ và không

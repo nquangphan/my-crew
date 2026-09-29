@@ -24,7 +24,8 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    bình luận lỗi này lên ticket và chuyển ticket `blocked` khi `canTransition('agent', status, 'blocked')` cho
    phép (không thì chỉ bình luận, chờ owner tự bình luận để chạy lại) trước khi `cleanup()` — nên không job
    nào kẹt ở trạng thái `running` mãi mãi, và owner luôn thấy lỗi này trên ticket như một lượt chạy thất bại.
-   Owner mở chặn (`ticket.unblocked`) sau đó tự đưa ticket vào hàng đợi job mới.
+   Owner mở chặn (`ticket.unblocked` — phát khi owner tự đổi trạng thái, hoặc khi owner bình luận trên ticket
+   `blocked` không tag `@pm`, flow `ticket-lifecycle`) sau đó tự đưa ticket vào hàng đợi job mới.
 2. `apps/daemon/src/runner/job-runner.ts` → `JobRunner.execute()` → `planner.plan()`: `RolePlanner` là điểm
    mở rộng vai trò (prompt, policy, dữ liệu report, follow-up); `rolePlanner` (flow `agent-roles`) là bản
    `createDaemon()` dùng mặc định, `defaultPlanner` (trong file này) là bản chung tối giản còn lại cho test.
@@ -42,8 +43,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    flow `agent-roles`).
 3. `apps/daemon/src/runner/job-runner.ts` → `execute()` → `workspace()`: dựng worktree (flow
    `agent-workspace`); QC bắt đầu tại `head_sha` của report dev đã ghép cặp (`qcBase()`); tạo thư mục tạm
-   riêng của job (`jobTmpDir`); env qua `agentEnv()` (bỏ `ANTHROPIC_API_KEY`, thêm `CREW_JOB_ID`,
-   `TMPDIR`/`TMP`/`TEMP`, `~/.crew/bin` lên đầu `PATH`). Ngay sau đó `planner.prepare?.()` chạy (worktree đã có
+   riêng của job và thư mục con socket (`ensureJobTmpDir()`, đường dẫn ngắn dưới `/tmp/crew-<uid>/…` để vừa
+   giới hạn socket Unix của macOS, flow `resource-hygiene`); env qua `agentEnv()` (bỏ `ANTHROPIC_API_KEY`, thêm
+   `CREW_JOB_ID`, `TMPDIR`/`TMP`/`TEMP`, `PWTEST_SOCKETS_DIR` (nơi Playwright, MCP server agent tự khởi động,
+   đặt socket của nó), `~/.crew/bin` lên đầu `PATH`). Ngay sau đó `planner.prepare?.()` chạy (worktree đã có
    nhưng agent chưa bắt đầu) — hook tuỳ chọn để role planner chuẩn bị thêm (ví dụ merge head nền, cài hook
    docs-init, flow `agent-roles`); nó cũng có thể trả `skip` (job kết thúc ngay) hoặc một `note` được nối vào
    cuối prompt. `plan.notices` (nếu có) được đăng thành bình luận trước khi chạy.
@@ -215,7 +218,8 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   gắn thẻ; sống sót qua crash giữa run (không mất sự kiện, một job hoạt động mỗi ticket, không tạo bản ghi
   trùng); job QC bắt đầu ngay sau `dependency.resolved` và resume session khi chủ dự án bình luận; run bị rate
   limit tạm dừng ở backoff với `retry_at` tăng dần rồi `blocked` sau 4 lần; job đang chạy bị hủy khi ticket bị
-  hủy và worktree được gỡ; job được re-queue khi daemon dừng nhẹ nhàng và resume ở lần chạy sau; một job crash
+  hủy và worktree được gỡ; job được re-queue khi daemon dừng nhẹ nhàng và resume ở lần chạy sau (dừng xong
+  không còn thư mục tạm nào, gốc thư mục tạm rỗng cũng bị xóa); một job crash
   trước khi agent chạy xong (lỗi khi chuẩn bị) đăng bình luận lỗi, chuyển ticket `blocked`, báo qua
   `failedJobs` trong heartbeat tới khi owner mở chặn cho job mới chạy xong; một ticket dev cũ chưa có
   `complexity` (tạo trước khi bắt buộc đánh giá) đi qua đúng đường crash này với `MissingComplexityError` thay

@@ -125,7 +125,7 @@ Claude auth (owner decision) uses **the Claude subscription the owner logged int
 
 **Resource hygiene** (owner requirement: nothing is left running or lying around after a task):
 - **Process tagging:** every agent run gets `CREW_JOB_ID=<job-id>` in its env. Every child process inherits it, so dev servers, test watchers, `nohup` and `setsid` processes are all traceable. Each run also starts in its own process group.
-- **Per-job temp dir:** `TMPDIR`, `TEMP` and `TMP` point at `~/.crew/tmp/<job-id>/`, so temp files land somewhere the daemon owns.
+- **Per-job temp dir (fixed, Validation Session 24):** `TMPDIR`, `TEMP` and `TMP` point at `<tmpRoot>/<first 8 chars of the job id>`, where `tmpRoot = /tmp/crew-<uid>/<8 hex of sha256(home)>` — short and outside `~/.crew`, because macOS caps a Unix socket path at ~104 bytes and tools such as Playwright MCP create sockets under `$TMPDIR`; one root per OS user and daemon home so two daemons never sweep each other's dirs. The job dir also gets a `pw/` sub-dir, exported as `PWTEST_SOCKETS_DIR` for Playwright's own sockets.
 - **`resource-tracker.ts`:**
   - Finds live processes whose env carries a `CREW_JOB_ID`. It reads `ps -E` on macOS and `/proc/<pid>/environ` on Linux, same OS user only.
   - Maps them to ports with `lsof -iTCP -sTCP:LISTEN -P` and records each one's start time, command and memory.

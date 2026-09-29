@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
@@ -15,7 +16,18 @@ export function crewHome(env: NodeJS.ProcessEnv = process.env): string {
   return join(homedir(), '.crew');
 }
 
-/** Every path the daemon owns under its home. */
+/**
+ * Root of the per-job temp dirs: `/tmp/crew-<uid>/<8 hex of the home path>`, NOT under the home. macOS
+ * caps a Unix socket path at 104 bytes and tools (Playwright MCP, …) create their sockets under
+ * `$TMPDIR`, so the job's `$TMPDIR` must stay short. One root per OS user and daemon home, so two
+ * daemons (or a test daemon next to the real one) never sweep each other's temp dirs.
+ */
+export function jobTmpRoot(home: string): string {
+  const uid = process.getuid?.() ?? 0;
+  return join('/tmp', `crew-${uid}`, createHash('sha256').update(home).digest('hex').slice(0, 8));
+}
+
+/** Every path the daemon owns (all under its home except the short per-job temp root). */
 export function homePaths(home: string) {
   return {
     home,
@@ -24,7 +36,7 @@ export function homePaths(home: string) {
     tokenFile: join(home, 'machine-token'),
     pidFile: join(home, 'crewd.pid'),
     bin: join(home, 'bin'),
-    tmp: join(home, 'tmp'),
+    tmp: jobTmpRoot(home),
     logs: join(home, 'logs'),
     /** Working directory of assistant runs (they have no repo). */
     assistantDir: join(home, 'assistant'),

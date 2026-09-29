@@ -299,18 +299,62 @@ function resumeSession(job: JobRow, kind: JobKind, state: StateDb, ticketId: str
 }
 
 /**
- * True when the diff QC tests (`<base>...<head>`, the one it reviews) changes anything but docs (see
- * `isDocsPath`), so QC must run its UI test. Whatever cannot be proven docs-only counts as a UI change: a
- * git error, an unknown commit or an empty diff.
+ * True when the ticket under test changed anything but docs (see `isDocsPath`), so QC must run its UI
+ * test. The ticket's own change is the commits on `head`'s first-parent line that are not reachable from
+ * the default branch nor from `builtOn` (heads of the finished tickets its worktree was built on: the
+ * docs-init commit, dependencies, earlier fixes of a bug chain). The docs job commits code, tests and docs
+ * in one commit, so this is usually `head^..head`; a later docs-only re-commit does not hide the code
+ * commit. A merge commit counts only with what differs from all its parents (`--cc`): nothing for a
+ * clean merge of a base head, the ticket's code when the docs job concluded a conflicted merge with it.
+ * Whatever cannot be proven docs-only counts as a UI change: a git error, an unknown commit, no own
+ * commit or an empty change.
  */
-export function diffNeedsUiTest(repo: string, base: string, head: string): boolean {
-  const out = gitOut(repo, ['diff', '--name-only', '--no-renames', '-z', `${base}...${head}`, '--']);
-  if (out === null) return true;
-  const files = out.split('\0').filter(Boolean);
-  return files.length === 0 || files.some((file) => !isDocsPath(file));
+export function diffNeedsUiTest(
+  repo: string,
+  defaultBranch: string,
+  head: string,
+  builtOn: readonly string[] = [],
+): boolean {
+  if (gitOut(repo, ['cat-file', '-e', `${head}^{commit}`]) === null) return true;
+  // A base that is unknown here or already contains `head` (a later fix built on it) cannot bound the range.
+  const bounds = builtOn.filter(
+    (sha) =>
+      gitOut(repo, ['cat-file', '-e', `${sha}^{commit}`]) !== null &&
+      gitOut(repo, ['merge-base', '--is-ancestor', head, sha]) === null,
+  );
+  const commits = gitOut(repo, [
+    'rev-list',
+    '--first-parent',
+    '--max-count=200',
+    head,
+    '--not',
+    defaultBranch,
+    ...bounds,
+    '--',
+  ]);
+  if (commits === null) return true;
+  const own = commits.split('\n').filter(Boolean);
+  if (own.length === 0) return true;
+  const files = new Set<string>();
+  for (const sha of own) {
+    const out = gitOut(repo, [
+      'diff-tree',
+      '--root',
+      '--cc',
+      '--no-commit-id',
+      '--name-only',
+      '--no-renames',
+      '-r',
+      '-z',
+      sha,
+    ]);
+    if (out === null) return true;
+    for (const file of out.split('\0').filter(Boolean)) files.add(file);
+  }
+  return files.size === 0 || [...files].some((file) => !isDocsPath(file));
 }
 
-/** Whether this QC run must use the ticket's UI-test MCP servers: not for a docs-only dev (or bug) diff. */
+/** Whether this QC run must use the ticket's UI-test MCP servers: not for a docs-only dev (or bug) change. */
 async function qcNeedsUiTest(
   ctx: PlannerContext,
   ticket: Ticket,
@@ -319,7 +363,12 @@ async function qcNeedsUiTest(
   if (!project || !ticket.pairsWith || ticket.requiredMcps.length === 0) return true;
   const head = (await ctx.vps.getTicket(ticket.pairsWith)).report?.headSha;
   if (!head) return true;
-  return diffNeedsUiTest(project.repoPath, project.defaultBranch, head);
+  const siblings = ticket.parentId ? (await ctx.vps.getTicket(ticket.parentId)).children : [];
+  const heads = await siblingHeads(
+    ctx,
+    siblings.filter((sibling) => sibling.id !== ticket.pairsWith),
+  );
+  return diffNeedsUiTest(project.repoPath, project.defaultBranch, head, [...heads.values()]);
 }
 
 /** Required MCP servers of a QC ticket that are not connected (or are switched off) on this machine. */

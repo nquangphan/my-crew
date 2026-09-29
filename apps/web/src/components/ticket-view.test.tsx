@@ -59,6 +59,24 @@ describe('TicketView', () => {
     expect(screen.getByRole('button', { name: 'Bỏ chặn' })).toBeInTheDocument();
   });
 
+  it('tells the owner a comment on a blocked ticket unblocks it, and not on an open one', async () => {
+    const blocked = ticket({ key: 'SHOP-10', status: 'blocked' });
+    const open = ticket({ key: 'SHOP-11', status: 'in_progress' });
+    mockFetch([
+      ...lists,
+      ['GET /v1/tickets/SHOP-10', () => ({ body: detail(blocked) })],
+      ['GET /v1/tickets/SHOP-11', () => ({ body: detail(open) })],
+    ]);
+    const view = renderWithApp(<TicketView ticketKey="SHOP-10" mode="page" />);
+    const box = await screen.findByRole('textbox', { name: 'Thêm bình luận' });
+    expect(box).toHaveAccessibleDescription('Bình luận sẽ mở chặn ticket');
+    view.unmount();
+
+    renderWithApp(<TicketView ticketKey="SHOP-11" mode="page" />);
+    await screen.findByRole('textbox', { name: 'Thêm bình luận' });
+    expect(screen.queryByText('Bình luận sẽ mở chặn ticket')).not.toBeInTheDocument();
+  });
+
   it('renders agent markdown without executing embedded HTML', async () => {
     const t = ticket({ key: 'SHOP-9' });
     mockFetch([

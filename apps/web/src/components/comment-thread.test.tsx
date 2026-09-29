@@ -124,6 +124,16 @@ describe('comment thread', () => {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
+  it('hints that a comment unblocks a blocked ticket, except one tagging @pm', async () => {
+    const user = userEvent.setup();
+    renderWithApp(<CommentComposer ticketKey="SHOP-7" canCallPm unblocks />);
+    const box = await screen.findByRole('textbox', { name: 'Thêm bình luận' });
+    expect(box).toHaveAccessibleDescription('Bình luận sẽ mở chặn ticket');
+    await user.type(box, '@pm xem giúp');
+    expect(screen.queryByText('Bình luận sẽ mở chặn ticket')).not.toBeInTheDocument();
+    expect(box).not.toHaveAttribute('aria-describedby');
+  });
+
   it('explains a refused @pm in Vietnamese', async () => {
     mockFetch([
       [

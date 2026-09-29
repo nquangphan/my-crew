@@ -169,7 +169,7 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
   qua `add` và chỉ dò lại inventory, tắt được server lỗi, tắt được một server plugin tên có dấu `:` (ví dụ
   `plugin:engineering:asana`) đúng tên đầy đủ chứ không cắt còn `plugin`, và tự dọn một mục fragment bản cũ lỡ
   lưu sai khi danh sách được ghi lại, so khớp inventory worktree với checkout chính; nhóm
-  resources/server/app: dọn được thư mục tạm của job đã xong
+  resources/server/app: dọn được thư mục tạm ngắn của job đã xong (qua `ensureJobTmpDir`/`jobTmpDir`)
   bằng đúng code dọn tài nguyên, hiện đúng trạng thái SSE và kết nối lại được, thêm đúng ba dòng riêng khi app
   desktop truyền facts, `app.version` xanh khi updater báo `unpublished` nhưng vàng khi lỗi mạng thật, và chạy
   đủ mọi nhóm theo đúng thứ tự dashboard (từ chối fix cho nhóm không có cách sửa).

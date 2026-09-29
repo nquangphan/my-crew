@@ -21,6 +21,7 @@ import {
   suggestProjectKey,
 } from '../src/health/repo-probe.js';
 import type { HealthCheckResult, HealthContext } from '../src/health/types.js';
+import { ensureJobTmpDir, jobTmpDir } from '../src/runner/job-cleanup.js';
 import { FileTokenStore } from '../src/secrets.js';
 import { StateDb } from '../src/state-db.js';
 import { fixture, pmTask, setStatus, useApi } from './helpers/api.js';
@@ -413,8 +414,9 @@ describe('resources, server stream and app groups', () => {
     const state = openState(home);
     const job = state.insertJob({ ticketId: 'WEB-1', projectId: null, role: 'dev', trigger: 'test' });
     state.updateJob(job.id, { status: 'done', endedAt: new Date().toISOString() });
-    mkdirSync(join(paths.tmp, job.id), { recursive: true });
-    writeFileSync(join(paths.tmp, job.id, 'scratch.txt'), 'x'.repeat(1024));
+    onCleanup(() => rmSync(paths.tmp, { recursive: true, force: true }));
+    ensureJobTmpDir(paths.tmp, job.id);
+    writeFileSync(join(jobTmpDir(paths.tmp, job.id), 'scratch.txt'), 'x'.repeat(1024));
     const config = parseConfig({ apiUrl: 'https://crew.test', machineName: 'm' });
     const ctx = context({ home, config, state });
     const before = await resourceChecks.run(ctx);
@@ -423,7 +425,7 @@ describe('resources, server stream and app groups', () => {
       fix: { id: 'cleanup-resources' },
     });
     await applyHealthFix(ctx, 'resources', 'cleanup-resources');
-    expect(existsSync(join(paths.tmp, job.id))).toBe(false);
+    expect(existsSync(jobTmpDir(paths.tmp, job.id))).toBe(false);
     expect(byId(await resourceChecks.run(ctx), 'resources.tmp')?.status).toBe('green');
     expect(state.cleanups({ limit: 5 }).length).toBeGreaterThan(0);
   });

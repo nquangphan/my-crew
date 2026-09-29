@@ -31,10 +31,17 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    (`state.pmMentions(job.eventIds)`, flow `daemon-scheduling`, chỉ áp dụng khi ticket là `pm_task`): job đó vẫn
    chạy, ở bước `pm_monitor` (ghi đè bước đã `resolveStage()` chọn), để trả lời owner mà không đổi trạng thái
    pm_task đang chờ; một lần thức dậy không mang lời gọi nào của cùng ticket đang chờ vẫn bị bỏ qua như trước.
-   `pm_analyze` chạy cổng `docsInitGate()`; `qc` trước tiên gọi `qcNeedsUiTest()` (nội bộ): diff
-   `<base>...<head>` giữa nhánh mặc định và `head_sha` của report dev ghép cặp có đổi gì ngoài docs không
-   (`diffNeedsUiTest()`, dùng `isDocsPath()` của flow `agent-runs`; lỗi git, commit lạ hay diff rỗng luôn tính
-   là cần kiểm thử UI) — chỉ khi có mới chạy cổng `missingUiServers()`
+   `pm_analyze` chạy cổng `docsInitGate()`; `qc` trước tiên gọi `qcNeedsUiTest()` (nội bộ): thay đổi của riêng
+   ticket đang được QC (`head_sha` của report dev ghép cặp) có đổi gì ngoài docs không (`diffNeedsUiTest()`,
+   dùng `isDocsPath()` của flow `agent-runs`). Thay đổi riêng của ticket là các commit trên nhánh cha-đầu-tiên
+   (`--first-parent`) của `head` không tới được từ nhánh mặc định lẫn từ `builtOn` (head của ticket anh em đã
+   xong cùng pm_task, trừ ticket ghép cặp — docs-init, dependency, các bug trước của chuỗi; một head đã chứa
+   sẵn `head` của chính ticket này bị bỏ qua vì không dùng làm mốc được) — thường chính là `head^..head` vì job
+   docs gộp code/test/docs vào một commit, nên một lần re-commit chỉ đổi docs sau đó không che được commit code
+   trước; một commit merge chỉ tính phần khác với mọi nhánh cha (`git diff-tree --cc`) — merge sạch một head
+   nền không thêm gì, merge xung đột được job docs gộp cùng code khi kết luận thì tính. Lỗi git, commit lạ,
+   không có commit riêng nào hay thay đổi rỗng luôn tính là cần kiểm thử UI (mặc định an toàn) — chỉ khi có
+   mới chạy cổng `missingUiServers()`
    trước khi chạy (MCP bắt buộc chưa kết nối hoặc bị tắt thì không chạy — khác với cổng lúc đóng ticket,
    `unusedUiServers()` ở `ticket-mcp-server.ts`, chặn QC đóng khi MCP đã kết nối nhưng chưa từng được gọi, xem
    flow `agent-runs`); diff chỉ đổi docs thì bỏ qua cổng này, prompt QC nêu rõ lý do không cần kiểm thử UI và
@@ -209,7 +216,12 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   phát hiện đúng MCP bắt buộc chưa kết nối/bị tắt; `diffNeedsUiTest()` coi diff chỉ đổi `README.md`,
   `CHANGELOG.md` hay `docs/` là không cần kiểm thử UI, còn đổi bất kỳ file nào ngoài docs (file nguồn, `AGENTS.md`,
   một file `.md` lồng trong `src/`) hay khi không suy ra được (lỗi git, diff rỗng) vẫn cần; guard giữ lượt dev
-  ngoài docs (`docs/`, `README.md`, Markdown gốc khác) và tránh `git commit`.
+  ngoài docs (`docs/`, `README.md`, Markdown gốc khác) và tránh `git commit`. Nhóm "QC docs-only check looks at
+  the ticket's own commits": một commit chỉ đổi `README.md` trên nền commit docs-init chưa merge vào nhánh
+  chính vẫn tính là docs-only khi biết `builtOn`, còn tính là cần kiểm thử UI khi không biết head đó; merge
+  sạch một head nền không thêm gì, merge xung đột được job docs kết luận cùng code thì tính; một bug fix được
+  xét theo đúng commit riêng của nó chứ không phải commit dev nó xây trên, và một head sau (một fix đã xong,
+  xây trên chính ticket đang xét) không dùng được làm mốc cho ticket đó.
 - `apps/daemon/test/lifecycle.test.ts` (kịch bản dưới `apps/daemon/test/lifecycle/*.yaml`, mỗi file có
   `description` riêng): toàn bộ vòng đời qua API và daemon thật, runner kịch bản (không tốn phí model), git
   worktree và hook crew-docs thật — happy path, docs bị hook từ chối rồi commit lại, capability preflight, dọn
@@ -234,6 +246,8 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   thái/complexity, lỗi job gần nhất và bình luận agent gần nhất bọc `<untrusted-data>`, bình luận owner nguyên
   văn không bọc) và không đánh thức job nào trên ticket được tag; một pm_task đang chờ owner
   (`needs_input`/`blocked`/`in_review`) vẫn chạy ở `pm_monitor` khi job mang lời gọi `@pm`, không đổi trạng thái
-  pm_task; một wake-up không mang tag của cùng pm_task đang chờ vẫn bị bỏ qua (`skipped`) như trước.
+  pm_task; một wake-up không mang tag của cùng pm_task đang chờ (`in_review`) vẫn bị bỏ qua (`skipped`) như
+  trước; bình luận owner trên pm_task `blocked` mở chặn nó nên PM chạy ngay, job có trigger `ticket.unblocked` và
+  gộp cả sự kiện `ticket.comment_added` (hai sự kiện).
 - `apps/daemon/test/live-workflow.test.ts` (tuỳ chọn `CREW_LIVE_AGENT_TESTS=1`): toàn bộ luồng trên model
   thật (đăng nhập gói đăng ký), một repo fixture có docs, skill và MCP Playwright của dự án.

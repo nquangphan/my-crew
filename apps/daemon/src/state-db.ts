@@ -408,6 +408,15 @@ export class StateDb {
     return row ? toJob(row) : null;
   }
 
+  /** The newest job whose id starts with `prefix` (the short name of its temp dir), or null. */
+  getJobByIdPrefix(prefix: string): JobRow | null {
+    if (prefix.length === 0) return null;
+    const row = this.db
+      .prepare('select * from jobs where substr(id, 1, ?) = ? order by created_at desc limit 1')
+      .get(prefix.length, prefix) as Row | undefined;
+    return row ? toJob(row) : null;
+  }
+
   requireJob(id: string): JobRow {
     const job = this.getJob(id);
     if (!job) throw new Error(`job ${id} not found`);

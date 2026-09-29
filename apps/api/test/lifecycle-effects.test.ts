@@ -150,6 +150,50 @@ describe('owner wake-ups', () => {
     });
   });
 
+  it('an owner comment on a blocked ticket unblocks it as the owner status change does, with the comment', async () => {
+    const { pmTask, projectMachine } = await createTree(ctx.db);
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
+    await transitionTicket(ctx.db, { ticketId: dev.id, to: 'in_progress', actor: 'agent' });
+    await transitionTicket(ctx.db, { ticketId: dev.id, to: 'blocked', actor: 'agent' });
+
+    const comment = await addComment(ctx.db, {
+      ticketId: dev.id,
+      body: 'Đã sửa kết nối Playwright, chạy lại.',
+      authorKind: 'owner',
+    });
+
+    expect((await getTicket(ctx.db, dev.id)).status).toBe('in_progress');
+    const changed = (await eventsOf(ctx.db, 'ticket.status_changed')).filter((e) => e.ticketId === dev.id);
+    expect(changed.at(-1)?.payload).toEqual({
+      type: 'ticket.status_changed',
+      data: { ticketId: dev.id, from: 'blocked', to: 'in_progress' },
+    });
+    const [unblocked] = await eventsOf(ctx.db, 'ticket.unblocked');
+    expect(unblocked).toMatchObject({ ticketId: dev.id, targetMachineId: projectMachine, targetRole: 'dev' });
+    const [added] = await eventsOf(ctx.db, 'ticket.comment_added');
+    expect(added?.payload).toEqual({
+      type: 'ticket.comment_added',
+      data: { ticketId: dev.id, commentId: comment.id },
+    });
+    // The unblock comes first, so the daemon's run is triggered as an unblock and reads the comment.
+    expect(Number(unblocked?.id)).toBeLessThan(Number(added?.id));
+  });
+
+  it('an agent comment on a blocked ticket leaves it blocked', async () => {
+    const { pmTask } = await createTree(ctx.db);
+    const dev = await createSubtask(ctx.db, { type: 'dev', ...RATED, parentId: pmTask.id, title: 'Dev' });
+    await transitionTicket(ctx.db, { ticketId: dev.id, to: 'in_progress', actor: 'agent' });
+    await transitionTicket(ctx.db, { ticketId: dev.id, to: 'blocked', actor: 'agent' });
+    await addComment(ctx.db, {
+      ticketId: dev.id,
+      body: 'Chặn vì thiếu MCP',
+      authorKind: 'agent',
+      authorRole: 'dev',
+    });
+    expect((await getTicket(ctx.db, dev.id)).status).toBe('blocked');
+    expect(await eventsOf(ctx.db, 'ticket.unblocked')).toHaveLength(0);
+  });
+
   it('agent comments wake nobody', async () => {
     const { pmTask } = await createTree(ctx.db);
     await transitionTicket(ctx.db, { ticketId: pmTask.id, to: 'needs_input', actor: 'agent' });

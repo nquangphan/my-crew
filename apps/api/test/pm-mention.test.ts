@@ -81,6 +81,15 @@ describe('owner @pm tag', () => {
     ]);
   });
 
+  it('leaves a blocked tagged ticket blocked: the PM decides whether to retry it', async () => {
+    const tree = await fullTree();
+    await setStatus(ctx.db, tree.dev.id, 'blocked');
+    await addComment(ctx.db, { ticketId: tree.dev.id, body: '@pm xem vì sao bị chặn', authorKind: 'owner' });
+    expect((await getTicket(ctx.db, tree.dev.id)).status).toBe('blocked');
+    expect(await eventsOf(ctx.db, 'ticket.unblocked')).toHaveLength(0);
+    expect((await wakeEvents()).map((e) => e.type)).toEqual(['ticket.pm_mentioned']);
+  });
+
   it('on the pm_task itself also answers its needs_input, like any owner answer there', async () => {
     const tree = await createTree(ctx.db);
     await setStatus(ctx.db, tree.pmTask.id, 'needs_input');

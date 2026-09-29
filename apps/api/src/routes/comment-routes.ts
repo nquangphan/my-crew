@@ -4,7 +4,8 @@ import { addComment, toCommentDto } from '../services/ticket-service.js';
 import { idParam, parseInput, type RouteDeps } from './route-deps.js';
 
 /**
- * Owner comments. Answering a needs_input ticket resumes it and wakes its agent; a comment tagged `@pm`
+ * Owner comments. Answering a needs_input ticket resumes it and wakes its agent; a comment on a blocked
+ * ticket unblocks it (`ticket.unblocked`, as the owner's status change); a comment tagged `@pm`
  * wakes the PM of the ticket's pm_task tree instead (400 PM_NOT_AVAILABLE outside an open tree).
  */
 export async function commentRoutes(app: FastifyInstance, { db }: RouteDeps): Promise<void> {

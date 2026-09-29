@@ -1,18 +1,74 @@
-import { existsSync, readdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, lstatSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { CleanupRecord, JobRow, StateDb } from '../state-db.js';
 import { type JobProcess, pathSize, type ResourceTracker } from './resource-tracker.js';
 
 export interface CleanupDeps {
   state: StateDb;
   tracker: ResourceTracker;
-  /** `~/.crew/tmp`: per-job temp dirs live at `<tmpRoot>/<job id>`. */
+  /** Short root (`/tmp/crew-<uid>/<home tag>`): per-job temp dirs live at `<tmpRoot>/<first 8 chars of job id>`. */
   tmpRoot: string;
   /** SIGTERM → SIGKILL grace (10 s by default). */
   graceMs?: number;
 }
 
-export const jobTmpDir = (tmpRoot: string, jobId: string) => join(tmpRoot, jobId);
+/** Name of a job's temp dir: the first 8 characters of its id (a UUID), kept short for Unix sockets. */
+export const jobTmpTag = (jobId: string) => jobId.slice(0, 8);
+
+export const jobTmpDir = (tmpRoot: string, jobId: string) => join(tmpRoot, jobTmpTag(jobId));
+
+/** Where tools that create Unix sockets (Playwright via `PWTEST_SOCKETS_DIR`) put them for this job. */
+export const jobSocketsDir = (tmpDir: string) => join(tmpDir, 'pw');
+
+/**
+ * Creates `dir` with mode 0700, or accepts an existing one only when it is a real directory (not a
+ * symlink) owned by this user with no group/other access. The temp root lives under the world-writable
+ * `/tmp`, so a directory another user planted there must never be used.
+ */
+function ensurePrivateDir(dir: string): void {
+  try {
+    mkdirSync(dir, { mode: 0o700 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+  }
+  const stat = lstatSync(dir);
+  const uid = process.getuid?.();
+  if (!stat.isDirectory() || (uid !== undefined && stat.uid !== uid) || (stat.mode & 0o077) !== 0) {
+    throw new Error(`thư mục tạm ${dir} không an toàn (phải là thư mục của user này, quyền 0700)`);
+  }
+}
+
+/** Creates the temp root (and its per-user parent) safely. */
+export function ensureTmpRoot(tmpRoot: string): void {
+  ensurePrivateDir(dirname(tmpRoot));
+  ensurePrivateDir(tmpRoot);
+}
+
+/** Creates a job's temp dir and its sockets dir; returns both paths. */
+export function ensureJobTmpDir(tmpRoot: string, jobId: string): { tmpDir: string; socketsDir: string } {
+  ensureTmpRoot(tmpRoot);
+  const tmpDir = jobTmpDir(tmpRoot, jobId);
+  ensurePrivateDir(tmpDir);
+  const socketsDir = jobSocketsDir(tmpDir);
+  ensurePrivateDir(socketsDir);
+  return { tmpDir, socketsDir };
+}
+
+/** A temp dir under the root, with the job it belongs to (null when this state DB does not know it). */
+export interface JobTmpEntry {
+  path: string;
+  tag: string;
+  job: JobRow | null;
+}
+
+export function listJobTmpDirs(tmpRoot: string, state: StateDb): JobTmpEntry[] {
+  if (!existsSync(tmpRoot)) return [];
+  return readdirSync(tmpRoot).map((tag) => ({
+    path: join(tmpRoot, tag),
+    tag,
+    job: state.getJobByIdPrefix(tag),
+  }));
+}
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -90,11 +146,10 @@ export function findOrphans(
   const processes = deps.tracker
     .jobProcesses()
     .filter((proc) => !runningJobIds.has(proc.jobId) && known(proc.jobId));
-  const tmpDirs = existsSync(deps.tmpRoot)
-    ? readdirSync(deps.tmpRoot)
-        .filter((name) => !runningJobIds.has(name))
-        .map((name) => join(deps.tmpRoot, name))
-    : [];
+  const runningTags = new Set([...runningJobIds].map(jobTmpTag));
+  const tmpDirs = listJobTmpDirs(deps.tmpRoot, deps.state)
+    .filter((entry) => !runningTags.has(entry.tag))
+    .map((entry) => entry.path);
   return { processes, tmpDirs };
 }
 
@@ -104,21 +159,22 @@ export async function sweepOrphans(
   runningJobIds: ReadonlySet<string>,
 ): Promise<SweepResult> {
   const found = findOrphans(deps, runningJobIds);
-  const jobIds = new Set([
-    ...found.processes.map((proc) => proc.jobId),
-    ...found.tmpDirs.map((dir) => dir.slice(deps.tmpRoot.length + 1)),
-  ]);
+  const jobIds = new Set(found.processes.map((proc) => proc.jobId));
   let cleaned = 0;
-  for (const jobId of jobIds) {
-    const job = deps.state.getJob(jobId);
+  for (const path of found.tmpDirs) {
+    const job = deps.state.getJobByIdPrefix(path.slice(deps.tmpRoot.length + 1));
     if (job) {
-      const record = await cleanupJob(deps, job);
-      cleaned += record.pids.length + (found.tmpDirs.includes(jobTmpDir(deps.tmpRoot, jobId)) ? 1 : 0);
+      jobIds.add(job.id);
+      cleaned += 1;
     } else {
-      // A temp dir of a job this DB never knew: it is still under our own home, so it is ours to delete.
-      rmSync(jobTmpDir(deps.tmpRoot, jobId), { recursive: true, force: true });
+      // A temp dir of a job this DB never knew: it is under this daemon's own temp root, so ours to delete.
+      rmSync(path, { recursive: true, force: true });
       cleaned += 1;
     }
+  }
+  for (const jobId of jobIds) {
+    const job = deps.state.getJob(jobId);
+    if (job) cleaned += (await cleanupJob(deps, job)).pids.length;
   }
   return { ...found, cleaned };
 }

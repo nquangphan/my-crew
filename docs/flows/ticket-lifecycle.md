@@ -81,16 +81,20 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    với `canTransition('agent', …)` (định nghĩa và kiểm ở flow `agent-roles`, không lặp lại ở đây). `DOCS_MODEL`
    (`= 'sonnet'`) là model cố định của `docs_init`/`docs_update`.
 8. `apps/api/src/services/ticket-service.ts` → `addComment()`: bình luận owner trên ticket đang
-   `needs_input` tự chuyển nó về `in_progress` và gọi `liftHold()`; bình luận agent/system chỉ phát
-   `ticket.updated{change:'comment'}`, không đánh thức ai. Bình luận owner tag `@pm` (không phân biệt hoa
-   thường; `packages/shared/src/comment-mentions.ts` → `parseMentions()`, bỏ qua tag trong code block/inline
-   code và trong địa chỉ email/URL) trên **bất kỳ ticket nào của một cây pm_task** (chính pm_task, hay con
+   `needs_input` tự chuyển nó về `in_progress` và gọi `liftHold()`; bình luận owner (không tag `@pm`) trên
+   ticket đang `blocked` cũng mở chặn nó về `in_progress` (`unblockByComment()`), phát `ticket.status_changed`
+   (`blocked`→`in_progress`) và `ticket.unblocked` cho máy phụ trách — y hệt owner tự đổi trạng thái — trước
+   `ticket.comment_added` (daemon gộp cả hai vào một job, coi trigger là mở chặn và đọc bình luận mới nhất);
+   bình luận agent/system chỉ phát `ticket.updated{change:'comment'}`, không đánh thức ai, không bao giờ mở
+   chặn. Bình luận owner tag `@pm` (không phân biệt hoa thường; `packages/shared/src/comment-mentions.ts` →
+   `parseMentions()`, bỏ qua tag trong code block/inline code và trong địa chỉ email/URL) trên **bất kỳ ticket nào của một cây pm_task** (chính pm_task, hay con
    dev/qc/bug/docs_init của nó, kể cả con đã đóng) thay hẳn hiệu ứng ở trên: `pmTaskToWake()` tìm pm_task đang
    coi sóc ticket đó (`governingPmTask()`: chính ticket nếu là pm_task, không thì cha pm_task), rồi `pmMentioned()` phát `ticket.pm_mentioned` (không phát
    `ticket.comment_added`) nhắm `ticketId=<pm_task>`, `targetMachineId` là máy chủ dự án
    (`project.ownerMachineId`, dự phòng máy phụ trách pm_task), `targetRole: 'pm'` — agent của ticket được tag không bị
-   đánh thức và trạng thái của nó không đổi (kể cả `needs_input`); riêng tag ngay trên chính pm_task vẫn trả nó
-   về `in_progress` như một câu trả lời owner bình thường (`answerNeedsInput()`, dùng chung với nhánh không có
+   đánh thức và trạng thái của nó không đổi (kể cả `needs_input`/`blocked` — một tag trên ticket `blocked`
+   không mở chặn nó, chỉ đánh thức PM, PM tự quyết định, ví dụ bằng `retry_subtask`); riêng tag ngay trên
+   chính pm_task vẫn trả nó về `in_progress` như một câu trả lời owner bình thường (`answerNeedsInput()`, dùng chung với nhánh không có
    tag). Ticket không thuộc cây pm_task nào (ví dụ `request`) hay pm_task đã đóng (`done`/`cancelled`) bị từ
    chối `PM_NOT_AVAILABLE` (400, `packages/shared/src/api-schemas.ts` → `ApiErrorCode`, flow `api-platform`) —
    không lưu bình luận, không phát sự kiện nào. `toCommentDto()` dựng DTO `Comment` cho mọi phản hồi (owner
@@ -201,7 +205,10 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - `apps/api/test/ticket-service.test.ts`: key đầu tiên là `AST-1`, key không trùng khi tạo đồng thời.
 - `apps/api/test/transition.test.ts`: đủ ma trận cạnh hợp lệ theo actor, `REPORT_REQUIRED`, mã lỗi HTTP.
 - `apps/api/test/lifecycle-effects.test.ts`: `dependency.resolved`, đúng một `children.all_done` khi tuần tự
-  lẫn đồng thời, cascade cancel phát đúng một `ticket.cancelled` mỗi máy, đánh thức owner, rollback nguyên tử.
+  lẫn đồng thời, cascade cancel phát đúng một `ticket.cancelled` mỗi máy, đánh thức owner, rollback nguyên tử;
+  bình luận owner trên ticket `blocked` mở chặn nó (`ticket.status_changed` rồi `ticket.unblocked` phát trước
+  `ticket.comment_added`, để daemon coi lượt chạy là trả lời mở chặn); bình luận agent trên ticket `blocked`
+  không mở chặn.
 - `apps/api/test/bug-loop.test.ts`: vòng lặp bug từ QC lẫn từ PM từ chối, chặn ở chu kỳ 4, retest kế thừa
   cấu hình của QC ticket đang kiểm ticket bị từ chối; `bug` kế thừa `complexity`/`model`/`effort` của dev
   ticket gốc kèm `complexityReason` "kế thừa từ …", retest kế thừa của QC tương ứng, một vòng lặp lỗi tiếp
@@ -240,4 +247,5 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   tính; response và chi tiết ticket trả đúng `mentions`; tag trên ticket ngoài cây pm_task (`request`) hay cây
   đã đóng bị từ chối `400 PM_NOT_AVAILABLE`, không lưu gì; `retrySubtask()` chuyển đúng subtask `blocked` về
   `in_progress` và đánh thức agent của nó, từ chối ticket không `blocked`/không phải con của đúng pm_task/caller
-  không phải pm_task; route daemon idempotent.
+  không phải pm_task; route daemon idempotent; bình luận owner tag `@pm` trên ticket `blocked` không mở chặn
+  nó, chỉ đánh thức PM.

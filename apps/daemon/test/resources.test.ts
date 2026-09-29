@@ -1,8 +1,25 @@
 import { spawn } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { cleanupJob, findOrphans, jobTmpDir, sweepOrphans } from '../src/runner/job-cleanup.js';
+import { homePaths } from '../src/config.js';
+import {
+  cleanupJob,
+  ensureJobTmpDir,
+  ensureTmpRoot,
+  findOrphans,
+  jobTmpDir,
+  sweepOrphans,
+} from '../src/runner/job-cleanup.js';
 import { ResourceOps } from '../src/runner/resource-report.js';
 import {
   JOB_TAG,
@@ -225,5 +242,72 @@ describe('job cleanup and orphan sweep', () => {
     expect(removed).toEqual(['WEB-1']);
     expect(existsSync(join(bin, 'stopped'))).toBe(true);
     expect(state.cleanups({ jobId: finished.id })[0]).toMatchObject({ pids: [orphan] });
+  });
+});
+
+describe('short per-job temp dirs', () => {
+  it('keeps the job temp dir and its sockets dir short enough for a Unix socket, private, and per home', () => {
+    // A long home path must not lengthen the temp dir: the root is `/tmp/crew-<uid>/<8 hex>`.
+    const home = join(
+      tempDir('crewd-home-'),
+      'a-very-long-directory-name-that-used-to-end-up-in-TMPDIR'.repeat(2),
+    );
+    const tmpRoot = homePaths(home).tmp;
+    onCleanup(() => rmSync(tmpRoot, { recursive: true, force: true }));
+    expect(tmpRoot.startsWith(`/tmp/crew-${process.getuid?.() ?? 0}/`)).toBe(true);
+    expect(homePaths(`${home}-other`).tmp).not.toBe(tmpRoot);
+
+    const state = new StateDb(':memory:');
+    const job = state.insertJob({ ticketId: 't1', projectId: null, role: 'qc', trigger: 'x' });
+    const { tmpDir, socketsDir } = ensureJobTmpDir(tmpRoot, job.id);
+    expect(tmpDir).toBe(join(tmpRoot, job.id.slice(0, 8)));
+    expect(socketsDir).toBe(join(tmpDir, 'pw'));
+    expect(statSync(tmpDir).mode & 0o777).toBe(0o700);
+    expect(statSync(socketsDir).mode & 0o777).toBe(0o700);
+    // Worst case: macOS resolves /tmp to /private/tmp, a 10-digit uid, and a 40-byte socket file name.
+    const worst = `/private/tmp/crew-4294967295/${'f'.repeat(8)}/${job.id.slice(0, 8)}/pw/${'s'.repeat(40)}`;
+    expect(Buffer.byteLength(worst)).toBeLessThan(100);
+    expect(Buffer.byteLength(join(realpathSync(socketsDir), 's'.repeat(40)))).toBeLessThan(100);
+  });
+
+  it('refuses a temp root another user (or a lax mode) could tamper with', () => {
+    const root = join(tempDir('crewd-tmp-'), 'root');
+    mkdirSync(root, { mode: 0o755 });
+    chmodSync(root, 0o755);
+    expect(() => ensureTmpRoot(root)).toThrow(/không an toàn/);
+    const link = join(tempDir('crewd-tmp-'), 'link');
+    symlinkSync(tempDir('crewd-target-'), link);
+    expect(() => ensureTmpRoot(link)).toThrow(/không an toàn/);
+  });
+
+  it('cleans, sweeps and reports a short temp dir under its full job id', async () => {
+    const home = tempDir('crewd-home-');
+    const tmpRoot = join(home, 'tmp');
+    const state = new StateDb(':memory:');
+    const finished = state.insertJob({ ticketId: 'a', projectId: null, role: 'qc', trigger: 'x' });
+    state.updateJob(finished.id, { status: 'done', startedAt: new Date().toISOString() });
+    const tracker = new ResourceTracker({ dockerBin: null });
+    ensureJobTmpDir(tmpRoot, finished.id);
+    const ops = new ResourceOps({
+      state,
+      tracker,
+      tmpRoot,
+      snapshot: () => ({ cpus: 8, loadAvg1: 1, freeMemGb: 8, totalMemGb: 16, diskFreeGb: 100 }),
+      freeSlots: () => 1,
+      runningJobIds: () => new Set(),
+      worktrees: async () => [],
+      removeWorktree: () => {},
+    });
+    const report = await ops.report();
+    expect(report.tmpDirs).toMatchObject([
+      { id: `tmp:${finished.id}`, jobId: finished.id, jobStatus: 'done', cleanable: true },
+    ]);
+    expect(findOrphans({ state, tracker, tmpRoot }, new Set()).tmpDirs).toEqual([
+      jobTmpDir(tmpRoot, finished.id),
+    ]);
+    expect(findOrphans({ state, tracker, tmpRoot }, new Set([finished.id])).tmpDirs).toEqual([]);
+    await sweepOrphans({ state, tracker, tmpRoot, graceMs: 100 }, new Set());
+    expect(existsSync(jobTmpDir(tmpRoot, finished.id))).toBe(false);
+    expect(state.cleanups({ jobId: finished.id })).toHaveLength(1);
   });
 });

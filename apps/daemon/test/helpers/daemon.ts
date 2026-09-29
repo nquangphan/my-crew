@@ -1,3 +1,4 @@
+import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { inject } from 'vitest';
 import { type DaemonConfig, homePaths, parseConfig } from '../../src/config.js';
@@ -112,6 +113,8 @@ export function makeDaemon(
 ): TestDaemon {
   const home = options.home ?? tempDir('crewd-home-');
   const paths = homePaths(home);
+  // Job temp dirs live under /tmp, outside the temp home; runs after the daemon stops (cleanups are LIFO).
+  onCleanup(() => rmSync(paths.tmp, { recursive: true, force: true }));
   const tokenStore = new FileTokenStore(paths.tokenFile);
   tokenStore.set(f.machine.token);
   const book = options.book ?? scriptBook();

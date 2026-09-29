@@ -836,11 +836,13 @@ function pmTaskToWake(ticket: TicketRow, parent: TicketRow | null): TicketRow {
 
 /**
  * Stores a comment. An owner comment wakes the assignee (`ticket.comment_added`), resumes a `needs_input`
- * ticket, and counts as approval when the ticket was parked by a cap or budget.
+ * ticket, and counts as approval when the ticket was parked by a cap or budget. On a `blocked` ticket it
+ * also unblocks it: back to `in_progress` with `ticket.unblocked`, exactly as the owner's own status change.
  *
  * An owner comment tagged `@pm` wakes the PM of the ticket's pm_task tree instead (`ticket.pm_mentioned`,
  * sent to the machine that owns the project), from any ticket of the tree, open or closed. The tag is
- * explicit, so the tagged ticket's own agent is not woken and its status is left alone; only a tag on the
+ * explicit, so the tagged ticket's own agent is not woken and its status is left alone (a tagged comment
+ * on a `blocked` ticket does not unblock it: the PM decides, e.g. with `retry_subtask`); only a tag on the
  * pm_task itself also resumes it from `needs_input`, as any owner answer there does.
  */
 export async function addComment(db: Executor, input: AddCommentInput): Promise<CommentRow> {
@@ -874,7 +876,8 @@ export async function addComment(db: Executor, input: AddCommentInput): Promise<
     }
     if (isTerminal(ticket.status)) return comment;
 
-    const out = await answerNeedsInput(tx, ticket);
+    const out =
+      ticket.status === 'blocked' ? await unblockByComment(tx, ticket) : await answerNeedsInput(tx, ticket);
     out.push(
       toAssignee(ticket, {
         type: 'ticket.comment_added',
@@ -895,6 +898,19 @@ async function answerNeedsInput(tx: Executor, ticket: TicketRow): Promise<NewEve
     .where(eq(tickets.id, ticket.id));
   await liftHold(tx, ticket);
   return [statusChanged(ticket, 'needs_input', 'in_progress')];
+}
+
+/** An owner comment on a `blocked` ticket unblocks it: back to `in_progress`, its agent woken to resume. */
+async function unblockByComment(tx: Executor, ticket: TicketRow): Promise<NewEvent[]> {
+  if (ticket.status !== 'blocked' || !canTransition('owner', 'blocked', 'in_progress')) return [];
+  await tx
+    .update(tickets)
+    .set({ status: 'in_progress', updatedAt: new Date() })
+    .where(eq(tickets.id, ticket.id));
+  return [
+    statusChanged(ticket, 'blocked', 'in_progress'),
+    toAssignee(ticket, { type: 'ticket.unblocked', data: { ticketId: ticket.id } }),
+  ];
 }
 
 /** Events of an owner `@pm` tag: the pm_task's own needs_input answer, then the PM wake-up. */

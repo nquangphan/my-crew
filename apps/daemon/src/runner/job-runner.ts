@@ -1,4 +1,3 @@
-import { mkdirSync } from 'node:fs';
 import {
   type AgentRole,
   type Complexity,
@@ -44,7 +43,7 @@ import {
   RunControl,
 } from './agent-runner.js';
 import { createGuardHook } from './guard-hook.js';
-import { cleanupJob, jobTmpDir } from './job-cleanup.js';
+import { cleanupJob, ensureJobTmpDir } from './job-cleanup.js';
 import type { ResourceTracker } from './resource-tracker.js';
 import { classifyRetry, isBackoffError } from './retry-classifier.js';
 import { buildRunTrace, traceMarkdown } from './run-trace.js';
@@ -548,8 +547,7 @@ export class JobRunner {
     const runTicket: Ticket = plan.requiredMcps ? { ...ticket, requiredMcps: plan.requiredMcps } : ticket;
     for (const notice of plan.notices ?? []) await this.comment(ctx.writer, ticket.id, job.role, notice);
 
-    const tmpDir = jobTmpDir(this.deps.tmpRoot, job.id);
-    mkdirSync(tmpDir, { recursive: true, mode: 0o700 });
+    const { tmpDir, socketsDir } = ensureJobTmpDir(this.deps.tmpRoot, job.id);
     job = this.update(job.id, {
       kind,
       worktree: workspace.cwd,
@@ -565,6 +563,8 @@ export class JobRunner {
       TMPDIR: tmpDir,
       TMP: tmpDir,
       TEMP: tmpDir,
+      // Playwright (MCP server the agent spawns) puts its sockets here instead of a long default path.
+      PWTEST_SOCKETS_DIR: socketsDir,
       PATH: `${this.deps.binDir}:${process.env.PATH ?? ''}`,
     });
     const reportOverlay = async (draft: ReportDraft): Promise<ReportOverlay> => {

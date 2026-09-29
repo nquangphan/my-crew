@@ -125,6 +125,76 @@ describe('QC UI test only for a diff that changes more than docs', () => {
   });
 });
 
+describe('QC docs-only check looks at the ticket’s own commits', () => {
+  /** main, a docs-init commit (hooks, AGENTS.md, docs) not merged to main, and a dev worktree built on it. */
+  function withDocsInit() {
+    const repo = makeRepo({ 'README.md': '# app\n', 'src/app.ts': 'export {};\n' });
+    git(repo, 'checkout', '-q', '-b', 'crew/WEB-1');
+    writeFiles(repo, {
+      '.githooks/pre-commit': '#!/bin/sh\n',
+      'AGENTS.md': '# agents\n',
+      'docs/index.md': '# docs\n',
+    });
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-q', '-m', 'docs: init');
+    const docsInit = git(repo, 'rev-parse', 'HEAD').trim();
+    // The daemon merges base heads with a plain `git merge`: here a fast-forward onto the docs-init commit.
+    git(repo, 'checkout', '-q', '-b', 'crew/WEB-2', 'main');
+    git(repo, 'merge', '-q', docsInit);
+    return { repo, docsInit };
+  }
+  function commit(repo: string, files: Record<string, string>): string {
+    writeFiles(repo, files);
+    git(repo, 'add', '-A');
+    git(repo, 'commit', '-q', '-m', 'change');
+    return git(repo, 'rev-parse', 'HEAD').trim();
+  }
+
+  it('a README-only dev commit on top of the unmerged docs-init commit is docs-only', () => {
+    const { repo, docsInit } = withDocsInit();
+    const head = commit(repo, { 'README.md': '# app\n\nCài đặt.\n', 'docs/index.md': '# docs v2\n' });
+    expect(diffNeedsUiTest(repo, 'main', head, [docsInit])).toBe(false);
+    // Without knowing the docs-init head its commit counts as the ticket's own, so the UI test stays.
+    expect(diffNeedsUiTest(repo, 'main', head)).toBe(true);
+  });
+
+  it('a clean merge of a base head adds nothing; a conflicted merge concluded with code counts', () => {
+    const { repo, docsInit } = withDocsInit();
+    git(repo, 'checkout', '-q', '-b', 'crew/WEB-5', 'main');
+    const sibling = commit(repo, { 'src/other.ts': 'export {};\n' });
+    git(repo, 'checkout', '-q', 'crew/WEB-2');
+    git(repo, 'merge', '-q', '--no-edit', sibling);
+    const docsOnly = commit(repo, { 'README.md': '# app\n\nCài đặt.\n' });
+    expect(diffNeedsUiTest(repo, 'main', docsOnly, [docsInit, sibling])).toBe(false);
+    // The docs job concludes an in-progress merge in the same commit as the dev's code.
+    git(repo, 'checkout', '-q', '-b', 'crew/WEB-6', docsInit);
+    git(repo, 'merge', '-q', '--no-commit', sibling);
+    const merged = commit(repo, { 'src/app.ts': 'export const a = 3;\n' });
+    expect(diffNeedsUiTest(repo, 'main', merged, [docsInit, sibling])).toBe(true);
+  });
+
+  it('a dev commit touching src needs the UI test, even under a later docs-only re-commit', () => {
+    const { repo, docsInit } = withDocsInit();
+    const code = commit(repo, { 'src/app.ts': 'export const a = 1;\n', 'docs/index.md': '# docs v2\n' });
+    expect(diffNeedsUiTest(repo, 'main', code, [docsInit])).toBe(true);
+    const recommit = commit(repo, { 'docs/index.md': '# docs v3\n' });
+    expect(diffNeedsUiTest(repo, 'main', recommit, [docsInit])).toBe(true);
+  });
+
+  it('a bug fix is judged by its own commit, not the dev commit it builds on', () => {
+    const { repo, docsInit } = withDocsInit();
+    const dev = commit(repo, { 'src/app.ts': 'export const a = 1;\n' });
+    git(repo, 'checkout', '-q', '-b', 'crew/WEB-3', dev);
+    const docsFix = commit(repo, { 'README.md': '# app\n\nSửa hướng dẫn.\n' });
+    expect(diffNeedsUiTest(repo, 'main', docsFix, [docsInit, dev])).toBe(false);
+    git(repo, 'checkout', '-q', '-b', 'crew/WEB-4', dev);
+    const codeFix = commit(repo, { 'src/app.ts': 'export const a = 2;\n' });
+    expect(diffNeedsUiTest(repo, 'main', codeFix, [docsInit, dev])).toBe(true);
+    // A later head built on the ticket under test (a finished fix) cannot bound its range.
+    expect(diffNeedsUiTest(repo, 'main', dev, [docsInit, codeFix])).toBe(true);
+  });
+});
+
 describe('dev guard', () => {
   it('keeps a dev run out of docs/ and away from git commit', () => {
     const ctx = { cwd: tempDir('crewd-guard-'), kind: 'agent' as const, codeOnly: true };

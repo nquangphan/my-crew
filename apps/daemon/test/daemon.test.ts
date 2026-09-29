@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { describe, expect, it } from 'vitest';
 import { machines } from '../../api/src/db/schema.js';
@@ -458,6 +458,7 @@ describe('daemon', () => {
     );
     expect((await commentsOf(api.db, dev.id)).map((c) => c.body)).toEqual(['Một', 'Hai']);
     await again.daemon.stop();
-    expect(readdirSync(homePaths(t.home).tmp)).toEqual([]);
+    // Every job temp dir was cleaned, so the stop dropped the empty temp root too.
+    expect(existsSync(homePaths(t.home).tmp)).toBe(false);
   });
 });

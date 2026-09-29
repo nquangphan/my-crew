@@ -302,3 +302,10 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
 - **Owner decisions:**
   1. `AGENTS.md` becomes R6-protected like `CLAUDE.md`: outside a docs-init commit, a change to it needs the `Crew-Owner-Approved: <ticket-key>` trailer, and the agent guard denies writing it (except docs-init).
   2. When a run ends without finishing its ticket (`not_finished` and other failures), the daemon's comment includes the agent's last message (scrubbed, trimmed), the stage and step it was on, turns, duration and cost, so the owner can tell why from the web.
+
+### Session 24 — 2026-09-29 (owner follow-up)
+- **Incident:** 8 tickets blocked. (a) Playwright MCP failed in QC worktrees: "Socket directory path is too long (87 bytes); set PWTEST_SOCKETS_DIR" — the per-job `TMPDIR` path is too long for a Unix socket (KIDYLANDIN-6, KIDYLANDIN-18, P2PSLANDIN-6). (b) The docs-only QC rule compared the dev `head_sha` with the default branch, whose diff still includes the unmerged docs-init commit, so docs-only changes kept requiring Playwright (KIDYLANDIN-4, KIDYLANDIN-14, P2PSLANDIN-4, KIDYADMIN-4). (c) Owner comments on `blocked` tickets did not unblock them.
+- **Owner decisions:**
+  1. Each job gets a short temp dir (e.g. `/tmp/crew/<short id>`) and `PWTEST_SOCKETS_DIR` is set to a short path for MCP servers.
+  2. The docs-only check looks only at the commit(s) of the dev/bug ticket under test (the docs job's single commit: `head_sha^..head_sha`, or the ticket's own recorded base), not the default branch.
+  3. An owner comment on a `blocked` ticket unblocks it (same as moving it to "Đang làm").
