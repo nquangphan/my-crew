@@ -214,7 +214,7 @@ function RulesEditor({ overview }: { overview: SettingsOverviewResponse }) {
           checked={qcRule}
           onChange={(e) => setQcRule(e.target.checked)}
         />
-        QC chỉ bắt buộc test UI (Playwright/Maestro) khi thay đổi đụng file ngoài đường dẫn docs
+        Với QC mà PM đã chọn kiểm thử UI, cờ này chỉ bắt buộc chạy khi thay đổi đụng file ngoài đường dẫn docs
       </label>
     </SettingEditor>
   );
