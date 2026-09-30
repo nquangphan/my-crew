@@ -20,6 +20,13 @@ function toAttachmentDto(row: Pick<AttachmentRow, 'id' | 'mimeType' | 'sizeBytes
 }
 
 /**
+ * Detail message for an over-size pasted image, shared with `attachmentRoutes`: a raw upload large enough
+ * that Fastify's route `bodyLimit` rejects it never reaches `decodeImage()` below to throw this itself, so
+ * the route catches that rejection separately and reports the same `ApiError` message.
+ */
+export const ATTACHMENT_TOO_LARGE_MESSAGE = `ảnh vượt quá ${MAX_ATTACHMENT_BYTES / (1024 * 1024)}MB`;
+
+/**
  * Decodes and validates a pasted image before it is stored: the mime whitelist is enforced again here (not
  * just at the zod boundary, since `mimeType` and `content` must agree), and the size limit is checked on the
  * decoded bytes, not the base64 string length.
@@ -36,7 +43,7 @@ function decodeImage(input: UploadAttachmentRequest): Buffer {
   }
   if (buffer.length === 0) throw new ApiError('VALIDATION_FAILED', 'ảnh trống');
   if (buffer.length > MAX_ATTACHMENT_BYTES) {
-    throw new ApiError('VALIDATION_FAILED', `ảnh vượt quá ${MAX_ATTACHMENT_BYTES / (1024 * 1024)}MB`);
+    throw new ApiError('ATTACHMENT_TOO_LARGE', ATTACHMENT_TOO_LARGE_MESSAGE);
   }
   return buffer;
 }

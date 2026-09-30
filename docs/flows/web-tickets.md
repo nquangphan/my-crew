@@ -207,7 +207,9 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
   placeholder "Đang tải ảnh..." rồi link thật), lỗi tiếng Việt và gỡ placeholder khi server từ chối upload,
   mime không hỗ trợ bị chặn trước khi gọi API và giữ nguyên nội dung đang soạn.
 - `apps/web/src/components/markdown-editor.test.tsx`: dán ảnh vào ô mô tả chèn markdown tại vị trí con trỏ
-  qua đúng vòng placeholder/link thật giống `CommentComposer`, ảnh hiện đúng ở tab "Xem trước"; không truyền
+  qua đúng vòng placeholder/link thật giống `CommentComposer`, ảnh hiện đúng ở tab "Xem trước"; ảnh vượt 10MB
+  (server trả 413/`ATTACHMENT_TOO_LARGE`) hiện đúng thông báo cụ thể "Ảnh vượt quá giới hạn 10MB, hãy chọn ảnh
+  nhỏ hơn." (`format.ts`, flow `web-shell`) thay vì thông báo chung "Dữ liệu không hợp lệ."; không truyền
   `ticketId` (hộp thoại tạo ticket mới) thì dán ảnh không làm gì.
 - `apps/web/src/components/markdown-view.test.tsx`: `<img src="/v1/attachments/:id">` (URL tương đối) không
   bị `rehype-sanitize` strip khi render qua `MarkdownView`.

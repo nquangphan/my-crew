@@ -166,7 +166,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     clipboard vào ô mô tả/comment ticket (phần paste-to-upload ở UI là `usePasteImage()` của flow
     `web-tickets`). `uploadAttachment()`
     validate `mimeType` theo whitelist (`AttachmentMimeType` = `image/png|jpeg|gif|webp`) và kích thước **bytes
-    đã decode** (không phải độ dài chuỗi base64) ≤ `MAX_ATTACHMENT_BYTES` (10MB) trước khi ghi gì, dùng
+    đã decode** (không phải độ dài chuỗi base64) ≤ `MAX_ATTACHMENT_BYTES` (10MB) trước khi ghi gì — vượt kích
+    thước thì `decodeImage()` ném `ApiError('ATTACHMENT_TOO_LARGE', ATTACHMENT_TOO_LARGE_MESSAGE)` (413,
+    message `` `ảnh vượt quá 10MB` ``) thay vì `VALIDATION_FAILED` chung, dùng
     `getTicketRow()` (từ `ticket-service.ts`) nên `:id` nhận cả uuid lẫn ticket key như route ticket khác, ticket
     không tồn tại thì 404 và không tạo bản ghi; lưu ảnh vào cột `bytea` bảng `attachments`, trả
     `Attachment { id, url, mimeType, sizeBytes }` với `url` là đường dẫn `GET` để chèn vào markdown. Mime
@@ -174,10 +176,18 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     trong `decodeImage()` trước khi ghi DB, để `mimeType` lưu luôn nằm trong whitelist dù input đi từ đâu.
     `getAttachmentContent()` đọc `mime_type`/`content` theo `id`, 404 khi không tồn tại; route GET stream đúng
     bytes kèm header `Content-Type` từ `mimeType` đã lưu và `cache-control: private, no-store`. `AttachmentMimeType`,
-    `MAX_ATTACHMENT_BYTES`, `UploadAttachmentRequest`, `Attachment` khai ở `packages/shared/src/api-schemas.ts`
-    (cùng file nói ở bước 10). Route POST tự đặt `bodyLimit` riêng (đủ base64 10MB + margin JSON) để không đụng
-    `bodyLimit` mặc định 2MB của Fastify (flow `api-platform`) — cùng cách `runtime-routes.ts` (flow
-    `runtime-updates`) làm với `UPLOAD_BODY_LIMIT`. Không có route cho daemon/agent (agent không paste ảnh).
+    `MAX_ATTACHMENT_BYTES`, `UploadAttachmentRequest`, `Attachment`, mã lỗi `ATTACHMENT_TOO_LARGE` khai ở
+    `packages/shared/src/api-schemas.ts` (cùng file nói ở bước 10), status 413 ánh xạ ở `apps/api/src/errors.ts`
+    (flow `api-platform`). Route POST tự đặt `bodyLimit` riêng (đủ base64 10MB + margin JSON, dư ra ~49KB quy
+    đổi ảnh gốc) để không đụng `bodyLimit` mặc định 2MB của Fastify (flow `api-platform`) — cùng cách
+    `runtime-routes.ts` (flow `runtime-updates`) làm với `UPLOAD_BODY_LIMIT`; ảnh gốc lớn tới mức vượt cả
+    `UPLOAD_BODY_LIMIT` (ví dụ 15MB, 20MB) bị Fastify tự chặn ở tầng body-parser
+    (`FST_ERR_CTP_BODY_TOO_LARGE`) trước khi vào `decodeImage()` — `attachmentRoutes` đăng ký một
+    `setErrorHandler` riêng (Fastify cô lập theo `register()`, không ảnh hưởng route khác) bắt riêng mã lỗi đó
+    và trả cùng `ApiError('ATTACHMENT_TOO_LARGE', ATTACHMENT_TOO_LARGE_MESSAGE)` mà `decodeImage()` dùng, các
+    lỗi khác của route này vẫn qua `sendApiError()` dùng chung (`errors.ts`, flow `api-platform`) — nhờ vậy mọi
+    ảnh vượt 10MB, dù lọt qua `bodyLimit` hay bị chặn ở tầng route, đều nhận cùng một mã lỗi và thông báo rõ
+    ràng thay vì rơi vào `VALIDATION_FAILED` chung. Không có route cho daemon/agent (agent không paste ảnh).
 
 ## Files
 
@@ -194,7 +204,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/services/budget-service.ts` | Trần con, ngân sách, hold | `enforceChildCap`, `addCost`, `applyHold`, `liftHold`, `getBudgetStatus` |
 | `apps/api/src/jobs/stuck-ticket-alarm.ts` | Báo ticket đứng yên không ai xử lý | `findStuckTickets`, `raiseStuckTicketAlarms`, `startStuckTicketAlarm`, `WaitingJobsRegistry` |
 | `apps/api/src/services/agent-activity-service.ts` | Tính hoạt động agent hiển thị cho owner, từ heartbeat máy | `loadAgentActivity`, `withAgentActivity`, `activitySignatures`, `changedTicketIds`, `heartbeatFresh` |
-| `apps/api/src/services/attachment-service.ts` | Lưu/đọc ảnh đính kèm (bytea), validate mime + size | `uploadAttachment`, `getAttachmentContent` |
+| `apps/api/src/services/attachment-service.ts` | Lưu/đọc ảnh đính kèm (bytea), validate mime + size | `uploadAttachment`, `getAttachmentContent`, `ATTACHMENT_TOO_LARGE_MESSAGE` |
 | `packages/shared/src/ticket-schemas.ts` | Enum trạng thái/loại/ưu tiên/actor ticket | `TicketStatus`, `TicketType`, `Actor` |
 | `packages/shared/src/agent-schemas.ts` | Enum role/complexity/model/effort/bước agent, lý do chờ job và hoạt động agent | `AgentRole`, `Complexity`, `ModelAlias`, `SelectableModel`, `Effort`, `RoleStage`, `DOCS_MODEL`, `JobWaitReason`, `JobWaitDetail`, `AGENT_ACTIVITY_STALE_MS`, `AgentActivityStatus`, `AgentActivity` |
 | `packages/shared/src/status-workflow.ts` | Bảng cạnh workflow, kiểm tra transition | `canTransition`, `allowedTransitions`, `AGENT_EDGES`, `OWNER_EDGES`, `TERMINAL_STATUSES` |
@@ -236,7 +246,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   đầu với.
 - api-platform: bảng `attachments` khai ở `apps/api/src/db/schema.ts`, migration
   `apps/api/drizzle/0010_attachments.sql` chạy qua `runMigrations()` như mọi migration khác; cột `bytea` custom
-  type dùng chung với `runtime_bundles` (flow `runtime-updates`).
+  type dùng chung với `runtime_bundles` (flow `runtime-updates`); `attachmentRoutes` dùng lại `sendApiError()`
+  (`apps/api/src/errors.ts`) cho mọi lỗi khác lỗi vượt kích thước; mã lỗi `ATTACHMENT_TOO_LARGE` ánh xạ 413 ở
+  `STATUS_BY_CODE` (`errors.ts`).
 
 ## Tests
 
@@ -279,9 +291,12 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - `packages/shared/src/comment-mentions.test.ts`: `@pm` nhận diện không phân biệt hoa thường, bỏ qua trong code
   block/inline code và trong email/URL (`team@pm.example.com`), không nhận `@pm-x`/`@pm.x`.
 - `apps/api/test/attachment.test.ts`: upload từng mime hỗ trợ (png/jpeg/gif/webp) lưu đúng bytes, nhận cả ticket
-  key lẫn uuid ở `:id`; từ chối mime lạ (`application/pdf`) và ảnh > 10MB, không lưu gì cả hai trường hợp; ticket
-  không tồn tại → 404, không tạo bản ghi; thiếu session owner hoặc CSRF → 401/403; `GET` trả đúng `Content-Type`
-  và byte-for-byte với ảnh đã upload, 404 khi không tồn tại, cần session owner.
+  key lẫn uuid ở `:id`; từ chối mime lạ (`application/pdf`), không lưu gì; ảnh vừa vượt 10MB (còn lọt qua
+  `bodyLimit` của route) trả 413/`ATTACHMENT_TOO_LARGE` kèm message "ảnh vượt quá 10MB", ảnh vượt hẳn cả
+  `bodyLimit` (20MB, bị Fastify chặn ở tầng body-parser trước khi vào `decodeImage()`) trả cùng
+  413/`ATTACHMENT_TOO_LARGE`/message thay vì rơi vào `VALIDATION_FAILED` chung — không lưu gì cả hai trường hợp;
+  ticket không tồn tại → 404, không tạo bản ghi; thiếu session owner hoặc CSRF → 401/403; `GET` trả đúng
+  `Content-Type` và byte-for-byte với ảnh đã upload, 404 khi không tồn tại, cần session owner.
 - `apps/api/test/pm-mention.test.ts`: tag `@pm` từ mọi loại ticket của cây (pm_task, dev, qc, bug, docs_init, kể
   cả con đã đóng của cây còn mở) đều đánh thức đúng PM của cây, nhắm đúng máy chủ dự án; chỉ PM được đánh thức —
   ticket được tag không đổi trạng thái `needs_input`; tag ngay trên pm_task còn trả nó về `in_progress`; tag

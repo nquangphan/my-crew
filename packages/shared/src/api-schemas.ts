@@ -19,6 +19,9 @@ import { TicketPriority, TicketStatus, TicketType } from './ticket-schemas.js';
 
 export const ApiErrorCode = z.enum([
   'VALIDATION_FAILED',
+  /** A pasted attachment's decoded bytes exceed `MAX_ATTACHMENT_BYTES`, including when the raw upload is so
+   * large Fastify's route `bodyLimit` rejects it before `decodeImage()` runs. */
+  'ATTACHMENT_TOO_LARGE',
   'UNAUTHORIZED',
   'FORBIDDEN',
   'CSRF_FAILED',

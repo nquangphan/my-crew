@@ -86,8 +86,13 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
 10. `apps/web/src/lib/format.ts` → `errorMessage()`: dịch `ApiErrorCode` (`ERROR_TEXT`) sang một câu tiếng
-    Việt cho form/toast đọc từ `ApiRequestError` — ví dụ `PM_NOT_AVAILABLE` ("Không gọi được PM: ticket này
-    không thuộc PM task nào đang mở. Bỏ @pm để gửi bình luận thường.", flow `ticket-lifecycle`), hay
+    Việt cho form/toast đọc từ `ApiRequestError` — tra thẳng theo `code`, bỏ qua `message` thô backend trả, nên
+    mỗi mã lỗi cần một câu riêng trong `ERROR_TEXT` mới hiện đúng nguyên nhân (không tự "mượn" được message chi
+    tiết của backend) — ví dụ `PM_NOT_AVAILABLE` ("Không gọi được PM: ticket này
+    không thuộc PM task nào đang mở. Bỏ @pm để gửi bình luận thường.", flow `ticket-lifecycle`),
+    `ATTACHMENT_TOO_LARGE` ("Ảnh vượt quá giới hạn 10MB, hãy chọn ảnh nhỏ hơn.", ảnh dán clipboard vượt
+    `MAX_ATTACHMENT_BYTES`, flow `ticket-lifecycle` — mã lỗi riêng tách khỏi `VALIDATION_FAILED` chung mà mọi
+    lỗi 4xx không có `ApiError` cụ thể, kể cả `FST_ERR_CTP_BODY_TOO_LARGE` của Fastify, từng rơi vào), hay
     `UNAUTHORIZED` ("Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.") mà `onUnauthorized()` (bước 1) không tự
     hiện — `errorMessage()` chỉ dịch khi một trang khác (ví dụ `ChangePasswordForm`, flow `owner-auth`) tự đọc
     lỗi 401 qua `quiet401`. `describeEvent()`
@@ -153,7 +158,10 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 - `apps/web/src/lib/queries.test.tsx`: hook query trả đúng dữ liệu/khoá cache.
 - `apps/web/src/lib/search-params.test.ts`: parse/serialize filter URL, `safeRedirect` chỉ cho path cùng gốc.
 - `apps/web/src/lib/shortcuts.test.ts`: khớp phím, bỏ qua khi đang gõ/desktop-only.
-- `apps/web/src/lib/format.test.ts`: định dạng ngày giờ (Asia/Ho_Chi_Minh) và tiền.
+- `apps/web/src/lib/format.test.ts`: định dạng ngày giờ (Asia/Ho_Chi_Minh) và thời gian tương đối;
+  `errorMessage()` dịch đúng câu theo mã lỗi (`REPORT_REQUIRED`, `INTERNAL` kèm status, lỗi không phải
+  `ApiRequestError` → câu chung "Đã có lỗi xảy ra."), và ảnh đính kèm vượt 10MB (`ATTACHMENT_TOO_LARGE`) luôn
+  hiện đúng câu cụ thể bất kể `message` thô nào backend trả.
 - `apps/web/src/layout/quick-search.test.tsx`: badge project trên mỗi kết quả; chip phạm vi tìm kiếm gửi
   `projectIds` và trả focus về ô input sau khi chọn, danh sách kết quả vẫn mở (lượt đóng trễ sau khi blur bị
   hủy khi ô input được focus lại).
