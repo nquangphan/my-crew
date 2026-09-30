@@ -7,9 +7,28 @@ import { mockFetch, renderWithApp } from '../test/render';
 import { MarkdownEditor } from './markdown-editor';
 
 /** A controlled wrapper: `MarkdownEditor` itself holds no state, so tests need a parent that does. */
-function Harness({ ticketId, initial = '' }: { ticketId?: string; initial?: string }) {
+function Harness({
+  ticketId,
+  draftAttachments,
+  initial = '',
+  onUploadingChange,
+}: {
+  ticketId?: string;
+  draftAttachments?: boolean;
+  initial?: string;
+  onUploadingChange?: (uploading: boolean) => void;
+}) {
   const [value, setValue] = useState(initial);
-  return <MarkdownEditor label="Mô tả" value={value} onChange={setValue} ticketId={ticketId} />;
+  return (
+    <MarkdownEditor
+      label="Mô tả"
+      value={value}
+      onChange={setValue}
+      ticketId={ticketId}
+      draftAttachments={draftAttachments}
+      onUploadingChange={onUploadingChange}
+    />
+  );
 }
 
 function pasteImage(box: HTMLElement, file: File) {
@@ -124,7 +143,7 @@ describe('MarkdownEditor paste-to-upload', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('ignores image paste entirely when no ticketId is given (e.g. the new-ticket dialog)', async () => {
+  it('ignores image paste entirely when no ticketId and no draftAttachments mode', async () => {
     const calls = mockFetch([]);
     renderWithApp(<Harness initial="AB" />);
     const box = (await screen.findByRole('textbox', { name: 'Mô tả' })) as HTMLTextAreaElement;
@@ -133,5 +152,44 @@ describe('MarkdownEditor paste-to-upload', () => {
 
     expect(box.value).toBe('AB');
     expect(calls).toHaveLength(0);
+  });
+
+  it('uploads via the draft endpoint when draftAttachments is set and no ticketId is given', async () => {
+    const calls = mockFetch([
+      [
+        'POST /v1/attachments',
+        () => ({
+          status: 201,
+          body: { id: 'd1', url: '/v1/attachments/d1', mimeType: 'image/png', sizeBytes: 10 },
+        }),
+      ],
+    ]);
+    const uploadingStates: boolean[] = [];
+    renderWithApp(
+      <Harness
+        draftAttachments
+        initial="AB"
+        onUploadingChange={(uploading) => uploadingStates.push(uploading)}
+      />,
+    );
+    const box = (await screen.findByRole('textbox', { name: 'Mô tả' })) as HTMLTextAreaElement;
+    box.setSelectionRange(1, 1);
+
+    const file = new File(['fake-bytes'], 'shot.png', { type: 'image/png' });
+    pasteImage(box, file);
+
+    expect(box.value).toMatch(/^A!\[Đang tải ảnh\.\.\.\]\(uploading:\d+\)B$/);
+    expect(uploadingStates.at(-1)).toBe(true);
+
+    await waitFor(() => expect(box.value).toBe('A![ảnh](/v1/attachments/d1)B'));
+    await waitFor(() => expect(uploadingStates.at(-1)).toBe(false));
+
+    const post = calls.find((c) => c.method === 'POST');
+    expect(post?.path).toBe('/v1/attachments');
+    expect(post?.body).toEqual({
+      filename: 'shot.png',
+      mimeType: 'image/png',
+      content: Buffer.from('fake-bytes').toString('base64'),
+    });
   });
 });

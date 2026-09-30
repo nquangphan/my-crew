@@ -301,15 +301,16 @@ export const ticketReports = pgTable(
  * Pasted images (clipboard paste into a ticket description or comment): the bytes live in Postgres
  * (`content`), not on disk, so the nightly Postgres backup covers them too. `mime_type` is text, not an
  * enum, validated at the API boundary against `AttachmentMimeType` — the whitelist can grow without a
- * migration.
+ * migration. `ticket_id` is nullable: a draft attachment (`POST /v1/attachments`, pasted while composing a
+ * ticket that does not exist yet) is uploaded with it null, then claimed (set to the new ticket) when
+ * `createRequestTicket()` finds it referenced in the description; an unclaimed draft is deleted by the
+ * orphan cleanup job after 24 hours (`deleteOrphanedDraftAttachments()`).
  */
 export const attachments = pgTable(
   'attachments',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    ticketId: uuid('ticket_id')
-      .notNull()
-      .references(() => tickets.id, { onDelete: 'cascade' }),
+    ticketId: uuid('ticket_id').references(() => tickets.id, { onDelete: 'cascade' }),
     ownerId: uuid('owner_id')
       .notNull()
       .references(() => owner.id, { onDelete: 'cascade' }),

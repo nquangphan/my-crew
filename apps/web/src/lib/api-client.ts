@@ -231,6 +231,16 @@ export const api = {
       body,
       schema: Attachment,
     }),
+  /**
+   * Draft paste-to-upload (the "create ticket" dialog, before a ticket exists): stores the image the same way,
+   * the server claims it into the new ticket when its description references the returned `url`.
+   */
+  uploadDraftAttachment: (body: UploadAttachmentRequest) =>
+    request('/v1/attachments', {
+      method: 'POST',
+      body,
+      schema: Attachment,
+    }),
   getReports: (idOrKey: string) =>
     request(`/v1/tickets/${encodeURIComponent(idOrKey)}/report`, { schema: ReportResponse }),
   /** Quick search; `projectIds` narrows tickets and docs to those projects. */

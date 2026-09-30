@@ -14,7 +14,9 @@ import { useToast } from './ui/toast';
 
 /**
  * Jira-style "Tạo" modal. The assignee is always the assistant; the project is only a hint for triage.
- * "Tạo thêm" keeps the modal open for the next ticket.
+ * "Tạo thêm" keeps the modal open for the next ticket. The "Mô tả" editor allows pasting a clipboard image
+ * before the ticket exists (`draftAttachments`, `usePasteImage()`); "Tạo" is disabled while an image is
+ * still uploading so the description sent to the API never carries an unresolved `uploading:` placeholder.
  */
 export function NewTicketDialog({
   open,
@@ -37,6 +39,7 @@ export function NewTicketDialog({
   const [createMore, setCreateMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -54,6 +57,9 @@ export function NewTicketDialog({
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    // Belt-and-suspenders alongside the disabled "Tạo" button below: never send a description that still
+    // holds an unresolved `uploading:` placeholder.
+    if (uploadingImages) return;
     if (!title.trim()) {
       setError('Nhập tiêu đề.');
       return;
@@ -120,7 +126,14 @@ export function NewTicketDialog({
               autoFocus
             />
           </Field>
-          <MarkdownEditor label="Mô tả" value={description} onChange={setDescription} rows={7} />
+          <MarkdownEditor
+            label="Mô tả"
+            value={description}
+            onChange={setDescription}
+            rows={7}
+            draftAttachments
+            onUploadingChange={setUploadingImages}
+          />
           <div className="flex items-center gap-2 text-sm">
             <span className="text-[13px] font-semibold text-muted">Người xử lý</span>
             <RoleAvatar agent="assistant" size={22} /> Trợ lý
@@ -156,8 +169,8 @@ export function NewTicketDialog({
             </label>
             <span className="grow" />
             <Button onClick={() => onOpenChange(false)}>Hủy</Button>
-            <Button type="submit" variant="primary" disabled={busy}>
-              {busy ? 'Đang tạo…' : 'Tạo'}
+            <Button type="submit" variant="primary" disabled={busy || uploadingImages}>
+              {busy ? 'Đang tạo…' : uploadingImages ? 'Đang tải ảnh…' : 'Tạo'}
             </Button>
           </div>
         </form>

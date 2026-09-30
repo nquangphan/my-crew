@@ -66,7 +66,11 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    `api.importRuntimeReleases()`, `api.pinMachineRuntime(machineId, version)` gọi các route
    `/v1/runtime/releases*`/`/v1/machines/:id/runtime` (flow `runtime-updates`). `api.uploadAttachment(idOrKey,
    body)` gọi `POST /v1/tickets/:id/attachments`, kiểm response bằng `Attachment` (flow `ticket-lifecycle`) —
-   dùng bởi paste-to-upload ảnh clipboard (`usePasteImage()`, flow `web-tickets`).
+   dùng bởi paste-to-upload ảnh clipboard vào ticket đã tồn tại/bình luận (`usePasteImage()`, flow
+   `web-tickets`). `api.uploadDraftAttachment(body)` gọi `POST /v1/attachments` (cùng schema request/response
+   `UploadAttachmentRequest`/`Attachment`, không có `:id` vì chưa có ticket), dùng bởi `usePasteImage()` ở chế
+   độ nháp (`draft: true`) của hộp thoại tạo ticket mới — server tự gắn ảnh nháp vào ticket khi mô tả tham
+   chiếu `url` trả về (flow `ticket-lifecycle`).
 8. `apps/web/src/lib/queries.ts` → `keys`, `sessionQuery`, `useTickets`/`useTicket`/`useProjects`/`useNotices`/
    `useProjectChanges`/…: định nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác;
    `patchCachedTicket()` viết ticket vừa đổi vào mọi cache list/detail sau một lượt ghi — vì response ghi
@@ -82,7 +86,10 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    `useRuntimeReleases()` phục vụ mục "Bản runtime" và bộ ghim của trang Máy (flow `runtime-updates`);
    invalidate khi nhận `runtime.published`/`runtime.pinned`/`machine.runtime_changed`. `useUploadAttachment(
    ticketIdOrKey)` — mutation gọi `api.uploadAttachment()`, không invalidate cache ticket (upload ảnh không đổi
-   trạng thái ticket) — dùng bởi `usePasteImage()` (flow `web-tickets`).
+   trạng thái ticket) — dùng bởi `usePasteImage()` khi có `ticketId` (flow `web-tickets`).
+   `useUploadDraftAttachment()` — mutation gọi `api.uploadDraftAttachment()`, cũng không invalidate cache gì
+   (ảnh nháp chưa gắn ticket nào) — dùng bởi `usePasteImage()` ở chế độ nháp trong hộp thoại tạo ticket mới
+   (flow `web-tickets`).
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
 10. `apps/web/src/lib/format.ts` → `errorMessage()`: dịch `ApiErrorCode` (`ERROR_TEXT`) sang một câu tiếng
@@ -143,8 +150,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 - web-tickets, web-admin: dùng lại `queries.ts`, `format.ts`, `ui-state.ts`, component `ui/*` và
   `ShellContext` của flow này; `ProjectFilterMenu`/`selectedProjects()` (`components/project-filter.tsx`, flow
   `web-tickets`) là bộ lọc "Dự án" dùng chung mà Inbox và Máy (flow `web-admin`) cũng dùng lại;
-  `api.uploadAttachment()`/`useUploadAttachment()` phục vụ `usePasteImage()` (paste-to-upload ảnh clipboard)
-  của flow đó.
+  `api.uploadAttachment()`/`useUploadAttachment()` và `api.uploadDraftAttachment()`/`useUploadDraftAttachment()`
+  phục vụ `usePasteImage()` (paste-to-upload ảnh clipboard, kể cả đường ảnh nháp của hộp thoại tạo ticket) của
+  flow đó.
 - server-settings: mục sidebar "Cài đặt hệ thống"; `api.getSettings()`/`saveSettings()`/`restoreSettings()`/
   `diffSettings()`/`validateSettings()`/`getSettingsHistory()` và `keys.settings`/`keys.settingsHistory`/
   `useSettingsOverview`/`useSettingsHistory` phục vụ mọi trang cài đặt của flow đó.

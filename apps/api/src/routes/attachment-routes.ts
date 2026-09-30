@@ -5,6 +5,7 @@ import {
   ATTACHMENT_TOO_LARGE_MESSAGE,
   getAttachmentContent,
   uploadAttachment,
+  uploadDraftAttachment,
 } from '../services/attachment-service.js';
 import { idParam, parseInput, type RouteDeps, uuidParam } from './route-deps.js';
 
@@ -39,6 +40,15 @@ export async function attachmentRoutes(app: FastifyInstance, { db }: RouteDeps):
   app.post('/v1/tickets/:id/attachments', { bodyLimit: UPLOAD_BODY_LIMIT }, async (request, reply) => {
     const body = parseInput(UploadAttachmentRequest, request.body);
     const attachment = await uploadAttachment(db, idParam(request.params), ownerId(request), body);
+    return reply.status(201).send(attachment);
+  });
+
+  // Draft upload for the "create ticket" dialog, before a ticket exists: `POST /v1/tickets/:id/attachments`
+  // needs a ticket id it cannot have yet. Claimed by `createRequestTicket()` when the new description
+  // references it, cleaned up if abandoned (`deleteOrphanedDraftAttachments()`, flow `ticket-lifecycle`).
+  app.post('/v1/attachments', { bodyLimit: UPLOAD_BODY_LIMIT }, async (request, reply) => {
+    const body = parseInput(UploadAttachmentRequest, request.body);
+    const attachment = await uploadDraftAttachment(db, ownerId(request), body);
     return reply.status(201).send(attachment);
   });
 

@@ -355,3 +355,10 @@ export function useUploadAttachment(ticketIdOrKey: string) {
     mutationFn: (body: UploadAttachmentRequest) => api.uploadAttachment(ticketIdOrKey, body),
   });
 }
+
+/** Draft paste-to-upload (the "create ticket" dialog, before a ticket exists); does not touch any ticket. */
+export function useUploadDraftAttachment() {
+  return useMutation({
+    mutationFn: (body: UploadAttachmentRequest) => api.uploadDraftAttachment(body),
+  });
+}
