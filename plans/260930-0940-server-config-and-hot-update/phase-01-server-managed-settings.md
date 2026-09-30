@@ -51,3 +51,23 @@ cannot override them.
 
 - A bad prompt or policy edit breaks every machine: validation, preview, history + restore, and the bundled defaults as
   a fallback when a revision fails validation on the daemon.
+
+## Scope extension (owner, 2026-09-30)
+
+"Every configuration that can live on the web moves to the web; the local app is only a gateway."
+
+- **On the web (server is the source of truth):** everything in the table above, plus: which projects each machine runs
+  and the assistant role (claims/releases initiated from the web, the machine confirms), each project's folder path on a
+  machine (edited on the web; the daemon validates the folder locally and reports errors), shared untracked paths,
+  project type / UI-test MCP (owner edits directly, no machine request needed), the BMAD profile and the "install BMAD"
+  action (triggered from the web, executed by the daemon), machine pause/resume, health dashboard with one-click fixes
+  (triggered from the web, executed by the daemon), job list and logs (recent app/daemon log tail streamed on demand),
+  skill/MCP inventory views, model allowlist and budgets.
+- **Stays local (by nature):** API URL, machine token and pairing code entry, the macOS folder-access prompt, the folder
+  picker as a convenience (it writes through to the server setting), start at login, and the local log files.
+- **Desktop app becomes a gateway:** pairing wizard (server URL + pairing code + Claude login check), a status view
+  (connected, daemon running, runtime version, pending OS permission), "Mở trên web" links for everything else, and
+  local-only actions (open log folder, open Terminal for `claude /login`, quit). Its existing settings screens are removed
+  or replaced by links to the web pages.
+- **Remote actions are safe:** the web can only trigger whitelisted daemon actions (the same fix ids and operations as
+  today, validated on both sides); no arbitrary command execution from the web.
