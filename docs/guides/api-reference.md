@@ -249,7 +249,7 @@ mutating (`GET` không cần CSRF, ghi `owner (no CSRF)`); `daemon` = bearer tok
 |---|---|---|---|---|
 | GET | `/v1/health` | public | Health check (ping DB) | [api-platform](../flows/api-platform.md) |
 
-**Tổng cộng 87 route**: 3 public, 53 owner, 31 daemon (đếm cả `GET /v1/health`).
+**Tổng cộng 88 route**: 3 public, 53 owner, 32 daemon (đếm cả `GET /v1/health`).
 
 ## Schema
 
