@@ -31,7 +31,13 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    (`state.pmMentions(job.eventIds)`, flow `daemon-scheduling`, chỉ áp dụng khi ticket là `pm_task`): job đó vẫn
    chạy, ở bước `pm_monitor` (ghi đè bước đã `resolveStage()` chọn), để trả lời owner mà không đổi trạng thái
    pm_task đang chờ; một lần thức dậy không mang lời gọi nào của cùng ticket đang chờ vẫn bị bỏ qua như trước.
-   `pm_analyze` chạy cổng `docsInitGate()`; `qc` trước tiên gọi `qcNeedsUiTest()` (nội bộ) — chỉ khi
+   `pm_analyze` chạy cổng `docsInitGate()`; một lượt `dev` (ticket `dev` hoặc `bug`, không phải `docs_update`)
+   đang `todo` tự chuyển ticket sang `in_progress` ngay tại đây — trước khi dựng prompt — bằng
+   `ctx.writer.write()` gọi `ctx.vps.transition()` (cùng cơ chế idempotent `<jobId>:<seq>` các ghi khác trong
+   file này), gác bằng `canTransition('agent', ticket.status, 'in_progress')` giống mẫu `JobRunner.transition()`
+   (`to: 'blocked'`, flow `agent-runs`); ticket không còn `todo` (đã `in_progress`, hoặc job resume/retry) thì bỏ
+   qua, không gọi API. Nhờ vậy `dev.md` không còn bước thủ công `update_status` đầu tiên — agent luôn nhận
+   ticket đã `in_progress`. `qc` trước tiên gọi `qcNeedsUiTest()` (nội bộ) — chỉ khi
    `ctx.settings.policy.qcUiTestOnlyForNonDocs` (`GuardPolicy` của cài đặt server job này chạy với, flow
    `server-settings`, mặc định `true`) mới xét, tắt cờ này thì luôn cần kiểm thử UI: thay đổi của riêng
    ticket đang được QC (`head_sha` của report dev ghép cặp) có đổi gì ngoài `policy.docsPaths` không
@@ -232,7 +238,10 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   chính vẫn tính là docs-only khi biết `builtOn`, còn tính là cần kiểm thử UI khi không biết head đó; merge
   sạch một head nền không thêm gì, merge xung đột được job docs kết luận cùng code thì tính; một bug fix được
   xét theo đúng commit riêng của nó chứ không phải commit dev nó xây trên, và một head sau (một fix đã xong,
-  xây trên chính ticket đang xét) không dùng được làm mốc cho ticket đó.
+  xây trên chính ticket đang xét) không dùng được làm mốc cho ticket đó. Nhóm "dev run auto-transitions a todo
+  ticket": `plan()` gọi `transition(ticketId, 'in_progress', key)` đúng một lần và trả về ticket đã
+  `in_progress` khi ticket `dev` hoặc `bug` đang `todo`; ticket `dev` đã `in_progress` (mô phỏng resume/retry)
+  thì không gọi `transition`, `plan()` không lỗi.
 - `apps/daemon/test/lifecycle.test.ts` (kịch bản dưới `apps/daemon/test/lifecycle/*.yaml`, mỗi file có
   `description` riêng): toàn bộ vòng đời qua API và daemon thật, runner kịch bản (không tốn phí model), git
   worktree và hook crew-docs thật — happy path, docs bị hook từ chối rồi commit lại, capability preflight, dọn
