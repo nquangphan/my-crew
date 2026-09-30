@@ -1,7 +1,7 @@
 import type { TicketDetailResponse } from '@crew/shared';
 import { DEFAULT_GUARD_POLICY } from '@crew/shared';
 import { describe, expect, it } from 'vitest';
-import { diffNeedsUiTest, missingUiServers } from '../src/roles/role-planner.js';
+import { diffNeedsUiTest, missingUiServers, uiTestText } from '../src/roles/role-planner.js';
 import { wrapTicketDetail, wrapUntrusted } from '../src/roles/untrusted-wrap.js';
 import { evaluateToolCall } from '../src/runner/guard-hook.js';
 import { git, makeRepo, tempDir, writeFiles } from './helpers/git.js';
@@ -77,6 +77,13 @@ describe('QC UI-test gate', () => {
     expect(
       missingUiServers({ requiredMcps: ['playwright'] }, inventory, { disabledMcpServers: ['playwright'] }),
     ).toEqual([{ server: 'playwright', status: 'đã bị tắt cho dự án' }]);
+  });
+
+  it('tells QC the Playwright server runs headless and not to expect a real browser window', () => {
+    const text = uiTestText({ requiredMcps: ['playwright'] }, true, DEFAULT_GUARD_POLICY);
+    expect(text).toContain('headless');
+    expect(text).toContain('không chiếm màn hình máy');
+    expect(text).not.toContain('mở ứng dụng trong trình duyệt');
   });
 });
 

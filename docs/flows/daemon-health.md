@@ -50,10 +50,20 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
    khi app desktop đang dừng) thì gọi thẳng `ctx.vps.putProjectMcp()`; trước đây ghi vào `config.yaml` cục bộ
    của máy); server MCP test UI bắt buộc cho loại
    project (`OFFICIAL_UI_TEST_SERVERS`, mặc định Playwright cho web, Maestro cho mobile qua `qcDefaultMcps()`)
-   thiếu → đỏ, fix `mcp-install:<key>:<role>` — trước tiên `claude mcp get <name>`, đã cấu hình rồi thì bỏ qua
-   `claude mcp add --scope user` (tránh lỗi "already exists" khiến check đỏ vĩnh viễn), dù đi nhánh nào cũng dò
-   lại inventory (`refreshInventory`) cho **mọi** project trong config vì server MCP cấp user hiện diện ở tất
-   cả project; đang bị tắt dù QC bắt buộc dùng → đỏ, fix `mcp-enable:<key>:<server>`; project cần thiết bị
+   thiếu → đỏ, fix `mcp-install:<key>:<role>`. Lệnh chuẩn của Playwright luôn có `--headless`
+   (`['npx', '-y', '@playwright/mcp@latest', '--headless']`, theo yêu cầu app tự cài MCP Playwright không được
+   chiếm quyền màn hình máy chủ dự án) nên mọi lượt cài mới đều chạy headless/nền. Server đã tìm thấy và không
+   bị tắt cho project thì `claude mcp get <name>` để đọc lệnh đang cấu hình; `parseConfiguredCommand()` (đọc hai
+   dòng `Command:`/`Args:` mà lệnh đó in ra cho server stdio) và `sameCommand()` so lệnh đó với
+   `OFFICIAL_UI_TEST_SERVERS[role].command` hiện hành — lệch (ví dụ cấu hình cũ thiếu `--headless`) → đỏ kèm fix
+   `mcp-install:<key>:<role>` nhãn "Cấu hình lại …", detail nêu "lệnh cũ"; không parse được (server không phải
+   stdio, hoặc output khác định dạng) thì coi như không lệch (an toàn, không tự ý gỡ cài); khớp chuẩn thì báo
+   theo trạng thái connected như cũ. Fix `mcp-install` xử lý ba nhánh: chưa cấu hình → `claude mcp add --scope
+   user` như cũ; đã cấu hình nhưng lệch chuẩn → `claude mcp remove --scope user <name>` rồi `claude mcp add
+   --scope user <name> -- <lệnh chuẩn>`; đã cấu hình và khớp chuẩn → bỏ qua cả remove lẫn add (tránh lỗi
+   "already exists" khiến check đỏ vĩnh viễn) — dù đi nhánh nào
+   cũng dò lại inventory (`refreshInventory`) cho **mọi** project trong config vì server MCP cấp user hiện diện
+   ở tất cả project; đang bị tắt dù QC bắt buộc dùng → đỏ, fix `mcp-enable:<key>:<server>`; project cần thiết bị
    (`mobile`/`web_mobile`) mà không có simulator/emulator sẵn sàng (`xcrun simctl`/`adb devices`) → vàng, fix
    `open-simulator` trên macOS. `parseFixId()` (`health/types.ts`) tách `action:key:arg` lấy phần sau dấu `:`
    thứ hai làm `arg` (key project không bao giờ chứa dấu `:`) — trước đây tách trên mọi dấu `:` nên tên server
@@ -128,7 +138,7 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
 | `apps/daemon/src/health/types.ts` | Kiểu chung của một check/kết quả/ngữ cảnh | `HealthCheck`, `HealthCheckResult`, `HealthContext`, `HealthAppFacts`, `result`, `parseFixId` |
 | `apps/daemon/src/health/checks/server.ts` | Kết nối VPS, token, luồng sự kiện | `serverChecks` |
 | `apps/daemon/src/health/checks/claude.ts` | Runtime/CLI Claude Code, đăng nhập, không lộ API key | `claudeChecks`, `loginProbe`, `compareVersions`, `MIN_CLAUDE_VERSION` |
-| `apps/daemon/src/health/checks/mcp.ts` | MCP server đã dò được và MCP test UI bắt buộc | `mcpChecks`, `OFFICIAL_UI_TEST_SERVERS` |
+| `apps/daemon/src/health/checks/mcp.ts` | MCP server đã dò được và MCP test UI bắt buộc | `mcpChecks`, `OFFICIAL_UI_TEST_SERVERS`, `parseConfiguredCommand`, `sameCommand` |
 | `apps/daemon/src/health/checks/skills.ts` | Kho skill của project và khớp checkout chính | `skillChecks`, `describeSkills` |
 | `apps/daemon/src/health/checks/repos.ts` | git, crew-docs, hook, docs, worktree thừa mỗi project | `repoChecks`, `inspectHooks`, `HookInspection`, `HookState`, `missingHookFiles`, `orphanWorktrees` |
 | `apps/daemon/src/health/checks/machine.ts` | Tài nguyên máy, đĩa trống | `machineChecks`, `MIN_DISK_FREE_GB` |
@@ -184,8 +194,10 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
 - `apps/daemon/test/health-groups.test.ts`: helper kiểm tra thư mục repo (chuẩn hoá URL, gợi ý key, đọc
   origin/nhánh, phát hiện không có quyền push); nhóm repos chuyển đỏ khi hook bị xoá, sai origin hay có
   worktree thừa rồi các fix đưa nó về xanh, và báo xanh kèm ghi chú khi repo chưa có docs (không tính là lỗi);
-  nhóm mcp/skills: bắt buộc Playwright cho project web, cài được qua `claude mcp add`, đã cấu hình sẵn thì bỏ
-  qua `add` và chỉ dò lại inventory, tắt được server lỗi, tắt được một server plugin tên có dấu `:` (ví dụ
+  nhóm mcp/skills: bắt buộc Playwright cho project web, cài mới qua `claude mcp add` sinh đúng lệnh có
+  `--headless`, đã cấu hình sẵn và khớp chuẩn thì bỏ qua `add` và chỉ dò lại inventory, phát hiện một Playwright
+  đã cấu hình bằng lệnh cũ thiếu `--headless` (đỏ, detail nêu "lệnh cũ") rồi fix bằng `claude mcp remove` +
+  `claude mcp add` với lệnh chuẩn, tắt được server lỗi, tắt được một server plugin tên có dấu `:` (ví dụ
   `plugin:engineering:asana`) đúng tên đầy đủ chứ không cắt còn `plugin`, và tự dọn một mục fragment bản cũ lỡ
   lưu sai khi danh sách được ghi lại, so khớp inventory worktree với checkout chính; nhóm
   resources/server/app: dọn được thư mục tạm ngắn của job đã xong (qua `ensureJobTmpDir`/`jobTmpDir`)

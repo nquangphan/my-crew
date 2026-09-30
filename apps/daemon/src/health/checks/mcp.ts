@@ -8,13 +8,34 @@ import {
   result,
 } from '../types.js';
 
-/** The official server behind each UI-test role, installed machine-wide so every job worktree sees it. */
+/**
+ * The official server behind each UI-test role, installed machine-wide so every job worktree sees it.
+ * Playwright runs headless (`--headless`, https://github.com/microsoft/playwright-mcp) so it never steals the
+ * project machine's screen — QC only gets structured accessibility snapshots, no real browser window.
+ */
 export const OFFICIAL_UI_TEST_SERVERS: Record<keyof UiTestMcp, { command: string[]; note: string }> = {
-  playwright: { command: ['npx', '-y', '@playwright/mcp@latest'], note: 'Playwright MCP (@playwright/mcp)' },
+  playwright: {
+    command: ['npx', '-y', '@playwright/mcp@latest', '--headless'],
+    note: 'Playwright MCP (@playwright/mcp)',
+  },
   maestro: { command: ['maestro', 'mcp'], note: 'Maestro MCP (cần Maestro CLI)' },
 };
 
 const needsDevice = (platform: ProjectPlatform) => platform === 'mobile' || platform === 'web_mobile';
+
+const sameCommand = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((value, i) => value === b[i]);
+
+/**
+ * Parses the `Command:`/`Args:` lines `claude mcp get <name>` prints for a stdio server into its argv, or
+ * `null` when the server isn't a stdio server (or the output doesn't have those lines).
+ */
+function parseConfiguredCommand(stdout: string): string[] | null {
+  const command = /^\s*Command:\s*(\S+)/m.exec(stdout)?.[1];
+  if (!command) return null;
+  const args = (/^\s*Args:\s*(.*)$/m.exec(stdout)?.[1] ?? '').split(/\s+/).filter(Boolean);
+  return [command, ...args];
+}
 
 /** A booted iOS simulator or a connected Android emulator/device, for Maestro. */
 function deviceReady(ctx: HealthContext): string | null {
@@ -111,14 +132,27 @@ export const mcpChecks: HealthCheck = {
             ),
           );
         } else {
+          const configured = ctx.exec('claude', ['mcp', 'get', name]);
+          const configuredCommand = configured.code === 0 ? parseConfiguredCommand(configured.stdout) : null;
+          const official = OFFICIAL_UI_TEST_SERVERS[role].command;
+          const outdated = configuredCommand !== null && !sameCommand(configuredCommand, official);
           results.push(
-            result(
-              id,
-              'mcp',
-              title,
-              found.status === 'connected' ? 'green' : 'red',
-              `QC test UI bằng "${name}".`,
-            ),
+            outdated
+              ? result(
+                  id,
+                  'mcp',
+                  title,
+                  'red',
+                  `Server "${name}" đang cấu hình bằng lệnh cũ, khác lệnh chuẩn hiện hành (ví dụ thiếu \`--headless\` của Playwright, có thể chiếm quyền màn hình máy): cần cài lại.`,
+                  { id: `mcp-install:${key}:${role}`, label: `Cấu hình lại ${name}` },
+                )
+              : result(
+                  id,
+                  'mcp',
+                  title,
+                  found.status === 'connected' ? 'green' : 'red',
+                  `QC test UI bằng "${name}".`,
+                ),
           );
         }
       }
@@ -167,17 +201,21 @@ export const mcpChecks: HealthCheck = {
       const view = (await serverProjects(ctx)).get(key);
       const role = arg as keyof UiTestMcp;
       const name = view?.uiTestMcp[role] ?? role;
-      // Already configured (e.g. added by hand, or for another project): nothing to add, only a stale inventory.
-      if (ctx.exec('claude', ['mcp', 'get', name]).code !== 0) {
-        const added = ctx.exec('claude', [
-          'mcp',
-          'add',
-          '--scope',
-          'user',
-          name,
-          '--',
-          ...OFFICIAL_UI_TEST_SERVERS[role].command,
-        ]);
+      const official = OFFICIAL_UI_TEST_SERVERS[role].command;
+      const existing = ctx.exec('claude', ['mcp', 'get', name]);
+      const configuredCommand = existing.code === 0 ? parseConfiguredCommand(existing.stdout) : null;
+      // Configured with a command that no longer matches the current official one (e.g. an old install made
+      // before --headless was required): drop it so it gets re-added below with the current command.
+      const outdated = configuredCommand !== null && !sameCommand(configuredCommand, official);
+      if (outdated) {
+        const removed = ctx.exec('claude', ['mcp', 'remove', '--scope', 'user', name]);
+        if (removed.code !== 0)
+          throw new Error(`claude mcp remove thất bại: ${removed.stderr.trim() || removed.stdout.trim()}`);
+      }
+      // Already configured with the current command (e.g. added by hand, or for another project): nothing to
+      // add, only a stale inventory.
+      if (existing.code !== 0 || outdated) {
+        const added = ctx.exec('claude', ['mcp', 'add', '--scope', 'user', name, '--', ...official]);
         if (added.code !== 0)
           throw new Error(`claude mcp add thất bại: ${added.stderr.trim() || added.stdout.trim()}`);
       }
