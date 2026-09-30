@@ -481,6 +481,72 @@ describe('SDK agent runner', () => {
       expect(fake.events).toContain('stop:a');
     });
 
+    it('fails the run when the process goes away in the middle of a later turn', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake);
+      fake.emit(
+        init(),
+        backgroundTasks('a', 'b'),
+        say('m1', 'Đang chờ.'),
+        result({ total_cost_usd: 0.1, num_turns: 2, duration_ms: 1_000 }),
+      );
+      await sleep(80);
+      expect(settled()).toBe(false);
+      // The notification of `a` starts a second turn; `b` is still alive when the process goes.
+      fake.emit(backgroundTasks('b'), init(), say('m2', 'Đang xử lý thông báo.'));
+      await sleep(80);
+      expect(settled()).toBe(false);
+      fake.die();
+      const out = await run;
+      // The first turn's `success` is not the run's outcome: the second turn never reached its result.
+      expect(out).toMatchObject({
+        isError: true,
+        resultSubtype: null,
+        aborted: false,
+        totalCostUsd: 0.1,
+        reminded: false,
+      });
+      expect(out.errors).toEqual(['agent process ended while its session was still open']);
+      expect(out.backgroundTasksLeft.map((task) => task.id)).toEqual(['b']);
+      expect(fake.events.filter((event) => event.startsWith('stop:'))).toEqual(['stop:b']);
+      expect(out.capture).toMatchObject({
+        numTurns: 2,
+        durationMs: 1_000,
+        lastMessage: 'Đang xử lý thông báo.',
+      });
+    });
+
+    it('closes after another full wait when the reminder starts no turn, stopping the tasks still alive', async () => {
+      const waitMs = 150;
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake, { backgroundWaitMs: waitMs });
+      const startedAt = Date.now();
+      fake.emit(init(), backgroundTasks('a'), result({ total_cost_usd: 0.1 }));
+      await until(() => fake.received.length === 2, 'the reminder');
+      expect(fake.received[1]).toContain('Nhắc từ daemon');
+      // No turn answers the reminder: the run is still open well inside the second ceiling.
+      await sleep(waitMs / 3);
+      expect(settled()).toBe(false);
+      expect(fake.events).toEqual(['input:1', 'input:2']);
+      // It ends on the second ceiling, not on some later one.
+      await until(settled, 'the run to end after the second wait', 10 * waitMs);
+      const out = await run;
+      // One ceiling before the reminder, another one after it.
+      expect(Date.now() - startedAt).toBeGreaterThanOrEqual(2 * waitMs - 10);
+      expect(fake.received).toHaveLength(2);
+      expect(fake.events).toEqual(['input:1', 'input:2', 'stop:a', 'input-closed', 'close']);
+      expect(out).toMatchObject({
+        isError: false,
+        resultSubtype: 'success',
+        aborted: false,
+        totalCostUsd: 0.1,
+        reminded: true,
+      });
+      expect(out.backgroundTasksLeft).toEqual([
+        { id: 'a', type: 'local_bash', description: 'lệnh a', ambient: false },
+      ]);
+    });
+
     it('reminds once when the wait hits its ceiling, then stops every task and closes after the answering turn', async () => {
       const fake = liveQuery();
       const { run, settled } = startRun(fake, { backgroundWaitMs: 200 });

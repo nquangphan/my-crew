@@ -276,10 +276,12 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   `query()` là một `AsyncIterable`, tin nhắn đầu mang đúng prompt của lượt chạy; `result` hết tác vụ nền đóng
   input và kết thúc lượt chạy như cũ; còn tác vụ nền thì giữ input mở và lượt tiếp cộng dồn chi phí/`num_turns`/
   `duration_ms`/capture vào kết quả chung tới khi tập rỗng; một tác vụ rời tập giữa câu trả lời cuối của lượt
-  vẫn được chờ thêm lượt thông báo; tiến trình chết trong lúc phiên còn mở (giữa lượt, hoặc đang chờ tác vụ
-  nền) làm lượt chạy thành lỗi (`resultSubtype: null`) thay vì mang `success` của lượt trước; hết trần chờ thì
+  vẫn được chờ thêm lượt thông báo; tiến trình chết trong lúc phiên còn mở — giữa một lượt **sau** khi lượt
+  trước đã có `result` `success` (tác vụ còn sống lúc chết bị `stopTask`), hoặc đang chờ tác vụ nền — làm lượt
+  chạy thành lỗi (`resultSubtype: null`) thay vì mang `success` của lượt trước; hết trần chờ thì
   daemon gửi đúng một tin nhắn nhắc, lượt trả lời còn tác vụ nền thì `stopTask` được gọi cho từng tác vụ rồi
-  phiên đóng, lời nhắc không khởi động được lượt nào trong thêm một trần cũng đóng; `result` lỗi,
+  phiên đóng, lời nhắc không khởi động được lượt nào trong thêm một trần cũng đóng (`reminded: true`,
+  `resultSubtype: 'success'`, tác vụ còn sống bị `stopTask` rồi ghi vào `backgroundTasksLeft`); `result` lỗi,
   `RunControl.requestEnd()` (`ask_owner`/`handoff_docs`), abort, hay tùy chọn `workDone()` trả `true` đều kết
   thúc ngay và dừng tác vụ còn sống trước khi đóng; `AgentRunResult.backgroundTasksLeft` báo đúng tác vụ còn
   sống lúc đóng (rỗng khi kết thúc sạch) và `reminded` báo daemon đã nhắc hay chưa; một lượt thông báo bắt đầu
