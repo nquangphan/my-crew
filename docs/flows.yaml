@@ -372,6 +372,7 @@ flows:
       - apps/daemon/src/runner/job-runner.ts
     files:
       - apps/daemon/src/runner/agent-runner.ts
+      - apps/daemon/src/runner/background-session.ts
       - apps/daemon/src/runner/scripted-runner.ts
       - apps/daemon/src/runner/run-trace.ts
       - apps/daemon/src/runner/guard-hook.ts
@@ -384,6 +385,7 @@ flows:
     tests:
       - apps/daemon/test/daemon.test.ts
       - apps/daemon/test/agent-runner.test.ts
+      - apps/daemon/test/background-session.test.ts
       - apps/daemon/test/guard-hook.test.ts
       - apps/daemon/test/ticket-tools.test.ts
       - apps/daemon/test/run-trace.test.ts

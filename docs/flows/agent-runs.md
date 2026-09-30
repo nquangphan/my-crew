@@ -66,18 +66,50 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    guard, env có `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=2`,
    `settings.enabledMcpjsonServers`/`disabledMcpjsonServers`, `spawnClaudeCodeProcess` tự spawn tiến trình con
    trong process group riêng (`detached: true`), để cleanup (flow `resource-hygiene`) có thể gửi tín hiệu tới
-   cả process group/cây tiến trình mà agent khởi động; thu message `system/init` (session id, skill, MCP
-   server, apiKeySource), `system/api_retry`, `system/compact_boundary` (đếm số lần context bị nén) và `result`
-   (subtype, chi phí, `modelUsage`, `num_turns`, `duration_ms`). Mỗi message `assistant` của agent chính (bỏ
-   qua subagent) được `captureAssistant()`/`recordTool()` (`run-trace.ts`) gom vào `RunCapture`: tin nhắn văn
-   bản cuối cùng và tối đa 5 lời gọi tool cuối (chỉ tên tool và mục tiêu — `file_path`/`notebook_path`/`path`
-   tương đối trong worktree, hoặc tên skill của `Skill`; không bao giờ ghi dòng lệnh Bash) — dữ liệu này dùng để
-   chẩn đoán một lượt chạy kết thúc xấu (bước 10). `createScriptedRunner()` (bước 6) ghi capture tương tự qua
-   cùng `recordTool()`, cộng bước kịch bản `say: <text>` (một tin nhắn văn bản của agent, qua cùng bộ giải
-   template) làm tin nhắn cuối.
+   cả process group/cây tiến trình mà agent khởi động. `prompt` truyền cho `query()` là một luồng do daemon
+   điều khiển (`createPromptStream()`, `PromptStream`), không còn là một chuỗi: prompt của lượt chạy là tin
+   nhắn đầu, `send()` xếp thêm tin nhắn (lời nhắc bước dưới) vào luồng đang mở, `close()` mới đóng input — với
+   `prompt` dạng chuỗi runtime Claude Code đóng stdin ngay, nên một lệnh nền còn sống quá 5 giây sau `result`
+   đầu tiên bị kill. `apps/daemon/src/runner/background-session.ts` → `BackgroundSession` (không phụ thuộc
+   SDK, dùng chung với `createScriptedRunner()`, bước 6, qua cùng `SessionPort`: `send`/`stopTask`/`close`) giữ
+   tập tác vụ nền đang sống, rỗng khi tiến trình khởi động và được thay toàn bộ mỗi message
+   `system/background_tasks_changed` (`tasksChanged()`); ở mỗi `result` (`turnEnded()`): hết tác vụ nền thì
+   đóng input và lượt chạy kết thúc như cũ; còn tác vụ thì giữ phiên mở chờ runtime giao thông báo tác vụ xong
+   để agent chạy lượt tiếp, trong một trần chờ (`run.backgroundWaitMs`, `JobRunner` cấp từ
+   `DaemonConfig.backgroundWaitMinutes`, flow `daemon-runtime`, bước 2); `result` lỗi, tool đã gọi
+   `RunControl.requestEnd()` (bước 5), hay `run.workDone?.()` trả `true` (tuỳ chọn `JobRunner` cấp, đọc trạng
+   thái ticket, `true` khi ticket đã rời `in_progress` — `done`/`in_review`/`cancelled`/`needs_input`/`blocked`)
+   đều không chờ. Hết trần mà còn tác vụ, daemon gửi đúng một tin nhắn tiếng Việt (`reminderText()`) vào chính
+   phiên đang mở rồi chờ thêm một trần; lượt trả lời lời nhắc mà còn tác vụ thì không chờ nữa. Một tác vụ rời
+   tập tác vụ giữa câu trả lời cuối của một lượt (không qua thông báo, ví dụ bị dừng) vẫn được cho thêm một
+   khoảng lắng ngắn (`DEFAULT_SETTLE_MS`, 10 giây) thay vì chờ hết cả trần, vì runtime có thể vẫn nợ lượt thông
+   báo. Mọi đường đóng phiên — hết tác vụ, `result` lỗi, tool yêu cầu kết thúc, hết trần nhắc thêm một lần,
+   abort, hay khối `finally` khi tiến trình đi mất — đều gọi `Query.stopTask()` cho từng tác vụ còn sống trước
+   khi đóng input (lỗi của `stopTask` hay không trả lời trong 5 giây không chặn việc đóng). Vì phiên chạy nhiều
+   lượt trên cùng một tiến trình, `system/init` tới ở đầu **mỗi** lượt (runner chỉ nhận lượt đầu cho
+   `sessionId`/skill/MCP server/`apiKeySource`) và `result.total_cost_usd`/`modelUsage` là cộng dồn của cả
+   tiến trình nên runner lấy từ `result` cuối cùng, còn `num_turns`/`duration_ms` tính theo từng lượt nên được
+   cộng dồn qua mọi `result` của lượt chạy (không tính thời gian chờ giữa các lượt) vào `RunCapture`/
+   `AgentRunResult`. Tiến trình chết khi phiên còn mở (giữa lượt, hoặc đang chờ tác vụ nền) khiến lượt chạy
+   thành lỗi (`resultSubtype: null`) thay vì mang `success` của lượt trước đó. `AgentRunResult.backgroundTasksLeft`
+   báo đúng tác vụ nền còn sống lúc đóng phiên (rỗng sau một kết thúc sạch) và `reminded` báo daemon đã nhắc
+   hay chưa; tác vụ `ambient` (`ambient: true` của payload — tác vụ không thuộc phần việc của phiên, ví dụ
+   watcher riêng của runtime) không bao giờ được chờ và không vào `backgroundTasksLeft`, nhưng vẫn bị
+   `stopTask` khi đóng. Runner thu thêm message `system/api_retry`, `system/compact_boundary` (đếm số lần
+   context bị nén) như trước. Mỗi message `assistant` của agent chính (bỏ qua subagent) được
+   `captureAssistant()`/`recordTool()` (`run-trace.ts`) gom vào `RunCapture`: tin nhắn văn bản cuối cùng và tối
+   đa 5 lời gọi tool cuối (chỉ tên tool và mục tiêu — `file_path`/`notebook_path`/`path` tương đối trong
+   worktree, hoặc tên skill của `Skill`; không bao giờ ghi dòng lệnh Bash) — dữ liệu này dùng để chẩn đoán một
+   lượt chạy kết thúc xấu (bước 10). `createScriptedRunner()` (bước 6) ghi capture tương tự qua cùng
+   `recordTool()`, cộng bước kịch bản `say: <text>` (một tin nhắn văn bản của agent, qua cùng bộ giải template)
+   làm tin nhắn cuối.
 5. `apps/daemon/src/runner/agent-runner.ts` → `RunControl.requestEnd()`: khi tool `ask_owner` hoặc
    `handoff_docs` gọi `requestEnd()`, runner `interrupt()` turn hiện tại ngay sau message `assistant` tiếp
-   theo — kết thúc này được coi là bình thường (`isError` không bật) dù turn bị ngắt.
+   theo — kết thúc này được coi là bình thường (`isError` không bật) dù turn bị ngắt; `BackgroundSession` coi
+   đây là lý do đóng `end_requested` (bước 4): mọi tác vụ nền còn sống bị `stopTask` trước khi phiên đóng,
+   không chờ. `interrupt()` ở chế độ luồng vẫn khiến `q` trả về một `result` lỗi (`error_during_execution`)
+   nhưng không tự dừng tác vụ nền nào, nên đường kết thúc này vẫn cần `BackgroundSession` dừng tác vụ trước khi
+   đóng như mọi đường khác.
 6. `apps/daemon/src/runner/scripted-runner.ts` → `createScriptedRunner()`: test double cùng interface
    `AgentRunner`, đọc kịch bản YAML (bước `tool`/`bash`/`write`/`skill`/`sleep`/`say`/`apiError`/`fail`/`crash`,
    cộng `Edit` phát lại đúng `old_string`/`new_string`/`replace_all` như Claude Code thật) và thật sự phát lại
@@ -180,7 +212,8 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/daemon/src/runner/job-runner.ts` | Chạy một job từ đầu đến cuối | `JobRunner`, `defaultPlanner`, `chooseModel`, `crashText`, `RolePlanner`, `PlannerContext`, `PlannedRun`, `AfterRunDecision` |
-| `apps/daemon/src/runner/agent-runner.ts` | Runner SDK thật | `createSdkRunner`, `RunControl`, `agentEnv`, `AgentRunResult` |
+| `apps/daemon/src/runner/agent-runner.ts` | Runner SDK thật | `createSdkRunner`, `createPromptStream`, `PromptStream`, `RunControl`, `agentEnv`, `AgentRunResult` |
+| `apps/daemon/src/runner/background-session.ts` | Máy trạng thái phiên: chờ tác vụ nền, nhắc một lần, dừng rồi đóng — dùng chung bởi runner thật và runner kịch bản | `BackgroundSession`, `SessionPort`, `BackgroundTask`, `CloseReason`, `reminderText` |
 | `apps/daemon/src/runner/scripted-runner.ts` | Runner kịch bản YAML cho test | `createScriptedRunner`, `Script`, `ScriptedCrash` |
 | `apps/daemon/src/runner/run-trace.ts` | Thu và dựng chẩn đoán một lượt chạy | `RunCapture`, `recordTool`, `buildRunTrace`, `RunTrace`, `traceMarkdown`, `traceSummary` |
 | `apps/daemon/src/runner/guard-hook.ts` | Chặn ghi/Bash ngoài phạm vi | `evaluateToolCall`, `createGuardHook`, `isDocsPath`, `isProtectedPath` |
@@ -207,7 +240,8 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
 
 - daemon-scheduling: `Scheduler.launch()` gọi `JobRunner.launch()`.
 - daemon-runtime: `JobRunner` được tạo trong `createDaemon()`; chi phí và trạng thái job đọc/ghi
-  `state-db.ts`.
+  `state-db.ts`; `JobRunner.execute()` truyền `config.backgroundWaitMinutes` (khóa cục bộ, mặc định 30 phút,
+  flow đó) xuống runner làm `backgroundWaitMs` của bước 4.
 - agent-workspace: `workspace()`/`releaseWorkspace()` dùng `ensureWorktree`/`removeWorktree`;
   `probeInventory()` cấp danh sách skill/MCP cho `allowedToolsFor()`.
 - resource-hygiene: mỗi lần job kết thúc, `JobRunner.cleanup()` gọi `cleanupJob()`; PM dùng
@@ -238,7 +272,30 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   `resume` và ngân sách, báo đúng lớp lỗi API cuối; ngắt turn sau khi một tool yêu cầu kết thúc run và coi đó là
   kết thúc bình thường; run không có message `result` bị đánh dấu lỗi; `RunCapture` gom đúng `num_turns`,
   `duration_ms`, số lần `compact_boundary`, tin nhắn cuối của agent chính (bỏ qua message của subagent) và tối
-  đa 5 lời gọi tool cuối.
+  đa 5 lời gọi tool cuối. Nhóm "background tasks" (`query` giả phát message theo kịch bản): `prompt` truyền cho
+  `query()` là một `AsyncIterable`, tin nhắn đầu mang đúng prompt của lượt chạy; `result` hết tác vụ nền đóng
+  input và kết thúc lượt chạy như cũ; còn tác vụ nền thì giữ input mở và lượt tiếp cộng dồn chi phí/`num_turns`/
+  `duration_ms`/capture vào kết quả chung tới khi tập rỗng; một tác vụ rời tập giữa câu trả lời cuối của lượt
+  vẫn được chờ thêm lượt thông báo; tiến trình chết trong lúc phiên còn mở (giữa lượt, hoặc đang chờ tác vụ
+  nền) làm lượt chạy thành lỗi (`resultSubtype: null`) thay vì mang `success` của lượt trước; hết trần chờ thì
+  daemon gửi đúng một tin nhắn nhắc, lượt trả lời còn tác vụ nền thì `stopTask` được gọi cho từng tác vụ rồi
+  phiên đóng, lời nhắc không khởi động được lượt nào trong thêm một trần cũng đóng; `result` lỗi,
+  `RunControl.requestEnd()` (`ask_owner`/`handoff_docs`), abort, hay tùy chọn `workDone()` trả `true` đều kết
+  thúc ngay và dừng tác vụ còn sống trước khi đóng; `AgentRunResult.backgroundTasksLeft` báo đúng tác vụ còn
+  sống lúc đóng (rỗng khi kết thúc sạch) và `reminded` báo daemon đã nhắc hay chưa; một lượt thông báo bắt đầu
+  sau khi phiên đã đóng không chạy tiếp.
+- `apps/daemon/test/background-session.test.ts`: máy trạng thái của `BackgroundSession` độc lập SDK, qua một
+  `SessionPort` giả (`send`/`stopTask`/`close`) — tập tác vụ rỗng lúc khởi động và được thay toàn bộ mỗi
+  `tasksChanged()`; chờ khi còn tác vụ, đóng khi tập về rỗng sau một lượt; không chờ sau `result` lỗi,
+  `endRequested()`, hay `workDone()` trả `true` (và dừng tác vụ trước khi đóng trong cả ba trường hợp); nhắc
+  đúng một lần khi hết trần rồi đóng sau lượt trả lời; đóng luôn nếu lời nhắc không khởi động được lượt nào
+  trong thêm một trần; một lượt bắt đầu kết thúc trần ngay, không cần nhắc; một tác vụ rời tập giữa lượt (không
+  qua thông báo) được cho thêm một khoảng lắng (`settleMs`) thay vì chờ hết cả trần, kể cả khi việc đó lặp lại
+  hoặc không có tác vụ mới xuất hiện trong khoảng lắng đó; `result` lỗi hay `endRequested()` cắt luôn khoảng
+  lắng đó; tác vụ `ambient` không bao giờ được chờ nhưng vẫn bị dừng khi đóng; việc đóng vẫn xảy ra khi
+  `stopTask` lỗi hay không trả lời; đóng chỉ chạy một lần (gọi lại `turnEnded()`/`shutdown()` sau đó không làm
+  gì thêm); một `turnEnded()` đang đọc trạng thái run (`workDone()` chậm) không giữ `shutdown()` lại và không
+  làm phiên mở lại sau khi đã đóng.
 - `apps/daemon/test/guard-hook.test.ts`: từ chối ghi ngoài `cwd` và vào `.githooks` dù có file settings được
   cài đặt cho phép; lời gọi được phép không trả quyết định (để `dontAsk`/`allowedTools` vẫn áp dụng); đường
   dẫn được bảo vệ theo từng loại job (job `docs_update` được ghi `docs/` và Markdown gốc như `README.md`,
@@ -267,7 +324,14 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   lượt chạy đang trả lời một lời gọi đã ghi nhận.
 - `apps/daemon/test/live-smoke.test.ts`: worktree của repo có `.claude` bị gitignore vẫn thấy đúng skill
   project như checkout chính; đăng nhập gói đăng ký hoạt động và không tính phí qua API key; một job haiku
-  dùng đúng ticket tools, bị guard kiểm soát, và ghi đúng `total_cost_usd`.
+  dùng đúng ticket tools, bị guard kiểm soát, và ghi đúng `total_cost_usd`. Với model thật (haiku): một lệnh
+  nền (`sleep 12`) sống quá 5 giây sau `result` đầu tiên (runtime đóng stdin của prompt dạng chuỗi sẽ kill nó
+  ở giây thứ 5), runtime giao thông báo tác vụ xong và agent chạy lượt tiếp, thật sự ghi file
+  (`cat done.txt > seen.txt`); `AgentRunResult` gộp đúng `total_cost_usd` (của `result` cuối, cộng dồn của cả
+  phiên) và `capture.numTurns`/`capture.durationMs` (tổng theo từng `result`), `backgroundTasksLeft` rỗng và
+  `reminded` là `false` sau một kết thúc sạch; một lệnh nền ngắn hơn (`sleep 3`) có thể đã kết thúc trước khi
+  `result` đầu tiên tới (tuỳ tốc độ model viết câu trả lời) vẫn được cấp đúng lượt thông báo ở một lượt sau và
+  phiên vẫn kết thúc sạch.
 - `apps/daemon/test/run-trace.test.ts`: `buildRunTrace()` ẩn credential trong tin nhắn cuối và mục tiêu tool
   rồi mới cắt còn 1500 ký tự (không cắt lộ nửa chuỗi credential); giữ đúng 5 lời gọi tool cuối với đường dẫn
   tương đối; hiện rõ khi không có kết quả/tin nhắn/tool nào; `decideFailure()` (flow `agent-roles`) nối đúng

@@ -355,6 +355,15 @@ export interface JobRunnerDeps {
 
 const nowIso = () => new Date().toISOString();
 
+/** Ticket statuses that mean a run's own work is over: a turn ending there never waits for background tasks. */
+const RUN_FINISHED_STATUSES: ReadonlySet<Ticket['status']> = new Set([
+  'done',
+  'in_review',
+  'cancelled',
+  'needs_input',
+  'blocked',
+]);
+
 /**
  * One line naming an unexpected error for the ticket and the owner: its class (and errno code, e.g.
  * `ENOENT`) and message, with credential-shaped strings removed.
@@ -669,6 +678,15 @@ export class JobRunner {
         disabledMcpjsonServers: projectServers.filter((name) => disabled.includes(name)),
         ...(plan.appendSystemPrompt ? { appendSystemPrompt: plan.appendSystemPrompt } : {}),
         control,
+        backgroundWaitMs: config.backgroundWaitMinutes * 60_000,
+        workDone: async () => {
+          try {
+            return RUN_FINISHED_STATUSES.has((await vps.getTicket(ticket.id)).ticket.status);
+          } catch {
+            // The status is unknown (API unreachable): keep waiting, the wait has its own ceiling.
+            return false;
+          }
+        },
         onSpawn: (pid) => {
           if (!this.deps.halted()) job = this.update(job.id, { pgid: pid });
         },
