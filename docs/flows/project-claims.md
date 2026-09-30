@@ -124,13 +124,16 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
   một report có `mcpsUsed` chứa tên như vậy bị server từ chối. Dùng lại bởi `UiTestMcp` ở đây và bởi schema
   report/ticket của `packages/shared/src/api-schemas.ts` (flow `ticket-lifecycle`).
 - `packages/shared/src/machine-schemas.ts` → `InventoryMcpServer.disabled` là cờ dùng chung với flow
-  `machine-pairing`/`daemon-api`, không thuộc file của flow này: nguồn của nó là `ProjectConfig.disabledMcpServers`
-  cục bộ trên máy (`apps/daemon/src/config.ts`, flow `daemon-runtime`), không phải bảng `projects` hay claim ở
-  đây; daemon đánh dấu nó khi báo cáo inventory và server dùng để từ chối ticket yêu cầu server đó cho project
-  này. Cùng file còn có `WaitingJob` (nay thêm `waitReason`/`waitDetail`) và `FailedJob` mới, cạnh
-  `HeartbeatRequest.waitingJobs`/`failedJobs`, cũng không thuộc claim/project ở đây — dùng bởi cảnh báo
-  "ticket đứng yên" và bởi `AgentActivity` mà owner đọc trên ticket, cả hai của flow `ticket-lifecycle` (xem
-  flow `daemon-api`).
+  `machine-pairing`/`daemon-api`, không thuộc file của flow này: nguồn của nó nay là cài đặt `project_mcp`
+  của server (`disabledMcpServers`, flow `server-settings`) áp qua `effectiveConfig()` xuống
+  `ProjectConfig.disabledMcpServers` cục bộ trên máy (`apps/daemon/src/config.ts`, flow `daemon-runtime`),
+  không phải bảng `projects` hay claim ở đây; daemon đánh dấu nó khi báo cáo inventory và server dùng để từ
+  chối ticket yêu cầu server đó cho project này. Cùng file còn có `WaitingJob` (nay thêm
+  `waitReason`/`waitDetail`) và `FailedJob` mới, cạnh `HeartbeatRequest.waitingJobs`/`failedJobs`, cũng không
+  thuộc claim/project ở đây — dùng bởi cảnh báo "ticket đứng yên" và bởi `AgentActivity` mà owner đọc trên
+  ticket, cả hai của flow `ticket-lifecycle` (xem flow `daemon-api`). `HeartbeatRequest.settings`
+  (`MachineSettingsState`) và `Machine.settings` (`reported`/`expectedRevision`/`current`) cũng sống trong
+  file dùng chung này nhưng thuộc flow `server-settings`, không phải claim/project.
 - Sự kiện: `machine.claimed`, `claim.requested`, `claim.changed`, `machine.released`, `project.created`,
   `ticket.assigned {reassigned: true}`, `project.change_requested {requestId, projectId, machineId}` (owner
   stream, cũng là một loại thông báo trong `NOTICE_EVENT_TYPES`), `project.change_decided {requestId,
@@ -147,17 +150,19 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
   `/v1/projects/catalog` gọi thẳng các hàm của flow này với `actor='agent'`, qua `replyIdempotent()`; route
   `PUT /v1/daemon/projects/:projectKey/bmad-profile` gọi `putBmadProfile()` cùng cách.
 - daemon-runtime, desktop-app: daemon đọc hồ sơ BMAD từ `_bmad/` cục bộ và gửi lên đây qua `VpsClient.putBmadProfile()`
-  mỗi khi đổi; app desktop dùng lại hồ sơ server trả về để chạy trình cài `bmad-method` trên máy khác
-  ("Cài BMAD", Settings → Projects).
+  mỗi khi đổi; app desktop dùng lại hồ sơ server trả về để chạy trình cài `bmad-method` trên máy đang giữ
+  project khi owner bấm "Cài BMAD" trên web (trang Dự án, flow `machine-control`).
 - ticket-lifecycle: `retargetOpenTickets()` cập nhật `assignee_machine_id` của ticket khi quyền sở hữu project
   đổi.
 - daemon-scheduling: `dispatchEvent()` ánh xạ `project.change_decided` (như `claim.changed`) sang effect
   `refresh_projects`, để daemon của máy đã hỏi thấy `platform`/`ui_test_mcp` mới ngay.
-- desktop-app, desktop-ui: `requestTestSetup()`/`TestSetupSection` gọi route change-requests và hiển thị
-  trạng thái đang chờ/kết quả của máy này — duyệt, từ chối, hoặc tự rút khi máy mất project trước khi owner
-  quyết định (`ProjectDetail.lastChange`).
+- desktop-app: `VpsClient.requestProjectChange()` (route change-requests) hiện không còn nơi gọi — app đã bỏ
+  màn tự đề nghị đổi `platform`/MCP test UI (`requestTestSetup()`/`TestSetupSection` của "Settings → Projects")
+  cùng lúc thu hẹp thành cổng vào; route và cơ chế duyệt phía server vẫn còn, dùng khi có client khác gọi.
 - web-admin: trang Dự án và Máy hiển thị owner, nút chuyển máy; Inbox có ô duyệt/từ chối chuyển máy và ô duyệt/
   từ chối đổi loại project (TOTP).
+- server-settings: MCP tắt của một project là cài đặt `project_mcp` (`scope: project`) của flow đó, không
+  phải trường trên bảng `projects`; trang "Cài đặt hệ thống → Dự án" sửa nó.
 
 ## Tests
 

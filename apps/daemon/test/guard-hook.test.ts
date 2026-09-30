@@ -1,6 +1,7 @@
 import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { PreToolUseHookInput } from '@anthropic-ai/claude-agent-sdk';
+import { DEFAULT_GUARD_POLICY, type GuardPolicy } from '@crew/shared';
 import { describe, expect, it } from 'vitest';
 import { createGuardHook, evaluateToolCall, type GuardContext } from '../src/runner/guard-hook.js';
 import { StateDb } from '../src/state-db.js';
@@ -96,6 +97,51 @@ describe('guard hook', () => {
     });
     expect(out).toEqual({});
     expect(state.toolLog('j')[0]).toMatchObject({ tool: 'Read', target: 'docs/index.md', decision: 'allow' });
+  });
+
+  describe('path rules from the server policy', () => {
+    const policy: GuardPolicy = {
+      ...DEFAULT_GUARD_POLICY,
+      docsPaths: ['docs/**', 'handbook/**'],
+      protectedPaths: ['infra/**'],
+      docsUpdateWritePaths: ['docs/**', 'handbook/**'],
+    };
+    const decide = (kind: GuardContext['kind'], path: string, extra: Partial<GuardContext> = {}) =>
+      evaluateToolCall({ cwd: permissiveRepo(), kind, policy, ...extra }, 'Write', {
+        file_path: path,
+        content: '',
+      }).decision;
+
+    it('reads the protected list, the docs list and the docs job scope from the policy', () => {
+      expect(decide('agent', 'infra/main.tf')).toBe('deny');
+      expect(decide('docs_init', 'infra/main.tf')).toBe('allow');
+      // No longer protected by this policy.
+      expect(decide('agent', '.husky/pre-commit')).toBe('allow');
+      expect(decide('agent', 'handbook/guide.md', { codeOnly: true })).toBe('deny');
+      expect(decide('agent', 'README.md', { codeOnly: true })).toBe('allow');
+      expect(decide('docs_update', 'handbook/guide.md')).toBe('allow');
+      expect(decide('docs_update', 'README.md')).toBe('deny');
+    });
+
+    it('keeps AGENTS.md and CLAUDE.md protected and never docs, whatever the policy says', () => {
+      const open: GuardPolicy = {
+        ...DEFAULT_GUARD_POLICY,
+        protectedPaths: [],
+        docsPaths: ['**'],
+        docsUpdateWritePaths: ['**'],
+      };
+      for (const path of ['AGENTS.md', 'CLAUDE.md', 'claude.md']) {
+        for (const kind of ['agent', 'docs_update'] as const) {
+          expect(
+            evaluateToolCall({ cwd: permissiveRepo(), kind, policy: open }, 'Write', {
+              file_path: path,
+              content: '',
+            }).decision,
+            `${kind} ${path}`,
+          ).toBe('deny');
+        }
+      }
+    });
   });
 
   describe('protected paths and job kinds', () => {

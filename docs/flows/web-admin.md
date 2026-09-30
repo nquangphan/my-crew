@@ -51,13 +51,22 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
    tại (từ sidebar "Cài đặt project"). `BmadProfileSection()` hiện hồ sơ cài BMAD mới nhất mà một máy giữ
    project báo cáo (`Project.bmadProfile`, flow `project-claims`) — phiên bản và giờ cài (`Asia/Ho_Chi_Minh`),
    module, công cụ, ngôn ngữ, thư mục kết quả, số cấu hình module — chỉ đọc, không sửa được trên web; chưa máy
-   nào báo thì hiện "Chưa có cấu hình BMAD (máy đang giữ project chưa có BMAD)".
+   nào báo thì hiện "Chưa có cấu hình BMAD (máy đang giữ project chưa có BMAD)"; khi project có máy đang giữ
+   thì thêm `BmadInstallButton` ("Cài BMAD trên máy `<tên máy>`", khoá khi máy offline) — gửi lệnh
+   `bmad.install` (`useMachineCommand()`, flow `machine-control`) và hiện kết quả/lỗi ngay dưới nút.
+   `ProjectMcpSummary()` hiện MCP server tắt cho project (cài đặt `project_mcp` của flow `server-settings`,
+   đọc qua `useSettingsOverview()`) hoặc "không có", cộng link "Sửa MCP" tới `/settings/projects/$projectKey`.
 6. `apps/web/src/routes/machines.tsx` → `MachinesPage()`, `MachineCard()`: danh sách máy (online/paused/health
    với các check lỗi, tài nguyên, mục "Job" (`MachineJobs`) liệt kê job đang chạy (kèm model/effort), đang chờ
    (lý do qua `describeWait()` của flow `web-tickets`) và lỗi gần nhất của máy — mỗi dòng liên kết ticket khi
    đã biết key kèm `ProjectBadge` của ticket đó —, project sở hữu (hiện bằng badge), phiên bản app/CLI, hạn
-   token — đỏ khi dưới `TOKEN_WARN_DAYS=14`), nút "Ghép máy mới" (`PairingDialog`), "Đặt làm máy trợ
-   lý"/"Thu hồi" (xác nhận rồi gọi `api.assignToMachine`/`api.revokeMachine`, flow `machine-pairing`). Bộ lọc
+   token — đỏ khi dưới `TOKEN_WARN_DAYS=14`), `SettingsPickup()` (bản cài đặt server máy đang áp và đã nhận
+   bản mới nhất chưa, từ heartbeat — flow `server-settings`, component dùng lại của
+   `system-settings.tsx`) và link "Cài đặt máy" tới `/settings/machines/$machineId`, nút "Ghép máy mới"
+   (`PairingDialog`), "Đặt làm máy trợ lý"/"Thu hồi" (xác nhận rồi gọi
+   `api.assignToMachine`/`api.revokeMachine`, flow `machine-pairing`), và nút "Điều khiển" mở/đóng
+   `MachineControl` (flow `machine-control`) ngay dưới thẻ máy — tạm dừng, kiểm tra sức khỏe và fix từ xa, dò
+   lại skill/MCP, job gần đây, log, gỡ project hoặc vai trò trợ lý. Bộ lọc
    "Dự án" (`ProjectFilterMenu`, URL `project=KEY,KEY`, flow `web-tickets`) chỉ giữ máy có `projectKeys` chứa
    một project đã chọn (kèm dòng "Ẩn N máy không giữ dự án đã chọn."); `MachineJobs` chỉ liệt kê job có ticket
    thuộc project đã chọn (job có ticket chưa tải xong vẫn hiện tạm tới khi biết project).
@@ -94,8 +103,13 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 ## Flow liên quan
 
 - project-claims: duyệt/từ chối claim, tạo/sửa project, chuyển máy sở hữu, duyệt/từ chối yêu cầu đổi loại
-  project và MCP test UI mà một máy tự đề nghị; `BmadProfileSection` hiện `Project.bmadProfile` chỉ đọc — cài
-  đặt BMAD trên máy khác chỉ làm được ở app desktop (flow `desktop-app`/`desktop-ui`), không phải trên web.
+  project và MCP test UI mà một máy tự đề nghị (hiện không còn nơi gọi — app desktop đã bỏ màn tự đề nghị,
+  xem flow `desktop-app`); `BmadProfileSection` hiện `Project.bmadProfile` chỉ đọc, cạnh nút "Cài BMAD trên
+  máy `<tên máy>`" ngay trên trang này (flow `machine-control`, gửi lệnh `bmad.install` cho máy đang giữ
+  project).
+- machine-control: nút "Điều khiển" trên mỗi thẻ máy ở `machines.tsx` mở `MachineControl` (tạm dừng, sức khỏe
+  và fix, dò lại skill/MCP, job, log, gỡ project/vai trò trợ lý); `project-settings.tsx` dùng lại
+  `useMachineCommand()` cho nút "Cài BMAD" ở trên.
 - machine-pairing: tạo mã pairing, thu hồi máy, đặt máy trợ lý, đọc inventory skill/MCP.
 - ticket-lifecycle: nguồn thông báo `ticket.stuck` (báo ticket không máy nào đang xử lý).
 - event-delivery: nguồn thông báo (`/v1/notices`) và làm mới trực tiếp qua SSE.
@@ -104,6 +118,8 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
   `ProjectFilterMenu`/`selectedProjects()` (`components/project-filter.tsx`) và `ProjectBadge`.
 - docs-sync-viewer: `ProjectsPage` có link "Xem docs" tới docs space của mỗi project.
 - web-shell: dùng chung `Breadcrumbs`, `StatusLozenge`, `ui/*`, `useStoredState`.
+- server-settings: `SettingsPickup()`/`ProjectMcpSummary()` đọc lại cài đặt server (`Machine.settings`,
+  `project_mcp` của project) và link tới trang máy/dự án tương ứng của "Cài đặt hệ thống".
 
 ## Tests
 

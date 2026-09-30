@@ -110,8 +110,14 @@ export function describeActivity(
   switch (a.status) {
     case 'running': {
       const model = a.model ? ` · ${a.model}${a.effort ? `/${a.effort}` : ''}` : '';
+      // The server settings revision (prompts, rules, model map) the run started with.
+      const settings = a.settingsRevision ? ` · cài đặt ${a.settingsRevision}` : '';
       const since = a.since ? ` · từ ${formatClock(a.since, now)}` : '';
-      return { kind: 'running', tone: 'progress', text: `Đang chạy trên ${machine}${model}${since}` };
+      return {
+        kind: 'running',
+        tone: 'progress',
+        text: `Đang chạy trên ${machine}${model}${settings}${since}`,
+      };
     }
     case 'queued':
     case 'backoff': {

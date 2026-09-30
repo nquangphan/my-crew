@@ -97,6 +97,7 @@ function reportedActivity(machine: MachineView, fresh: boolean): Map<string, Age
     machineName: machine.name,
     machineOnline: machine.online,
     reportedAt: machine.lastHeartbeatAt?.toISOString() ?? null,
+    settingsRevision: null,
   };
   const out = new Map<string, AgentActivity>();
   for (const job of machine.failedJobs) {
@@ -136,6 +137,7 @@ function reportedActivity(machine: MachineView, fresh: boolean): Map<string, Age
       effort: job.effort ?? null,
       waitReason: null,
       waitDetail: null,
+      settingsRevision: job.settingsRevision ?? null,
     });
   }
   return out;
@@ -194,6 +196,7 @@ export async function loadAgentActivity(
         waitReason: null,
         waitDetail: null,
         reportedAt: host?.lastHeartbeatAt?.toISOString() ?? null,
+        settingsRevision: null,
       });
     } else {
       result.set(ticket.id, null);

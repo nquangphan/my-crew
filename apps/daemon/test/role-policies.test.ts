@@ -1,4 +1,5 @@
 import type { TicketDetailResponse } from '@crew/shared';
+import { DEFAULT_GUARD_POLICY } from '@crew/shared';
 import { describe, expect, it } from 'vitest';
 import { diffNeedsUiTest, missingUiServers } from '../src/roles/role-planner.js';
 import { wrapTicketDetail, wrapUntrusted } from '../src/roles/untrusted-wrap.js';
@@ -116,6 +117,13 @@ describe('QC UI test only for a diff that changes more than docs', () => {
     // A source file moved under docs/ still removes source.
     const moved = branchWith({ 'docs/app.ts': 'export {};\n' }, ['src/app.ts']);
     expect(diffNeedsUiTest(moved.repo, 'main', moved.head)).toBe(true);
+  });
+
+  it('reads the docs paths of the server policy', () => {
+    const { repo, head } = branchWith({ 'handbook/guide.md': '# Hướng dẫn\n' });
+    expect(diffNeedsUiTest(repo, 'main', head)).toBe(true);
+    const policy = { ...DEFAULT_GUARD_POLICY, docsPaths: ['docs/**', 'handbook/**'] };
+    expect(diffNeedsUiTest(repo, 'main', head, [], policy)).toBe(false);
   });
 
   it('keeps the UI test when the diff cannot be proven docs-only', () => {

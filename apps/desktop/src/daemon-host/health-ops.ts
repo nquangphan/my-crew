@@ -50,7 +50,8 @@ export class HealthOps {
   context(mode: HealthMode): HealthContext {
     let config: HealthContext['config'] = null;
     try {
-      config = this.host.config();
+      // The checks see what jobs run with: the running daemon applies the server settings (MCP switches).
+      config = this.host.daemon?.effectiveConfig() ?? this.host.config();
     } catch (error) {
       if (!(error instanceof ConfigError)) throw error;
     }

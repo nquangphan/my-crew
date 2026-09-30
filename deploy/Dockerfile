@@ -42,6 +42,8 @@ COPY --from=build /repo/packages/shared/dist packages/shared/dist
 COPY --from=build /repo/apps/api/package.json apps/api/
 COPY --from=build /repo/apps/api/dist apps/api/dist
 COPY --from=build /repo/apps/api/drizzle apps/api/drizzle
+# The daemon's bundled role prompts, where the API looks for them (the defaults of the prompt settings).
+COPY apps/daemon/src/roles/prompts apps/daemon/src/roles/prompts
 # Small operator tools (the shared-nginx override editor) that reuse the API's yaml dependency.
 COPY deploy/tools /app/deploy-tools
 WORKDIR /app/apps/api

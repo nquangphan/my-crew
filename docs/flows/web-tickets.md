@@ -102,8 +102,10 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
     đang mở), hộp thoại Tạo ticket (gợi ý dự án, ưu tiên, markdown, "Cho phép sửa config", "Tạo thêm" — người
     nhận luôn là assistant).
 13. `apps/web/src/components/agent-activity.tsx` → `describeActivity()`, `AgentActivityLine`,
-    `AgentActivityMark`: một dòng tiếng Việt kể máy nào đang chạy ticket (kèm model/effort/giờ bắt đầu), đang
-    chờ vì sao (`describeWait()`, không nêu tên máy), lỗi gần nhất, hay "chưa máy nào nhận"; báo cáo cũ hơn
+    `AgentActivityMark`: một dòng tiếng Việt kể máy nào đang chạy ticket (kèm model/effort/giờ bắt đầu, cộng
+    "· cài đặt `<rev>`" từ `AgentActivity.settingsRevision` — bản cài đặt server lượt chạy đó bắt đầu với,
+    flow `server-settings`), đang chờ vì sao (`describeWait()`, không nêu tên máy), lỗi gần nhất, hay "chưa
+    máy nào nhận"; báo cáo cũ hơn
     `AGENT_ACTIVITY_STALE_MS` (2 phút, từ `@crew/shared`) tự đọc thành "không rõ" phía client trước khi kịp
     refetch. `AgentActivityLine` tự làm mới mỗi 30s để giờ tương đối và trạng thái cũ luôn đúng.
     `AgentActivityMark` là icon nhỏ trên `TicketCardFace` cho trạng thái chờ/lỗi/không rõ (đang chạy vẫn chỉ
@@ -161,6 +163,8 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 - web-admin: `RoleAvatar`/`role_avatar` và badge trạng thái dùng lại ở Inbox và trang Máy; Inbox và Máy cũng
   dùng lại `ProjectFilterMenu`/`selectedProjects()`; trang Máy dùng lại
   `describeWait()`/`formatClock()` của `agent-activity.tsx` cho job đang chờ của từng máy.
+- server-settings: dòng ticket đang chạy hiện bản cài đặt server nó bắt đầu với
+  (`AgentActivity.settingsRevision`).
 
 ## Tests
 
@@ -188,7 +192,8 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
   `complexityReason` hiện trong Details.
 - `apps/web/src/components/agent-activity.test.tsx`: mô tả đúng từng trạng thái/lý do chờ và lỗi; báo "không
   rõ" (không phải "đang chạy") khi máy im lặng lâu hơn `AGENT_ACTIVITY_STALE_MS`; ticket `todo` chưa ai nhận
-  hiện đúng máy được giao; dòng hoạt động hiện trên ticket, mark trên card chỉ hiện khi job không chạy;
+  hiện đúng máy được giao; dòng hoạt động hiện trên ticket, mark trên card chỉ hiện khi job không chạy; dòng
+  ticket đang chạy có `settingsRevision` hiện thêm "· cài đặt `<rev>`";
   `agent.activity_changed` làm mới ticket và máy.
 - `apps/web/e2e/agent-activity.spec.ts`: từ chờ slot tới đang chạy live trên card, panel và trang Máy, ở cả ba
   viewport, không tràn ngang.

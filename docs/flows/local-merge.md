@@ -37,11 +37,14 @@ của `origin` — không có bước nào trong đây agent tự chạy `git me
    lần nữa trên cây đã merge và commit nếu đổi khác; đã sạch thì không tạo commit rỗng.
 6. `apps/daemon/src/roles/merge-policy.ts` → `prePushGate()`: chạy `project.testCommand` của máy (không có thì
    coi là đạt, ghi rõ lý do), `crew-docs check --range <base>..HEAD` (R1–R7 trên toàn bộ commit vừa gộp),
-   `protectedPathCheck()` (dùng lại `isProtectedPath()` của `guard-hook.ts`, flow `agent-runs`, nên `AGENTS.md`
-   ở gốc repo cũng được chặn ở đây — đường dẫn được bảo vệ đổi trong `range` phải có commit mang trailer
-   `Crew-Owner-Approved: <ticket-key>` hoặc `Crew-Docs-Init: true`; chặn cả một commit lách được guard hook lúc
-   chạy, ví dụ chỉnh trực tiếp `.claude/settings.json`/`AGENTS.md` rồi commit ngoài luồng agent). Bất kỳ bước
-   nào rớt trả `status: gate_failed` kèm output từng bước; không có gì được push.
+   `protectedPathCheck()` (dùng lại `isProtectedPath()` của `guard-hook.ts`, flow `agent-runs`, **luôn với danh
+   sách R6 đóng gói** — không đọc `GuardPolicy` của cài đặt server (flow `server-settings`) dù nó cũng cho
+   sửa `protectedPaths` trên web: cổng này bảo vệ đúng cơ chế duyệt/hook của crew-docs, có sửa quy tắc trên
+   web cũng không mở được đường tắt — nên `AGENTS.md` ở gốc repo cũng được chặn ở đây — đường dẫn được bảo vệ
+   đổi trong `range` phải có commit mang trailer `Crew-Owner-Approved: <ticket-key>` hoặc `Crew-Docs-Init:
+   true`; chặn cả một commit lách được guard hook lúc chạy, ví dụ chỉnh trực tiếp
+   `.claude/settings.json`/`AGENTS.md` rồi commit ngoài luồng agent). Bất kỳ bước nào rớt trả `status:
+   gate_failed` kèm output từng bước; không có gì được push.
 7. `apps/daemon/src/roles/merge-policy.ts` → `mergeAndPush()` (đẩy lên): `git push origin
    HEAD:refs/heads/<default>` — hook `pre-push` của repo (`docs-hooks`) chạy lại ở phía git; push bị hook hay
    remote từ chối cũng trả `gate_failed`.
@@ -82,6 +85,8 @@ của `origin` — không có bước nào trong đây agent tự chạy `git me
   code+test+docs, hoặc `docs_init` commit docs).
 - docs-check / docs-hooks: `crew-docs generate`/`check --range` và hook `pre-push` chạy trong bước 6–7.
 - docs-sync-viewer: snapshot docs được đồng bộ ngay sau khi push thành công.
+- server-settings: `protectedPathCheck()` cố ý không đọc `GuardPolicy` có thể sửa trên web, khác với guard
+  hook lúc chạy (flow `agent-runs`) và cổng UI-test của QC (flow `agent-roles`), cả hai đều đọc cài đặt đó.
 
 ## Tests
 

@@ -12,12 +12,17 @@ import {
   DaemonProjectsResponse,
   type DocsSyncRequest,
   DocsSyncResponse,
+  EffectiveSettings,
   type FileBugRequest,
   FileBugResponse,
   HealthResponse,
   type HeartbeatRequest,
   HeartbeatResponse,
   IDEMPOTENCY_KEY_HEADER,
+  type ImportLocalSettingsRequest,
+  ImportLocalSettingsResponse,
+  MachineCommand,
+  type MachineCommandResultRequest,
   MachineTokenResponse,
   type PairMachineRequest,
   Project,
@@ -25,11 +30,14 @@ import {
   type ProjectChangeBody,
   ProjectChangeResponse,
   PutBmadProfileResponse,
+  type PutProjectFolderRequest,
+  type PutProjectMcpRequest,
   type PutSkillsRequest,
   type RateSubtaskRequest,
   ReleaseClaimResponse,
   Report,
   type RetrySubtaskRequest,
+  SaveSettingsResponse,
   type SubmitReportRequest,
   Ticket,
   TicketDetailResponse,
@@ -87,6 +95,12 @@ interface RequestOptions<S extends z.ZodType> {
   idempotencyKey?: string;
   schema: S | null;
   auth?: boolean;
+  /** Extra request headers (e.g. `if-none-match`). */
+  headers?: Record<string, string>;
+  /** A 304 answer resolves to null instead of failing (conditional GETs). */
+  notModified?: boolean;
+  /** Attempts for this request (default: the client's). */
+  attempts?: number;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -121,19 +135,20 @@ export class VpsClient {
   async request<S extends z.ZodType>(options: RequestOptions<S>): Promise<z.output<S>> {
     let lastError: VpsError | undefined;
     let attempt = 1;
+    const attempts = options.attempts ?? this.attempts;
     try {
-      for (; attempt <= this.attempts; attempt++) {
+      for (; attempt <= attempts; attempt++) {
         try {
           return await this.once(options);
         } catch (error) {
           if (!(error instanceof VpsError) || !error.transient) throw error;
           lastError = error;
-          if (attempt < this.attempts) await sleep(this.retryDelayMs * 2 ** (attempt - 1));
+          if (attempt < attempts) await sleep(this.retryDelayMs * 2 ** (attempt - 1));
         }
       }
       throw lastError ?? new VpsError(0, 'NETWORK', 'request failed');
     } catch (error) {
-      this.report(options, error, Math.min(attempt, this.attempts));
+      this.report(options, error, Math.min(attempt, attempts));
       throw error;
     }
   }
@@ -156,7 +171,7 @@ export class VpsClient {
   }
 
   private async once<S extends z.ZodType>(options: RequestOptions<S>): Promise<z.output<S>> {
-    const headers: Record<string, string> = { accept: 'application/json' };
+    const headers: Record<string, string> = { accept: 'application/json', ...options.headers };
     if (options.auth !== false) Object.assign(headers, this.authHeader());
     if (options.body !== undefined) headers['content-type'] = 'application/json';
     if (options.idempotencyKey) headers[IDEMPOTENCY_KEY_HEADER] = options.idempotencyKey;
@@ -172,6 +187,7 @@ export class VpsClient {
       throw new VpsError(0, 'NETWORK', `${options.method} ${options.path}: ${(error as Error).message}`);
     }
     const text = await response.text();
+    if (response.status === 304 && options.notModified) return null as z.output<S>;
     const data: unknown = text === '' ? null : safeJson(text);
     if (!response.ok) {
       const parsed = ApiErrorBody.safeParse(data);
@@ -377,6 +393,91 @@ export class VpsClient {
       body,
       idempotencyKey,
       schema: Ticket,
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Server-managed settings
+  // -------------------------------------------------------------------------
+
+  /**
+   * The settings that apply to this machine; null when they still match `etag` (304). One attempt: the
+   * caller keeps its cached copy and tries again on the next event or the hourly refresh.
+   */
+  settings(etag: string | null): Promise<EffectiveSettings | null> {
+    return this.request({
+      method: 'GET',
+      path: '/v1/daemon/settings',
+      schema: EffectiveSettings,
+      headers: etag ? { 'if-none-match': etag } : {},
+      notModified: true,
+      attempts: 1,
+    });
+  }
+
+  /** The one-time upload of this machine's local config values (kept only where the server has none). */
+  importSettings(body: ImportLocalSettingsRequest, idempotencyKey: string) {
+    return this.request({
+      method: 'POST',
+      path: '/v1/daemon/settings/import',
+      body,
+      idempotencyKey,
+      schema: ImportLocalSettingsResponse,
+    });
+  }
+
+  /** Switches MCP servers of a project this machine owns (a new revision of its server setting). */
+  putProjectMcp(projectKey: string, body: PutProjectMcpRequest, idempotencyKey: string) {
+    return this.request({
+      method: 'PUT',
+      path: `/v1/daemon/settings/projects/${encodeURIComponent(projectKey)}/mcp`,
+      body,
+      idempotencyKey,
+      schema: SaveSettingsResponse,
+    });
+  }
+
+  /** Sets one project's folder on this machine (kept with the machine's other folders on the server). */
+  putProjectFolder(projectKey: string, body: PutProjectFolderRequest, idempotencyKey: string) {
+    return this.request({
+      method: 'PUT',
+      path: `/v1/daemon/settings/project-folders/${encodeURIComponent(projectKey)}`,
+      body,
+      idempotencyKey,
+      schema: SaveSettingsResponse,
+    });
+  }
+
+  deleteProjectFolder(projectKey: string, idempotencyKey: string) {
+    return this.request({
+      method: 'DELETE',
+      path: `/v1/daemon/settings/project-folders/${encodeURIComponent(projectKey)}`,
+      idempotencyKey,
+      schema: SaveSettingsResponse,
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Remote machine commands
+  // -------------------------------------------------------------------------
+
+  /** Takes a command the owner sent this machine (pending → running); 409 when it expired or ended. */
+  startCommand(commandId: string, idempotencyKey: string) {
+    return this.request({
+      method: 'POST',
+      path: `/v1/daemon/commands/${encodeURIComponent(commandId)}/start`,
+      idempotencyKey,
+      schema: MachineCommand,
+    });
+  }
+
+  finishCommand(commandId: string, body: MachineCommandResultRequest, idempotencyKey: string) {
+    return this.request({
+      method: 'POST',
+      path: `/v1/daemon/commands/${encodeURIComponent(commandId)}/result`,
+      body,
+      idempotencyKey,
+      schema: MachineCommand,
     });
   }
 

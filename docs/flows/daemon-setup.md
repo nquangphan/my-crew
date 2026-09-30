@@ -26,22 +26,28 @@ Giải thích cho chủ dự án (không cần biết dòng lệnh) cách đưa 
 2. **Mở lần đầu**: bản hiện tại ký ad-hoc, chưa nộp Apple ký Developer ID/notarize, nên Gatekeeper chặn mở
    bình thường — chuột phải vào app → "Open" để xác nhận một lần (chi tiết ký/notarize và cách bật sau này ở
    `docs/flows/desktop-app.md`).
-3. **Trình cài đặt** (`SetupWizard`, flow `desktop-ui`): Server (kiểm `https://crew.2p-solutions.com/v1/health`
-   trả lời đúng, hoặc domain khác nếu chủ dự án đổi `CREW_DOMAIN` lúc triển khai, xem flow `deployment`) → Ghép
-   máy bằng **mã pairing** một lần tạo trên trang Máy của web (owner xác nhận TOTP để tạo mã, flow
-   `machine-pairing`) → Claude (đăng nhập gói đăng ký Claude bằng `claude /login` mở qua Terminal ngay trong
-   trình cài đặt — không cần và không dùng `ANTHROPIC_API_KEY`, biến này bị gỡ khỏi môi trường agent để billing
-   luôn theo gói đăng ký) → chọn project và thư mục làm việc trên máy này → Docs (tự cài hook `crew-docs`) →
-   Tài nguyên/model → Hoàn tất (bật mở cùng máy, khởi động daemon).
+3. **Trình cài đặt** (`SetupWizard`, flow `desktop-ui`, 4 bước): Server (kiểm
+   `https://crew.2p-solutions.com/v1/health` trả lời đúng, hoặc domain khác nếu chủ dự án đổi `CREW_DOMAIN`
+   lúc triển khai, xem flow `deployment`) → Ghép máy bằng **mã pairing** một lần tạo trên trang Máy của web
+   (owner xác nhận TOTP để tạo mã, flow `machine-pairing`; lần ghép đầu còn viết tài nguyên gợi ý theo
+   CPU/RAM máy này lên server, sửa lại được trên web sau đó, flow `server-settings`) → Claude (đăng nhập gói
+   đăng ký Claude bằng `claude /login` mở qua Terminal ngay trong trình cài đặt — không cần và không dùng
+   `ANTHROPIC_API_KEY`, biến này bị gỡ khỏi môi trường agent để billing luôn theo gói đăng ký) → Hoàn tất
+   (bật mở cùng máy, khởi động daemon, mở trang "Trạng thái máy"). Giao project cho máy, chọn thư mục làm
+   việc (cũng chọn được ngay ở "Trạng thái máy", ghi lên server), cài hook `crew-docs`, tài nguyên/model và
+   mọi cài đặt khác không còn là bước của trình cài đặt — làm trên web sau khi hoàn tất.
 4. **Tuỳ chọn "host trợ lý"**: một máy có thể nhận thêm vai trò trợ lý (`assistant`, nhận và định tuyến ticket
-   `request` gốc) trong Settings → Projects (`crewd assistant on|off` ở CLI); mỗi thời điểm chỉ một máy giữ vai
-   trò này (flow `project-claims`).
+   `request` gốc); owner giao vai trò này trên web (trang Máy, nút "Đặt làm máy trợ lý", flow `web-admin`);
+   máy tự trả lại bằng CLI `crewd assistant off` hoặc từ web (trang Máy → Điều khiển, "Bỏ vai trò trợ lý", flow
+   `machine-control`); mỗi thời điểm chỉ một máy giữ vai trò này (flow `project-claims`).
 5. **Chuyển project sang máy khác (takeover)**: khi một project hoặc vai trò trợ lý đang thuộc máy khác, máy
    mới chỉ tạo được yêu cầu chờ duyệt (202 trên web hiện "Đang chờ duyệt"); owner duyệt bằng TOTP trên web
    (Inbox hoặc trang Dự án) trước khi máy mới thật sự chạy job cho scope đó (flow `project-claims`,
    `web-admin`).
-6. **Bảng sức khỏe**: sau khi cài xong, trang Sức khỏe của app (hoặc `crewd doctor`) là nơi đọc máy có đang ổn
-   không — chi tiết từng check và cách tự sửa nằm ở `docs/flows/daemon-health.md`.
+6. **Trạng thái máy**: sau khi cài xong, trang "Trạng thái máy" của app (hoặc `crewd doctor`) là nơi đọc máy
+   có đang ổn không nhanh; bảng đầy đủ, sửa lỗi từ xa, job và log gần nhất thì xem trên web (trang Máy →
+   Điều khiển, flow `machine-control`) — chi tiết từng check và cách tự sửa nằm ở
+   `docs/flows/daemon-health.md`.
 7. **Máy Linux không giao diện** (hoặc không muốn dùng app desktop): dùng trực tiếp CLI `crewd` — `crewd pair`,
    `crewd start` (chạy tiền cảnh) hoặc `crewd install-service` (cài systemd user unit, tự
    `UnsetEnvironment=ANTHROPIC_API_KEY`), `crewd doctor`, `crewd project add|create|release`, `crewd assistant
@@ -68,6 +74,8 @@ Không có: flow này không sở hữu code, chỉ mô tả trình tự cho ng�
 - machine-pairing: mã pairing một lần và token máy được cấp trong bước Ghép máy.
 - project-claims: nhận project/vai trò trợ lý ngay hoặc chờ duyệt khi máy khác đang giữ.
 - deployment: domain và VPS mà bước Server của trình cài đặt kiểm tới.
+- machine-control, server-settings: sau khi cài đặt xong, mọi thao tác từ xa và cấu hình khác của máy chuyển
+  hẳn sang web; app chỉ còn trang "Trạng thái máy" và bộ chọn thư mục.
 
 ## Tests
 

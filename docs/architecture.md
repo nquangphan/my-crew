@@ -22,12 +22,23 @@
   `docs/flows/daemon-health.md`). Hành vi theo vai trò (prompt, cổng docs-init/UI-test, model, thử lại, bọc dữ
   liệu không tin cậy) sống trong `apps/daemon/src/roles` (`docs/flows/agent-roles.md`); nghiệm thu của PM merge
   cục bộ kết quả các subtask, chạy cổng trước khi đẩy và push lên nhánh mặc định, không cần chủ dự án tự
-  merge PR (`docs/flows/local-merge.md`).
-- **`apps/desktop`**: app Electron (macOS) đóng gói `crewd` cho chủ dự án không quen dòng lệnh. Tiến trình
-  main quản lý cửa sổ, tray, mở cùng máy và cập nhật (`docs/flows/desktop-app.md`); daemon thật và các thao
-  tác trình cài đặt/sức khỏe chạy trong một `utilityProcess` riêng, nên đóng cửa sổ hay UI crash không dừng
-  job đang chạy. Renderer React (`docs/flows/desktop-ui.md`) chỉ nói chuyện với hai tiến trình đó qua một cầu
-  IPC có kiểu (`packages/shared/src/desktop-ipc.ts`), sandbox, không có Node.
+  merge PR (`docs/flows/local-merge.md`). Prompt vai trò, quy tắc guard/QC, bảng model, tài nguyên máy và MCP
+  tắt theo dự án và thư mục dự án theo máy là **cài đặt trên server** sửa trên web, không còn cố định trong
+  bundle hay `~/.crew/config.yaml`: cấu hình một job thực sự chạy với là cài đặt server chồng lên
+  `config.yaml` cục bộ (`effectiveConfig()`), cache lại ở `~/.crew/settings-cache.json` để dùng khi server
+  không tới được (`docs/flows/server-settings.md`). Chủ dự án cũng điều khiển một máy đang sống ngay từ web
+  (tạm dừng, kiểm tra sức khỏe và fix, dò lại skill/MCP, cài BMAD, job gần đây, log, gỡ project/vai trò trợ
+  lý) qua một danh sách hành động cố định kiểm ở cả server và daemon — không có cách chạy lệnh tuỳ ý trên máy
+  (`docs/flows/machine-control.md`).
+- **`apps/desktop`**: app Electron (macOS) đóng gói `crewd` cho chủ dự án không quen dòng lệnh — một **cổng
+  vào** (gateway) cho máy đó, không phải nơi cấu hình: sau khi cài đặt xong (server, ghép máy, đăng nhập
+  Claude) chỉ còn trang "Trạng thái máy" và bộ chọn thư mục; mọi project, tài nguyên, model, prompt, quy tắc,
+  MCP và cài đặt khác nằm trên web (`docs/flows/server-settings.md`) — **web là nguồn sự thật**, app chỉ đọc
+  lại và link tới đó. Tiến trình main quản lý cửa sổ, tray, mở cùng máy và cập nhật
+  (`docs/flows/desktop-app.md`); daemon thật và các thao tác trình cài đặt/sức khỏe chạy trong một
+  `utilityProcess` riêng, nên đóng cửa sổ hay UI crash không dừng job đang chạy. Renderer React
+  (`docs/flows/desktop-ui.md`) chỉ nói chuyện với hai tiến trình đó qua một cầu IPC có kiểu
+  (`packages/shared/src/desktop-ipc.ts`), sandbox, không có Node.
 
 ## Lưu trữ dữ liệu
 
@@ -53,10 +64,19 @@ PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migrat
   `budgets_usage` (chi phí theo project theo ngày, múi giờ cấu hình qua `BUDGET_TIMEZONE`).
 - **Docs snapshot**: `docs_snapshots` (bản mới nhất mỗi project: commit, branch, manifest `flows.yaml` đã
   parse), `docs_files` (nội dung từng trang đã đồng bộ, khoá theo project + path).
+- **Cài đặt server**: `settings_revisions` (mỗi sửa là một bản có tác giả/giờ/ghi chú của một
+  `(kind, scope, machine, project, name)` — prompt, quy tắc guard/QC, model, tài nguyên, thư mục dự án theo
+  máy, MCP tắt theo dự án), cột `machines.settings_state` (bản cài đặt máy đó báo qua heartbeat mới nhất). Xem
+  `docs/flows/server-settings.md`.
+- **Lệnh từ xa**: `machine_commands` (mỗi hàng một hành động owner gửi từ web cho một máy — action, tham số,
+  trạng thái `pending`/`running`/`done`/`failed`/`expired`, kết quả hoặc lỗi). Xem
+  `docs/flows/machine-control.md`.
 - **Trạng thái daemon cục bộ** (`~/.crew/state.db` trên từng máy, SQLite qua `better-sqlite3`, không phải
-  Postgres): `jobs` (job agent đang chờ/chạy/đã xong, tối đa một job hoạt động mỗi ticket), `meta` (cursor sự
-  kiện, hạn token, kho skill/MCP đã probe), `pending_wakeups`, `tool_log`, `job_cleanup`. Xem
-  `docs/flows/daemon-runtime.md`.
+  Postgres): `jobs` (job agent đang chờ/chạy/đã xong, tối đa một job hoạt động mỗi ticket, cột
+  `settings_revision` là bản cài đặt server job đó bắt đầu với), `meta` (cursor sự kiện, hạn token, kho
+  skill/MCP đã probe), `pending_wakeups`, `tool_log`, `job_cleanup`. Cạnh đó,
+  `~/.crew/settings-cache.json` giữ bản cài đặt server tốt gần nhất (không phải SQLite). Xem
+  `docs/flows/daemon-runtime.md`, `docs/flows/server-settings.md`.
 
 ## Dịch vụ bên ngoài
 

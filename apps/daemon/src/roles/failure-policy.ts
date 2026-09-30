@@ -53,7 +53,8 @@ export function failedJobText(job: Pick<JobRow, 'error' | 'runTrace'>): string {
  * calls) when the run left one, so the owner can tell from the web why it stopped.
  */
 export function decideFailure(input: {
-  job: Pick<JobRow, 'kind' | 'failedAttempts' | 'sessionId'> & Partial<Pick<JobRow, 'stage' | 'runTrace'>>;
+  job: Pick<JobRow, 'kind' | 'failedAttempts' | 'sessionId'> &
+    Partial<Pick<JobRow, 'stage' | 'runTrace' | 'settingsRevision'>>;
   reason: FailureReason;
   costUsd: number;
   /** Session to resume for a dev retry after a docs rejection (the dev session, not the docs one). */
@@ -61,7 +62,9 @@ export function decideFailure(input: {
 }): FailureDecision {
   const { job, reason } = input;
   const attempt = job.failedAttempts + 1;
-  const cost = `chi phí lượt này ${input.costUsd.toFixed(4)} USD`;
+  // The server settings revision (prompts, rules) the run started with: a bad edit shows up here.
+  const settings = job.settingsRevision ? `, cài đặt bản ${job.settingsRevision}` : '';
+  const cost = `chi phí lượt này ${input.costUsd.toFixed(4)} USD${settings}`;
   const diagnosis = job.runTrace ? `\n\n${traceMarkdown(job.runTrace, job.stage ?? null)}` : '';
   if (reason === 'budget' || attempt >= MAX_ATTEMPTS) {
     return {

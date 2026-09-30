@@ -1,5 +1,13 @@
 import { spawnSync } from 'node:child_process';
-import type { RoleStage, SkillInventory, Ticket, TicketDetailResponse, TicketStatus } from '@crew/shared';
+import {
+  DEFAULT_GUARD_POLICY,
+  type GuardPolicy,
+  type RoleStage,
+  type SkillInventory,
+  type Ticket,
+  type TicketDetailResponse,
+  type TicketStatus,
+} from '@crew/shared';
 import type { DaemonConfig, ProjectConfig } from '../config.js';
 import { docsSnapshot } from '../git/docs-kit-bridge.js';
 import type { AgentRunResult } from '../runner/agent-runner.js';
@@ -129,10 +137,10 @@ function complexityText(config: DaemonConfig): string {
 /** What QC reports when the diff under test is docs-only and it skipped the UI test. */
 export const DOCS_ONLY_QC_NOTE = 'Không có thay đổi giao diện (chỉ docs) nên không chạy test UI.';
 
-function uiTestText(ticket: Ticket, uiTest: boolean): string {
+function uiTestText(ticket: Ticket, uiTest: boolean, policy: GuardPolicy): string {
   if (!uiTest) {
     return (
-      'không cần: diff chỉ đổi docs (`docs/**`, file Markdown ở gốc repo), không đụng file nguồn nên review tĩnh là đủ. ' +
+      `không cần: diff chỉ đổi docs (${policy.docsPaths.map((glob) => `\`${glob}\``).join(', ')}), không đụng file nguồn nên review tĩnh là đủ. ` +
       `Trong \`summaryMd\` của report ghi đúng câu: "${DOCS_ONLY_QC_NOTE}"`
     );
   }
@@ -299,8 +307,8 @@ function resumeSession(job: JobRow, kind: JobKind, state: StateDb, ticketId: str
 }
 
 /**
- * True when the ticket under test changed anything but docs (see `isDocsPath`), so QC must run its UI
- * test. The ticket's own change is the commits on `head`'s first-parent line that are not reachable from
+ * True when the ticket under test changed anything but docs (see `isDocsPath`, with the job's path rules),
+ * so QC must run its UI test. The ticket's own change is the commits on `head`'s first-parent line that are not reachable from
  * the default branch nor from `builtOn` (heads of the finished tickets its worktree was built on: the
  * docs-init commit, dependencies, earlier fixes of a bug chain). The docs job commits code, tests and docs
  * in one commit, so this is usually `head^..head`; a later docs-only re-commit does not hide the code
@@ -314,6 +322,7 @@ export function diffNeedsUiTest(
   defaultBranch: string,
   head: string,
   builtOn: readonly string[] = [],
+  policy: GuardPolicy = DEFAULT_GUARD_POLICY,
 ): boolean {
   if (gitOut(repo, ['cat-file', '-e', `${head}^{commit}`]) === null) return true;
   // A base that is unknown here or already contains `head` (a later fix built on it) cannot bound the range.
@@ -351,15 +360,20 @@ export function diffNeedsUiTest(
     if (out === null) return true;
     for (const file of out.split('\0').filter(Boolean)) files.add(file);
   }
-  return files.size === 0 || [...files].some((file) => !isDocsPath(file));
+  return files.size === 0 || [...files].some((file) => !isDocsPath(file, policy));
 }
 
-/** Whether this QC run must use the ticket's UI-test MCP servers: not for a docs-only dev (or bug) change. */
+/**
+ * Whether this QC run must use the ticket's UI-test MCP servers: not for a docs-only dev (or bug) change,
+ * unless the path rules turned that exception off (`qcUiTestOnlyForNonDocs: false`).
+ */
 async function qcNeedsUiTest(
   ctx: PlannerContext,
   ticket: Ticket,
   project: ProjectConfig | null,
 ): Promise<boolean> {
+  const { policy } = ctx.settings;
+  if (!policy.qcUiTestOnlyForNonDocs) return true;
   if (!project || !ticket.pairsWith || ticket.requiredMcps.length === 0) return true;
   const head = (await ctx.vps.getTicket(ticket.pairsWith)).report?.headSha;
   if (!head) return true;
@@ -368,7 +382,7 @@ async function qcNeedsUiTest(
     ctx,
     siblings.filter((sibling) => sibling.id !== ticket.pairsWith),
   );
-  return diffNeedsUiTest(project.repoPath, project.defaultBranch, head, [...heads.values()]);
+  return diffNeedsUiTest(project.repoPath, project.defaultBranch, head, [...heads.values()], policy);
 }
 
 /** Required MCP servers of a QC ticket that are not connected (or are switched off) on this machine. */
@@ -465,7 +479,7 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
 
   const choice = resolveModel({ config, stage, ticket });
   const vars = await promptVars({ stage, job, kind, detail, config, project, ctx, mentions, uiTest });
-  const prompt = renderPrompt(STAGES[stage].prompt, vars);
+  const prompt = renderPrompt(STAGES[stage].prompt, vars, ctx.settings.prompts);
   let worktreeBase: string | undefined = project?.defaultBranch;
   if (ticket.type === 'bug' && ticket.parentId) {
     const siblings = (await ctx.vps.getTicket(ticket.parentId)).children;
@@ -536,7 +550,7 @@ async function promptVars(input: {
       : 'chạy `crew-docs init` và làm đúng checklist nó in ra.',
     hooks_note: 'daemon cài hook và chép file hook vào worktree trước lượt chạy, xem ghi chú cuối',
     review_base: project?.defaultBranch ?? 'main',
-    ui_test: uiTestText(ticket, input.uiTest),
+    ui_test: uiTestText(ticket, input.uiTest, ctx.settings.policy),
     handoff: '',
     paired_head: '(chưa có)',
     paired_key: '(chưa có)',
@@ -664,7 +678,7 @@ async function reportOverlay(input: ReportOverlayInput): Promise<ReportOverlay> 
       skillsMissing: gaps.skillsMissing,
       mcpsUsed: use.mcpsUsed,
       mcpsMissing: gaps.mcpsMissing,
-      docsFirst: docsFirst(logs, cwd),
+      docsFirst: docsFirst(logs, cwd, ctx.settings.policy),
       leftResources: leftBehindCount(state, jobs, job.id) + (liveProcesses > 0 ? 1 : 0) >= 2,
     },
     skillsSelected: selected.skills,

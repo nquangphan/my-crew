@@ -1,24 +1,16 @@
 import { z } from 'zod';
-import { Effort, SelectableModel } from './agent-schemas.js';
-import { BmadProfile } from './bmad-schemas.js';
 import { HealthCheckResult, HealthFixId, HealthGroup, HealthReport } from './health-schemas.js';
-import {
-  DaemonCreateProjectRequest,
-  DaemonProject,
-  OwnerState,
-  PairingCode,
-  PendingProjectChange,
-  ProjectChangeOutcome,
-  ProjectTestSetup,
-  SkillInventory,
-} from './machine-schemas.js';
-import { McpServerName, ProjectKey, ProjectPlatform, UiTestMcp } from './project-schemas.js';
+import { OwnerState, PairingCode } from './machine-schemas.js';
+import { ProjectKey } from './project-schemas.js';
+import { MachineSettingsState } from './settings-schemas.js';
 
 /**
- * Typed IPC of the 2P Crew desktop app. The sandboxed renderer calls `invoke(method, input)` through the
- * preload bridge; the main process validates every input with these schemas, answers app-level calls
- * itself and forwards the rest to the daemon host (an Electron utility process) over its MessagePort.
- * The machine token never crosses this boundary: the UI only sees validity and expiry.
+ * Typed IPC of the 2P Crew desktop app. The app is a gateway: pairing, a status view, links to the web (where
+ * every setting and remote action lives) and the actions only the machine can do (folder picker, macOS folder
+ * permission, Claude login, log folder, quit). The sandboxed renderer calls `invoke(method, input)` through the
+ * preload bridge; the main process validates every input with these schemas, answers app-level calls itself
+ * and forwards the rest to the daemon host (an Electron utility process) over its MessagePort. The machine
+ * token never crosses this boundary: the UI only sees validity and expiry.
  */
 
 export const DESKTOP_INVOKE_CHANNEL = 'crew:invoke';
@@ -40,14 +32,13 @@ const HttpUrl = z
 // Views
 // ---------------------------------------------------------------------------
 
-export const DesktopRoute = z.enum(['setup', 'health', 'jobs', 'logs', 'settings', 'settings-projects']);
+export const DesktopRoute = z.enum(['setup', 'status']);
 export type DesktopRoute = z.infer<typeof DesktopRoute>;
 
 export const Navigate = z.object({
   route: DesktopRoute,
-  /** Wizard step or settings section to open, e.g. `pairing` or `resources`. */
+  /** Wizard step to open, e.g. `pairing`. */
   section: z.string().max(50).optional(),
-  projectKey: ProjectKey.optional(),
 });
 export type Navigate = z.infer<typeof Navigate>;
 
@@ -83,6 +74,8 @@ export const DaemonStatusView = z.object({
   orphansCleaned: z.number().int(),
   projects: z.array(z.object({ key: z.string(), ownerState: z.string().nullable(), runnable: z.boolean() })),
   hostsAssistant: z.boolean(),
+  /** The server settings new jobs start with (revision, and whether from the server, cache or bundled). */
+  settings: MachineSettingsState.optional(),
 });
 export type DaemonStatusView = z.infer<typeof DaemonStatusView>;
 
@@ -138,27 +131,40 @@ export type ServerCheck = z.infer<typeof ServerCheck>;
 export const PairResult = z.object({ machineId: z.string(), machineName: z.string(), expiresAt: z.string() });
 export type PairResult = z.infer<typeof PairResult>;
 
-export const ProjectView = DaemonProject.extend({
-  /** The local folder, stored only in `~/.crew/config.yaml`. */
+/**
+ * One project this machine holds, as the status view shows it: its folder here (a server setting, so the owner
+ * can also set it on the web) and why the machine cannot use it, if it cannot.
+ */
+export const ProjectStatus = z.object({
+  key: z.string(),
+  name: z.string(),
+  ownerState: OwnerState,
+  /** The folder the daemon uses (null: none set, or the machine cannot use the one set). */
   localPath: z.string().nullable(),
+  /** The folder set on the server that this machine cannot use, and why. */
+  folderProblem: z.string().nullable(),
+  /** The project's settings page on the web. */
+  webUrl: z.string().nullable(),
 });
-export type ProjectView = z.infer<typeof ProjectView>;
+export type ProjectStatus = z.infer<typeof ProjectStatus>;
 
-export const ProjectsView = z.object({
-  items: z.array(ProjectView),
-  assistant: z.object({ state: OwnerState, hostName: z.string().nullable(), pendingClaim: z.boolean() }),
+/** What the gateway's status view shows besides the daemon status and the health summary. */
+export const StatusView = z.object({
+  machineId: z.string().nullable(),
+  projects: z.array(ProjectStatus),
+  assistant: OwnerState,
+  /** The settings revision new jobs start with (from the server, a cached copy or the bundled defaults). */
+  settings: MachineSettingsState.nullable(),
+  /** Folders whose macOS permission prompt is open right now (answer "Allow" on this machine). */
+  folderAccessWaiting: z.array(z.string()),
+  /** Pages of this machine on the web. */
+  links: z.object({
+    machines: z.string().nullable(),
+    machineSettings: z.string().nullable(),
+    systemSettings: z.string().nullable(),
+  }),
 });
-export type ProjectsView = z.infer<typeof ProjectsView>;
-
-export const FolderInfo = z.object({
-  path: z.string(),
-  isRepo: z.boolean(),
-  origin: z.string().nullable(),
-  defaultBranch: z.string().nullable(),
-  suggestedKey: z.string(),
-  suggestedName: z.string(),
-});
-export type FolderInfo = z.infer<typeof FolderInfo>;
+export type StatusView = z.infer<typeof StatusView>;
 
 export const FolderValidation = z.object({
   path: z.string(),
@@ -168,131 +174,15 @@ export const FolderValidation = z.object({
 });
 export type FolderValidation = z.infer<typeof FolderValidation>;
 
-export const ClaimOutcome = z.object({
-  /** Project key, or `assistant`. */
-  target: z.string(),
-  status: z.enum(['granted', 'already_owned', 'pending', 'released', 'withdrawn', 'unchanged', 'error']),
-  message: z.string(),
-});
-export type ClaimOutcome = z.infer<typeof ClaimOutcome>;
-
-export const HookView = z.object({
-  key: z.string(),
-  path: z.string(),
-  /** The hooks run (whichever runtime installed them). */
-  installed: z.boolean(),
-  /** The hooks run this machine's crew-docs version. */
-  current: z.boolean(),
-  /** Why the hooks do not run, or what they run. */
-  detail: z.string().optional(),
-  docsInitialized: z.boolean(),
-  docsStatus: z.string().nullable(),
-});
-export type HookView = z.infer<typeof HookView>;
-
-export const ResourceSettings = z.object({
-  maxConcurrentJobs: z.number().int().min(1).max(64),
-  minFreeMemGb: z.number().min(0).max(1_024),
-  maxLoadPerCpu: z.number().positive().max(64),
-});
-export type ResourceSettings = z.infer<typeof ResourceSettings>;
-
-const ModelChoice = z.object({ model: SelectableModel, effort: Effort });
-
-export const ModelSettings = z.object({
-  allow: z
-    .array(SelectableModel)
-    .min(1)
-    .refine((list) => list.includes('sonnet'), 'sonnet phải luôn được cho phép (docs chạy trên sonnet)'),
-  complexityMap: z.object({
-    trivial: ModelChoice,
-    small: ModelChoice,
-    medium: ModelChoice,
-    large: ModelChoice,
-  }),
-});
-export type ModelSettings = z.infer<typeof ModelSettings>;
-
-export const ResourcesView = z.object({
-  resources: ResourceSettings,
-  models: ModelSettings,
-  /** Defaults suggested from this machine's CPU and RAM. */
-  suggested: ResourceSettings,
-  machine: z.object({ cpus: z.number().int(), totalMemGb: z.number() }),
-});
-export type ResourcesView = z.infer<typeof ResourcesView>;
-
-/** What the project's `_bmad/_config/manifest.yaml` on this machine says is installed. */
-export const BmadLocalInstall = z.object({ version: z.string(), modules: z.array(z.string()) });
-export type BmadLocalInstall = z.infer<typeof BmadLocalInstall>;
-
-/**
- * What "Cài BMAD" would do: `no_profile` (no machine reported one), `install` (no BMAD in this folder yet),
- * `installed` (the folder already has a BMAD install, whatever its version or modules: the app never
- * reinstalls, updates or downgrades it).
- */
-export const BmadInstallPlan = z.enum(['no_profile', 'install', 'installed']);
-export type BmadInstallPlan = z.infer<typeof BmadInstallPlan>;
-
-export const ProjectBmadView = z.object({
-  profile: BmadProfile.nullable(),
-  local: BmadLocalInstall.nullable(),
-  plan: BmadInstallPlan,
-});
-export type ProjectBmadView = z.infer<typeof ProjectBmadView>;
-
-export const ProjectDetail = z.object({
-  key: z.string(),
-  localPath: z.string().nullable(),
-  platform: ProjectPlatform.nullable(),
-  uiTestMcp: UiTestMcp.nullable(),
-  /** The UI-test servers QC must use for this project type. */
-  requiredMcps: z.array(z.string()),
-  inventory: SkillInventory.nullable(),
-  disabledMcpServers: z.array(z.string()),
-  sharedPaths: z.object({ detected: z.array(z.string()), extra: z.array(z.string()) }),
-  /** The project's settings page on the web. */
-  webSettingsUrl: z.string().nullable(),
-  /** This machine's type and MCP change waiting for the owner's confirmation on the web. */
-  pendingChange: PendingProjectChange.nullable(),
-  /** This machine's latest change request for the project: how the owner decided, or that it was withdrawn. */
-  lastChange: ProjectChangeOutcome.nullable(),
-  /** The project's BMAD profile on the server and the install in this machine's folder. */
-  bmad: ProjectBmadView,
-});
-export type ProjectDetail = z.infer<typeof ProjectDetail>;
-
-export const BmadInstallResult = z.object({
-  status: z.enum(['skipped', 'installed']),
-  /** What happened, in Vietnamese, including files the install left uncommitted. */
-  message: z.string(),
-  detail: ProjectDetail,
-});
-export type BmadInstallResult = z.infer<typeof BmadInstallResult>;
-
-/** One line of the BMAD installer's output while "Cài BMAD" runs. */
-export const BmadProgress = z.object({ key: z.string(), line: z.string() });
-export type BmadProgress = z.infer<typeof BmadProgress>;
-
 // ---------------------------------------------------------------------------
 // Requests (renderer → main → host)
 // ---------------------------------------------------------------------------
-
-const RepoRelativePath = z
-  .string()
-  .trim()
-  .min(1)
-  .max(500)
-  .refine(
-    (path) => !path.startsWith('/') && !path.split(/[\\/]/).includes('..'),
-    'must stay inside the repo',
-  );
 
 const request = <I extends z.ZodType, O extends z.ZodType>(input: I, output: O) => ({ input, output });
 
 export const DesktopRequests = {
   'app.info': request(Empty, AppInfo),
-  /** Opens a ticket or release page in the browser; only the paired server and GitHub releases. */
+  /** Opens a page of the paired server (or the release page) in the browser. */
   'app.openExternal': request(z.object({ url: HttpUrl }).strict(), z.null()),
   'app.checkUpdate': request(Empty, UpdateStatus),
   'app.installUpdate': request(Empty, UpdateStatus),
@@ -322,55 +212,14 @@ export const DesktopRequests = {
   /** Turns on start at login, starts the daemon and marks the setup complete. */
   'setup.finish': request(Empty, AppInfo),
 
+  /** The gateway's status view: projects and their folders here, settings, pending permission prompts. */
+  'status.view': request(Empty, StatusView),
   'folder.pick': request(Empty, z.object({ path: z.string().nullable() })),
-  'folder.inspect': request(z.object({ path: AbsolutePath }).strict(), FolderInfo),
-  'folder.validate': request(
-    z
-      .object({ path: AbsolutePath, repoUrl: z.string().max(500), defaultBranch: z.string().min(1).max(200) })
-      .strict(),
-    FolderValidation,
-  ),
-
-  'projects.list': request(Empty, ProjectsView),
-  'projects.apply': request(
-    z
-      .object({
-        selections: z.array(z.object({ key: ProjectKey, path: AbsolutePath }).strict()).max(100),
-        assistant: z.boolean(),
-      })
-      .strict(),
-    z.array(ClaimOutcome),
-  ),
-  'projects.create': request(
-    DaemonCreateProjectRequest.extend({ path: AbsolutePath }).strict(),
-    ClaimOutcome,
-  ),
+  /**
+   * The folder picker's convenience: checks the folder here (repo, origin, branch, push access), then saves it
+   * as this machine's folder of the project on the server (the same setting the web edits).
+   */
   'projects.setFolder': request(z.object({ key: ProjectKey, path: AbsolutePath }).strict(), FolderValidation),
-  'projects.release': request(z.object({ key: ProjectKey }).strict(), ClaimOutcome),
-  'projects.setAssistant': request(z.object({ enabled: z.boolean() }).strict(), ClaimOutcome),
-  'projects.detail': request(z.object({ key: ProjectKey }).strict(), ProjectDetail),
-  'projects.setMcpEnabled': request(
-    z.object({ key: ProjectKey, server: McpServerName, enabled: z.boolean() }).strict(),
-    ProjectDetail,
-  ),
-  'projects.setSharedPaths': request(
-    z.object({ key: ProjectKey, paths: z.array(RepoRelativePath).max(50) }).strict(),
-    ProjectDetail,
-  ),
-  'projects.refreshInventory': request(z.object({ key: ProjectKey }).strict(), ProjectDetail),
-  /** Asks the owner to change the project type and UI-test MCP mapping; nothing changes until approved. */
-  'projects.requestTestSetup': request(ProjectTestSetup.extend({ key: ProjectKey }).strict(), ProjectDetail),
-  /** Installs the project's BMAD profile into its local folder (manual only; never commits). */
-  'projects.installBmad': request(z.object({ key: ProjectKey }).strict(), BmadInstallResult),
-
-  'hooks.list': request(Empty, z.array(HookView)),
-  'hooks.install': request(z.object({ key: ProjectKey }).strict(), HookView),
-
-  'config.resources': request(Empty, ResourcesView),
-  'config.saveResources': request(
-    z.object({ resources: ResourceSettings, models: ModelSettings }).strict(),
-    ResourcesView,
-  ),
 
   'health.get': request(Empty, HealthReport.nullable()),
   /** `quick` skips the paid login probe and the checkout skill probe (the 5-minute schedule). */
@@ -380,14 +229,6 @@ export const DesktopRequests = {
   'daemon.pause': request(Empty, DaemonStatusView.nullable()),
   'daemon.resume': request(Empty, DaemonStatusView.nullable()),
   'daemon.restart': request(Empty, DaemonRuntime),
-
-  'jobs.list': request(Empty, z.array(JobView)),
-  'logs.tail': request(
-    z
-      .object({ ticket: z.string().trim().max(100).optional(), limit: z.number().int().min(1).max(2_000) })
-      .strict(),
-    z.array(LogLine),
-  ),
 } as const;
 
 export type DesktopMethod = keyof typeof DesktopRequests;
@@ -408,11 +249,8 @@ export const DesktopEvents = {
   'daemon.status': DaemonStatusView.nullable(),
   'daemon.runtime': DaemonRuntime,
   'health.report': HealthReport,
-  'jobs.changed': z.array(JobView),
-  'log.line': LogLine,
   'update.status': UpdateStatus,
   'app.navigate': Navigate,
-  'bmad.progress': BmadProgress,
 } as const;
 
 export type DesktopEventName = keyof typeof DesktopEvents;
@@ -421,6 +259,17 @@ export type DesktopEventPayload<E extends DesktopEventName> = z.output<(typeof D
 // ---------------------------------------------------------------------------
 // Daemon host protocol (main ↔ utility process, over its MessagePort)
 // ---------------------------------------------------------------------------
+
+/**
+ * Health fixes only the main process can apply (Terminal, login item, app update, restarting the host). A fix
+ * asked for from the web reaches the host, which passes these to the main process (`app.fix` event).
+ */
+export const APP_HEALTH_FIXES: readonly string[] = [
+  'open-claude-login',
+  'enable-login-item',
+  'install-update',
+  'restart-daemon',
+];
 
 /** Facts only the main process knows, sent to the host for the App health group. */
 export const AppFacts = z.object({
@@ -461,14 +310,7 @@ export function hostInputSchema(method: string): z.ZodType | null {
   return null;
 }
 
-export const HostEventName = z.enum([
-  'daemon.status',
-  'health.report',
-  'jobs.changed',
-  'log.line',
-  'job.blocked',
-  'bmad.progress',
-]);
+export const HostEventName = z.enum(['daemon.status', 'health.report', 'job.blocked', 'app.fix']);
 export type HostEventName = z.infer<typeof HostEventName>;
 
 export const ToHost = z.discriminatedUnion('kind', [

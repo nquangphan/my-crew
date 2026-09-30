@@ -51,9 +51,14 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
    `keys.docsOverview` — vì trạng thái ticket `docs_init` là lý do trang chủ docs của flow `docs-sync-viewer`
    còn hiện "Chưa có docs"; `budget.exceeded` và `ticket.stuck` làm mới thêm danh sách thông báo của inbox,
    `agent.activity_changed` làm mới thêm ticket và máy liên quan, `ticket.pm_mentioned` làm mới ticket như
-   `ticket.comment_added`/`ticket.status_changed`), gộp theo lô 100ms (`batchMs`). Khi trình duyệt tự đóng hẳn
-   stream (`readyState CLOSED`), mở lại với `?cursor=<lastEventId>` sau `retryMs`, và invalidate toàn bộ query
-   sau mỗi lần nối lại (vì có thể đã lỡ sự kiện lúc mất kết nối).
+   `ticket.comment_added`/`ticket.status_changed`, `settings.changed` làm mới `keys.settings` cộng
+   `keys.machines`/`['machine']` — vì trang cài đặt và trạng thái "đã nhận" của máy đều đổi,
+   `machine.settings_applied` làm mới `keys.machines`/`['machine']` — flow `server-settings`;
+   `machine.command`/`machine.command_updated` làm mới `['machineCommands']` cộng `keys.machines`/`['machine']`
+   — một lệnh tạm dừng hay dò lại inventory cũng đổi hiện trạng máy, flow `machine-control`), gộp theo lô
+   100ms (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với
+   `?cursor=<lastEventId>` sau `retryMs`, và invalidate toàn bộ query sau mỗi lần nối lại (vì có thể đã lỡ sự
+   kiện lúc mất kết nối).
 8. `apps/api/src/services/notice-read-service.ts` → `listOwnerNotices()`: mỗi thông báo (loại sự kiện trong
    `NOTICE_EVENT_TYPES`) kèm cờ `read` của owner (tra bảng `notice_reads` theo `seq`), cộng `unread` là số
    thông báo chưa đọc trong **toàn bộ lịch sử**, không chỉ trang đang lấy — đây là số cho badge Inbox.
@@ -85,6 +90,12 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
   stream) là sự kiện riêng của flow này, phát mỗi lần `markNoticesRead()`/`markAllNoticesRead()` chạy, để mọi
   thiết bị của owner thấy cùng số chưa đọc. `agent.activity_changed {machineId, ticketIds}` (owner stream,
   không phải notice) phát bởi `recordHeartbeat()` (flow `machine-pairing`) khi báo cáo job của một ticket đổi.
+  `settings.changed` (owner stream cộng mọi máy bị ảnh hưởng, không phải notice) phát bởi `saveRevision()` khi
+  lưu/khôi phục một bản cài đặt; `machine.settings_applied {machineId, revision}` (owner stream) phát bởi
+  `recordHeartbeat()` khi một máy báo bản mới — cả hai của flow `server-settings`. `machine.command
+  {commandId, machineId, action}` (owner stream cộng đúng máy đó, không phải notice) phát bởi
+  `createMachineCommand()` khi owner gửi một hành động từ web; `machine.command_updated {commandId, machineId,
+  status}` (owner stream) phát mỗi lần lệnh đó đổi trạng thái — cả hai của flow `machine-control`.
 - Gọi ngoài: không (chỉ Postgres LISTEN/NOTIFY nội bộ).
 
 ## Flow liên quan
@@ -102,6 +113,11 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 - web-shell: `startLiveEvents()` được gắn vào app shell để mọi trang nhận cập nhật realtime.
 - web-admin: trang Inbox gọi `markRead()`/`markAllRead()` (qua `useInboxSummary()`) và làm mới khi nhận
   `inbox.read` từ thiết bị khác của owner.
+- server-settings: `settings.changed`/`machine.settings_applied` phát từ đó qua cùng `appendEvents()`;
+  `invalidationsFor()` làm mới `keys.settings`/máy khi nhận.
+- machine-control: `machine.command`/`machine.command_updated` phát từ đó qua cùng `appendEvents()`; daemon
+  đang nghe `/v1/daemon/stream` nhận `machine.command` khi nhắm đúng máy (ánh xạ sang effect `run_command`,
+  flow `daemon-scheduling`).
 
 ## Tests
 

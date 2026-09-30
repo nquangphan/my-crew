@@ -3,17 +3,18 @@ import { join } from 'node:path';
 import { loadConfig } from '@crew/daemon';
 import type {
   AppLogEntry,
-  ClaimOutcome,
   DaemonStatusView,
+  FolderValidation,
   HealthReport,
-  HookView,
   Machine,
+  MachineCommand,
   PairResult,
-  ProjectDetail,
+  StatusView,
 } from '@crew/shared';
 import { describe, expect, inject, it } from 'vitest';
-import { freshTotp, insertPairingCode, pairTestMachine } from '../../api/test/helpers/machines.js';
-import { seedAndLogin } from '../../api/test/helpers/owner-session.js';
+import { settingsRevisions } from '../../api/src/db/schema.js';
+import { insertPairingCode } from '../../api/test/helpers/machines.js';
+import { type LoggedInOwner, seedAndLogin } from '../../api/test/helpers/owner-session.js';
 import { createTestProject } from '../../api/test/helpers/test-db.js';
 import { useApi as apiFixture } from '../../daemon/test/helpers/api.js';
 import { git, makeRepo, onCleanup, tempDir } from '../../daemon/test/helpers/git.js';
@@ -69,23 +70,65 @@ const until = async (condition: () => boolean | Promise<boolean>, ms = 20_000) =
   }
 };
 
-describe('daemon host: setup wizard operations against the real API', () => {
-  it('checks the server, pairs, claims projects (202 pending for a takeover) and runs them once approved', async () => {
+/** The owner's side of the web: assign a project, ask the machine for a remote action and wait for it. */
+type ApiApp = Awaited<ReturnType<typeof api.server>>['app'];
+
+function web(app: ApiApp, owner: LoggedInOwner, machineId: string) {
+  return {
+    assign: async (body: object) => {
+      const res = await app.inject({
+        method: 'POST',
+        url: `/v1/machines/${machineId}/claims`,
+        headers: owner.headers,
+        payload: body,
+      });
+      expect(res.statusCode).toBe(200);
+    },
+    command: async (body: object): Promise<MachineCommand> => {
+      const asked = await app.inject({
+        method: 'POST',
+        url: `/v1/machines/${machineId}/commands`,
+        headers: owner.headers,
+        payload: body,
+      });
+      expect(asked.statusCode).toBe(201);
+      const id = (asked.json() as MachineCommand).id;
+      let command: MachineCommand | null = null;
+      await until(async () => {
+        const res = await app.inject({
+          method: 'GET',
+          url: `/v1/machines/${machineId}/commands/${id}`,
+          headers: owner.headers,
+        });
+        command = res.json() as MachineCommand;
+        return command.status === 'done' || command.status === 'failed';
+      });
+      return command as unknown as MachineCommand;
+    },
+    saveFolders: async (projects: object[]) => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/v1/settings',
+        headers: owner.headers,
+        payload: { key: { kind: 'project_folders', scope: 'machine', machineId }, content: { projects } },
+      });
+      expect(res.statusCode).toBe(201);
+    },
+  };
+}
+
+describe('daemon host: the gateway against the real API', () => {
+  it('pairs, shows the projects assigned on the web, saves a picked folder to the server and runs the project', async () => {
     const server = await api.server();
     const owner = await seedAndLogin(server.app, api.db);
-    const other = await pairTestMachine(api.db, 'may-cu');
-    await createTestProject(api.db, { key: 'WEB', repoUrl: 'https://github.com/2p/web-shop.git' });
-    await createTestProject(api.db, {
-      key: 'APP',
-      name: 'Mobile app',
-      repoUrl: 'git@github.com:2p/mobile-app.git',
-      platform: 'mobile',
-      ownerMachineId: other.machineId,
+    const project = await createTestProject(api.db, {
+      key: 'WEB',
+      repoUrl: 'https://github.com/2p/web-shop.git',
     });
     const home = join(tempDir('crew-desktop-home-'), 'crew');
-    const { call, service } = host(home);
+    const { call, service, logs } = host(home);
 
-    // Step 1: server.
+    // Server check, then pairing (the token goes to the token store, never to the config).
     expect(await call('setup.checkServer', { apiUrl: server.url })).toMatchObject({ ok: true });
     expect(await call('setup.checkServer', { apiUrl: 'http://crew.example.com' })).toMatchObject({
       ok: false,
@@ -95,74 +138,50 @@ describe('daemon host: setup wizard operations against the real API', () => {
       ok: false,
       message: 'Server không có API /v1: phiên bản API không tương thích.',
     });
-
-    // Step 2: pairing (the token goes to the token store, never to the config).
-    await expect(call('projects.list')).rejects.toThrow('Máy chưa được ghép');
-    const code = await insertPairingCode(api.db);
-    const paired = await call<PairResult>('setup.pair', { apiUrl: server.url, code, machineName: 'mac-moi' });
-    expect(paired.machineName).toBe('mac-moi');
+    const paired = await call<PairResult>('setup.pair', {
+      apiUrl: server.url,
+      code: await insertPairingCode(api.db),
+      machineName: 'mac-moi',
+    });
     expect(await call('host.appState')).toEqual({ apiUrl: server.url, machineName: 'mac-moi', paired: true });
-    expect(JSON.stringify(loadConfig(join(home, 'config.yaml')))).not.toContain('crew_mt_');
+    const config = loadConfig(join(home, 'config.yaml'));
+    expect(JSON.stringify(config)).not.toContain('crew_mt_');
+    // Resources suggested from this machine's CPU and RAM, uploaded once when the daemon starts.
+    expect(config.resources.maxLoadPerCpu).toBe(1.5);
+    const owned = web(server.app, owner, paired.machineId);
 
-    // Step 4: projects and folders.
-    const web = projectRepo('https://github.com/2p/web-shop');
-    const app = projectRepo('https://github.com/2p/mobile-app.git');
+    // Nothing assigned yet; the owner assigns WEB and the assistant role on the web.
+    const empty = await call<StatusView>('status.view');
+    expect(empty).toMatchObject({ machineId: paired.machineId, projects: [], assistant: 'unowned' });
+    expect(empty.links.machineSettings).toBe(`${server.url}/settings/machines/${paired.machineId}`);
+    await owned.assign({ projectId: project.id });
+    await owned.assign({ hostsAssistant: true });
+    const assigned = await call<StatusView>('status.view');
+    expect(assigned.assistant).toBe('mine');
+    expect(assigned.projects).toEqual([
+      expect.objectContaining({ key: 'WEB', ownerState: 'mine', localPath: null, folderProblem: null }),
+    ]);
+
+    // The folder picker checks the folder here; a wrong origin is refused and nothing is saved.
     const wrong = projectRepo('https://github.com/2p/something-else.git');
-    const wrongOrigin = await call<ClaimOutcome[]>('projects.apply', {
-      selections: [{ key: 'WEB', path: wrong }],
-      assistant: false,
-    });
-    expect(wrongOrigin[0]).toMatchObject({ target: 'WEB', status: 'error' });
-    expect(wrongOrigin[0]?.message).toContain('origin');
+    const refused = await call<FolderValidation>('projects.setFolder', { key: 'WEB', path: wrong });
+    expect(refused.ok).toBe(false);
+    expect(refused.checks.find((check) => check.id === 'folder.origin')?.status).toBe('red');
+    const folders = async () =>
+      (await api.db.select().from(settingsRevisions)).filter((row) => row.kind === 'project_folders');
+    expect(await folders()).toEqual([]);
 
-    const outcomes = await call<ClaimOutcome[]>('projects.apply', {
-      selections: [
-        { key: 'WEB', path: web },
-        { key: 'APP', path: app },
-      ],
-      assistant: true,
+    const repo = projectRepo('https://github.com/2p/web-shop');
+    const saved = await call<FolderValidation>('projects.setFolder', { key: 'WEB', path: repo });
+    expect(saved.ok).toBe(true);
+    expect((await folders())[0]).toMatchObject({
+      author: 'machine:mac-moi',
+      content: { projects: [{ key: 'WEB', repoPath: saved.path, sharedPaths: [] }] },
     });
-    expect(outcomes.map((item) => [item.target, item.status])).toEqual([
-      ['WEB', 'granted'],
-      ['APP', 'pending'],
-      ['assistant', 'granted'],
-    ]);
-    expect(outcomes[1]?.message).toContain('Đang chờ duyệt trên web');
-    expect(loadConfig(join(home, 'config.yaml')).projects.map((p) => [p.key, p.repoPath])).toEqual([
-      ['WEB', web],
-      ['APP', app],
-    ]);
-    const list = await call<{ items: { key: string; pendingClaim: boolean; localPath: string | null }[] }>(
-      'projects.list',
-    );
-    expect(list.items.find((item) => item.key === 'APP')).toMatchObject({
-      pendingClaim: true,
-      localPath: app,
-    });
+    // The hooks come with the folder (the app binary as the runtime).
+    expect(git(repo, 'config', '--get', 'crew-docs.runtime').trim()).toBe(process.execPath);
 
-    // Step 5: hooks with the app binary as the runtime.
-    const hook = await call<HookView>('hooks.install', { key: 'WEB' });
-    expect(hook).toMatchObject({ installed: true, current: true, docsInitialized: true });
-    expect(git(web, 'config', '--get', 'crew-docs.runtime').trim()).toBe(process.execPath);
-
-    // Step 6: resources are validated (sonnet stays allowed) and saved.
-    const view = await call<{ suggested: { maxConcurrentJobs: number } }>('config.resources');
-    expect(view.suggested.maxConcurrentJobs).toBeGreaterThanOrEqual(1);
-    await call('config.saveResources', {
-      resources: { maxConcurrentJobs: 3, minFreeMemGb: 0, maxLoadPerCpu: 64 },
-      models: {
-        allow: ['haiku', 'sonnet'],
-        complexityMap: {
-          trivial: { model: 'haiku', effort: 'low' },
-          small: { model: 'sonnet', effort: 'medium' },
-          medium: { model: 'sonnet', effort: 'high' },
-          large: { model: 'sonnet', effort: 'high' },
-        },
-      },
-    });
-    expect(loadConfig(join(home, 'config.yaml')).resources.maxConcurrentJobs).toBe(3);
-
-    // Step 7: the daemon runs WEB at once; APP waits for the owner's approval.
+    // The daemon runs WEB from the server's folder.
     const status = await call<DaemonStatusView>('host.startDaemon');
     expect(status.running).toBe(true);
     await until(() => service.status()?.connected === true);
@@ -170,183 +189,98 @@ describe('daemon host: setup wizard operations against the real API', () => {
       const projects = (await call<DaemonStatusView>('host.status')).projects;
       return projects.find((p) => p.key === 'WEB')?.runnable === true;
     });
-    expect(
-      (await call<DaemonStatusView>('host.status')).projects.find((p) => p.key === 'APP')?.runnable,
-    ).toBe(false);
-
-    const requests = await server.app.inject({
-      method: 'GET',
-      url: '/v1/claim-requests?status=pending',
-      headers: owner.headers,
-    });
-    const pending = requests.json().items as { id: string; projectKey: string }[];
-    expect(pending.map((item) => item.projectKey)).toEqual(['APP']);
-    const approved = await server.app.inject({
-      method: 'POST',
-      url: `/v1/claim-requests/${pending[0]?.id}/approve`,
-      headers: owner.headers,
-      payload: { code: await freshTotp(api.db, owner.totpSecret) },
-    });
-    expect(approved.statusCode).toBe(200);
-    await until(async () => {
-      const projects = (await call<DaemonStatusView>('host.status')).projects;
-      return projects.find((p) => p.key === 'APP')?.runnable === true;
-    });
+    expect((await call<StatusView>('status.view')).projects[0]).toMatchObject({ localPath: saved.path });
 
     // Health runs in the host with the live daemon; the heartbeat carries the same summary to the web.
     const report = await call<HealthReport>('health.run', {});
     expect(report.results.find((item) => item.id === 'server.stream')?.status).toBe('green');
     expect(report.results.find((item) => item.id === 'claude.login')?.status).toBe('green');
-    expect(report.results.find((item) => item.id === 'skills.WEB.inventory')?.detail).toContain(
-      'crew-test:scout',
-    );
     expect(report.results.find((item) => item.id === 'repos.WEB.push')?.status).toBe('green');
     await service.host.daemon?.heartbeat();
     const machines = await server.app.inject({ method: 'GET', url: '/v1/machines', headers: owner.headers });
     const me = (machines.json().items as Machine[]).find((machine) => machine.id === paired.machineId);
     expect(me?.health).toEqual(report.summary);
 
-    // A deleted hook turns red, the fix makes it green again.
-    rmSync(join(web, '.githooks', 'pre-commit'));
-    git(web, 'config', '--unset', 'crew-docs.runtime');
-    const broken = await call<HealthReport>('health.run', { quick: true });
-    expect(broken.results.find((item) => item.id === 'repos.WEB.hooks')?.status).toBe('red');
-    // Quick runs keep the last known probe rows (the push dry run and the login probe).
-    expect(broken.results.find((item) => item.id === 'repos.WEB.push')?.status).toBe('green');
-    const fixed = await call<HealthReport>('health.fix', { group: 'repos', fixId: 'install-hooks:WEB' });
-    expect(fixed.results.find((item) => item.id === 'repos.WEB.hooks')).toMatchObject({ status: 'green' });
-
-    // Logging out of Claude turns the login probe red.
-    writeFileSync(join(home, '.test-claude-logged-out'), '');
-    const loggedOut = await call<HealthReport>('health.run', {});
-    expect(loggedOut.results.find((item) => item.id === 'claude.login')).toMatchObject({
-      status: 'red',
-      fix: { id: 'open-claude-login' },
+    // A folder set on the web that this machine cannot use shows in the status view (and WEB waits).
+    await owned.saveFolders([{ key: 'WEB', repoPath: join(tempDir('crew-gone-'), 'missing') }]);
+    await until(async () => (await call<StatusView>('status.view')).projects[0]?.folderProblem !== null);
+    expect((await call<StatusView>('status.view')).projects[0]).toMatchObject({
+      localPath: null,
+      folderProblem: 'thư mục không tồn tại',
     });
+    await owned.saveFolders([{ key: 'WEB', repoPath: saved.path }]);
+    await until(async () => (await call<StatusView>('status.view')).projects[0]?.localPath === saved.path);
 
-    // The log viewer tails the daemon log.
-    const lines = await call<{ message: string }[]>('logs.tail', { limit: 50 });
-    expect(lines.some((line) => line.message === 'crewd started')).toBe(true);
-
+    expect(JSON.stringify(logs)).not.toContain('crew_mt_');
     await call('host.stopDaemon', { mode: 'requeue' });
     expect(service.status()).toBeNull();
     expect(existsSync(join(home, 'crewd.pid'))).toBe(false);
   });
 
-  it('creates a project from a folder, refuses a duplicate key, edits settings live and releases a project', async () => {
+  it('runs the health checks, their fixes and the log tail the owner asks for from the web', async () => {
     const server = await api.server();
-    await createTestProject(api.db, { key: 'WEB', repoUrl: 'https://github.com/2p/web-shop.git' });
+    const owner = await seedAndLogin(server.app, api.db);
+    const project = await createTestProject(api.db, {
+      key: 'WEB',
+      repoUrl: 'https://github.com/2p/web-shop.git',
+    });
     const home = join(tempDir('crew-desktop-home-'), 'crew');
-    const { call, logs } = host(home);
-    await call('setup.pair', {
+    const { call, events } = host(home);
+    const paired = await call<PairResult>('setup.pair', {
       apiUrl: server.url,
       code: await insertPairingCode(api.db),
       machineName: 'mac',
     });
+    const owned = web(server.app, owner, paired.machineId);
+    await owned.assign({ projectId: project.id });
+    const repo = projectRepo('https://github.com/2p/web-shop');
+    expect((await call<FolderValidation>('projects.setFolder', { key: 'WEB', path: repo })).ok).toBe(true);
+    await call('host.startDaemon');
 
-    const folder = projectRepo('git@github.com:2p/new-thing.git', {});
-    const info = await call<{ suggestedKey: string; origin: string; defaultBranch: string }>(
-      'folder.inspect',
-      {
-        path: folder,
-      },
-    );
-    expect(info).toMatchObject({ origin: 'git@github.com:2p/new-thing.git', defaultBranch: 'main' });
-    expect(info.suggestedKey).toMatch(/^[A-Z][A-Z0-9]{1,9}$/);
-
-    const created = await call<ClaimOutcome>('projects.create', {
-      path: folder,
-      key: 'NEW',
-      name: 'Dự án mới',
-      description: 'Công cụ nội bộ do chủ dự án mô tả',
-      repoUrl: 'git@github.com:2p/new-thing.git',
-      defaultBranch: 'main',
-      platform: 'backend',
+    // A deleted hook turns red; the fix asked for from the web makes it green again.
+    rmSync(join(repo, '.githooks', 'pre-commit'));
+    git(repo, 'config', '--unset', 'crew-docs.runtime');
+    const broken = await owned.command({ action: 'health.run', quick: true });
+    const hooks = (broken.result as HealthReport).results.find((item) => item.id === 'repos.WEB.hooks');
+    expect(hooks).toMatchObject({ status: 'red', fix: { id: 'install-hooks:WEB' } });
+    const fixed = await owned.command({ action: 'health.fix', group: 'repos', fixId: 'install-hooks:WEB' });
+    expect(
+      (fixed.result as HealthReport).results.find((item) => item.id === 'repos.WEB.hooks'),
+    ).toMatchObject({
+      status: 'green',
     });
-    expect(created).toMatchObject({ target: 'NEW', status: 'granted' });
-    // The hooks are installed with the project (the app binary as the runtime), so the dashboard is not red.
-    expect(git(folder, 'config', '--get', 'crew-docs.runtime').trim()).toBe(process.execPath);
-    const health = await call<HealthReport>('health.run', { quick: true });
-    expect(health.results.find((item) => item.id === 'repos.NEW.hooks')?.status).toBe('green');
-    expect(health.results.find((item) => item.id === 'repos.NEW.docs')).toMatchObject({ status: 'green' });
-    // Before docs-init the hooks warn and let the owner's commit through.
-    writeFileSync(join(folder, 'notes.md'), 'ghi chú\n');
-    git(folder, 'add', '-A');
-    git(folder, 'commit', '-q', '-m', 'docs: ghi chú của chủ dự án');
 
-    // A retry of the same create (the first answer was lost, or a second click) is the same success.
-    const again = await call<ClaimOutcome>('projects.create', {
-      path: folder,
-      key: 'NEW',
-      name: 'Dự án mới',
-      description: 'Công cụ nội bộ do chủ dự án mô tả',
-      repoUrl: 'https://github.com/2p/new-thing',
-      defaultBranch: 'main',
-      platform: 'backend',
+    // Logging out of Claude turns the login probe red; its fix (open Terminal) goes to the main process.
+    writeFileSync(join(home, '.test-claude-logged-out'), '');
+    const loggedOut = await owned.command({ action: 'health.run', quick: false });
+    expect(
+      (loggedOut.result as HealthReport).results.find((item) => item.id === 'claude.login'),
+    ).toMatchObject({
+      status: 'red',
+      fix: { id: 'open-claude-login' },
     });
-    expect(again).toMatchObject({ target: 'NEW', status: 'already_owned' });
-    expect(loadConfig(join(home, 'config.yaml')).projects.map((p) => p.key)).toEqual(['NEW']);
-    await expect(
-      call('projects.create', {
-        path: folder,
-        key: 'WEB',
-        name: 'Trùng',
-        description: 'x',
-        repoUrl: 'git@github.com:2p/new-thing.git',
-        defaultBranch: 'main',
-        platform: 'web',
-      }),
-    ).rejects.toThrow('Key WEB đã có trên server');
-    // Every failed API call and failed operation is in the app log, without the token.
-    expect(logs).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          event: 'api-error',
-          fields: expect.objectContaining({
-            method: 'POST',
-            path: '/v1/daemon/projects',
-            status: 409,
-            errorCode: 'CONFLICT',
-          }),
-        }),
-        expect.objectContaining({
-          event: 'host-op-failed',
-          fields: expect.objectContaining({ method: 'projects.create' }),
-        }),
-        expect.objectContaining({
-          event: 'hooks-installed',
-          fields: expect.objectContaining({ project: 'NEW' }),
-        }),
-        expect.objectContaining({ event: 'project-create-idempotent' }),
-      ]),
-    );
-    expect(JSON.stringify(logs)).not.toContain('crew_mt_');
-
-    const detail = await call<{ sharedPaths: { extra: string[] }; disabledMcpServers: string[] }>(
-      'projects.setSharedPaths',
-      { key: 'NEW', paths: ['.cursor/rules'] },
-    );
-    expect(detail.sharedPaths.extra).toEqual(['.cursor/rules']);
-    const mcp = await call<{ disabledMcpServers: string[] }>('projects.setMcpEnabled', {
-      key: 'NEW',
-      server: 'figma',
-      enabled: false,
+    await owned.command({ action: 'health.fix', group: 'claude', fixId: 'open-claude-login' });
+    expect(events).toContainEqual({ name: 'app.fix', payload: { fixId: 'open-claude-login' } });
+    const restart = await owned.command({ action: 'health.fix', group: 'app', fixId: 'restart-daemon' });
+    expect(restart).toMatchObject({
+      status: 'failed',
+      error: expect.stringContaining('chỉ làm được trên máy'),
     });
-    expect(mcp.disabledMcpServers).toEqual(['figma']);
-    await expect(call('projects.setSharedPaths', { key: 'NEW', paths: ['../outside'] })).rejects.toThrow(
-      'Dữ liệu không hợp lệ',
-    );
 
-    const released = await call<ClaimOutcome>('projects.release', { key: 'NEW' });
-    expect(released.status).toBe('released');
-    expect(loadConfig(join(home, 'config.yaml')).projects).toEqual([]);
+    // The log tail the web asks for.
+    const tail = await owned.command({ action: 'logs.tail', limit: 100 });
+    expect((tail.result as { message: string }[]).some((line) => line.message === 'crewd started')).toBe(
+      true,
+    );
+    await call('host.stopDaemon', { mode: 'requeue' });
   });
 
   it('repairs hooks whose runtime vanished (the app moved) after start, never while constructing, and leaves working hooks alone', async () => {
     const server = await api.server();
+    const owner = await seedAndLogin(server.app, api.db);
     const home = join(tempDir('crew-desktop-home-'), 'crew');
     const first = host(home);
-    await first.call('setup.pair', {
+    const paired = await first.call<PairResult>('setup.pair', {
       apiUrl: server.url,
       code: await insertPairingCode(api.db),
       machineName: 'mac',
@@ -357,16 +291,14 @@ describe('daemon host: setup wizard operations against the real API', () => {
       ['MOVED', moved],
       ['KEPT', kept],
     ] as const) {
-      await first.call('projects.create', {
-        path,
+      await createTestProject(api.db, {
         key,
-        name: key,
-        description: 'Repo mẫu',
         repoUrl: `git@github.com:2p/${key.toLowerCase()}.git`,
-        defaultBranch: 'main',
-        platform: 'backend',
+        ownerMachineId: paired.machineId,
       });
+      expect((await first.call<FolderValidation>('projects.setFolder', { key, path })).ok).toBe(true);
     }
+    expect(owner.cookie).toBeTruthy();
     // MOVED was installed by an app copy that is gone now; KEPT by another working runtime (the CLI's node).
     const gone = join(tempDir('crew-old-app-'), '2P Crew');
     const other = join(tempDir('crew-cli-'), 'node');
@@ -394,72 +326,5 @@ describe('daemon host: setup wizard operations against the real API', () => {
       ]),
     );
     expect(second.logs.some((entry) => entry.fields?.project === 'KEPT')).toBe(false);
-    const hooks = await second.call<HookView[]>('hooks.list');
-    expect(hooks.map((hook) => [hook.key, hook.installed, hook.current])).toEqual([
-      ['MOVED', true, true],
-      ['KEPT', true, true],
-    ]);
-  });
-
-  it('asks the owner to change the project type and UI-test MCP mapping, pending until approved on the web', async () => {
-    const server = await api.server();
-    const owner = await seedAndLogin(server.app, api.db);
-    await createTestProject(api.db, { key: 'WEB', repoUrl: 'https://github.com/2p/web-shop.git' });
-    const home = join(tempDir('crew-desktop-home-'), 'crew');
-    const { call } = host(home);
-    await call('setup.pair', {
-      apiUrl: server.url,
-      code: await insertPairingCode(api.db),
-      machineName: 'mac',
-    });
-    const folder = projectRepo('git@github.com:2p/new-thing.git', {});
-    await call('projects.create', {
-      path: folder,
-      key: 'NEW',
-      name: 'Dự án mới',
-      description: 'Công cụ nội bộ do chủ dự án mô tả',
-      repoUrl: 'git@github.com:2p/new-thing.git',
-      defaultBranch: 'main',
-      platform: 'backend',
-    });
-
-    const setup = { platform: 'web', uiTestMcp: { playwright: 'pw-cloud', maestro: 'maestro' } };
-    const pending = await call<ProjectDetail>('projects.requestTestSetup', { key: 'NEW', ...setup });
-    expect(pending).toMatchObject({ platform: 'backend', requiredMcps: [], pendingChange: setup });
-    await expect(
-      call('projects.requestTestSetup', { key: 'NEW', platform: 'mobile', uiTestMcp: setup.uiTestMcp }),
-    ).rejects.toThrow('Đã có một thay đổi khác đang chờ chủ dự án xác nhận.');
-    await expect(call('projects.requestTestSetup', { key: 'WEB', ...setup })).rejects.toThrow(
-      'Máy này không sở hữu project WEB',
-    );
-
-    const approved = await server.app.inject({
-      method: 'POST',
-      url: `/v1/project-change-requests/${pending.pendingChange?.requestId}/approve`,
-      headers: owner.headers,
-      payload: { code: await freshTotp(api.db, owner.totpSecret) },
-    });
-    expect(approved.statusCode).toBe(200);
-    expect(await call<ProjectDetail>('projects.detail', { key: 'NEW' })).toMatchObject({
-      platform: 'web',
-      uiTestMcp: setup.uiTestMcp,
-      requiredMcps: ['pw-cloud'],
-      pendingChange: null,
-      lastChange: { requestId: pending.pendingChange?.requestId, status: 'approved' },
-    });
-
-    // Releasing the project withdraws a change that still waits for the owner.
-    const again = await call<ProjectDetail>('projects.requestTestSetup', {
-      key: 'NEW',
-      platform: 'backend',
-      uiTestMcp: setup.uiTestMcp,
-    });
-    expect(again.lastChange).toEqual({ requestId: again.pendingChange?.requestId, status: 'pending' });
-    expect((await call<ClaimOutcome>('projects.release', { key: 'NEW' })).status).toBe('released');
-    expect(await call<ProjectDetail>('projects.detail', { key: 'NEW' })).toMatchObject({
-      platform: 'web',
-      pendingChange: null,
-      lastChange: { requestId: again.pendingChange?.requestId, status: 'withdrawn' },
-    });
   });
 });

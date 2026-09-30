@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -10,6 +11,7 @@ import {
   type HeartbeatRequest,
   type JobWaitDetail,
   type JobWaitReason,
+  type MachineSettingsState,
   type RunningJob,
   type SkillInventory,
   TERMINAL_STATUSES,
@@ -28,6 +30,7 @@ import {
   worktreeKeys,
   worktreePath,
 } from './git/worktree-manager.js';
+import { jobView, type MachineCommandHandlers, runMachineCommand } from './remote/machine-commands.js';
 import { failedJobText } from './roles/failure-policy.js';
 import { rolePlanner } from './roles/role-planner.js';
 import {
@@ -44,6 +47,14 @@ import { ResourceTracker } from './runner/resource-tracker.js';
 import { type ResourceSnapshot, takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
 import { Scheduler, type StartDecision } from './scheduler/scheduler.js';
 import { defaultTokenStore, type TokenStore } from './secrets.js';
+import {
+  type ActiveSettings,
+  effectiveConfig,
+  localSettingsUpload,
+  projectFolderProblem,
+  SettingsStore,
+  settingsImportedKey,
+} from './settings/settings-store.js';
 import { readBmadProfile } from './skills/bmad-profile.js';
 import { probeInventory } from './skills/skill-inventory.js';
 import { ACTIVE_JOB_STATUSES, type CleanupRecord, type JobRow, StateDb } from './state-db.js';
@@ -67,10 +78,13 @@ export interface DaemonTimings {
   probeWorktreeTtlMs?: number;
   /** Clock of the probe worktree timers (tests). */
   probeClock?: ProbeClock;
+  /** Safety-net refetch of the server settings (1 hour); events trigger a refetch at once. */
+  settingsMs?: number;
   stream?: { minBackoffMs?: number; maxBackoffMs?: number; idleTimeoutMs?: number };
 }
 
 export interface CreateDaemonOptions {
+  /** The local config (`~/.crew/config.yaml`); the server settings apply on top of it. */
   config: DaemonConfig;
   /** Crew home (`~/.crew` by default). */
   home?: string;
@@ -106,6 +120,12 @@ export interface CreateDaemonOptions {
   crewDocsRuntime?: string;
   /** Every API call of the daemon that fails for good (the desktop app writes it to its app log). */
   onApiError?: (failure: ApiFailure) => void;
+  /**
+   * Handlers of remote actions the owner triggers from the web, added to (or replacing) the built-in ones
+   * (pause, resume, inventory re-probe, job list). The desktop app adds the health checks and fixes, the
+   * BMAD install and the log tail.
+   */
+  commandHandlers?: MachineCommandHandlers;
   timings?: DaemonTimings;
 }
 
@@ -119,6 +139,8 @@ export interface DaemonStatus {
   orphansCleaned: number;
   projects: { key: string; ownerState: string | null; runnable: boolean }[];
   hostsAssistant: boolean;
+  /** The server settings new jobs start with. */
+  settings: MachineSettingsState;
 }
 
 export interface Daemon {
@@ -135,8 +157,23 @@ export interface Daemon {
   pause(): void;
   resume(): void;
   status(): DaemonStatus;
-  /** Applies a new config live (projects, folders, limits) without a restart. */
+  /** Applies a new local config live (projects, folders) without a restart; server settings stay on top. */
   updateConfig(config: DaemonConfig): void;
+  /** The config jobs start with: the local config with the server settings applied. */
+  effectiveConfig(): DaemonConfig;
+  /** The server settings new jobs start with (prompts, path rules, models, resources, MCP switches). */
+  settings(): ActiveSettings;
+  /** Refetches the server settings now (an unreachable server keeps the current ones). */
+  refreshSettings(): Promise<void>;
+  /** Switches MCP servers of a project this machine owns, as a new revision of the server setting. */
+  setProjectMcp(projectKey: string, disabledMcpServers: readonly string[], note?: string): Promise<void>;
+  /** Sets (or with null, removes) one project's folder on this machine in its server setting. */
+  setProjectFolder(
+    projectKey: string,
+    folder: { repoPath: string; sharedPaths?: readonly string[] } | null,
+  ): Promise<void>;
+  /** Why this machine cannot use each server folder it has (missing, not a repo), by project key. */
+  folderProblems(): ReadonlyMap<string, string>;
   /** Replaces the project list live (Settings → Projects in the desktop app). */
   updateProjects(projects: DaemonConfig['projects']): void;
   refreshProjects(): Promise<void>;
@@ -200,6 +237,8 @@ function takePidLock(pidFile: string): void {
  * cleans up after it.
  */
 export function createDaemon(options: CreateDaemonOptions): Daemon {
+  /** The local config; `config` below is what jobs use (server settings applied). */
+  let localConfig = options.config;
   let config = options.config;
   const home = options.home ?? crewHome();
   const paths = homePaths(home);
@@ -216,6 +255,25 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
   const tracker = options.tracker ?? new ResourceTracker();
   const events = new EventEmitter();
   const timings = options.timings ?? {};
+  const settingsStore = new SettingsStore({ vps, cacheFile: paths.settingsCache, log });
+  /** The one-time upload of this machine's local settings succeeded (per paired machine). */
+  const importedKey = () => settingsImportedKey(localConfig.machineId);
+  const localImported = () => state.getMeta(importedKey()) === '1';
+  /** Server folders this machine checked: usable, or why not (missing, unreadable, not a repo root). */
+  const folderStatus = new Map<string, { repoPath: string; error: string | null }>();
+  const folderOk = (entry: { key: string; repoPath: string }) => {
+    const status = folderStatus.get(entry.key);
+    return status?.repoPath === entry.repoPath && status.error === null;
+  };
+  /** The settings the heartbeat reports: the store's, plus every server folder this machine cannot use. */
+  const settingsState = (): MachineSettingsState => {
+    const base = settingsStore.state();
+    const folders = [...folderStatus.entries()]
+      .filter(([, status]) => status.error !== null)
+      .map(([key, status]) => `project_folder:${key}: ${status.error}`.slice(0, 200));
+    return { ...base, rejected: [...base.rejected, ...folders].slice(0, 100) };
+  };
+  config = effectiveConfig(localConfig, settingsStore.current(), localImported(), folderOk);
 
   let started = false;
   let paused = false;
@@ -240,6 +298,9 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     while (background.size > 0) await Promise.allSettled([...background]);
   };
   let sweepTimer: NodeJS.Timeout | null = null;
+  let settingsTimer: NodeJS.Timeout | null = null;
+  /** The scheduler runs (set once `start()` started it). */
+  let scheduling = false;
 
   for (const row of state.db.prepare(`select key, value from meta where key like 'inventory:%'`).all() as {
     key: string;
@@ -429,6 +490,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     planner: options.planner ?? rolePlanner,
     tracker,
     config: () => config,
+    settings: () => settingsStore.current(),
     tmpRoot: paths.tmp,
     binDir: paths.bin,
     crewDocs: () => crewDocs,
@@ -691,6 +753,14 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
             .then(() => scheduler.tick())
             .catch((error: Error) => log('warn', 'project refresh failed', { error: error.message })),
         );
+        // A project moved here or away: its MCP switches come with it.
+        inBackground(refreshSettings());
+        break;
+      case 'refresh_settings':
+        inBackground(refreshSettings());
+        break;
+      case 'run_command':
+        inBackground(runMachineCommand({ vps, handlers: commandHandlers, log }, effect.commandId));
         break;
       case 'ignored':
         break;
@@ -704,6 +774,8 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     onEffect,
     onConnected: () => {
       log('info', 'stream connected', { cursor: state.getCursor() });
+      // A settings change may have been missed while the stream was down.
+      inBackground(refreshSettings());
       inBackground(
         refreshProjects()
           .catch((error: Error) => log('warn', 'project refresh failed', { error: error.message }))
@@ -782,6 +854,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       ...(job.stage ? { stage: job.stage } : {}),
       ...(job.model ? { model: job.model.slice(0, 100) } : {}),
       ...(job.effort ? { effort: job.effort.slice(0, 20) } : {}),
+      ...(job.settingsRevision ? { settingsRevision: job.settingsRevision.slice(0, 100) } : {}),
     }));
     // Held but not running: the server's stuck-ticket alarm must not report these tickets, and the owner
     // sees why each one waits.
@@ -826,6 +899,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       ...(options.appVersion ? { appVersion: options.appVersion } : {}),
       paused,
       ...(health ? { health } : {}),
+      settings: settingsState(),
     };
     const response = await vps.heartbeat(body);
     state.setMeta('tokenExpiresAt', response.tokenExpiresAt);
@@ -912,6 +986,132 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     }
   }
 
+  /** Ticket keys and titles by id, for the job list the web asks for. */
+  const ticketInfo = new Map<string, { key: string; title: string }>();
+  async function ticketOf(ticketId: string): Promise<{ key: string; title: string } | null> {
+    const known = ticketInfo.get(ticketId);
+    if (known) return known;
+    try {
+      const { ticket } = await vps.getTicket(ticketId);
+      const info = { key: ticket.key, title: ticket.title };
+      ticketInfo.set(ticketId, info);
+      return info;
+    } catch {
+      return null;
+    }
+  }
+
+  /** The remote actions this daemon performs itself; the app that hosts it may add more. */
+  const commandHandlers = (): MachineCommandHandlers => ({
+    pause: async () => {
+      daemon.pause();
+      return { paused: true };
+    },
+    resume: async () => {
+      daemon.resume();
+      return { paused: false };
+    },
+    'inventory.refresh': async ({ projectKey }) => {
+      if (projectKey && !localProject(projectKey)) {
+        throw new Error(`Máy này chưa có thư mục cho dự án ${projectKey}.`);
+      }
+      const inventory = await refreshInventory(projectKey);
+      if (!inventory) throw new Error('Dò skill và MCP thất bại (xem log của máy).');
+      return { skills: inventory.skills.length, mcpServers: inventory.mcpServers.length };
+    },
+    'project.release': async ({ projectKey }) => {
+      const answer = await vps.release({ projectKey }, `release:${projectKey}:${randomUUID()}`);
+      await refreshProjects();
+      releaseLostProjects();
+      await refreshSettings();
+      return { status: answer.status };
+    },
+    'assistant.release': async () => {
+      const answer = await vps.release({ hostsAssistant: true }, `release:assistant:${randomUUID()}`);
+      await refreshProjects();
+      return { status: answer.status };
+    },
+    'jobs.list': async () => {
+      const views = [];
+      for (const job of state.recentJobs(50)) views.push(jobView(job, await ticketOf(job.ticketId)));
+      return views;
+    },
+    ...options.commandHandlers,
+  });
+
+  /** Recomputes the config jobs use; projects whose MCP switches changed are re-probed. */
+  function applyConfig(): void {
+    const before = new Map(config.projects.map((project) => [project.key, JSON.stringify(project)]));
+    config = effectiveConfig(localConfig, settingsStore.current(), localImported(), folderOk);
+    if (options.inventory !== false) {
+      for (const project of config.projects) {
+        if (before.get(project.key) !== JSON.stringify(project)) void refreshInventory(project.key);
+      }
+    }
+    // Before the start sequence finished (reconcile, sweep) the scheduler must not launch anything.
+    if (scheduling) void scheduler.tick();
+    events.emit('status', daemon.status());
+  }
+
+  /**
+   * The one-time upload of the local `config.yaml` values (resources, models, budgets, MCP switches) as this
+   * machine's server settings, kept by the server only where it has none. Retried at the next refresh until
+   * it succeeds; until then the local values stay the fallback.
+   */
+  async function importLocalSettings(): Promise<void> {
+    if (localImported()) return;
+    const body = localSettingsUpload(localConfig);
+    const digest = createHash('sha256').update(JSON.stringify(body)).digest('hex').slice(0, 16);
+    try {
+      const answer = await vps.importSettings(
+        body,
+        `settings-import:${localConfig.machineId ?? 'unpaired'}:${digest}`,
+      );
+      state.setMeta(importedKey(), '1');
+      log('info', 'local settings uploaded to the server', { created: answer.created, kept: answer.kept });
+      await settingsStore.refresh();
+      await checkFolders();
+      applyConfig();
+    } catch (error) {
+      log('warn', 'local settings upload failed; the local values stay in use until it succeeds', {
+        error: (error as Error).message,
+      });
+    }
+  }
+
+  /** Checks the server's folders this machine has not proven usable yet (a failed one is checked again). */
+  async function checkFolders(): Promise<boolean> {
+    const folders = settingsStore.current().folders?.projects ?? [];
+    let changed = false;
+    for (const entry of folders) {
+      const known = folderStatus.get(entry.key);
+      if (known?.repoPath === entry.repoPath && known.error === null) continue;
+      const error = await projectFolderProblem(entry.repoPath);
+      if (known?.repoPath !== entry.repoPath || known.error !== error) changed = true;
+      folderStatus.set(entry.key, { repoPath: entry.repoPath, error });
+      if (error)
+        log('warn', 'project folder unusable', { projectKey: entry.key, path: entry.repoPath, error });
+    }
+    for (const key of [...folderStatus.keys()]) {
+      if (!folders.some((entry) => entry.key === key)) {
+        folderStatus.delete(key);
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  async function refreshSettings(): Promise<void> {
+    if (halted) return;
+    const changed = await settingsStore.refresh();
+    const folders = await checkFolders();
+    if (changed || folders) {
+      applyConfig();
+      reportSoon();
+    }
+    await importLocalSettings();
+  }
+
   const daemon: Daemon = {
     state,
     jobs,
@@ -934,6 +1134,8 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       await refreshProjects().catch((error: Error) =>
         log('warn', 'project refresh failed', { error: error.message }),
       );
+      // Before any job starts: the prompts, rules and limits it runs with.
+      await refreshSettings();
       await sweep().catch((error: Error) => log('warn', 'startup sweep failed', { error: error.message }));
       if (options.inventory !== false) {
         void refreshInventory(null);
@@ -942,14 +1144,21 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       stream.start();
       heartbeatLoop.start();
       scheduler.start();
+      scheduling = true;
       sweepTimer = setInterval(() => void sweep().catch(() => undefined), timings.sweepMs ?? 10 * 60 * 1000);
+      settingsTimer = setInterval(
+        () => inBackground(refreshSettings()),
+        timings.settingsMs ?? 60 * 60 * 1000,
+      );
       events.emit('status', daemon.status());
       log('info', 'crewd started', { home, apiUrl: config.apiUrl });
     },
     async stop() {
       if (!started) return;
       stopping = true;
+      scheduling = false;
       if (sweepTimer) clearInterval(sweepTimer);
+      if (settingsTimer) clearInterval(settingsTimer);
       probeWorktrees.stop();
       await stream.stop();
       await scheduler.stop();
@@ -972,7 +1181,9 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     },
     async halt() {
       halted = true;
+      scheduling = false;
       if (sweepTimer) clearInterval(sweepTimer);
+      if (settingsTimer) clearInterval(settingsTimer);
       probeWorktrees.stop();
       await stream.stop();
       await scheduler.stop();
@@ -1017,21 +1228,47 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
           };
         }),
         hostsAssistant,
+        settings: settingsState(),
       };
     },
     updateConfig(next) {
-      const before = new Map(config.projects.map((project) => [project.key, JSON.stringify(project)]));
-      config = next;
-      if (options.inventory !== false) {
-        for (const project of next.projects) {
-          if (before.get(project.key) !== JSON.stringify(project)) void refreshInventory(project.key);
-        }
-      }
-      void scheduler.tick();
-      events.emit('status', daemon.status());
+      localConfig = next;
+      applyConfig();
     },
     updateProjects(projects) {
-      daemon.updateConfig({ ...config, projects });
+      daemon.updateConfig({ ...localConfig, projects });
+    },
+    effectiveConfig: () => config,
+    settings: () => settingsStore.current(),
+    refreshSettings,
+    async setProjectFolder(projectKey, folder) {
+      if (folder) {
+        await vps.putProjectFolder(
+          projectKey,
+          {
+            repoPath: folder.repoPath,
+            ...(folder.sharedPaths ? { sharedPaths: [...folder.sharedPaths] } : {}),
+          },
+          `project-folder:${projectKey}:${randomUUID()}`,
+        );
+      } else {
+        await vps.deleteProjectFolder(projectKey, `project-folder:${projectKey}:${randomUUID()}`);
+      }
+      await refreshSettings();
+    },
+    folderProblems: () =>
+      new Map(
+        [...folderStatus.entries()]
+          .filter(([, status]) => status.error !== null)
+          .map(([key, status]) => [key, status.error as string]),
+      ),
+    async setProjectMcp(projectKey, disabledMcpServers, note = '') {
+      await vps.putProjectMcp(
+        projectKey,
+        { disabledMcpServers: [...new Set(disabledMcpServers)], note },
+        `project-mcp:${projectKey}:${randomUUID()}`,
+      );
+      await refreshSettings();
     },
     refreshProjects,
     refreshInventory,

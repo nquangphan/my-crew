@@ -72,6 +72,8 @@ export interface JobRow {
   waitDetail: JobWaitDetail | null;
   /** How the last run ended: result, turns, duration, cost, its last message and tool calls (scrubbed). */
   runTrace: RunTrace | null;
+  /** The server settings revision the run started with (prompts, path rules, model map). */
+  settingsRevision: string | null;
 }
 
 /** What a run selected in its capability preflight, each with a one-line reason. */
@@ -166,7 +168,8 @@ create table if not exists jobs (
   return_to_dev text,
   wait_reason text,
   wait_detail text,
-  run_trace text
+  run_trace text,
+  settings_revision text
 );
 create unique index if not exists jobs_one_active_per_ticket
   on jobs (ticket_id) where status in ('queued', 'running', 'backoff');
@@ -216,6 +219,7 @@ const LATER_COLUMNS: readonly (readonly [string, string])[] = [
   ['wait_reason', 'text'],
   ['wait_detail', 'text'],
   ['run_trace', 'text'],
+  ['settings_revision', 'text'],
 ];
 
 type Row = Record<string, unknown>;
@@ -268,6 +272,7 @@ function toJob(row: Row): JobRow {
     waitReason: (row.wait_reason as JobWaitReason | null) ?? null,
     waitDetail: json<JobWaitDetail | null>(row.wait_detail, null),
     runTrace: json<RunTrace | null>(row.run_trace, null),
+    settingsRevision: (row.settings_revision as string | null) ?? null,
   };
 }
 
@@ -305,6 +310,7 @@ const JOB_COLUMNS = {
   waitReason: ['wait_reason', (v: unknown) => v],
   waitDetail: ['wait_detail', (v: unknown) => (v === null ? null : JSON.stringify(v))],
   runTrace: ['run_trace', (v: unknown) => (v === null ? null : JSON.stringify(v))],
+  settingsRevision: ['settings_revision', (v: unknown) => v],
 } as const satisfies Record<string, readonly [string, (v: unknown) => unknown]>;
 
 export type JobPatch = Partial<Pick<JobRow, keyof typeof JOB_COLUMNS>>;
@@ -439,6 +445,14 @@ export class StateDb {
           )
           .all(...statuses) as Row[])
       : (this.db.prepare('select * from jobs order by created_at, rowid').all() as Row[]);
+    return rows.map(toJob);
+  }
+
+  /** The newest `limit` jobs, newest first. */
+  recentJobs(limit: number): JobRow[] {
+    const rows = this.db
+      .prepare('select * from jobs order by created_at desc, rowid desc limit ?')
+      .all(limit) as Row[];
     return rows.map(toJob);
   }
 

@@ -48,6 +48,7 @@ export type {
   HealthContext,
   HealthGroup,
 } from './health/types.js';
+export { type MachineCommandHandlers, runMachineCommand } from './remote/machine-commands.js';
 export { resolveModel } from './roles/model-policy.js';
 export { renderPrompt, setPromptsDir } from './roles/prompt-templates.js';
 export { rolePlanner } from './roles/role-planner.js';
@@ -79,6 +80,13 @@ export { createScriptedRunner, Script, ScriptedCrash } from './runner/scripted-r
 export { scrubSecrets } from './runner/secret-scrubber.js';
 export { takeSnapshot, totalSlots } from './scheduler/resource-monitor.js';
 export { defaultTokenStore, FileTokenStore, KeychainTokenStore, type TokenStore } from './secrets.js';
+export {
+  type ActiveSettings,
+  activateSettings,
+  BUNDLED_SETTINGS,
+  effectiveConfig,
+  SettingsStore,
+} from './settings/settings-store.js';
 export {
   BMAD_DIR,
   BMAD_MANIFEST,

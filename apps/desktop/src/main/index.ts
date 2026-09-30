@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
+  APP_HEALTH_FIXES,
   type AppFacts,
   type AppInfo,
   type AppLogEntry,
@@ -33,7 +34,7 @@ import { createMainWindow } from './window.js';
 const HEALTH_INTERVAL_MS = 5 * 60 * 1000;
 const UPDATE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 /** Fixes that need the app itself; every other fix runs in the daemon host. */
-const APP_FIXES = new Set(['open-claude-login', 'enable-login-item', 'install-update', 'restart-daemon']);
+const APP_FIXES = new Set(APP_HEALTH_FIXES);
 
 const here = dirname(fileURLToPath(import.meta.url));
 const testMode = process.env.CREW_DESKTOP_TEST_MODE === '1';
@@ -192,7 +193,7 @@ function openWindow(navigate?: Navigate): void {
   window = createMainWindow({
     preload: join(here, '..', 'preload', 'index.cjs'),
     rendererUrl,
-    route: navigate?.route ?? (setupComplete ? 'health' : 'setup'),
+    route: navigate?.route ?? (setupComplete ? 'status' : 'setup'),
   });
   window.on('closed', () => {
     window = null;
@@ -237,6 +238,20 @@ async function setPaused(paused: boolean): Promise<DaemonStatusView | null> {
   latestStatus = status;
   refreshTray();
   return status;
+}
+
+/** A health fix only this process can apply (from the tray, or asked for from the web through the host). */
+async function applyAppFix(fixId: string): Promise<void> {
+  if (fixId === 'open-claude-login') await openClaudeLogin();
+  if (fixId === 'enable-login-item') {
+    loginItem.set(true);
+    pushFacts();
+  }
+  if (fixId === 'install-update') await updater.install();
+  if (fixId === 'restart-daemon') {
+    supervisor.restart();
+    await waitForHost();
+  }
 }
 
 async function waitForHost(): Promise<void> {
@@ -305,16 +320,7 @@ const mainHandlers: MainHandlers = {
   },
   'health.fix': async ({ group, fixId }) => {
     if (!APP_FIXES.has(fixId)) return supervisor.request('health.fix', { group, fixId }, 10 * 60 * 1000);
-    if (fixId === 'open-claude-login') await openClaudeLogin();
-    if (fixId === 'enable-login-item') {
-      loginItem.set(true);
-      pushFacts();
-    }
-    if (fixId === 'install-update') await updater.install();
-    if (fixId === 'restart-daemon') {
-      supervisor.restart();
-      await waitForHost();
-    }
+    await applyAppFix(fixId);
     return supervisor.request('health.run', { quick: true }, 10 * 60 * 1000);
   },
 };
@@ -343,21 +349,33 @@ supervisor.on('ready-timeout', (fields: { pid: number | null; ms: number }) =>
 supervisor.on('host-event', (name: string, payload: unknown) => {
   if (name === 'daemon.status') {
     latestStatus = payload as DaemonStatusView | null;
+    // A pause or resume from the web (a remote action) is kept like one from the tray: it survives a restart
+    // of the host. Only once the daemon booted (and re-applied the kept state), so a fresh start never undoes it.
+    if (
+      latestStatus?.running &&
+      supervisor.runtime().daemonStarted &&
+      latestStatus.paused !== supervisor.isPaused()
+    ) {
+      supervisor.setPaused(latestStatus.paused);
+      desktopState.update({ paused: latestStatus.paused });
+    }
     send('daemon.status', latestStatus);
     refreshTray();
+  } else if (name === 'app.fix') {
+    const { fixId } = payload as { fixId: string };
+    if (APP_FIXES.has(fixId)) {
+      log('info', 'remote-app-fix', { fixId });
+      void applyAppFix(fixId).catch((error: Error) =>
+        log('warn', 'remote-app-fix-failed', { fixId, error: error.message }),
+      );
+    }
   } else if (name === 'health.report') {
     latestHealth = payload as HealthReport;
     notifier.onHealth(latestHealth);
     send('health.report', latestHealth);
     refreshTray();
-  } else if (name === 'jobs.changed') {
-    send('jobs.changed', payload as DesktopEventPayload<'jobs.changed'>);
-  } else if (name === 'log.line') {
-    send('log.line', payload as DesktopEventPayload<'log.line'>);
   } else if (name === 'job.blocked') {
     notifier.onJobBlocked(payload as BlockedJob);
-  } else if (name === 'bmad.progress') {
-    send('bmad.progress', payload as DesktopEventPayload<'bmad.progress'>);
   }
 });
 
@@ -422,10 +440,10 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     tray = new CrewTray({
-      openDashboard: () => openWindow({ route: 'health' }),
+      openDashboard: () => openWindow({ route: 'status' }),
       togglePause: () => void setPaused(!desktopState.read().paused).catch(() => undefined),
       runHealth: () => {
-        openWindow({ route: 'health' });
+        openWindow({ route: 'status' });
         void runHealth(false);
       },
       quit: () => void quit(),

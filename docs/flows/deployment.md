@@ -88,7 +88,7 @@ build/test/kiểm docs trước khi merge.
 |-----------|---------|--------------|
 | `scripts/deploy.sh` | Build, migrate, khởi động, kiểm health, hướng dẫn rollback | `rollback_help` |
 | `deploy/compose.yml` | Compose project `crew`: api, web, postgres, backup, network `crew-net`/`crew-db` | — |
-| `deploy/Dockerfile` | Build multi-target image (api, web, backup) từ gốc repo, `pnpm install --ignore-scripts` | — |
+| `deploy/Dockerfile` | Build multi-target image (api, web, backup) từ gốc repo, `pnpm install --ignore-scripts`; image api chép thêm `apps/daemon/src/roles/prompts` (bản mặc định của cài đặt prompt, flow `server-settings`) | — |
 | `deploy/.env.example` | Mẫu secrets `/opt/crew/.env` (mode 0600, không commit bản thật) | — |
 | `deploy/backup/backup.sh` | CLI `crew-backup`: dump đêm, prune, list, latest, restore, counts | `dump_once`, `prune`, `loop`, `restore`, `counts` |
 | `deploy/nginx/crew-http.conf` | Site HTTP trước khi có chứng chỉ: `/.well-known/acme-challenge/` và proxy tới crew | — |
@@ -102,7 +102,7 @@ build/test/kiểm docs trước khi merge.
 | `scripts/enable-https.sh` | Xin chứng chỉ certbot của máy chủ, chuyển site sang HTTPS | — |
 | `scripts/restore.sh` | Khôi phục dump vào DB scratch hoặc DB thật | `usage`, `backup` |
 | `scripts/seed-owner.sh` | Tạo/reset tài khoản owner duy nhất qua CLI trong `crew-api` | — |
-| `.dockerignore` | Loại trừ khỏi build context Docker | — |
+| `.dockerignore` | Loại trừ khỏi build context Docker; mở lại ngoại lệ `apps/daemon/src/roles/prompts` dưới quy tắc loại `apps/daemon`, để image api có bản prompt mặc định (flow `server-settings`) | — |
 | `.github/workflows/ci.yml` | CI: typecheck/lint/test/build/docs check, release dmg và zip trên tag `v*` | — |
 | `deploy/compose.test.yml` | Lớp test trên `compose.yml` cho E2E: nginx biên `crew-edge` render đúng `crew-http.conf` trên `127.0.0.1:18180`, `COOKIE_SECURE=false`, tắt `crew-backup` | — |
 
@@ -125,6 +125,8 @@ build/test/kiểm docs trước khi merge.
   tạo release, thay cho lệnh tay `package-mac.mjs --publish`.
 - daemon-setup: sau khi VPS đã chạy theo flow này, owner mới cấu hình máy local để trỏ về đúng
   `https://$CREW_DOMAIN`.
+- server-settings: `deploy/Dockerfile`/`.dockerignore` đưa bản prompt mặc định của daemon vào image api để
+  trang "Cài đặt hệ thống → Prompts" có gì để so sánh/hiện là mặc định.
 
 ## Tests
 

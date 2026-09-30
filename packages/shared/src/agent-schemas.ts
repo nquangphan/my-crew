@@ -124,5 +124,7 @@ export const AgentActivity = z.object({
   waitDetail: JobWaitDetail.nullable(),
   /** The machine's latest heartbeat. */
   reportedAt: z.iso.datetime().nullable(),
+  /** Running: the server settings revision the run started with. */
+  settingsRevision: z.string().nullable().optional(),
 });
 export type AgentActivity = z.infer<typeof AgentActivity>;

@@ -35,6 +35,16 @@ import { MyRequestsPage } from './routes/my-requests';
 import { ProjectDocsPage } from './routes/project-docs';
 import { ProjectSettingsPage } from './routes/project-settings';
 import { ProjectsPage } from './routes/projects';
+import { SettingsMachinePage } from './routes/settings-machine';
+import { SettingsProjectMcpPage } from './routes/settings-project-mcp';
+import { SettingsPromptPage } from './routes/settings-prompt';
+import {
+  SettingsMachinesPage,
+  SettingsModelsPage,
+  SettingsProjectsPage,
+  SettingsPromptsPage,
+  SettingsRulesPage,
+} from './routes/system-settings';
 import { TicketDetailPage } from './routes/ticket-detail';
 
 export interface RouterContext {
@@ -151,6 +161,54 @@ const machinesRoute = createRoute({
   validateSearch: searchOf(ProjectFilterSearch),
   component: MachinesView,
 });
+/** "Cài đặt hệ thống": server-managed prompts, rules, models, machine resources, project MCP switches. */
+const settingsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings',
+  beforeLoad: () => {
+    throw redirect({ to: '/settings/prompts' });
+  },
+});
+const settingsPromptsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/prompts',
+  component: SettingsPromptsPage,
+});
+const settingsPromptRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/prompts/$name',
+  component: SettingsPromptView,
+});
+const settingsRulesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/rules',
+  component: SettingsRulesPage,
+});
+const settingsModelsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/models',
+  component: SettingsModelsPage,
+});
+const settingsMachinesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/machines',
+  component: SettingsMachinesPage,
+});
+const settingsMachineRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/machines/$machineId',
+  component: SettingsMachineView,
+});
+const settingsProjectsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/projects',
+  component: SettingsProjectsPage,
+});
+const settingsProjectRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/settings/projects/$projectKey',
+  component: SettingsProjectView,
+});
 
 // Route views bind URL params and search to the page props (explicit return types break the inference cycle).
 function LoginView(): ReactElement {
@@ -186,6 +244,15 @@ function DocsView(): ReactElement {
 function ProjectSettingsView(): ReactElement {
   return <ProjectSettingsPage projectKey={projectSettingsRoute.useParams().projectKey} />;
 }
+function SettingsPromptView(): ReactElement {
+  return <SettingsPromptPage name={settingsPromptRoute.useParams().name} />;
+}
+function SettingsMachineView(): ReactElement {
+  return <SettingsMachinePage machineId={settingsMachineRoute.useParams().machineId} />;
+}
+function SettingsProjectView(): ReactElement {
+  return <SettingsProjectMcpPage projectKey={settingsProjectRoute.useParams().projectKey} />;
+}
 function TicketView(): ReactElement {
   return <TicketDetailPage ticketKey={ticketRoute.useParams().ticketKey} />;
 }
@@ -206,6 +273,15 @@ export const routeTree = rootRoute.addChildren([
     ticketRoute,
     inboxRoute,
     machinesRoute,
+    settingsRoute,
+    settingsPromptsRoute,
+    settingsPromptRoute,
+    settingsRulesRoute,
+    settingsModelsRoute,
+    settingsMachinesRoute,
+    settingsMachineRoute,
+    settingsProjectsRoute,
+    settingsProjectRoute,
     accountRoute,
   ]),
 ]);

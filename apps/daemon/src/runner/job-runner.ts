@@ -13,6 +13,7 @@ import {
 import type { VpsClient } from '../api/vps-client.js';
 import type { DaemonConfig, ProjectConfig } from '../config.js';
 import { MissingComplexityError } from '../roles/model-policy.js';
+import { type ActiveSettings, BUNDLED_SETTINGS } from '../settings/settings-store.js';
 import type {
   CleanupRecord,
   JobKind,
@@ -65,6 +66,8 @@ export interface PlannerContext {
   /** The docs standard (`STANDARD.md`) installed next to crew-docs, or null. */
   standardPath: string | null;
   log: (level: 'info' | 'warn' | 'error', message: string, fields?: Record<string, unknown>) => void;
+  /** The server settings this job started with (prompts, path rules); a later change never alters them. */
+  settings: ActiveSettings;
 }
 
 export interface PlanInput {
@@ -315,7 +318,10 @@ export interface JobRunnerDeps {
   runner: AgentRunner;
   planner: RolePlanner;
   tracker: ResourceTracker;
+  /** The config jobs run with (the local config with the server settings on top). */
   config: () => DaemonConfig;
+  /** The server settings new jobs start with; the bundled defaults when absent. */
+  settings?: () => ActiveSettings;
   tmpRoot: string;
   binDir: string;
   crewDocs: () => { bundle: string; runtime: string } | null;
@@ -451,7 +457,7 @@ export class JobRunner {
       writer,
       ticket.id,
       job.role,
-      `Job gặp lỗi trên máy trước khi agent chạy xong: \`${text}\`. ` +
+      `Job gặp lỗi trên máy trước khi agent chạy xong: \`${text}\`${job.settingsRevision ? ` (cài đặt bản ${job.settingsRevision})` : ''}. ` +
         (block
           ? 'Ticket bị chặn; chủ dự án xem lại rồi mở chặn (unblock) để chạy lại.'
           : 'Chủ dự án bình luận vào ticket để chạy lại.'),
@@ -470,7 +476,7 @@ export class JobRunner {
     return job;
   }
 
-  private context(job: JobRow): PlannerContext {
+  private context(job: JobRow, settings: ActiveSettings): PlannerContext {
     return {
       vps: this.deps.vps,
       state: this.deps.state,
@@ -478,6 +484,7 @@ export class JobRunner {
       writer: new JobWriter(this.deps.state, job.id),
       standardPath: this.deps.standardPath?.() ?? null,
       log: this.deps.log,
+      settings,
     };
   }
 
@@ -500,10 +507,15 @@ export class JobRunner {
     const kind: JobKind = ticket.type === 'docs_init' && job.kind === 'agent' ? 'docs_init' : job.kind;
     const project = this.deps.projectFor(ticket.projectId);
     const inventory = this.deps.inventoryFor(project?.key ?? null);
+    // Taken once: the whole run keeps the settings (and config) it started with.
+    const settings = this.deps.settings?.() ?? BUNDLED_SETTINGS;
     const config = this.deps.config();
-    const ctx = this.context(job);
+    const ctx = this.context(job, settings);
     const plan = await this.deps.planner.plan({ job, kind, detail, config, project, inventory, ctx });
-    if (plan.stage) job = this.update(job.id, { stage: plan.stage, kind });
+    job = this.update(job.id, {
+      ...(plan.stage ? { stage: plan.stage, kind } : {}),
+      settingsRevision: settings.revision,
+    });
     if (plan.skip) {
       await this.finish(
         job,
@@ -651,6 +663,7 @@ export class JobRunner {
           sharedPaths: workspace.sharedPaths,
           tmpDir,
           codeOnly: plan.stage === 'dev',
+          policy: settings.policy,
         }),
         enabledMcpjsonServers: projectServers.filter((name) => !disabled.includes(name)),
         disabledMcpjsonServers: projectServers.filter((name) => disabled.includes(name)),
@@ -775,7 +788,7 @@ export class JobRunner {
         writer,
         ticket.id,
         job.role,
-        `Lượt chạy lỗi (\`${errorClass}\`), chi phí ${result.totalCostUsd.toFixed(4)} USD: ${scrubSecrets(result.errors.join('; ')).text.slice(0, 2_000) || 'không rõ lỗi'}${diagnosis}`,
+        `Lượt chạy lỗi (\`${errorClass}\`), chi phí ${result.totalCostUsd.toFixed(4)} USD${job.settingsRevision ? `, cài đặt bản ${job.settingsRevision}` : ''}: ${scrubSecrets(result.errors.join('; ')).text.slice(0, 2_000) || 'không rõ lỗi'}${diagnosis}`,
       );
       for (const body of afterRun?.comments ?? []) await this.comment(writer, ticket.id, job.role, body);
       if (!afterRun?.followUp) await this.transition(writer, ticket, 'blocked');

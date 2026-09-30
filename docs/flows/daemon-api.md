@@ -29,12 +29,14 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
    lại.
 3. `apps/api/src/routes/daemon-routes.ts` → token/heartbeat/inventory: `POST /v1/daemon/token/rotate` (không
    cần Idempotency-Key vì response là secret) gọi `rotateToken()`; `POST /v1/daemon/heartbeat` (không cần
-   key, là bản thay toàn trạng thái mỗi 30s) gọi `recordHeartbeat()` — nay cũng lưu `failedJobs` và lý do chờ
-   (`waitReason`/`waitDetail`) của mỗi `waitingJobs[]` (schema `HeartbeatRequest`, flow `machine-pairing`) vào
-   bảng `machines` — rồi route còn ghi riêng `waitingJobs` của body (tối đa 500, job `queued`/`backoff` daemon
-   đang giữ) vào `RouteDeps.waitingJobs` (`WaitingJobsRegistry`, flow `ticket-lifecycle`) theo máy, một bộ nhớ
-   tạm khác phục vụ cảnh báo "ticket đứng yên"; `PUT /v1/daemon/skills` gọi `putInventory()`, cả hai từ
-   `machine-service.ts` (flow `machine-pairing`).
+   key, là bản thay toàn trạng thái mỗi 30s) gọi `recordHeartbeat()` — nay cũng lưu `failedJobs`, lý do chờ
+   (`waitReason`/`waitDetail`) của mỗi `waitingJobs[]` và `settings` (`MachineSettingsState`, bản cài đặt
+   server máy đang áp dụng, flow `server-settings`, phát `machine.settings_applied` khi đổi) — schema
+   `HeartbeatRequest`, flow `machine-pairing` — vào bảng `machines` — rồi route còn ghi riêng `waitingJobs` của
+   body (tối đa 500, job `queued`/`backoff` daemon đang giữ) vào `RouteDeps.waitingJobs`
+   (`WaitingJobsRegistry`, flow `ticket-lifecycle`) theo máy, một bộ nhớ tạm khác phục vụ cảnh báo "ticket
+   đứng yên"; `PUT /v1/daemon/skills` gọi `putInventory()`, cả hai từ `machine-service.ts` (flow
+   `machine-pairing`).
 4. `apps/api/src/routes/daemon-routes.ts` → project/claim: `GET/POST /v1/daemon/projects`,
    `POST/DELETE /v1/daemon/claims*`, `GET /v1/projects/catalog` (chỉ máy host assistant,
    `assertAssistantHost()`) gọi thẳng `claim-service.ts` (flow `project-claims`). Mỗi `DaemonProject` trong
@@ -97,6 +99,10 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
 - agent-roles: PM đọc ticket `request` cha qua `GET /v1/daemon/tickets/:id`
   (`assertTicketReadable`) để lấy `ownerRequest()`; tool `create_subtask`/`file_bug` chạm
   `assertKnownCapabilities()` ở đây trước khi ghi.
+- server-settings: `HeartbeatRequest.settings` đi qua route heartbeat ở đây nhưng ghi/phát sự kiện thuộc
+  `recordHeartbeat()` (flow `machine-pairing`); route `GET/POST/PUT /v1/daemon/settings*` không nằm trong
+  `daemon-routes.ts` mà đăng ký riêng bởi flow đó (`settings-routes.ts`), tuy cùng nhóm route daemon của
+  `buildApp()`.
 
 ## Tests
 

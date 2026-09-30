@@ -45,6 +45,15 @@ export function invalidationsFor(event: EventEnvelope): QueryKey[] {
       return [keys.notices];
     case 'docs.synced':
       return [keys.projects, ['docs']];
+    // A setting got a new revision: the settings pages, and the machines' "picked up" state, follow.
+    case 'settings.changed':
+      return [keys.settings, keys.machines, ['machine']];
+    case 'machine.settings_applied':
+      return [keys.machines, ['machine']];
+    // A remote action changed state; a pause or an inventory re-probe also shows on the machine.
+    case 'machine.command':
+    case 'machine.command_updated':
+      return [['machineCommands'], keys.machines, ['machine']];
     default:
       return [];
   }

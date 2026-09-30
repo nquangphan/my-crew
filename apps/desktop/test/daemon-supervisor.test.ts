@@ -136,14 +136,14 @@ describe('daemon supervisor', () => {
     supervisor.on('ready-timeout', (fields) => timeouts.push(fields));
     await supervisor.startDaemon();
     // A request made while the host hangs is answered by the restarted host.
-    const pending = supervisor.request('jobs.list', {});
+    const pending = supervisor.request('health.get', {});
     await until(() => supervisor.runtime().daemonStarted && hosts.length === 2);
     await expect(pending).resolves.toBeNull();
     expect(timeouts).toEqual([{ pid: hosts[0]?.pid, ms: 60 }]);
     expect(hosts[0]).toMatchObject({ terminated: true, forceKilled: true });
     expect(supervisor.runtime()).toMatchObject({ state: 'running', restarts: 1 });
     expect(supervisor.runtime().lastExit).toContain('không báo sẵn sàng sau');
-    expect(hosts[1]?.methods().sort()).toEqual(['host.startDaemon', 'jobs.list']);
+    expect(hosts[1]?.methods().sort()).toEqual(['health.get', 'host.startDaemon']);
   });
 
   it('never force-kills or times out a host that reported ready', async () => {
@@ -191,12 +191,12 @@ describe('daemon supervisor', () => {
     await until(() => supervisor.runtime().state === 'running');
     const host = hosts[0] as FakeHost;
     host.postMessage = (message) => host.received.push(message); // never answers
-    const pending = supervisor.request('jobs.list', {});
-    await until(() => host.methods().includes('jobs.list'));
+    const pending = supervisor.request('health.get', {});
+    await until(() => host.methods().includes('health.get'));
     host.crash(1);
     await expect(pending).rejects.toThrow('khởi động lại');
     await until(() => supervisor.runtime().state === 'running' && hosts.length === 2);
-    await expect(supervisor.request('jobs.list', {})).resolves.toBeNull();
+    await expect(supervisor.request('health.get', {})).resolves.toBeNull();
   });
 
   it('forwards host events and pushes the app facts after every start', async () => {

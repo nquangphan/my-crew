@@ -17,6 +17,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/drizzle/0005_machine_job_activity.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0006_pm_complexity_reason.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0007_project_bmad_profile.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/app.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/auth/csrf.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
@@ -39,10 +40,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/routes/comment-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
 | `apps/api/src/routes/daemon-routes.ts` | [daemon-api](flows/daemon-api.md) (điểm vào) |
 | `apps/api/src/routes/docs-routes.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (điểm vào) |
+| `apps/api/src/routes/machine-command-routes.ts` | [machine-control](flows/machine-control.md) (điểm vào) |
 | `apps/api/src/routes/machine-routes.ts` | [machine-pairing](flows/machine-pairing.md) (điểm vào) |
 | `apps/api/src/routes/project-routes.ts` | [project-claims](flows/project-claims.md) (điểm vào) |
 | `apps/api/src/routes/report-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
 | `apps/api/src/routes/route-deps.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/routes/settings-routes.ts` | [server-settings](flows/server-settings.md) (điểm vào) |
 | `apps/api/src/routes/stream-routes.ts` | [event-delivery](flows/event-delivery.md) (điểm vào) |
 | `apps/api/src/routes/ticket-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
 | `apps/api/src/server.ts` | [api-platform](flows/api-platform.md) (điểm vào) |
@@ -54,12 +57,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/services/event-service.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `apps/api/src/services/idempotency.ts` | [daemon-api](flows/daemon-api.md) (file) |
 | `apps/api/src/services/like-pattern.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
+| `apps/api/src/services/machine-command-service.ts` | [machine-control](flows/machine-control.md) (file) |
 | `apps/api/src/services/machine-service.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
 | `apps/api/src/services/notice-read-service.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `apps/api/src/services/pg-errors.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/services/project-change-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/project-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/report-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `apps/api/src/services/settings-service.ts` | [server-settings](flows/server-settings.md) (file) |
 | `apps/api/src/services/ticket-query-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/ticket-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/test/agent-activity.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
@@ -75,6 +80,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/docs-sync.test.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `apps/api/test/idempotency.test.ts` | [daemon-api](flows/daemon-api.md) (test) |
 | `apps/api/test/lifecycle-effects.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/api/test/machine-commands.test.ts` | [machine-control](flows/machine-control.md) (test) |
 | `apps/api/test/machine-scope.test.ts` | [daemon-api](flows/daemon-api.md) (test) |
 | `apps/api/test/owner-web-support.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/pairing.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
@@ -83,6 +89,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/project-changes.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `apps/api/test/rate-subtask.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/revoke-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
+| `apps/api/test/settings.test.ts` | [server-settings](flows/server-settings.md) (test) |
 | `apps/api/test/shutdown.test.ts` | [api-platform](flows/api-platform.md) (test) |
 | `apps/api/test/stuck-ticket-alarm.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/sweeper.test.ts` | [machine-pairing](flows/machine-pairing.md) (test) |
@@ -109,6 +116,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/health/repo-probe.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/health/types.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `apps/daemon/src/library.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/remote/machine-commands.ts` | [machine-control](flows/machine-control.md) (file) |
 | `apps/daemon/src/roles/docs-first-check.ts` | [agent-roles](flows/agent-roles.md) (file) |
 | `apps/daemon/src/roles/docs-init-gate.ts` | [agent-roles](flows/agent-roles.md) (file) |
 | `apps/daemon/src/roles/docs-update-handoff.ts` | [agent-roles](flows/agent-roles.md) (file) |
@@ -147,6 +155,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/scheduler/scheduler.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
 | `apps/daemon/src/secrets.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
 | `apps/daemon/src/service/systemd.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
+| `apps/daemon/src/settings/settings-store.ts` | [server-settings](flows/server-settings.md) (file) |
 | `apps/daemon/src/skills/bmad-profile.ts` | [agent-workspace](flows/agent-workspace.md) (file) |
 | `apps/daemon/src/skills/skill-inventory.ts` | [agent-workspace](flows/agent-workspace.md) (file) |
 | `apps/daemon/src/state-db.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
@@ -169,6 +178,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/lifecycle.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/live-smoke.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/live-workflow.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
+| `apps/daemon/test/machine-commands.test.ts` | [machine-control](flows/machine-control.md) (test) |
 | `apps/daemon/test/merge-policy.test.ts` | [local-merge](flows/local-merge.md) (test) |
 | `apps/daemon/test/model-policy.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/pm-mention.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
@@ -178,6 +188,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/role-policies.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/run-trace.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/scheduler.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
+| `apps/daemon/test/settings.test.ts` | [server-settings](flows/server-settings.md) (test) |
 | `apps/daemon/test/skill-enforcement.test.ts` | [agent-roles](flows/agent-roles.md) (test) |
 | `apps/daemon/test/skill-inventory.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/daemon/test/stream-atomicity.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
@@ -215,34 +226,24 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/src/renderer/app.tsx` | [desktop-ui](flows/desktop-ui.md) (điểm vào) |
 | `apps/desktop/src/renderer/components/folder-picker.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/components/health-check-row.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
-| `apps/desktop/src/renderer/components/new-project-form.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
-| `apps/desktop/src/renderer/components/project-picker.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
-| `apps/desktop/src/renderer/components/resource-form.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/components/ui.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/components/wizard-step.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/index.html` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/lib/format.ts` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/lib/ipc.ts` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/main.tsx` | [desktop-ui](flows/desktop-ui.md) (điểm vào) |
-| `apps/desktop/src/renderer/routes/health.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
-| `apps/desktop/src/renderer/routes/jobs.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
-| `apps/desktop/src/renderer/routes/logs.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
-| `apps/desktop/src/renderer/routes/settings-projects.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
-| `apps/desktop/src/renderer/routes/settings.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/routes/setup-wizard.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/routes/status.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/styles.css` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/test/app-log.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/bmad-install.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/daemon-supervisor.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
-| `apps/desktop/test/e2e/first-project.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/e2e/health.spec.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/e2e/onboarding.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/e2e/project-bmad.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
-| `apps/desktop/test/e2e/project-settings.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/folder-access.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/host-service.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/main-logic.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
-| `apps/desktop/test/new-project-form.test.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/role-prompts-bundle.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/web/e2e/account-password.spec.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/web/e2e/agent-activity.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
@@ -252,6 +253,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/e2e/docs-space.spec.ts` | [docs-sync-viewer](flows/docs-sync-viewer.md) (test) |
 | `apps/web/e2e/owner-admin.spec.ts` | [web-admin](flows/web-admin.md) (test) |
 | `apps/web/e2e/pm-mention.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
+| `apps/web/e2e/system-settings.spec.ts` | [server-settings](flows/server-settings.md) (test) |
 | `apps/web/src/components/agent-activity.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/agent-activity.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/board-view.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
@@ -271,8 +273,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/filter-menu.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/flow-view.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
 | `apps/web/src/components/issue-table.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/machine-control.test.tsx` | [machine-control](flows/machine-control.md) (test) |
+| `apps/web/src/components/machine-control.tsx` | [machine-control](flows/machine-control.md) (điểm vào) |
 | `apps/web/src/components/markdown-editor.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/markdown-view.tsx` | [web-tickets](flows/web-tickets.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
+| `apps/web/src/components/model-settings-form.tsx` | [server-settings](flows/server-settings.md) (file) |
 | `apps/web/src/components/new-ticket-dialog.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/pairing-dialog.test.tsx` | [web-admin](flows/web-admin.md) (test) |
 | `apps/web/src/components/pairing-dialog.tsx` | [web-admin](flows/web-admin.md) (file) |
@@ -282,6 +287,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/related-tickets.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
 | `apps/web/src/components/report-panel.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/role-avatar.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/setting-editor.tsx` | [server-settings](flows/server-settings.md) (file) |
 | `apps/web/src/components/status-dropdown.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/status-dropdown.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/status-lozenge.tsx` | [web-tickets](flows/web-tickets.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
@@ -350,6 +356,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/routes/project-settings.test.tsx` | [web-admin](flows/web-admin.md) (test) |
 | `apps/web/src/routes/project-settings.tsx` | [web-admin](flows/web-admin.md) (điểm vào) |
 | `apps/web/src/routes/projects.tsx` | [web-admin](flows/web-admin.md) (điểm vào) |
+| `apps/web/src/routes/settings-machine.tsx` | [server-settings](flows/server-settings.md) (file) |
+| `apps/web/src/routes/settings-project-mcp.tsx` | [server-settings](flows/server-settings.md) (file) |
+| `apps/web/src/routes/settings-prompt.tsx` | [server-settings](flows/server-settings.md) (file) |
+| `apps/web/src/routes/system-settings.test.tsx` | [server-settings](flows/server-settings.md) (test) |
+| `apps/web/src/routes/system-settings.tsx` | [server-settings](flows/server-settings.md) (điểm vào) |
 | `apps/web/src/routes/ticket-detail.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
 | `apps/web/src/styles/app.css` | [web-shell](flows/web-shell.md) (file) |
 | `deploy/.env.example` | [deployment](flows/deployment.md) (file) |
@@ -412,10 +423,13 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/shared/src/health-schemas.test.ts` | [daemon-health](flows/daemon-health.md) (test) |
 | `packages/shared/src/health-schemas.ts` | [daemon-health](flows/daemon-health.md) (file) |
 | `packages/shared/src/index.ts` | [api-platform](flows/api-platform.md) (file) |
+| `packages/shared/src/machine-command-schemas.ts` | [machine-control](flows/machine-control.md) (file) |
 | `packages/shared/src/machine-schemas.ts` | [machine-pairing](flows/machine-pairing.md) (dùng chung), [project-claims](flows/project-claims.md) (dùng chung), [daemon-api](flows/daemon-api.md) (dùng chung) |
 | `packages/shared/src/project-schemas.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `packages/shared/src/project-schemas.ts` | [project-claims](flows/project-claims.md) (file) |
 | `packages/shared/src/secret-scrubber.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `packages/shared/src/settings-schemas.test.ts` | [server-settings](flows/server-settings.md) (test) |
+| `packages/shared/src/settings-schemas.ts` | [server-settings](flows/server-settings.md) (file) |
 | `packages/shared/src/status-workflow.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `packages/shared/src/status-workflow.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `packages/shared/src/ticket-schemas.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |

@@ -4,6 +4,7 @@ import type {
   Machine,
   Project,
   ProjectChangeStatus,
+  SettingsKeyInput,
   Ticket,
   TicketDetailResponse,
   TicketPriority,
@@ -37,6 +38,18 @@ export const keys = {
   docsSpace: (projectId: string) => ['docs', projectId, 'space'] as const,
   docsPage: (projectId: string, path: string) => ['docs', projectId, 'page', path] as const,
   docsSearch: (projectId: string, q: string) => ['docs', projectId, 'search', q] as const,
+  /** Everything under `settings` is refetched when a `settings.changed` event arrives. */
+  settings: ['settings'] as const,
+  settingsHistory: (key: SettingsKeyInput) =>
+    [
+      'settings',
+      'history',
+      key.kind,
+      key.scope,
+      key.machineId ?? '',
+      key.projectId ?? '',
+      key.name ?? '',
+    ] as const,
 };
 
 export const sessionQuery = queryOptions({
@@ -175,13 +188,16 @@ export function useDocsSearch(projectId: string | undefined, q: string) {
   });
 }
 
-/** Machines refresh on live events and every 30 s (heartbeats do not emit events). */
-export function useMachines() {
+/**
+ * Machines refresh on live events and every 30 s (heartbeats do not emit events); `refetchMs` polls faster,
+ * e.g. while a saved setting waits for the machines to pick it up.
+ */
+export function useMachines(refetchMs = 30_000) {
   return useQuery({
     queryKey: keys.machines,
     queryFn: async () => (await api.listMachines()).items,
-    refetchInterval: 30_000,
-    staleTime: 10_000,
+    refetchInterval: refetchMs,
+    staleTime: Math.min(10_000, refetchMs),
   });
 }
 
@@ -220,6 +236,19 @@ export function useProjectChanges(status?: ProjectChangeStatus) {
   return useQuery({
     queryKey: keys.projectChanges(status),
     queryFn: async () => (await api.listProjectChanges(status)).items,
+  });
+}
+
+/** "Cài đặt hệ thống": defaults, active revisions, prompt catalog. */
+export function useSettingsOverview() {
+  return useQuery({ queryKey: keys.settings, queryFn: () => api.getSettings() });
+}
+
+export function useSettingsHistory(key: SettingsKeyInput, enabled = true) {
+  return useQuery({
+    queryKey: keys.settingsHistory(key),
+    queryFn: async () => (await api.getSettingsHistory(key)).items,
+    enabled,
   });
 }
 

@@ -57,7 +57,10 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
     khi health chuyển sang đỏ. Trước khi ghi đè, so `activitySignatures()` (bỏ số tải/RAM/slot, flow
     `ticket-lifecycle`) của báo cáo cũ và mới; ticket nào đổi (hoặc mọi ticket của cả hai bên, khi báo cáo cũ đã
     đọc thành `unknown` — `heartbeatFresh()`) được gộp vào đúng một `agent.activity_changed {machineId,
-    ticketIds}` (owner stream). `HeartbeatRequest.waitingJobs` còn được route daemon ở flow `daemon-api` ghi
+    ticketIds}` (owner stream). Heartbeat cũng mang `settings: MachineSettingsState` (bản cài đặt server, flow
+    `server-settings`, máy áp cho job kế tiếp) — ghi vào `machines.settings_state`; đổi so với bản đã lưu thì
+    phát thêm `machine.settings_applied {machineId, revision}` (owner stream), để web thấy ngay lúc máy nhận
+    một bản mới mà không cần tự poll. `HeartbeatRequest.waitingJobs` còn được route daemon ở flow `daemon-api` ghi
     riêng vào `WaitingJobsRegistry` (bộ nhớ tạm, không phải cột `machines`) để nuôi cảnh báo "ticket đứng yên"
     của flow `ticket-lifecycle` — hai nơi lưu độc lập cùng dữ liệu heartbeat cho hai mục đích khác nhau.
     `putInventory()` ghi đè kho skill/MCP theo máy (`projectKey=null`) hoặc theo project mà máy đó sở hữu —
@@ -81,7 +84,8 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 - Bảng: `pairing_codes`, `machine_tokens`, `machines`, `machine_skills` (inventory).
 - Sự kiện: `machine.unhealthy` (health chuyển đỏ), `machine.offline` (sweep), `agent.activity_changed` (báo
   cáo job của một ticket đổi giữa hai heartbeat, owner stream — định nghĩa và tiêu thụ ở flow
-  `ticket-lifecycle`/`event-delivery`). `machine.claimed`, `machine.released` phát từ flow `project-claims` khi
+  `ticket-lifecycle`/`event-delivery`), `machine.settings_applied` (heartbeat báo một bản cài đặt server mới,
+  owner stream, flow `server-settings`). `machine.claimed`, `machine.released` phát từ flow `project-claims` khi
   thu hồi giải phóng claim.
 - Gọi ngoài: không.
 
@@ -101,6 +105,8 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 - agent-roles: PM đọc ticket `request` cha qua `assertTicketReadable()` để lấy `ownerRequest()`; đăng ký
   skill/MCP thiếu bị `assertKnownCapabilities()` chặn ngay khi tạo, không phải chờ tới lúc chạy.
 - event-delivery: `revokeMachine()` đóng stream SSE qua `EventBus.revokeMachine()`.
+- server-settings: `recordHeartbeat()` ghi `machines.settings_state` và phát `machine.settings_applied`;
+  `Machine.settings` (đọc lại ở `toMachineDto()`) và `expectedRevisions()` thuộc flow đó.
 - web-admin: trang Máy hiển thị danh sách/chi tiết máy và hành động tạo mã pairing, thu hồi.
 
 ## Tests

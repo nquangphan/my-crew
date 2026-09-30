@@ -8,7 +8,7 @@ export interface FolderPickerProps {
   disabled?: boolean;
 }
 
-/** The native folder dialog; the chosen path is only stored locally (`~/.crew/config.yaml`). */
+/** The native folder dialog (the only way to browse this machine's folders); the caller decides where it goes. */
 export function FolderPicker({ value, onPick, label = 'Chọn thư mục…', disabled }: FolderPickerProps) {
   const [picking, setPicking] = useState(false);
   const pick = async () => {

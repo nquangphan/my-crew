@@ -29,7 +29,11 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `config-legacy-model`, flow `desktop-app`), rồi lần `saveConfig()` kế tiếp ghi lại file đã sạch `fable`.
    `homePaths()` cấp một đường dẫn nằm ngoài `home`: `tmp` là `jobTmpRoot(home)` = `/tmp/crew-<uid>/<8 hex
    sha256(home)>` (flow `resource-hygiene`) — ngắn cho giới hạn socket Unix của macOS, và riêng theo user hệ
-   điều hành cộng home của daemon nên hai daemon không đụng thư mục tạm của nhau.
+   điều hành cộng home của daemon nên hai daemon không đụng thư mục tạm của nhau; cùng hàm cũng cấp
+   `settingsCache` = `<home>/settings-cache.json` (bản cài đặt server tốt gần nhất, flow `server-settings`).
+   `DaemonConfig` (resources/models/budgets/`disabledMcpServers` mỗi project) từ giờ chỉ còn là **giá trị cục
+   bộ**: cấu hình một job thực sự chạy với là `effectiveConfig()` (chồng cài đặt server lên trên, flow
+   `server-settings`), không phải `loadConfig()` trực tiếp.
 3. `apps/daemon/src/secrets.ts` → `defaultTokenStore()`: Keychain macOS qua `KeychainTokenStore` (ghi bằng
    `security -i` nhận lệnh trên stdin, token không bao giờ nằm trong argv của tiến trình) hoặc
    `FileTokenStore` (file 0600, atomic) khi `CREW_TOKEN_STORE=file` hoặc không phải macOS.
@@ -39,7 +43,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `backoff`; cột `stage`, `failed_attempts`, `capabilities`, `return_to_dev` của flow `agent-roles`, cột
    `run_trace` (JSON, flow `agent-runs`: số lượt/thời gian/chi phí, kết quả SDK, tin nhắn cuối và các bước cuối
    của agent, ghi sau mọi lượt chạy dù thành hay bại) đọc bởi `failedJobText()` (flow `agent-roles`) cho
-   heartbeat, cột `wait_reason`/`wait_detail` mà `Scheduler` ghi qua `updateJob()` (flow `daemon-scheduling`)),
+   heartbeat, cột `wait_reason`/`wait_detail` mà `Scheduler` ghi qua `updateJob()` (flow `daemon-scheduling`),
+   cột `settings_revision` (flow `server-settings`/`agent-runs`: bản cài đặt server job đó snapshot lúc bắt
+   đầu, ghi bởi `JobRunner.execute()`, đọc lại bởi bình luận lỗi/crash và bởi heartbeat)),
    `pending_wakeups`, `pm_mentions` (khoá chính `event_id`; `pm_task_id`, `source_ticket_id`,
    `source_ticket_key`, `comment_id`, `created_at` — mỗi owner tag `@pm` nhận được, ghi bởi
    `recordPmMention()`/đọc bằng `pmMentions(eventIds)`, dùng bởi flow `daemon-scheduling`/`agent-roles`),
@@ -53,9 +59,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    job đang chờ.
 5. `apps/daemon/src/api/vps-client.ts` → `VpsClient.request()`: mọi response được validate bằng schema
    `@crew/shared`, lỗi transient (mạng, 502/503/504) được thử lại với backoff nhân đôi, mọi ghi kèm header
-   `Idempotency-Key` — ví dụ `requestProjectChange(projectKey, body, idempotencyKey)` (flow `project-claims`,
-   dùng bởi `setup-ops.ts` → `requestTestSetup()` của app desktop), `putBmadProfile(projectKey, profile,
-   idempotencyKey)` (`PUT /v1/daemon/projects/:projectKey/bmad-profile`, cũng flow `project-claims`), hay
+   `Idempotency-Key` — ví dụ `requestProjectChange(projectKey, body, idempotencyKey)` (flow `project-claims`;
+   hiện không còn nơi gọi, app desktop từng dùng nó qua `requestTestSetup()` trước khi bỏ màn đó),
+   `putBmadProfile(projectKey, profile, idempotencyKey)` (`PUT /v1/daemon/projects/:projectKey/bmad-profile`,
+   cũng flow `project-claims`), `startCommand`/`finishCommand` (flow `machine-control`), hay
    `retrySubtask(pmTaskId, body, idempotencyKey)` (`POST .../retry-subtask`, gọi bởi tool PM cùng tên, flow
    `agent-runs`/`ticket-lifecycle`). Tuỳ chọn `onError(failure: ApiFailure)`
    được gọi đúng một lần cho mỗi request cuối cùng thất bại (sau khi hết lượt thử lại) với `method`, `path`,
@@ -72,7 +79,24 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `putSkills()` gửi inventory lên server, MCP server bị chủ dự án tắt cho project đó được đánh dấu
    `disabled: true` trong danh sách gửi đi (server dùng cờ này để từ chối ticket yêu cầu nó, flow
    `machine-pairing`/`daemon-api`), dù `inventoryFor()` cục bộ (cấp cho `allowedToolsFor()`) vẫn giữ danh sách
-   gốc.
+   gốc. `createDaemon()` cũng dựng một `SettingsStore` (flow `server-settings`) cạnh `VpsClient`; `config`
+   (biến `JobRunnerDeps`/`Daemon` dùng, khác `localConfig` đọc từ đĩa) luôn là
+   `effectiveConfig(localConfig, settingsStore.current(), localImported())` — được tính lại (`applyConfig()`)
+   mỗi khi cài đặt server đổi hay `updateConfig()`/`updateProjects()` được gọi, và re-probe inventory của
+   project nào có MCP tắt vừa đổi. `refreshSettings()` (fetch cài đặt server rồi `applyConfig()`, gọi lúc
+   `start()` trước khi job đầu tiên chạy, khi nhận effect `refresh_settings` của dispatcher — sự kiện
+   `settings.changed`, flow `daemon-scheduling` — khi stream kết nối lại, khi project đổi chủ, và mỗi giờ qua
+   `settingsTimer`/`timings.settingsMs`) gọi tiếp `importLocalSettings()`: tải một lần giá trị `config.yaml`
+   cục bộ lên làm cài đặt máy/project trên server (chỉ nơi server chưa có gì, đánh dấu xong qua meta
+   `settings-imported:<machineId>`) rồi refresh lại. `Daemon.settings()`/`effectiveConfig()` lộ trạng thái này
+   cho CLI/app desktop (`crewd doctor`, dashboard); `setProjectMcp(projectKey, disabled, note)` gọi
+   `VpsClient.putProjectMcp()` rồi `refreshSettings()` ngay để áp cho job kế tiếp — dùng bởi fix sức khỏe
+   (flow `daemon-health`) và công tắc MCP của app desktop (flow `desktop-app`). `CreateDaemonOptions.commandHandlers`
+   (tuỳ chọn, `MachineCommandHandlers` của flow `machine-control`): daemon tự có sẵn `pause`/`resume`/
+   `inventory.refresh`/`jobs.list`/`project.release`/`assistant.release` (bảng `commandHandlers()`, cạnh
+   `pause()`/`resume()` dưới đây); app desktop thêm `health.run`/`health.fix`/`bmad.install`/`logs.tail` qua
+   tuỳ chọn này. Effect `run_command` của dispatcher (flow `daemon-scheduling`, từ sự kiện `machine.command`)
+   chạy `runMachineCommand()` ngay trong `inBackground()`, không qua `Scheduler` và không chiếm slot job.
 7. `apps/daemon/src/daemon.ts` → `createDaemon().start()`: `takePidLock()` chặn hai daemon cùng chạy trên một
    home; `ensureTmpRoot(paths.tmp)` (flow `resource-hygiene`) dựng an toàn gốc thư mục tạm ngắn rồi xóa
    `<home>/tmp` cũ (thư mục tạm của bản daemon trước — pid lock vừa lấy coi nó thuộc daemon này để dọn);
@@ -89,7 +113,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `sweep()` cũng gọi `ProbeWorktreeKeeper.expire()` cho mọi project đã cấu hình — dọn worktree probe quá một
    giờ (không tính vào `orphansCleaned`); `timings.probeWorktreeTtlMs`/`timings.probeClock` cho test kiểm soát
    thời gian này.
-   `heartbeat()` gửi `runningJobs` kèm `stage`/`model`/`effort` của lượt đang chạy, `waitingJobs` cho mọi job
+   `heartbeat()` gửi thêm `settings: settingsStore.state()` (`revision`, `source`: server/cache/bundled,
+   `rejected[]` — flow `server-settings`) mỗi lượt, và `settingsRevision` trên mỗi `runningJobs[]`/
+   `waitingJobs[]` (bản cài đặt job đó bắt đầu với). `heartbeat()` gửi `runningJobs` kèm `stage`/`model`/`effort` của lượt đang chạy, `waitingJobs` cho mọi job
    `queued`/`backoff` kèm `role`/`kind`/`stage`/`since` và lý do chờ hiện tại (`waitOf()`: tạm dừng máy hoặc
    `retryAt` còn hạn thắng quyết định cuối của scheduler; `no_slots` mang số tải/RAM/slot sống ngay lúc gửi,
    không phải lúc scheduler quyết định) — để cảnh báo "ticket đứng yên" trên server (`startStuckTicketAlarm()`,
@@ -146,8 +172,8 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
 | `apps/daemon/src/cli.ts` | Lệnh `crewd` | `main`, `pair`, `status`, `rotateToken`, `runDoctor`, `runInstallService`, `project`, `assistant` |
-| `apps/daemon/src/daemon.ts` | Lắp ráp daemon: vòng đời, sweep, heartbeat, dispatch effect | `createDaemon`, `CreateDaemonOptions`, `Daemon`, `releaseLostProjects`, `reconcileRestart`, `wakePmForLeftovers`, `cancelDescendants` |
-| `apps/daemon/src/library.ts` | Điểm export thư viện dùng chung CLI/app desktop | (re-export) |
+| `apps/daemon/src/daemon.ts` | Lắp ráp daemon: vòng đời, sweep, heartbeat, dispatch effect, hành động từ xa | `createDaemon`, `CreateDaemonOptions`, `Daemon`, `releaseLostProjects`, `reconcileRestart`, `wakePmForLeftovers`, `cancelDescendants` |
+| `apps/daemon/src/library.ts` | Điểm export thư viện dùng chung CLI/app desktop (kể cả `ActiveSettings`/`SettingsStore`/`effectiveConfig` của flow `server-settings`) | (re-export) |
 | `apps/daemon/src/config.ts` | Cấu hình `~/.crew/config.yaml` | `DaemonConfig`, `loadConfig`, `saveConfig`, `crewHome`, `homePaths` |
 | `apps/daemon/src/secrets.ts` | Lưu token máy | `TokenStore`, `FileTokenStore`, `KeychainTokenStore`, `defaultTokenStore` |
 | `apps/daemon/src/state-db.ts` | Trạng thái cục bộ SQLite | `StateDb`, `JobRow`, `ACTIVE_JOB_STATUSES`, `PmMention` |
@@ -165,6 +191,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 
 ## Flow liên quan
 
+- machine-control: `CreateDaemonOptions.commandHandlers` và `commandHandlers()` mặc định của `createDaemon()`
+  cấp hành động cho lệnh từ xa owner gửi từ web; `dispatchEvent()` (flow `daemon-scheduling`) trả effect
+  `run_command` xử lý ở đây, ngoài `Scheduler`.
 - daemon-scheduling: `StreamClient` và `Scheduler` được tạo và nối dây trong `createDaemon()`; `wakePmForLeftovers()`
   gọi `wakeTicket()`; `decide()` (dùng bởi `Scheduler.pass()`) trả thêm lý do chờ máy đọc được (`wait`/`detail`)
   và khoá các ticket phụ thuộc chưa xong; `onWaitChange` gọi `logWaitChange()` ở đây.
@@ -178,7 +207,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
   `readBmadProfile()` của flow đó để đọc `_bmad/` trong checkout chính trước mỗi probe.
 - resource-hygiene: `createDaemon().sweep()` gọi `sweepOrphans()`; `ResourceOps` được lắp trong
   `JobRunnerDeps.resourceOps`.
-- daemon-health: `crewd doctor` (`runDoctor()` trong `cli.ts`) gọi `doctor()` của flow `daemon-health`.
+- daemon-health: `crewd doctor` (`runDoctor()` trong `cli.ts`) gọi `doctor()` của flow `daemon-health`, với
+  `config` là `loadEffectiveConfig()` (flow `server-settings`: cài đặt server chồng lên `config.yaml` cục bộ,
+  không cần daemon đang chạy) thay vì `loadConfig()` thẳng.
 - daemon-api: `VpsClient` gọi các route đó (xem flow `daemon-api` ở phía server).
 - ticket-lifecycle: `waitingJobs` và `failedJobs` trong mỗi heartbeat nuôi cả `WaitingJobsRegistry`/
   `startStuckTicketAlarm()` phía server và `AgentActivity` mà owner đọc trên ticket
@@ -186,6 +217,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 - desktop-app: `HostService.startDaemon()` gọi `createDaemon()` với `crewDocsRuntime` là binary của app; mọi
   export của `library.ts` (config, secrets, state DB, VPS client, health) được `setup-ops.ts`/`health-ops.ts`/
   `activity.ts` dùng lại thay vì định nghĩa riêng.
+- server-settings: `SettingsStore` được dựng và điều khiển bên trong `createDaemon()`; `VpsClient.settings()`/
+  `importSettings()`/`putProjectMcp()` sống ở `vps-client.ts` (file của flow này) nhưng phục vụ flow đó; cột
+  `jobs.settings_revision` sống trong `state-db.ts` ở đây.
 
 ## Tests
 

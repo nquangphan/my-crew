@@ -2,12 +2,12 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { BMAD_DIR, type BmadInstall, readBmadInstall } from '@crew/daemon';
-import type { BmadInstallPlan, BmadLocalInstall, BmadProfile, ProjectBmadView } from '@crew/shared';
+import type { BmadProfile } from '@crew/shared';
 import { type HostContext, HostError } from './host-context.js';
 
 /**
- * "Cài BMAD" (Settings → Projects): runs the `bmad-method` installer of the project's BMAD profile in this
- * machine's folder, non-interactively. It never downgrades, never copies `_bmad/custom` or `_bmad/memory`
+ * "Cài BMAD" (the project's settings page on the web, run here as a remote action): runs the `bmad-method`
+ * installer of the project's BMAD profile in this machine's folder, non-interactively. It never downgrades, never copies `_bmad/custom` or `_bmad/memory`
  * (the profile holds neither) and never commits: files the installer adds stay untracked for the owner.
  */
 
@@ -15,7 +15,7 @@ import { type HostContext, HostError } from './host-context.js';
 export const BMAD_INSTALL_TIMEOUT_MS = 7 * 60_000;
 /** How long the result waits for the inventory re-probe before telling the owner to refresh later. */
 const REPROBE_WAIT_MS = 90_000;
-/** Output lines written to app.log per install (the UI gets every line). */
+/** Output lines written to app.log per install. */
 const MAX_LOGGED_LINES = 400;
 const TAIL_LINES = 20;
 
@@ -121,18 +121,6 @@ export const npxRunner: BmadRunner = ({ args, cwd, env, timeoutMs, onLine }) =>
   });
 
 /**
- * `no_profile` without a profile; `installed` whenever the folder already has a BMAD install, whatever its
- * version or modules (the app never reinstalls, updates or downgrades one); otherwise `install`.
- */
-export function bmadInstallPlan(
-  profile: BmadProfile | null,
-  local: BmadLocalInstall | null,
-): BmadInstallPlan {
-  if (!profile) return 'no_profile';
-  return local ? 'installed' : 'install';
-}
-
-/**
  * `npx` arguments of the fresh non-interactive install. `core` is always installed, so it is not listed;
  * external modules are pinned to the release tags the profile recorded.
  */
@@ -167,14 +155,6 @@ export function localBmadInstall(repoPath: string | null): BmadInstall | null {
 /** True when the folder has any BMAD install: a readable manifest, or at least a `_bmad/` folder. */
 function hasBmad(repoPath: string, install: BmadInstall | null): boolean {
   return install !== null || existsSync(join(repoPath, BMAD_DIR));
-}
-
-export function bmadView(profile: BmadProfile | null, repoPath: string | null): ProjectBmadView {
-  const install = localBmadInstall(repoPath);
-  const local = install ? { version: install.version, modules: install.modules } : null;
-  if (!profile) return { profile, local, plan: 'no_profile' };
-  const present = repoPath !== null && existsSync(repoPath) && hasBmad(repoPath, install);
-  return { profile, local, plan: present ? 'installed' : 'install' };
 }
 
 const NETWORK =
@@ -235,15 +215,13 @@ export async function installBmad(
   if (hasBmad(repoPath, before)) {
     return { status: 'skipped', message: alreadyInstalledText(before?.version ?? 'không rõ phiên bản') };
   }
-  const plan = bmadInstallPlan(profile, null);
-
   const args = bmadInstallerArgs(profile, repoPath);
   const statusBefore = gitStatus(repoPath);
   const timeoutMs = deps.timeoutMs ?? BMAD_INSTALL_TIMEOUT_MS;
   const tail: string[] = [];
   let logged = 0;
   const started = Date.now();
-  ctx.log('info', 'bmad-install-started', { project: key, version: profile.version, plan, args });
+  ctx.log('info', 'bmad-install-started', { project: key, version: profile.version, args });
   let outcome: BmadRunOutcome;
   try {
     outcome = await deps.runner({
@@ -254,7 +232,6 @@ export async function installBmad(
       onLine: (line) => {
         tail.push(line);
         if (tail.length > TAIL_LINES) tail.shift();
-        ctx.deps.emit('bmad.progress', { key, line });
         if (logged < MAX_LOGGED_LINES) {
           logged += 1;
           ctx.log('info', 'bmad-install-output', { project: key, line });
@@ -314,8 +291,8 @@ export async function installBmad(
   if (typeof skills === 'number') parts.push(`Đã dò lại kho skill: ${skills} skill.`);
   else if (skills === null) parts.push('Daemon chưa chạy nên kho skill được dò lại khi daemon chạy.');
   else if (skills === 'late') {
-    parts.push('Kho skill đang được dò lại; bấm "Làm mới" sau ít phút để xem skill BMAD.');
-  } else parts.push('Chưa dò lại được kho skill; bấm "Làm mới" để thử lại.');
+    parts.push('Kho skill đang được dò lại; xem lại skill của máy trên web sau ít phút.');
+  } else parts.push('Chưa dò lại được kho skill; dùng "Dò lại skill và MCP" trong Điều khiển máy trên web.');
   ctx.log('info', 'bmad-install-finished', {
     project: key,
     ms,

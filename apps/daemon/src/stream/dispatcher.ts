@@ -14,6 +14,10 @@ export type DispatchEffect =
   | { kind: 'recheck'; job: JobRow }
   | { kind: 'cancel'; ticketId: string; job: JobRow | null }
   | { kind: 'refresh_projects' }
+  /** A server setting that applies to this machine changed: refetch the settings for the next jobs. */
+  | { kind: 'refresh_settings' }
+  /** The owner asked this machine for a whitelisted action from the web. */
+  | { kind: 'run_command'; commandId: string }
   | { kind: 'ignored'; reason: string };
 
 /** Events that wake the ticket's assignee: a new job, or a fold into the active one. */
@@ -47,6 +51,8 @@ export function dispatchEvent(state: StateDb, envelope: EventEnvelope, now = new
   if (payload.type === 'claim.changed' || payload.type === 'project.change_decided') {
     return { kind: 'refresh_projects' };
   }
+  if (payload.type === 'settings.changed') return { kind: 'refresh_settings' };
+  if (payload.type === 'machine.command') return { kind: 'run_command', commandId: payload.data.commandId };
 
   if (payload.type === 'ticket.cancelled') {
     const ticketId = payload.data.ticketId;

@@ -76,6 +76,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/drizzle/0005_machine_job_activity.sql` | Migration thêm `machines.waiting_jobs`/`machines.failed_jobs` jsonb (flow `machine-pairing`, đọc bởi `ticket-lifecycle` cho hoạt động agent) | — |
 | `apps/api/drizzle/0006_pm_complexity_reason.sql` | Migration thêm cột `tickets.complexity_reason` text (flow `ticket-lifecycle`: lý do PM đánh giá `complexity` của subtask dev/QC) | — |
 | `apps/api/drizzle/0007_project_bmad_profile.sql` | Migration thêm cột `projects.bmad_profile` jsonb, nullable (flow `project-claims`: hồ sơ cài BMAD mà máy sở hữu project báo cáo, dùng cho tính năng "Cài BMAD" trên máy khác) | — |
+| `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | Migration thêm bảng `settings_revisions` và cột `machines.settings_state` jsonb (flow `server-settings`: cài đặt server theo bản, prompt/quy tắc/model/tài nguyên/thư mục dự án/MCP dự án), và bảng `machine_commands` (flow `machine-control`: lệnh từ xa owner gửi từ web) | — |
 | `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, `bmad-schemas.ts` của flow `project-claims`, `secret-scrubber.ts` của flow `agent-runs`, và `comment-mentions.ts` của flow `ticket-lifecycle`) | — |
 
 ## Dữ liệu
@@ -95,6 +96,12 @@ của mình vào app do flow này dựng lên.
 - daemon-api, project-claims, docs-sync-viewer: route của các flow này được đăng ký bên trong `buildApp()`,
   gồm cả `daemonBmadProfileRoutes` (`apps/api/src/routes/bmad-profile-routes.ts`, flow `daemon-api`) trong
   nhóm route daemon.
+- server-settings: `settingsRoutes` (nhóm route owner) và `daemonSettingsRoutes` (nhóm route daemon) cũng
+  đăng ký tại `buildApp()`; migration `0008_server_settings_and_machine_commands.sql` (phần `settings_revisions`/
+  `machines.settings_state`) chạy qua `runMigrations()` như mọi migration khác.
+- machine-control: `machineCommandRoutes` (nhóm route owner) và `daemonCommandRoutes` (nhóm route daemon)
+  cũng đăng ký tại `buildApp()`; migration `0008_server_settings_and_machine_commands.sql` (phần
+  `machine_commands`) chạy qua `runMigrations()` như mọi migration khác.
 
 ## Tests
 

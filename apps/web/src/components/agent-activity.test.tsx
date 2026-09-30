@@ -36,6 +36,10 @@ describe('agent activity text', () => {
     expect(text(activity({ since: at(8), model: 'sonnet', effort: 'high' }))).toBe(
       'Đang chạy trên Macbook-M4 · sonnet/high · từ 11:32',
     );
+    // The server settings revision the run started with (prompts, rules, model map).
+    expect(text(activity({ since: at(8), model: 'sonnet', settingsRevision: '3f9a1c2b' }))).toBe(
+      'Đang chạy trên Macbook-M4 · sonnet · cài đặt 3f9a1c2b · từ 11:32',
+    );
   });
 
   it('explains every wait reason', () => {

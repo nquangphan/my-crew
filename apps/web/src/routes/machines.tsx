@@ -4,6 +4,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import { ChevronDown, ChevronUp, Hourglass, Plus, TriangleAlert } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 import { describeWait, formatClock } from '../components/agent-activity';
+import { MachineControl } from '../components/machine-control';
 import { PairingDialog } from '../components/pairing-dialog';
 import { ProjectBadge, projectKeyResolver } from '../components/project-badge';
 import { ProjectFilterMenu, selectedProjects } from '../components/project-filter';
@@ -19,6 +20,7 @@ import { cn } from '../lib/cn';
 import { errorMessage, formatFullDateTime, formatRelative, ROLE_META, type Tone } from '../lib/format';
 import { keys, useMachine, useMachines, useProjects } from '../lib/queries';
 import type { ProjectFilterSearch } from '../lib/search-params';
+import { SettingsPickup } from './system-settings';
 
 const HEALTH: Record<HealthStatus, { label: string; tone: Tone }> = {
   green: { label: 'Ổn', tone: 'done' },
@@ -233,6 +235,7 @@ function MachineJobs({ machine, projectIds }: { machine: Machine; projectIds: Re
 
 function MachineCard({ machine, projectIds }: { machine: Machine; projectIds: ReadonlySet<string> }) {
   const [expanded, setExpanded] = useState(false);
+  const [controlling, setControlling] = useState(false);
   const [confirm, setConfirm] = useState<'revoke' | 'assistant' | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -298,7 +301,7 @@ function MachineCard({ machine, projectIds }: { machine: Machine; projectIds: Re
           {machine.health.failing.map((check) => (
             <li key={check.id}>✗ {check.title}</li>
           ))}
-          <li className="text-xs">Sửa bằng nút “Sửa” trên bảng health của app 2P Crew trên máy này.</li>
+          <li className="text-xs">Sửa bằng “Điều khiển” → “Kiểm tra sức khỏe” ngay trên trang này.</li>
         </ul>
       )}
 
@@ -345,6 +348,11 @@ function MachineCard({ machine, projectIds }: { machine: Machine; projectIds: Re
         <Fact label="Heartbeat">
           {machine.lastHeartbeatAt ? formatRelative(machine.lastHeartbeatAt) : '—'}
         </Fact>
+        {!revoked && (
+          <Fact label="Cài đặt">
+            <SettingsPickup machine={machine} />
+          </Fact>
+        )}
       </dl>
 
       <div className="flex flex-wrap gap-2">
@@ -352,6 +360,21 @@ function MachineCard({ machine, projectIds }: { machine: Machine; projectIds: Re
           Skill và MCP{' '}
           {expanded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
         </Button>
+        {!revoked && (
+          <Button size="sm" onClick={() => setControlling((v) => !v)} aria-expanded={controlling}>
+            Điều khiển{' '}
+            {controlling ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
+          </Button>
+        )}
+        {!revoked && (
+          <Link
+            to="/settings/machines/$machineId"
+            params={{ machineId: machine.id }}
+            className="inline-flex min-h-11 items-center rounded border border-line bg-panel px-2.5 text-[13px] text-ink no-underline hover:bg-soft xl:min-h-7"
+          >
+            Cài đặt máy
+          </Link>
+        )}
         {!revoked && !machine.hostsAssistant && (
           <Button size="sm" onClick={() => setConfirm('assistant')}>
             Đặt làm máy trợ lý
@@ -364,6 +387,7 @@ function MachineCard({ machine, projectIds }: { machine: Machine; projectIds: Re
         )}
       </div>
       {expanded && <Inventory machineId={machine.id} />}
+      {controlling && !revoked && <MachineControl machine={machine} />}
 
       <DialogRoot open={confirm !== null} onOpenChange={(open) => !open && setConfirm(null)}>
         <DialogContent

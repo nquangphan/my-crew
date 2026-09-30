@@ -19,6 +19,9 @@ import {
   LoginPasswordResponse,
   type LoginTotpRequest,
   Machine,
+  MachineCommand,
+  MachineCommandListResponse,
+  type MachineCommandRequest,
   MachineDetailResponse,
   MachineListResponse,
   NoticeListResponse,
@@ -31,8 +34,14 @@ import {
   type ProjectChangeStatus,
   ProjectListResponse,
   ReportResponse,
+  type SaveSettingsRequest,
+  SaveSettingsResponse,
   SearchResponse,
   SessionResponse,
+  SettingsDiffResponse,
+  SettingsHistoryResponse,
+  type SettingsKeyInput,
+  SettingsOverviewResponse,
   Ticket,
   TicketDetailResponse,
   TicketListResponse,
@@ -41,6 +50,7 @@ import {
   TicketTreeResponse,
   type UpdateProjectRequest,
   type UpdateTicketRequest,
+  ValidateSettingsResponse,
 } from '@crew/shared';
 import type { z } from 'zod';
 
@@ -273,6 +283,20 @@ export const api = {
       schema: ClaimResponse,
     }),
 
+  /** Asks a machine for one whitelisted action (pause, health check or fix, BMAD install, jobs, logs). */
+  createMachineCommand: (machineId: string, body: MachineCommandRequest) =>
+    request(`/v1/machines/${encodeURIComponent(machineId)}/commands`, {
+      method: 'POST',
+      body,
+      schema: MachineCommand,
+    }),
+  getMachineCommand: (machineId: string, commandId: string) =>
+    request(`/v1/machines/${encodeURIComponent(machineId)}/commands/${encodeURIComponent(commandId)}`, {
+      schema: MachineCommand,
+    }),
+  listMachineCommands: (machineId: string) =>
+    request(`/v1/machines/${encodeURIComponent(machineId)}/commands`, { schema: MachineCommandListResponse }),
+
   listClaimRequests: (status?: ClaimRequestStatus) =>
     request('/v1/claim-requests', { schema: ClaimRequestListResponse, query: { status } }),
   decideClaim: (id: string, decision: 'approve' | 'reject', code: string) =>
@@ -290,6 +314,36 @@ export const api = {
       body: { code },
       schema: ProjectChangeRequest,
     }),
+
+  /** "Cài đặt hệ thống": bundled defaults, active revisions, prompt catalog and variables. */
+  getSettings: () => request('/v1/settings', { schema: SettingsOverviewResponse }),
+  getSettingsHistory: (key: SettingsKeyInput) =>
+    request('/v1/settings/history', {
+      schema: SettingsHistoryResponse,
+      query: {
+        kind: key.kind,
+        scope: key.scope,
+        machineId: key.machineId ?? undefined,
+        projectId: key.projectId ?? undefined,
+        name: key.name || undefined,
+      },
+    }),
+  validateSettings: (key: SettingsKeyInput, content: unknown) =>
+    request('/v1/settings/validate', {
+      method: 'POST',
+      body: { key, content },
+      schema: ValidateSettingsResponse,
+    }),
+  saveSettings: (body: SaveSettingsRequest) =>
+    request('/v1/settings', { method: 'POST', body, schema: SaveSettingsResponse }),
+  restoreSettings: (revisionId: string, note = '') =>
+    request(`/v1/settings/revisions/${encodeURIComponent(revisionId)}/restore`, {
+      method: 'POST',
+      body: { note },
+      schema: SaveSettingsResponse,
+    }),
+  diffSettings: (from: string, to: string) =>
+    request('/v1/settings/diff', { schema: SettingsDiffResponse, query: { from, to } }),
 
   listNotices: () => request('/v1/notices', { schema: NoticeListResponse, query: { limit: 50 } }),
   markNoticesRead: (ids: string[]) =>

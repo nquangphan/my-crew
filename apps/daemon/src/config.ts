@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
-import { type Complexity, Effort, ModelAlias, ProjectKey, type SelectableModel } from '@crew/shared';
+import { DEFAULT_COMPLEXITY_MAP, Effort, ModelAlias, ProjectKey, type SelectableModel } from '@crew/shared';
 import { parse, stringify } from 'yaml';
 import { z } from 'zod';
 
@@ -40,6 +40,8 @@ export function homePaths(home: string) {
     logs: join(home, 'logs'),
     /** Working directory of assistant runs (they have no repo). */
     assistantDir: join(home, 'assistant'),
+    /** The last good copy of the server-managed settings, used while the server is unreachable. */
+    settingsCache: join(home, 'settings-cache.json'),
   };
 }
 
@@ -74,7 +76,10 @@ export const ProjectConfig = z.object({
    * `CLAUDE.md` and `AGENTS.md` (each linked only when it exists and is not tracked).
    */
   sharedPaths: z.array(RepoRelativePath).max(50).default([]),
-  /** MCP servers the owner switched off for this project: their tools never reach `allowedTools`. */
+  /**
+   * Legacy: MCP servers switched off for this project. The server setting (edited on the web) replaces it;
+   * this value is only uploaded once to the server and used until that upload succeeded.
+   */
   disabledMcpServers: z.array(z.string().trim().min(1).max(200)).max(200).default([]),
 });
 export type ProjectConfig = z.infer<typeof ProjectConfig>;
@@ -89,12 +94,7 @@ const toSelectable = (model: ModelAlias): SelectableModel => (model === 'fable' 
 const ModelChoice = z.object({ model: ModelAlias.transform(toSelectable), effort: Effort });
 export type ModelChoice = z.infer<typeof ModelChoice>;
 
-export const DEFAULT_COMPLEXITY_MAP: Record<Complexity, ModelChoice> = {
-  trivial: { model: 'haiku', effort: 'low' },
-  small: { model: 'sonnet', effort: 'medium' },
-  medium: { model: 'sonnet', effort: 'high' },
-  large: { model: 'opus', effort: 'high' },
-};
+export { DEFAULT_COMPLEXITY_MAP };
 
 export const DaemonConfig = z.object({
   apiUrl: z.url().refine((url) => /^https?:\/\//.test(url), 'apiUrl must be http(s)'),
@@ -106,6 +106,10 @@ export const DaemonConfig = z.object({
     .max(100)
     .default([])
     .refine((list) => new Set(list.map((p) => p.key)).size === list.length, 'project keys must be unique'),
+  /**
+   * Legacy local values of settings the server now manages (resources, models, budgets): uploaded once as this
+   * machine's override when the server has none, and used only until that upload succeeded.
+   */
   resources: z
     .object({
       maxConcurrentJobs: z.number().int().min(1).max(64).default(2),

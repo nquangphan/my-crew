@@ -35,7 +35,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 4. `apps/web/src/layout/project-sidebar.tsx` → `ProjectSidebar()`, `useCurrentProjectKey()`, `projectSectionOf()`:
    sidebar chọn project, "Tất cả dự án" (đầu danh sách, dẫn tới `/board`, active trên cả `/board` và `/list`),
    "Tất cả request của tôi", "Tài liệu" (dẫn `/docs`, flow `docs-sync-viewer`), rồi Board/Danh sách/Docs/Cài
-   đặt của project, rồi Inbox/Dự án/Máy; suy ra project hiện tại từ route param. Menu chuyển dự án cũng có mục
+   đặt của project, rồi Inbox/Dự án/Máy/**Cài đặt hệ thống** (icon `SlidersHorizontal`, dẫn `/settings/prompts`,
+   active trên mọi `/settings/*` — trang prompt/quy tắc/model/máy/MCP dự án sửa trên server, flow
+   `server-settings`); suy ra project hiện tại từ route param. Menu chuyển dự án cũng có mục
    "Tất cả dự án" đầu tiên; chọn một project khác giữ nguyên trang đang mở (board/danh sách/docs/cài đặt) qua
    `projectSectionOf(path)` thay vì luôn mở board; các mục Board/Danh sách của một dự án chỉ active dưới
    `/projects/…`.
@@ -55,7 +57,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    gặp 401, để trang tự quyết định xử lý. `api.getTicketTree(idOrKey)` gọi `GET /v1/tickets/:id/tree`, kiểm
    response bằng `TicketTreeResponse` (flow `ticket-lifecycle`). `api.search(q, projectIds?)` gọi
    `GET /v1/search`, `api.getDocsOverview()` gọi `GET /v1/docs`, `api.searchDocsAcross(q, projectIds?)` gọi
-   `GET /v1/docs/search` (cả hai route docs ở flow `docs-sync-viewer`).
+   `GET /v1/docs/search` (cả hai route docs ở flow `docs-sync-viewer`). `api.getSettings()`,
+   `api.getSettingsHistory()`, `api.validateSettings()`, `api.saveSettings()`, `api.restoreSettings()`,
+   `api.diffSettings()` gọi các route `/v1/settings*` (flow `server-settings`).
 8. `apps/web/src/lib/queries.ts` → `keys`, `sessionQuery`, `useTickets`/`useTicket`/`useProjects`/`useNotices`/
    `useProjectChanges`/…: định nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác;
    `patchCachedTicket()` viết ticket vừa đổi vào mọi cache list/detail sau một lượt ghi — vì response ghi
@@ -64,7 +68,10 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    nên các invalidation hiện có phủ luôn nó); `useTicketTree(ticket, enabled)` nạp cây hậu duệ của một ticket
    qua `api.getTicketTree()`, dùng bởi "Cây ticket" của flow `web-tickets`. `keys.search(q, projectIds)`,
    `keys.docsOverview`, `keys.docsSearchAcross(q, projectIds)`, `useDocsOverview()`, `useDocsSearchAcross()` và
-   `docsSpaceQuery()` phục vụ trang chủ docs và bộ chuyển dự án của flow `docs-sync-viewer`.
+   `docsSpaceQuery()` phục vụ trang chủ docs và bộ chuyển dự án của flow `docs-sync-viewer`. `keys.settings`,
+   `keys.settingsHistory(key)`, `useSettingsOverview()`, `useSettingsHistory(key)`, `useMachine(id)`,
+   `useProjectByKey(key)` phục vụ mọi trang "Cài đặt hệ thống" (flow `server-settings`); `keys.settings` được
+   invalidate khi nhận `settings.changed` (`invalidationsFor()`, flow `event-delivery`).
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
 10. `apps/web/src/lib/format.ts` → `errorMessage()`: dịch `ApiErrorCode` (`ERROR_TEXT`) sang một câu tiếng
@@ -117,6 +124,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 - web-tickets, web-admin: dùng lại `queries.ts`, `format.ts`, `ui-state.ts`, component `ui/*` và
   `ShellContext` của flow này; `ProjectFilterMenu`/`selectedProjects()` (`components/project-filter.tsx`, flow
   `web-tickets`) là bộ lọc "Dự án" dùng chung mà Inbox và Máy (flow `web-admin`) cũng dùng lại.
+- server-settings: mục sidebar "Cài đặt hệ thống"; `api.getSettings()`/`saveSettings()`/`restoreSettings()`/
+  `diffSettings()`/`validateSettings()`/`getSettingsHistory()` và `keys.settings`/`keys.settingsHistory`/
+  `useSettingsOverview`/`useSettingsHistory` phục vụ mọi trang cài đặt của flow đó.
 
 ## Tests
 

@@ -1,4 +1,5 @@
 import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { DEFAULT_GUARD_POLICY, type GuardPolicy } from '@crew/shared';
 import { isDocsPath } from '../runner/guard-hook.js';
 import type { ToolLogEntry } from '../state-db.js';
 
@@ -6,11 +7,11 @@ import type { ToolLogEntry } from '../state-db.js';
 const DOCS_TOOLS = new Set(['mcp__tickets__docs_flow', 'mcp__tickets__docs_where']);
 
 /** Paths inside the worktree that are not source: the docs themselves (incl. root README) and agent config. */
-function isNonSource(rel: string): boolean {
+function isNonSource(rel: string, policy: GuardPolicy): boolean {
   const posix = rel.split(sep).join('/');
   return (
     posix === 'docs' ||
-    isDocsPath(posix) ||
+    isDocsPath(posix, policy) ||
     posix === '.claude' ||
     posix.startsWith('.claude/') ||
     posix.startsWith('.crew/') ||
@@ -45,12 +46,12 @@ function isDocsEntry(entry: ToolLogEntry, cwd: string): boolean {
   return false;
 }
 
-function isSourceRead(entry: ToolLogEntry, cwd: string): boolean {
+function isSourceRead(entry: ToolLogEntry, cwd: string, policy: GuardPolicy): boolean {
   if (entry.tool !== 'Read' && entry.tool !== 'Grep') return false;
   const path = entry.tool === 'Read' ? entry.target : grepPath(entry.target);
   if (!path) return false;
   const rel = inWorktree(cwd, path);
-  return rel !== null && !isNonSource(rel);
+  return rel !== null && !isNonSource(rel, policy);
 }
 
 /**
@@ -62,11 +63,15 @@ function isSourceRead(entry: ToolLogEntry, cwd: string): boolean {
  * `log` may hold several runs of one ticket in order (a dev run then its docs job, or a resumed session):
  * the first source read of the ticket decides.
  */
-export function docsFirst(log: readonly ToolLogEntry[], cwd: string): boolean {
+export function docsFirst(
+  log: readonly ToolLogEntry[],
+  cwd: string,
+  policy: GuardPolicy = DEFAULT_GUARD_POLICY,
+): boolean {
   for (const entry of log) {
     if (entry.decision !== 'allow') continue;
     if (isDocsEntry(entry, cwd)) return true;
-    if (isSourceRead(entry, cwd)) return false;
+    if (isSourceRead(entry, cwd, policy)) return false;
   }
   return true;
 }

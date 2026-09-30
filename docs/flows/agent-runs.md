@@ -21,8 +21,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    ném lỗi bất ngờ (planner, dựng prompt, chuẩn bị worktree — trước đây một lỗi worktree kết thúc job âm thầm,
    API) mà daemon chưa `halted()`, job được chuyển `failed` với `crashText()` (tên lớp lỗi, mã errno như
    `ENOENT`, thông điệp, đã `scrubSecrets()`, tối đa 500 ký tự), `foldWakeups()` chạy, rồi `reportCrash()` đăng
-   bình luận lỗi này lên ticket và chuyển ticket `blocked` khi `canTransition('agent', status, 'blocked')` cho
-   phép (không thì chỉ bình luận, chờ owner tự bình luận để chạy lại) trước khi `cleanup()` — nên không job
+   bình luận lỗi này lên ticket (kèm `(cài đặt bản <job.settingsRevision>)` khi job đã snapshot cài đặt server,
+   flow `server-settings`, trước khi crash) và chuyển ticket `blocked` khi `canTransition('agent', status,
+   'blocked')` cho phép (không thì chỉ bình luận, chờ owner tự bình luận để chạy lại) trước khi `cleanup()` —
+   nên không job
    nào kẹt ở trạng thái `running` mãi mãi, và owner luôn thấy lỗi này trên ticket như một lượt chạy thất bại.
    Owner mở chặn (`ticket.unblocked` — phát khi owner tự đổi trạng thái, hoặc khi owner bình luận trên ticket
    `blocked` không tag `@pm`, flow `ticket-lifecycle`) sau đó tự đưa ticket vào hàng đợi job mới.
@@ -30,8 +32,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    mở rộng vai trò (prompt, policy, dữ liệu report, follow-up); `rolePlanner` (flow `agent-roles`) là bản
    `createDaemon()` dùng mặc định, `defaultPlanner` (trong file này) là bản chung tối giản còn lại cho test.
    `plan()` nhận thêm `PlannerContext` (VPS client, state, `crewDocs`, `JobWriter` idempotent riêng của job,
-   đường dẫn `STANDARD.md`) và trả `PlannedRun.stage` (ghi vào job) cộng `notices` (bình luận đăng trước khi
-   chạy) hoặc `skip` (không chạy: job kết thúc `skipped`/`blocked` ngay với lý do, ví dụ một cổng chờ hay chặn);
+   đường dẫn `STANDARD.md`, `settings: ActiveSettings` — cài đặt server job này chạy với, snapshot một lần lúc
+   `execute()` bắt đầu, flow `server-settings`) và trả `PlannedRun.stage` (ghi vào job) cộng `notices` (bình
+   luận đăng trước khi chạy) hoặc `skip` (không chạy: job kết thúc `skipped`/`blocked` ngay với lý do, ví dụ
+   một cổng chờ hay chặn);
    `PlannedRun.requiredMcps` hẹp hơn `ticket.requiredMcps` khi có (lượt QC review diff chỉ đổi docs đặt rỗng,
    flow `agent-roles`) — `execute()` dùng nó thay ticket gốc cho tool ticket, report và done-gate (bước 8).
    `chooseModel()` (dùng bởi `defaultPlanner`) chọn model/effort: `docs_init`/`docs_update` luôn `sonnet`/
@@ -87,15 +91,17 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    từ chối khi ra ngoài `cwd` hoặc đi qua symlink ra ngoài `cwd` (trừ shared path đã link); ghi `AGENTS.md` hay
    `CLAUDE.md` ở gốc repo (`ROOT_AGENT_FILES`, so khớp không phân biệt hoa thường vì worktree macOS không phân
    biệt) bị chặn ở mọi loại job — dev, QC, PM, assistant, `docs_update` — trừ `docs_init`, với lý do nêu rõ đây
-   là hướng dẫn agent được bảo vệ (R6): chỉ job `docs_init` được ghi; cần đổi thì ghi đề xuất vào bình luận để
-   chủ dự án duyệt; khi chạm đường dẫn được bảo vệ khác (`.claude/**`, `.githooks/**`, `CLAUDE.md`, `AGENTS.md`,
-   `.husky/**`, cấu hình lefthook, file CI crew-docs, `isProtectedPath()` được export cho `merge-policy.ts` dùng
-   lại ở cổng pre-push) — trừ job `docs_init` — hoặc khi sửa mục `source`/`shared`/`unassigned` của
-   `docs/flows.yaml`; job `docs_update` chỉ được ghi docs
-   (`isDocsPath()`: mọi thứ dưới `docs/` và file Markdown ở gốc repo trừ `AGENTS.md`, `CLAUDE.md`, không phân
-   biệt hoa thường); một lượt `dev` (`codeOnly`, theo `stage`, flow `agent-roles`) không được ghi đường dẫn docs
-   nào (kể cả `README.md`) **và** không được `git commit` (chỉ job `docs_update` sau đó mới commit code, test
-   và docs cùng nhau). `Bash` bị chặn khi `git push --force`, `git commit` của lượt `codeOnly`, `rm -rf` ra
+   là hướng dẫn agent được bảo vệ (owner invariant, luôn đúng dù cài đặt server ghi gì): chỉ job `docs_init`
+   được ghi; cần đổi thì ghi đề xuất vào bình luận để chủ dự án duyệt; khi chạm đường dẫn được bảo vệ khác
+   (`policy.protectedPaths` của cài đặt server job này chạy với — flow `server-settings`, mặc định
+   `DEFAULT_GUARD_POLICY`: `.claude/**`, `.githooks/**`, `CLAUDE.md`, `AGENTS.md`, `.husky/**`, cấu hình
+   lefthook, file CI crew-docs — `isProtectedPath(rel, policy)` được export cho `merge-policy.ts`, nhưng cổng
+   pre-push ở đó luôn dùng danh sách mặc định, không đọc cài đặt job, flow `local-merge`) — trừ job `docs_init`
+   — hoặc khi sửa mục `source`/`shared`/`unassigned` của `docs/flows.yaml`; job `docs_update` chỉ được ghi
+   theo `policy.docsUpdateWritePaths` (mặc định mọi thứ dưới `docs/` và file Markdown ở gốc repo trừ
+   `AGENTS.md`, `CLAUDE.md`); một lượt `dev` (`codeOnly`, theo `stage`, flow `agent-roles`) không được ghi
+   đường dẫn thuộc `policy.docsPaths` (`isDocsPath(rel, policy)`, mặc định gồm `README.md`) **và** không được
+   `git commit` (chỉ job `docs_update` sau đó mới commit code, test và docs cùng nhau). `Bash` bị chặn khi `git push --force`, `git commit` của lượt `codeOnly`, `rm -rf` ra
    ngoài `cwd`/thư mục tạm job, hay
    đổi `core.hooksPath`. Một lời gọi được phép không trả quyết định gì, nên `dontAsk` + `allowedTools` vẫn áp
    dụng sau đó; mọi lời gọi được ghi vào `tool_log`.
@@ -159,8 +165,8 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
     (chuyển ticket sang `blocked`); lỗi khác → `failed` (bình luận "Lượt chạy lỗi (...)" kèm lỗi đã scrub, cộng
     khối chẩn đoán `traceMarkdown()` — số lượt/thời gian/chi phí, kết quả SDK, giai đoạn, context có bị nén,
     tin nhắn cuối trích dẫn, và các bước cuối — chỉ khi `afterRun()` của role planner chưa tự đăng bình luận
-    thất bại nào, tránh lặp hai khối chẩn đoán; thường chuyển ticket `blocked` trừ khi có `followUp`); còn lại →
-    `done`. `bookCost()` ghi chi phí đúng một lần: `total_cost_usd` cuối của session trừ đi phần các run trước
+    thất bại nào, tránh lặp hai khối chẩn đoán; kèm `, cài đặt bản <job.settingsRevision>` khi có, flow
+    `server-settings`; thường chuyển ticket `blocked` trừ khi có `followUp`); còn lại → `done`. `bookCost()` ghi chi phí đúng một lần: `total_cost_usd` cuối của session trừ đi phần các run trước
     của cùng session đã ghi. `liveProcesses()` đếm tiến trình còn sống của job (theo
     process group và thẻ `CREW_JOB_ID`) cho `reportOverlay()` tính `leftResources`.
 11. `apps/daemon/src/runner/job-runner.ts` → `finish()`: trạng thái cuối, job tiếp theo (follow-up) và
@@ -211,6 +217,8 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   preflight, docs-first, thất bại/thử lại) được định nghĩa ở flow đó; trang này chỉ mô tả nền tảng chạy job
   chung mà nó cắm vào.
 - local-merge: tool `merge_and_push` gọi `mergeAndPush()` của flow đó.
+- server-settings: `JobRunner.execute()` snapshot `ActiveSettings` (flow đó) một lần vào `PlannerContext.settings`
+  và cột `jobs.settings_revision`; bình luận crash/lỗi nêu kèm bản cài đặt đó.
 
 ## Tests
 
@@ -239,7 +247,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   `docs_init`, không phân biệt hoa thường, với lý do nêu rõ R6 và job `docs_init`, kể cả qua `Edit` của một lượt
   `codeOnly` và qua một `AGENTS.md` đã link vào worktree (`sharedPaths`); `src/AGENTS.md` (không phải gốc repo)
   không bị bảo vệ; các mẫu Bash bị chặn (force push, `rm -rf` ngoài phạm vi, đổi
-  `core.hooksPath`).
+  `core.hooksPath`). Nhóm "path rules from the server policy": một `policy` tuỳ biến đổi đúng danh sách
+  protected/docs/docs-update-write dùng ở trên (một đường dẫn không còn trong `protectedPaths` tuỳ biến hết
+  bị chặn); `AGENTS.md`/`CLAUDE.md` vẫn luôn được bảo vệ và không bao giờ là docs dù `policy` truyền vào ghi
+  gì khác (owner invariant, flow `server-settings`).
 - `apps/daemon/test/ticket-tools.test.ts`: mỗi vai trò có đúng bộ tool ticket riêng (kể cả `return_to_dev` chỉ
   cho `docs_update`, `handoff_docs` chỉ cho lượt `dev`); mọi tool của MCP server đã bật được phép, server bị
   tắt thì không; bình luận ẩn credential, `ask_owner` kết thúc run; `handoff_docs` ghi bàn giao vào job và kết

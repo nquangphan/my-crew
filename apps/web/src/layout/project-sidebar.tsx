@@ -12,6 +12,7 @@ import {
   Monitor,
   Send,
   Settings,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useEffect } from 'react';
 import {
@@ -119,6 +120,12 @@ export function ProjectSidebar({
     { label: 'Inbox', icon: Inbox, to: '/inbox', match: (p) => p === '/inbox' },
     { label: 'Dự án', icon: FolderKanban, to: '/projects', match: (p) => p === '/projects' },
     { label: 'Máy', icon: Monitor, to: '/machines', match: (p) => p === '/machines' },
+    {
+      label: 'Cài đặt hệ thống',
+      icon: SlidersHorizontal,
+      to: '/settings/prompts',
+      match: (p) => p.startsWith('/settings'),
+    },
   ];
 
   const item = (entry: NavEntry) => {

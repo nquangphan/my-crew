@@ -34,7 +34,12 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
    (câu trả lời của chủ dự án thuộc phiên đó); còn lại resume phiên `agent` (dev/PM/QC/assistant). `ticket.cancelled`
    hủy job `queued`/`backoff` ngay hoặc đánh dấu `cancelRequested` cho job `running`. `claim.changed` và
    `project.change_decided` (owner duyệt/từ chối máy tự đổi `platform`/`uiTestMcp`, flow `project-claims`) đều
-   trả effect `refresh_projects` (không sinh job). Riêng `ticket.pm_mentioned` (`ticketId` là pm_task; owner tag
+   trả effect `refresh_projects` (không sinh job). `settings.changed` (một bản cài đặt server mới áp dụng cho
+   máy này, flow `server-settings`) trả effect `refresh_settings` (không sinh job) — `daemon.ts` gọi
+   `refreshSettings()` khi thấy effect này. `machine.command` (owner gửi một hành động từ web nhắm đúng máy
+   này, flow `machine-control`) trả effect `run_command {commandId}` (không sinh job, không qua luật
+   một-job-mỗi-ticket vì lệnh không gắn với ticket nào) — `daemon.ts` chạy `runMachineCommand()` ngay trong
+   nền khi thấy effect này. Riêng `ticket.pm_mentioned` (`ticketId` là pm_task; owner tag
    `@pm`, flow `ticket-lifecycle`): trước khi áp luật một-job-mỗi-ticket ở trên, `state.recordPmMention()` lưu
    lời gọi (`event_id` khoá chính, nên sự kiện phát lại chỉ ghi một lần) vào bảng SQLite cục bộ `pm_mentions`
    (flow `daemon-runtime`), để job PM dù được tạo mới, hấp thụ hay gộp follow-up đều đọc lại được qua
@@ -71,9 +76,10 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
     (`pause()`/`resume()` trong `daemon.ts` đều gọi `tick()` một lần để phản ánh ngay, cũng như `reportSoon()`
     mỗi khi một job đổi trạng thái hay đổi lý do chờ, flow `daemon-runtime`). Nội dung mỗi heartbeat do
     `apps/daemon/src/daemon.ts` → `heartbeat()` dựng và gửi qua `POST /v1/daemon/heartbeat`: tài nguyên máy
-    (gồm `orphansCleaned`), job đang `running`/`queued`/`backoff` (kèm lý do chờ) và job vừa `failed`, cờ
-    `paused`, phiên bản runtime Claude (`sdkRuntimeVersion()` lúc khởi động, cập nhật từ `system/init` của mỗi
-    run), health summary tùy chọn; response lưu `tokenExpiresAt` vào `meta`.
+    (gồm `orphansCleaned`), job đang `running`/`queued`/`backoff` (kèm lý do chờ và `settingsRevision`) và job
+    vừa `failed`, cờ `paused`, phiên bản runtime Claude (`sdkRuntimeVersion()` lúc khởi động, cập nhật từ
+    `system/init` của mỗi run), health summary tùy chọn, `settings` (bản cài đặt server máy đang áp dụng, flow
+    `server-settings`); response lưu `tokenExpiresAt` vào `meta`.
 
 ## Files
 
@@ -104,6 +110,10 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
 - daemon-api / event-delivery: nguồn sự kiện và route `/v1/daemon/stream` phía server.
 - project-claims: `project.change_decided` (kết quả owner duyệt máy tự đổi `platform`/`uiTestMcp` của
   project) ánh xạ sang `refresh_projects` như `claim.changed`.
+- server-settings: `settings.changed` ánh xạ sang effect `refresh_settings`; heartbeat mang thêm
+  `settings`/`settingsRevision` của flow đó.
+- machine-control: `machine.command` ánh xạ sang effect `run_command`, chạy ngay trong `daemon.ts` ngoài
+  `Scheduler` (không chiếm slot, không sinh job).
 
 ## Tests
 

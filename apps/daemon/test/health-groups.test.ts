@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { SkillInventory, UpdateStatus } from '@crew/shared';
 import { describe, expect, inject, it } from 'vitest';
+import { settingsRevisions } from '../../api/src/db/schema.js';
 import { VpsClient } from '../src/api/vps-client.js';
 import { homePaths, loadConfig, parseConfig, saveConfig } from '../src/config.js';
 import type { Daemon } from '../src/daemon.js';
@@ -256,10 +257,13 @@ describe('mcp and skills groups', () => {
     );
     const calls: string[][] = [];
     const refreshed: (string | null)[] = [];
+    const switched: [string, readonly string[]][] = [];
     let playwrightConfigured = false;
     const daemon = {
       refreshInventory: async (key: string | null) => refreshed.push(key),
-      updateConfig: () => {},
+      setProjectMcp: async (key: string, disabled: readonly string[]) => {
+        switched.push([key, disabled]);
+      },
     };
     const ctx = context({
       home,
@@ -298,9 +302,17 @@ describe('mcp and skills groups', () => {
       '-y',
       '@playwright/mcp@latest',
     ]);
+    // The MCP switch is a server setting: the running daemon saves it (and applies it at once).
     await applyHealthFix(ctx, 'mcp', 'mcp-disable:WEB:figma');
-    expect(loadConfig(paths.config).projects[0]?.disabledMcpServers).toEqual(['figma']);
+    expect(switched).toEqual([['WEB', ['figma']]]);
+    expect(loadConfig(paths.config).projects[0]?.disabledMcpServers).toEqual([]);
     expect(refreshed).toEqual(['WEB', 'WEB']);
+    // Without a daemon (crewd doctor) it goes straight to the server.
+    await applyHealthFix({ ...ctx, daemon: null }, 'mcp', 'mcp-enable:WEB:figma');
+    const [saved] = (await api.db.select().from(settingsRevisions)).filter(
+      (row) => row.kind === 'project_mcp',
+    );
+    expect(saved).toMatchObject({ content: { disabledMcpServers: [] }, author: 'machine:dev-mac' });
 
     // Already in the user config (added by hand or for another project): no second add, only a re-probe.
     playwrightConfigured = true;
@@ -349,9 +361,12 @@ describe('mcp and skills groups', () => {
       ),
     );
     const refreshed: (string | null)[] = [];
+    const switched: string[][] = [];
     const daemon = {
       refreshInventory: async (key: string | null) => refreshed.push(key),
-      updateConfig: () => {},
+      setProjectMcp: async (_key: string, disabled: readonly string[]) => {
+        switched.push([...disabled]);
+      },
     };
     const ctx = context({ home, config, state, daemon: daemon as unknown as Daemon });
 
@@ -359,12 +374,11 @@ describe('mcp and skills groups', () => {
     expect(byId(before, `mcp.VISINOTE.${asana}`)?.fix?.id).toBe(`mcp-disable:VISINOTE:${asana}`);
     await applyHealthFix(ctx, 'mcp', `mcp-disable:VISINOTE:${asana}`);
     await applyHealthFix(ctx, 'mcp', `mcp-disable:VISINOTE:${calendar}`);
-    expect(loadConfig(paths.config).projects[0]?.disabledMcpServers).toEqual(['gone', asana, calendar]);
-    expect(refreshed).toEqual(['VISINOTE', 'VISINOTE']);
+    expect(switched.at(-1)).toEqual(['gone', asana, calendar]);
     expect((await mcpChecks.run(ctx)).filter((item) => item.status !== 'green')).toEqual([]);
 
     await applyHealthFix(ctx, 'mcp', `mcp-enable:VISINOTE:${calendar}`);
-    expect(loadConfig(paths.config).projects[0]?.disabledMcpServers).toEqual(['gone', asana]);
+    expect(switched.at(-1)).toEqual(['gone', asana]);
   });
 
   it('compares the worktree inventory with the main checkout', async () => {

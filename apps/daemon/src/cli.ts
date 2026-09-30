@@ -20,6 +20,7 @@ import { createDaemon } from './daemon.js';
 import { execCommand } from './health/health-runner.js';
 import { defaultTokenStore, type TokenStore } from './secrets.js';
 import { installService } from './service/systemd.js';
+import { loadEffectiveConfig, settingsImportedKey } from './settings/settings-store.js';
 import { StateDb } from './state-db.js';
 
 export const DEFAULT_API_URL = 'https://crew.2p-solutions.com';
@@ -205,12 +206,22 @@ async function runDoctor(ctx: Context, args: string[], io: CliIo): Promise<numbe
   }
   const state = existsSync(ctx.paths.stateDb) ? new StateDb(ctx.paths.stateDb) : null;
   try {
+    const vps = config ? client(ctx, config) : null;
+    // The checks see what jobs run with: the server settings (MCP switches, limits) over the local config.
+    const effective = config
+      ? await loadEffectiveConfig({
+          local: config,
+          vps: ctx.tokenStore.get() ? vps : null,
+          cacheFile: ctx.paths.settingsCache,
+          imported: state?.getMeta(settingsImportedKey(config.machineId)) === '1',
+        })
+      : null;
     const report = await doctor(
       {
-        config,
+        config: effective,
         paths: ctx.paths,
         tokenStore: ctx.tokenStore,
-        vps: config ? client(ctx, config) : null,
+        vps,
         state,
         env: io.env,
         platform: process.platform,
@@ -308,11 +319,14 @@ async function project(ctx: Context, args: string[], io: CliIo): Promise<number>
       ctx.paths.config,
       withProjects(config, [...config.projects.filter((p) => p.key !== key), entry]),
     );
-    io.out(`Đã lưu thư mục ${repoPath} cho ${key} vào ${ctx.paths.config}.`);
+    // The folder is a server setting of this machine (also editable on the web); the local copy is a fallback.
+    await vps.putProjectFolder(key, { repoPath }, `project-folder:${key}:${randomUUID()}`);
+    io.out(`Đã lưu thư mục ${repoPath} cho ${key} (trên server và ${ctx.paths.config}).`);
     return 0;
   }
   if (action === 'release') {
     await vps.release({ projectKey: key }, `release:${key}:${randomUUID()}`);
+    await vps.deleteProjectFolder(key, `project-folder:${key}:${randomUUID()}`);
     saveConfig(
       ctx.paths.config,
       withProjects(

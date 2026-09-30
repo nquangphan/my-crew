@@ -57,6 +57,8 @@ export class HostContext {
 
   /** One read per repo folder for the host's lifetime: later callers share it (and its wait) instead of piling up. */
   private readonly folderReads = new Map<string, Promise<void>>();
+  /** Folders whose first read is waiting, most likely on an open macOS permission prompt. */
+  private readonly waiting = new Set<string>();
 
   constructor(readonly deps: HostDeps) {
     this.paths = homePaths(deps.home);
@@ -88,17 +90,34 @@ export class HostContext {
     let read = this.folderReads.get(path);
     if (!read) {
       read = awaitFolderAccess([path], {
-        onWaiting: (folder) =>
+        onWaiting: (folder) => {
+          this.waiting.add(folder);
           this.log('warn', 'folder-access-waiting', {
             path: folder,
             hint: 'macOS đang hỏi quyền cho 2P Crew đọc thư mục này: bấm "Allow" (Cho phép) trong hộp thoại.',
-          }),
-        onResolved: (folder, ms, error) =>
-          this.log(error ? 'warn' : 'info', 'folder-access-resolved', { path: folder, ms, error }),
+          });
+        },
+        onResolved: (folder, ms, error) => {
+          this.waiting.delete(folder);
+          this.log(error ? 'warn' : 'info', 'folder-access-resolved', { path: folder, ms, error });
+        },
       });
       this.folderReads.set(path, read);
     }
     return read;
+  }
+
+  /** Folders whose macOS permission prompt is open right now (the status view asks the owner to answer it). */
+  foldersWaiting(): string[] {
+    return [...this.waiting];
+  }
+
+  /**
+   * The projects and folders jobs use: the running daemon's (the server's folders, checked on this machine),
+   * else the local config's.
+   */
+  projects(): DaemonConfig['projects'] {
+    return this.daemon?.effectiveConfig().projects ?? this.config()?.projects ?? [];
   }
 
   config(): DaemonConfig | null {

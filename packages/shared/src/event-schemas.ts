@@ -133,6 +133,40 @@ export const EventPayload = z.discriminatedUnion('type', [
     type: z.literal('docs.synced'),
     data: z.object({ projectId: z.string(), commitSha: z.string() }),
   }),
+  /**
+   * A server setting got a new revision (a save, a restore, a machine's upload). Sent to the owner stream and
+   * to every machine it applies to; the daemon refetches its settings and uses them from its next job.
+   */
+  z.object({
+    type: z.literal('settings.changed'),
+    data: z.object({
+      revisionId: z.string(),
+      kind: z.string(),
+      scope: z.string(),
+      machineId: z.string().nullable(),
+      projectId: z.string().nullable(),
+      name: z.string(),
+      version: z.number().int(),
+    }),
+  }),
+  /**
+   * The owner asked a machine for a whitelisted action (pause, health check or fix, BMAD install, job list, log
+   * tail, …). Sent to that machine and to the owner stream.
+   */
+  z.object({
+    type: z.literal('machine.command'),
+    data: z.object({ commandId: z.string(), machineId: z.string(), action: z.string() }),
+  }),
+  /** A machine command started, finished, failed or expired. Owner stream only. */
+  z.object({
+    type: z.literal('machine.command_updated'),
+    data: z.object({ commandId: z.string(), machineId: z.string(), status: z.string() }),
+  }),
+  /** A machine's heartbeat reports a new settings revision (it picked up a change). Owner stream only. */
+  z.object({
+    type: z.literal('machine.settings_applied'),
+    data: z.object({ machineId: z.string(), revision: z.string() }),
+  }),
 ]);
 export type EventPayload = z.infer<typeof EventPayload>;
 export type EventType = EventPayload['type'];

@@ -17,10 +17,12 @@ import { daemonBmadProfileRoutes } from './routes/bmad-profile-routes.js';
 import { commentRoutes } from './routes/comment-routes.js';
 import { daemonRoutes } from './routes/daemon-routes.js';
 import { daemonDocsRoutes, docsRoutes } from './routes/docs-routes.js';
+import { daemonCommandRoutes, machineCommandRoutes } from './routes/machine-command-routes.js';
 import { machineRoutes, pairRoutes } from './routes/machine-routes.js';
 import { projectRoutes } from './routes/project-routes.js';
 import { reportRoutes } from './routes/report-routes.js';
 import type { RouteDeps } from './routes/route-deps.js';
+import { daemonSettingsRoutes, settingsRoutes } from './routes/settings-routes.js';
 import { daemonStreamRoutes, ownerStreamRoutes } from './routes/stream-routes.js';
 import { ticketRoutes } from './routes/ticket-routes.js';
 import { purgeExpiredIdempotencyKeys } from './services/idempotency.js';
@@ -108,7 +110,9 @@ export async function buildApp({
     await owner.register(commentRoutes, deps);
     await owner.register(reportRoutes, deps);
     await owner.register(machineRoutes, deps);
+    await owner.register(machineCommandRoutes, deps);
     await owner.register(docsRoutes, deps);
+    await owner.register(settingsRoutes, deps);
     await owner.register(ownerStreamRoutes, deps);
   });
   // Daemon routes: machine bearer token only; cookies are ignored.
@@ -117,6 +121,8 @@ export async function buildApp({
     await daemon.register(daemonRoutes, deps);
     await daemon.register(daemonDocsRoutes, deps);
     await daemon.register(daemonBmadProfileRoutes, deps);
+    await daemon.register(daemonSettingsRoutes, deps);
+    await daemon.register(daemonCommandRoutes, deps);
     await daemon.register(daemonStreamRoutes, deps);
   });
 

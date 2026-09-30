@@ -12,12 +12,16 @@ import {
   type HealthSummary,
   type InventoryMcpServer,
   type InventorySkill,
+  MachineCommandStatus,
   type MachineHardware,
   type MachineResources,
+  type MachineSettingsState,
   type ModelAlias,
   ProjectChangeStatus,
   ProjectPlatform,
   type RunningJob,
+  SettingsKind,
+  SettingsScope,
   TicketPriority,
   TicketStatus,
   TicketType,
@@ -74,6 +78,9 @@ export const commentAuthorKindEnum = pgEnum('comment_author_kind', enumValues(Co
 export const budgetHoldEnum = pgEnum('budget_hold', ['children', 'cost']);
 export const claimStatusEnum = pgEnum('claim_status', enumValues(ClaimRequestStatus));
 export const projectChangeStatusEnum = pgEnum('project_change_status', enumValues(ProjectChangeStatus));
+export const settingsKindEnum = pgEnum('settings_kind', enumValues(SettingsKind));
+export const settingsScopeEnum = pgEnum('settings_scope', enumValues(SettingsScope));
+export const machineCommandStatusEnum = pgEnum('machine_command_status', enumValues(MachineCommandStatus));
 
 // ---------------------------------------------------------------------------
 // Owner auth
@@ -134,6 +141,8 @@ export const machines = pgTable(
     failedJobs: jsonb('failed_jobs').$type<FailedJob[]>().notNull().default([]),
     cliVersion: text('cli_version'),
     appVersion: text('app_version'),
+    /** The settings revision the daemon applies to new jobs, from its latest heartbeat. */
+    settingsState: jsonb('settings_state').$type<MachineSettingsState>(),
     /** A revoked machine keeps its row for history; it can never authenticate again. */
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     createdAt: createdAt(),
@@ -413,6 +422,78 @@ export const projectChangeRequests = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Server-managed settings
+// ---------------------------------------------------------------------------
+
+/**
+ * Every revision of every server setting (prompts, rules, models, budgets, machine resources, project MCP
+ * switches). A setting key is (kind, scope, machine, project, name); its highest `version` is the active
+ * revision. Revisions are never updated or deleted: a restore saves the old content as a new version.
+ */
+export const settingsRevisions = pgTable(
+  'settings_revisions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    kind: settingsKindEnum('kind').notNull(),
+    scope: settingsScopeEnum('scope').notNull(),
+    machineId: uuid('machine_id').references(() => machines.id, { onDelete: 'cascade' }),
+    projectId: uuid('project_id').references(() => projects.id, { onDelete: 'cascade' }),
+    /** Prompt name; empty for the other kinds. */
+    name: text('name').notNull().default(''),
+    version: integer('version').notNull(),
+    /** The validated setting; null removes the override (the default or the global value applies). */
+    content: jsonb('content'),
+    note: text('note').notNull().default(''),
+    /** `owner:<username>` or `machine:<name>`. */
+    author: text('author').notNull(),
+    /** The version a restore copied. */
+    restoredFrom: integer('restored_from'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    check(
+      'settings_revisions_scope_ck',
+      sql`(${t.scope} = 'global' and ${t.machineId} is null and ${t.projectId} is null)
+        or (${t.scope} = 'machine' and ${t.machineId} is not null and ${t.projectId} is null)
+        or (${t.scope} = 'project' and ${t.projectId} is not null and ${t.machineId} is null)`,
+    ),
+    // Also the lookup index of a key's revisions (newest = highest version).
+    unique('settings_revisions_version_uq')
+      .on(t.kind, t.scope, t.machineId, t.projectId, t.name, t.version)
+      .nullsNotDistinct(),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Remote machine commands
+// ---------------------------------------------------------------------------
+
+/**
+ * Whitelisted actions the owner asks a machine for from the web (pause, health check and fix, BMAD install,
+ * job list, log tail, …) and their outcome. The action is validated with the shared schema at the boundary
+ * (text here, so a new action needs no enum migration).
+ */
+export const machineCommands = pgTable(
+  'machine_commands',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    machineId: uuid('machine_id')
+      .notNull()
+      .references(() => machines.id, { onDelete: 'cascade' }),
+    action: text('action').notNull(),
+    params: jsonb('params').$type<Record<string, unknown>>().notNull().default({}),
+    status: machineCommandStatusEnum('status').notNull().default('pending'),
+    result: jsonb('result'),
+    error: text('error'),
+    requestedBy: text('requested_by').notNull(),
+    createdAt: createdAt(),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+  },
+  (t) => [index('machine_commands_machine_idx').on(t.machineId, t.createdAt)],
+);
+
+// ---------------------------------------------------------------------------
 // Owner inbox read state
 // ---------------------------------------------------------------------------
 
@@ -512,3 +593,5 @@ export type ClaimRequestRow = typeof claimRequests.$inferSelect;
 export type ProjectChangeRequestRow = typeof projectChangeRequests.$inferSelect;
 export type DocsSnapshotRow = typeof docsSnapshots.$inferSelect;
 export type DocsFileRow = typeof docsFiles.$inferSelect;
+export type SettingsRevisionRow = typeof settingsRevisions.$inferSelect;
+export type MachineCommandRow = typeof machineCommands.$inferSelect;

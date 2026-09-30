@@ -67,27 +67,18 @@ describe('typed IPC boundary', () => {
       ok: false,
       error: 'Thao tác không hợp lệ.',
     });
-    const bad = await dispatchDesktopRequest('folder.inspect', { path: 'relative/path' }, main, forward);
-    expect(bad).toMatchObject({ ok: false });
-    const noSonnet = await dispatchDesktopRequest(
-      'config.saveResources',
-      {
-        resources: { maxConcurrentJobs: 2, minFreeMemGb: 2, maxLoadPerCpu: 1.5 },
-        models: {
-          allow: ['haiku', 'opus'],
-          complexityMap: {
-            trivial: { model: 'haiku', effort: 'low' },
-            small: { model: 'haiku', effort: 'low' },
-            medium: { model: 'opus', effort: 'high' },
-            large: { model: 'opus', effort: 'high' },
-          },
-        },
-      },
+    const bad = await dispatchDesktopRequest(
+      'projects.setFolder',
+      { key: 'WEB', path: 'relative/path' },
       main,
       forward,
     );
-    expect(noSonnet).toMatchObject({ ok: false });
-    expect((noSonnet as { error: string }).error).toContain('sonnet');
+    expect(bad).toMatchObject({ ok: false });
+    // The settings screens moved to the web: their old calls no longer exist.
+    expect(await dispatchDesktopRequest('config.saveResources', {}, main, forward)).toEqual({
+      ok: false,
+      error: 'Thao tác không hợp lệ.',
+    });
     const extraKey = await dispatchDesktopRequest(
       'health.fix',
       { group: 'repos', fixId: 'x; rm -rf /' },
@@ -104,14 +95,14 @@ describe('typed IPC boundary', () => {
       ok: true,
       result: true,
     });
-    expect(await dispatchDesktopRequest('jobs.list', {}, main, forward)).toEqual({
+    expect(await dispatchDesktopRequest('status.view', {}, main, forward)).toEqual({
       ok: true,
-      result: { method: 'jobs.list', input: {} },
+      result: { method: 'status.view', input: {} },
     });
     const failing = async () => {
       throw new Error('Máy chưa được ghép');
     };
-    expect(await dispatchDesktopRequest('projects.list', {}, main, failing)).toEqual({
+    expect(await dispatchDesktopRequest('status.view', {}, main, failing)).toEqual({
       ok: false,
       error: 'Máy chưa được ghép',
     });

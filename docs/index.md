@@ -67,10 +67,12 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Đồng bộ và xem docs](flows/docs-sync-viewer.md) | `docs-sync-viewer` | `apps/api/src/routes/docs-routes.ts`, `apps/web/src/routes/project-docs.tsx` |
 | [Phát sự kiện và SSE](flows/event-delivery.md) | `event-delivery` | `apps/api/src/routes/stream-routes.ts` |
 | [Nghiệm thu: merge cục bộ, cổng pre-push và push](flows/local-merge.md) | `local-merge` | `apps/daemon/src/roles/merge-policy.ts` |
+| [Điều khiển máy từ web (thao tác từ xa trong danh sách cho phép)](flows/machine-control.md) | `machine-control` | `apps/api/src/routes/machine-command-routes.ts`, `apps/web/src/components/machine-control.tsx` |
 | [Ghép máy và xác thực máy](flows/machine-pairing.md) | `machine-pairing` | `apps/api/src/routes/machine-routes.ts` |
 | [Đăng nhập chủ dự án](flows/owner-auth.md) | `owner-auth` | `apps/api/src/routes/auth-routes.ts`, `apps/web/src/routes/login.tsx`, `apps/web/src/routes/account.tsx` |
 | [Dự án và quyền sở hữu máy](flows/project-claims.md) | `project-claims` | `apps/api/src/routes/project-routes.ts` |
 | [Dọn tài nguyên sau mỗi job](flows/resource-hygiene.md) | `resource-hygiene` | `apps/daemon/src/runner/job-cleanup.ts` |
+| [Cài đặt hệ thống trên server (prompt, quy tắc, model, tài nguyên)](flows/server-settings.md) | `server-settings` | `apps/api/src/routes/settings-routes.ts`, `apps/web/src/routes/system-settings.tsx` |
 | [Vòng đời ticket](flows/ticket-lifecycle.md) | `ticket-lifecycle` | `apps/api/src/routes/ticket-routes.ts`, `apps/api/src/routes/comment-routes.ts`, `apps/api/src/routes/report-routes.ts` |
 | [Inbox, dự án và máy trên web](flows/web-admin.md) | `web-admin` | `apps/web/src/routes/inbox.tsx`, `apps/web/src/routes/projects.tsx`, `apps/web/src/routes/project-settings.tsx`, `apps/web/src/routes/machines.tsx` |
 | [Khung ứng dụng web](flows/web-shell.md) | `web-shell` | `apps/web/src/main.tsx`, `apps/web/src/router.tsx` |

@@ -33,6 +33,7 @@ import type { EventBus } from '../realtime/event-bus.js';
 import { activitySignatures, changedTicketIds, heartbeatFresh } from './agent-activity-service.js';
 import { releaseEverything } from './claim-service.js';
 import { appendEvents } from './event-service.js';
+import { expectedRevisions } from './settings-service.js';
 
 export const PAIRING_CODE_TTL_MS = PAIRING_CODE_TTL_MINUTES * 60 * 1000;
 export const MACHINE_TOKEN_TTL_MS = MACHINE_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
@@ -243,6 +244,7 @@ export async function recordHeartbeat(
         runningJobs: machines.runningJobs,
         waitingJobs: machines.waitingJobs,
         failedJobs: machines.failedJobs,
+        settingsState: machines.settingsState,
       })
       .from(machines)
       .where(eq(machines.id, machine.machineId))
@@ -265,6 +267,7 @@ export async function recordHeartbeat(
         ...(data.appVersion ? { appVersion: data.appVersion } : {}),
         paused: data.paused,
         ...(data.health ? { health: data.health } : {}),
+        ...(data.settings ? { settingsState: data.settings } : {}),
         online: true,
         lastSeenAt: sql`now()`,
         lastHeartbeatAt: sql`now()`,
@@ -276,6 +279,16 @@ export async function recordHeartbeat(
           payload: {
             type: 'machine.unhealthy',
             data: { machineId: machine.machineId, failing: data.health.failing },
+          },
+        },
+      ]);
+    }
+    if (data.settings && data.settings.revision !== row.settingsState?.revision) {
+      await appendEvents(tx, [
+        {
+          payload: {
+            type: 'machine.settings_applied',
+            data: { machineId: machine.machineId, revision: data.settings.revision },
           },
         },
       ]);
@@ -318,7 +331,12 @@ export async function putInventory(db: Executor, machineId: string, input: PutSk
 
 function toMachineDto(
   row: MachineRow,
-  extras: { streamConnected: boolean; tokenExpiresAt: Date | null; projectKeys: string[] },
+  extras: {
+    streamConnected: boolean;
+    tokenExpiresAt: Date | null;
+    projectKeys: string[];
+    expectedRevision: string;
+  },
 ): Machine {
   return {
     id: row.id,
@@ -342,6 +360,11 @@ function toMachineDto(
     tokenExpiresAt: extras.tokenExpiresAt?.toISOString() ?? null,
     revokedAt: row.revokedAt?.toISOString() ?? null,
     projectKeys: extras.projectKeys,
+    settings: {
+      reported: row.settingsState,
+      expectedRevision: extras.expectedRevision,
+      current: row.settingsState?.revision === extras.expectedRevision,
+    },
     createdAt: row.createdAt.toISOString(),
   };
 }
@@ -349,7 +372,7 @@ function toMachineDto(
 async function machineDtos(db: Executor, bus: EventBus, rows: MachineRow[]): Promise<Machine[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((row) => row.id);
-  const [expiries, owned] = await Promise.all([
+  const [expiries, owned, expected] = await Promise.all([
     db
       .select({
         machineId: machineTokens.machineId,
@@ -369,6 +392,7 @@ async function machineDtos(db: Executor, bus: EventBus, rows: MachineRow[]): Pro
       .from(projects)
       .where(inArray(projects.ownerMachineId, ids))
       .orderBy(asc(projects.key)),
+    expectedRevisions(db, ids),
   ]);
   const expiryOf = new Map(expiries.map((e) => [e.machineId, new Date(e.expiresAt)]));
   return rows.map((row) =>
@@ -376,6 +400,7 @@ async function machineDtos(db: Executor, bus: EventBus, rows: MachineRow[]): Pro
       streamConnected: bus.isConnected(row.id),
       tokenExpiresAt: expiryOf.get(row.id) ?? null,
       projectKeys: owned.filter((p) => p.owner === row.id).map((p) => p.key),
+      expectedRevision: expected.get(row.id) ?? '',
     }),
   );
 }

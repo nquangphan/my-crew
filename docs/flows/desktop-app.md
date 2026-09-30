@@ -83,11 +83,16 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    `startDaemon()`/`dispatch()`: `startDaemon()` cũng `await repoAccess()` trước (daemon khởi động chạy git
    đồng bộ trong repo) rồi mới gọi `createDaemon()` (flow `daemon-runtime`) **bên trong tiến trình host
    này** — daemon chạy độc lập với cửa sổ và renderer; `dispatch()` định tuyến method sang `setup-ops.ts`
-   (trình cài đặt, Settings → Projects), `health-ops.ts` (sức khỏe), `activity.ts` (job, log) hoặc gọi thẳng
-   `daemon.pause()/resume()`. `createDaemon()` nhận `onApiError: this.host.logApiError` nên mọi lỗi API của
-   daemon (không riêng của setup-ops) cũng vào `app.log`. `handle()` bọc `dispatch()`: lỗi nào cũng ghi một
-   dòng `host-op-failed` (method, ms, message, `errorCode`, `status`) trước khi ném lại cho main. Health chạy
-   sau một đổi project (`afterProjectChange()`) không chờ trả lời (`this.background`, một `Set<Promise>`) —
+   (trình cài đặt, thư mục project ở trang trạng thái), `health-ops.ts` (sức khỏe), `activity.ts` (job, log)
+   hoặc gọi thẳng `daemon.pause()/resume()`. `createDaemon()` nhận `onApiError: this.host.logApiError` nên
+   mọi lỗi API của daemon (không riêng của setup-ops) cũng vào `app.log`, cộng `commandHandlers` (flow
+   `machine-control`): `health.run`/`health.fix` chạy `HealthOps` — một fix chỉ main process làm được
+   (`APP_HEALTH_FIXES`) được `remoteFix()` chuyển qua sự kiện host `app.fix` cho main rồi chạy lại health,
+   fix `restart-daemon` bị từ chối khi gọi từ xa vì chính host xử lý lệnh đó sẽ không sống sót để báo kết
+   quả; `bmad.install` gọi `installBmad()` (bước 9); `logs.tail` đọc `Activity.tail()` đã lọc bí mật và cắt
+   độ dài. `handle()` bọc `dispatch()`: lỗi nào cũng ghi một dòng `host-op-failed` (method, ms, message,
+   `errorCode`, `status`) trước khi ném lại cho main. Health chạy sau một đổi project (`afterProjectChange()`,
+   gồm cả sau khi "Cài BMAD" từ xa xong) không chờ trả lời (`this.background`, một `Set<Promise>`) —
    `settled()` chờ mọi lượt health nền đã bắt đầu xong, gọi khi `shutdown()` để không rớt báo cáo giữa đường.
 7. `apps/desktop/src/daemon-host/host-context.ts` → `HostContext`, `HostError`: trạng thái dùng chung của các
    thao tác host — đọc lại config từ đĩa mỗi lần gọi (để CLI `crewd` và app luôn thấy cùng cấu hình; `ctx.config()`
@@ -108,48 +113,50 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    `onWaiting` (host ghi dòng `folder-access-waiting`, mức `warn`, kèm gợi ý bấm Allow), xong rồi thì gọi
    `onResolved(path, ms, errorCode|null)` (host ghi `folder-access-resolved`) — bị từ chối trả lời ngay bằng
    mã lỗi (ví dụ `EPERM`) và các lệnh git gọi sau đó báo đúng lỗi ấy.
-8. `apps/desktop/src/daemon-host/setup-ops.ts` → `checkServer()`, `pairMachine()`, `applyProjects()`,
-   `createProject()`, `setFolder()`, `releaseProject()`, `ensureHooks()`, `repairBrokenHooks()`,
-   `installProjectHooks()`, `requestTestSetup()`: các thao tác của trình cài đặt và Settings → Projects —
-   `checkServer()` bắt buộc `https://` (trừ loopback) và gọi `GET /v1/health`; `applyProjects()`/
-   `createProject()` dùng lại `repoFolderChecks()` (flow `daemon-health`) để validate thư mục trước khi
-   claim/tạo project. `createProject()` tạo project mới xong luôn lưu thư mục và gọi `ensureHooks()`
-   (`inspectHooks()` của flow `daemon-health`) để cài hook crew-docs ngay, trừ khi hook đang chạy tốt; hook
-   cài lỗi thì nối lý do vào message của outcome, không chặn việc tạo project. Tạo lại một key máy này đã sở
-   hữu với cùng repo (server trả 409 nhưng `ownerState: 'mine'` và cùng `repoUrl`, `sameRepo()`) là cùng một
-   thành công (`status: 'already_owned'`, giữ idempotent cho câu trả lời bị mất mạng hoặc bấm hai lần); key đã
-   có ở project/repo khác vẫn là lỗi 409 rõ ràng. `applyProjects()`/`setFolder()` cũng gọi `ensureHooks()` sau
-   khi lưu thư mục — `setFolder()` thất bại thì thêm một dòng `folder.hooks` vàng vào kết quả validate thay
-   vì ném lỗi. `ensureHooks()` không bao giờ ghi lại hook đang `ok`, và giữ nguyên runtime của một hook
-   `stale` (chạy được nhưng bằng crew-docs cũ) khi cài lại. `hookView()`/`listHooks()` dùng `inspectHooks()`
-   nên `HookView.detail` (schema `@crew/shared`) luôn có lý do hook chưa chạy hoặc bản đang chạy.
-   `requestTestSetup()` gọi `VpsClient.requestProjectChange()` để máy tự đề nghị đổi `platform`/`uiTestMcp`
-   của project mình — dịch lỗi 403/409 của server thành thông báo tiếng Việt (máy không sở hữu project /
-   đã có yêu cầu khác đang chờ), không đổi gì tới khi chủ dự án xác nhận TOTP trên web (flow `project-claims`).
-   (`ensureHooks()`/idempotent `createProject()` vá đúng sự cố từng gặp: chủ dự án bấm "Lưu và nhận project"
-   ở bước cài đặt trong khi mới điền form "Thêm project mới từ thư mục" — nút đó khi đó chỉ áp dụng project
-   đã tick sẵn, không tạo project vừa nhập, nên trình cài đặt xong mà máy chưa nhận project nào; tạo lại từ
-   Settings → Projects khi đó không cài hook, dashboard sức khỏe đỏ ngay lượt chạy kế tiếp và bấm lại gặp
-   409.)
-9. `apps/desktop/src/daemon-host/bmad-install.ts` → `installBmad()`: IPC `projects.installBmad` (Settings →
-   Projects, nút "Cài BMAD") — `HostService.installBmad()` (`host-service.ts`) đọc `bmad` của `projectDetail()`
-   (`setup-ops.ts`, `bmadView()` so hồ sơ server `DaemonProject.bmadProfile` với cài đặt cục bộ đọc qua
-   `readBmadInstall()` để ra `BmadInstallPlan`: `no_profile`/`install`/`installed` — thư mục đã có bất kỳ bản
-   cài BMAD nào (manifest đọc được, hoặc chỉ cần có thư mục `_bmad/`) thì luôn là `installed`, nút không đụng
-   tới dù phiên bản hay module gì, không update, không hạ cấp), rồi chờ `ctx.folderAccess(repoPath)` (phương
-   thức công khai mới của `HostContext`, dùng lại đúng cơ chế `awaitFolderAccess()` chờ hộp thoại quyền macOS
-   mà `repoAccess()` dùng, xem bước 7) trước khi chạy
+8. `apps/desktop/src/daemon-host/setup-ops.ts` → `checkServer()`, `pairMachine()`, `setFolder()`,
+   `statusView()`, `installShippedCrewDocs()`, `ensureHooks()`, `repairBrokenHooks()`: mọi project, thư mục,
+   MCP và tài nguyên chuyển hẳn sang cài đặt trên server (flow `server-settings`), sửa trên web — app chỉ còn
+   giữ phần bắt buộc chạy tại chỗ. `checkServer()` bắt buộc `https://` (trừ loopback) và gọi `GET /v1/health`.
+   `pairMachine()`: ghép máy bằng mã một lần rồi, **chỉ lần ghép đầu** (`ctx.config()` chưa có gì), viết luôn
+   tài nguyên gợi ý theo CPU/RAM máy này (`suggestResources()`) vào `config.yaml` cục bộ — daemon tải nó lên
+   server đúng một lần khi khởi động (`importLocalSettings()`, flow `server-settings`); chủ dự án sửa lại
+   trên web sau đó. `statusView()` (cho trang "Trạng thái máy", flow `desktop-ui`): project máy đang giữ kèm
+   thư mục hiện tại (`localPath`, đọc `config.yaml`) và lý do máy không dùng được thư mục server đặt, nếu có
+   (`folderProblem`, từ `MachineSettingsState.rejected`, flow `server-settings`); trạng thái vai trò trợ lý;
+   cài đặt đang áp (`revision`/`source`); thư mục nào đang chờ hộp thoại quyền macOS trả lời
+   (`folderAccessWaiting`); link tới trang máy/hệ thống trên web. `setFolder()`: validate thư mục
+   (`validateFolder()`, dùng lại `repoFolderChecks()` của flow `daemon-health`: git hợp lệ, đúng `origin`,
+   đúng nhánh, quyền push) rồi ghi qua `VpsClient.putProjectFolder()` (setting server, không phải
+   `config.yaml`) và gọi `ensureHooks()` để cài hook crew-docs ngay nếu còn thiếu. `ensureHooks()` không bao
+   giờ ghi lại hook đang `ok`, và giữ nguyên runtime của một hook `stale` (chạy được nhưng bằng crew-docs cũ)
+   khi cài lại. `repairBrokenHooks()` (gọi lúc host khởi động, bước 6) sửa hook của project nào có
+   runtime/bundle không còn chạy được, giữ nguyên hook đang chạy tốt của project khác. Nhận project mới, tạo
+   project và đổi loại project/MCP không còn là thao tác của app: chủ dự án làm trên web (trang Dự án/Máy,
+   flow `web-admin`) hoặc CLI `crewd project create` (dùng lại `VpsClient.createProject()`, flow
+   `daemon-runtime`). `VpsClient.requestProjectChange()` (máy tự đề nghị đổi `platform`/MCP test UI của
+   project mình, flow `project-claims`) không còn nơi gọi nào — app từng gọi nó qua `requestTestSetup()`,
+   đã bỏ cùng màn "Settings → Projects".
+9. `apps/desktop/src/daemon-host/bmad-install.ts` → `installBmad()`: chạy khi owner bấm "Cài BMAD" từ xa
+   (hành động `bmad.install`, flow `machine-control`) — không còn nút trong app; `HostService.installBmad()`
+   (`host-service.ts`) tra project máy đang giữ, lấy `DaemonProject.bmadProfile` mới nhất qua
+   `ctx.vps().listProjects()` rồi gọi `installBmad()`. `localBmadInstall(repoPath)` đọc bản cài cục bộ (nếu
+   có) qua `readBmadInstall()`; thư mục đã có bất kỳ bản cài BMAD nào (manifest đọc được, hoặc chỉ cần có thư
+   mục `_bmad/`) thì luôn `skipped`, không đụng tới dù phiên bản hay module gì, không update, không hạ cấp.
+   Chưa có hồ sơ BMAD nào server báo (`profile: null`) thì báo lỗi rõ ("Chưa có cấu hình BMAD…") trước khi
+   chạm tới thư mục. Chờ `ctx.folderAccess(repoPath)` (phương thức công khai của `HostContext`, dùng lại đúng
+   cơ chế `awaitFolderAccess()` chờ hộp thoại quyền macOS mà `repoAccess()` dùng, xem bước 7) trước khi chạy
    `npx bmad-method@<version> install --yes --directory <repo> --modules <module ngoài core> --tools <tools,
    mặc định claude-code> [--communication-language] [--document-output-language] [--output-folder] [--set
    <module>.<key>=<value> …] [--pin <module>=<tag> …]` (một `--pin` cho mỗi module của `profile.pins`) qua
    `npxRunner` (tiến trình riêng nhóm, `CI=1
-   NO_COLOR=1`, hết 7 phút thì SIGTERM rồi SIGKILL). Mỗi dòng output phát sự kiện host `bmad.progress`
-   `{key, line}` cho renderer và ghi `app.log` (`bmad-install-output`, tối đa 400 dòng đầu), cộng
-   `bmad-install-started`/`-finished`/`-failed`; thông báo lỗi tiếng Việt rõ ràng khi thiếu `npx`, lỗi mạng, mã
-   thoát khác 0, hết giờ, hoặc manifest sau khi cài không khớp cấu hình. Không bao giờ commit: sau khi cài xong
-   đếm số file mới/đổi chưa commit qua `git status`, nêu riêng file nằm trong vùng luật R6 bảo vệ (ví dụ
-   `.claude/**`) để chủ dự án tự quyết định commit. Xong thì dò lại inventory (chờ tối đa 90 giây) để kho skill
-   BMAD mới hiện ngay. `HostService` chỉ cho một lượt cài BMAD chạy mỗi project một lúc.
+   NO_COLOR=1`, hết 7 phút thì SIGTERM rồi SIGKILL). Mỗi dòng output ghi `app.log` (`bmad-install-output`,
+   tối đa 400 dòng đầu — không còn phát sự kiện cho renderer, vì "Cài BMAD" chạy từ web, không phải từ app),
+   cộng `bmad-install-started`/`-finished`/`-failed`; thông báo lỗi tiếng Việt rõ ràng khi thiếu `npx`, lỗi
+   mạng, mã thoát khác 0, hết giờ, hoặc manifest sau khi cài không khớp cấu hình — đây là `message` mà lệnh
+   `bmad.install` (flow `machine-control`) báo về web. Không bao giờ commit: sau khi cài xong đếm số file
+   mới/đổi chưa commit qua `git status`, nêu riêng file nằm trong vùng luật R6 bảo vệ (ví dụ `.claude/**`) để
+   chủ dự án tự quyết định commit. Xong thì dò lại inventory (chờ tối đa 90 giây, `REPROBE_WAIT_MS`) để kho
+   skill BMAD mới hiện ngay. `HostService` chỉ cho một lượt cài BMAD chạy mỗi project một lúc.
    `apps/desktop/src/daemon-host/test-seams.ts` → `fakeBmadRunner`: bản giả lập cho E2E (`bmadRunner` của
    `HostDeps`/`TestSeams`, bật khi `CREW_DESKTOP_TEST_MODE=1`) chỉ ghi một manifest giả, không tải gì; unit test
    tự truyền `HostDeps.bmadRunner` khác để kiểm lỗi/timeout mà không gọi `npx` thật.
@@ -163,9 +170,12 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
     5 phút, một đổi project) — `runsStarted`/`newestApplied` đảm bảo một lượt cũ không bao giờ ghi đè báo cáo
     của một lượt mới hơn. `logChanges()` ghi một dòng `app.log` (`health-change`) cho mỗi check đổi trạng thái
     so với lần trước (lần đầu: mọi check không xanh) và một dòng `health-summary` khi trạng thái tổng đổi.
-11. `apps/desktop/src/daemon-host/activity.ts` → `Activity.jobs()`/`tail()`/`logger`: danh sách job đang
-    chạy/chờ/chờ thử lại (kèm tên và tiêu đề ticket) và nhật ký daemon (`~/.crew/logs/daemon.log`, JSON
-    Lines, xoay vòng ở 10 MB); `logger` vừa ghi file vừa phát sự kiện `log.line` cho renderer.
+11. `apps/desktop/src/daemon-host/activity.ts` → `Activity.tail()`/`logger`: nhật ký daemon
+    (`~/.crew/logs/daemon.log`, JSON Lines, xoay vòng ở 10 MB) và cách đọc lại `limit` dòng gần nhất, lọc
+    được theo ticket — `tail()` là handler `logs.tail` mà `HostService.commandHandlers` thêm (flow
+    `machine-control`, bước 6); `logger` chỉ ghi file, không còn phát sự kiện cho renderer (không còn màn
+    nào ở app đọc log realtime). Danh sách job đang chạy/chờ/chờ thử lại không còn đọc qua `Activity` —
+    handler `jobs.list` (flow đó) đọc thẳng `state.recentJobs()` của daemon, sẵn có cho cả CLI trần và app.
 12. `apps/desktop/src/main/quit-guard.ts` → `decideQuit()`: thoát app khi có job đang chạy hỏi trước — "Chờ
     job xong rồi thoát" (`drain`), "Dừng ngay, chạy tiếp lần sau" (`requeue`) hoặc "Huỷ"; không có job nào thì
     thoát ngay.
@@ -257,10 +267,10 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 | `apps/desktop/src/daemon-host/host-service.ts` | Chạy daemon thật và định tuyến mọi thao tác host | `HostService` |
 | `apps/desktop/src/daemon-host/host-context.ts` | State dùng chung của các thao tác host | `HostContext`, `HostError` |
 | `apps/desktop/src/daemon-host/folder-access.ts` | Chờ quyền đọc thư mục macOS trước khi git đồng bộ chạy | `awaitFolderAccess`, `FolderAccessHooks` |
-| `apps/desktop/src/daemon-host/setup-ops.ts` | Thao tác trình cài đặt và Settings → Projects | `checkServer`, `pairMachine`, `applyProjects`, `createProject`, `ensureHooks`, `repairBrokenHooks`, `installProjectHooks`, `requestTestSetup`, `projectDetail` |
-| `apps/desktop/src/daemon-host/bmad-install.ts` | Chạy trình cài `bmad-method` cho "Cài BMAD" | `installBmad`, `bmadInstallPlan`, `bmadInstallerArgs`, `npxRunner`, `bmadView` |
+| `apps/desktop/src/daemon-host/setup-ops.ts` | Thao tác trình cài đặt và trang trạng thái máy | `checkServer`, `pairMachine`, `suggestResources`, `setFolder`, `validateFolder`, `statusView`, `installShippedCrewDocs`, `ensureHooks`, `repairBrokenHooks` |
+| `apps/desktop/src/daemon-host/bmad-install.ts` | Chạy trình cài `bmad-method` cho lệnh từ xa "Cài BMAD" | `installBmad`, `localBmadInstall`, `bmadInstallerArgs`, `npxRunner` |
 | `apps/desktop/src/daemon-host/health-ops.ts` | Chạy health check dùng chung với `crewd doctor` | `HealthOps` |
-| `apps/desktop/src/daemon-host/activity.ts` | Danh sách job và nhật ký daemon | `Activity` |
+| `apps/desktop/src/daemon-host/activity.ts` | Nhật ký daemon và log tail cho lệnh từ xa | `Activity` |
 | `apps/desktop/src/daemon-host/test-seams.ts` | Thay SDK Claude, probe skill và trình cài BMAD bằng bản giả lập cho E2E | `testSeams`, `TestSeams`, `fakeBmadRunner` |
 | `packages/shared/src/desktop-ipc.ts` | Hợp đồng IPC renderer↔main↔host | `DesktopRequests`, `DesktopEvents`, `HostOnlyRequests`, `ToHost`, `FromHost` |
 | `apps/desktop/electron.vite.config.ts` | Build electron-vite (main/preload/renderer); chép prompt vai trò cạnh bundle main | `copyRolePrompts`, `ROLE_PROMPTS_SOURCE` |
@@ -278,9 +288,9 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   `daemon.log` (hoạt động job, bước 11) chứ không thay nó.
 - Sự kiện: kênh IPC nội bộ Electron `crew:invoke`/`crew:event` (`DESKTOP_INVOKE_CHANNEL`/
   `DESKTOP_EVENT_CHANNEL`) giữa renderer và main; giao thức `ToHost`/`FromHost` (`request`/`facts` vào,
-  `ready`/`response`/`event`/`log` ra — tên sự kiện: `daemon.status`, `health.report`, `jobs.changed`,
-  `log.line`, `job.blocked`, `bmad.progress` — mỗi dòng output của trình cài BMAD) giữa main và daemon host qua
-  `MessagePort` của `utilityProcess`.
+  `ready`/`response`/`event`/`log` ra — tên sự kiện host, `HostEventName`: `daemon.status`, `health.report`,
+  `job.blocked`, `app.fix` — fix chỉ main làm được, xem bước 6) giữa main và daemon host qua `MessagePort` của
+  `utilityProcess`; danh sách sự kiện main phát cho renderer (`DesktopEvents`, hẹp hơn) ở flow `desktop-ui`.
 - Gọi ngoài: VPS API và Agent SDK qua daemon thật (xem `daemon-runtime`, `daemon-health`); GitHub Releases
   của `nquangphan/my-crew` qua `electron-updater` (kiểm và tải bản mới) và `npm pack`/`gh`-style publish lúc
   đóng gói; `/usr/bin/osascript` mở Terminal; `/usr/bin/codesign` kiểm chữ ký lúc quyết định tự cài bản mới;
@@ -296,14 +306,22 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   `HealthContext` có thêm `daemon`, `app`, `crewDocs`, `probeCheckout`, `quick` — cùng danh sách check
   `crewd doctor` dùng; `setup-ops.ts` cũng gọi trực tiếp `inspectHooks()` của flow đó để cài/sửa hook ngay
   khi tạo/nhận project, không chờ tới lượt health chạy.
-- docs-check, docs-hooks: `installShippedCrewDocs()`/`installProjectHooks()` cài bundle crew-docs vào
-  `~/.crew/bin` và hook git của từng project, chạy bằng chính binary app (`ELECTRON_RUN_AS_NODE=1`) thay vì
-  cần Node cài riêng trên máy.
-- project-claims: `requestTestSetup()` gọi `POST /v1/daemon/projects/:projectKey/change-requests`; kết quả và
-  trạng thái đang chờ hiển thị ở Settings → Projects (flow `desktop-ui`) tới khi chủ dự án quyết định.
-  `bmadView()` so `DaemonProject.bmadProfile` (server) với cài đặt cục bộ để ra `ProjectDetail.bmad`.
+- docs-check, docs-hooks: `installShippedCrewDocs()`/`ensureHooks()` (gọi `installHooks()` của
+  `docs-kit-bridge.ts`) cài bundle crew-docs vào `~/.crew/bin` và hook git của từng project, chạy bằng chính
+  binary app (`ELECTRON_RUN_AS_NODE=1`) thay vì cần Node cài riêng trên máy.
+- project-claims: `VpsClient.requestProjectChange()` (máy tự đề nghị đổi `platform`/MCP test UI) không còn
+  nơi gọi từ app — trước đây `requestTestSetup()`/màn "Settings → Projects" dùng nó, cả hai đã bỏ; owner đổi
+  loại project thẳng trên web (flow `web-admin`). App dùng lại hồ sơ BMAD server báo (`DaemonProject.bmadProfile`)
+  chỉ khi chạy `installBmad()` cho lệnh từ xa `bmad.install` (flow `machine-control`).
 - agent-workspace: `installBmad()` dùng lại `readBmadInstall()` (`@crew/daemon`) để đọc cài đặt BMAD cục bộ và
   chạy đúng logic phiên bản mà daemon dùng để báo cáo lên server.
+- server-settings: `pairMachine()` viết tài nguyên gợi ý theo CPU/RAM vào cấu hình cục bộ chỉ ở lần ghép đầu,
+  daemon tải lên server đúng một lần; `setFolder()`/`statusView()` đọc/ghi cài đặt `project_folders` của máy
+  (qua `VpsClient.putProjectFolder()` và `EffectiveSettings.folders`); mọi cài đặt khác (model, MCP, tài
+  nguyên sau lần ghép đầu) chỉ sửa được trên web.
+- machine-control: `HostService.commandHandlers` thêm `health.run`/`health.fix`/`bmad.install`/`logs.tail`
+  vào danh sách hành động daemon nhận từ web; `app.fix` và việc giữ trạng thái tạm dừng qua một lần khởi động
+  lại host (bước 4, `daemon-supervisor.ts`) phục vụ đúng flow đó.
 
 ## Tests
 
@@ -325,17 +343,12 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   với lỗi mạng thật; `mac.target` của `electron-builder.yml` có cả `dmg` và `zip` cho hai kiến trúc,
   `dmg.artifactName` khớp đúng `dmgAssetName()` và `mac.artifactName` đặt đúng tên zip
   (`2P-Crew-<version>-<arch>-mac.zip`) cho cả hai kiến trúc.
-- `apps/desktop/test/host-service.test.ts`: kiểm tra server, ghép máy, claim project (202 chờ duyệt khi đang
-  ở máy khác) rồi chạy được sau khi chủ dự án duyệt, kiểm `crew-docs.runtime` được ghi vào hook git đúng
-  binary; tạo project từ thư mục cài hook ngay và không đỏ dashboard, từ chối key trùng của repo khác, tạo lại
-  đúng key + repo máy này đã sở hữu là `already_owned` không phải lỗi, sửa cấu hình project khi đang chạy
-  (không cần khởi động lại) và trả project; dựng `HostService` không đụng repo nào, hook có runtime đã biến
-  mất chỉ được sửa lại sau khi gọi `start()`, hook đang chạy tốt bằng runtime khác (mô phỏng CLI node cạnh
-  binary app) được giữ nguyên; mọi lỗi gọi API và lỗi
-  thao tác host vào `app.log` không kèm token; `requestTestSetup()` trả về đúng `pendingChange`, chặn máy
-  không sở hữu và yêu cầu trùng khi đang chờ, phản ánh đúng khi chủ dự án duyệt, và tự rút
-  (`lastChange.status: 'withdrawn'`) khi máy trả project trong lúc yêu cầu còn chờ — tất cả chạy trên API
-  thật.
+- `apps/desktop/test/host-service.test.ts`: ghép máy, hiện đúng project owner đã giao trên web, lưu một thư
+  mục được chọn lên server (không phải `config.yaml`) rồi chạy được project đó ngay, kiểm `crew-docs.runtime`
+  được ghi vào hook git đúng binary; chạy kiểm tra sức khỏe, fix của nó và log tail mà owner hỏi từ web (các
+  hành động của flow `machine-control`); dựng `HostService` không đụng repo nào, hook có runtime đã biến mất
+  chỉ được sửa lại sau khi gọi `start()` (không phải lúc dựng), hook đang chạy tốt bằng runtime khác (mô
+  phỏng CLI node cạnh binary app) được giữ nguyên — tất cả chạy trên API thật.
 - `apps/desktop/test/folder-access.test.ts`: đọc một thư mục chậm không chặn tick của event loop và vẫn ghi
   đúng thứ tự sự kiện chờ/xong, đọc từng thư mục một lúc (thư mục sau chỉ bắt đầu khi thư mục trước xong); một
   thư mục bị từ chối báo đúng mã lỗi (`EPERM`) qua `onResolved`, một thư mục đọc được báo `null`.
@@ -346,14 +359,14 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 - `apps/desktop/test/role-prompts-bundle.test.ts`: chạy `copyRolePrompts.writeBundle()` vào một thư mục tạm
   rồi nạp mọi prompt của từng stage (`STAGES`, flow `agent-roles`) và các partial nó `{{> ... }}` từ thư mục
   đó, đúng như bundle đã đóng gói sẽ làm.
-- `apps/desktop/test/bmad-install.test.ts`: quyết định plan đúng (`no_profile`/`install`/`installed`), dựng
-  đúng argv trình cài mới (mặc định `claude-code`, một `--pin` cho mỗi module đã ghim); với trình cài giả lập
-  — chặn khi chưa có hồ sơ, cài xong phát tiến độ và không commit gì, nêu đúng file R6 bảo vệ; thư mục đã có
-  bản cài cũ hơn/thiếu module/mới hơn/manifest không đọc được thì không bao giờ đụng tới (luôn bỏ qua); thông
-  báo tiếng Việt đúng cho thiếu `npx`, lỗi mạng, trình cài lỗi, hết giờ và manifest không khớp sau khi chạy;
-  một lượt chạy `npx` thật
-  (`CREW_LIVE_BMAD_TEST=1`, tuỳ chọn) cài `core`/`bmm` và module `cis` ghim ở tag `v0.2.1` cho Claude Code vào
-  một repo git tạm, kiểm manifest ghi đúng tag đó, rồi không commit gì.
+- `apps/desktop/test/bmad-install.test.ts`: dựng đúng argv trình cài mới (mặc định `claude-code`, một
+  `--pin` cho mỗi module đã ghim); với trình cài giả lập — chặn khi chưa có hồ sơ, cài xong không commit gì
+  và nêu đúng file R6 bảo vệ, rồi bỏ qua (`skipped`) ở lần gọi kế tiếp; thư mục đã có bản cài cũ hơn/thiếu
+  module/mới hơn/manifest không đọc được thì không bao giờ đụng tới (luôn bỏ qua); thông báo tiếng Việt đúng
+  cho thiếu `npx`, lỗi mạng, trình cài lỗi, hết giờ và manifest không khớp sau khi chạy; chạy như một lệnh từ
+  xa (`bmad.install`, flow `machine-control`) trong đúng thư mục project và báo kết quả về web; một lượt chạy
+  `npx` thật (`CREW_LIVE_BMAD_TEST=1`, tuỳ chọn) cài `core`/`bmm` và module `cis` ghim ở tag `v0.2.1` cho
+  Claude Code vào một repo git tạm, kiểm manifest ghi đúng tag đó, rồi không commit gì.
 - `apps/desktop/test/e2e/health.spec.ts` (Electron thật qua Playwright `_electron`, bộ `test:e2e`): phá một
   check cho nó chuyển đỏ rồi tự sửa cho nó xanh lại; daemon sống sót qua việc đóng/mở lại cửa sổ và tự khởi
   động lại sau khi host bị kill.

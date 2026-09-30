@@ -1,5 +1,5 @@
 import { type ProjectPlatform, qcDefaultMcps, type UiTestMcp } from '@crew/shared';
-import { serverProjects, storedInventory, updateProjectConfig } from '../project-views.js';
+import { serverProjects, storedInventory, updateProjectMcp } from '../project-views.js';
 import {
   type HealthCheck,
   type HealthCheckResult,
@@ -159,13 +159,9 @@ export const mcpChecks: HealthCheck = {
       // fragment (a prefix of a known server that is no server itself) whenever the list is saved again.
       const fragment = (name: string) =>
         !known.includes(name) && known.some((server) => server.startsWith(`${name}:`));
-      updateProjectConfig(ctx, key, (project) => {
-        const kept = project.disabledMcpServers.filter((name) => !fragment(name));
-        return {
-          ...project,
-          disabledMcpServers:
-            action === 'mcp-disable' ? [...new Set([...kept, arg])] : kept.filter((name) => name !== arg),
-        };
+      await updateProjectMcp(ctx, key, (disabled) => {
+        const kept = disabled.filter((name) => !fragment(name));
+        return action === 'mcp-disable' ? [...kept, arg] : kept.filter((name) => name !== arg);
       });
     } else if (action === 'mcp-install' && arg in OFFICIAL_UI_TEST_SERVERS) {
       const view = (await serverProjects(ctx)).get(key);

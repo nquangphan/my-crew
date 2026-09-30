@@ -90,6 +90,11 @@ describe('docs-update handoff', () => {
     expect(decideFailure({ job: job(), reason: 'budget', costUsd: 5 }).action).toBe('block');
     const retry = decideFailure({ job: job(), reason: 'no_handoff', costUsd: 0.2 });
     expect(retry).toMatchObject({ action: 'retry', followUp: { kind: 'agent', sessionId: 's-dev' } });
+    // The comment names the server settings revision the run started with (a bad prompt edit shows up).
+    expect(
+      decideFailure({ job: job({ settingsRevision: '3f9a1c2b' }), reason: 'no_handoff', costUsd: 0.2 })
+        .comment,
+    ).toContain('chi phí lượt này 0.2000 USD, cài đặt bản 3f9a1c2b');
     const docsRetry = decideFailure({
       job: job({ kind: 'docs_update' }),
       reason: 'not_finished',

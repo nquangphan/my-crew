@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { generateSync } from 'otplib';
@@ -175,6 +175,46 @@ export async function seedDocs(state: E2eState): Promise<void> {
     files: DOCS_FILES,
   });
   expect(result.fileCount).toBe(DOCS_FILES.length);
+}
+
+/** A mutating owner API call from the logged-in page (session cookie, CSRF header and Origin). */
+export async function ownerApi<T>(
+  page: Page,
+  method: 'POST' | 'PATCH',
+  path: string,
+  data: unknown,
+): Promise<T> {
+  const csrf = (await page.context().cookies()).find((cookie) => cookie.name === 'crew_csrf')?.value;
+  const res = await page.request.fetch(path, {
+    method,
+    data,
+    headers: { 'x-csrf-token': csrf ?? '', origin: E2E_WEB_ORIGIN },
+  });
+  expect(res.ok(), `${method} ${path} → ${res.status()} ${await res.text()}`).toBe(true);
+  return (await res.json()) as T;
+}
+
+/** Pairs one more machine with a fresh single-use code (stored straight in the E2E database). */
+export async function pairExtraMachine(name: string): Promise<{ id: string; name: string; token: string }> {
+  const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const code = Array.from({ length: 12 }, () => BASE32[randomInt(BASE32.length)]).join('');
+  const codeHash = createHash('sha256').update(code).digest('hex');
+  await db()`insert into pairing_codes (code_hash, expires_at) values (${codeHash}, now() + interval '10 minutes')`;
+  const res = await fetch(`${E2E_API_URL}/v1/machines/pair`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      code,
+      name,
+      hostname: `${name}.local`,
+      os: 'darwin 25.5',
+      hardware: { cpus: 8, memGb: 16 },
+    }),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`POST /v1/machines/pair → ${res.status} ${text}`);
+  const paired = JSON.parse(text) as { machineId: string; token: string };
+  return { id: paired.machineId, name, token: paired.token };
 }
 
 /** Creates a request ticket as the logged-in owner (session cookie plus the CSRF header). */

@@ -5,9 +5,6 @@ export const WIZARD_STEPS = [
   { id: 'server', title: 'Server' },
   { id: 'pairing', title: 'Ghép máy' },
   { id: 'claude', title: 'Claude' },
-  { id: 'projects', title: 'Project và thư mục' },
-  { id: 'hooks', title: 'Docs và hook' },
-  { id: 'resources', title: 'Tài nguyên và model' },
   { id: 'finish', title: 'Hoàn tất' },
 ] as const;
 export type WizardStepId = (typeof WIZARD_STEPS)[number]['id'];

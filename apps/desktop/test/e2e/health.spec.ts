@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { HealthReport } from '@crew/shared';
 import { expect, type Page, test } from '@playwright/test';
 import { E2E_API_URL } from './e2e-env';
 import {
@@ -8,61 +9,79 @@ import {
   expectAllGreen,
   fixtureRepo,
   launch,
-  ownerSession,
+  machineIdOf,
+  ownerWeb,
   pairingCode,
+  type TestEnv,
   testEnv,
 } from './helpers';
 
-/** Sets the machine up through the same IPC the wizard uses (the wizard UI itself is covered by onboarding). */
-async function setUp(page: Page, repo: string, code: string): Promise<void> {
-  await call(page, 'setup.pair', { apiUrl: E2E_API_URL, code, machineName: 'mac-health' });
-  const created = await call(page, 'projects.create', {
-    path: repo,
-    key: 'HLTH',
-    name: 'Health fixture',
-    description: 'Repo mẫu cho bộ test sức khỏe.',
-    repoUrl: HEALTH_REPO_URL,
-    defaultBranch: 'main',
-    platform: 'backend',
-  });
-  expect(created.status).toBe('granted');
-  await call(page, 'hooks.install', { key: 'HLTH' });
-  const resources = await call(page, 'config.resources', {});
-  await call(page, 'config.saveResources', {
-    resources: { ...resources.resources, minFreeMemGb: 0, maxLoadPerCpu: 64 },
-    models: resources.models,
-  });
-  await call(page, 'setup.finish', {});
-  await page.evaluate(() => {
-    window.location.hash = '#/health';
-  });
-}
-
 const HEALTH_REPO_URL = 'https://github.com/2p/health-fixture.git';
 
-const row = (page: Page, id: string) => page.locator(`[data-check="${id}"]`);
-
-async function recheck(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Kiểm tra ngay' }).click();
-  await expect(page.getByRole('button', { name: 'Kiểm tra ngay' })).toBeEnabled({ timeout: 60_000 });
+/**
+ * Sets the machine up through the same IPC the app uses (the wizard UI itself is covered by onboarding); the
+ * owner creates and assigns the project on the web, the folder picker saves its folder.
+ */
+async function setUp(page: Page, env: TestEnv, repo: string, code: string) {
+  await call(page, 'setup.pair', { apiUrl: E2E_API_URL, code, machineName: 'mac-health' });
+  const web = await ownerWeb();
+  const project = await web.createProject({
+    key: 'HLTH',
+    name: 'Health fixture',
+    repoUrl: HEALTH_REPO_URL,
+    platform: 'backend',
+  });
+  const machineId = machineIdOf(env);
+  await web.assign(machineId, { projectId: project.id });
+  const folder = await call(page, 'projects.setFolder', { key: 'HLTH', path: repo });
+  expect(folder.ok).toBe(true);
+  await call(page, 'setup.finish', {});
+  await page.evaluate(() => {
+    window.location.hash = '#/status';
+  });
+  return { web, machineId };
 }
 
-test('breaking a check turns it red and its fix turns it green; the daemon survives the UI and restarts after a kill', async () => {
+const health = (page: Page) => page.getByRole('region', { name: 'Sức khỏe' });
+const row = (page: Page, id: string) => health(page).locator(`[data-check="${id}"]`);
+
+async function recheck(page: Page): Promise<void> {
+  await health(page).getByRole('button', { name: 'Kiểm tra ngay' }).click();
+  await expect(health(page).getByRole('button', { name: 'Kiểm tra ngay' })).toBeEnabled({ timeout: 60_000 });
+}
+
+test('breaking a check turns it red and its fix turns it green, here and from the web; the daemon survives the UI and restarts after a kill', async () => {
   const env = testEnv();
   const { app, page } = await launch(env);
   try {
     const repo = fixtureRepo(env, 'health-fixture', HEALTH_REPO_URL);
-    await setUp(page, repo, pairingCode(2));
+    const { web, machineId } = await setUp(page, env, repo, pairingCode(2));
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Sức khỏe máy' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Trạng thái máy' })).toBeVisible();
     await expectAllGreen(page);
 
-    // Delete a repo hook → red → "Cài lại hook" → green.
+    // Delete a repo hook → red → "Cài lại hook" here → green.
     rmSync(join(repo, '.githooks', 'pre-commit'));
     await recheck(page);
     await expect(row(page, 'repos.HLTH.hooks')).toHaveAttribute('data-status', 'red');
     await row(page, 'repos.HLTH.hooks').getByRole('button', { name: 'Cài lại hook' }).click();
-    await expect(row(page, 'repos.HLTH.hooks')).toHaveAttribute('data-status', 'green', { timeout: 60_000 });
+    await expect(row(page, 'repos.HLTH.hooks')).toHaveCount(0, { timeout: 60_000 });
+    expect(existsSync(join(repo, '.githooks', 'pre-commit'))).toBe(true);
+
+    // The same from the web: the owner runs the checks and the fix remotely; the machine reports back.
+    rmSync(join(repo, '.githooks', 'pre-commit'));
+    const broken = await web.command(machineId, { action: 'health.run', quick: true });
+    expect(
+      (broken.result as HealthReport).results.find((item) => item.id === 'repos.HLTH.hooks')?.status,
+    ).toBe('red');
+    const fixed = await web.command(machineId, {
+      action: 'health.fix',
+      group: 'repos',
+      fixId: 'install-hooks:HLTH',
+    });
+    expect(
+      (fixed.result as HealthReport).results.find((item) => item.id === 'repos.HLTH.hooks')?.status,
+    ).toBe('green');
     expect(existsSync(join(repo, '.githooks', 'pre-commit'))).toBe(true);
 
     // Log out of Claude → red → "Đăng nhập Claude" opens Terminal with `claude` → log in again → green.
@@ -74,13 +93,13 @@ test('breaking a check turns it red and its fix turns it green; the daemon survi
     expect(readFileSync(join(env.home, '.test-terminal-launches'), 'utf8')).toContain('claude');
     rmSync(join(env.home, '.test-claude-logged-out'));
     await recheck(page);
-    await expect(row(page, 'claude.login')).toHaveAttribute('data-status', 'green');
+    await expect(row(page, 'claude.login')).toHaveCount(0);
 
     // Closing the window or reloading the renderer never touches the daemon process.
     const before = await appInfo(page);
     expect(before.daemon.pid).not.toBeNull();
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Sức khỏe máy' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Trạng thái máy' })).toBeVisible();
     await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]?.close());
     await expect.poll(() => app.windows().length).toBe(0);
     process.kill(before.daemon.pid as number, 0); // still alive
@@ -89,6 +108,12 @@ test('breaking a check turns it red and its fix turns it green; the daemon survi
     const window = await reopened;
     await window.waitForLoadState('domcontentloaded');
     expect((await appInfo(window)).daemon.pid).toBe(before.daemon.pid);
+
+    // A pause from the web is kept like one from the tray.
+    await web.command(machineId, { action: 'pause' });
+    await expect.poll(async () => (await appInfo(window)).status?.paused).toBe(true);
+    await web.command(machineId, { action: 'resume' });
+    await expect.poll(async () => (await appInfo(window)).status?.paused).toBe(false);
 
     // Killing the daemon process: the supervisor restarts it (and the daemon) within 10 s.
     const killedAt = Date.now();
@@ -109,13 +134,12 @@ test('breaking a check turns it red and its fix turns it green; the daemon survi
     expect(Date.now() - killedAt).toBeLessThan(10_000);
 
     // Revoke the machine on the web → the token check is red → "Ghép lại máy" opens the pairing step.
-    const owner = await ownerSession();
-    const machineId = readFileSync(join(env.home, 'config.yaml'), 'utf8').match(/machineId: (\S+)/)?.[1];
-    const revoked = await owner.request('POST', `/v1/machines/${machineId}/revoke`, {});
+    const revoked = await web.request('POST', `/v1/machines/${machineId}/revoke`, {});
     expect(revoked.status).toBe(200);
     await recheck(window);
-    await expect(window.locator('[data-check="server.token"]')).toHaveAttribute('data-status', 'red');
-    await window.locator('[data-check="server.token"]').getByRole('button', { name: 'Ghép lại máy' }).click();
+    const token = window.getByRole('region', { name: 'Sức khỏe' }).locator('[data-check="server.token"]');
+    await expect(token).toHaveAttribute('data-status', 'red');
+    await token.getByRole('button', { name: 'Ghép lại máy' }).click();
     await expect(window.locator('[data-step="pairing"]')).toBeVisible();
     await window.getByLabel('Tên máy').fill('mac-health-2');
     await window.getByLabel('Mã ghép').fill(pairingCode(3));
@@ -123,7 +147,7 @@ test('breaking a check turns it red and its fix turns it green; the daemon survi
     await expect(window.getByText('Máy đã được ghép với tên "mac-health-2"')).toBeVisible();
     await window.getByRole('button', { name: 'Đóng trình cài đặt' }).click();
     await recheck(window);
-    await expect(window.locator('[data-check="server.token"]')).toHaveAttribute('data-status', 'green');
+    await expect(token).toHaveCount(0);
   } finally {
     await app.close();
     env.cleanup();

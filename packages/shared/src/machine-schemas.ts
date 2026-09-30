@@ -9,6 +9,7 @@ import {
   ProjectPlatform,
   UiTestMcp,
 } from './project-schemas.js';
+import { MachineSettingsState } from './settings-schemas.js';
 
 // ---------------------------------------------------------------------------
 // Pairing and device tokens
@@ -131,6 +132,8 @@ export const RunningJob = z.object({
   stage: RoleStage.optional().catch(undefined),
   model: RunModel.optional(),
   effort: RunEffort.optional(),
+  /** The server settings revision the run started with (its prompts, rules and model map). */
+  settingsRevision: z.string().min(1).max(100).optional(),
 });
 export type RunningJob = z.infer<typeof RunningJob>;
 
@@ -178,6 +181,8 @@ export const HeartbeatRequest = z.object({
   appVersion: z.string().trim().min(1).max(50).optional(),
   paused: z.boolean().default(false),
   health: HealthSummary.optional(),
+  /** The settings revision new jobs start with, and where it came from (server, cache or bundled). */
+  settings: MachineSettingsState.optional(),
 });
 export type HeartbeatRequest = z.input<typeof HeartbeatRequest>;
 
@@ -224,6 +229,17 @@ export const Machine = z.object({
   tokenExpiresAt: z.iso.datetime().nullable(),
   revokedAt: z.iso.datetime().nullable(),
   projectKeys: z.array(z.string()),
+  /**
+   * The settings the machine applies to new jobs (from its latest heartbeat), the revision the server would
+   * give it now, and whether it has picked that one up.
+   */
+  settings: z
+    .object({
+      reported: MachineSettingsState.nullable(),
+      expectedRevision: z.string(),
+      current: z.boolean(),
+    })
+    .default({ reported: null, expectedRevision: '', current: false }),
   createdAt: z.iso.datetime(),
 });
 export type Machine = z.infer<typeof Machine>;

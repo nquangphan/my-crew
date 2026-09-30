@@ -31,9 +31,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    (`state.pmMentions(job.eventIds)`, flow `daemon-scheduling`, chỉ áp dụng khi ticket là `pm_task`): job đó vẫn
    chạy, ở bước `pm_monitor` (ghi đè bước đã `resolveStage()` chọn), để trả lời owner mà không đổi trạng thái
    pm_task đang chờ; một lần thức dậy không mang lời gọi nào của cùng ticket đang chờ vẫn bị bỏ qua như trước.
-   `pm_analyze` chạy cổng `docsInitGate()`; `qc` trước tiên gọi `qcNeedsUiTest()` (nội bộ): thay đổi của riêng
-   ticket đang được QC (`head_sha` của report dev ghép cặp) có đổi gì ngoài docs không (`diffNeedsUiTest()`,
-   dùng `isDocsPath()` của flow `agent-runs`). Thay đổi riêng của ticket là các commit trên nhánh cha-đầu-tiên
+   `pm_analyze` chạy cổng `docsInitGate()`; `qc` trước tiên gọi `qcNeedsUiTest()` (nội bộ) — chỉ khi
+   `ctx.settings.policy.qcUiTestOnlyForNonDocs` (`GuardPolicy` của cài đặt server job này chạy với, flow
+   `server-settings`, mặc định `true`) mới xét, tắt cờ này thì luôn cần kiểm thử UI: thay đổi của riêng
+   ticket đang được QC (`head_sha` của report dev ghép cặp) có đổi gì ngoài `policy.docsPaths` không
+   (`diffNeedsUiTest()`, dùng `isDocsPath()` của flow `agent-runs`, cũng đọc `policy.docsPaths`). Thay đổi riêng của ticket là các commit trên nhánh cha-đầu-tiên
    (`--first-parent`) của `head` không tới được từ nhánh mặc định lẫn từ `builtOn` (head của ticket anh em đã
    xong cùng pm_task, trừ ticket ghép cặp — docs-init, dependency, các bug trước của chuỗi; một head đã chứa
    sẵn `head` của chính ticket này bị bỏ qua vì không dùng làm mốc được) — thường chính là `head^..head` vì job
@@ -71,10 +73,13 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    phép mạnh nhất ngay dưới nó kèm một bình luận thông báo. **Fable không được dùng (quyết định của chủ dự
    án): `opus` là model mạnh nhất chọn được** — một ticket cũ còn đặt model `fable` (giá trị enum chỉ còn giữ
    cho hàng cũ) chạy trên `opus` kèm bình luận giải thích, rồi mới qua bước kẹp allowlist ở trên.
-4. `apps/daemon/src/roles/prompt-templates.ts` → `renderPrompt()`: `{{> partial}}` chèn `prompts/<partial>.md`
-   (một lớp), rồi `{{var}}` thay giá trị của `vars`; thiếu biến là lỗi (không để `{{…}}` lọt tới agent), giá
-   trị chèn vào không bao giờ được quét lại nên không tự mở rộng thành template. Template nằm cạnh module này
-   (`prompts/<name>.md`); `setPromptsDir()` cho app đóng gói daemon trỏ tới bản đã chép (build chép qua
+4. `apps/daemon/src/roles/prompt-templates.ts` → `renderPrompt(name, vars, overrides)`: `{{> partial}}` chèn
+   `prompts/<partial>.md` (một lớp), rồi `{{var}}` thay giá trị của `vars`; thiếu biến là lỗi (không để
+   `{{…}}` lọt tới agent), giá trị chèn vào không bao giờ được quét lại nên không tự mở rộng thành template.
+   Template nằm cạnh module này (`prompts/<name>.md`) — vẫn là bản mặc định; `overrides` (từ
+   `ctx.settings.prompts`, cài đặt server theo tên prompt, flow `server-settings`) thay bản đóng gói theo
+   tên trước khi ghép partial/biến, nên một prompt được sửa trên web áp dụng từ job kế tiếp mà không cần cài
+   lại app. `setPromptsDir()` cho app đóng gói daemon trỏ tới bản đã chép (build chép qua
    `apps/daemon/scripts/copy-prompts.mjs`).
 5. `apps/daemon/src/roles/workspace-prep.ts` → `prepare()` (qua `role-planner.ts` → `prepare()`): `dev`/`bug`
    merge các head nền (`mergeBaseHeads()`) — docs-init đã xong, `dependsOn` đã xong, các bug trước của cùng
@@ -97,11 +102,12 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    và tự thêm mục "## Dọn dẹp tài nguyên" khi PM quên viết. `skillsSelected`/`mcpsSelected` mà agent ghi vào
    report phải có trong kho skill/MCP của lượt chạy (không tính server đã tắt); ngoài kho thì report bị từ chối
    để agent ghi lại.
-8. `apps/daemon/src/roles/docs-first-check.ts` → `docsFirst()`: `true` khi lần Read/Grep file nguồn đầu tiên
-   trong worktree đến sau một lần tra docs (`docs_flow`, `docs_where`, `crew-docs flow|where`, hoặc Read
-   `docs/index.md`); Read ngoài worktree, dưới `docs/`, file Markdown ở gốc repo như `README.md`
-   (`isDocsPath()` của flow `agent-runs`), `.claude/`, `.crew/`, `AGENTS.md`, `CLAUDE.md` không tính là đọc
-   nguồn. Không đọc file nguồn nào thì mặc định đạt.
+8. `apps/daemon/src/roles/docs-first-check.ts` → `docsFirst(logs, cwd, policy)`: `true` khi lần Read/Grep file
+   nguồn đầu tiên trong worktree đến sau một lần tra docs (`docs_flow`, `docs_where`, `crew-docs flow|where`,
+   hoặc Read `docs/index.md`); Read ngoài worktree, dưới `docs/`, file Markdown ở gốc repo như `README.md`
+   (`isDocsPath()` của flow `agent-runs`, theo `policy.docsPaths` của cài đặt server job này chạy với — mặc
+   định `DEFAULT_GUARD_POLICY` khi không có, flow `server-settings`), `.claude/`, `.crew/`, `AGENTS.md`,
+   `CLAUDE.md` không tính là đọc nguồn. Không đọc file nguồn nào thì mặc định đạt.
 9. `apps/daemon/src/roles/role-planner.ts` → `afterRun()`: một lượt kết thúc mà không nộp report và không
    `handoff_docs` (các bước không nộp report: assistant/PM ngoài `pm_accept`) vẫn bị đối chiếu skill/MCP —
    cảnh báo tính theo **phiên**, không theo từng job: một lượt resume một phiên đã `select_capabilities` ở
@@ -192,6 +198,10 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 - ticket-lifecycle: `create_subtask` (flow `agent-runs`) thêm `docs_init` vào `dependsOn`; PM `reject_work` gọi
   `fileBug()` với một dev/bug đã `done` (nhánh từ chối của PM, không phải QC báo lỗi).
 - docs-sync-viewer: `syncInitDocs()` đồng bộ snapshot ngay sau khi `docs_init` xong.
+- server-settings: `ctx.settings.policy`/`ctx.settings.prompts` (cài đặt server job này chạy với) điều khiển
+  cổng UI-test của QC, `docsFirst()`, `isDocsPath()`/`isProtectedPath()` và nội dung prompt render ra; owner
+  invariant (docs luôn sonnet, không Fable, `AGENTS.md`/`CLAUDE.md` luôn được bảo vệ) vẫn nằm trong code ở
+  đây và ở `model-policy.ts`, không setting nào đổi được.
 
 ## Tests
 
@@ -213,7 +223,8 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   `return_to_dev`, thiếu `handoff_docs`, ticket chưa đóng đều thành lượt thất bại đúng lý do; `decideFailure()`
   thử lại rồi chặn ở `MAX_ATTEMPTS`.
 - `apps/daemon/test/role-policies.test.ts`: bọc dữ liệu không tin cậy và vô hiệu hoá delimiter bên trong; QC
-  phát hiện đúng MCP bắt buộc chưa kết nối/bị tắt; `diffNeedsUiTest()` coi diff chỉ đổi `README.md`,
+  phát hiện đúng MCP bắt buộc chưa kết nối/bị tắt; `diffNeedsUiTest()` đọc đúng `docsPaths` của cài đặt server
+  truyền vào (một `policy` tuỳ biến coi thêm `handbook/**` là docs); `diffNeedsUiTest()` coi diff chỉ đổi `README.md`,
   `CHANGELOG.md` hay `docs/` là không cần kiểm thử UI, còn đổi bất kỳ file nào ngoài docs (file nguồn, `AGENTS.md`,
   một file `.md` lồng trong `src/`) hay khi không suy ra được (lỗi git, diff rỗng) vẫn cần; guard giữ lượt dev
   ngoài docs (`docs/`, `README.md`, Markdown gốc khác) và tránh `git commit`. Nhóm "QC docs-only check looks at

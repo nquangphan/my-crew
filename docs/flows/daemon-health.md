@@ -24,8 +24,10 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
    thứ tự dashboard — server, claude, mcp, skills, repos, machine, resources, app; một check ném lỗi thì kết
    quả đỏ với thông báo lỗi thay vì làm hỏng cả lượt chạy. Với `fix: true` (mặc định của `crewd doctor`), kết
    quả không xanh mà có `fix` được sửa một lần (`check.fix()`) rồi `check.run()` lại; nếu lần sau xanh thì
-   đánh dấu `fixed: true`. `applyHealthFix(ctx, group, fixId)` áp đúng một fix theo nhóm — đây là hàm app
-   desktop gọi khi chủ dự án bấm nút sửa một dòng cụ thể trên dashboard.
+   đánh dấu `fixed: true`. `applyHealthFix(ctx, group, fixId)` áp đúng một fix theo nhóm — app desktop gọi hàm
+   này khi chủ dự án bấm nút sửa trên trang "Trạng thái máy" (flow `desktop-ui`), và khi owner bấm "Kiểm tra
+   sức khỏe"/một fix từ web (`health.run`/`health.fix`, flow `machine-control`) qua `HostService.commandHandlers`.
+   Fix chỉ máy làm được (ví dụ `restart-daemon`) bị từ chối khi gọi từ xa — xem flow đó.
 2. `apps/daemon/src/health/checks/server.ts` → `serverChecks.run()`/`fix()`: chưa có config → đỏ (gợi ý
    `crewd pair`); `GET /v1/health` không tới được → đỏ; chưa có token hoặc bị từ chối ở `listProjects()` → đỏ
    (fix `repair`: ghép lại máy — app desktop điều hướng sang bước Ghép máy, CLI chỉ in gợi ý); còn dưới 14
@@ -42,7 +44,11 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
    (app desktop mở Terminal chạy `claude`; CLI chỉ gợi ý lệnh).
 4. `apps/daemon/src/health/checks/mcp.ts` → `mcpChecks.run()`/`fix()`: mỗi project, đọc kho MCP đã dò
    (`storedInventory()`) — chưa có thì vàng, fix `refresh-inventory:<key>`; mỗi server không bị tắt cho
-   project mà không `connected` → đỏ, fix `mcp-disable:<key>:<server>`; server MCP test UI bắt buộc cho loại
+   project mà không `connected` → đỏ, fix `mcp-disable:<key>:<server>` (ghi một bản `project_mcp` mới của cài
+   đặt server, flow `server-settings`, qua `apps/daemon/src/health/project-views.ts` → `updateProjectMcp()` —
+   daemon đang chạy thì gọi `ctx.daemon.setProjectMcp()` và tự áp ngay, không có daemon (ví dụ `crewd doctor`
+   khi app desktop đang dừng) thì gọi thẳng `ctx.vps.putProjectMcp()`; trước đây ghi vào `config.yaml` cục bộ
+   của máy); server MCP test UI bắt buộc cho loại
    project (`OFFICIAL_UI_TEST_SERVERS`, mặc định Playwright cho web, Maestro cho mobile qua `qcDefaultMcps()`)
    thiếu → đỏ, fix `mcp-install:<key>:<role>` — trước tiên `claude mcp get <name>`, đã cấu hình rồi thì bỏ qua
    `claude mcp add --scope user` (tránh lỗi "already exists" khiến check đỏ vĩnh viễn), dù đi nhánh nào cũng dò
@@ -86,7 +92,8 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
    trước); worktree thừa của ticket đã đóng (`orphanWorktrees()`) → vàng, fix `clean-worktrees:<key>`.
 7. `apps/daemon/src/health/checks/machine.ts` → `machineChecks.run()`: dùng `takeSnapshot()`/`totalSlots()`
    (flow `daemon-scheduling`) báo số slot trống — 0 → vàng (máy đang bận hoặc giới hạn quá chặt), fix
-   `adjust-limits` (app desktop mở mục Tài nguyên trong Cài đặt); đĩa trống dưới `MIN_DISK_FREE_GB` (10 GB,
+   `adjust-limits` (không chạy như một lệnh từ xa hay tại app — dẫn tới trang "Cài đặt máy" trên web, flow
+   `server-settings`, nơi tài nguyên thật sự sửa được); đĩa trống dưới `MIN_DISK_FREE_GB` (10 GB,
    cần cho worktree và file tạm) → vàng.
 8. `apps/daemon/src/health/checks/resources.ts` → `resourceChecks.run()`/`fix()`: dùng lại đúng `ResourceOps`
    mà PM dùng cho `resource_report`/`cleanup_resources` (flow `resource-hygiene`) qua `healthResourceOps()`;
@@ -109,8 +116,8 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
     `daemon.heartbeat()` ngay khi trạng thái đổi, nên trang Máy trên web thấy đúng lúc.
 11. `apps/daemon/src/commands/doctor.ts` → `renderHealth()`: in kết quả dạng text theo nhóm, dùng đúng tiêu
     đề `HEALTH_GROUP_TITLES` (Server, Claude, MCP, Skill, Repo, Máy, Tài nguyên, Ứng dụng) theo thứ tự
-    dashboard, có đánh dấu "(đã tự sửa)" và gợi ý sửa cho mục còn đỏ/vàng — cùng nhóm và thứ tự mà
-    `HealthPage` của app desktop (`groupResults()`) dùng để vẽ dashboard.
+    dashboard, có đánh dấu "(đã tự sửa)" và gợi ý sửa cho mục còn đỏ/vàng — cùng nhóm và thứ tự mà trang
+    "Trạng thái máy" của app desktop và `HealthReportView` trên web (flow `machine-control`) dùng để vẽ.
 
 ## Files
 
@@ -128,7 +135,7 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
 | `apps/daemon/src/health/checks/resources.ts` | Tiến trình/thư mục tạm/worktree/container mồ côi | `resourceChecks`, `healthResourceOps` |
 | `apps/daemon/src/health/checks/app.ts` | Phiên hệ điều hành / dịch vụ hệ thống / trạng thái app desktop | `serviceChecks` |
 | `apps/daemon/src/health/repo-probe.ts` | Kiểm tra thư mục repo dùng chung với trình cài đặt app | `repoFolderChecks`, `inspectFolder`, `runGit`, `normalizeRepoUrl`, `suggestProjectKey` |
-| `apps/daemon/src/health/project-views.ts` | Đọc project phía server, kho skill/MCP đã lưu | `serverProjects`, `storedInventory`, `updateProjectConfig` |
+| `apps/daemon/src/health/project-views.ts` | Đọc project phía server, kho skill/MCP đã lưu, đổi MCP tắt qua cài đặt server | `serverProjects`, `storedInventory`, `updateProjectMcp` |
 | `packages/shared/src/health-schemas.ts` | Schema zod dùng chung cho check/report/nhóm | `HealthGroup`, `HEALTH_GROUP_TITLES`, `HealthCheckResult`, `HealthReport`, `HealthFixId` |
 
 ## Dữ liệu
@@ -152,11 +159,18 @@ sửa một lần rồi kiểm lại; app desktop còn cho fix mở thêm màn h
   lưu vào `meta`.
 - resource-hygiene: `resourceChecks` dùng chung `ResourceOps` với `cleanup_resources`/`resource_report`
   (`healthResourceOps()`).
+- server-settings: fix `mcp-disable`/`mcp-enable` của `mcpChecks` ghi một bản `project_mcp` mới (qua daemon
+  đang chạy hoặc thẳng tới server) thay vì `config.yaml` cục bộ; `HealthContext.config` đọc vẫn là cấu hình
+  hiệu lực (`effectiveConfig()`, server chồng lên local) mà `createDaemon()`/`loadEffectiveConfig()` của flow
+  `daemon-runtime` cấp.
 - desktop-app: `HealthOps` (`apps/desktop/src/daemon-host/health-ops.ts`) dựng `HealthContext` với thêm
   `daemon`, `app`, `crewDocs`, `probeCheckout`, `quick` rồi gọi đúng `runHealthChecks()`/`applyHealthFix()`
-  của flow này cho dashboard và các nút sửa; `setup-ops.ts` của flow đó cũng gọi trực tiếp `inspectHooks()`
-  (cài hook ngay sau khi tạo/nhận project, và sửa hook hỏng lúc host khởi động) qua cùng export của
-  `apps/daemon/src/library.ts`.
+  của flow này cho trang "Trạng thái máy" và các nút sửa; `setup-ops.ts` của flow đó cũng gọi trực tiếp
+  `inspectHooks()` (cài hook ngay khi lưu thư mục project, và sửa hook hỏng lúc host khởi động) qua cùng
+  export của `apps/daemon/src/library.ts`.
+- machine-control: `health.run`/`health.fix` gửi từ web tới đúng máy chạy qua `HostService.commandHandlers`
+  → `HealthOps.run()`/`remoteFix()`, dùng lại đúng `runHealthChecks()`/`applyHealthFix()` của flow này; fix
+  `restart-daemon` bị từ chối khi gọi từ xa (host xử lý lệnh đó không sống sót để báo kết quả).
 
 ## Tests
 

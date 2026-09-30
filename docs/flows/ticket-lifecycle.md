@@ -150,7 +150,10 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     (đọc `machines.runningJobs`/`waitingJobs`/`failedJobs`, flow `machine-pairing`); heartbeat cũ hơn
     `AGENT_ACTIVITY_STALE_MS` (2 phút) hoặc máy offline đọc thành `unknown`, không bao giờ `running`. Ticket
     `todo` không máy nào báo trả `unreported` kèm máy được gán (`assigneeMachineId`); trạng thái `failed`/
-    `unreported` bị ẩn với ticket đã đóng (`done`/`cancelled`). `withAgentActivity()` gắn kết quả vào DTO —
+    `unreported` bị ẩn với ticket đã đóng (`done`/`cancelled`). `AgentActivity.settingsRevision` (chỉ khi
+    `running`) là bản cài đặt server (flow `server-settings`) mà lượt chạy đó bắt đầu với, lấy nguyên từ
+    `RunningJob.settingsRevision` của heartbeat — hiện trên `AgentActivityLine` (flow `web-tickets`).
+    `withAgentActivity()` gắn kết quả vào DTO —
     `ticketRoutes` (`GET /v1/tickets`, `GET /v1/tickets/:id`) dùng nó cho cả ticket và con; route daemon không
     gọi, nên `Ticket.agentActivity` luôn vắng ở đó. `recordHeartbeat()` (flow `machine-pairing`) dùng
     `activitySignatures()`/`changedTicketIds()`/`heartbeatFresh()` cùng file để biết ticket nào cần phát
@@ -203,6 +206,8 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - local-merge: `head_sha` mà `mergeAndPush()` merge đến từ `report.headSha` (`submitReport()`).
 - daemon-runtime: `waitingJobs` mà heartbeat của daemon gửi lên (`apps/daemon/src/daemon.ts`) là điều
   `findStuckTickets()` dùng để không báo nhầm ticket đang chờ thử lại.
+- server-settings: `AgentActivity.settingsRevision` của ticket đang chạy là bản cài đặt server job đó bắt
+  đầu với.
 
 ## Tests
 

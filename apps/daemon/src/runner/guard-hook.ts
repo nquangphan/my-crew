@@ -2,6 +2,7 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { HookCallback, PreToolUseHookInput, SyncHookJSONOutput } from '@anthropic-ai/claude-agent-sdk';
+import { DEFAULT_GUARD_POLICY, type GuardPolicy, matchesAnyGlob } from '@crew/shared';
 import { parse } from 'yaml';
 import type { JobKind, StateDb } from '../state-db.js';
 
@@ -19,6 +20,8 @@ export interface GuardContext {
    * denied; the docs-update job updates the docs and commits everything together.
    */
   codeOnly?: boolean;
+  /** The path rules the job started with (server setting); the bundled rules when absent. */
+  policy?: GuardPolicy;
 }
 
 export interface GuardVerdict {
@@ -34,39 +37,28 @@ const MANIFEST = 'docs/flows.yaml';
 const PROTECTED_MANIFEST_SECTIONS = ['source', 'shared', 'unassigned'] as const;
 
 /**
- * Protected config (rule R6), mirrored from crew-docs: agent config, the files that wire the crew-docs
- * hooks and CI in, and the agent instructions `CLAUDE.md` and `AGENTS.md`. Only the docs-init job may
- * write them.
+ * Repo-root agent instructions. Always protected and never docs, whatever the policy says (owner invariant):
+ * only the docs-init job writes them. Case-insensitive, as a macOS worktree is.
  */
-export function isProtectedPath(rel: string): boolean {
-  const posix = rel.split(sep).join('/');
-  return (
-    posix === '.claude' ||
-    posix.startsWith('.claude/') ||
-    posix === '.githooks' ||
-    posix.startsWith('.githooks/') ||
-    posix === 'CLAUDE.md' ||
-    posix === 'AGENTS.md' ||
-    posix === '.husky' ||
-    posix.startsWith('.husky/') ||
-    /^\.?lefthook\.ya?ml$/.test(posix) ||
-    posix === '.github/workflows/crew-docs.yml' ||
-    posix.startsWith('.github/crew-docs/')
-  );
-}
-
-/** Repo-root Markdown files that are agent instructions, not docs; both are R6-protected. */
 const ROOT_AGENT_FILES = new Set(['agents.md', 'claude.md']);
+const isRootAgentFile = (rel: string) => ROOT_AGENT_FILES.has(rel.split(sep).join('/').toLowerCase());
 
 /**
- * Docs written by the docs-update job, never by a dev run: everything under `docs/` and the Markdown files
- * directly at the repo root (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, …) except `AGENTS.md` and
- * `CLAUDE.md`. Case-insensitive, as a macOS worktree is.
+ * Protected config (rule R6), mirrored from crew-docs: agent config, the files that wire the crew-docs
+ * hooks and CI in, and the agent instructions `CLAUDE.md` and `AGENTS.md`. Only the docs-init job may
+ * write them. The list is the policy's `protectedPaths` (bundled: `.claude/**`, `.githooks/**`, …).
  */
-export function isDocsPath(rel: string): boolean {
-  const name = rel.split(sep).join('/').toLowerCase();
-  if (name.startsWith('docs/')) return true;
-  return !name.includes('/') && name.endsWith('.md') && !ROOT_AGENT_FILES.has(name);
+export function isProtectedPath(rel: string, policy: GuardPolicy = DEFAULT_GUARD_POLICY): boolean {
+  return isRootAgentFile(rel) || matchesAnyGlob(rel.split(sep).join('/'), policy.protectedPaths);
+}
+
+/**
+ * Docs written by the docs-update job, never by a dev run: the policy's `docsPaths` (bundled: everything
+ * under `docs/` and the Markdown files directly at the repo root, `README.md`, `CHANGELOG.md`, …), never
+ * `AGENTS.md` or `CLAUDE.md`. Case-insensitive, as a macOS worktree is.
+ */
+export function isDocsPath(rel: string, policy: GuardPolicy = DEFAULT_GUARD_POLICY): boolean {
+  return !isRootAgentFile(rel) && matchesAnyGlob(rel.split(sep).join('/'), policy.docsPaths);
 }
 
 const isInside = (root: string, target: string) => {
@@ -160,16 +152,17 @@ function checkWrite(ctx: GuardContext, tool: string, input: Input): GuardVerdict
   if (!shared && !isInside(safeRealpath(cwd), realTarget(abs))) {
     return { decision: 'deny', reason: 'đường dẫn đi qua symlink ra ngoài thư mục làm việc', target: abs };
   }
+  const policy = ctx.policy ?? DEFAULT_GUARD_POLICY;
   if (ctx.kind !== 'docs_init') {
     // A case-insensitive worktree (macOS) writes `agents.md` into `AGENTS.md`.
-    if (ROOT_AGENT_FILES.has(rel.split(sep).join('/').toLowerCase())) {
+    if (isRootAgentFile(rel)) {
       return {
         decision: 'deny',
         reason: `${rel} là hướng dẫn agent được bảo vệ (R6): chỉ job docs_init được ghi; nếu cần đổi, ghi đề xuất vào comment để chủ dự án duyệt`,
         target: rel,
       };
     }
-    if (isProtectedPath(rel)) {
+    if (isProtectedPath(rel, policy)) {
       return {
         decision: 'deny',
         reason: `${rel} là cấu hình được bảo vệ (R6), agent không được sửa`,
@@ -184,18 +177,20 @@ function checkWrite(ctx: GuardContext, tool: string, input: Input): GuardVerdict
       };
     }
   }
-  if (ctx.kind === 'docs_update' && !isDocsPath(rel)) {
+  if (
+    ctx.kind === 'docs_update' &&
+    (isRootAgentFile(rel) || !matchesAnyGlob(rel.split(sep).join('/'), policy.docsUpdateWritePaths))
+  ) {
     return {
       decision: 'deny',
-      reason: 'job docs_update chỉ được ghi docs: dưới docs/ và file Markdown ở gốc repo (README.md, …)',
+      reason: `job docs_update chỉ được ghi docs (${policy.docsUpdateWritePaths.join(', ') || 'không đường dẫn nào'}), không ghi ${rel}`,
       target: rel,
     };
   }
-  if (ctx.codeOnly && isDocsPath(rel)) {
+  if (ctx.codeOnly && isDocsPath(rel, policy)) {
     return {
       decision: 'deny',
-      reason:
-        'dev không sửa docs (docs/, README.md và file Markdown ở gốc repo): job docs_update (sonnet) cập nhật docs sau khi bạn gọi handoff_docs',
+      reason: `dev không sửa docs: ${rel} thuộc docs (${policy.docsPaths.join(', ')}); job docs_update (sonnet) cập nhật docs sau khi bạn gọi handoff_docs`,
       target: rel,
     };
   }

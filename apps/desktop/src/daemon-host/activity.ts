@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import type { Logger } from '@crew/daemon';
-import type { JobView, LogLine } from '@crew/shared';
+import type { LogLine } from '@crew/shared';
 import type { HostContext } from './host-context.js';
 
 const MAX_LOG_BYTES = 10 * 1024 * 1024;
@@ -21,9 +21,14 @@ interface TicketInfo {
   title: string;
 }
 
-/** The jobs view and the daemon log (`~/.crew/logs/daemon.log`, JSON lines, one rotation). */
+/**
+ * The daemon log (`~/.crew/logs/daemon.log`, JSON lines, one rotation) and its tail, which the web reads
+ * through a remote action.
+ */
 export class Activity {
   private readonly tickets = new Map<string, TicketInfo>();
+  /** Tickets looked up once already (found or not): a busy log never repeats the lookup. */
+  private readonly looked = new Set<string>();
   readonly logFile: string;
 
   constructor(private readonly host: HostContext) {
@@ -34,6 +39,11 @@ export class Activity {
     const jobId = typeof fields.jobId === 'string' ? fields.jobId : null;
     let ticketId = typeof fields.ticketId === 'string' ? fields.ticketId : null;
     if (!ticketId && jobId) ticketId = this.host.daemon?.state.getJob(jobId)?.ticketId ?? null;
+    // Later lines of this ticket carry its key (and a tail can be filtered by it).
+    if (ticketId && !this.looked.has(ticketId)) {
+      this.looked.add(ticketId);
+      void this.ticket(ticketId);
+    }
     const line: LogLine = {
       at: new Date().toISOString(),
       level,
@@ -52,7 +62,6 @@ export class Activity {
     } catch (error) {
       process.stderr.write(`log write failed: ${(error as Error).message}\n`);
     }
-    this.host.deps.emit('log.line', line);
   };
 
   private async ticket(ticketId: string): Promise<TicketInfo | null> {
@@ -67,35 +76,6 @@ export class Activity {
     } catch {
       return null;
     }
-  }
-
-  /** Running, queued and backoff jobs with the ticket key and title, role, model, times and cost. */
-  async jobs(): Promise<JobView[]> {
-    const daemon = this.host.daemon;
-    if (!daemon) return [];
-    const rows = daemon.state.listJobs(['running', 'queued', 'backoff']);
-    const views: JobView[] = [];
-    for (const job of rows) {
-      const info = await this.ticket(job.ticketId);
-      views.push({
-        id: job.id,
-        ticketId: job.ticketId,
-        ticketKey: info?.key ?? null,
-        ticketTitle: info?.title ?? null,
-        status: job.status,
-        role: job.role,
-        kind: job.kind,
-        model: job.model,
-        effort: job.effort,
-        startedAt: job.startedAt,
-        endedAt: job.endedAt,
-        retryAt: job.retryAt,
-        costUsd: job.costUsd,
-        error: job.error,
-        webUrl: info ? this.host.webUrl(`/tickets/${info.key}`) : null,
-      });
-    }
-    return views;
   }
 
   /** The newest `limit` log lines, optionally only those of one ticket (key or id). */

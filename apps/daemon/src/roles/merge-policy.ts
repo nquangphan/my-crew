@@ -259,7 +259,11 @@ function mergeOne(
 // Pre-push gate
 // ---------------------------------------------------------------------------
 
-/** Changes to protected paths need a commit carrying `Crew-Owner-Approved:` (or the docs-init commit). */
+/**
+ * Changes to protected paths need a commit carrying `Crew-Owner-Approved:` (or the docs-init commit). The
+ * list is crew-docs rule R6 as shipped (the bundled path rules), not the server's editable guard policy:
+ * the commit hooks enforce R6 the same way.
+ */
 function protectedPathCheck(cwd: string, range: string): GateStep {
   const changed = gitOut(cwd, ['diff', '--name-only', range]).split('\n').filter(Boolean);
   const touched = changed.filter((path) => isProtectedPath(path));

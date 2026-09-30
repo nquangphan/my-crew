@@ -17,4 +17,6 @@ docs
 e2e
 apps/desktop
 apps/daemon
+# The daemon's bundled role prompts: the API serves them as the defaults of the prompt settings.
+!apps/daemon/src/roles/prompts
 apps/*/test

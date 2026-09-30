@@ -18,6 +18,8 @@ import {
   type DesktopInput,
   type DesktopMethod,
   type DesktopOutput,
+  type Machine,
+  type MachineCommand,
 } from '@crew/shared';
 import { _electron, type ElectronApplication, expect, type Page } from '@playwright/test';
 import { E2E_API_URL, E2E_STATE_FILE, type E2eState, STAGED_APP } from './e2e-env';
@@ -157,16 +159,17 @@ export async function appInfo(page: Page): Promise<AppInfo> {
   return call(page, 'app.info', {});
 }
 
-/** Waits until the dashboard shows only green checks (re-running the checks while the stream connects). */
+/** Waits until the status view reports every check green (re-running the checks while the stream connects). */
 export async function expectAllGreen(page: Page): Promise<void> {
+  const health = page.getByRole('region', { name: 'Sức khỏe' });
   await expect(async () => {
-    await page.getByRole('button', { name: 'Kiểm tra ngay' }).click();
-    await expect(page.getByRole('button', { name: 'Kiểm tra ngay' })).toBeEnabled({ timeout: 60_000 });
-    await expect(page.locator('[data-check][data-status="green"]').first()).toBeVisible();
-    const notGreen = await page
+    await health.getByRole('button', { name: 'Kiểm tra ngay' }).click();
+    await expect(health.getByRole('button', { name: 'Kiểm tra ngay' })).toBeEnabled({ timeout: 60_000 });
+    const notGreen = await health
       .locator('[data-check]:not([data-status="green"])')
       .evaluateAll((rows) => rows.map((row) => `${row.getAttribute('data-check')}: ${row.textContent}`));
     expect(notGreen).toEqual([]);
+    await expect(health.getByText('Mọi kiểm tra đều ổn.')).toBeVisible();
   }).toPass({ timeout: 120_000, intervals: [1_000, 2_000, 5_000] });
 }
 
@@ -237,4 +240,53 @@ export async function screenshot(page: Page, name: string): Promise<void> {
   if (!dir) return;
   mkdirSync(dir, { recursive: true });
   await page.screenshot({ path: join(dir, `${name}.png`), fullPage: true });
+}
+
+/**
+ * The owner's side of the web, through the owner API: create and assign projects, and ask a machine for a
+ * remote action and wait for its result.
+ */
+export async function ownerWeb() {
+  const owner = await ownerSession();
+  const json = async <T>(method: string, path: string, body?: unknown): Promise<T> => {
+    const res = await owner.request(method, path, body);
+    const text = await res.text();
+    if (!res.ok) throw new Error(`${method} ${path} → ${res.status} ${text}`);
+    return (text ? JSON.parse(text) : null) as T;
+  };
+  return {
+    request: owner.request,
+    createProject: (body: { key: string; name: string; repoUrl: string; platform: string }) =>
+      json<{ id: string; key: string }>('POST', '/v1/projects', {
+        description: `Dự án ${body.name}.`,
+        ...body,
+      }),
+    projectId: async (key: string) =>
+      (await json<{ items: { id: string; key: string }[] }>('GET', '/v1/projects')).items.find(
+        (item) => item.key === key,
+      )?.id ?? '',
+    assign: (machineId: string, body: { projectId: string } | { hostsAssistant: true }) =>
+      json('POST', `/v1/machines/${machineId}/claims`, body),
+    machine: async (name: string) =>
+      (await json<{ items: Machine[] }>('GET', '/v1/machines')).items.find((item) => item.name === name),
+    command: async (machineId: string, body: object): Promise<MachineCommand> => {
+      const asked = await json<MachineCommand>('POST', `/v1/machines/${machineId}/commands`, body);
+      let command = asked;
+      await expect
+        .poll(
+          async () => {
+            command = await json<MachineCommand>('GET', `/v1/machines/${machineId}/commands/${asked.id}`);
+            return command.status;
+          },
+          { timeout: 120_000, intervals: [500] },
+        )
+        .toMatch(/^(done|failed|expired)$/);
+      return command;
+    },
+  };
+}
+
+/** This test machine's id, from its config. */
+export function machineIdOf(env: TestEnv): string {
+  return readFileSync(join(env.home, 'config.yaml'), 'utf8').match(/machineId: (\S+)/)?.[1] ?? '';
 }

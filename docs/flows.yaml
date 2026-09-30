@@ -35,6 +35,7 @@ flows:
       - apps/api/drizzle/0005_machine_job_activity.sql
       - apps/api/drizzle/0006_pm_complexity_reason.sql
       - apps/api/drizzle/0007_project_bmad_profile.sql
+      - apps/api/drizzle/0008_server_settings_and_machine_commands.sql
       - packages/shared/src/index.ts
     tests:
       - apps/api/test/shutdown.test.ts
@@ -525,24 +526,14 @@ flows:
       - apps/desktop/src/renderer/lib/ipc.ts
       - apps/desktop/src/renderer/lib/format.ts
       - apps/desktop/src/renderer/routes/setup-wizard.tsx
-      - apps/desktop/src/renderer/routes/health.tsx
-      - apps/desktop/src/renderer/routes/jobs.tsx
-      - apps/desktop/src/renderer/routes/logs.tsx
-      - apps/desktop/src/renderer/routes/settings.tsx
-      - apps/desktop/src/renderer/routes/settings-projects.tsx
+      - apps/desktop/src/renderer/routes/status.tsx
       - apps/desktop/src/renderer/components/wizard-step.tsx
       - apps/desktop/src/renderer/components/health-check-row.tsx
       - apps/desktop/src/renderer/components/folder-picker.tsx
-      - apps/desktop/src/renderer/components/project-picker.tsx
-      - apps/desktop/src/renderer/components/new-project-form.tsx
-      - apps/desktop/src/renderer/components/resource-form.tsx
       - apps/desktop/src/renderer/components/ui.tsx
     tests:
       - apps/desktop/test/e2e/onboarding.spec.ts
-      - apps/desktop/test/e2e/first-project.spec.ts
-      - apps/desktop/test/e2e/project-settings.spec.ts
       - apps/desktop/test/e2e/project-bmad.spec.ts
-      - apps/desktop/test/new-project-form.test.ts
   deployment:
     title: Triển khai VPS và vận hành
     doc: docs/flows/deployment.md
@@ -570,6 +561,41 @@ flows:
     tests:
       - e2e/tests/ticket-lifecycle.spec.ts
       - e2e/tests/docs-viewer.spec.ts
+  server-settings:
+    title: Cài đặt hệ thống trên server (prompt, quy tắc, model, tài nguyên)
+    doc: docs/flows/server-settings.md
+    entrypoints:
+      - apps/api/src/routes/settings-routes.ts
+      - apps/web/src/routes/system-settings.tsx
+    files:
+      - apps/api/src/services/settings-service.ts
+      - packages/shared/src/settings-schemas.ts
+      - apps/daemon/src/settings/settings-store.ts
+      - apps/web/src/routes/settings-prompt.tsx
+      - apps/web/src/routes/settings-machine.tsx
+      - apps/web/src/routes/settings-project-mcp.tsx
+      - apps/web/src/components/setting-editor.tsx
+      - apps/web/src/components/model-settings-form.tsx
+    tests:
+      - apps/api/test/settings.test.ts
+      - apps/daemon/test/settings.test.ts
+      - packages/shared/src/settings-schemas.test.ts
+      - apps/web/src/routes/system-settings.test.tsx
+      - apps/web/e2e/system-settings.spec.ts
+  machine-control:
+    title: Điều khiển máy từ web (thao tác từ xa trong danh sách cho phép)
+    doc: docs/flows/machine-control.md
+    entrypoints:
+      - apps/api/src/routes/machine-command-routes.ts
+      - apps/web/src/components/machine-control.tsx
+    files:
+      - apps/api/src/services/machine-command-service.ts
+      - packages/shared/src/machine-command-schemas.ts
+      - apps/daemon/src/remote/machine-commands.ts
+    tests:
+      - apps/api/test/machine-commands.test.ts
+      - apps/daemon/test/machine-commands.test.ts
+      - apps/web/src/components/machine-control.test.tsx
   daemon-setup:
     title: Cài đặt máy local (daemon)
     doc: docs/flows/daemon-setup.md
