@@ -28,6 +28,8 @@ export function ticket(overrides: Partial<Ticket> = {}): Ticket {
     effort: null,
     requiredSkills: [],
     requiredMcps: [],
+    testKinds: null,
+    testReason: null,
     dependsOn: [],
     pairsWith: null,
     originDevId: null,

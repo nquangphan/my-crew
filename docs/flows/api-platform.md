@@ -90,6 +90,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | Migration thêm bảng `settings_revisions` và cột `machines.settings_state` jsonb (flow `server-settings`: cài đặt server theo bản, prompt/quy tắc/model/tài nguyên/thư mục dự án/MCP dự án), và bảng `machine_commands` (flow `machine-control`: lệnh từ xa owner gửi từ web) | — |
 | `apps/api/drizzle/0009_runtime_releases.sql` | Migration thêm bảng `runtime_releases`/`runtime_bundles` và cột `machines.runtime_state`/`runtime_pinned_version` (flow `runtime-updates`: bản runtime đã ký, ghim máy vào một bản) | — |
 | `apps/api/drizzle/0010_attachments.sql` | Migration thêm bảng `attachments` (flow `ticket-lifecycle`: ảnh dán clipboard vào ticket, nội dung `bytea`, FK `ticket_id`/`owner_id` cascade delete) | — |
+| `apps/api/drizzle/0011_qc_test_plan.sql` | Migration thêm cột `tickets.test_kinds` (`text[]`, nullable) và `tickets.test_reason` (`text`, nullable) (flow `ticket-lifecycle`: phương án kiểm thử của ticket `qc`, không đổi dữ liệu hàng cũ) | — |
 | `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, `bmad-schemas.ts` của flow `project-claims`, `secret-scrubber.ts` của flow `agent-runs`, `comment-mentions.ts` của flow `ticket-lifecycle`, và `runtime-schemas.ts` của flow `runtime-updates`) | — |
 
 ## Dữ liệu
@@ -109,7 +110,9 @@ của mình vào app do flow này dựng lên.
   `attachmentRoutes` (nhóm route owner) đăng ký tại `buildApp()`; migration `0010_attachments.sql` chạy qua
   `runMigrations()` như mọi migration khác; `attachmentRoutes` tự đăng ký thêm một `setErrorHandler` riêng
   (Fastify cô lập theo `register()`, không ảnh hưởng route khác) bắt riêng `FST_ERR_CTP_BODY_TOO_LARGE` để trả
-  đúng `ATTACHMENT_TOO_LARGE`, còn lại gọi lại `sendApiError()` (bước 6) dùng chung với error handler toàn app.
+  đúng `ATTACHMENT_TOO_LARGE`, còn lại gọi lại `sendApiError()` (bước 6) dùng chung với error handler toàn app;
+  migration `0011_qc_test_plan.sql` (cột `tickets.test_kinds`/`tickets.test_reason`) cũng chạy qua
+  `runMigrations()` như mọi migration khác.
 - daemon-api, project-claims, docs-sync-viewer: route của các flow này được đăng ký bên trong `buildApp()`,
   gồm cả `daemonBmadProfileRoutes` (`apps/api/src/routes/bmad-profile-routes.ts`, flow `daemon-api`) trong
   nhóm route daemon.
