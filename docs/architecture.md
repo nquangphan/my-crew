@@ -44,7 +44,8 @@
 
 PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migration SQL ở `apps/api/drizzle/`.
 
-- **Owner & phiên đăng nhập**: `owner` (mật khẩu argon2id, `totp_secret`, `recovery_code_hashes`), `sessions`
+- **Owner & phiên đăng nhập**: `owner` (mật khẩu argon2id; cột `totp_secret`, `totp_last_step`,
+  `recovery_code_hashes` còn trong bảng nhưng không flow nào còn đọc hay ghi, xem `docs/flows/owner-auth.md`), `sessions`
   (id phiên chỉ lưu hash SHA-256); `notice_reads` (owner đã đọc thông báo nào — khoá `owner_id`+`event_seq`,
   dùng để tính số chưa đọc dùng chung giữa các thiết bị, xem `docs/flows/event-delivery.md`).
 - **Máy & project**: `machines` (trạng thái online/paused/health/resources/running_jobs/waiting_jobs/
@@ -52,7 +53,8 @@ PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migrat
   ngân sách/giới hạn con), `pairing_codes`,
   `machine_tokens` (chỉ lưu hash token), `machine_skills` (kho skill/MCP theo máy và theo project),
   `claim_requests` (yêu cầu nhận project hoặc vai trò assistant, có ràng buộc chờ duyệt), `project_change_requests`
-  (máy sở hữu xin đổi `platform`/`ui_test_mcp` của project mình, chỉ áp dụng khi chủ dự án duyệt bằng TOTP; tối đa
+  (máy sở hữu xin đổi `platform`/`ui_test_mcp` của project mình, chỉ áp dụng khi chủ dự án duyệt bằng một cú
+  nhấp xác nhận trên web; tối đa
   một yêu cầu `pending` mỗi project, xem `docs/flows/project-claims.md`).
 - **Ticket & vòng đời**: `ticket_counters` (cấp số theo scope), `tickets` (loại, cha/con, người nhận, trạng
   thái, `depends_on`/`flows` kiểu mảng có index GIN, cặp dev↔QC qua `pairs_with`/`origin_dev_id`, cờ ngân sách),
@@ -121,7 +123,7 @@ khử trùng lặp theo `seq`.
 
 ## Xác thực máy (machine auth)
 
-Máy được ghép đôi qua `POST /v1/machines/pair` (public, cần mã pairing do owner tạo bằng TOTP), trả về token
+Máy được ghép đôi qua `POST /v1/machines/pair` (public, cần mã pairing owner tạo bằng session + CSRF), trả về token
 `crew_mt_...` một lần duy nhất — chỉ SHA-256 của token được lưu (`machine_tokens`). Mọi route `/v1/daemon/*`
 đi qua `machineGuard` (`apps/api/src/auth/machine-auth.ts`): kiểm tra hash token, `expires_at`, `revoked_at`
 của token lẫn của máy trên từng request, rồi cập nhật `last_seen_at`/`online`. Phạm vi truy cập (project nào

@@ -29,7 +29,7 @@ theo từng flow; agent đọc docs trước khi đọc code.
 |---------|---------|
 | `apps/api/src/routes` | Route Fastify cho owner (session cookie) và daemon (bearer token) |
 | `apps/api/src/services` | Nghiệp vụ: ticket, report, budget, claim, machine, docs, idempotency |
-| `apps/api/src/auth` | Đăng nhập owner (mật khẩu + TOTP), CSRF, xác thực máy |
+| `apps/api/src/auth` | Đăng nhập owner (mật khẩu), CSRF, xác thực máy |
 | `apps/api/src/realtime` | Event bus (LISTEN/NOTIFY + poll dự phòng) và SSE |
 | `apps/api/src/db` | Kết nối Postgres, schema Drizzle, migrate |
 | `apps/api/drizzle` | File SQL migration |

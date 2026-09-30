@@ -7,9 +7,10 @@
 
 Quản lý project (CRUD cho owner) và quyền sở hữu: mỗi project (và vai trò assistant) thuộc đúng một máy tại một
 thời điểm. Một scope chưa ai giữ được gán ngay khi một máy claim; một scope máy khác đang giữ tạo yêu cầu chờ
-owner duyệt bằng TOTP. Khi quyền sở hữu đổi, các ticket đang mở của scope đó chuyển theo. Máy đang sở hữu một
-project cũng chỉ được tự đề nghị đổi loại project (`platform`) và MCP test UI (`ui_test_mcp`) của nó — thay đổi
-không có hiệu lực ngay, chỉ áp dụng sau khi owner xác nhận cùng bằng TOTP. Một yêu cầu đổi còn `pending` bị tự
+owner duyệt bằng session + CSRF (một cú nhấp xác nhận trên web). Khi quyền sở hữu đổi, các ticket đang mở của
+scope đó chuyển theo. Máy đang sở hữu một project cũng chỉ được tự đề nghị đổi loại project (`platform`) và MCP
+test UI (`ui_test_mcp`) của nó — thay đổi không có hiệu lực ngay, chỉ áp dụng sau khi owner xác nhận cùng bằng
+một cú nhấp xác nhận trên web. Một yêu cầu đổi còn `pending` bị tự
 rút (`withdrawn`) ngay khi máy hỏi nó không còn giữ project đó nữa (chuyển máy được duyệt, owner gán lại, máy tự
 trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới được đổi loại project.
 
@@ -45,8 +46,8 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
    `assignee_machine_id` cho mọi ticket chưa ở trạng thái kết thúc (`TERMINAL_STATUSES`) trong scope; ticket
    đang `todo`/`triage`/`in_progress` (`REDISPATCH`) nhận `ticket.assigned {reassigned: true}` trên máy mới, vì
    máy mới chưa từng thấy sự kiện cũ của ticket đó.
-5. `apps/api/src/services/claim-service.ts` → `decideClaimRequest()`: route `machine-routes.ts` xác nhận TOTP
-   owner trước khi gọi. Approve: `bindScope()` sang máy yêu cầu (rút luôn yêu cầu đổi project đang chờ của máy
+5. `apps/api/src/services/claim-service.ts` → `decideClaimRequest()`: route `machine-routes.ts` xác nhận
+   session owner + CSRF trước khi gọi. Approve: `bindScope()` sang máy yêu cầu (rút luôn yêu cầu đổi project đang chờ của máy
    cũ, xem bước 4), phát `claim.changed` cho cả máy cũ và máy mới. Reject: chỉ đổi trạng thái, phát
    `claim.changed` cho máy yêu cầu — không gọi `bindScope()` nên không rút gì, project giữ nguyên chủ.
 6. `apps/api/src/services/claim-service.ts` → `ownerAssign()`: owner gán thẳng một project/assistant cho một
@@ -75,7 +76,7 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
     (owner stream) rồi trả 202 `{status: 'pending', requestId}`. Ràng buộc unique một `pending` mỗi project ở
     tầng DB giữ tính bất biến này ngay cả khi có ghi đồng thời.
 12. `apps/api/src/services/project-change-service.ts` → `decideProjectChange()`: route
-    `project-routes.ts` xác nhận TOTP owner trước khi gọi. Yêu cầu không còn `pending` thì `CONFLICT`. Approve
+    `project-routes.ts` xác nhận session owner + CSRF trước khi gọi. Yêu cầu không còn `pending` thì `CONFLICT`. Approve
     cập nhật `projects.platform`/`ui_test_mcp` ngay (QC ticket tạo sau đó dùng `qcDefaultMcps` mới); cả hai
     quyết định đều phát `project.change_decided {requestId, projectId, machineId, status}` nhắm đúng máy đã
     hỏi (owner stream vẫn nhận như mọi sự kiện nên danh sách chờ duyệt trên web tự làm mới; không phải loại
@@ -100,7 +101,7 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
 |-----------|---------|--------------|
 | `apps/api/src/routes/project-routes.ts` | Route CRUD project (owner) | `projectRoutes` |
 | `apps/api/src/services/claim-service.ts` | Claim, duyệt, thu hồi, dời ticket theo scope | `claim`, `release`, `decideClaimRequest`, `ownerAssign`, `releaseEverything`, `listDaemonProjects`, `createDaemonProject`, `projectCatalog` |
-| `apps/api/src/services/project-change-service.ts` | Máy xin đổi platform/MCP test UI, owner duyệt bằng TOTP, rút yêu cầu khi máy mất project | `requestProjectChange`, `decideProjectChange`, `listProjectChanges`, `getProjectChange`, `changesOf`, `withdrawProjectChanges` |
+| `apps/api/src/services/project-change-service.ts` | Máy xin đổi platform/MCP test UI, owner duyệt bằng một cú nhấp xác nhận, rút yêu cầu khi máy mất project | `requestProjectChange`, `decideProjectChange`, `listProjectChanges`, `getProjectChange`, `changesOf`, `withdrawProjectChanges` |
 | `apps/api/src/services/project-service.ts` | CRUD project và DTO | `createProject`, `updateProject`, `listProjects`, `getProject`, `toProjectDto` |
 | `apps/api/src/services/bmad-profile-service.ts` | Lưu hồ sơ cài BMAD do máy sở hữu project báo cáo, chỉ máy sở hữu mới ghi, bản mới nhất thắng | `putBmadProfile` |
 | `packages/shared/src/project-schemas.ts` | Schema project, `qcDefaultMcps`, giới hạn mặc định, tên MCP server | `CreateProjectRequest`, `UpdateProjectRequest`, `Project`, `qcDefaultMcps`, `McpServerName` |
@@ -160,16 +161,16 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
   màn tự đề nghị đổi `platform`/MCP test UI (`requestTestSetup()`/`TestSetupSection` của "Settings → Projects")
   cùng lúc thu hẹp thành cổng vào; route và cơ chế duyệt phía server vẫn còn, dùng khi có client khác gọi.
 - web-admin: trang Dự án và Máy hiển thị owner, nút chuyển máy; Inbox có ô duyệt/từ chối chuyển máy và ô duyệt/
-  từ chối đổi loại project (TOTP).
+  từ chối đổi loại project (session owner + CSRF, một cú nhấp xác nhận).
 - server-settings: MCP tắt của một project là cài đặt `project_mcp` (`scope: project`) của flow đó, không
   phải trường trên bảng `projects`; trang "Cài đặt hệ thống → Dự án" sửa nó.
 
 ## Tests
 
-- `apps/api/test/claims.test.ts`: gán ngay khi chưa ai giữ (kèm event và audit row), yêu cầu chờ duyệt TOTP
-  (rồi ticket dời theo), từ chối, rút yêu cầu, gán trùng vai trò assistant thứ hai bị chặn, giải phóng, tạo
-  project trùng key bị chặn, view project phía daemon, owner gán lại/thu hồi.
-- `apps/api/test/project-changes.test.ts`: chờ duyệt TOTP rồi mới đổi `platform`/`ui_test_mcp` (QC ticket tạo
+- `apps/api/test/claims.test.ts`: gán ngay khi chưa ai giữ (kèm event và audit row), yêu cầu chờ duyệt (session
+  owner + CSRF, rồi ticket dời theo), từ chối, rút yêu cầu, gán trùng vai trò assistant thứ hai bị chặn, giải
+  phóng, tạo project trùng key bị chặn, view project phía daemon, owner gán lại/thu hồi.
+- `apps/api/test/project-changes.test.ts`: chờ duyệt (session owner + CSRF) rồi mới đổi `platform`/`ui_test_mcp` (QC ticket tạo
   sau đó dùng MCP mới); từ chối giữ nguyên project và báo cho máy; máy không sở hữu bị `FORBIDDEN`; idempotent
   — request lại phát lại response, cùng giá trị trả lại yêu cầu đang chờ, giá trị khác `CONFLICT`; giá trị
   bằng hiện tại trả `unchanged`, body sai bị validate, bắt buộc session owner khi duyệt/từ chối. Nhóm "a pending

@@ -29,7 +29,7 @@ Giải thích cho chủ dự án (không cần biết dòng lệnh) cách đưa 
 3. **Trình cài đặt** (`SetupWizard`, flow `desktop-ui`, 4 bước): Server (kiểm
    `https://crew.2p-solutions.com/v1/health` trả lời đúng, hoặc domain khác nếu chủ dự án đổi `CREW_DOMAIN`
    lúc triển khai, xem flow `deployment`) → Ghép máy bằng **mã pairing** một lần tạo trên trang Máy của web
-   (owner xác nhận TOTP để tạo mã, flow `machine-pairing`; lần ghép đầu còn viết tài nguyên gợi ý theo
+   (owner đã đăng nhập, chỉ cần session + CSRF để tạo mã, flow `machine-pairing`; lần ghép đầu còn viết tài nguyên gợi ý theo
    CPU/RAM máy này lên server, sửa lại được trên web sau đó, flow `server-settings`) → Claude (đăng nhập gói
    đăng ký Claude bằng `claude /login` mở qua Terminal ngay trong trình cài đặt — không cần và không dùng
    `ANTHROPIC_API_KEY`, biến này bị gỡ khỏi môi trường agent để billing luôn theo gói đăng ký) → Hoàn tất
@@ -41,7 +41,8 @@ Giải thích cho chủ dự án (không cần biết dòng lệnh) cách đưa 
    máy tự trả lại bằng CLI `crewd assistant off` hoặc từ web (trang Máy → Điều khiển, "Bỏ vai trò trợ lý", flow
    `machine-control`); mỗi thời điểm chỉ một máy giữ vai trò này (flow `project-claims`).
 5. **Chuyển project sang máy khác (takeover)**: khi một project hoặc vai trò trợ lý đang thuộc máy khác, máy
-   mới chỉ tạo được yêu cầu chờ duyệt (202 trên web hiện "Đang chờ duyệt"); owner duyệt bằng TOTP trên web
+   mới chỉ tạo được yêu cầu chờ duyệt (202 trên web hiện "Đang chờ duyệt"); owner duyệt bằng một cú nhấp xác
+   nhận trên web
    (Inbox hoặc trang Dự án) trước khi máy mới thật sự chạy job cho scope đó (flow `project-claims`,
    `web-admin`).
 6. **Trạng thái máy**: sau khi cài xong, trang "Trạng thái máy" của app (hoặc `crewd doctor`) là nơi đọc máy
