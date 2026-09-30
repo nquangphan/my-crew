@@ -52,7 +52,7 @@ export default defineConfig({
       stderr: 'pipe',
       env: {
         DATABASE_URL: E2E_DATABASE_URL,
-        // Signs this run's login challenges and CSRF tokens only; the database is recreated every run.
+        // Signs this run's CSRF tokens only; the database is recreated every run.
         SESSION_SECRET: `e2e-${process.pid}-session-secret-not-used-anywhere-else`,
         PUBLIC_ORIGIN: E2E_WEB_ORIGIN,
         HOST: '127.0.0.1',

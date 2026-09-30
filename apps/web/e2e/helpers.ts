@@ -1,55 +1,22 @@
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { expect, type Page, type TestInfo } from '@playwright/test';
-import { generateSync } from 'otplib';
-import postgres from 'postgres';
 import { DOCS_COMMIT, DOCS_FILES } from './docs-fixture';
-import {
-  assertE2eDatabase,
-  E2E_API_URL,
-  E2E_DATABASE_URL,
-  E2E_STATE_FILE,
-  E2E_WEB_ORIGIN,
-  type E2eState,
-} from './e2e-env';
+import { E2E_API_URL, E2E_STATE_FILE, E2E_WEB_ORIGIN, type E2eState } from './e2e-env';
 
 export function readState(): E2eState {
   return JSON.parse(readFileSync(E2E_STATE_FILE, 'utf8')) as E2eState;
 }
 
-let sql: postgres.Sql | null = null;
-function db(): postgres.Sql {
-  assertE2eDatabase(E2E_DATABASE_URL);
-  sql ??= postgres(E2E_DATABASE_URL, { max: 1, onnotice: () => {} });
-  return sql;
-}
-
-export async function closeDb(): Promise<void> {
-  await sql?.end({ timeout: 5 });
-  sql = null;
-}
-
-/**
- * A fresh TOTP code. Codes are single use per 30 s step; clearing the replay marker of the test owner stands
- * in for waiting for the next step (the same trick the API tests use).
- */
-export async function freshTotp(state: E2eState): Promise<string> {
-  await db()`update owner set totp_last_step = null`;
-  return generateSync({ secret: state.totpSecret });
-}
-
 export type Viewport = 'phone' | 'tablet' | 'desktop';
 export const viewportOf = (testInfo: TestInfo): Viewport => testInfo.project.name as Viewport;
 
-/** Logs in through the UI: password, then the TOTP step. */
+/** Logs in through the UI: username and password, one step. */
 export async function login(page: Page, state: E2eState, path = '/'): Promise<void> {
   await page.goto(path);
   await expect(page.getByRole('heading', { name: 'Đăng nhập' })).toBeVisible();
   await page.getByLabel('Tên đăng nhập').fill(state.username);
   await page.getByLabel('Mật khẩu').fill(state.password);
-  await page.getByRole('button', { name: 'Tiếp tục' }).click();
-  await expect(page.getByRole('heading', { name: 'Xác thực hai bước' })).toBeVisible();
-  await page.getByLabel('Mã xác thực').fill(await freshTotp(state));
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   await expect(page.getByRole('link', { name: /^Inbox/ }).first()).toBeVisible();
 }

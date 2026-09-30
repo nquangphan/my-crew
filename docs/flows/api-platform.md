@@ -67,7 +67,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/src/routes/route-deps.ts` | Dependency + helper validate dùng chung cho mọi route (`RouteDeps.waitingJobs` mang `WaitingJobsRegistry`, flow `ticket-lifecycle`) | `RouteDeps`, `parseInput`, `idParam`, `uuidParam` |
 | `apps/api/src/services/pg-errors.ts` | Phân loại lỗi SQLSTATE của Postgres | `isUniqueViolation` |
 | `apps/api/src/db/client.ts` | Kết nối Postgres qua Drizzle | `createDb`, `Database`, `Executor` |
-| `apps/api/src/db/schema.ts` | Toàn bộ bảng và enum Drizzle — `modelAliasEnum` liệt kê tay `['haiku','sonnet','opus','fable']` thay vì suy ra từ `ModelAlias`, vì Postgres không xoá được giá trị enum; `fable` chỉ còn cho hàng cũ, mọi input dùng `SelectableModel` (không migration nào đổi, `drizzle-kit` không thấy khác biệt schema) | mọi `pgTable`/`pgEnum` xuất khẩu |
+| `apps/api/src/db/schema.ts` | Toàn bộ bảng và enum Drizzle — `modelAliasEnum` liệt kê tay `['haiku','sonnet','opus','fable']` thay vì suy ra từ `ModelAlias`, vì Postgres không xoá được giá trị enum; `fable` chỉ còn cho hàng cũ, mọi input dùng `SelectableModel` (không migration nào đổi, `drizzle-kit` không thấy khác biệt schema); bảng `owner` giữ nguyên ba cột xác thực hai bước cũ (`totp_secret`, `totp_last_step`, `recovery_code_hashes`, không xoá vì không có migration phá hoại) nhưng không flow nào còn đọc hay ghi chúng — xem flow `owner-auth` | mọi `pgTable`/`pgEnum` xuất khẩu |
 | `apps/api/src/db/migrate.ts` | Chạy migration SQL | `runMigrations`, `MIGRATIONS_FOLDER` |
 | `apps/api/drizzle/0000_init.sql` | Migration khởi tạo | — |
 | `apps/api/drizzle/0001_machine_auth_and_delivery.sql` | Migration thêm bảng auth máy + `events.seq` | — |

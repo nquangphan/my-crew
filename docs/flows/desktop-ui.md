@@ -76,8 +76,8 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
     token/mật khẩu/mã ghép), và cùng form tài nguyên/model của bước cuối trình cài đặt.
 11. `apps/desktop/src/renderer/routes/settings-projects.tsx` → `SettingsProjectsPage()`, `ProjectPanel()`,
     `TestSetupSection()`: đổi thư mục (validate lại trước khi lưu); loại project và MCP test UI cho sửa tại
-    chỗ (nút "Gửi yêu cầu đổi") nhưng chỉ có hiệu lực sau khi chủ dự án xác nhận TOTP trên web — trong lúc chờ,
-    form bị khoá và hiện "Đang chờ chủ dự án xác nhận…" (tự đọc lại project mỗi `PENDING_POLL_MS` = 5 giây tới
+    chỗ (nút "Gửi yêu cầu đổi") nhưng chỉ có hiệu lực sau khi chủ dự án xác nhận trên web bằng một cú nhấp —
+    trong lúc chờ, form bị khoá và hiện "Đang chờ chủ dự án xác nhận…" (tự đọc lại project mỗi `PENDING_POLL_MS` = 5 giây tới
     khi hết `pendingChange`), quyết định xong hiện đúng câu theo `lastChange.status` của yêu cầu máy này đang
     chờ — "Chủ dự án đã xác nhận…", "Chủ dự án đã từ chối…", hoặc khi máy mất project trước khi owner quyết
     định "Yêu cầu đổi đã tự rút vì máy này không còn giữ project; loại project giữ nguyên."; một nút
@@ -158,7 +158,7 @@ chung và quản lý project của máy này. Renderer chạy sandbox, không c�
   hook hiện "Đã cài hook" và ghi chú docs chưa có là xanh (không đỏ dashboard); nút "Mở thư mục log" ở Cài
   đặt gọi đúng thao tác mở thư mục.
 - `apps/desktop/test/e2e/project-settings.spec.ts`: Settings → Projects gửi yêu cầu đổi loại project, khoá form
-  và hiện đang chờ, rồi phản ánh đúng sau khi chủ dự án xác nhận TOTP trên web; một yêu cầu đang chờ tự rút và
+  và hiện đang chờ, rồi phản ánh đúng sau khi chủ dự án xác nhận trên web bằng một cú nhấp; một yêu cầu đang chờ tự rút và
   hiện đúng câu khi owner chuyển project sang máy khác trong lúc đó.
 - `apps/desktop/test/e2e/project-bmad.spec.ts`: Settings → Projects hiện đúng hồ sơ BMAD server đang giữ; còn
   `_bmad` trên máy thì nút "Cài BMAD" khoá và hiện thông báo đã có bản cài, xoá `_bmad` đi thì nút bật và cài

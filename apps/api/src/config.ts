@@ -10,7 +10,7 @@ const CsvList = z.string().transform((value) =>
 
 const EnvSchema = z.object({
   DATABASE_URL: z.url(),
-  /** HMAC key for login challenges and CSRF tokens. */
+  /** HMAC key for CSRF tokens. */
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   /** Public origin of the web app, e.g. https://crew.2p-solutions.com. Always in the Origin allow-list. */
   PUBLIC_ORIGIN: z.url(),

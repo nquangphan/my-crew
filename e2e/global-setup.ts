@@ -13,7 +13,7 @@ import {
   REPO_ROOT,
   stackEnv,
 } from './env';
-import { asMachine, compose, freshTotp, ownerSession } from './stack';
+import { asMachine, compose, ownerSession } from './stack';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -62,7 +62,6 @@ export default async function globalSetup(): Promise<void> {
     stdio: 'inherit',
   });
 
-  const postgresContainer = compose(['ps', '-q', 'crew-postgres']).trim();
   const username = 'e2e-owner';
   const password = randomBytes(18).toString('base64url');
   const seeded = compose([
@@ -76,16 +75,16 @@ export default async function globalSetup(): Promise<void> {
     '--username',
     username,
   ]);
-  const totpSecret = /secret:\s+(\S+)/.exec(seeded)?.[1];
-  if (!totpSecret) throw new Error(`seed-owner printed no TOTP secret:\n${seeded}`);
-  const owner = { username, password, totpSecret, postgresContainer };
+  // The seed CLI sets the password only: it prints no two-factor secret or recovery codes.
+  if (!seeded.includes(`Owner "${username}" saved.`) || /totp|secret|recovery|otpauth/i.test(seeded)) {
+    throw new Error(`unexpected seed-owner output:\n${seeded}`);
+  }
+  const owner = { username, password };
 
-  // Pair two machines with owner-created codes (each code needs a fresh TOTP).
+  // Pair two machines with owner-created codes (the owner session is enough).
   const ownerCall = await ownerSession(owner);
   const pair = async (name: string) => {
-    const { pairingCode } = await ownerCall<{ pairingCode: string }>('POST', '/v1/machines/pairing-codes', {
-      code: freshTotp(postgresContainer, totpSecret),
-    });
+    const { pairingCode } = await ownerCall<{ pairingCode: string }>('POST', '/v1/machines/pairing-codes');
     const res = await fetch(`${E2E_ORIGIN}/v1/machines/pair`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

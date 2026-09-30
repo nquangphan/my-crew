@@ -41,7 +41,7 @@ const sameSetup = (a: ProjectTestSetup, b: ProjectTestSetup) =>
   a.uiTestMcp.maestro === b.uiTestMcp.maestro;
 
 /**
- * Project type and UI-test MCP mapping. The machine may only ask: the change waits for the owner's TOTP
+ * Project type and UI-test MCP mapping. The machine may only ask: the change waits for the owner's
  * confirmation on the web, and the panel shows it as pending until the owner decides.
  */
 function TestSetupSection({

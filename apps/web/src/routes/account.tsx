@@ -1,4 +1,4 @@
-import { MIN_PASSWORD_LENGTH, RecoveryCode, TotpCode } from '@crew/shared';
+import { MIN_PASSWORD_LENGTH } from '@crew/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
@@ -14,25 +14,18 @@ export const PASSWORD_CHANGED_TEXT = 'Đã đổi mật khẩu. Các phiên đă
 
 interface Values {
   current: string;
-  code: string;
   next: string;
   confirm: string;
 }
 
 type Errors = Partial<Record<keyof Values, string>>;
 
-const EMPTY: Values = { current: '', code: '', next: '', confirm: '' };
+const EMPTY: Values = { current: '', next: '', confirm: '' };
 
-/** The same rules the API enforces, checked before sending so mistakes cost no TOTP code. */
-function validate(values: Values, useRecovery: boolean): Errors {
+/** The same rules the API enforces, checked before sending so mistakes cost no login-rate-limit attempt. */
+function validate(values: Values): Errors {
   const errors: Errors = {};
   if (!values.current) errors.current = 'Nhập mật khẩu hiện tại.';
-  const code = values.code.trim();
-  if (useRecovery) {
-    if (!RecoveryCode.safeParse(code).success) errors.code = 'Mã khôi phục có dạng ABCD-EFGH-IJKL-MNOP.';
-  } else if (!TotpCode.safeParse(code).success) {
-    errors.code = 'Mã TOTP gồm 6 chữ số.';
-  }
   if (values.next.length < MIN_PASSWORD_LENGTH)
     errors.next = `Mật khẩu mới cần ít nhất ${MIN_PASSWORD_LENGTH} ký tự.`;
   else if (values.next === values.current) errors.next = 'Mật khẩu mới phải khác mật khẩu hiện tại.';
@@ -41,7 +34,7 @@ function validate(values: Values, useRecovery: boolean): Errors {
 }
 
 /**
- * Changes the owner password: current password, a TOTP code (or a recovery code), the new password twice.
+ * Changes the owner password: the current password, then the new password twice.
  * On success the API rotates this device's session and signs out every other one; the new CSRF token is
  * taken over here so later requests keep working.
  */
@@ -51,7 +44,6 @@ export function ChangePasswordForm() {
   const toast = useToast();
   const [values, setValues] = useState<Values>(EMPTY);
   const [errors, setErrors] = useState<Errors>({});
-  const [useRecovery, setUseRecovery] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -60,31 +52,21 @@ export function ChangePasswordForm() {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    const found = validate(values, useRecovery);
+    const found = validate(values);
     setErrors(found);
     setFormError(null);
     if (Object.keys(found).length > 0) return;
     setBusy(true);
     try {
-      const code = values.code.trim();
-      const session = await api.changePassword(
-        useRecovery
-          ? { currentPassword: values.current, newPassword: values.next, recoveryCode: code }
-          : { currentPassword: values.current, newPassword: values.next, code },
-      );
+      const session = await api.changePassword({ currentPassword: values.current, newPassword: values.next });
       setCsrfToken(session.csrfToken);
       queryClient.setQueryData(keys.session, session);
       setValues(EMPTY);
       toast(PASSWORD_CHANGED_TEXT, 'success');
       void router.invalidate();
     } catch (err) {
-      setValues((v) => ({ ...v, code: '' }));
       if (err instanceof ApiRequestError && err.code === 'UNAUTHORIZED') {
-        setFormError(
-          useRecovery
-            ? 'Mật khẩu hiện tại hoặc mã khôi phục không đúng (mỗi mã chỉ dùng được một lần).'
-            : 'Mật khẩu hiện tại hoặc mã TOTP không đúng. Nếu vừa dùng mã này, đợi mã mới rồi thử lại.',
-        );
+        setFormError('Mật khẩu hiện tại không đúng.');
         // A 401 can also mean the session itself expired: re-check it and go to login if it is gone.
         const current = await queryClient
           .fetchQuery({ ...sessionQuery, staleTime: 0 })
@@ -111,35 +93,6 @@ export function ChangePasswordForm() {
           onChange={set('current')}
         />
       </Field>
-      <Field
-        label={useRecovery ? 'Mã khôi phục' : 'Mã TOTP'}
-        hint={
-          useRecovery ? 'Mỗi mã khôi phục chỉ dùng được một lần.' : 'Mã 6 số trong ứng dụng xác thực của bạn.'
-        }
-        error={errors.code}
-      >
-        <Input
-          key={useRecovery ? 'recovery' : 'totp'}
-          inputMode={useRecovery ? 'text' : 'numeric'}
-          autoComplete="one-time-code"
-          placeholder={useRecovery ? 'ABCD-EFGH-IJKL-MNOP' : '123456'}
-          maxLength={useRecovery ? 19 : 6}
-          value={values.code}
-          onChange={set('code')}
-          className="font-mono tracking-widest"
-        />
-      </Field>
-      <button
-        type="button"
-        className="-mt-2 min-h-11 self-start text-sm text-accent underline-offset-2 hover:underline xl:min-h-8"
-        onClick={() => {
-          setUseRecovery((value) => !value);
-          setValues((v) => ({ ...v, code: '' }));
-          setErrors((e) => ({ ...e, code: undefined }));
-        }}
-      >
-        {useRecovery ? 'Dùng mã TOTP' : 'Dùng mã khôi phục'}
-      </button>
       <Field
         label="Mật khẩu mới"
         hint={`Ít nhất ${MIN_PASSWORD_LENGTH} ký tự, khác mật khẩu hiện tại.`}

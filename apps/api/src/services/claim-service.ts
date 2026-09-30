@@ -306,7 +306,7 @@ function claimChanged(
 }
 
 /**
- * Approves or rejects a pending takeover (the route has re-confirmed the owner's TOTP). On approval the
+ * Approves or rejects a pending takeover (the owner confirmed it on the web). On approval the
  * previous holder loses the claim, open tickets move to the requester, and both machines get
  * `claim.changed`. A rejection notifies the requester only.
  */

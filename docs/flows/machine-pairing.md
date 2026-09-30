@@ -17,10 +17,9 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 
 ## Các bước
 
-1. `apps/api/src/routes/machine-routes.ts` → `machineRoutes` (`POST /v1/machines/pairing-codes`): owner gửi mã
-   TOTP, gọi `createPairingCode()`.
-2. `apps/api/src/services/machine-service.ts` → `createPairingCode()`: xác nhận lại TOTP bằng
-   `verifyOwnerTotp()` (từ flow owner-auth), sinh mã 12 ký tự base32, hết hạn sau
+1. `apps/api/src/routes/machine-routes.ts` → `machineRoutes` (`POST /v1/machines/pairing-codes`): owner đã
+   đăng nhập (session + CSRF, không cần body) gọi `createPairingCode()`.
+2. `apps/api/src/services/machine-service.ts` → `createPairingCode()`: sinh mã 12 ký tự base32, hết hạn sau
    `PAIRING_CODE_TTL_MINUTES`, chỉ lưu SHA-256 của mã vào bảng `pairing_codes`.
 3. `apps/api/src/routes/machine-routes.ts` → `pairRoutes` (`POST /v1/machines/pair`): route public, giới hạn
    10 lần/phút, nhận `PairMachineRequest`, gọi `pairMachine()`.
@@ -87,10 +86,10 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 
 ## Flow liên quan
 
-- owner-auth: `verifyOwnerTotp()` xác nhận owner trước khi tạo mã pairing.
+- owner-auth: `ownerGuard` (session + CSRF) xác nhận owner trước khi tạo mã pairing.
 - project-claims: `revokeMachine()` gọi `releaseEverything()` để giải phóng project/assistant máy đang giữ;
   máy tự đổi `platform`/`uiTestMcp` của project mình qua `POST /v1/daemon/projects/:projectKey/change-requests`
-  (chờ owner xác nhận TOTP) dùng chung kiểu dữ liệu `ProjectChangeBody`/`PendingProjectChange` sống trong
+  (chờ owner xác nhận bằng một cú nhấp trên web) dùng chung kiểu dữ liệu `ProjectChangeBody`/`PendingProjectChange` sống trong
   `packages/shared/src/machine-schemas.ts` (file dùng chung bởi flow này) — cùng file, `DaemonProject` nay có
   thêm `bmadProfile` (hồ sơ cài BMAD mới nhất do một máy giữ project báo cáo, xem flow `project-claims`).
 - daemon-api: mọi route `/v1/daemon/*` dùng `machineGuard()`, `assertTicketInScope()`/`assertTicketReadable()`
@@ -105,8 +104,8 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 
 ## Tests
 
-- `apps/api/test/pairing.test.ts`: bắt buộc TOTP, giới hạn tần suất, chỉ lưu hash, mã dùng một lần/hết hạn,
-  tách bearer/cookie, ân hạn khi xoay token.
+- `apps/api/test/pairing.test.ts`: chỉ cần session owner (không cần body), giới hạn tần suất, chỉ lưu hash,
+  mã dùng một lần/hết hạn, tách bearer/cookie, ân hạn khi xoay token.
 - `apps/api/test/sweeper.test.ts`: đánh dấu offline một lần, quay lại online, bỏ qua máy đã bị thu hồi.
 
 `assertTicketReadable()` và `assertKnownCapabilities()` được kiểm bởi `apps/api/test/machine-scope.test.ts`

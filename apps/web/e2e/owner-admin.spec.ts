@@ -1,19 +1,10 @@
 import { expect, test } from '@playwright/test';
-import {
-  Agent,
-  closeDb,
-  expectNoHorizontalOverflow,
-  freshTotp,
-  login,
-  ownerTicket,
-  readState,
-  snap,
-} from './helpers';
-
-test.afterAll(closeDb);
+import { Agent, expectNoHorizontalOverflow, login, ownerTicket, readState, snap } from './helpers';
 
 /** Desktop-only owner flows: shortcuts and quick search, pairing a machine, and approving a takeover. */
-test('shortcuts, quick search, pairing and takeover approval with TOTP', async ({ page }, testInfo) => {
+test('shortcuts, quick search, pairing and takeover approval with a confirm click', async ({
+  page,
+}, testInfo) => {
   const state = readState();
   await login(page, state);
   await expect(page.getByRole('heading', { name: `Board ${state.project.key}` })).toBeVisible();
@@ -107,17 +98,18 @@ test('shortcuts, quick search, pairing and takeover approval with TOTP', async (
   await expect(page.getByText('Đổi ưu tiên thành Khẩn cấp: 2 ticket')).toBeVisible();
   expect((await ownerTicket(page, qc.key)).ticket).toMatchObject({ priority: 'urgent' });
 
-  // Pairing: confirm the TOTP, see the code once.
+  // Pairing: confirm with a click (no code field), see the code once.
   await page.goto('/machines');
   await page.getByRole('button', { name: 'Ghép máy mới' }).click();
-  await page.getByLabel('Mã xác thực (TOTP)').fill(await freshTotp(state));
-  await page.getByRole('button', { name: 'Tạo mã ghép' }).click();
+  const pairing = page.getByRole('dialog', { name: 'Ghép máy mới' });
+  await expect(pairing.getByRole('textbox')).toHaveCount(0);
+  await pairing.getByRole('button', { name: 'Tạo mã ghép' }).click();
   await expect(page.getByRole('status', { name: 'Mã ghép máy' })).toHaveText(
     /^[A-Z2-7]{4}-[A-Z2-7]{4}-[A-Z2-7]{4}$/,
   );
   await page.getByRole('button', { name: 'Xong' }).click();
 
-  // Takeover: machine B asks for project SHOP, the owner approves in the inbox with a TOTP.
+  // Takeover: machine B asks for project SHOP, the owner approves in the inbox with a click.
   const machineB = new Agent(state.machineB.token);
   const pending = await machineB.claimProject(state.project.key);
   expect(pending.status).toBe('pending');
@@ -128,7 +120,7 @@ test('shortcuts, quick search, pairing and takeover approval with TOTP', async (
   await snap(page, testInfo, 'inbox-claim');
   await claims.getByRole('button', { name: 'Duyệt' }).click();
   const approve = page.getByRole('dialog', { name: 'Duyệt chuyển máy' });
-  await approve.getByLabel('Mã xác thực (TOTP)').fill(await freshTotp(state));
+  await expect(approve.getByRole('textbox')).toHaveCount(0);
   await approve.getByRole('button', { name: 'Duyệt' }).click();
   await expect(page.getByText('Đã duyệt yêu cầu')).toBeVisible();
   await expect(claims).toBeHidden();
@@ -152,7 +144,7 @@ test('shortcuts, quick search, pairing and takeover approval with TOTP', async (
   await snap(page, testInfo, 'board-dark');
 });
 
-test('a machine asks to change its project type, the owner approves with TOTP; the inbox read state is shared live by two devices', async ({
+test('a machine asks to change its project type, the owner approves with a click; the inbox read state is shared live by two devices', async ({
   page,
   browser,
 }, testInfo) => {
@@ -174,7 +166,6 @@ test('a machine asks to change its project type, the owner approves with TOTP; t
   await snap(page, testInfo, 'inbox-project-change');
   await changes.getByRole('button', { name: 'Duyệt' }).click();
   const approve = page.getByRole('dialog', { name: 'Duyệt đổi loại dự án' });
-  await approve.getByLabel('Mã xác thực (TOTP)').fill(await freshTotp(state));
   await approve.getByRole('button', { name: 'Duyệt' }).click();
   await expect(page.getByText('Đã duyệt thay đổi dự án')).toBeVisible();
   await expect(changes).toBeHidden();
@@ -204,7 +195,6 @@ test('a machine asks to change its project type, the owner approves with TOTP; t
     // Reject the second change: the project keeps the approved type.
     await changes.getByRole('button', { name: 'Từ chối' }).click();
     const reject = page.getByRole('dialog', { name: 'Từ chối đổi loại dự án' });
-    await reject.getByLabel('Mã xác thực (TOTP)').fill(await freshTotp(state));
     await reject.getByRole('button', { name: 'Từ chối' }).click();
     await expect(page.getByText('Đã từ chối thay đổi dự án')).toBeVisible();
   } finally {

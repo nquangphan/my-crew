@@ -1,11 +1,5 @@
-import {
-  ClaimDecisionRequest,
-  CreateProjectRequest,
-  ProjectChangeListQuery,
-  UpdateProjectRequest,
-} from '@crew/shared';
+import { CreateProjectRequest, ProjectChangeListQuery, UpdateProjectRequest } from '@crew/shared';
 import type { FastifyInstance } from 'fastify';
-import { verifyOwnerTotp } from '../auth/owner-auth.js';
 import { ApiError } from '../errors.js';
 import { decideProjectChange, listProjectChanges } from '../services/project-change-service.js';
 import { createProject, getProject, listProjects, updateProject } from '../services/project-service.js';
@@ -47,12 +41,6 @@ export async function projectRoutes(app: FastifyInstance, { db }: RouteDeps): Pr
       { config: DECISION_RATE_LIMIT },
       async (request) => {
         const id = uuidParam(request.params, 'project change request');
-        const { code } = parseInput(ClaimDecisionRequest, request.body);
-        const session = request.ownerSession;
-        if (!session) throw new ApiError('UNAUTHORIZED', 'login required');
-        if (!(await verifyOwnerTotp(db, session.ownerId, code))) {
-          throw new ApiError('UNAUTHORIZED', 'invalid verification code');
-        }
         return decideProjectChange(db, id, decision);
       },
     );

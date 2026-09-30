@@ -46,7 +46,7 @@ const claim = {
 };
 
 describe('InboxPage', () => {
-  it('lists takeovers, waiting tickets, offline machines with their tickets, and approves a claim with a TOTP', async () => {
+  it('lists takeovers, waiting tickets, offline machines with their tickets, and approves a claim with a confirm click', async () => {
     const waiting = ticket({ key: 'SHOP-7', title: 'Hỏi về /health', status: 'needs_input' });
     const held = ticket({
       key: 'SHOP-8',
@@ -85,22 +85,22 @@ describe('InboxPage', () => {
 
     await user.click(within(claims).getByRole('button', { name: 'Duyệt' }));
     const dialog = await screen.findByRole('dialog', { name: 'Duyệt chuyển máy' });
-    await user.type(within(dialog).getByLabelText('Mã xác thực (TOTP)'), '654321');
+    expect(within(dialog).queryByRole('textbox')).toBeNull();
     await user.click(within(dialog).getByRole('button', { name: 'Duyệt' }));
     await screen.findByText('Đã duyệt yêu cầu');
     const decision = calls.find((c) => c.method === 'POST');
     expect(decision?.path).toBe(`/v1/claim-requests/${claim.id}/approve`);
-    expect(decision?.body).toEqual({ code: '654321' });
+    expect(decision?.body).toBeUndefined();
   });
 
-  it('keeps the dialog open with a message when the TOTP is wrong', async () => {
+  it('keeps the dialog open with a message when the decision fails', async () => {
     mockFetch([
       ['GET /v1/claim-requests', () => ({ body: { items: [claim] } })],
       [
         'POST /v1/claim-requests',
         () => ({
-          status: 401,
-          body: { error: { code: 'UNAUTHORIZED', message: 'invalid verification code' } },
+          status: 409,
+          body: { error: { code: 'CONFLICT', message: 'claim request is already decided' } },
         }),
       ],
       ['GET /v1/tickets', () => ({ body: { items: [], nextCursor: null } })],
@@ -113,12 +113,12 @@ describe('InboxPage', () => {
     renderWithApp(<InboxPage />);
     await user.click(await screen.findByRole('button', { name: 'Từ chối' }));
     const dialog = await screen.findByRole('dialog', { name: 'Từ chối yêu cầu' });
-    await user.type(within(dialog).getByLabelText('Mã xác thực (TOTP)'), '111111');
     await user.click(within(dialog).getByRole('button', { name: 'Từ chối' }));
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Mã xác thực không đúng hoặc đã dùng');
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Dữ liệu bị trùng hoặc đã thay đổi.');
+    expect(within(dialog).getByRole('button', { name: 'Từ chối' })).toBeEnabled();
   });
 
-  it("approves a machine's project type change with a TOTP", async () => {
+  it("approves a machine's project type change with a confirm click", async () => {
     const change = {
       id: '00000000-0000-4000-8000-0000000000d1',
       projectId: 'p1',
@@ -151,12 +151,11 @@ describe('InboxPage', () => {
     );
     await user.click(within(group).getByRole('button', { name: 'Duyệt' }));
     const dialog = await screen.findByRole('dialog', { name: 'Duyệt đổi loại dự án' });
-    await user.type(within(dialog).getByLabelText('Mã xác thực (TOTP)'), '246810');
     await user.click(within(dialog).getByRole('button', { name: 'Duyệt' }));
     await screen.findByText('Đã duyệt thay đổi dự án');
     const decision = calls.find((c) => c.method === 'POST');
     expect(decision?.path).toBe(`/v1/project-change-requests/${change.id}/approve`);
-    expect(decision?.body).toEqual({ code: '246810' });
+    expect(decision?.body).toBeUndefined();
   });
 
   it('keeps the read state on the server: opening marks the shown notices read, new ones get a button', async () => {

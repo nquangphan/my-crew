@@ -25,7 +25,6 @@ export function assertE2eDatabase(url: string): void {
 export interface PreparedState {
   username: string;
   password: string;
-  totpSecret: string;
   pairingCodes: [string, string];
 }
 

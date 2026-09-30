@@ -21,7 +21,7 @@ test('login, create a request, live assistant pickup, answer needs_input, Done n
   const viewport = viewportOf(testInfo);
   const title = `Thêm trang liên hệ (${viewport} ${Date.now()})`;
 
-  // 1. Login with password and TOTP.
+  // 1. Login with username and password.
   await login(page, state);
   await expectNoHorizontalOverflow(page);
 

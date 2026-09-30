@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { generateSync } from 'otplib';
 import { composeArgs, E2E_ORIGIN } from './env';
 
 /** `docker compose` on the E2E stack; returns stdout. */
@@ -10,25 +9,6 @@ export function compose(args: string[], input?: string): string {
     input,
     stdio: ['pipe', 'pipe', 'inherit'],
   });
-}
-
-/**
- * TOTP codes are single use per 30 s step. Clearing the replay marker of the owner stands in for waiting for
- * the next step (the API tests do the same); the stack's Postgres has no host port, so it goes through docker.
- */
-export function freshTotp(postgresContainer: string, secret: string): string {
-  execFileSync('docker', [
-    'exec',
-    postgresContainer,
-    'psql',
-    '-U',
-    'crew',
-    '-d',
-    'crew',
-    '-XAtqc',
-    'update owner set totp_last_step = null',
-  ]);
-  return generateSync({ secret });
 }
 
 async function call<T>(
@@ -58,13 +38,8 @@ export function asMachine(token: string) {
     );
 }
 
-/** An owner session outside the browser: password, then TOTP; later writes carry the CSRF token. */
-export async function ownerSession(owner: {
-  username: string;
-  password: string;
-  totpSecret: string;
-  postgresContainer: string;
-}) {
+/** An owner session outside the browser: username and password; later writes carry the CSRF token. */
+export async function ownerSession(owner: { username: string; password: string }) {
   const cookies = new Map<string, string>();
   const headers = () => ({
     origin: E2E_ORIGIN,
@@ -86,13 +61,6 @@ export async function ownerSession(owner: {
     if (!res.ok) throw new Error(`${method} ${path} → ${res.status} ${text}`);
     return (text ? JSON.parse(text) : undefined) as T;
   };
-  const { challenge } = await request<{ challenge: string }>('POST', '/v1/auth/login', {
-    username: owner.username,
-    password: owner.password,
-  });
-  await request('POST', '/v1/auth/login/totp', {
-    challenge,
-    code: freshTotp(owner.postgresContainer, owner.totpSecret),
-  });
+  await request('POST', '/v1/auth/login', { username: owner.username, password: owner.password });
   return request;
 }

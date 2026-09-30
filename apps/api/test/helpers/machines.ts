@@ -7,12 +7,11 @@ import type { Database } from '../../src/db/client.js';
 import { owner, pairingCodes } from '../../src/db/schema.js';
 import { appendEvents } from '../../src/services/event-service.js';
 import { pairMachine } from '../../src/services/machine-service.js';
-import { totpCode } from './owner-session.js';
 import { testConfig } from './test-db.js';
 
 const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
-/** Inserts a valid pairing code directly (the TOTP-gated route is tested separately). */
+/** Inserts a valid pairing code directly (the owner route is tested separately). */
 export async function insertPairingCode(db: Database, ttlMs = 10 * 60 * 1000): Promise<string> {
   const raw = Array.from({ length: 12 }, () => BASE32[randomInt(BASE32.length)]).join('');
   await db.insert(pairingCodes).values({
@@ -48,15 +47,6 @@ export async function pairTestMachine(db: Database, name: string): Promise<Paire
 /** Headers for a daemon write: bearer token plus an Idempotency-Key (random unless given). */
 export function writeHeaders(machine: PairedMachine, key = `test-${randomUUID()}`): Record<string, string> {
   return { ...machine.auth, 'idempotency-key': key };
-}
-
-/**
- * TOTP codes are single use per 30 s step. Tests that confirm the TOTP several times clear the replay marker
- * first, which stands in for waiting for the next step.
- */
-export async function freshTotp(db: Database, secret: string): Promise<string> {
-  await db.update(owner).set({ totpLastStep: null });
-  return totpCode(secret);
 }
 
 /** Appends `count` owner-visible wake-up events targeted at a machine, each in its own transaction. */

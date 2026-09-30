@@ -1,5 +1,4 @@
 import { execFileSync } from 'node:child_process';
-import { createHmac } from 'node:crypto';
 import {
   chmodSync,
   mkdirSync,
@@ -170,52 +169,23 @@ export async function expectAllGreen(page: Page): Promise<void> {
   }).toPass({ timeout: 120_000, intervals: [1_000, 2_000, 5_000] });
 }
 
-/** RFC 6238 (SHA-1, 6 digits, 30 s), as the owner's authenticator app computes it. */
-export function totp(secret: string, at = Date.now()): string {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = '';
-  for (const char of secret.replace(/=+$/, '').toUpperCase())
-    bits += alphabet.indexOf(char).toString(2).padStart(5, '0');
-  const key = Buffer.from(bits.match(/.{8}/g)?.map((byte) => Number.parseInt(byte, 2)) ?? []);
-  const counter = Buffer.alloc(8);
-  counter.writeBigUInt64BE(BigInt(Math.floor(at / 1000 / 30)));
-  const hmac = createHmac('sha1', key).update(counter).digest();
-  const offset = (hmac[hmac.length - 1] ?? 0) & 0x0f;
-  const code = (hmac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
-  return code.toString().padStart(6, '0');
-}
-
-/** The owner's web session (password + TOTP), for the owner-only routes the tests need. */
+/** The owner's web session (username and password), for the owner-only routes the tests need. */
 export async function ownerSession(): Promise<{
   request: (method: string, path: string, body?: unknown) => Promise<Response>;
 }> {
-  const { username, password, totpSecret } = state();
+  const { username, password } = state();
   const origin = E2E_API_URL;
-  const login = async () => {
-    const first = await fetch(`${E2E_API_URL}/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin },
-      body: JSON.stringify({ username, password }),
-    });
-    const { challenge } = (await first.json()) as { challenge: string };
-    return fetch(`${E2E_API_URL}/v1/auth/login/totp`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', origin },
-      body: JSON.stringify({ challenge, code: totp(totpSecret) }),
-    });
-  };
-  let second = await login();
-  if (second.status === 401) {
-    // A code is single use per 30 s step (another spec may have used this one): wait for the next step.
-    await new Promise((resolve) => setTimeout(resolve, 30_000 - (Date.now() % 30_000) + 500));
-    second = await login();
-  }
-  if (!second.ok) throw new Error(`owner login failed: ${second.status} ${await second.text()}`);
-  const cookie = second.headers
+  const login = await fetch(`${E2E_API_URL}/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!login.ok) throw new Error(`owner login failed: ${login.status} ${await login.text()}`);
+  const cookie = login.headers
     .getSetCookie()
     .map((value) => value.split(';')[0])
     .join('; ');
-  const { csrfToken } = (await second.json()) as { csrfToken: string };
+  const { csrfToken } = (await login.json()) as { csrfToken: string };
   return {
     request: (method, path, body) =>
       fetch(`${E2E_API_URL}${path}`, {

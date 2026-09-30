@@ -17,7 +17,6 @@ export const STAGED_APP = fileURLToPath(new URL('../../.stage/app', import.meta.
 export interface E2eState {
   username: string;
   password: string;
-  totpSecret: string;
   pairingCodes: string[];
   project: { key: string; repoUrl: string };
 }

@@ -19,9 +19,6 @@ export const E2E_PROJECT_KEY = 'SHOP';
 export interface E2eState {
   username: string;
   password: string;
-  totpSecret: string;
-  /** Docker id of the stack's Postgres, for resetting the TOTP replay marker between logins. */
-  postgresContainer: string;
   project: { id: string; key: string; name: string };
   /** Hosts the assistant; the daemon under test runs as this machine. */
   assistant: { id: string; token: string };

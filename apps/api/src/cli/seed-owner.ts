@@ -3,21 +3,17 @@
  *
  *   DATABASE_URL=... pnpm --filter @crew/api seed:owner --username <name> [--reset]
  *
- * The password is read from CREW_OWNER_PASSWORD, or prompted for (hidden) on a TTY. The TOTP secret and
- * 10 recovery codes are printed once; only hashes of the recovery codes are stored.
+ * The password is read from CREW_OWNER_PASSWORD, or prompted for (hidden) on a TTY. Saving the owner signs
+ * out every existing session.
  */
 import { parseArgs } from 'node:util';
 import { eq } from 'drizzle-orm';
 import { hashPassword, MIN_PASSWORD_LENGTH } from '../auth/password.js';
-import { generateRecoveryCodes, generateTotpSecret, hashRecoveryCode, totpUri } from '../auth/totp.js';
 import { createDb, type Executor } from '../db/client.js';
 import { owner, sessions } from '../db/schema.js';
 
 export interface SeedOwnerResult {
   username: string;
-  totpSecret: string;
-  totpUri: string;
-  recoveryCodes: string[];
 }
 
 export async function seedOwner(
@@ -28,14 +24,13 @@ export async function seedOwner(
   if (!/^[A-Za-z0-9._-]{1,100}$/.test(username))
     throw new Error('username must be 1-100 of A-Z a-z 0-9 . _ -');
   const passwordHash = await hashPassword(args.password);
-  const totpSecret = generateTotpSecret();
-  const recoveryCodes = generateRecoveryCodes();
+  // The two-factor columns are no longer used; they are cleared so no old secret or code stays stored.
   const values = {
     username,
     passwordHash,
-    totpSecret,
+    totpSecret: '',
     totpLastStep: null,
-    recoveryCodeHashes: recoveryCodes.map(hashRecoveryCode),
+    recoveryCodeHashes: [],
     updatedAt: new Date(),
   };
 
@@ -53,7 +48,7 @@ export async function seedOwner(
       await tx.insert(owner).values(values);
     }
   });
-  return { username, totpSecret, totpUri: totpUri(totpSecret, username), recoveryCodes };
+  return { username };
 }
 
 async function promptHidden(question: string): Promise<string> {
@@ -99,8 +94,9 @@ async function readPassword(): Promise<string> {
   return first;
 }
 
-async function main(): Promise<void> {
+export async function main(args: string[] = process.argv.slice(2)): Promise<void> {
   const { values } = parseArgs({
+    args,
     options: { username: { type: 'string' }, reset: { type: 'boolean', default: false } },
   });
   const url = process.env.DATABASE_URL;
@@ -112,11 +108,6 @@ async function main(): Promise<void> {
   try {
     const result = await seedOwner(handle.db, { username: values.username, password, reset: values.reset });
     console.log(`Owner "${result.username}" saved. Existing sessions were signed out.`);
-    console.log('\nAdd this TOTP secret to your authenticator app (shown once):');
-    console.log(`  secret: ${result.totpSecret}`);
-    console.log(`  uri:    ${result.totpUri}`);
-    console.log('\nRecovery codes (each works once; store them offline):');
-    for (const code of result.recoveryCodes) console.log(`  ${code}`);
   } finally {
     await handle.close();
   }

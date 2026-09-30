@@ -45,8 +45,12 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
    `desktop-app`).
 5. `apps/api/src/routes/daemon-routes.ts` → `POST /v1/daemon/projects/:projectKey/change-requests` (body
    `ProjectChangeBody`, cũng bọc `replyIdempotent()`) gọi `requestProjectChange()` — máy sở hữu project mới
-   được đổi `platform`/`uiTestMcp` của nó, và chỉ có hiệu lực sau khi owner duyệt bằng TOTP (flow
-   `project-claims`).
+   được đổi `platform`/`uiTestMcp` của nó, và chỉ có hiệu lực sau khi owner duyệt bằng một cú nhấp xác nhận
+   trên web (flow `project-claims`). Route owner tương ứng (`POST /v1/project-change-requests/:id/approve|reject`,
+   flow `project-claims`) không còn nhận body — `packages/shared/src/machine-schemas.ts` đã bỏ
+   `ClaimDecisionRequest` (từng mang mã TOTP) cùng `CreatePairingCodeRequest` của route
+   `POST /v1/machines/pairing-codes` (flow `machine-pairing`); cả hai quyết định giờ chỉ cần session owner
+   (`ownerGuard`) cộng CSRF.
 6. `apps/api/src/routes/bmad-profile-routes.ts` → `PUT /v1/daemon/projects/:projectKey/bmad-profile` (body
    `BmadProfile.strict()`, bọc `replyIdempotent()` như mọi ghi khác của daemon) gọi `putBmadProfile()` (flow
    `project-claims`) — chỉ máy sở hữu project mới ghi được (403 với máy khác), hồ sơ cũ hơn hồ sơ đã lưu không

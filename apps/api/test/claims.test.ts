@@ -3,9 +3,17 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { claimRequests, machines, projects } from '../src/db/schema.js';
 import { createRequestTicket, createSubtask } from '../src/services/ticket-service.js';
-import { freshTotp, type PairedMachine, pairTestMachine, writeHeaders } from './helpers/machines.js';
+import { type PairedMachine, pairTestMachine, writeHeaders } from './helpers/machines.js';
 import { type LoggedInOwner, makeApp, seedAndLogin } from './helpers/owner-session.js';
-import { createTestProject, eventsOf, getTicket, RATED, setStatus, useTestDb } from './helpers/test-db.js';
+import {
+  createTestProject,
+  eventsOf,
+  getTicket,
+  ORIGIN,
+  RATED,
+  setStatus,
+  useTestDb,
+} from './helpers/test-db.js';
 
 const ctx = useTestDb();
 let app: FastifyInstance;
@@ -32,13 +40,12 @@ const releaseAs = (machine: PairedMachine, what: string) =>
   app.inject({ method: 'DELETE', url: `/v1/daemon/claims/${what}`, headers: writeHeaders(machine) });
 const getTicketAs = (machine: PairedMachine, id: string) =>
   app.inject({ method: 'GET', url: `/v1/daemon/tickets/${id}`, headers: machine.auth });
-const decide = async (id: string, decision: 'approve' | 'reject', code?: string) =>
-  app.inject({
-    method: 'POST',
-    url: `/v1/claim-requests/${id}/${decision}`,
-    headers: owner.headers,
-    payload: { code: code ?? (await freshTotp(ctx.db, owner.totpSecret)) },
-  });
+/** The owner confirms with a click: session cookie, Origin and CSRF token, and no body. */
+const decide = (
+  id: string,
+  decision: 'approve' | 'reject',
+  headers: Record<string, string> = owner.headers,
+) => app.inject({ method: 'POST', url: `/v1/claim-requests/${id}/${decision}`, headers });
 
 async function projectOwner(key: string) {
   const [row] = await ctx.db.select().from(projects).where(eq(projects.key, key));
@@ -105,7 +112,7 @@ describe('claiming an unowned project', () => {
 });
 
 describe('taking over a project held by another machine', () => {
-  it('stays pending until the owner approves with TOTP, then moves the open tickets', async () => {
+  it('stays pending until the owner approves (session and CSRF), then moves the open tickets', async () => {
     const tree = await webTree(a.machineId);
     const first = await claimAs(b, { projectKey: 'WEB' }, 'claim-key-1');
     expect(first.statusCode).toBe(202);
@@ -136,7 +143,9 @@ describe('taking over a project held by another machine', () => {
       { id: claimRequestId, machineName: 'mac-b', projectKey: 'WEB', previousMachineId: a.machineId },
     ]);
 
-    expect((await decide(claimRequestId, 'approve', '000000')).statusCode).toBe(401);
+    expect((await decide(claimRequestId, 'approve', {})).statusCode).toBe(401);
+    const noCsrf = { cookie: owner.cookie, origin: ORIGIN };
+    expect((await decide(claimRequestId, 'approve', noCsrf)).statusCode).toBe(403);
     expect(await projectOwner('WEB')).toBe(a.machineId);
 
     const approved = await decide(claimRequestId, 'approve');

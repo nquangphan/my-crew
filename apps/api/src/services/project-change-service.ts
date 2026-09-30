@@ -75,7 +75,7 @@ export async function requestProjectChange(
 }
 
 /**
- * Approves or rejects a pending change (the route has re-confirmed the owner's TOTP). Only an approval
+ * Approves or rejects a pending change (the owner confirmed it on the web). Only an approval
  * changes the project, so QC tickets created afterwards carry the new UI-test MCP servers. The requesting
  * machine gets `project.change_decided` either way.
  */

@@ -12,7 +12,7 @@ import type {
   ProjectDetail,
 } from '@crew/shared';
 import { describe, expect, inject, it } from 'vitest';
-import { freshTotp, insertPairingCode, pairTestMachine } from '../../api/test/helpers/machines.js';
+import { insertPairingCode, pairTestMachine } from '../../api/test/helpers/machines.js';
 import { seedAndLogin } from '../../api/test/helpers/owner-session.js';
 import { createTestProject } from '../../api/test/helpers/test-db.js';
 import { useApi as apiFixture } from '../../daemon/test/helpers/api.js';
@@ -185,7 +185,6 @@ describe('daemon host: setup wizard operations against the real API', () => {
       method: 'POST',
       url: `/v1/claim-requests/${pending[0]?.id}/approve`,
       headers: owner.headers,
-      payload: { code: await freshTotp(api.db, owner.totpSecret) },
     });
     expect(approved.statusCode).toBe(200);
     await until(async () => {
@@ -437,7 +436,6 @@ describe('daemon host: setup wizard operations against the real API', () => {
       method: 'POST',
       url: `/v1/project-change-requests/${pending.pendingChange?.requestId}/approve`,
       headers: owner.headers,
-      payload: { code: await freshTotp(api.db, owner.totpSecret) },
     });
     expect(approved.statusCode).toBe(200);
     expect(await call<ProjectDetail>('projects.detail', { key: 'NEW' })).toMatchObject({

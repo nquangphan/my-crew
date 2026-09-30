@@ -3,9 +3,9 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { projectChangeRequests, projects } from '../src/db/schema.js';
 import { createRequestTicket, createSubtask } from '../src/services/ticket-service.js';
-import { freshTotp, type PairedMachine, pairTestMachine, writeHeaders } from './helpers/machines.js';
+import { type PairedMachine, pairTestMachine, writeHeaders } from './helpers/machines.js';
 import { type LoggedInOwner, makeApp, seedAndLogin } from './helpers/owner-session.js';
-import { createTestProject, eventsOf, RATED, useTestDb } from './helpers/test-db.js';
+import { createTestProject, eventsOf, ORIGIN, RATED, useTestDb } from './helpers/test-db.js';
 
 const ctx = useTestDb();
 let app: FastifyInstance;
@@ -30,13 +30,12 @@ const requestAs = (machine: PairedMachine, body: object, key?: string, projectKe
     headers: writeHeaders(machine, key),
     payload: body,
   });
-const decide = async (id: string, decision: 'approve' | 'reject', code?: string) =>
-  app.inject({
-    method: 'POST',
-    url: `/v1/project-change-requests/${id}/${decision}`,
-    headers: owner.headers,
-    payload: { code: code ?? (await freshTotp(ctx.db, owner.totpSecret)) },
-  });
+/** The owner confirms with a click: session cookie, Origin and CSRF token, and no body. */
+const decide = (
+  id: string,
+  decision: 'approve' | 'reject',
+  headers: Record<string, string> = owner.headers,
+) => app.inject({ method: 'POST', url: `/v1/project-change-requests/${id}/${decision}`, headers });
 const project = async () => {
   const [row] = await ctx.db.select().from(projects).where(eq(projects.key, 'WEB'));
   if (!row) throw new Error('no project');
@@ -52,7 +51,7 @@ async function pmTaskIn(projectId: string) {
 }
 
 describe('a machine changing its own project type and UI-test MCP mapping', () => {
-  it('stays pending until the owner approves with TOTP; then the project and new QC defaults change', async () => {
+  it('stays pending until the owner approves (session and CSRF); then the project and new QC defaults change', async () => {
     const web = await createTestProject(ctx.db, { ownerMachineId: a.machineId, platform: 'web' });
     const pmTask = await pmTaskIn(web.id);
     const qcFor = async (title: string) => {
@@ -102,7 +101,9 @@ describe('a machine changing its own project type and UI-test MCP mapping', () =
       },
     ]);
 
-    expect((await decide(requestId, 'approve', '000000')).statusCode).toBe(401);
+    expect((await decide(requestId, 'approve', {})).statusCode).toBe(401);
+    const noCsrf = { cookie: owner.cookie, origin: ORIGIN };
+    expect((await decide(requestId, 'approve', noCsrf)).statusCode).toBe(403);
     expect(await project()).toMatchObject({ platform: 'web' });
 
     const approved = await decide(requestId, 'approve');
@@ -196,13 +197,8 @@ describe('a machine changing its own project type and UI-test MCP mapping', () =
 describe('a pending change of a project the requesting machine loses', () => {
   const claimAs = (machine: PairedMachine, body: object) =>
     app.inject({ method: 'POST', url: '/v1/daemon/claims', headers: writeHeaders(machine), payload: body });
-  const decideClaim = async (id: string, decision: 'approve' | 'reject') =>
-    app.inject({
-      method: 'POST',
-      url: `/v1/claim-requests/${id}/${decision}`,
-      headers: owner.headers,
-      payload: { code: await freshTotp(ctx.db, owner.totpSecret) },
-    });
+  const decideClaim = (id: string, decision: 'approve' | 'reject') =>
+    app.inject({ method: 'POST', url: `/v1/claim-requests/${id}/${decision}`, headers: owner.headers });
 
   /** WEB owned by mac-a, with mac-a's type change waiting for the owner. */
   async function pendingChangeOfA() {

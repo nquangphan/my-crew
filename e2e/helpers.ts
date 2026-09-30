@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { E2E_ORIGIN, E2E_STATE_FILE, type E2eState } from './env';
-import { asMachine, freshTotp } from './stack';
+import { asMachine } from './stack';
 
 export function readState(): E2eState {
   return JSON.parse(readFileSync(E2E_STATE_FILE, 'utf8')) as E2eState;
@@ -10,15 +10,12 @@ export function readState(): E2eState {
 export type Viewport = 'phone' | 'tablet' | 'desktop';
 export const viewportOf = (testInfo: TestInfo): Viewport => testInfo.project.name as Viewport;
 
-/** Logs in through the UI: password, then the TOTP step. */
+/** Logs in through the UI: username and password, one step. */
 export async function login(page: Page, state: E2eState): Promise<void> {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Đăng nhập' })).toBeVisible();
   await page.getByLabel('Tên đăng nhập').fill(state.username);
   await page.getByLabel('Mật khẩu').fill(state.password);
-  await page.getByRole('button', { name: 'Tiếp tục' }).click();
-  await expect(page.getByRole('heading', { name: 'Xác thực hai bước' })).toBeVisible();
-  await page.getByLabel('Mã xác thực').fill(freshTotp(state.postgresContainer, state.totpSecret));
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   await expect(page.getByRole('link', { name: /^Inbox/ }).first()).toBeVisible();
 }

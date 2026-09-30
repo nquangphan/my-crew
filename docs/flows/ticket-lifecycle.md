@@ -109,7 +109,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    ở `packages/shared/src/api-schemas.ts` validate tên MCP server (`mcpsUsed`, `mcpsSelected`) bằng
    `McpServerName` của `packages/shared/src/project-schemas.ts` (flow `project-claims`), nên một report ghi
    đúng tên plugin/connector Claude Code báo cáo không bị từ chối. Cùng file `api-schemas.ts` này còn chứa
-   schema xác thực owner, gồm `ChangePasswordRequest` và `MIN_PASSWORD_LENGTH` (flow `owner-auth`).
+   schema xác thực owner, gồm `LoginRequest`/`SessionResponse`/`ChangePasswordRequest` và `MIN_PASSWORD_LENGTH`
+   (flow `owner-auth`) — ba schema này không còn trường xác thực hai bước (mã TOTP, mã khôi phục, challenge)
+   sau khi tính năng đó bị bỏ.
 11. `apps/api/src/services/report-service.ts` → `recordAgentMeta()`: daemon ghi `agentSessionId`/`agentModel`/
     `agentEffort` và cộng `costDeltaUsd` cho lượt chạy không kết thúc bằng report (hợp đồng: chi phí một lượt
     chạy chỉ được cộng đúng một lần, hoặc qua report hoặc qua delta này, không bao giờ cả hai).

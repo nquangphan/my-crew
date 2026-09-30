@@ -1,7 +1,6 @@
 /**
  * Prepares the desktop E2E database before the API starts: recreates the schema from the migrations, seeds
- * the owner with a random password and TOTP secret, stores single-use pairing codes, creates one unowned
- * project, and writes what the tests need to `.e2e/state.json`.
+ * the owner with a random password, stores single-use pairing codes, creates one unowned project, and writes what the tests need to `.e2e/state.json`.
  *
  * Run from apps/api so tsx maps `@crew/shared` to its sources:
  *   pnpm --filter @crew/api exec tsx ../desktop/test/e2e/prepare-db.ts
@@ -52,7 +51,7 @@ async function main(): Promise<void> {
     const db = handle.db;
     const username = 'desktop-e2e-owner';
     const password = randomBytes(18).toString('base64url');
-    const owner = await seedOwner(db, { username, password, reset: true });
+    await seedOwner(db, { username, password, reset: true });
     const pairingCode = async () => {
       const code = Array.from({ length: 12 }, () => BASE32[randomInt(BASE32.length)]).join('');
       const codeHash = createHash('sha256').update(code).digest('hex');
@@ -70,7 +69,6 @@ async function main(): Promise<void> {
     const state: E2eState = {
       username,
       password,
-      totpSecret: owner.totpSecret,
       pairingCodes: await Promise.all(Array.from({ length: 9 }, () => pairingCode())),
       project: { key: 'SHOP', repoUrl },
     };

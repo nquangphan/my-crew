@@ -413,7 +413,7 @@ export async function projectDetail(ctx: HostContext, key: string): Promise<Proj
 
 /**
  * Asks the owner to change the project type and UI-test MCP mapping. The server keeps the request pending
- * until the owner approves it on the web with a TOTP; only the machine that owns the project may ask.
+ * until the owner approves it on the web; only the machine that owns the project may ask.
  */
 export async function requestTestSetup(
   ctx: HostContext,

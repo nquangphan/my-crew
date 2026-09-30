@@ -2,7 +2,6 @@ import { expect, type Locator, type Page, test } from '@playwright/test';
 import { DOCS_COMMIT } from './docs-fixture';
 import {
   Agent,
-  closeDb,
   expectNoHorizontalOverflow,
   login,
   openNav,
@@ -13,8 +12,6 @@ import {
   type Viewport,
   viewportOf,
 } from './helpers';
-
-test.afterAll(closeDb);
 
 /** The page tree: the left column on desktop, a drawer behind "Trang docs" on phone and tablet. */
 async function openTree(page: Page, viewport: Viewport): Promise<Locator> {

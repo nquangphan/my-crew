@@ -125,7 +125,7 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    nên `HookView.detail` (schema `@crew/shared`) luôn có lý do hook chưa chạy hoặc bản đang chạy.
    `requestTestSetup()` gọi `VpsClient.requestProjectChange()` để máy tự đề nghị đổi `platform`/`uiTestMcp`
    của project mình — dịch lỗi 403/409 của server thành thông báo tiếng Việt (máy không sở hữu project /
-   đã có yêu cầu khác đang chờ), không đổi gì tới khi chủ dự án xác nhận TOTP trên web (flow `project-claims`).
+   đã có yêu cầu khác đang chờ), không đổi gì tới khi chủ dự án xác nhận trên web bằng một cú nhấp (flow `project-claims`).
    (`ensureHooks()`/idempotent `createProject()` vá đúng sự cố từng gặp: chủ dự án bấm "Lưu và nhận project"
    ở bước cài đặt trong khi mới điền form "Thêm project mới từ thư mục" — nút đó khi đó chỉ áp dụng project
    đã tick sẵn, không tạo project vừa nhập, nên trình cài đặt xong mà máy chưa nhận project nào; tạo lại từ

@@ -1,16 +1,10 @@
 import { expect, test } from '@playwright/test';
 import { E2E_API_URL } from './e2e-env';
-import { call, fixtureRepo, launch, ownerSession, pairingCode, state, testEnv, totp } from './helpers';
+import { call, fixtureRepo, launch, ownerSession, pairingCode, testEnv } from './helpers';
 
 const REPO_URL = 'https://github.com/2p/settings-fixture.git';
 
-/** The next TOTP step's code: the owner login just used the current one, and codes are single use. */
-async function nextTotp(): Promise<string> {
-  await new Promise((resolve) => setTimeout(resolve, 30_000 - (Date.now() % 30_000) + 500));
-  return totp(state().totpSecret);
-}
-
-test('Settings → Projects asks the owner to change the project type and waits for the TOTP confirmation', async () => {
+test('Settings → Projects asks the owner to change the project type and waits for the owner to confirm on the web', async () => {
   const env = testEnv();
   const { app, page } = await launch(env);
   try {
@@ -49,9 +43,7 @@ test('Settings → Projects asks the owner to change the project type and waits 
     const { items } = (await listed.json()) as { items: { id: string; projectKey: string }[] };
     const request = items.find((item) => item.projectKey === 'SETT');
     expect(request).toBeDefined();
-    const approved = await owner.request('POST', `/v1/project-change-requests/${request?.id}/approve`, {
-      code: await nextTotp(),
-    });
+    const approved = await owner.request('POST', `/v1/project-change-requests/${request?.id}/approve`);
     expect(approved.status).toBe(200);
 
     await expect(section.getByText('Chủ dự án đã xác nhận')).toBeVisible({ timeout: 20_000 });
