@@ -1,0 +1,56 @@
+name: background-task-handoff
+description: >-
+  A dev run starts a real background command and ends its turn on it; the daemon keeps the job's session
+  open, the runtime notifies the same run when the command finishes, and the agent continues and hands off
+  in that same job (same job id, same session) — no retry, no no_handoff/not_finished. docs_update commits
+  code and docs together; QC passes; the whole tree ends stable with nothing stuck.
+inventory:
+  skills: [api-design]
+  mcpServers: [{ name: playwright }]
+request:
+  title: Thêm bước build nền
+  description: Cần một bước build chạy nền trước khi ghi file, không chặn lượt chạy.
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Thêm bước build nền }]
+  - stage: pm_analyze
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - {
+              title: Chạy build nền,
+              skills: [api-design],
+              complexity: trivial,
+              qcComplexity: trivial,
+            }
+  - stage: dev
+    title: Chạy build nền
+    steps:
+      - macro: dev_start
+        skills: [api-design]
+      # A real background command, in the job's process group and env: the turn ends while it is still
+      # running.
+      - bgBash: { id: build, command: 'sleep 0.3 && printf done > "$TMPDIR/build.done"' }
+      - endTurn: true
+      # The turn the runtime owes once the command exits: the agent picks up where it left off, in the
+      # same job.
+      - macro: dev_finish
+        file: src/build-feature.js
+        summary: 'Build nền đã xong (đã nhận thông báo); thêm `src/build-feature.js` và test của nó.'
+  - stage: docs_update
+    title: Chạy build nền
+    steps:
+      [{ macro: docs_update, files: [src/build-feature.js], message: 'feat: thêm build-feature' }]
+  - stage: qc
+    title: '^QC: Chạy build nền'
+    steps: [{ macro: qc, mcps: [playwright] }]
+  - stage: pm_accept
+    steps: [{ macro: pm_accept }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Thêm bước build nền$', type: request, status: in_review }
+    - { title: '^Thêm bước build nền$', type: pm_task, status: done }
+    - { title: '^Chạy build nền$', status: done }
+    - { title: '^QC: Chạy build nền$', status: done }

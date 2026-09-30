@@ -523,6 +523,23 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(qcBodies.some((b) => b.includes('`playwright`'))).toBe(false);
     expect(git(r.repo.remote, 'show', 'main:README.md')).toContain('## Cài đặt');
   },
+
+  async 'background-task-handoff'(r) {
+    await assertDocsJobCommits(r);
+    const dev = await one(/^Chạy build nền$/, 'dev');
+    // One agent job carried both turns (before and after the background command's notification): no
+    // second agent job, no retry.
+    expect(jobsOf(r, dev.id).map((j) => [j.kind, j.status])).toEqual([
+      ['agent', 'done'],
+      ['docs_update', 'done'],
+    ]);
+    const devReport = await report(dev.id);
+    expect(devReport?.summaryMd).toContain('src/build-feature.js');
+    const bodies = (await commentsOf(api.db, dev.id)).map((c) => c.body);
+    expect(bodies.some((b) => b.includes('không thành'))).toBe(false);
+    const qc = await one(/^QC: Chạy build nền$/);
+    expect(qc.status).toBe('done');
+  },
 };
 
 describe('scripted lifecycle matrix', () => {
