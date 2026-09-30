@@ -154,7 +154,7 @@ bộ vì nó chạy như một shell command trên chính máy đó.
     giúp biến/phần chung, so sánh với bản đang dùng hoặc bản mặc định), Quy tắc (ba ô textarea mỗi dòng một
     glob cộng checkbox `qcUiTestOnlyForNonDocs`), Models (bảng model + ngân sách mỗi lượt chạy chung cho mọi
     máy), Máy (`/settings/machines/$machineId`: tài nguyên, bảng model/ngân sách riêng máy đó hoặc dùng chung),
-    Dự án (`/settings/projects/$projectKey`: công tắc MCP server máy sở hữu đã báo cáo, server QC bắt buộc
+    MCP dự án (`/settings/projects/$projectKey`: công tắc MCP server máy sở hữu đã báo cáo, server QC bắt buộc
     được đánh dấu, thêm server theo tên khi máy chưa báo cáo nó). Tab Máy có thêm mục "Thư mục dự án"
     (`MachineFolders`): một dòng mỗi project máy đang giữ (đường dẫn tuyệt đối trên máy, danh sách thư mục dùng
     chung mỗi dòng một đường dẫn) — dòng nào máy báo không dùng được (đọc `machine.settings.reported.rejected`,
