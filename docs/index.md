@@ -80,9 +80,18 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Board, danh sách và ticket trên web](flows/web-tickets.md) | `web-tickets` | `apps/web/src/routes/board.tsx`, `apps/web/src/routes/list.tsx`, `apps/web/src/routes/ticket-detail.tsx`, `apps/web/src/routes/my-requests.tsx` |
 <!-- crew-docs:flows:end -->
 
+## Hướng dẫn
+
+- [Cài đặt môi trường dev](guides/dev-setup.md): từ máy trắng tới lúc chạy được API, web, daemon, app desktop ở chế độ dev.
+- [Hướng dẫn sử dụng](guides/user-guide.md): thao tác trên web cho chủ dự án, không cần biết code.
+- [Quy trình ticket](guides/workflow.md): một yêu cầu đi qua những bước nào từ lúc tạo tới lúc merge.
+- [Bảng tra API](guides/api-reference.md): danh sách endpoint, dẫn tới schema zod và trang flow sở hữu route.
+- [Hướng dẫn đóng góp](CONTRIBUTING.md): quy ước, thứ tự đọc docs trước khi sửa code, docs đi cùng mỗi commit.
+
 ## Cách dùng docs
 
 - `docs/architecture.md`: thành phần, nơi lưu dữ liệu, dịch vụ bên ngoài, cách triển khai.
 - `docs/flows/<id>.md`: mỗi flow nghiệp vụ hoặc kỹ thuật có một trang.
 - `docs/flows.yaml`: nguồn sự thật flow ↔ file, cho máy đọc.
 - `docs/files.md`: tra ngược file → flow, sinh tự động bằng `crew-docs generate`.
+- Muốn biết cách dùng hay đóng góp, xem mục [Hướng dẫn](#hướng-dẫn) ở trên.
