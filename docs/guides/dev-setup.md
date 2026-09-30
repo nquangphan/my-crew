@@ -51,7 +51,7 @@ biến và ý nghĩa — lấy giá trị mẫu cục bộ thật từ chính fi
 |------|---------|
 | `DATABASE_URL` | Chuỗi kết nối Postgres chính; mặc định dev trỏ vào `crew-dev-postgres` ở trên. |
 | `SESSION_SECRET` | Tối thiểu 32 ký tự ngẫu nhiên, ký CSRF token; tự sinh cho máy dev, không commit. |
-| `PUBLIC_ORIGIN` | Origin công khai của API. |
+| `PUBLIC_ORIGIN` | Origin công khai của **web app** (không phải của API) — theo comment tại `apps/api/src/config.ts`; luôn nằm trong danh sách origin được phép của API (`allowedOrigins`). |
 | `ALLOWED_ORIGINS` | Danh sách origin bổ sung được phép, phân tách bằng dấu phẩy (ví dụ thêm origin của Vite dev khi cần gọi trực tiếp không qua proxy). |
 | `HOST` | Địa chỉ Fastify bind vào. |
 | `PORT` | Cổng API. |
@@ -64,13 +64,38 @@ biến và ý nghĩa — lấy giá trị mẫu cục bộ thật từ chính fi
 | `RUNTIME_EXTRA_PUBLIC_KEYS` | Khoá ký runtime tin cậy bổ sung (Ed25519, base64), phân tách bằng dấu phẩy; thường để trống. |
 | `TEST_DATABASE_URL` | Chỉ dùng khi chạy test của `apps/api`; tên DB phải có hậu tố `_test`. |
 
-Xem `apps/api/.env.example` để lấy giá trị mẫu cục bộ dùng được ngay cho dev.
+Giá trị mẫu trong `apps/api/.env.example` **không dùng ngay được cho dev**: `PUBLIC_ORIGIN` ở đó là domain
+production (`https://crew.2p-solutions.com`), `ALLOWED_ORIGINS` để trống và `COOKIE_SECURE=true`. `DATABASE_URL`
+và `TEST_DATABASE_URL` mẫu thì dùng được nguyên vẹn vì đã trỏ sẵn vào `crew-dev-postgres`. Bộ giá trị dùng được
+cho dev nằm ở mục ngay dưới đây.
+
+## Nạp biến môi trường trước khi chạy lệnh `apps/api`
+
+`apps/api` không tự đọc file `.env` nào — `loadConfig()` trong `apps/api/src/config.ts` parse thẳng
+`process.env`, và `DATABASE_URL`, `SESSION_SECRET`, `PUBLIC_ORIGIN` bắt buộc, không có giá trị mặc định. Thiếu
+biến thì `db:migrate` thoát với `DATABASE_URL is required`, còn `dev` ném `Invalid API configuration: ...` (xem
+mục "Lỗi thường gặp" bên dưới). **Export các biến sau vào shell trước khi chạy bất kỳ lệnh nào của `apps/api`**
+(mọi lệnh còn lại trong trang này giả định đã export sẵn):
+
+```sh
+export DATABASE_URL=postgres://crew:crew@127.0.0.1:55432/crew   # trỏ crew-dev-postgres, khớp apps/api/.env.example
+export SESSION_SECRET=$(openssl rand -base64 32)                # tự sinh, không dùng giá trị cố định
+export PUBLIC_ORIGIN=http://127.0.0.1:5173                      # origin của Vite dev, KHÔNG phải giá trị production trong .env.example
+export COOKIE_SECURE=false                                      # dev chạy HTTP thuần; true chỉ dùng khi có HTTPS
+```
+
+Bộ giá trị trên khớp cấu hình mà chính repo dùng để chạy web + API cục bộ (khối `webServer.api.env` ở
+`apps/web/playwright.config.ts`). Cách nạp cụ thể (`export` trong shell, `.envrc`, `dotenv-cli`, …) tuỳ công cụ
+bạn dùng — trang này chỉ đảm bảo bộ giá trị dev hoạt động được, không quy định cơ chế nạp; tự chạy thử để xác
+nhận cách nạp phù hợp với môi trường của bạn.
 
 ## Migrate DB và tạo tài khoản owner
 
+Cần đã export các biến ở mục trên (đặc biệt `DATABASE_URL`) trước khi chạy hai lệnh này:
+
 ```sh
 pnpm --filter @crew/api db:migrate
-DATABASE_URL=<chuỗi kết nối DB dev> pnpm --filter @crew/api seed:owner --username <tên đăng nhập>
+pnpm --filter @crew/api seed:owner --username <tên đăng nhập>
 ```
 
 - `db:migrate` chạy migration Drizzle (script thật: `tsx src/db/migrate.ts`) lên DB trỏ bởi `DATABASE_URL`.
@@ -81,13 +106,20 @@ DATABASE_URL=<chuỗi kết nối DB dev> pnpm --filter @crew/api seed:owner --u
 
 ## Chạy API và web
 
+Cần đã export các biến ở mục [Nạp biến môi trường trước khi chạy lệnh `apps/api`](#nạp-biến-môi-trường-trước-khi-chạy-lệnh-appsapi)
+ở trên trước khi chạy `pnpm --filter @crew/api dev`:
+
 ```sh
 pnpm --filter @crew/api dev   # tsx watch src/server.ts, mặc định cổng 8787 (biến PORT)
 pnpm --filter @crew/web dev   # vite, mặc định cổng 5173
 ```
 
-Web dev server (Vite, cổng `5173`) proxy các request `/v1` sang API, nên không cần đặt `ALLOWED_ORIGINS` hay
-CORS riêng để web nói chuyện với API lúc phát triển.
+Vite dev server (cổng `5173`) proxy các request `/v1` sang API, nên không cần đặt `ALLOWED_ORIGINS` hay CORS
+riêng — **miễn là `PUBLIC_ORIGIN` đúng bằng origin Vite đang chạy** (`http://127.0.0.1:5173` theo bộ giá trị dev
+ở trên). `assertAllowedOrigin()` trong `apps/api/src/auth/csrf.ts` từ chối mọi request có header `Origin` không
+nằm trong `allowedOrigins` (= `PUBLIC_ORIGIN` gộp `ALLOWED_ORIGINS`); hàm này chạy khi đăng nhập và ở guard owner
+cho các method có side effect. Dùng `PUBLIC_ORIGIN` khác origin Vite (ví dụ để nguyên giá trị production trong
+`.env.example`) thì đăng nhập từ web dev sẽ bị từ chối.
 
 ## Chạy daemon `crewd` và app desktop ở chế độ dev
 
@@ -145,7 +177,14 @@ job agent là một quy trình riêng cho chủ dự án, không phải bước 
   sẵn sàng (chưa chạy `docker compose -f docker-compose.dev.yml up -d --wait`, hoặc chạy thiếu cờ `--wait` nên
   lệnh tiếp theo chạy trước khi healthcheck đạt).
 - **API không khởi động được**: thiếu `SESSION_SECRET` hoặc giá trị ngắn hơn 32 ký tự.
+- **`DATABASE_URL is required` (khi chạy `db:migrate`) hoặc `Invalid API configuration: ...` (khi chạy `dev`)**:
+  chưa export biến môi trường trước khi chạy lệnh — xem mục
+  [Nạp biến môi trường trước khi chạy lệnh `apps/api`](#nạp-biến-môi-trường-trước-khi-chạy-lệnh-appsapi)
+  (nguồn: `apps/api/src/db/migrate.ts` dòng 19–23, `apps/api/src/config.ts` `loadConfig()`).
 - **Đăng nhập web thất bại khi chạy HTTP cục bộ**: `COOKIE_SECURE=true` trong khi truy cập qua HTTP — cookie
   `Secure` chỉ được trình duyệt gửi lại qua HTTPS; đặt `COOKIE_SECURE=false` khi chạy dev thuần HTTP.
+- **Đăng nhập web bị từ chối (lỗi CSRF, "request origin is not allowed")**: `PUBLIC_ORIGIN` không khớp origin
+  web đang chạy — đặt `PUBLIC_ORIGIN=http://127.0.0.1:5173` khi chạy Vite dev mặc định (nguồn:
+  `apps/api/src/auth/csrf.ts` `assertAllowedOrigin()`).
 - **Test bị từ chối chạy**: `TEST_DATABASE_URL` (hoặc biến tương đương của `apps/daemon`/`apps/desktop`) trỏ
   vào một DB không có hậu tố `_test` — cả ba bộ test đều tự chặn để tránh xoá nhầm dữ liệu không phải DB test.
