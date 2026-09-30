@@ -6,6 +6,7 @@ import {
   createSdkRunner,
   type RunAgentOptions,
   RunControl,
+  type SdkRunnerOptions,
 } from '../src/runner/agent-runner.js';
 import { sleep, waitFor } from './helpers/daemon.js';
 
@@ -124,9 +125,15 @@ function liveQuery(settings: { staysOpen?: boolean; failStop?: string[] } = {}) 
 }
 
 /** Starts a run on a live fake session; `settled()` tells whether the run has returned. */
-function startRun(fake: ReturnType<typeof liveQuery>, over: Partial<RunAgentOptions> = {}) {
+function startRun(
+  fake: ReturnType<typeof liveQuery>,
+  over: Partial<RunAgentOptions> = {},
+  runner: Omit<SdkRunnerOptions, 'query'> = {},
+) {
   let done = false;
-  const run: Promise<AgentRunResult> = createSdkRunner({ query: fake.query })(options(over)).finally(() => {
+  const run: Promise<AgentRunResult> = createSdkRunner({ ...runner, query: fake.query })(
+    options(over),
+  ).finally(() => {
     done = true;
   });
   return { run, settled: () => done };
@@ -464,6 +471,91 @@ describe('SDK agent runner', () => {
         reminded: false,
       });
       expect(out.capture).toMatchObject({ numTurns: 3, durationMs: 1_300, lastMessage: 'Đã nhận.' });
+    });
+
+    it('two tasks end at the same moment: the empty result does not close the session', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake, {}, { backgroundSettleMs: 300 });
+      fake.emit(
+        init(),
+        backgroundTasks('a', 'b'),
+        say('m1', 'Đang chờ.'),
+        result({ total_cost_usd: 0.1, num_turns: 3, duration_ms: 1_000 }),
+      );
+      await sleep(80);
+      // Like runtime 2.1.283: a turn that runs nothing, then the turn that carries the notifications.
+      fake.emit(
+        backgroundTasks('b'),
+        backgroundTasks(),
+        init(),
+        result({ total_cost_usd: 0.1, num_turns: 0, duration_ms: 1 }),
+      );
+      await sleep(80);
+      expect(settled()).toBe(false);
+      expect(fake.events).toEqual(['input:1']);
+      fake.emit(
+        init(),
+        say('m2', 'Đã nhận.'),
+        result({ total_cost_usd: 0.2, num_turns: 3, duration_ms: 500 }),
+      );
+      const out = await run;
+      expect(fake.events).toEqual(['input:1', 'input-closed', 'close']);
+      expect(out).toMatchObject({
+        resultSubtype: 'success',
+        isError: false,
+        aborted: false,
+        totalCostUsd: 0.2,
+        backgroundTasksLeft: [],
+        reminded: false,
+      });
+      expect(out.capture).toMatchObject({ numTurns: 6, durationMs: 1_501, lastMessage: 'Đã nhận.' });
+    });
+
+    it('two tasks end at the same moment: a separate turn for the second notification still runs', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake, {}, { backgroundSettleMs: 300 });
+      fake.emit(init(), backgroundTasks('a', 'b'), result({ total_cost_usd: 0.1, num_turns: 3 }));
+      await sleep(80);
+      fake.emit(
+        backgroundTasks('b'),
+        backgroundTasks(),
+        init(),
+        result({ total_cost_usd: 0.1, num_turns: 0 }),
+        init(),
+        say('m2', 'Đã nhận a.'),
+        result({ total_cost_usd: 0.2, num_turns: 2 }),
+      );
+      // The session stays open after the first notification turn: one more turn may still be owed.
+      await sleep(100);
+      expect(settled()).toBe(false);
+      fake.emit(init(), say('m3', 'Đã nhận b.'), result({ total_cost_usd: 0.3, num_turns: 2 }));
+      const out = await run;
+      expect(fake.events).toEqual(['input:1', 'input-closed', 'close']);
+      expect(out).toMatchObject({
+        isError: false,
+        totalCostUsd: 0.3,
+        backgroundTasksLeft: [],
+        reminded: false,
+      });
+      expect(out.capture).toMatchObject({ numTurns: 7, lastMessage: 'Đã nhận b.' });
+    });
+
+    it('closes cleanly after the settle time when no turn follows an empty result', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake, {}, { backgroundSettleMs: 200 });
+      fake.emit(init(), backgroundTasks('a', 'b'), result({ total_cost_usd: 0.1, num_turns: 3 }));
+      await sleep(80);
+      fake.emit(backgroundTasks(), init(), result({ total_cost_usd: 0.1, num_turns: 0 }));
+      await sleep(100);
+      expect(settled()).toBe(false);
+      const out = await run;
+      expect(fake.events).toEqual(['input:1', 'input-closed', 'close']);
+      expect(out).toMatchObject({
+        resultSubtype: 'success',
+        isError: false,
+        totalCostUsd: 0.1,
+        backgroundTasksLeft: [],
+      });
     });
 
     it('fails the run when the process goes away while the session waits for a background task', async () => {

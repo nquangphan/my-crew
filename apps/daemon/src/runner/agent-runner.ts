@@ -255,6 +255,8 @@ export interface SdkRunnerOptions {
   query?: typeof sdkQuery;
   /** Path of the Claude Code executable (the desktop app points the SDK at its bundled runtime). */
   pathToClaudeCodeExecutable?: string;
+  /** How long a session stays open for a turn the runtime still owes (default `DEFAULT_SETTLE_MS`). */
+  backgroundSettleMs?: number;
 }
 
 /**
@@ -266,7 +268,9 @@ export interface SdkRunnerOptions {
  * The prompt is a stream the daemon keeps open: with a plain string the runtime closes its input after the
  * first result and kills the agent's background tasks 5 seconds later. A turn that ends with background
  * tasks leaves the session open (`BackgroundSession`), so the runtime can deliver their notifications and
- * the agent runs further turns; the live tasks are stopped before the session closes.
+ * the agent runs further turns, until no task is alive and no turn is owed (an empty result, which the
+ * runtime sends when two tasks end at the same moment, pays for none); the live tasks are stopped before the
+ * session closes.
  */
 export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
   const query = options.query ?? sdkQuery;
@@ -336,6 +340,7 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
         close: () => input.close(),
       },
       ...(run.backgroundWaitMs !== undefined ? { waitMs: run.backgroundWaitMs } : {}),
+      ...(options.backgroundSettleMs !== undefined ? { settleMs: options.backgroundSettleMs } : {}),
       endRequested: () => run.control.endReason !== null,
       ...(run.workDone ? { workDone: run.workDone } : {}),
     });
@@ -421,8 +426,12 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
           );
           if (message.subtype !== 'success') result.errors.push(...message.errors);
           // Closes the input (after stopping what is still running), or leaves the session open so the
-          // runtime can deliver the background tasks' notifications and the agent runs another turn.
-          await session.turnEnded({ isError: message.is_error || message.subtype !== 'success' });
+          // runtime can deliver the background tasks' notifications and the agent runs another turn. A result
+          // that counts no turn ran nothing: the runtime still owes what it owed before it.
+          await session.turnEnded({
+            isError: message.is_error || message.subtype !== 'success',
+            empty: message.num_turns === 0,
+          });
           if (run.control.endReason) break;
         }
       }

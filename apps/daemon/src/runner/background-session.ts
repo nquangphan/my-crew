@@ -3,6 +3,11 @@
  * message into its session, stop a task and close the session (`SessionPort`). The runner reports what it
  * sees (the live task set, a turn starting, a turn ending) and this decides: wait for the runtime to deliver
  * the task notification, remind the agent once when a wait hits its ceiling, or stop the tasks and close.
+ *
+ * The runtime owes the agent a turn for every piece of background work that ended and for the reminder. The
+ * session counts those turns: a turn that ends pays for one of them at most, and one that ran nothing pays for
+ * none. With nothing alive the session closes at once only when nothing is owed; otherwise it stays open a
+ * short time for the next turn.
  */
 
 /** A live background task of the session (a shell command, a subagent, …). */
@@ -49,9 +54,9 @@ export type CloseReason =
 
 export const DEFAULT_BACKGROUND_WAIT_MS = 30 * 60_000;
 /**
- * How long the session stays open for the turn the runtime owes to background work that just ended. The
- * runtime starts that turn within tens of milliseconds, also for a task that ended while the agent was
- * writing the last answer of its turn (the live set is then already empty when the turn's result arrives).
+ * How long the session stays open for a turn the runtime still owes. The runtime starts that turn within tens
+ * of milliseconds of the previous result, also for a task that ended while the agent was writing the last
+ * answer of its turn (the live set is then already empty when the turn's result arrives).
  */
 export const DEFAULT_SETTLE_MS = 10_000;
 /** How long closing waits for the runtime to confirm the stops. */
@@ -67,6 +72,13 @@ export interface BackgroundSessionOptions {
   endRequested?: () => boolean;
   /** True once the run's own work is finished: a turn that ends then never waits. Absent: always wait. */
   workDone?: () => boolean | Promise<boolean>;
+}
+
+/** A turn as the runner saw it end. */
+export interface EndedTurn {
+  isError: boolean;
+  /** The turn ran nothing (its result counts no turn): it handled nothing the runtime owes. */
+  empty?: boolean;
 }
 
 function waitText(ms: number): string {
@@ -86,7 +98,7 @@ export function reminderText(tasks: BackgroundTask[], waitMs: number): string {
 
 /**
  * What the session is waiting for between two turns: `work` for live background work (up to the ceiling),
- * `settle` for the turn the runtime owes to work that already ended (a short time).
+ * `settle` for a turn the runtime still owes (a short time).
  */
 type Wait = 'work' | 'settle';
 
@@ -94,8 +106,16 @@ export class BackgroundSession {
   private tasks: BackgroundTask[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private wait: Wait | null = null;
-  /** Background work ended during the turn in flight: the runtime may still owe a turn for it. */
-  private workEnded = false;
+  /** A turn is in flight; the session starts with the turn of the run's prompt. */
+  private running = true;
+  /**
+   * Turns the runtime may still owe: one for each piece of work that ended, one for the reminder. An upper
+   * bound (one turn can carry several notifications, a stopped task gets none): what is left over is written
+   * off when a settle time passes without a turn.
+   */
+  private owed = 0;
+  /** A turn was owed when the turn in flight started: only such a turn can be one of the owed ones. */
+  private payable = false;
   private closing: Promise<void> | null = null;
   private signalClosing: () => void = () => {};
   private readonly whenClosing = new Promise<void>((resolve) => {
@@ -153,9 +173,8 @@ export class BackgroundSession {
       ambient: task.ambient === true,
     }));
     const work = this.liveWork();
-    if (this.wait === null) {
-      if (before.some((task) => !work.some((live) => live.id === task.id))) this.workEnded = true;
-    } else if (this.wait === 'work' && work.length === 0) {
+    this.owed += before.filter((task) => !work.some((live) => live.id === task.id)).length;
+    if (this.wait === 'work' && work.length === 0) {
       // A task normally ends with a notification turn. One that leaves without it (it was stopped) must not
       // hold the session open until the ceiling.
       this.wait = 'settle';
@@ -165,21 +184,27 @@ export class BackgroundSession {
 
   /** A turn of the main agent started (or goes on): the wait, if any, is over. */
   turnStarted(): void {
-    if (this.wait === null) return;
-    // The turn that ends a wait is the one owed to the work that ended meanwhile.
+    if (this.running) return;
+    this.running = true;
+    this.payable = this.owed > 0;
     this.wait = null;
-    this.workEnded = false;
     this.disarm();
   }
 
-  /** A turn ended with a result: closes the session, or leaves it open to wait for the background work. */
-  async turnEnded(turn: { isError: boolean }): Promise<'closed' | 'waiting'> {
+  /**
+   * A turn ended with a result: closes the session, or leaves it open to wait for the background work or for
+   * a turn the runtime still owes. `empty` marks a turn that ran nothing (the runtime reports one when two
+   * tasks end at the same moment, right before the turn that carries their notifications).
+   */
+  async turnEnded(turn: EndedTurn): Promise<'closed' | 'waiting'> {
     this.turnStarted();
     if (this.closed) return 'closed';
-    const workEnded = this.workEnded;
-    this.workEnded = false;
+    this.running = false;
+    // What came to be owed during the turn is not paid by it, and a turn that ran nothing pays for nothing.
+    if (this.payable && !turn.empty) this.owed -= 1;
+    this.payable = false;
     // Reading the run's state may take a while (an API call): an abort meanwhile does not wait for it.
-    const decision = await Promise.race([this.afterTurn(turn, workEnded), this.whenClosing.then(() => null)]);
+    const decision = await Promise.race([this.afterTurn(turn), this.whenClosing.then(() => null)]);
     if (this.closed || decision === null) {
       await this.closing;
       return 'closed';
@@ -204,11 +229,12 @@ export class BackgroundSession {
     this.disarm();
   }
 
-  private async afterTurn(turn: { isError: boolean }, workEnded: boolean): Promise<CloseReason | Wait> {
+  private async afterTurn(turn: EndedTurn): Promise<CloseReason | Wait> {
     if (turn.isError) return 'turn_error';
     if (this.options.endRequested?.()) return 'end_requested';
-    if (this.liveWork().length === 0) return workEnded ? 'settle' : 'idle';
-    if (this.remindedOnce) return 'reminded';
+    if (this.liveWork().length === 0) return this.owed > 0 ? 'settle' : 'idle';
+    // A turn that ran nothing did not answer the reminder.
+    if (this.remindedOnce && !turn.empty) return 'reminded';
     try {
       if (this.options.workDone && (await this.options.workDone())) return 'work_done';
     } catch {
@@ -238,7 +264,8 @@ export class BackgroundSession {
       return;
     }
     if (this.wait === 'settle') {
-      // Work showed up again without a turn: it gets a full wait.
+      // Work showed up again without a turn: it gets a full wait. No turn came, so none is owed any more.
+      this.owed = 0;
       this.wait = 'work';
       this.arm(this.waitMs);
       return;
@@ -250,6 +277,7 @@ export class BackgroundSession {
     }
     // The reminder starts a turn; the turn that answers it never waits again.
     this.remindedOnce = true;
+    this.owed += 1;
     this.options.port.send(reminderText(work, this.waitMs));
     this.arm(this.waitMs);
   }

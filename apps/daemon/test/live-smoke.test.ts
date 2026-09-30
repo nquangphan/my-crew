@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { type SDKMessage, query as sdkQuery } from '@anthropic-ai/claude-agent-sdk';
 import { describe, expect, it } from 'vitest';
@@ -157,6 +157,37 @@ describe.skipIf(!live)('live Agent SDK smoke', () => {
     expect(run.backgroundTasksLeft).toEqual([]);
     expect(run.reminded).toBe(false);
   }, 240_000);
+
+  it('two background commands that end at the same moment both get their notification turn', async () => {
+    const { run, cwd, results, taskSets, notifications } = await backgroundRun(
+      [
+        'Đây là bài kiểm tra tự động. Làm đúng các việc sau:',
+        '1. Trong CÙNG MỘT lượt, gọi công cụ Bash hai lần, cả hai với run_in_background: true:',
+        '   - command thứ nhất đúng là: while [ ! -f go ]; do sleep 0.05; done; echo a > a.txt',
+        '   - command thứ hai đúng là: while [ ! -f go ]; do sleep 0.05; done; echo b > b.txt',
+        '2. Ngay sau đó kết thúc lượt, chỉ trả lời "đang chờ". Không kiểm tra lệnh, không tạo file go.',
+        '3. Mỗi khi được thông báo MỘT lệnh nền đã xong, chạy lệnh Bash ghi tên file kết quả vào seen.txt',
+        '   (echo a >> seen.txt hoặc echo b >> seen.txt) rồi trả lời "đã nhận".',
+      ],
+      // Both commands wait for the same file, so they exit within a few milliseconds of each other.
+      { goAfterFirstResultMs: 3_000 },
+    );
+    const last = results.at(-1);
+    if (!last) throw new Error('the run produced no result message');
+    // Whether the runtime sent an empty result depends on its timing; the outcome must hold either way.
+    const emptyResult = results.some((entry) => entry.message.num_turns === 0);
+    console.info(
+      `[live] simultaneous end run (empty result seen: ${emptyResult}): ${describeRun(run, results, taskSets, notifications)}`,
+    );
+    expect(run).toMatchObject({ isError: false, resultSubtype: 'success', aborted: false });
+    expect(existsSync(join(cwd, 'a.txt')) && existsSync(join(cwd, 'b.txt'))).toBe(true);
+    const seen = readFileSync(join(cwd, 'seen.txt'), 'utf8').split(/\s+/).filter(Boolean);
+    expect([...new Set(seen)].sort()).toEqual(['a', 'b']);
+    expect(run.backgroundTasksLeft).toEqual([]);
+    expect(run.reminded).toBe(false);
+    expect(run.totalCostUsd).toBe(last.message.total_cost_usd);
+    expect(run.capture.numTurns).toBe(results.reduce((sum, entry) => sum + entry.message.num_turns, 0));
+  }, 240_000);
 });
 
 type ResultMessage = Extract<SDKMessage, { type: 'result' }>;
@@ -176,8 +207,9 @@ interface Notification {
 /**
  * One haiku run of the SDK runner in a temp dir with only Bash allowed, with every message the runner reads
  * recorded together with its arrival time. `done.txt` is the file the prompt's background command writes.
+ * `goAfterFirstResultMs` creates the file `go` in the temp dir that long after the first result.
  */
-async function backgroundRun(prompt: string[]) {
+async function backgroundRun(prompt: string[], options: { goAfterFirstResultMs?: number } = {}) {
   const cwd = tempDir('crew-live-bg-');
   const marker = join(cwd, 'done.txt');
   const seen: Timed<SDKMessage>[] = [];
@@ -191,8 +223,11 @@ async function backgroundRun(prompt: string[]) {
           return async (...args: Parameters<typeof q.next>) => {
             const step = await target.next(...args);
             if (!step.done) {
-              if (step.value.type === 'result' && markerAtFirstResult === null)
+              if (step.value.type === 'result' && markerAtFirstResult === null) {
                 markerAtFirstResult = existsSync(marker);
+                if (options.goAfterFirstResultMs !== undefined)
+                  setTimeout(() => writeFileSync(join(cwd, 'go'), ''), options.goAfterFirstResultMs);
+              }
               seen.push({ at: Date.now(), message: step.value });
             }
             return step;
