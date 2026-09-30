@@ -296,7 +296,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/machine-control.test.tsx` | [machine-control](flows/machine-control.md) (test) |
 | `apps/web/src/components/machine-control.tsx` | [machine-control](flows/machine-control.md) (điểm vào) |
 | `apps/web/src/components/machine-runtime.tsx` | [runtime-updates](flows/runtime-updates.md) (file) |
+| `apps/web/src/components/markdown-editor.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/markdown-editor.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/markdown-view.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/markdown-view.tsx` | [web-tickets](flows/web-tickets.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
 | `apps/web/src/components/model-settings-form.tsx` | [server-settings](flows/server-settings.md) (file) |
 | `apps/web/src/components/new-ticket-dialog.tsx` | [web-tickets](flows/web-tickets.md) (file) |
@@ -346,6 +348,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/lib/inbox.ts` | [web-admin](flows/web-admin.md) (file) |
 | `apps/web/src/lib/live-events.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
 | `apps/web/src/lib/live-events.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `apps/web/src/lib/paste-image.ts` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/lib/queries.test.tsx` | [web-shell](flows/web-shell.md) (test) |
 | `apps/web/src/lib/queries.ts` | [web-shell](flows/web-shell.md) (file) |
 | `apps/web/src/lib/search-params.test.ts` | [web-shell](flows/web-shell.md) (test) |
