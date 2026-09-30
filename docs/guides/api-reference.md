@@ -182,6 +182,7 @@ mutating (`GET` không cần CSRF, ghi `owner (no CSRF)`); `daemon` = bearer tok
 |---|---|---|---|---|
 | POST | `/v1/tickets/:id/attachments` | owner (CSRF, `bodyLimit` riêng lớn hơn mặc định) | Upload ảnh dán clipboard (whitelist mime, tối đa 10MB) | [ticket-lifecycle](../flows/ticket-lifecycle.md) |
 | GET | `/v1/attachments/:id` | owner (no CSRF) | Đọc lại bytes ảnh đã upload | [ticket-lifecycle](../flows/ticket-lifecycle.md) |
+| GET | `/v1/daemon/attachments/:id` | daemon (phạm vi theo ticket, qua `assertTicketReadable`) | Daemon đọc lại bytes ảnh cho agent | [ticket-lifecycle](../flows/ticket-lifecycle.md) |
 
 ### 8. Docs
 
@@ -249,7 +250,7 @@ mutating (`GET` không cần CSRF, ghi `owner (no CSRF)`); `daemon` = bearer tok
 |---|---|---|---|---|
 | GET | `/v1/health` | public | Health check (ping DB) | [api-platform](../flows/api-platform.md) |
 
-**Tổng cộng 88 route**: 3 public, 53 owner, 32 daemon (đếm cả `GET /v1/health`).
+**Tổng cộng 89 route**: 3 public, 53 owner, 33 daemon (đếm cả `GET /v1/health`).
 
 ## Schema
 

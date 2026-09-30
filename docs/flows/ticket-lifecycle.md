@@ -187,7 +187,14 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     và trả cùng `ApiError('ATTACHMENT_TOO_LARGE', ATTACHMENT_TOO_LARGE_MESSAGE)` mà `decodeImage()` dùng, các
     lỗi khác của route này vẫn qua `sendApiError()` dùng chung (`errors.ts`, flow `api-platform`) — nhờ vậy mọi
     ảnh vượt 10MB, dù lọt qua `bodyLimit` hay bị chặn ở tầng route, đều nhận cùng một mã lỗi và thông báo rõ
-    ràng thay vì rơi vào `VALIDATION_FAILED` chung. Không có route cho daemon/agent (agent không paste ảnh).
+    ràng thay vì rơi vào `VALIDATION_FAILED` chung. Agent không tự paste ảnh, nhưng daemon cần tải lại ảnh chủ
+    dự án đã dán để đưa cho agent: `getAttachmentWithTicket()` đọc thêm ticket sở hữu ảnh (join
+    `attachments.ticket_id` → `tickets`) để route `GET /v1/daemon/attachments/:id` (`daemonAttachmentRoutes`,
+    cùng file `attachment-routes.ts`, đăng ký trong nhóm route daemon của `buildApp()`, flow `daemon-api`) kiểm
+    phạm vi bằng `assertTicketReadable()` (flow `machine-pairing`, luật y hệt `GET /v1/daemon/tickets/:id`)
+    trước khi trả bytes — ảnh ngoài phạm vi máy nhận `403` ngay, không rơi về `404` hay lộ `mimeType`. Route này
+    dùng lại đúng header `Content-Type`/`cache-control: private, no-store` như route owner, và không cần
+    `Idempotency-Key` vì là route đọc.
 
 ## Files
 
@@ -196,7 +203,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/routes/ticket-routes.ts` | Route ticket owner + search | `ticketRoutes` |
 | `apps/api/src/routes/comment-routes.ts` | Route bình luận owner | `commentRoutes` |
 | `apps/api/src/routes/report-routes.ts` | Route đọc report owner | `reportRoutes` |
-| `apps/api/src/routes/attachment-routes.ts` | Route upload/đọc ảnh đính kèm owner | `attachmentRoutes` |
+| `apps/api/src/routes/attachment-routes.ts` | Route upload/đọc ảnh đính kèm owner, cộng route đọc cho daemon | `attachmentRoutes`, `daemonAttachmentRoutes` |
 | `apps/api/src/services/ticket-service.ts` | Tạo, đánh giá lại, transition, bug loop, bình luận (kể cả tag `@pm`), sửa ticket | `createRequestTicket`, `createSubtask`, `rateSubtask`, `retrySubtask`, `fileBug`, `transitionTicket`, `addComment`, `toCommentDto`, `updateTicket`, `lockWithParent`, `governingPmTask` |
 | `apps/api/src/services/ticket-query-service.ts` | Danh sách, chi tiết, cây hậu duệ, tìm kiếm | `listTickets`, `getTicketDetail`, `getTicketTree`, `search`, `inProjectsFilter`, `TREE_LIMIT` |
 | `packages/shared/src/comment-mentions.ts` | Tag `@pm` trong bình luận owner | `CommentMention`, `parseMentions` |
@@ -204,7 +211,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/services/budget-service.ts` | Trần con, ngân sách, hold | `enforceChildCap`, `addCost`, `applyHold`, `liftHold`, `getBudgetStatus` |
 | `apps/api/src/jobs/stuck-ticket-alarm.ts` | Báo ticket đứng yên không ai xử lý | `findStuckTickets`, `raiseStuckTicketAlarms`, `startStuckTicketAlarm`, `WaitingJobsRegistry` |
 | `apps/api/src/services/agent-activity-service.ts` | Tính hoạt động agent hiển thị cho owner, từ heartbeat máy | `loadAgentActivity`, `withAgentActivity`, `activitySignatures`, `changedTicketIds`, `heartbeatFresh` |
-| `apps/api/src/services/attachment-service.ts` | Lưu/đọc ảnh đính kèm (bytea), validate mime + size | `uploadAttachment`, `getAttachmentContent`, `ATTACHMENT_TOO_LARGE_MESSAGE` |
+| `apps/api/src/services/attachment-service.ts` | Lưu/đọc ảnh đính kèm (bytea), validate mime + size | `uploadAttachment`, `getAttachmentContent`, `getAttachmentWithTicket`, `ATTACHMENT_TOO_LARGE_MESSAGE` |
 | `packages/shared/src/ticket-schemas.ts` | Enum trạng thái/loại/ưu tiên/actor ticket | `TicketStatus`, `TicketType`, `Actor` |
 | `packages/shared/src/agent-schemas.ts` | Enum role/complexity/model/effort/bước agent, lý do chờ job và hoạt động agent | `AgentRole`, `Complexity`, `ModelAlias`, `SelectableModel`, `Effort`, `RoleStage`, `DOCS_MODEL`, `JobWaitReason`, `JobWaitDetail`, `AGENT_ACTIVITY_STALE_MS`, `AgentActivityStatus`, `AgentActivity` |
 | `packages/shared/src/status-workflow.ts` | Bảng cạnh workflow, kiểm tra transition | `canTransition`, `allowedTransitions`, `AGENT_EDGES`, `OWNER_EDGES`, `TERMINAL_STATUSES` |
@@ -225,10 +232,12 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 ## Flow liên quan
 
 - daemon-api: mọi ghi của agent (tạo subtask, file bug, report, transition, bình luận) gọi thẳng các hàm ở
-  đây với `actor='agent'`, qua route `/v1/daemon/*`.
+  đây với `actor='agent'`, qua route `/v1/daemon/*`. `GET /v1/daemon/attachments/:id` (`daemonAttachmentRoutes`,
+  cùng file `attachment-routes.ts`) cũng đăng ký trong nhóm route daemon đó, đọc lại ảnh đã dán cho agent.
 - machine-pairing: `agent-activity-service.ts` đọc `machines.runningJobs`/`waitingJobs`/`failedJobs` (ghi bởi
   `recordHeartbeat()`) để tính `AgentActivity` của từng ticket; `agent.activity_changed` do `recordHeartbeat()`
-  phát khi báo cáo đổi.
+  phát khi báo cáo đổi. `daemonAttachmentRoutes` dùng lại `assertTicketReadable()` của flow này để kiểm phạm
+  vi ticket sở hữu ảnh trước khi trả bytes, không viết luật phạm vi mới.
 - project-claims: `qcDefaultMcps()` (project-schemas) quyết định MCP bắt buộc của QC; `retargetOpenTickets()`
   ở đó cập nhật `assignee_machine_id` khi project đổi chủ.
 - event-delivery: mọi `NewEvent` sinh ra ở đây được `appendEvents()` ghi vào outbox `events` rồi phát qua SSE.
@@ -296,7 +305,15 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   `bodyLimit` (20MB, bị Fastify chặn ở tầng body-parser trước khi vào `decodeImage()`) trả cùng
   413/`ATTACHMENT_TOO_LARGE`/message thay vì rơi vào `VALIDATION_FAILED` chung — không lưu gì cả hai trường hợp;
   ticket không tồn tại → 404, không tạo bản ghi; thiếu session owner hoặc CSRF → 401/403; `GET` trả đúng
-  `Content-Type` và byte-for-byte với ảnh đã upload, 404 khi không tồn tại, cần session owner.
+  `Content-Type` và byte-for-byte với ảnh đã upload, 404 khi không tồn tại, cần session owner; route owner từ
+  chối token máy (`Authorization: Bearer` không dùng được trên `GET /v1/attachments/:id`). `GET
+  /v1/daemon/attachments/:id`: máy sở hữu dự án tải được ảnh trên ticket `pm_task`/`dev`/`qc`/`bug` của dự án
+  đó, byte-for-byte kèm đúng `Content-Type` và `cache-control: private, no-store`; ảnh trên ticket `request`:
+  máy host trợ lý tải được, máy có `pm_task` con của request đó tải được, máy không liên quan nhận 403 không lộ
+  bytes hay mime; máy B gọi ảnh thuộc ticket dự án máy A → 403; thiếu header `Authorization`, token sai/hết
+  hạn/đã thu hồi, hoặc session owner hợp lệ mà không có token máy → 401; id không tồn tại → 404, id không phải
+  uuid → 400 `VALIDATION_FAILED`; chuyển quyền sở hữu dự án sang máy khác có hiệu lực ngay lần gọi kế tiếp (máy
+  cũ 403, máy mới 200).
 - `apps/api/test/pm-mention.test.ts`: tag `@pm` từ mọi loại ticket của cây (pm_task, dev, qc, bug, docs_init, kể
   cả con đã đóng của cây còn mở) đều đánh thức đúng PM của cây, nhắm đúng máy chủ dự án; chỉ PM được đánh thức —
   ticket được tag không đổi trạng thái `needs_input`; tag ngay trên pm_task còn trả nó về `in_progress`; tag
