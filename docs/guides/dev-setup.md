@@ -84,10 +84,12 @@ export PUBLIC_ORIGIN=http://127.0.0.1:5173                      # origin của V
 export COOKIE_SECURE=false                                      # dev chạy HTTP thuần; true chỉ dùng khi có HTTPS
 ```
 
-Bộ giá trị trên khớp cấu hình mà chính repo dùng để chạy web + API cục bộ (khối `webServer.api.env` ở
-`apps/web/playwright.config.ts`). Cách nạp cụ thể (`export` trong shell, `.envrc`, `dotenv-cli`, …) tuỳ công cụ
-bạn dùng — trang này chỉ đảm bảo bộ giá trị dev hoạt động được, không quy định cơ chế nạp; tự chạy thử để xác
-nhận cách nạp phù hợp với môi trường của bạn.
+`apps/web/playwright.config.ts` (khối `webServer[0].env`, project `api`) cũng export 4 biến này, nhưng cho một
+môi trường E2E riêng — **không khớp** giá trị dev ở trên: `DATABASE_URL` trỏ DB `crew_e2e_test` và
+`PUBLIC_ORIGIN` dùng cổng `4178`, cố tình khác DB `crew` và cổng `5173` của dev để một lượt E2E không bao giờ
+đụng server hoặc dữ liệu dev (xem hằng số và comment giải thích trong `apps/web/e2e/e2e-env.ts`). Cách nạp cụ
+thể (`export` trong shell, `.envrc`, `dotenv-cli`, …) tuỳ công cụ bạn dùng — trang này chỉ đảm bảo bộ giá trị
+dev hoạt động được, không quy định cơ chế nạp; tự chạy thử để xác nhận cách nạp phù hợp với môi trường của bạn.
 
 ## Migrate DB và tạo tài khoản owner
 
