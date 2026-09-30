@@ -7,6 +7,7 @@ import { backoffDelayMs, classifyRetry, isBackoffError } from '../src/runner/ret
 import { scrubSecrets } from '../src/runner/secret-scrubber.js';
 import { mcpServersUsed, skillsInvoked, slashCommandsIn } from '../src/runner/skill-usage.js';
 import { FileTokenStore, KeychainTokenStore } from '../src/secrets.js';
+import { BUNDLED_SETTINGS, effectiveConfig } from '../src/settings/settings-store.js';
 import { StateDb } from '../src/state-db.js';
 import { tempDir } from './helpers/git.js';
 
@@ -23,6 +24,24 @@ describe('config', () => {
       budgets: { perJobUsd: null },
       autoCloseRequests: false,
     });
+  });
+
+  it('waits 30 minutes for background tasks by default, accepts a valid ceiling and rejects an invalid one', () => {
+    const base = { apiUrl: 'https://x.test', machineName: 'm' };
+    expect(parseConfig(base).backgroundWaitMinutes).toBe(30);
+    expect(parseConfig({ ...base, backgroundWaitMinutes: 5 }).backgroundWaitMinutes).toBe(5);
+    expect(parseConfig({ ...base, backgroundWaitMinutes: 0.5 }).backgroundWaitMinutes).toBe(0.5);
+    expect(parseConfig({ ...base, backgroundWaitMinutes: 1_440 }).backgroundWaitMinutes).toBe(1_440);
+    for (const invalid of [0, -1, 1_441, '30', null]) {
+      expect(() => parseConfig({ ...base, backgroundWaitMinutes: invalid })).toThrow(/backgroundWaitMinutes/);
+    }
+    // A local-only key: the server settings on top of the local config leave it as it is.
+    const local = parseConfig({ ...base, backgroundWaitMinutes: 5 });
+    expect(effectiveConfig(local, BUNDLED_SETTINGS, true).backgroundWaitMinutes).toBe(5);
+    expect(effectiveConfig(local, BUNDLED_SETTINGS, false).backgroundWaitMinutes).toBe(5);
+    const path = join(tempDir('crewd-cfg-'), 'config.yaml');
+    saveConfig(path, local);
+    expect(loadConfig(path).backgroundWaitMinutes).toBe(5);
   });
 
   it('rejects a model allowlist without sonnet (docs work always runs on sonnet)', () => {
