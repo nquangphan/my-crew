@@ -64,7 +64,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    `api.getSettingsHistory()`, `api.validateSettings()`, `api.saveSettings()`, `api.restoreSettings()`,
    `api.diffSettings()` gọi các route `/v1/settings*` (flow `server-settings`). `api.listRuntimeReleases()`,
    `api.importRuntimeReleases()`, `api.pinMachineRuntime(machineId, version)` gọi các route
-   `/v1/runtime/releases*`/`/v1/machines/:id/runtime` (flow `runtime-updates`).
+   `/v1/runtime/releases*`/`/v1/machines/:id/runtime` (flow `runtime-updates`). `api.uploadAttachment(idOrKey,
+   body)` gọi `POST /v1/tickets/:id/attachments`, kiểm response bằng `Attachment` (flow `ticket-lifecycle`) —
+   dùng bởi paste-to-upload ảnh clipboard (`usePasteImage()`, flow `web-tickets`).
 8. `apps/web/src/lib/queries.ts` → `keys`, `sessionQuery`, `useTickets`/`useTicket`/`useProjects`/`useNotices`/
    `useProjectChanges`/…: định nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác;
    `patchCachedTicket()` viết ticket vừa đổi vào mọi cache list/detail sau một lượt ghi — vì response ghi
@@ -78,7 +80,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    `useProjectByKey(key)` phục vụ mọi trang "Cài đặt hệ thống" (flow `server-settings`); `keys.settings` được
    invalidate khi nhận `settings.changed` (`invalidationsFor()`, flow `event-delivery`). `keys.runtimeReleases`,
    `useRuntimeReleases()` phục vụ mục "Bản runtime" và bộ ghim của trang Máy (flow `runtime-updates`);
-   invalidate khi nhận `runtime.published`/`runtime.pinned`/`machine.runtime_changed`.
+   invalidate khi nhận `runtime.published`/`runtime.pinned`/`machine.runtime_changed`. `useUploadAttachment(
+   ticketIdOrKey)` — mutation gọi `api.uploadAttachment()`, không invalidate cache ticket (upload ảnh không đổi
+   trạng thái ticket) — dùng bởi `usePasteImage()` (flow `web-tickets`).
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
 10. `apps/web/src/lib/format.ts` → `errorMessage()`: dịch `ApiErrorCode` (`ERROR_TEXT`) sang một câu tiếng
@@ -133,7 +137,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
   `useDocsSearchAcross`/`docsSpaceQuery` ở `queries.ts` phục vụ trang chủ docs và bộ chuyển dự án của flow đó.
 - web-tickets, web-admin: dùng lại `queries.ts`, `format.ts`, `ui-state.ts`, component `ui/*` và
   `ShellContext` của flow này; `ProjectFilterMenu`/`selectedProjects()` (`components/project-filter.tsx`, flow
-  `web-tickets`) là bộ lọc "Dự án" dùng chung mà Inbox và Máy (flow `web-admin`) cũng dùng lại.
+  `web-tickets`) là bộ lọc "Dự án" dùng chung mà Inbox và Máy (flow `web-admin`) cũng dùng lại;
+  `api.uploadAttachment()`/`useUploadAttachment()` phục vụ `usePasteImage()` (paste-to-upload ảnh clipboard)
+  của flow đó.
 - server-settings: mục sidebar "Cài đặt hệ thống"; `api.getSettings()`/`saveSettings()`/`restoreSettings()`/
   `diffSettings()`/`validateSettings()`/`getSettingsHistory()` và `keys.settings`/`keys.settingsHistory`/
   `useSettingsOverview`/`useSettingsHistory` phục vụ mọi trang cài đặt của flow đó.

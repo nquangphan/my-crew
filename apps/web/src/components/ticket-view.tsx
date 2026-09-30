@@ -119,7 +119,14 @@ function Description({
   if (editing) {
     return (
       <div className="flex flex-col gap-2">
-        <MarkdownEditor label="Mô tả" value={draft} onChange={setDraft} rows={8} autoFocus />
+        <MarkdownEditor
+          label="Mô tả"
+          value={draft}
+          onChange={setDraft}
+          rows={8}
+          autoFocus
+          ticketId={ticket.id}
+        />
         <div className="flex gap-2">
           <Button
             variant="primary"

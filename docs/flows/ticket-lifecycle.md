@@ -163,7 +163,8 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     `activitySignatures()`/`changedTicketIds()`/`heartbeatFresh()` cùng file để biết ticket nào cần phát
     `agent.activity_changed`.
 16. `apps/api/src/services/attachment-service.ts` → `uploadAttachment()`/`getAttachmentContent()`: ảnh dán
-    clipboard vào ô mô tả/comment ticket (phần paste ở UI là subtask riêng, chưa làm ở đây). `uploadAttachment()`
+    clipboard vào ô mô tả/comment ticket (phần paste-to-upload ở UI là `usePasteImage()` của flow
+    `web-tickets`). `uploadAttachment()`
     validate `mimeType` theo whitelist (`AttachmentMimeType` = `image/png|jpeg|gif|webp`) và kích thước **bytes
     đã decode** (không phải độ dài chuỗi base64) ≤ `MAX_ATTACHMENT_BYTES` (10MB) trước khi ghi gì, dùng
     `getTicketRow()` (từ `ticket-service.ts`) nên `:id` nhận cả uuid lẫn ticket key như route ticket khác, ticket
@@ -223,6 +224,8 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - event-delivery: mọi `NewEvent` sinh ra ở đây được `appendEvents()` ghi vào outbox `events` rồi phát qua SSE.
 - docs-sync-viewer: `search()` gộp kết quả `searchAllDocs()`; `flows[]` của ticket liên kết tới trang
   `docs/flows/<id>.md` tương ứng trên web.
+- web-tickets: `usePasteImage()` (ô mô tả ticket và ô bình luận) gọi `POST /v1/tickets/:id/attachments` ở đây
+  để paste-to-upload ảnh clipboard, chèn `Attachment.url` trả về vào markdown.
 - agent-roles: `RoleStage` và `STAGES` (flow đó) gán mỗi bước agent vào một ticket loại nào chạy khi nào; tool
   `reject_work` của PM gọi `fileBug()` với ticket dev/bug đã `done` làm nguồn; `create_subtask` thêm phụ thuộc
   `docs_init`.
