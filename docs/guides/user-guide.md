@@ -97,7 +97,7 @@ Trang "Inbox" (`/inbox`) gộp mọi việc cần chủ dự án xử lý: yêu 
 ## Cài đặt hệ thống
 
 Trang "Cài đặt hệ thống" (`/settings/prompts`, sidebar mục "Cài đặt hệ thống") gồm 5 tab — Prompts, Quy tắc,
-Models, Máy, Dự án — để sửa prompt từng vai trò agent, quy tắc guard/QC, bảng model theo độ phức tạp, tài
+Models, Máy, MCP dự án — để sửa prompt từng vai trò agent, quy tắc guard/QC, bảng model theo độ phức tạp, tài
 nguyên mỗi máy và MCP server tắt theo dự án. Xem chi tiết ở
 [Cài đặt hệ thống trên server](../flows/server-settings.md).
 
