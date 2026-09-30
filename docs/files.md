@@ -20,6 +20,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0009_runtime_releases.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0010_attachments.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0011_attachments_nullable_ticket_id.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/app.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/auth/csrf.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |

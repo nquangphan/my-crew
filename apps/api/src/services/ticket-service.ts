@@ -23,9 +23,10 @@ import {
   type UpdateTicketRequest as UpdateTicketInput,
   UpdateTicketRequest,
 } from '@crew/shared';
-import { and, arrayContains, asc, eq, inArray, ne, notInArray, sql } from 'drizzle-orm';
+import { and, arrayContains, asc, eq, inArray, isNull, ne, notInArray, sql } from 'drizzle-orm';
 import type { Executor, Transaction } from '../db/client.js';
 import {
+  attachments,
   type CommentRow,
   comments,
   machines,
@@ -192,8 +193,44 @@ async function insertTicket(tx: Executor, scope: string, values: InsertTicket): 
   return row;
 }
 
-/** Owner creates a request; it is assigned to the machine hosting the assistant, when one is paired. */
-export async function createRequestTicket(db: Executor, input: CreateRequestInput): Promise<Ticket> {
+const ATTACHMENT_ID_RE =
+  /\/v1\/attachments\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi;
+
+/** Draft attachment ids referenced by `/v1/attachments/<uuid>` links in a ticket description. */
+function referencedAttachmentIds(description: string): string[] {
+  return [...new Set([...description.matchAll(ATTACHMENT_ID_RE)].map((match) => match[1] as string))];
+}
+
+/**
+ * Claims for `ticketId` the draft attachments (`ticket_id IS NULL`) referenced in `description` that belong
+ * to `ownerId`, in the same transaction as the ticket insert. An id that does not exist, is already claimed
+ * by another ticket, or belongs to another owner is silently skipped — it never fails ticket creation.
+ */
+async function claimDraftAttachments(
+  tx: Executor,
+  ticketId: string,
+  ownerId: string,
+  description: string,
+): Promise<void> {
+  const ids = referencedAttachmentIds(description);
+  if (ids.length === 0) return;
+  await tx
+    .update(attachments)
+    .set({ ticketId })
+    .where(and(inArray(attachments.id, ids), isNull(attachments.ticketId), eq(attachments.ownerId, ownerId)));
+}
+
+/**
+ * Owner creates a request; it is assigned to the machine hosting the assistant, when one is paired.
+ * `ownerId` (the session's owner, when the caller is an owner request) claims for the new ticket any draft
+ * attachment (`POST /v1/attachments`, pasted before the ticket existed) referenced in `description`, in the
+ * same transaction as the ticket insert.
+ */
+export async function createRequestTicket(
+  db: Executor,
+  input: CreateRequestInput,
+  ownerId?: string | null,
+): Promise<Ticket> {
   const data = CreateRequestTicket.parse(input);
   return db.transaction(async (tx) => {
     if (data.projectHintId && !(await findProject(tx, data.projectHintId))) throw notFound('hinted project');
@@ -210,6 +247,7 @@ export async function createRequestTicket(db: Executor, input: CreateRequestInpu
       allowConfigChange: data.allowConfigChange,
       assigneeMachineId: host?.id ?? null,
     });
+    if (ownerId) await claimDraftAttachments(tx, row.id, ownerId, row.description);
     return toTicketDto(row);
   });
 }

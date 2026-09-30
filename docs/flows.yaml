@@ -38,6 +38,7 @@ flows:
       - apps/api/drizzle/0008_server_settings_and_machine_commands.sql
       - apps/api/drizzle/0009_runtime_releases.sql
       - apps/api/drizzle/0010_attachments.sql
+      - apps/api/drizzle/0011_attachments_nullable_ticket_id.sql
       - packages/shared/src/index.ts
     tests:
       - apps/api/test/shutdown.test.ts
