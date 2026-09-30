@@ -1,0 +1,52 @@
+name: ticket-images
+description: >-
+  The owner pastes a screenshot into the request and another into the answer to the PM's question: the
+  assistant and the PM get the request's image, the resumed PM session gets only the new one, the dev ticket
+  that keeps the image link gets the image too and reads its file, and QC (no image link) runs as before.
+inventory:
+  skills: [requirements, planning, code-review]
+  mcpServers: [{ name: playwright }]
+request:
+  title: Sửa bố cục trang đăng nhập
+  description: "Trang đăng nhập bị vỡ bố cục như ảnh chụp màn hình:\n\n@{image:login}"
+owner:
+  - when: { title: '^Sửa bố cục trang đăng nhập$', type: pm_task, status: needs_input }
+    comment: 'Chỉ vỡ trên màn hình hẹp, xem ảnh mới: @{image:narrow}'
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Sửa bố cục trang đăng nhập }]
+  - stage: pm_analyze
+    run: 1
+    steps: [{ macro: pm_analyze, skills: [requirements], ask: Lỗi xảy ra ở kích thước màn hình nào? }]
+  - stage: pm_analyze
+    run: 2
+    steps:
+      - macro: pm_analyze
+        skills: [planning]
+        subtasks:
+          - title: Sửa CSS trang đăng nhập
+            description: 'Ảnh chụp màn hình của chủ dự án: @{imageLink:login}'
+            complexity: trivial
+            qcComplexity: trivial
+  - stage: dev
+    title: Sửa CSS trang đăng nhập
+    steps:
+      - { macro: dev_start }
+      - { tool: Read, input: { file_path: '@{imageFile:login}' } }
+      - { macro: dev_finish, file: src/login.js }
+  - stage: docs_update
+    title: Sửa CSS trang đăng nhập
+    steps: [{ macro: docs_update, files: [src/login.js], message: 'fix: sửa bố cục trang đăng nhập' }]
+  - stage: qc
+    title: '^QC: Sửa CSS'
+    steps: [{ macro: qc, mcps: [playwright] }]
+  - stage: pm_accept
+    steps: [{ macro: pm_accept, skills: [code-review] }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Sửa bố cục trang đăng nhập$', type: request, status: in_review }
+    - { title: '^Sửa bố cục trang đăng nhập$', type: pm_task, status: done }
+    - { title: '^Sửa CSS trang đăng nhập$', status: done }
+    - { title: '^QC: Sửa CSS trang đăng nhập$', status: done }

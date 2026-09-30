@@ -1,6 +1,11 @@
-import type { Options, Query, SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-import { describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { Options, Query, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
+import { afterAll, describe, expect, it } from 'vitest';
 import { agentEnv, createSdkRunner, type RunAgentOptions, RunControl } from '../src/runner/agent-runner.js';
+import type { RunImage } from '../src/runner/ticket-images.js';
+import { tinyPng } from './helpers/images.js';
 
 /** A fake SDK `query` that records its options and replays messages. */
 function fakeQuery(messages: (options: Options) => SDKMessage[]) {
@@ -77,6 +82,11 @@ function options(over: Partial<RunAgentOptions> = {}): RunAgentOptions {
   };
 }
 
+const cleanups: (() => void)[] = [];
+afterAll(() => {
+  for (const cleanup of cleanups) cleanup();
+});
+
 describe('SDK agent runner', () => {
   it('runs query() with setting sources, dontAsk, the allowlist, the guard hook and a clean env', async () => {
     const fake = fakeQuery(() => [init(), result()]);
@@ -111,6 +121,126 @@ describe('SDK agent runner', () => {
       claudeCodeVersion: '2.1.283',
     });
     expect(seen).toEqual(['sess-1']);
+  });
+
+  it('sends the prompt as plain text when the run has no images', async () => {
+    const fake = fakeQuery(() => [init(), result()]);
+    await createSdkRunner({ query: fake.query })(options());
+    expect(fake.calls[0]?.prompt).toBe('/ak:cook làm việc');
+    await createSdkRunner({ query: fake.query })(options({ images: [] }));
+    expect(fake.calls[1]?.prompt).toBe('/ak:cook làm việc');
+  });
+
+  it('sends the prompt text and the images as base64 blocks in one first message', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'crew-runner-images-'));
+    cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
+    const png = tinyPng(5);
+    const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from('jpeg')]);
+    writeFileSync(join(dir, 'a.png'), png);
+    writeFileSync(join(dir, 'b.jpg'), jpeg);
+    const image = (
+      index: number,
+      file: string,
+      mediaType: RunImage['mediaType'],
+      source: string,
+    ): RunImage => ({
+      index,
+      id: `id-${index}`,
+      source,
+      path: join(dir, file),
+      mediaType,
+      sizeBytes: 1,
+    });
+    const fake = fakeQuery(() => [init(), result()]);
+    const control = new RunControl();
+    const run = await createSdkRunner({ query: fake.query })(
+      options({
+        control,
+        resumeSessionId: 'sess-0',
+        maxBudgetUsd: 2,
+        images: [
+          image(1, 'a.png', 'image/png', 'mô tả ticket WEB-1'),
+          image(3, 'b.jpg', 'image/jpeg', 'bình luận thứ 2 của ticket WEB-1 (chủ dự án viết)'),
+          image(4, 'gone.png', 'image/png', 'mô tả ticket WEB-1'),
+        ],
+      }),
+    );
+    const sent: SDKUserMessage[] = [];
+    const first = fake.calls[0]?.prompt ?? [];
+    for await (const message of first as AsyncIterable<SDKUserMessage>) sent.push(message);
+    expect(sent).toEqual([
+      {
+        type: 'user',
+        parent_tool_use_id: null,
+        message: {
+          role: 'user',
+          content: [
+            { type: 'text', text: '/ak:cook làm việc' },
+            { type: 'text', text: 'Ảnh 1 (mô tả ticket WEB-1):' },
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/png', data: png.toString('base64') },
+            },
+            { type: 'text', text: 'Ảnh 3 (bình luận thứ 2 của ticket WEB-1 (chủ dự án viết)):' },
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/jpeg', data: jpeg.toString('base64') },
+            },
+            // A file that vanished is named, not sent: the run goes on.
+            { type: 'text', text: 'Ảnh 4 (mô tả ticket WEB-1): không đọc được file ảnh.' },
+          ],
+        },
+      },
+    ]);
+    // Everything else about the run is as without images.
+    const sdk = fake.calls[0]?.options as Options;
+    expect(sdk).toMatchObject({
+      resume: 'sess-0',
+      maxBudgetUsd: 2,
+      permissionMode: 'dontAsk',
+      allowedTools: ['Read', 'mcp__tickets__comment', 'mcp__playwright__*'],
+      settingSources: ['user', 'project', 'local'],
+    });
+    expect(sdk.hooks?.PreToolUse?.[0]?.hooks).toHaveLength(1);
+    expect(run).toMatchObject({
+      sessionId: 'sess-1',
+      resultSubtype: 'success',
+      isError: false,
+      totalCostUsd: 0.42,
+      slashCommands: ['ak:cook'],
+    });
+  });
+
+  it('a run with images still ends its turn after a tool asked to end the run', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'crew-runner-images-'));
+    cleanups.push(() => rmSync(dir, { recursive: true, force: true }));
+    writeFileSync(join(dir, 'a.png'), tinyPng(1));
+    const control = new RunControl();
+    const fake = fakeQuery(() => {
+      control.requestEnd('handoff_docs');
+      return [
+        init(),
+        { type: 'assistant', message: { content: [] } } as unknown as SDKMessage,
+        result({ subtype: 'error_during_execution', is_error: true, errors: ['interrupted'] }),
+      ];
+    });
+    const run = await createSdkRunner({ query: fake.query })(
+      options({
+        control,
+        images: [
+          {
+            index: 1,
+            id: 'a',
+            source: 'mô tả',
+            path: join(dir, 'a.png'),
+            mediaType: 'image/png',
+            sizeBytes: 1,
+          },
+        ],
+      }),
+    );
+    expect(fake.interrupted()).toBe(1);
+    expect(run).toMatchObject({ endedBy: 'handoff_docs', isError: false, totalCostUsd: 0.42 });
   });
 
   it('removes a disabled server from the session: its tools are disallowed and the server denied by name', async () => {

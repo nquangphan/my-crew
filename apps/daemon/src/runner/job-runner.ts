@@ -1,3 +1,5 @@
+import { rmSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   type AgentRole,
   type Complexity,
@@ -44,13 +46,14 @@ import {
   RunControl,
 } from './agent-runner.js';
 import { createGuardHook } from './guard-hook.js';
-import { cleanupJob, ensureJobTmpDir } from './job-cleanup.js';
+import { cleanupJob, ensureJobTmpDir, jobTmpDir } from './job-cleanup.js';
 import type { ResourceTracker } from './resource-tracker.js';
 import { classifyRetry, isBackoffError } from './retry-classifier.js';
 import { buildRunTrace, traceMarkdown } from './run-trace.js';
 import { ScriptedCrash } from './scripted-runner.js';
 import { scrubSecrets } from './secret-scrubber.js';
 import { mcpServersUsed, skillsInvoked } from './skill-usage.js';
+import { collectTicketImages, IMAGES_DIR, type ImageText, ticketImageTexts } from './ticket-images.js';
 
 // ---------------------------------------------------------------------------
 // Role planning: the extension point the role workflow builds on
@@ -93,6 +96,11 @@ export interface PlannedRun {
   stage?: RoleStage;
   /** Comments to post before the run (e.g. a model clamped to the allowlist). */
   notices?: string[];
+  /**
+   * Texts beyond the job's own ticket whose images the run should get (the owner's request above a
+   * pm_task). The ticket's description and comments are always scanned.
+   */
+  imageTexts?: ImageText[];
   /**
    * The MCP servers this run must use, when narrower than the ticket's `requiredMcps` (QC of a docs-only diff:
    * none). The ticket keeps its list; the done-gate, the report fields and the capability warnings use this.
@@ -560,6 +568,18 @@ export class JobRunner {
     for (const notice of plan.notices ?? []) await this.comment(ctx.writer, ticket.id, job.role, notice);
 
     const { tmpDir, socketsDir } = ensureJobTmpDir(this.deps.tmpRoot, job.id);
+    // Images the ticket texts show: downloaded into the job's temp dir, listed in the prompt, and sent as
+    // image blocks unless the session this run resumes already got them.
+    const images = await collectTicketImages({
+      jobId: job.id,
+      texts: [...ticketImageTexts(detail), ...(plan.imageTexts ?? [])],
+      vps,
+      tmpDir,
+      alreadySent: plan.resumeSessionId ? state.imagesSentInSession(plan.resumeSessionId) : [],
+      signal: controller.signal,
+      log: this.deps.log,
+    });
+    const runPrompt = images.note ? `${prompt}\n\n${images.note}` : prompt;
     job = this.update(job.id, {
       kind,
       worktree: workspace.cwd,
@@ -640,7 +660,8 @@ export class JobRunner {
         cwd: workspace.cwd,
         model: plan.model,
         effort: plan.effort,
-        prompt,
+        prompt: runPrompt,
+        ...(images.inline.length > 0 ? { images: images.inline } : {}),
         resumeSessionId: plan.resumeSessionId,
         allowedTools: allowedToolsFor({
           role: job.role,
@@ -674,7 +695,13 @@ export class JobRunner {
         },
         onInit: (init) => {
           if (this.deps.halted()) return;
-          job = this.update(job.id, { sessionId: init.sessionId, skillsListed: init.skills });
+          // The session exists, so it has the first message: its images are never sent to it again.
+          const imagesSent = [...new Set([...job.imagesSent, ...images.inline.map((image) => image.id)])];
+          job = this.update(job.id, {
+            sessionId: init.sessionId,
+            skillsListed: init.skills,
+            ...(images.inline.length > 0 ? { imagesSent } : {}),
+          });
           this.deps.onInit?.(job, init, project);
         },
       });
@@ -960,6 +987,9 @@ export class JobRunner {
 
   private async cleanup(job: JobRow): Promise<CleanupRecord | null> {
     try {
+      // The ticket images are the daemon's own downloads: removed first, so the cleanup record (and the PM's
+      // resource notes) counts only what the agent left in its temp dir.
+      rmSync(join(jobTmpDir(this.deps.tmpRoot, job.id), IMAGES_DIR), { recursive: true, force: true });
       return await cleanupJob(
         {
           state: this.deps.state,

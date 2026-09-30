@@ -160,6 +160,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/runner/scripted-runner.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/secret-scrubber.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/skill-usage.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/runner/ticket-images.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/scheduler/resource-monitor.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
 | `apps/daemon/src/scheduler/scheduler.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
 | `apps/daemon/src/secrets.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
@@ -203,6 +204,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/stream-atomicity.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
 | `apps/daemon/test/stream-client.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
 | `apps/daemon/test/test-cleanup.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
+| `apps/daemon/test/ticket-images.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/ticket-tools.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/units.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
 | `apps/daemon/test/worktree-manager.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |

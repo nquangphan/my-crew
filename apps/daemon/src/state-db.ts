@@ -74,6 +74,8 @@ export interface JobRow {
   runTrace: RunTrace | null;
   /** The server settings revision the run started with (prompts, path rules, model map). */
   settingsRevision: string | null;
+  /** Ids of the ticket images this job's run sent to its session as image blocks (a session gets each once). */
+  imagesSent: string[];
 }
 
 /** What a run selected in its capability preflight, each with a one-line reason. */
@@ -169,7 +171,8 @@ create table if not exists jobs (
   wait_reason text,
   wait_detail text,
   run_trace text,
-  settings_revision text
+  settings_revision text,
+  images_sent text not null default '[]'
 );
 create unique index if not exists jobs_one_active_per_ticket
   on jobs (ticket_id) where status in ('queued', 'running', 'backoff');
@@ -220,6 +223,7 @@ const LATER_COLUMNS: readonly (readonly [string, string])[] = [
   ['wait_detail', 'text'],
   ['run_trace', 'text'],
   ['settings_revision', 'text'],
+  ['images_sent', "text not null default '[]'"],
 ];
 
 type Row = Record<string, unknown>;
@@ -273,6 +277,7 @@ function toJob(row: Row): JobRow {
     waitDetail: json<JobWaitDetail | null>(row.wait_detail, null),
     runTrace: json<RunTrace | null>(row.run_trace, null),
     settingsRevision: (row.settings_revision as string | null) ?? null,
+    imagesSent: json<string[]>(row.images_sent, []),
   };
 }
 
@@ -311,6 +316,7 @@ const JOB_COLUMNS = {
   waitDetail: ['wait_detail', (v: unknown) => (v === null ? null : JSON.stringify(v))],
   runTrace: ['run_trace', (v: unknown) => (v === null ? null : JSON.stringify(v))],
   settingsRevision: ['settings_revision', (v: unknown) => v],
+  imagesSent: ['images_sent', (v: unknown) => JSON.stringify(v)],
 } as const satisfies Record<string, readonly [string, (v: unknown) => unknown]>;
 
 export type JobPatch = Partial<Pick<JobRow, keyof typeof JOB_COLUMNS>>;
@@ -489,6 +495,14 @@ export class StateDb {
       )
       .get(ticketId, kind) as Row | undefined;
     return (row?.session_id as string | undefined) ?? null;
+  }
+
+  /** Ids of the ticket images any run of this session already received as image blocks. */
+  imagesSentInSession(sessionId: string): string[] {
+    const rows = this.db
+      .prepare('select images_sent from jobs where session_id = ? order by created_at, rowid')
+      .all(sessionId) as Row[];
+    return [...new Set(rows.flatMap((row) => json<string[]>(row.images_sent, [])))];
   }
 
   updateJob(id: string, patch: JobPatch): JobRow {

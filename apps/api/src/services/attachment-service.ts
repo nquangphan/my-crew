@@ -7,7 +7,7 @@ import {
 import { and, eq, isNull, lt } from 'drizzle-orm';
 import type { FastifyBaseLogger } from 'fastify';
 import type { Executor } from '../db/client.js';
-import { type AttachmentRow, attachments } from '../db/schema.js';
+import { type AttachmentRow, attachments, type TicketRow, tickets } from '../db/schema.js';
 import { ApiError, notFound } from '../errors.js';
 import { getTicketRow } from './ticket-service.js';
 
@@ -114,6 +114,25 @@ export async function getAttachmentContent(db: Executor, id: string): Promise<At
   const [row] = await db
     .select({ mimeType: attachments.mimeType, content: attachments.content })
     .from(attachments)
+    .where(eq(attachments.id, id));
+  if (!row) throw notFound('attachment');
+  return row;
+}
+
+export interface AttachmentWithTicket extends AttachmentContent {
+  ticket: TicketRow;
+}
+
+/**
+ * The stored bytes, mime type, and the ticket the attachment belongs to (`attachments.ticket_id`), for
+ * `GET /v1/daemon/attachments/:id`: the caller checks the ticket's machine scope before streaming the bytes
+ * back, so an attachment is never leaked (bytes or mime) to a machine outside that scope. 404 when unknown.
+ */
+export async function getAttachmentWithTicket(db: Executor, id: string): Promise<AttachmentWithTicket> {
+  const [row] = await db
+    .select({ mimeType: attachments.mimeType, content: attachments.content, ticket: tickets })
+    .from(attachments)
+    .innerJoin(tickets, eq(tickets.id, attachments.ticketId))
     .where(eq(attachments.id, id));
   if (!row) throw notFound('attachment');
   return row;
