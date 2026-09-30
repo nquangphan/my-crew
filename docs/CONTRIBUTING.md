@@ -24,7 +24,7 @@ Hướng dẫn này dành cho người hoặc agent sắp commit vào repo `crew
 ## Docs đi cùng mỗi commit
 
 Repo áp dụng chuẩn docs-kit chung (định nghĩa đầy đủ ở đường dẫn `packages/docs-kit/STANDARD.md`, kiểm bằng CLI
-`crew-docs`). Bốn luật hay gặp nhất khi sửa code:
+`crew-docs`). Năm luật hay gặp nhất khi sửa code:
 
 - **R2 (coverage)** — mọi file nguồn mới (khớp `source.include` trừ `source.exclude` của `docs/flows.yaml`)
   phải thuộc một flow trong mục `flows`, hoặc được khai vào `shared`/`unassigned` kèm lý do.

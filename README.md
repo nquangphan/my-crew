@@ -23,8 +23,16 @@ theo từng flow; agent đọc docs trước khi đọc code.
 ```sh
 pnpm install
 docker compose -f docker-compose.dev.yml up -d --wait
+
+# apps/api không tự đọc .env — export biến trước khi chạy lệnh của apps/api, xem
+# docs/guides/dev-setup.md mục "Nạp biến môi trường trước khi chạy lệnh apps/api"
+export DATABASE_URL=postgres://crew:crew@127.0.0.1:55432/crew
+export SESSION_SECRET=$(openssl rand -base64 32)
+export PUBLIC_ORIGIN=http://127.0.0.1:5173
+export COOKIE_SECURE=false
+
 pnpm --filter @crew/api db:migrate
-DATABASE_URL=<chuỗi kết nối DB dev> pnpm --filter @crew/api seed:owner --username <tên đăng nhập>
+pnpm --filter @crew/api seed:owner --username <tên đăng nhập>
 pnpm --filter @crew/api dev   # cổng 8787
 pnpm --filter @crew/web dev   # cổng 5173, proxy /v1 sang API
 ```
