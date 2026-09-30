@@ -107,9 +107,11 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    `handoff_docs` gọi `requestEnd()`, runner `interrupt()` turn hiện tại ngay sau message `assistant` tiếp
    theo — kết thúc này được coi là bình thường (`isError` không bật) dù turn bị ngắt; `BackgroundSession` coi
    đây là lý do đóng `end_requested` (bước 4): mọi tác vụ nền còn sống bị `stopTask` trước khi phiên đóng,
-   không chờ. `interrupt()` ở chế độ luồng vẫn khiến `q` trả về một `result` lỗi (`error_during_execution`)
-   nhưng không tự dừng tác vụ nền nào, nên đường kết thúc này vẫn cần `BackgroundSession` dừng tác vụ trước khi
-   đóng như mọi đường khác.
+   không chờ. `interrupt()` ở chế độ luồng vẫn khiến `q` trả về một `result` lỗi (`error_during_execution`),
+   nên `BackgroundSession.afterTurn()` kiểm `endRequested()` **trước** `turn.isError`: dù lượt bị `interrupt()`
+   mang `result` lỗi, lý do đóng vẫn là `end_requested`, không phải `turn_error`; `turn_error` chỉ dành cho một
+   `result` lỗi khi chưa có tool nào gọi `requestEnd()`. `interrupt()` cũng không tự dừng tác vụ nền nào, nên
+   đường kết thúc này vẫn cần `BackgroundSession` dừng tác vụ trước khi đóng như mọi đường khác.
 6. `apps/daemon/src/runner/scripted-runner.ts` → `createScriptedRunner()`: test double cùng interface
    `AgentRunner`, đọc kịch bản YAML (bước `tool`/`bash`/`write`/`skill`/`sleep`/`say`/`apiError`/`fail`/`crash`,
    cộng `Edit` phát lại đúng `old_string`/`new_string`/`replace_all` như Claude Code thật) và thật sự phát lại
@@ -295,7 +297,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   lắng đó; tác vụ `ambient` không bao giờ được chờ nhưng vẫn bị dừng khi đóng; việc đóng vẫn xảy ra khi
   `stopTask` lỗi hay không trả lời; đóng chỉ chạy một lần (gọi lại `turnEnded()`/`shutdown()` sau đó không làm
   gì thêm); một `turnEnded()` đang đọc trạng thái run (`workDone()` chậm) không giữ `shutdown()` lại và không
-  làm phiên mở lại sau khi đã đóng.
+  làm phiên mở lại sau khi đã đóng. `afterTurn()` ưu tiên `endRequested()` trước `turn.isError`: một lượt bị
+  ngắt sau khi một tool đã gọi `requestEnd()` (`result` lỗi) vẫn đóng bằng `end_requested`, không phải
+  `turn_error`; một `result` lỗi khi chưa có tool nào yêu cầu kết thúc vẫn đóng bằng `turn_error` như cũ; và
+  `endRequested()` cộng `result` lỗi không được cho thêm khoảng lắng (`settleMs`) nào.
 - `apps/daemon/test/guard-hook.test.ts`: từ chối ghi ngoài `cwd` và vào `.githooks` dù có file settings được
   cài đặt cho phép; lời gọi được phép không trả quyết định (để `dontAsk`/`allowedTools` vẫn áp dụng); đường
   dẫn được bảo vệ theo từng loại job (job `docs_update` được ghi `docs/` và Markdown gốc như `README.md`,

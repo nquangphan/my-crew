@@ -92,6 +92,7 @@ describe('background session', () => {
     const cases: [Partial<BackgroundSessionOptions>, boolean, string][] = [
       [{}, true, 'turn_error'],
       [{ endRequested: () => true }, false, 'end_requested'],
+      [{ endRequested: () => true }, true, 'end_requested'],
       [{ workDone: () => true }, false, 'work_done'],
       [{ workDone: async () => true }, false, 'work_done'],
     ];
@@ -103,6 +104,28 @@ describe('background session', () => {
       expect(session.closeReason).toBe(reason);
       expect(session.tasksLeft.map((left) => left.id)).toEqual(['a', 'b']);
     }
+  });
+
+  it('closes with the requested end, not the error, when the turn a tool ended was interrupted', async () => {
+    // The runner interrupts the turn of a tool that asked to end the run: its result is an error result.
+    let endRequested = false;
+    const { session, events } = harness({ endRequested: () => endRequested, waitMs: 5_000 });
+    session.tasksChanged([task('a')]);
+    expect(await session.turnEnded({ isError: false })).toBe('waiting');
+    session.turnStarted();
+    endRequested = true;
+    expect(await session.turnEnded({ isError: true })).toBe('closed');
+    expect(events).toEqual(['stop:a', 'close']);
+    expect(session.closeReason).toBe('end_requested');
+    expect(session.tasksLeft.map((left) => left.id)).toEqual(['a']);
+  });
+
+  it('closes with the error when the turn failed and no tool asked to end the run', async () => {
+    const { session, events } = harness({ endRequested: () => false });
+    session.tasksChanged([task('a')]);
+    expect(await session.turnEnded({ isError: true })).toBe('closed');
+    expect(events).toEqual(['stop:a', 'close']);
+    expect(session.closeReason).toBe('turn_error');
   });
 
   it('keeps waiting when the run is not finished, or its state cannot be read', async () => {
@@ -199,6 +222,7 @@ describe('background session', () => {
     for (const [options, isError] of [
       [{}, true],
       [{ endRequested: () => true }, false],
+      [{ endRequested: () => true }, true],
     ] as [Partial<BackgroundSessionOptions>, boolean][]) {
       const { session, events } = harness({ ...options, settleMs: 5_000 });
       session.tasksChanged([task('a')]);

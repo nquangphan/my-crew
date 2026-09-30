@@ -36,9 +36,9 @@ export interface SessionPort {
 export type CloseReason =
   /** No background work is left, and no turn is due for work that ended. */
   | 'idle'
-  /** The turn ended with an error result. */
+  /** The turn ended with an error result, and no ticket tool had asked to end the run. */
   | 'turn_error'
-  /** A ticket tool asked to end the run. */
+  /** A ticket tool asked to end the run; the turn it interrupted may have ended with an error result. */
   | 'end_requested'
   /** The run's own work is finished (the ticket left in-progress). */
   | 'work_done'
@@ -205,8 +205,10 @@ export class BackgroundSession {
   }
 
   private async afterTurn(turn: { isError: boolean }, workEnded: boolean): Promise<CloseReason | Wait> {
-    if (turn.isError) return 'turn_error';
+    // The runner interrupts the turn of a tool that asked to end the run, and an interrupted turn ends with
+    // an error result: the requested end is the cause, so it is checked first.
     if (this.options.endRequested?.()) return 'end_requested';
+    if (turn.isError) return 'turn_error';
     if (this.liveWork().length === 0) return workEnded ? 'settle' : 'idle';
     if (this.remindedOnce) return 'reminded';
     try {
