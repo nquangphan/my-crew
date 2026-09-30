@@ -60,7 +60,12 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug. `promptVars()` → `ownerRequest()`: ba bước PM
    (`pm_analyze`/`pm_monitor`/`pm_accept`) nhận thêm nguyên văn yêu cầu gốc của chủ dự án (tiêu đề, mô tả và
    bình luận của ticket `request` cha) nối vào `header` — **không bọc** vì chủ dự án tự viết, khác với mô tả
-   `pm_task` (tóm tắt của assistant, vẫn bị `wrapUntrusted()`). `promptVars()` → `ownerCallsNote()`: khi job có
+   `pm_task` (tóm tắt của assistant, vẫn bị `wrapUntrusted()`). Cùng lúc `ownerRequest()` trả thêm mô tả và
+   bình luận owner của ticket `request` đó làm `imageTexts` (`ImageText[]`, flow `agent-runs`) — nguồn ảnh
+   thứ ba mà lượt chạy quét, cộng với mô tả/bình luận của chính ticket job này (luôn quét, mọi bước); `plan()`
+   gắn `imageTexts` vào `PlannedRun` khi không rỗng, để `JobRunner.execute()` tải và gửi kèm ảnh chủ dự án dán
+   trong yêu cầu gốc cho cả ba bước PM. Bước `assistant_triage`/`assistant_close` không cần cơ chế này vì đã
+   chạy thẳng trên ticket `request` (đã nằm trong nguồn luôn quét). `promptVars()` → `ownerCallsNote()`: khi job có
    lời gọi `@pm`, thêm mục `## Chủ dự án gọi PM (@pm)` vào đầu ghi chú prompt (mọi bước PM) — mỗi lời gọi (mới
    nhất 5, `MAX_OWNER_CALLS`) nêu ticket được tag (key/loại/trạng thái/`complexity`), lỗi job gần nhất của daemon
    trên ticket đó (`lastJobError()`, bọc `<untrusted-data source="job error of KEY">`), bình luận agent/system
@@ -147,7 +152,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
     `pm-accept`, `dev`, `docs-update`, `qc`, `docs-init`) thêm bước docs-trước-code, việc riêng của bước, và
     luồng trạng thái hợp lệ khớp với `STAGES` của bước 1. `pm-monitor.md` (bước 5, "bình luận và lời gọi @pm của
     chủ dự án"): xử lý mục "Chủ dự án gọi PM" trước, theo đúng ticket được tag rồi `comment` lại trên nó, trước
-    khi trả lời bình luận thường khác trên chính pm_task.
+    khi trả lời bình luận thường khác trên chính pm_task. `assistant-triage.md` (bước tạo `pm_task`) và
+    `pm-analyze.md` (bước tạo subtask) đều dặn giữ nguyên link `![…](/v1/attachments/<id>)` trong mô tả ticket
+    con khi ảnh đó cần cho việc con, không đổi id hay đường dẫn — nhờ vậy `ticketImageTexts()` (flow `agent-runs`,
+    luôn quét mô tả ticket của job) tìm thấy đúng ảnh cho lượt chạy của ticket con, nên dev/QC cũng nhận được
+    ảnh dù không phải là ticket `request`.
 13. Ma trận vòng đời kịch bản (`apps/daemon/test/lifecycle.test.ts` + `apps/daemon/test/lifecycle/*.yaml`) và
     kịch bản thật (`apps/daemon/test/live-workflow.test.ts`), xem mục Tests.
 
@@ -260,7 +269,13 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   `mcpsUsed`/`mcpsMissing` rỗng), docs-init kết thúc hai lần liền mà không nộp report
   (`20-docs-init-not-finished.yaml`: mỗi lượt chỉ đọc vài file rồi để lại một tin nhắn `say` chưa xong việc —
   cả bình luận thử lại lẫn bình luận chặn đều mang đủ khối chẩn đoán, tin nhắn cuối đã bị ẩn credential trích
-  dẫn trong đó) — mỗi kịch bản kết thúc ở trạng
+  dẫn trong đó), ảnh dán trong ticket (`21-ticket-images.yaml`, kịch bản `ticket-images`, flow `agent-runs`:
+  chủ dự án dán ảnh vào mô tả request rồi dán ảnh khác vào bình luận trả lời câu hỏi `ask_owner` của PM —
+  assistant và lượt `pm_analyze` đầu đều nhận ảnh của mô tả request qua nguồn quét luôn bật; lượt `pm_analyze`
+  resume sau khi chủ dự án trả lời chỉ nhận ảnh mới trong bình luận, không gửi lại ảnh phiên đó đã nhận; subtask
+  dev giữ nguyên link ảnh trong mô tả (theo câu dặn của `pm-analyze.md`) nên cũng nhận ảnh và `Read` đúng file
+  trong thư mục tạm của job đó; QC không có link ảnh trong mô tả nên chạy như một lượt không ảnh) — mỗi kịch
+  bản kết thúc ở trạng
   thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
 - `apps/daemon/test/pm-mention.test.ts`: PM chạy với đúng ghi chú "Chủ dự án gọi PM" (ticket được tag, trạng
   thái/complexity, lỗi job gần nhất và bình luận agent gần nhất bọc `<untrusted-data>`, bình luận owner nguyên

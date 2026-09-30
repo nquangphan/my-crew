@@ -1,11 +1,12 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { McpServerName, ProjectPlatform, RoleStage, TicketStatus } from '@crew/shared';
 import { parse } from 'yaml';
 import { z } from 'zod';
-import { ticketReports, tickets } from '../../../api/src/db/schema.js';
+import { owner as owners, ticketReports, tickets } from '../../../api/src/db/schema.js';
+import { uploadAttachment } from '../../../api/src/services/attachment-service.js';
 import { claim } from '../../../api/src/services/claim-service.js';
-import { createRequestTicket } from '../../../api/src/services/ticket-service.js';
+import { createRequestTicket, updateTicket } from '../../../api/src/services/ticket-service.js';
 import { pairTestMachine } from '../../../api/test/helpers/machines.js';
 import { seedAndLogin } from '../../../api/test/helpers/owner-session.js';
 import { createTestProject } from '../../../api/test/helpers/test-db.js';
@@ -17,6 +18,7 @@ import type { JobRow } from '../../src/state-db.js';
 import { clearRating, commentsOf, type Fixture, ownerComment, ownerTransition, type useApi } from './api.js';
 import { makeDaemon, sleep, type TestDaemon } from './daemon.js';
 import { tempDir } from './git.js';
+import { tinyPng, uploadImage } from './images.js';
 import { DOCS_FILES, makeWorkflowRepo, type WorkflowRepo } from './workflow.js';
 
 // ---------------------------------------------------------------------------
@@ -154,7 +156,12 @@ function devFinish(step: RawStep): RawStep[] {
 function devStart(step: RawStep): RawStep[] {
   // The daemon itself transitions todo → in_progress before the agent sees the prompt (role-planner.ts
   // `plan()`), so the dev script no longer calls `update_status` for that step.
-  return [preflight(step), ...invokeSkills(step), ...readDocs(), { tool: 'Read', input: { file_path: 'src/app.js' } }];
+  return [
+    preflight(step),
+    ...invokeSkills(step),
+    ...readDocs(),
+    { tool: 'Read', input: { file_path: 'src/app.js' } },
+  ];
 }
 
 function docsUpdate(step: RawStep): RawStep[] {
@@ -280,7 +287,7 @@ function pmAnalyze(step: RawStep): RawStep[] {
       t('create_subtask', {
         type: 'dev',
         title,
-        description: `Làm "${title}".\n\nTiêu chí nghiệm thu:\n1. Có test.\n\nSkill: ${list(sub.skills).join(', ') || 'không cần (không có skill phù hợp)'}.`,
+        description: `Làm "${title}".${sub.description ? `\n\n${String(sub.description)}` : ''}\n\nTiêu chí nghiệm thu:\n1. Có test.\n\nSkill: ${list(sub.skills).join(', ') || 'không cần (không có skill phù hợp)'}.`,
         complexity: sub.complexity,
         complexityReason: String(sub.reason ?? 'Việc nhỏ: một file và test của nó'),
         ...(sub.model ? { model: sub.model } : {}),
@@ -455,6 +462,27 @@ export interface RunRecord {
   model: string;
   prompt: string;
   n: number;
+  /** The run's session to resume, if any. */
+  resumeSessionId: string | null;
+  /** The job's temp dir while the run was going. */
+  tmpDir: string;
+  /** The images the runner received, each checked against the pasted bytes while the run was going. */
+  images: {
+    index: number;
+    id: string;
+    source: string;
+    mediaType: string;
+    path: string;
+    /** The file holds exactly the pasted bytes and only this user can read it. */
+    intact: boolean;
+  }[];
+}
+
+/** An image the owner pasted in a scenario (`@{image:<name>}` in the request description or an owner comment). */
+export interface PastedImage {
+  id: string;
+  bytes: Buffer;
+  markdown: string;
 }
 
 export interface LifecycleResult {
@@ -464,6 +492,8 @@ export interface LifecycleResult {
   requestId: string;
   runs: RunRecord[];
   unmatched: RunRecord[];
+  /** Images the owner pasted, by the name the scenario gives them. */
+  images: Map<string, PastedImage>;
 }
 
 type TicketRow = typeof tickets.$inferSelect;
@@ -511,6 +541,20 @@ export async function runScenario(
     return (await allTickets()).find((row) => re.test(row.title) && (!type || row.type === type));
   };
 
+  const images = new Map<string, PastedImage>();
+  const IMAGE = /@\{image:([\w-]+)\}/g;
+  /** Bytes of the scenario image `name`: a small PNG, different for every name. */
+  const pngOf = (name: string) => tinyPng([...name].reduce((sum, char) => sum + char.charCodeAt(0), 0));
+  /** The owner pastes the images a text names into `ticketId` (the real owner route) and gets the markdown. */
+  const paste = async (text: string, ticketId: string): Promise<string> => {
+    for (const [, name] of text.matchAll(IMAGE) as Iterable<[string, string]>) {
+      if (images.has(name)) continue;
+      const bytes = pngOf(name);
+      images.set(name, { bytes, ...(await uploadImage(f, ticketId, bytes)) });
+    }
+    return text.replace(IMAGE, (_, name: string) => images.get(name)?.markdown ?? '');
+  };
+
   const runs: RunRecord[] = [];
   const unmatched: RunRecord[] = [];
   const served = new Map<string, string[]>();
@@ -535,6 +579,22 @@ export async function runScenario(
       model: run.model,
       prompt: run.prompt,
       n,
+      resumeSessionId: run.resumeSessionId ?? null,
+      tmpDir: String(run.env.TMPDIR),
+      images: (run.images ?? []).map((image) => {
+        const pasted = [...images.values()].find((entry) => entry.id === image.id);
+        return {
+          index: image.index,
+          id: image.id,
+          source: image.source,
+          mediaType: image.mediaType,
+          path: image.path,
+          intact:
+            pasted !== undefined &&
+            readFileSync(image.path).equals(pasted.bytes) &&
+            (statSync(image.path).mode & 0o777) === 0o600,
+        };
+      }),
     };
     runs.push(record);
     const entry = scenario.scripts.find(
@@ -576,7 +636,17 @@ export async function runScenario(
       else if (kind === 'self') value = run.ticketId;
       else if (kind === 'fakeSecret') value = FAKE_SECRET;
       else if (kind === 'remote') value = repo.remote;
-      else if (kind === 'file') {
+      else if (kind === 'imageLink') {
+        // The markdown link of a pasted image, as an agent copies it into a ticket it creates.
+        const pasted = images.get(arg);
+        if (!pasted) throw new Error(`no pasted image ${arg}`);
+        value = pasted.markdown;
+      } else if (kind === 'imageFile') {
+        // The file of a pasted image in this run's temp dir, as the prompt lists it.
+        const file = run.images?.find((image) => image.id === images.get(arg)?.id)?.path;
+        if (!file) throw new Error(`the run got no image ${arg}`);
+        value = file;
+      } else if (kind === 'file') {
         try {
           value = readFileSync(join(String(run.env.TMPDIR), arg), 'utf8').trim() || '(trống)';
         } catch {
@@ -649,9 +719,29 @@ export async function runScenario(
   };
 
   let current = await start();
-  const request = await createRequestTicket(db, {
-    title: scenario.request.title,
-    description: scenario.request.description,
+  const pasted = [...scenario.request.description.matchAll(IMAGE)] as unknown as [string, string][];
+  // A request with pasted images appears with them at once (one transaction), so the first run sees them.
+  const request = await db.transaction(async (tx) => {
+    const created = await createRequestTicket(tx, {
+      title: scenario.request.title,
+      description: pasted.length > 0 ? '' : scenario.request.description,
+    });
+    if (pasted.length === 0) return created;
+    const [ownerRow] = await tx.select({ id: owners.id }).from(owners);
+    if (!ownerRow) throw new Error('no owner to paste the request images');
+    for (const [, name] of pasted) {
+      if (images.has(name)) continue;
+      const bytes = pngOf(name);
+      const attachment = await uploadAttachment(tx, created.id, ownerRow.id, {
+        filename: `${name}.png`,
+        mimeType: 'image/png',
+        content: bytes.toString('base64'),
+      });
+      images.set(name, { id: attachment.id, bytes, markdown: `![ảnh](${attachment.url})` });
+    }
+    return updateTicket(tx, created.id, {
+      description: await paste(scenario.request.description, created.id),
+    });
   });
 
   const done = new Set<number>();
@@ -705,7 +795,7 @@ export async function runScenario(
       if (!target) continue;
       done.add(index);
       if (action.clearRating) await clearRating(db, target.id);
-      if (action.comment) await ownerComment(f, target.id, action.comment);
+      if (action.comment) await ownerComment(f, target.id, await paste(action.comment, target.id));
       if (action.cancel) await ownerTransition(f, target.id, 'cancelled');
       if (action.unblock) await ownerTransition(f, target.id, 'in_progress');
     }
@@ -717,7 +807,7 @@ export async function runScenario(
     if (quiet >= 3) break;
     await sleep(150);
   }
-  return { f, repo, daemon: current, requestId: request.id, runs, unmatched };
+  return { f, repo, daemon: current, requestId: request.id, runs, unmatched, images };
 }
 
 async function expectationsMet(rows: TicketRow[], scenario: Scenario): Promise<boolean> {

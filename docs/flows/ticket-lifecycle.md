@@ -89,7 +89,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    `ticket.comment_added` (daemon gộp cả hai vào một job, coi trigger là mở chặn và đọc bình luận mới nhất);
    bình luận agent/system chỉ phát `ticket.updated{change:'comment'}`, không đánh thức ai, không bao giờ mở
    chặn. Bình luận owner tag `@pm` (không phân biệt hoa thường; `packages/shared/src/comment-mentions.ts` →
-   `parseMentions()`, bỏ qua tag trong code block/inline code và trong địa chỉ email/URL) trên **bất kỳ ticket nào của một cây pm_task** (chính pm_task, hay con
+   `parseMentions()`, bỏ qua tag trong code block/inline code và trong địa chỉ email/URL, qua hàm dùng chung
+   `markdownWithoutCode()` — cũng dùng bởi `extractAttachmentIds()` của flow `agent-runs` để bỏ link ảnh viết
+   trong code khỏi văn bản ticket) trên **bất kỳ ticket nào của một cây pm_task** (chính pm_task, hay con
    dev/qc/bug/docs_init của nó, kể cả con đã đóng) thay hẳn hiệu ứng ở trên: `pmTaskToWake()` tìm pm_task đang
    coi sóc ticket đó (`governingPmTask()`: chính ticket nếu là pm_task, không thì cha pm_task), rồi `pmMentioned()` phát `ticket.pm_mentioned` (không phát
    `ticket.comment_added`) nhắm `ticketId=<pm_task>`, `targetMachineId` là máy chủ dự án
@@ -206,7 +208,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/routes/attachment-routes.ts` | Route upload/đọc ảnh đính kèm owner, cộng route đọc cho daemon | `attachmentRoutes`, `daemonAttachmentRoutes` |
 | `apps/api/src/services/ticket-service.ts` | Tạo, đánh giá lại, transition, bug loop, bình luận (kể cả tag `@pm`), sửa ticket | `createRequestTicket`, `createSubtask`, `rateSubtask`, `retrySubtask`, `fileBug`, `transitionTicket`, `addComment`, `toCommentDto`, `updateTicket`, `lockWithParent`, `governingPmTask` |
 | `apps/api/src/services/ticket-query-service.ts` | Danh sách, chi tiết, cây hậu duệ, tìm kiếm | `listTickets`, `getTicketDetail`, `getTicketTree`, `search`, `inProjectsFilter`, `TREE_LIMIT` |
-| `packages/shared/src/comment-mentions.ts` | Tag `@pm` trong bình luận owner | `CommentMention`, `parseMentions` |
+| `packages/shared/src/comment-mentions.ts` | Tag `@pm` trong bình luận owner | `CommentMention`, `parseMentions`, `markdownWithoutCode` |
 | `apps/api/src/services/report-service.ts` | Report và agent-meta | `submitReport`, `recordAgentMeta`, `getReports`, `getCurrentReport` |
 | `apps/api/src/services/budget-service.ts` | Trần con, ngân sách, hold | `enforceChildCap`, `addCost`, `applyHold`, `liftHold`, `getBudgetStatus` |
 | `apps/api/src/jobs/stuck-ticket-alarm.ts` | Báo ticket đứng yên không ai xử lý | `findStuckTickets`, `raiseStuckTicketAlarms`, `startStuckTicketAlarm`, `WaitingJobsRegistry` |
@@ -248,6 +250,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - agent-roles: `RoleStage` và `STAGES` (flow đó) gán mỗi bước agent vào một ticket loại nào chạy khi nào; tool
   `reject_work` của PM gọi `fileBug()` với ticket dev/bug đã `done` làm nguồn; `create_subtask` thêm phụ thuộc
   `docs_init`.
+- agent-runs: `markdownWithoutCode()` (bảng Files) dùng chung bởi `parseMentions()` ở đây và
+  `extractAttachmentIds()` của flow đó; daemon tải ảnh dán trong mô tả/bình luận ticket qua
+  `GET /v1/daemon/attachments/:id` ở trên.
 - local-merge: `head_sha` mà `mergeAndPush()` merge đến từ `report.headSha` (`submitReport()`).
 - daemon-runtime: `waitingJobs` mà heartbeat của daemon gửi lên (`apps/daemon/src/daemon.ts`) là điều
   `findStuckTickets()` dùng để không báo nhầm ticket đang chờ thử lại.

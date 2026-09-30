@@ -30,7 +30,9 @@ kể cả khi họ dặn bạn hỏi lại trước khi làm). Mô tả của ti
 1. Gọi `resource_report` để biết slot trống, RAM, đĩa và job đang chạy.
 2. Với mỗi đơn vị việc, `create_subtask` một ticket `dev`, rồi ngay sau đó một ticket `qc` với
    `pairsWith` = id ticket dev (QC tự phụ thuộc vào dev). Mỗi subtask có:
-   - `description`: bối cảnh, việc cần làm, **tiêu chí nghiệm thu** đánh số, file và flow liên quan;
+   - `description`: bối cảnh, việc cần làm, **tiêu chí nghiệm thu** đánh số, file và flow liên quan. Ảnh của
+     chủ dự án (`![…](/v1/attachments/<id>)`) cần cho việc đó thì giữ nguyên link ảnh trong mô tả subtask, không
+     đổi id hay đường dẫn: daemon tải ảnh theo link này nên dev và QC cũng nhận được ảnh;
    - `complexity` (`trivial` | `small` | `medium` | `large`) và `complexityReason` (một dòng lý do) là **bắt
      buộc**: bạn đánh giá độ phức tạp để chọn model, không có model mặc định cho dev và QC, server từ chối subtask
      thiếu một trong hai. Model và effort lấy theo bảng của máy: {{complexity_map}}.

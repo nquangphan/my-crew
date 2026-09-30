@@ -25,6 +25,7 @@ import {
   type RolePlanner,
   restartNote,
 } from '../runner/job-runner.js';
+import { type ImageText, ticketImageTexts } from '../runner/ticket-images.js';
 import type { JobKind, JobRow, PmMention, StateDb, ToolLogEntry } from '../state-db.js';
 import type { DocsHandoff, MergeHandoff, ReportOverlay } from '../tools/ticket-mcp-server.js';
 import { docsFirst } from './docs-first-check.js';
@@ -208,12 +209,16 @@ export function cleanupLines(state: StateDb, children: readonly Ticket[]): strin
 
 /**
  * The owner's own request above a pm_task, verbatim: the owner wrote it, so it is the authoritative
- * requirement (the pm_task description is the assistant's summary and is wrapped as untrusted).
+ * requirement (the pm_task description is the assistant's summary and is wrapped as untrusted). `images`
+ * are the same texts (the description and the owner's comments), for the run to get the images they show.
  */
-async function ownerRequest(ctx: PlannerContext, requestId: string): Promise<string> {
+async function ownerRequest(
+  ctx: PlannerContext,
+  requestId: string,
+): Promise<{ text: string; images: ImageText[] }> {
   const request = await ctx.vps.getTicket(requestId);
   const owner = request.comments.filter((comment) => comment.authorKind === 'owner');
-  return [
+  const text = [
     `## Yêu cầu gốc của chủ dự án (${request.ticket.key}, do chủ dự án viết)`,
     '',
     `**${request.ticket.title}**`,
@@ -223,6 +228,7 @@ async function ownerRequest(ctx: PlannerContext, requestId: string): Promise<str
       ? ['', 'Bình luận của chủ dự án:', ...owner.map((comment) => `- ${comment.body}`)]
       : []),
   ].join('\n');
+  return { text, images: ticketImageTexts(request, { ownerOnly: true }) };
 }
 
 /** At most this many owner calls are spelled out in one PM prompt (the newest). */
@@ -486,7 +492,17 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
   }
 
   const choice = resolveModel({ config, stage, ticket });
-  const vars = await promptVars({ stage, job, kind, detail, config, project, ctx, mentions, uiTest });
+  const { vars, imageTexts } = await promptVars({
+    stage,
+    job,
+    kind,
+    detail,
+    config,
+    project,
+    ctx,
+    mentions,
+    uiTest,
+  });
   const prompt = renderPrompt(STAGES[stage].prompt, vars, ctx.settings.prompts);
   let worktreeBase: string | undefined = project?.defaultBranch;
   if (ticket.type === 'bug' && ticket.parentId) {
@@ -503,6 +519,7 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
     stage,
     notices: choice.notice ? [choice.notice] : [],
     ...(uiTest ? {} : { requiredMcps: [] }),
+    ...(imageTexts.length > 0 ? { imageTexts } : {}),
   };
 }
 
@@ -517,10 +534,12 @@ async function promptVars(input: {
   mentions: readonly PmMention[];
   /** QC only: false when the diff under test is docs-only. */
   uiTest: boolean;
-}): Promise<Record<string, string>> {
+}): Promise<{ vars: Record<string, string>; imageTexts: ImageText[] }> {
   const { stage, job, detail, config, project, ctx, mentions } = input;
   const { ticket } = detail;
   const notes: string[] = [];
+  /** Texts outside this ticket that the prompt quotes and whose images the run gets. */
+  let imageTexts: ImageText[] = [];
   if (mentions.length > 0) notes.push(await ownerCallsNote(ctx, ticket, mentions));
   const restart = restartNote(job, detail);
   if (restart) notes.push(`## Khởi động lại\n\n${restart}`);
@@ -583,7 +602,9 @@ async function promptVars(input: {
     vars.cleanup_notes = lines.length > 0 ? lines.join('\n') : '- chưa ghi nhận tài nguyên nào bị để lại';
   }
   if (stage.startsWith('pm_') && ticket.parentId) {
-    vars.header = `${vars.header}\n\n${await ownerRequest(ctx, ticket.parentId)}`;
+    const request = await ownerRequest(ctx, ticket.parentId);
+    vars.header = `${vars.header}\n\n${request.text}`;
+    imageTexts = request.images;
   }
   if (stage === 'pm_analyze') {
     const docsInit = detail.children.find((child) => child.type === 'docs_init' && child.status === 'done');
@@ -594,7 +615,7 @@ async function promptVars(input: {
     }
   }
   vars.notes = notes.join('\n\n');
-  return vars;
+  return { vars, imageTexts };
 }
 
 // ---------------------------------------------------------------------------
