@@ -1,10 +1,17 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { Buffer } from 'node:buffer';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { setCsrfToken } from '../lib/api-client';
 import { comment } from '../test/fixtures';
 import { mockFetch, renderWithApp } from '../test/render';
 import { CommentComposer, CommentList } from './comment-thread';
+
+function pasteImage(box: HTMLElement, file: File) {
+  fireEvent.paste(box, {
+    clipboardData: { items: [{ kind: 'file', type: file.type, getAsFile: () => file }] },
+  });
+}
 
 describe('comment thread', () => {
   it('posts a comment with the CSRF token and clears the box', async () => {
@@ -170,5 +177,64 @@ describe('comment thread', () => {
     expect(items[1]).not.toHaveTextContent('Đã gọi PM');
     await user.click(within(items[0] as HTMLElement).getByRole('button', { name: 'Xem SHOP-3' }));
     expect(onOpen).toHaveBeenCalledWith('SHOP-3');
+  });
+
+  it('uploads a pasted image and inserts the markdown link at the caret', async () => {
+    const calls = mockFetch([
+      [
+        'POST /v1/tickets/SHOP-7/attachments',
+        () => ({
+          status: 201,
+          body: { id: 'a1', url: '/v1/attachments/a1', mimeType: 'image/png', sizeBytes: 10 },
+        }),
+      ],
+    ]);
+    renderWithApp(<CommentComposer ticketKey="SHOP-7" />);
+    const box = (await screen.findByRole('textbox', { name: 'Thêm bình luận' })) as HTMLTextAreaElement;
+    await userEvent.setup().type(box, 'AB');
+    box.setSelectionRange(1, 1);
+
+    const file = new File(['fake-bytes'], 'shot.png', { type: 'image/png' });
+    pasteImage(box, file);
+    expect(box.value).toMatch(/^A!\[Đang tải ảnh\.\.\.\]\(uploading:\d+\)B$/);
+
+    await waitFor(() => expect(box.value).toBe('A![ảnh](/v1/attachments/a1)B'));
+    const post = calls.find((c) => c.method === 'POST');
+    expect(post?.path).toBe('/v1/tickets/SHOP-7/attachments');
+    expect(post?.body).toEqual({
+      filename: 'shot.png',
+      mimeType: 'image/png',
+      content: Buffer.from('fake-bytes').toString('base64'),
+    });
+  });
+
+  it('shows a Vietnamese error and drops the placeholder when the image upload fails', async () => {
+    mockFetch([
+      [
+        'POST /v1/tickets/SHOP-7/attachments',
+        () => ({ status: 400, body: { error: { code: 'VALIDATION_FAILED', message: 'quá 10MB' } } }),
+      ],
+    ]);
+    renderWithApp(<CommentComposer ticketKey="SHOP-7" />);
+    const box = (await screen.findByRole('textbox', { name: 'Thêm bình luận' })) as HTMLTextAreaElement;
+    await userEvent.setup().type(box, 'AB');
+    box.setSelectionRange(1, 1);
+    pasteImage(box, new File(['x'], 'big.png', { type: 'image/png' }));
+
+    await waitFor(() => expect(box.value).toBe('AB'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Dữ liệu không hợp lệ.');
+  });
+
+  it('rejects an unsupported image mime before uploading, keeping the content intact', async () => {
+    const calls = mockFetch([]);
+    renderWithApp(<CommentComposer ticketKey="SHOP-7" />);
+    const box = (await screen.findByRole('textbox', { name: 'Thêm bình luận' })) as HTMLTextAreaElement;
+    await userEvent.setup().type(box, 'AB');
+    box.setSelectionRange(1, 1);
+    pasteImage(box, new File(['x'], 'anim.bmp', { type: 'image/bmp' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chỉ hỗ trợ ảnh PNG, JPEG, GIF hoặc WebP.');
+    expect(box.value).toBe('AB');
+    expect(calls).toHaveLength(0);
   });
 });

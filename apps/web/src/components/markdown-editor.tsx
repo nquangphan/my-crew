@@ -1,9 +1,14 @@
 import { useId, useState } from 'react';
 import { cn } from '../lib/cn';
+import { usePasteImage } from '../lib/paste-image';
 import { MarkdownView } from './markdown-view';
 import { Textarea } from './ui/field';
 
-/** Markdown textarea with a "Xem trước" tab that renders exactly what readers will see. */
+/**
+ * Markdown textarea with a "Xem trước" tab that renders exactly what readers will see. `ticketId` (the
+ * ticket's id or key) enables paste-to-upload of a clipboard image; omitted where no ticket exists yet
+ * (e.g. the new-ticket dialog), paste falls back to plain text.
+ */
 export function MarkdownEditor({
   value,
   onChange,
@@ -11,6 +16,7 @@ export function MarkdownEditor({
   placeholder,
   rows = 6,
   autoFocus,
+  ticketId,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -18,9 +24,11 @@ export function MarkdownEditor({
   placeholder?: string;
   rows?: number;
   autoFocus?: boolean;
+  ticketId?: string;
 }) {
   const [preview, setPreview] = useState(false);
   const id = useId();
+  const { onPaste, error: pasteError } = usePasteImage({ ticketId, value, onChange });
   const tab = (active: boolean) =>
     cn(
       'min-h-11 border-b-2 px-1 text-[13px] xl:min-h-8',
@@ -63,9 +71,15 @@ export function MarkdownEditor({
           rows={rows}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onPaste={onPaste}
           placeholder={placeholder}
           autoFocus={autoFocus}
         />
+      )}
+      {pasteError && (
+        <p role="alert" className="m-0 text-xs text-bad">
+          {pasteError}
+        </p>
       )}
       <span className="text-xs text-muted">Hỗ trợ Markdown.</span>
     </div>

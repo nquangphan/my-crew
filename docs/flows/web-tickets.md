@@ -69,7 +69,8 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 7. `apps/web/src/routes/ticket-detail.tsx` → `TicketDetailPage`: dựng breadcrumb (dự án hoặc "Request", cha
    nếu có), render `TicketView` chế độ `mode="page"`.
 8. `apps/web/src/components/ticket-view.tsx` → `TicketView()`: một component dùng chung cho panel
-   (`ticket-side-panel.tsx`) và trang toàn màn hình — tiêu đề/mô tả sửa tại chỗ, banner vàng khi
+   (`ticket-side-panel.tsx`) và trang toàn màn hình — tiêu đề/mô tả sửa tại chỗ (`MarkdownEditor` của ô mô tả
+   nhận `ticketId={ticket.id}` để bật paste-to-upload ảnh clipboard, xem bước 12), banner vàng khi
    `needs_input` (nút "Trả lời" focus ô soạn), tabs Hoạt động (Bình luận/Lịch sử/Report), `DetailsBox` (dropdown
    trạng thái chỉ hiện `allowedTransitions('owner', …)`; mục "Độ phức tạp" hiện thêm dòng "Lý do: …" từ
    `ticket.complexityReason` khi PM đã ghi lý do đánh giá), nút Hủy/Mở lại/Bỏ chặn, và `AgentActivityLine` (thay
@@ -88,7 +89,9 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
     `pairsWith`, hiện chuỗi bug "vòng n/`BUG_CYCLE_CAP`" và phụ thuộc "Chờ KEY" chưa xong.
 11. `apps/web/src/components/comment-thread.tsx`, `event-timeline.tsx`, `report-panel.tsx`: danh sách bình
     luận + ô soạn (gắn CSRF qua `api-client`), dòng sự kiện từ `EventEnvelope`, report hiện hành kèm bộ chọn
-    phiên bản. `CommentComposer` (`canCallPm`, mọi loại ticket trừ `request` — `TicketView` gán): gõ `@` (hoặc
+    phiên bản. `CommentComposer` truyền `ticketId: ticketKey` vào `usePasteImage()` (bước 12) để bật
+    paste-to-upload ảnh clipboard, hiện dòng lỗi dán dưới ô soạn khi có. `CommentComposer` (`canCallPm`, mọi
+    loại ticket trừ `request` — `TicketView` gán): gõ `@` (hoặc
     `@p`/`@pm`) sau khoảng trắng/`(`/đầu dòng hiện listbox gợi ý "@pm — gọi PM của cây ticket (thay cho agent
     của ticket này)"; Enter/Tab hoặc click chèn `@pm `, Escape ẩn gợi ý; Ctrl/Cmd+Enter vẫn gửi bình thường; một
     tag bị từ chối hiện lỗi `PM_NOT_AVAILABLE` (`format.ts`, flow `web-shell`) và giữ nguyên nội dung ô soạn.
@@ -98,10 +101,22 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
     `CommentList` hiện badge nhỏ "Đã gọi PM" trên bình luận owner có `mentions` chứa `pm`, cộng nút "Xem
     <pm_task key>" (khi bình luận nằm trên một subtask, `pmTaskKey` do `TicketView` truyền xuống cùng ticket cha)
     mở ticket đó — nơi hoạt động PM hiện trên `AgentActivityLine` như bước cuối.
-12. `apps/web/src/components/cancel-dialog.tsx`, `new-ticket-dialog.tsx`: hộp thoại Hủy (liệt kê mọi hậu duệ
+12. `apps/web/src/lib/paste-image.ts` → `usePasteImage()`: hook paste-to-upload ảnh clipboard dùng chung cho ô
+    mô tả ticket (`MarkdownEditor`, bước 8) và ô bình luận (`CommentComposer`, bước 11) — bắt `onPaste` trên
+    textarea, tìm file ảnh đầu tiên trong `clipboardData.items`; không phải ảnh thì bỏ qua, giữ nguyên hành vi
+    dán văn bản mặc định. Mime ngoài whitelist (`AttachmentMimeType`, flow `ticket-lifecycle`) báo lỗi tiếng
+    Việt ngay phía client, không gọi API, không đổi nội dung. Ảnh hợp lệ: chèn placeholder
+    `![Đang tải ảnh...](uploading:<n>)` tại đúng vị trí con trỏ (không đè nội dung đang có), đọc file thành
+    base64 rồi gọi `useUploadAttachment()` (`queries.ts`, flow `web-shell`) → `POST /v1/tickets/:id/attachments`
+    (flow `ticket-lifecycle`); xong thì thay placeholder bằng `![ảnh](url)` thật. Lỗi upload (mime bị server từ
+    chối, quá 10MB, mất kết nối) gỡ placeholder (không chèn link hỏng, không mất nội dung khác), báo lỗi qua
+    `errorMessage()` (`format.ts`, flow `web-shell`). `ticketId` rỗng (hộp thoại tạo ticket mới, chưa có ticket)
+    tắt hẳn tính năng — dán ảnh không làm gì. `MarkdownView`/`rehype-sanitize` (schema GitHub mặc định) render
+    đúng `<img src="/v1/attachments/:id">` (URL tương đối) nên không cần chỉnh schema sanitize.
+13. `apps/web/src/components/cancel-dialog.tsx`, `new-ticket-dialog.tsx`: hộp thoại Hủy (liệt kê mọi hậu duệ
     đang mở), hộp thoại Tạo ticket (gợi ý dự án, ưu tiên, markdown, "Cho phép sửa config", "Tạo thêm" — người
     nhận luôn là assistant).
-13. `apps/web/src/components/agent-activity.tsx` → `describeActivity()`, `AgentActivityLine`,
+14. `apps/web/src/components/agent-activity.tsx` → `describeActivity()`, `AgentActivityLine`,
     `AgentActivityMark`: một dòng tiếng Việt kể máy nào đang chạy ticket (kèm model/effort/giờ bắt đầu, cộng
     "· cài đặt `<rev>`" từ `AgentActivity.settingsRevision` — bản cài đặt server lượt chạy đó bắt đầu với,
     flow `server-settings`), đang chờ vì sao (`describeWait()`, không nêu tên máy), lỗi gần nhất, hay "chưa
@@ -138,6 +153,7 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 | `apps/web/src/components/cancel-dialog.tsx` | Hộp thoại hủy ticket | `CancelDialog` |
 | `apps/web/src/components/new-ticket-dialog.tsx` | Hộp thoại tạo ticket | `NewTicketDialog` |
 | `apps/web/src/components/markdown-editor.tsx` | Ô soạn markdown | `MarkdownEditor` |
+| `apps/web/src/lib/paste-image.ts` | Paste-to-upload ảnh clipboard dùng chung | `usePasteImage` |
 | `apps/web/src/components/role-avatar.tsx` | Avatar vai trò agent + spinner | `RoleAvatar`, `Spinner` |
 | `apps/web/src/components/type-icon.tsx` | Icon loại ticket | `TypeIcon` |
 | `apps/web/src/components/markdown-view.tsx` | Hiển thị markdown đã khử trùng (dùng chung) | `MarkdownView` |
@@ -155,7 +171,9 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
 
 - ticket-lifecycle: mọi hành động (tạo, transition, bình luận, report) gọi route owner của flow này;
   `Ticket.agentActivity` (đọc bởi `describeActivity()`) xuất phát từ flow đó; `MyRequestsPage` lọc theo
-  `projectIds` bằng đúng `inProjectsFilter()` mà `GET /v1/tickets?projectIds=` dùng.
+  `projectIds` bằng đúng `inProjectsFilter()` mà `GET /v1/tickets?projectIds=` dùng; `usePasteImage()` gọi
+  `POST /v1/tickets/:id/attachments` của flow đó (`AttachmentMimeType`, `Attachment`) để paste-to-upload ảnh
+  clipboard vào ô mô tả/bình luận.
 - web-shell: dùng chung `queries.ts`, `format.ts`, `shortcuts.ts`, `ShellContext`, component `ui/*`.
 - event-delivery: sự kiện `agent.activity_changed` làm mới ticket và máy qua `invalidationsFor()`.
 - docs-sync-viewer: `TicketView` hiển thị "Docs liên quan" từ `flows[]`, dùng `docsFlow()`; trang chủ docs dùng
@@ -185,7 +203,16 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
   đường lỗi); gõ `@` hiện gợi ý `@pm`, Enter/click chèn đúng và ẩn gợi ý, Escape ẩn, không gợi ý khi
   `canCallPm` tắt hay khi tag nằm trong email; thông báo tiếng Việt khi server từ chối `PM_NOT_AVAILABLE`; badge
   "Đã gọi PM" trên đúng bình luận và nút "Xem <key>" mở đúng pm_task; `unblocks` hiện gợi ý mở chặn dưới ô
-  soạn (đọc được qua `aria-describedby`), ẩn khi gõ `@pm`.
+  soạn (đọc được qua `aria-describedby`), ẩn khi gõ `@pm`; dán ảnh chèn đúng markdown tại vị trí con trỏ (qua
+  placeholder "Đang tải ảnh..." rồi link thật), lỗi tiếng Việt và gỡ placeholder khi server từ chối upload,
+  mime không hỗ trợ bị chặn trước khi gọi API và giữ nguyên nội dung đang soạn.
+- `apps/web/src/components/markdown-editor.test.tsx`: dán ảnh vào ô mô tả chèn markdown tại vị trí con trỏ
+  qua đúng vòng placeholder/link thật giống `CommentComposer`, ảnh hiện đúng ở tab "Xem trước"; ảnh vượt 10MB
+  (server trả 413/`ATTACHMENT_TOO_LARGE`) hiện đúng thông báo cụ thể "Ảnh vượt quá giới hạn 10MB, hãy chọn ảnh
+  nhỏ hơn." (`format.ts`, flow `web-shell`) thay vì thông báo chung "Dữ liệu không hợp lệ."; không truyền
+  `ticketId` (hộp thoại tạo ticket mới) thì dán ảnh không làm gì.
+- `apps/web/src/components/markdown-view.test.tsx`: `<img src="/v1/attachments/:id">` (URL tương đối) không
+  bị `rehype-sanitize` strip khi render qua `MarkdownView`.
 - `apps/web/src/components/cancel-dialog.test.tsx`: liệt kê hậu duệ đang mở qua nhiều cấp.
 - `apps/web/e2e/core-flows.spec.ts`: tạo ticket, mở panel, bình luận agent xuất hiện dưới 2s, đổi trạng thái bị
   từ chối rồi qua khi có report, mở docs từ chip flow, hủy pm_task kéo theo hủy QC con, "Lý do: …" của

@@ -19,6 +19,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/drizzle/0007_project_bmad_profile.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0009_runtime_releases.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0010_attachments.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/app.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/auth/csrf.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
@@ -36,6 +37,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/jobs/stuck-ticket-alarm.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/realtime/event-bus.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `apps/api/src/realtime/sse.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `apps/api/src/routes/attachment-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
 | `apps/api/src/routes/auth-routes.ts` | [owner-auth](flows/owner-auth.md) (điểm vào) |
 | `apps/api/src/routes/bmad-profile-routes.ts` | [daemon-api](flows/daemon-api.md) (file) |
 | `apps/api/src/routes/comment-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
@@ -52,6 +54,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/routes/ticket-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
 | `apps/api/src/server.ts` | [api-platform](flows/api-platform.md) (điểm vào) |
 | `apps/api/src/services/agent-activity-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `apps/api/src/services/attachment-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/bmad-profile-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/budget-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/claim-service.ts` | [project-claims](flows/project-claims.md) (file) |
@@ -71,6 +74,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/services/ticket-query-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/ticket-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/test/agent-activity.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
+| `apps/api/test/attachment.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/auth.test.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/api/test/bmad-profile.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `apps/api/test/budget.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
@@ -292,7 +296,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/machine-control.test.tsx` | [machine-control](flows/machine-control.md) (test) |
 | `apps/web/src/components/machine-control.tsx` | [machine-control](flows/machine-control.md) (điểm vào) |
 | `apps/web/src/components/machine-runtime.tsx` | [runtime-updates](flows/runtime-updates.md) (file) |
+| `apps/web/src/components/markdown-editor.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/markdown-editor.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/markdown-view.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/markdown-view.tsx` | [web-tickets](flows/web-tickets.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
 | `apps/web/src/components/model-settings-form.tsx` | [server-settings](flows/server-settings.md) (file) |
 | `apps/web/src/components/new-ticket-dialog.tsx` | [web-tickets](flows/web-tickets.md) (file) |
@@ -342,6 +348,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/lib/inbox.ts` | [web-admin](flows/web-admin.md) (file) |
 | `apps/web/src/lib/live-events.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
 | `apps/web/src/lib/live-events.ts` | [event-delivery](flows/event-delivery.md) (file) |
+| `apps/web/src/lib/paste-image.ts` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/lib/queries.test.tsx` | [web-shell](flows/web-shell.md) (test) |
 | `apps/web/src/lib/queries.ts` | [web-shell](flows/web-shell.md) (file) |
 | `apps/web/src/lib/search-params.test.ts` | [web-shell](flows/web-shell.md) (test) |

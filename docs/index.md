@@ -74,11 +74,19 @@ theo từng flow; agent đọc docs trước khi đọc code.
 | [Dọn tài nguyên sau mỗi job](flows/resource-hygiene.md) | `resource-hygiene` | `apps/daemon/src/runner/job-cleanup.ts` |
 | [Cập nhật nóng runtime đã ký, chữ ký app ổn định và quyền ổ đĩa](flows/runtime-updates.md) | `runtime-updates` | `apps/api/src/routes/runtime-routes.ts`, `apps/desktop/src/main/runtime-manager.ts` |
 | [Cài đặt hệ thống trên server (prompt, quy tắc, model, tài nguyên)](flows/server-settings.md) | `server-settings` | `apps/api/src/routes/settings-routes.ts`, `apps/web/src/routes/system-settings.tsx` |
-| [Vòng đời ticket](flows/ticket-lifecycle.md) | `ticket-lifecycle` | `apps/api/src/routes/ticket-routes.ts`, `apps/api/src/routes/comment-routes.ts`, `apps/api/src/routes/report-routes.ts` |
+| [Vòng đời ticket](flows/ticket-lifecycle.md) | `ticket-lifecycle` | `apps/api/src/routes/ticket-routes.ts`, `apps/api/src/routes/comment-routes.ts`, `apps/api/src/routes/report-routes.ts`, `apps/api/src/routes/attachment-routes.ts` |
 | [Inbox, dự án và máy trên web](flows/web-admin.md) | `web-admin` | `apps/web/src/routes/inbox.tsx`, `apps/web/src/routes/projects.tsx`, `apps/web/src/routes/project-settings.tsx`, `apps/web/src/routes/machines.tsx` |
 | [Khung ứng dụng web](flows/web-shell.md) | `web-shell` | `apps/web/src/main.tsx`, `apps/web/src/router.tsx` |
 | [Board, danh sách và ticket trên web](flows/web-tickets.md) | `web-tickets` | `apps/web/src/routes/board.tsx`, `apps/web/src/routes/list.tsx`, `apps/web/src/routes/ticket-detail.tsx`, `apps/web/src/routes/my-requests.tsx` |
 <!-- crew-docs:flows:end -->
+
+## Hướng dẫn
+
+- [Cài đặt môi trường dev](guides/dev-setup.md): từ máy trắng tới lúc chạy được API, web, daemon, app desktop ở chế độ dev.
+- [Hướng dẫn sử dụng](guides/user-guide.md): thao tác trên web cho chủ dự án, không cần biết code.
+- [Quy trình ticket](guides/workflow.md): một yêu cầu đi qua những bước nào từ lúc tạo tới lúc merge.
+- [Bảng tra API](guides/api-reference.md): danh sách endpoint, dẫn tới schema zod và trang flow sở hữu route.
+- [Hướng dẫn đóng góp](CONTRIBUTING.md): quy ước, thứ tự đọc docs trước khi sửa code, docs đi cùng mỗi commit.
 
 ## Cách dùng docs
 
@@ -86,3 +94,4 @@ theo từng flow; agent đọc docs trước khi đọc code.
 - `docs/flows/<id>.md`: mỗi flow nghiệp vụ hoặc kỹ thuật có một trang.
 - `docs/flows.yaml`: nguồn sự thật flow ↔ file, cho máy đọc.
 - `docs/files.md`: tra ngược file → flow, sinh tự động bằng `crew-docs generate`.
+- Muốn biết cách dùng hay đóng góp, xem mục [Hướng dẫn](#hướng-dẫn) ở trên.

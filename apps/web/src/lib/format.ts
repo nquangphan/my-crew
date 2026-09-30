@@ -134,6 +134,7 @@ const ERROR_TEXT: Partial<Record<string, string>> = {
   CONFLICT: 'Dữ liệu bị trùng hoặc đã thay đổi.',
   RATE_LIMITED: 'Thử quá nhiều lần, hãy đợi một chút.',
   VALIDATION_FAILED: 'Dữ liệu không hợp lệ.',
+  ATTACHMENT_TOO_LARGE: 'Ảnh vượt quá giới hạn 10MB, hãy chọn ảnh nhỏ hơn.',
   TICKET_CLOSED: 'Ticket đã đóng.',
   PM_NOT_AVAILABLE:
     'Không gọi được PM: ticket này không thuộc PM task nào đang mở. Bỏ @pm để gửi bình luận thường.',
