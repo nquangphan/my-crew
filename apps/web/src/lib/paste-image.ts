@@ -1,7 +1,7 @@
 import { AttachmentMimeType } from '@crew/shared';
 import { type ClipboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { errorMessage } from './format';
-import { useUploadAttachment } from './queries';
+import { useUploadAttachment, useUploadDraftAttachment } from './queries';
 
 let uploadSeq = 0;
 
@@ -35,22 +35,39 @@ function fileToBase64(file: File): Promise<string> {
 
 /**
  * Paste-to-upload shared by the ticket description editor (`MarkdownEditor`) and the comment composer:
- * pasting an image from the clipboard uploads it via `POST /v1/tickets/:id/attachments` (CREW2PS-2) and
- * inserts `![...](url)` at the caret, showing a placeholder while the upload runs. Pasting anything else is
- * left alone (default paste behavior). `ticketId` omitted (e.g. the new-ticket dialog, before the ticket
- * exists) disables paste-to-upload entirely.
+ * pasting an image from the clipboard uploads it and inserts `![...](url)` at the caret, showing a
+ * placeholder while the upload runs. Pasting anything else is left alone (default paste behavior).
+ *
+ * `ticketId` set uploads via `POST /v1/tickets/:id/attachments` (CREW2PS-2) — the existing ticket
+ * description/comment case. `ticketId` omitted with `draft: true` (the new-ticket dialog, before the ticket
+ * exists) uploads via the draft endpoint `POST /v1/attachments` instead (CREW2PS-52/-54); the server claims
+ * the draft image into the new ticket once its description references the returned `url`. `ticketId`
+ * omitted and `draft` falsy (default) disables paste-to-upload entirely — paste does nothing.
+ *
+ * `uploading` is `true` while at least one paste's upload is in flight; callers that can submit the text
+ * elsewhere (e.g. creating the ticket) should block submission while it is `true`, so the submitted value
+ * never contains an unresolved `uploading:` placeholder.
  */
 export function usePasteImage({
   ticketId,
+  draft = false,
   value,
   onChange,
 }: {
   ticketId: string | undefined;
+  draft?: boolean;
   value: string;
   onChange: (value: string) => void;
-}): { onPaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void; error: string | null } {
-  const upload = useUploadAttachment(ticketId ?? '');
+}): {
+  onPaste: (event: ClipboardEvent<HTMLTextAreaElement>) => void;
+  error: string | null;
+  uploading: boolean;
+} {
+  const ticketUpload = useUploadAttachment(ticketId ?? '');
+  const draftUpload = useUploadDraftAttachment();
+  const enabled = Boolean(ticketId) || draft;
   const [error, setError] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const valueRef = useRef(value);
   useEffect(() => {
     valueRef.current = value;
@@ -58,7 +75,7 @@ export function usePasteImage({
 
   const onPaste = useCallback(
     (event: ClipboardEvent<HTMLTextAreaElement>) => {
-      if (!ticketId) return;
+      if (!enabled) return;
       const file = imageFileFrom(event.clipboardData.items);
       if (!file) return;
       event.preventDefault();
@@ -76,15 +93,15 @@ export function usePasteImage({
       uploadSeq += 1;
       const placeholder = `![Đang tải ảnh...](uploading:${uploadSeq})`;
       onChange(`${valueRef.current.slice(0, start)}${placeholder}${valueRef.current.slice(end)}`);
+      setPendingCount((n) => n + 1);
 
       void (async () => {
         try {
           const content = await fileToBase64(file);
-          const attachment = await upload.mutateAsync({
-            filename: file.name || 'pasted-image',
-            mimeType: mime.data,
-            content,
-          });
+          const body = { filename: file.name || 'pasted-image', mimeType: mime.data, content };
+          const attachment = ticketId
+            ? await ticketUpload.mutateAsync(body)
+            : await draftUpload.mutateAsync(body);
           const markdown = `![ảnh](${attachment.url})`;
           onChange(
             valueRef.current.includes(placeholder)
@@ -94,11 +111,13 @@ export function usePasteImage({
         } catch (err) {
           onChange(valueRef.current.replace(placeholder, ''));
           setError(errorMessage(err));
+        } finally {
+          setPendingCount((n) => n - 1);
         }
       })();
     },
-    [ticketId, upload, onChange],
+    [enabled, ticketId, ticketUpload, draftUpload, onChange],
   );
 
-  return { onPaste, error };
+  return { onPaste, error, uploading: pendingCount > 0 };
 }

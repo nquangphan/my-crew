@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Locator, test } from '@playwright/test';
 import {
   Agent,
   expectNoHorizontalOverflow,
@@ -10,6 +10,34 @@ import {
   snap,
   viewportOf,
 } from './helpers';
+
+/** A 1x1 transparent PNG, well under the 10MB limit. */
+const PNG_BASE64 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
+/**
+ * Simulates pasting an image from the OS clipboard: a real `paste` event on `locator`'s element carrying a
+ * `DataTransfer` with one file, the same shape `usePasteImage()`'s `onPaste` reads `clipboardData.items` from.
+ */
+async function pasteImageInto(
+  locator: Locator,
+  base64: string,
+  filename: string,
+  mimeType: string,
+): Promise<void> {
+  await locator.evaluate(
+    (el, { base64, filename, mimeType }) => {
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const file = new File([bytes], filename, { type: mimeType });
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      el.dispatchEvent(
+        new ClipboardEvent('paste', { bubbles: true, cancelable: true, clipboardData: dataTransfer }),
+      );
+    },
+    { base64, filename, mimeType },
+  );
+}
 
 /**
  * The owner's core loop at every viewport: create a ticket, open it, answer an agent's `needs_input`,
@@ -176,4 +204,82 @@ test('create, open, answer needs_input, change status, open docs, cancel', async
   await expect(page.getByRole('heading', { name: 'Máy', exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await snap(page, testInfo, 'machines');
+});
+
+/**
+ * Pasting an image into "Mô tả" of the "Tạo ticket" dialog, before the ticket exists: the draft
+ * paste-to-upload path (`usePasteImage()` with `draftAttachments`, `POST /v1/attachments`).
+ */
+test('paste images into "Mô tả" of the "Tạo ticket" dialog', async ({ page }, testInfo) => {
+  const state = readState();
+  const viewport = viewportOf(testInfo);
+  const title = `Ticket có ảnh dán (${viewport} ${Date.now()})`;
+
+  await login(page, state);
+  await expectNoHorizontalOverflow(page);
+
+  if (viewport === 'desktop') await page.keyboard.press('c');
+  else if (viewport === 'phone') await page.getByRole('button', { name: 'Tạo ticket' }).click();
+  else await page.getByRole('button', { name: 'Tạo', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Tạo ticket' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel('Tiêu đề').fill(title);
+
+  // Slow the draft upload down a bit so the "đang tải" state below is reliably observable instead of racing
+  // a same-machine round trip that can resolve before the assertion even runs.
+  await page.route('**/v1/attachments', async (route) => {
+    if (route.request().method() === 'POST') await new Promise((resolve) => setTimeout(resolve, 400));
+    await route.continue();
+  });
+
+  const description = dialog.getByLabel('Mô tả');
+  await description.fill('Trước ảnh, sau ảnh');
+  // Caret right after "Trước ảnh, " (11 chars), before "sau ảnh".
+  await description.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(11, 11));
+
+  // 1. First paste: placeholder lands exactly at the caret without disturbing the rest of the text, "Tạo"
+  // is disabled while it is still uploading.
+  await pasteImageInto(description, PNG_BASE64, 'shot1.png', 'image/png');
+  await expect(description).toHaveValue(/^Trước ảnh, !\[Đang tải ảnh\.\.\.\]\(uploading:\d+\)sau ảnh$/);
+  await expect(dialog.getByRole('button', { name: 'Đang tải ảnh…' })).toBeDisabled();
+  await expect(description).toHaveValue(/^Trước ảnh, !\[ảnh\]\(\/v1\/attachments\/[\w-]+\)sau ảnh$/);
+  await expect(dialog.getByRole('button', { name: 'Tạo', exact: true })).toBeEnabled();
+
+  // 2. Second consecutive paste, appended at the end: both images end up in the text, in order.
+  await description.evaluate((el: HTMLTextAreaElement) =>
+    el.setSelectionRange(el.value.length, el.value.length),
+  );
+  await pasteImageInto(description, PNG_BASE64, 'shot2.png', 'image/png');
+  await expect(dialog.getByRole('button', { name: 'Đang tải ảnh…' })).toBeVisible();
+  await expect(description).toHaveValue(
+    /^Trước ảnh, !\[ảnh\]\(\/v1\/attachments\/[\w-]+\)sau ảnh!\[ảnh\]\(\/v1\/attachments\/[\w-]+\)$/,
+  );
+  await expect(dialog.getByRole('button', { name: 'Tạo', exact: true })).toBeEnabled();
+
+  // 3. "Xem trước" renders both images.
+  await dialog.getByRole('button', { name: 'Xem trước' }).click();
+  await expect(dialog.getByRole('img', { name: 'ảnh' })).toHaveCount(2);
+  await dialog.getByRole('button', { name: 'Viết' }).click();
+
+  // 4. Create: the new ticket's description keeps both real links, never an "uploading:" placeholder.
+  await dialog.getByRole('button', { name: 'Tạo', exact: true }).click();
+  await expect(dialog).toBeHidden();
+
+  const panel = page.getByRole('complementary', { name: /^Panel ticket/ });
+  await expect(panel.getByRole('heading', { name: title })).toBeVisible();
+  await expect(panel.getByRole('img', { name: 'ảnh' })).toHaveCount(2);
+  await expectNoHorizontalOverflow(page);
+
+  // 5. Both images still load after a reload.
+  await page.reload();
+  await expect(panel.getByRole('heading', { name: title })).toBeVisible();
+  const images = panel.getByRole('img', { name: 'ảnh' });
+  await expect(images).toHaveCount(2);
+  const sources = await images.evaluateAll((els) => els.map((el) => el.getAttribute('src')));
+  for (const src of sources) {
+    expect(src).toMatch(/^\/v1\/attachments\//);
+    const res = await page.request.get(src ?? '');
+    expect(res.ok()).toBe(true);
+  }
+  await expectNoHorizontalOverflow(page);
 });

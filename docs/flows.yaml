@@ -306,6 +306,7 @@ flows:
       - apps/web/src/components/markdown-editor.test.tsx
       - apps/web/src/components/markdown-view.test.tsx
       - apps/web/src/components/cancel-dialog.test.tsx
+      - apps/web/src/components/new-ticket-dialog.test.tsx
       - apps/web/e2e/core-flows.spec.ts
       - apps/web/src/components/agent-activity.test.tsx
       - apps/web/e2e/agent-activity.spec.ts
