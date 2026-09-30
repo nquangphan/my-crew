@@ -302,6 +302,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/markdown-view.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/markdown-view.tsx` | [web-tickets](flows/web-tickets.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
 | `apps/web/src/components/model-settings-form.tsx` | [server-settings](flows/server-settings.md) (file) |
+| `apps/web/src/components/new-ticket-dialog.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/new-ticket-dialog.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/pairing-dialog.test.tsx` | [web-admin](flows/web-admin.md) (test) |
 | `apps/web/src/components/pairing-dialog.tsx` | [web-admin](flows/web-admin.md) (file) |
