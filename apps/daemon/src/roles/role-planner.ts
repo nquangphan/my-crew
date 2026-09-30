@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import {
+  canTransition,
   DEFAULT_GUARD_POLICY,
   type GuardPolicy,
   type RoleStage,
@@ -462,6 +463,13 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
       writer: ctx.writer,
     });
     if (gate.action === 'wait') return skipRun(stage, `chờ docs-init ${gate.docsInit.key}`);
+  }
+  // A dev/bug run starting on a `todo` ticket moves it to `in_progress` itself, before the agent sees the
+  // prompt: resume/retry on a ticket already past `todo` (in_progress, or waiting for the owner above) is a
+  // no-op here.
+  if (stage === 'dev' && ticket.status === 'todo' && canTransition('agent', ticket.status, 'in_progress')) {
+    await ctx.writer.write((key) => ctx.vps.transition(ticket.id, 'in_progress', key));
+    ticket.status = 'in_progress';
   }
   // QC of a docs-only diff reviews it statically: its UI-test servers are neither required nor blocking.
   const uiTest = stage === 'qc' ? await qcNeedsUiTest(ctx, ticket, project) : true;

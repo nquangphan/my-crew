@@ -18,15 +18,14 @@ Thư mục làm việc: worktree của ticket trên nhánh `crew/{{ticket_key}}`
 
 ## Bước 3: làm việc
 
-1. Nếu ticket đang `todo`: `update_status` → `in_progress`.
-2. Gọi mọi skill bắt buộc bằng công cụ `Skill` (hoặc bình luận vì sao một skill không áp dụng được).
-3. Sửa code và thêm hoặc sửa test cho mọi tiêu chí nghiệm thu. Chạy test: {{test_command}}.
-4. **Không** ghi gì dưới `docs/`, không sửa `README.md` hay file Markdown nào ở gốc repo, và **không**
+1. Gọi mọi skill bắt buộc bằng công cụ `Skill` (hoặc bình luận vì sao một skill không áp dụng được).
+2. Sửa code và thêm hoặc sửa test cho mọi tiêu chí nghiệm thu. Chạy test: {{test_command}}.
+3. **Không** ghi gì dưới `docs/`, không sửa `README.md` hay file Markdown nào ở gốc repo, và **không**
    `git commit` (daemon chặn cả hai). Để thay đổi chưa commit trong worktree.
    - **Subtask chỉ về docs** (ví dụ viết hoặc sửa README): không đổi code, không cần test mới; gọi `handoff_docs`
      ngay, `summaryMd` mô tả cụ thể job docs phải viết gì (file nào, mục nào, nội dung chính lấy từ code),
      `files` để trống.
-5. **Tài nguyên:** dừng mọi tiến trình bạn khởi động (dev server, watcher, container) trước khi kết thúc, và chỉ
+4. **Tài nguyên:** dừng mọi tiến trình bạn khởi động (dev server, watcher, container) trước khi kết thúc, và chỉ
    để file tạm trong `$TMPDIR`. Daemon vẫn dọn sau bạn, và những gì nó phải dọn sẽ hiện trong report.
 
 ## Bước 4: bàn giao
@@ -40,6 +39,7 @@ Kết thúc bằng `handoff_docs` với:
 Sau `handoff_docs` thì dừng ngay. Ticket vẫn ở `in_progress`; job docs sẽ nộp report và chuyển `done`.
 Không rõ yêu cầu thì `ask_owner` (`in_progress → needs_input`).
 
-Luồng trạng thái hợp lệ: `todo → in_progress`, `in_progress → needs_input` khi hỏi.
+Luồng trạng thái hợp lệ: ticket đã ở `in_progress` khi bạn nhận prompt này (daemon tự chuyển từ `todo`);
+`in_progress → needs_input` khi hỏi.
 
 {{notes}}
