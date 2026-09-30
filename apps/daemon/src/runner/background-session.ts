@@ -42,7 +42,10 @@ export type CloseReason =
   | 'end_requested'
   /** The run's own work is finished (the ticket left in-progress). */
   | 'work_done'
-  /** The turn answering the reminder ended with background work still alive (or the reminder started no turn). */
+  /**
+   * The turn answering the reminder ended with background work still alive (or the reminder started no turn,
+   * or the turn still owed to work that ended did not come).
+   */
   | 'reminded'
   /** The run was aborted or torn down. */
   | 'shutdown';
@@ -51,7 +54,8 @@ export const DEFAULT_BACKGROUND_WAIT_MS = 30 * 60_000;
 /**
  * How long the session stays open for the turn the runtime owes to background work that just ended. The
  * runtime starts that turn within tens of milliseconds, also for a task that ended while the agent was
- * writing the last answer of its turn (the live set is then already empty when the turn's result arrives).
+ * writing the last answer of its turn (the live set is then already empty when the turn's result arrives),
+ * and after the reminder's turn for a task that ended while the reminder was waiting for that turn.
  */
 export const DEFAULT_SETTLE_MS = 10_000;
 /** How long closing waits for the runtime to confirm the stops. */
@@ -94,8 +98,13 @@ export class BackgroundSession {
   private tasks: BackgroundTask[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
   private wait: Wait | null = null;
-  /** Background work ended during the turn in flight: the runtime may still owe a turn for it. */
+  /**
+   * The runtime may still owe a turn to background work that ended: during the turn in flight, or while the
+   * reminder was waiting for its own turn.
+   */
   private workEnded = false;
+  /** The reminder was sent and no turn has started since. */
+  private reminderPending = false;
   private closing: Promise<void> | null = null;
   private signalClosing: () => void = () => {};
   private readonly whenClosing = new Promise<void>((resolve) => {
@@ -153,9 +162,11 @@ export class BackgroundSession {
       ambient: task.ambient === true,
     }));
     const work = this.liveWork();
-    if (this.wait === null) {
-      if (before.some((task) => !work.some((live) => live.id === task.id))) this.workEnded = true;
-    } else if (this.wait === 'work' && work.length === 0) {
+    const ended = before.some((task) => !work.some((live) => live.id === task.id));
+    // Work that ends during a wait is paid by the turn that ends the wait. Not while the reminder waits for
+    // that same turn: the runtime then runs one turn for the reminder and one for the notification.
+    if (ended && (this.wait === null || this.reminderPending)) this.workEnded = true;
+    if (this.wait === 'work' && work.length === 0) {
       // A task normally ends with a notification turn. One that leaves without it (it was stopped) must not
       // hold the session open until the ceiling.
       this.wait = 'settle';
@@ -166,9 +177,11 @@ export class BackgroundSession {
   /** A turn of the main agent started (or goes on): the wait, if any, is over. */
   turnStarted(): void {
     if (this.wait === null) return;
-    // The turn that ends a wait is the one owed to the work that ended meanwhile.
     this.wait = null;
-    this.workEnded = false;
+    // The turn that ends a wait is the one owed to the work that ended meanwhile. When the reminder was
+    // waiting for a turn too, this turn is only one of the two the runtime owes: the other stays due.
+    if (!this.reminderPending) this.workEnded = false;
+    this.reminderPending = false;
     this.disarm();
   }
 
@@ -208,7 +221,8 @@ export class BackgroundSession {
     if (turn.isError) return 'turn_error';
     if (this.options.endRequested?.()) return 'end_requested';
     if (this.liveWork().length === 0) return workEnded ? 'settle' : 'idle';
-    if (this.remindedOnce) return 'reminded';
+    // After the reminder, live work is never waited for again; a turn still owed to work that ended is.
+    if (this.remindedOnce) return workEnded ? 'settle' : 'reminded';
     try {
       if (this.options.workDone && (await this.options.workDone())) return 'work_done';
     } catch {
@@ -238,6 +252,11 @@ export class BackgroundSession {
       return;
     }
     if (this.wait === 'settle') {
+      if (this.remindedOnce) {
+        // The owed turn did not come, and the agent was already told the live work would be stopped.
+        void this.close('reminded');
+        return;
+      }
       // Work showed up again without a turn: it gets a full wait.
       this.wait = 'work';
       this.arm(this.waitMs);
@@ -250,6 +269,7 @@ export class BackgroundSession {
     }
     // The reminder starts a turn; the turn that answers it never waits again.
     this.remindedOnce = true;
+    this.reminderPending = true;
     this.options.port.send(reminderText(work, this.waitMs));
     this.arm(this.waitMs);
   }

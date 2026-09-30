@@ -80,10 +80,15 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    `RunControl.requestEnd()` (bước 5), hay `run.workDone?.()` trả `true` (tuỳ chọn `JobRunner` cấp, đọc trạng
    thái ticket, `true` khi ticket đã rời `in_progress` — `done`/`in_review`/`cancelled`/`needs_input`/`blocked`)
    đều không chờ. Hết trần mà còn tác vụ, daemon gửi đúng một tin nhắn tiếng Việt (`reminderText()`) vào chính
-   phiên đang mở rồi chờ thêm một trần; lượt trả lời lời nhắc mà còn tác vụ thì không chờ nữa. Một tác vụ rời
-   tập tác vụ giữa câu trả lời cuối của một lượt (không qua thông báo, ví dụ bị dừng) vẫn được cho thêm một
-   khoảng lắng ngắn (`DEFAULT_SETTLE_MS`, 10 giây) thay vì chờ hết cả trần, vì runtime có thể vẫn nợ lượt thông
-   báo. Mọi đường đóng phiên — hết tác vụ, `result` lỗi, tool yêu cầu kết thúc, hết trần nhắc thêm một lần,
+   phiên đang mở rồi chờ thêm một trần; lượt trả lời lời nhắc mà còn tác vụ thì không chờ nữa. Ngoại lệ: một
+   tác vụ kết thúc sau khi lời nhắc được gửi nhưng trước khi lượt trả lời lời nhắc bắt đầu (`reminderPending`)
+   — runtime nợ hai lượt (trả lời lời nhắc và thông báo tác vụ xong), chạy lượt trả lời lời nhắc trước rồi mới
+   chạy một lượt thông báo riêng; phiên không đóng ngay sau lượt trả lời lời nhắc mà mở thêm một khoảng lắng
+   cho lượt còn nợ đó. Một tác vụ rời tập tác vụ giữa câu trả lời cuối của một lượt (không qua thông báo, ví dụ
+   bị dừng), hoặc còn nợ một lượt thông báo sau lời nhắc như trên, đều được cho thêm khoảng lắng ngắn
+   (`DEFAULT_SETTLE_MS`, 10 giây) thay vì chờ hết cả trần. Hết khoảng lắng đó mà tác vụ còn sống không có lượt
+   thông báo tới, daemon dừng tác vụ đó rồi đóng phiên luôn với lý do `reminded` (không chờ thêm một trần đầy
+   đủ nữa); còn nếu không có tác vụ sống nào (đã kết thúc hoặc bị dừng) thì đóng với lý do `idle`. Mọi đường đóng phiên — hết tác vụ, `result` lỗi, tool yêu cầu kết thúc, hết trần nhắc thêm một lần,
    abort, hay khối `finally` khi tiến trình đi mất — đều gọi `Query.stopTask()` cho từng tác vụ còn sống trước
    khi đóng input (lỗi của `stopTask` hay không trả lời trong 5 giây không chặn việc đóng). Vì phiên chạy nhiều
    lượt trên cùng một tiến trình, `system/init` tới ở đầu **mỗi** lượt (runner chỉ nhận lượt đầu cho
@@ -283,7 +288,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   `RunControl.requestEnd()` (`ask_owner`/`handoff_docs`), abort, hay tùy chọn `workDone()` trả `true` đều kết
   thúc ngay và dừng tác vụ còn sống trước khi đóng; `AgentRunResult.backgroundTasksLeft` báo đúng tác vụ còn
   sống lúc đóng (rỗng khi kết thúc sạch) và `reminded` báo daemon đã nhắc hay chưa; một lượt thông báo bắt đầu
-  sau khi phiên đã đóng không chạy tiếp.
+  sau khi phiên đã đóng không chạy tiếp; một tác vụ kết thúc sau khi lời nhắc được gửi nhưng trước khi lượt
+  trả lời lời nhắc bắt đầu vẫn được cấp đúng lượt thông báo riêng (phiên còn mở qua lượt trả lời lời nhắc rồi
+  mới đóng sau lượt thông báo, lời nhắc chỉ vào input một lần, `reminded: true`, `backgroundTasksLeft: []`).
 - `apps/daemon/test/background-session.test.ts`: máy trạng thái của `BackgroundSession` độc lập SDK, qua một
   `SessionPort` giả (`send`/`stopTask`/`close`) — tập tác vụ rỗng lúc khởi động và được thay toàn bộ mỗi
   `tasksChanged()`; chờ khi còn tác vụ, đóng khi tập về rỗng sau một lượt; không chờ sau `result` lỗi,
@@ -295,7 +302,14 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   lắng đó; tác vụ `ambient` không bao giờ được chờ nhưng vẫn bị dừng khi đóng; việc đóng vẫn xảy ra khi
   `stopTask` lỗi hay không trả lời; đóng chỉ chạy một lần (gọi lại `turnEnded()`/`shutdown()` sau đó không làm
   gì thêm); một `turnEnded()` đang đọc trạng thái run (`workDone()` chậm) không giữ `shutdown()` lại và không
-  làm phiên mở lại sau khi đã đóng.
+  làm phiên mở lại sau khi đã đóng; một tác vụ kết thúc trong lúc lời nhắc đang chờ lượt trả lời của nó
+  (`reminderPending`) ghi nợ một lượt thông báo riêng: phiên còn mở qua lượt trả lời lời nhắc rồi mới đóng
+  `idle` sau lượt thông báo đó, kể cả khi `result` của lượt trả lời lời nhắc tới mà không có `turnStarted()`
+  trước; lượt thông báo đó không tới thì đóng `idle` sau đúng một khoảng lắng (`settleMs`), không nhắc lần hai
+  và không chờ thêm cả trần; khi sau lời nhắc một tác vụ xong còn tác vụ khác sống, phiên cũng chỉ chờ tối đa
+  khoảng lắng cho lượt còn nợ trước khi dừng tác vụ sống và đóng `reminded` — cả khi lượt thông báo đó tới và
+  khi không tới (đóng trong khoảng lắng, không chờ cả trần); tác vụ xong ngay trong lúc agent đang trả lời lượt
+  nhắc (trước khi có `result`) cũng được cấp khoảng lắng đó.
 - `apps/daemon/test/guard-hook.test.ts`: từ chối ghi ngoài `cwd` và vào `.githooks` dù có file settings được
   cài đặt cho phép; lời gọi được phép không trả quyết định (để `dontAsk`/`allowedTools` vẫn áp dụng); đường
   dẫn được bảo vệ theo từng loại job (job `docs_update` được ghi `docs/` và Markdown gốc như `README.md`,
@@ -331,7 +345,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   phiên) và `capture.numTurns`/`capture.durationMs` (tổng theo từng `result`), `backgroundTasksLeft` rỗng và
   `reminded` là `false` sau một kết thúc sạch; một lệnh nền ngắn hơn (`sleep 3`) có thể đã kết thúc trước khi
   `result` đầu tiên tới (tuỳ tốc độ model viết câu trả lời) vẫn được cấp đúng lượt thông báo ở một lượt sau và
-  phiên vẫn kết thúc sạch.
+  phiên vẫn kết thúc sạch; một lệnh nền kết thúc ngay khi lời nhắc vào phiên (harness tạo file đánh dấu qua
+  `onInput` của `backgroundRun()` đúng lúc tin nhắn lời nhắc được runtime đọc, trước khi lượt trả lời lời nhắc
+  bắt đầu) vẫn được cấp đúng lượt thông báo riêng sau lượt trả lời lời nhắc, file đánh dấu được ghi đúng nội
+  dung và `reminded: true`.
 - `apps/daemon/test/run-trace.test.ts`: `buildRunTrace()` ẩn credential trong tin nhắn cuối và mục tiêu tool
   rồi mới cắt còn 1500 ký tự (không cắt lộ nửa chuỗi credential); giữ đúng 5 lời gọi tool cuối với đường dẫn
   tương đối; hiện rõ khi không có kết quả/tin nhắn/tool nào; `decideFailure()` (flow `agent-roles`) nối đúng

@@ -505,6 +505,32 @@ describe('SDK agent runner', () => {
       ]);
     });
 
+    it('a task that ends right after the reminder is sent still gets its notification turn', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake, { backgroundWaitMs: 200 });
+      fake.emit(init(), backgroundTasks('a'), say('m1', 'Đang chờ.'), result({ total_cost_usd: 0.1 }));
+      await until(() => fake.received.length === 2, 'the reminder');
+      // The task ends before the reminder's turn starts: the runtime answers the reminder first.
+      fake.emit(backgroundTasks(), init(), say('m2', 'Vẫn đang chờ.'), result({ total_cost_usd: 0.2 }));
+      await sleep(150);
+      // The session stays open for the notification turn the runtime still owes.
+      expect(settled()).toBe(false);
+      expect(fake.events).toEqual(['input:1', 'input:2']);
+      fake.emit(init(), say('m3', 'Đã nhận.'), result({ total_cost_usd: 0.3 }));
+      const out = await run;
+      expect(out.capture.lastMessage).toBe('Đã nhận.');
+      expect(out).toMatchObject({
+        resultSubtype: 'success',
+        isError: false,
+        totalCostUsd: 0.3,
+        reminded: true,
+        backgroundTasksLeft: [],
+      });
+      // The reminder went in once, and nothing was left to stop.
+      expect(fake.received).toHaveLength(2);
+      expect(fake.events).toEqual(['input:1', 'input:2', 'input-closed', 'close']);
+    });
+
     it('does not wait after an error result: the tasks are stopped, a failing stop included, then the input closes', async () => {
       const fake = liveQuery({ failStop: ['a'] });
       const { run } = startRun(fake, { maxBudgetUsd: 1 });

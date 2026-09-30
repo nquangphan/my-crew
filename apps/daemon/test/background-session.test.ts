@@ -152,6 +152,91 @@ describe('background session', () => {
     expect(session).toMatchObject({ closeReason: 'reminded', reminded: true });
   });
 
+  it('stays open for the notification turn of work that ended while the reminder waited for its turn', async () => {
+    const { session, events, sent } = harness({ waitMs: 60, settleMs: 5_000 });
+    session.tasksChanged([task('a')]);
+    await session.turnEnded({ isError: false });
+    await until(() => sent.length === 1, 'the reminder');
+    // The task ends before the reminder's turn starts: the runtime owes that turn and a notification turn.
+    session.tasksChanged([]);
+    session.turnStarted();
+    expect(await session.turnEnded({ isError: false })).toBe('waiting');
+    expect(session.closed).toBe(false);
+    expect(events).toEqual(['send']);
+    session.turnStarted();
+    expect(await session.turnEnded({ isError: false })).toBe('closed');
+    expect(sent).toHaveLength(1);
+    expect(events).toEqual(['send', 'close']);
+    expect(session).toMatchObject({ closeReason: 'idle', reminded: true, tasksLeft: [] });
+  });
+
+  it('holds that notification turn due when the result of the reminder turn comes without a turn start', async () => {
+    const { session, events, sent } = harness({ waitMs: 60, settleMs: 5_000 });
+    session.tasksChanged([task('a')]);
+    await session.turnEnded({ isError: false });
+    await until(() => sent.length === 1, 'the reminder');
+    session.tasksChanged([]);
+    expect(await session.turnEnded({ isError: false })).toBe('waiting');
+    expect(await session.turnEnded({ isError: false })).toBe('closed');
+    expect(events).toEqual(['send', 'close']);
+  });
+
+  it('closes after the settle time when that notification turn never comes, without a second reminder', async () => {
+    const { session, events, sent } = harness({ waitMs: 60, settleMs: 40 });
+    session.tasksChanged([task('a')]);
+    await session.turnEnded({ isError: false });
+    await until(() => sent.length === 1, 'the reminder');
+    session.tasksChanged([]);
+    session.turnStarted();
+    const startedAt = Date.now();
+    expect(await session.turnEnded({ isError: false })).toBe('waiting');
+    await until(() => events.includes('close'), 'the settle close');
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(35);
+    expect(sent).toHaveLength(1);
+    expect(events).toEqual(['send', 'close']);
+    expect(session).toMatchObject({ closeReason: 'idle', reminded: true, tasksLeft: [] });
+  });
+
+  it('after the reminder, waits only the settle time for an owed turn before it stops the work still alive', async () => {
+    for (const notified of [true, false]) {
+      const { session, events, sent } = harness({ waitMs: 400, settleMs: 40 });
+      session.tasksChanged([task('a'), task('b')]);
+      await session.turnEnded({ isError: false });
+      await until(() => sent.length === 1, 'the reminder');
+      // `a` ends before the reminder's turn starts; `b` is still alive when that turn ends.
+      session.tasksChanged([task('b')]);
+      session.turnStarted();
+      const startedAt = Date.now();
+      expect(await session.turnEnded({ isError: false })).toBe('waiting');
+      expect(events).toEqual(['send']);
+      if (notified) {
+        session.turnStarted();
+        expect(await session.turnEnded({ isError: false })).toBe('closed');
+      } else {
+        await until(() => events.includes('close'), 'the close after the settle time');
+        // The settle time, not another full wait.
+        expect(Date.now() - startedAt).toBeLessThan(300);
+      }
+      expect(sent).toHaveLength(1);
+      expect(events).toEqual(['send', 'stop:b', 'close']);
+      expect(session).toMatchObject({ closeReason: 'reminded', reminded: true });
+      expect(session.tasksLeft.map((left) => left.id)).toEqual(['b']);
+    }
+  });
+
+  it('after the reminder, work that ended during the answering turn gets its settle time too', async () => {
+    const { session, events, sent } = harness({ waitMs: 60, settleMs: 40 });
+    session.tasksChanged([task('a'), task('b')]);
+    await session.turnEnded({ isError: false });
+    await until(() => sent.length === 1, 'the reminder');
+    session.turnStarted();
+    session.tasksChanged([task('b')]);
+    expect(await session.turnEnded({ isError: false })).toBe('waiting');
+    await until(() => events.includes('close'), 'the close after the settle time');
+    expect(events).toEqual(['send', 'stop:b', 'close']);
+    expect(session).toMatchObject({ closeReason: 'reminded', reminded: true });
+  });
+
   it('gives each wait its own ceiling: a turn that starts ends the wait without a reminder', async () => {
     const { session, sent } = harness({ waitMs: 250 });
     session.tasksChanged([task('a'), task('b')]);
