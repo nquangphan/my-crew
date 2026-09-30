@@ -118,7 +118,27 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    trước vừa tạo); phiên giả (`SessionState`) giữ chi phí lũy kế của session và tiến độ theo từng job
    (`completed[jobId]`) — resume đúng job đó (ví dụ sau khi daemon khởi động lại) tiếp tục từ bước cuối job đó
    đã hoàn thành, còn một job mới dùng chung session (job id khác) chạy lại kịch bản từ đầu và cộng dồn vào chi
-   phí session đã có; chỉ dùng cho test vòng đời, production dùng `createSdkRunner()`.
+   phí session đã có; chỉ dùng cho test vòng đời, production dùng `createSdkRunner()`. Ba bước kịch bản mô
+   phỏng tác vụ nền: `bgBash: { id, command }` spawn thật một tiến trình con (`/bin/sh -c`, `detached: true`,
+   cùng `cwd`/`env` của job, qua đúng guard hook/tool log như `bash`) mà không chờ thoát, đăng ký thành một tác
+   vụ nền sống và báo cho `BackgroundSession` (bước 4, cùng file `background-session.ts`, dùng chung với runner
+   SDK thật qua cùng `SessionPort`) qua `tasksChanged()` đúng như message `system/background_tasks_changed`
+   thật; `stopBg: <id>` mô phỏng agent tự dừng một tác vụ nền đã khởi động; `endTurn: true` là ranh giới lượt —
+   đúng nơi `BackgroundSession.turnEnded()` chạy như một message `result` thật, dùng cùng trần
+   `run.backgroundWaitMs` và tuỳ chọn `run.workDone` mà `job-runner.ts` truyền vào (không có bản sao logic chờ/
+   nhắc/đóng riêng). Thân hàm chạy vòng lặp ngoài/trong: vòng trong chạy các bước của một lượt (dừng ở
+   `endTurn`, lỗi `apiError`/`fail`, tool gọi `requestEnd()`, hoặc hết mảng bước); vòng ngoài gọi
+   `bgSession.turnEnded()` sau mỗi lượt rồi, nếu quyết định là "chờ", đợi tiến trình nền thật thoát (tự mô
+   phỏng lượt thông báo của runtime) hoặc lời nhắc của daemon kích hoạt lượt tiếp trước khi lặp lại; nếu
+   "đóng" thì dừng luôn, bỏ qua các bước còn lại. `SessionPort.stopTask` của runner này giết thật tiến trình
+   nền (`SIGTERM` rồi `SIGKILL` sau 300ms nếu còn sống, ký `-pid` vì mỗi tiến trình nền tự làm group leader nhờ
+   `detached: true`) — được `BackgroundSession.shutdown()` gọi cho mọi tác vụ còn sống trước khi trả kết quả,
+   dù đường nào kết thúc lượt chạy; `AgentRunResult.backgroundTasksLeft`/`reminded` lấy thẳng từ
+   `bgSession.tasksLeft`/`bgSession.reminded` như runner SDK. Không script nào dùng `bgBash`/`endTurn` thì hành
+   vi y hệt trước đây (một lượt duy nhất, `turnEnded()` đóng ngay vì không có tác vụ nền). Bước `apiError` gán
+   `result.resultSubtype = step.apiError` (lớp lỗi cuối chính là `resultSubtype` của một message `result` thật,
+   ví dụ `error_max_budget_usd`) thay vì luôn đặt `'error_during_execution'` như trước; `job-runner.ts` vẫn
+   phân biệt backoff hay fail bằng `result.apiError` (bước 10), không đổi.
 7. `apps/daemon/src/runner/guard-hook.ts` → `evaluateToolCall()`: `Edit`/`Write`/`MultiEdit`/`NotebookEdit` bị
    từ chối khi ra ngoài `cwd` hoặc đi qua symlink ra ngoài `cwd` (trừ shared path đã link); ghi `AGENTS.md` hay
    `CLAUDE.md` ở gốc repo (`ROOT_AGENT_FILES`, so khớp không phân biệt hoa thường vì worktree macOS không phân
@@ -266,7 +286,16 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   `failedJobs` trong heartbeat tới khi owner mở chặn cho job mới chạy xong; một ticket dev cũ chưa có
   `complexity` (tạo trước khi bắt buộc đánh giá) đi qua đúng đường crash này với `MissingComplexityError` thay
   vì tự chọn model mặc định, bình luận lỗi hướng PM dùng `rate_subtask`; PM đánh giá ticket đó xong (`rateSubtask()`)
-  thì ticket tự chạy lại (không cần owner mở chặn) trên model theo mức mới.
+  thì ticket tự chạy lại (không cần owner mở chặn) trên model theo mức mới. Nhóm "background tasks (scripted
+  runner)" (daemon thật + `createScriptedRunner()`, trần chờ nhỏ qua `config.backgroundWaitMinutes` của
+  `makeDaemon` khi cần): một lệnh `bgBash` sống qua ranh giới lượt rồi kết thúc job đúng lúc, agent được thông
+  báo và làm tiếp trong **cùng một job** (một job, không retry); một lệnh không bao giờ xong với trần chờ ~60ms
+  khiến daemon nhắc đúng một lần rồi kết thúc job không treo, tiến trình (`job.pgid`) không còn sống sau đó;
+  `ask_owner`, `handoff_docs`, huỷ ticket, lỗi `error_max_budget_usd` và dừng êm daemon đều kết thúc/re-queue
+  job đúng như trước dù có một lệnh nền `sleep 999999` còn sống lúc đó, và không còn tiến trình nào gắn
+  `CREW_JOB_ID` của job sau đó (`noTaggedProcessLeft()` dùng `ResourceTracker` như `resources.test.ts`); QC
+  `update_status: done` trong khi "dev server" mô phỏng (`bgBash`) còn sống kết thúc job ngay qua `workDone()`
+  (không chờ trần) và dừng lệnh nền đó.
 - `apps/daemon/test/agent-runner.test.ts`: `query()` chạy với đúng `settingSources`, `dontAsk`, allowlist,
   `disallowedTools`, `settings.deniedMcpServers` (map sang `{serverName}`), guard hook và env sạch; truyền đúng
   `resume` và ngân sách, báo đúng lớp lỗi API cuối; ngắt turn sau khi một tool yêu cầu kết thúc run và coi đó là

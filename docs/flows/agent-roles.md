@@ -260,7 +260,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   `mcpsUsed`/`mcpsMissing` rỗng), docs-init kết thúc hai lần liền mà không nộp report
   (`20-docs-init-not-finished.yaml`: mỗi lượt chỉ đọc vài file rồi để lại một tin nhắn `say` chưa xong việc —
   cả bình luận thử lại lẫn bình luận chặn đều mang đủ khối chẩn đoán, tin nhắn cuối đã bị ẩn credential trích
-  dẫn trong đó) — mỗi kịch bản kết thúc ở trạng
+  dẫn trong đó), một lượt dev chạy lệnh nền rồi bàn giao
+  (`21-background-task-handoff.yaml`: dev khởi động `bgBash` rồi `endTurn`, được thông báo khi lệnh xong, làm
+  tiếp rồi `handoff_docs`; `docs_update` commit code và docs cùng nhau; QC đóng ticket — cả cây xong trong đúng
+  một job agent cho phần dev, không `no_handoff`/`not_finished`, không bình luận thử lại, xem thêm
+  `docs/flows/agent-runs.md` cho hành vi `bgBash`/`endTurn` của runner kịch bản) — mỗi kịch bản kết thúc ở trạng
   thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
 - `apps/daemon/test/pm-mention.test.ts`: PM chạy với đúng ghi chú "Chủ dự án gọi PM" (ticket được tag, trạng
   thái/complexity, lỗi job gần nhất và bình luận agent gần nhất bọc `<untrusted-data>`, bình luận owner nguyên
