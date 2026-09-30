@@ -72,7 +72,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/src/routes/route-deps.ts` | Dependency + helper validate dùng chung cho mọi route (`RouteDeps.waitingJobs` mang `WaitingJobsRegistry`, flow `ticket-lifecycle`) | `RouteDeps`, `parseInput`, `idParam`, `uuidParam` |
 | `apps/api/src/services/pg-errors.ts` | Phân loại lỗi SQLSTATE của Postgres | `isUniqueViolation` |
 | `apps/api/src/db/client.ts` | Kết nối Postgres qua Drizzle | `createDb`, `Database`, `Executor` |
-| `apps/api/src/db/schema.ts` | Toàn bộ bảng và enum Drizzle — `modelAliasEnum` liệt kê tay `['haiku','sonnet','opus','fable']` thay vì suy ra từ `ModelAlias`, vì Postgres không xoá được giá trị enum; `fable` chỉ còn cho hàng cũ, mọi input dùng `SelectableModel` (không migration nào đổi, `drizzle-kit` không thấy khác biệt schema); bảng `owner` giữ nguyên ba cột xác thực hai bước cũ (`totp_secret`, `totp_last_step`, `recovery_code_hashes`, không xoá vì không có migration phá hoại) nhưng không flow nào còn đọc hay ghi chúng — xem flow `owner-auth` | mọi `pgTable`/`pgEnum` xuất khẩu |
+| `apps/api/src/db/schema.ts` | Toàn bộ bảng và enum Drizzle — `modelAliasEnum` liệt kê tay `['haiku','sonnet','opus','fable']` thay vì suy ra từ `ModelAlias`, vì Postgres không xoá được giá trị enum; `fable` chỉ còn cho hàng cũ, mọi input dùng `SelectableModel` (không migration nào đổi, `drizzle-kit` không thấy khác biệt schema); bảng `owner` giữ nguyên ba cột xác thực hai bước cũ (`totp_secret`, `totp_last_step`, `recovery_code_hashes`, không xoá vì không có migration phá hoại) nhưng không flow nào còn đọc hay ghi chúng — xem flow `owner-auth`; custom type `bytea` (đầu file) dùng chung cho `attachments` (flow `ticket-lifecycle`) và `runtimeBundles` (flow `runtime-updates`) | mọi `pgTable`/`pgEnum` xuất khẩu |
 | `apps/api/src/db/migrate.ts` | Chạy migration SQL | `runMigrations`, `MIGRATIONS_FOLDER` |
 | `apps/api/drizzle/0000_init.sql` | Migration khởi tạo | — |
 | `apps/api/drizzle/0001_machine_auth_and_delivery.sql` | Migration thêm bảng auth máy + `events.seq` | — |
@@ -83,6 +83,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/drizzle/0007_project_bmad_profile.sql` | Migration thêm cột `projects.bmad_profile` jsonb, nullable (flow `project-claims`: hồ sơ cài BMAD mà máy sở hữu project báo cáo, dùng cho tính năng "Cài BMAD" trên máy khác) | — |
 | `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | Migration thêm bảng `settings_revisions` và cột `machines.settings_state` jsonb (flow `server-settings`: cài đặt server theo bản, prompt/quy tắc/model/tài nguyên/thư mục dự án/MCP dự án), và bảng `machine_commands` (flow `machine-control`: lệnh từ xa owner gửi từ web) | — |
 | `apps/api/drizzle/0009_runtime_releases.sql` | Migration thêm bảng `runtime_releases`/`runtime_bundles` và cột `machines.runtime_state`/`runtime_pinned_version` (flow `runtime-updates`: bản runtime đã ký, ghim máy vào một bản) | — |
+| `apps/api/drizzle/0010_attachments.sql` | Migration thêm bảng `attachments` (flow `ticket-lifecycle`: ảnh dán clipboard vào ticket, nội dung `bytea`, FK `ticket_id`/`owner_id` cascade delete) | — |
 | `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, `bmad-schemas.ts` của flow `project-claims`, `secret-scrubber.ts` của flow `agent-runs`, `comment-mentions.ts` của flow `ticket-lifecycle`, và `runtime-schemas.ts` của flow `runtime-updates`) | — |
 
 ## Dữ liệu
@@ -98,7 +99,9 @@ của mình vào app do flow này dựng lên.
 - machine-pairing: `pairRoutes` (public) và `machineGuard` (nhóm route daemon) được gắn tại `buildApp()`.
 - event-delivery: `EventBus` được tạo và khởi động/dừng theo vòng đời app tại đây.
 - ticket-lifecycle: `startStuckTicketAlarm()` và `WaitingJobsRegistry` (`RouteDeps.waitingJobs`) được tạo và
-  khởi động/dừng cùng vòng đời `buildApp()`, cạnh `startHeartbeatSweeper` (flow `machine-pairing`).
+  khởi động/dừng cùng vòng đời `buildApp()`, cạnh `startHeartbeatSweeper` (flow `machine-pairing`);
+  `attachmentRoutes` (nhóm route owner) đăng ký tại `buildApp()`; migration `0010_attachments.sql` chạy qua
+  `runMigrations()` như mọi migration khác.
 - daemon-api, project-claims, docs-sync-viewer: route của các flow này được đăng ký bên trong `buildApp()`,
   gồm cả `daemonBmadProfileRoutes` (`apps/api/src/routes/bmad-profile-routes.ts`, flow `daemon-api`) trong
   nhóm route daemon.

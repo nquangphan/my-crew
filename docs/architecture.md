@@ -63,7 +63,9 @@ PostgreSQL qua Drizzle, schema khai báo ở `apps/api/src/db/schema.ts`, migrat
 - **Ticket & vòng đời**: `ticket_counters` (cấp số theo scope), `tickets` (loại, cha/con, người nhận, trạng
   thái, `depends_on`/`flows` kiểu mảng có index GIN, cặp dev↔QC qua `pairs_with`/`origin_dev_id`, cờ ngân sách),
   `comments`, `ticket_reports` (một report hiện hành mỗi ticket, các trường skill/MCP đã chọn và đã dùng,
-  `tests_run`, `left_resources`).
+  `tests_run`, `left_resources`), `attachments` (ảnh dán clipboard vào mô tả/comment ticket — nội dung `bytea`
+  trong Postgres, không đĩa/S3, nên nằm trong backup nightly có sẵn; whitelist mime `image/png|jpeg|gif|webp`,
+  giới hạn 10MB, chỉ owner đọc/ghi, xem `docs/flows/ticket-lifecycle.md`).
 - **Sự kiện (outbox)**: `events` — mỗi hàng có `seq` (bigserial, gán khi transaction commit qua trigger có
   khoá) dùng làm cursor SSE; `target_machine_id` null nghĩa là chỉ owner stream nhận.
 - **Idempotency & ngân sách**: `idempotency_keys` (khoá theo máy + key, lưu cả response để phát lại),

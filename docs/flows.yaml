@@ -37,6 +37,7 @@ flows:
       - apps/api/drizzle/0007_project_bmad_profile.sql
       - apps/api/drizzle/0008_server_settings_and_machine_commands.sql
       - apps/api/drizzle/0009_runtime_releases.sql
+      - apps/api/drizzle/0010_attachments.sql
       - packages/shared/src/index.ts
     tests:
       - apps/api/test/shutdown.test.ts
@@ -66,11 +67,13 @@ flows:
       - apps/api/src/routes/ticket-routes.ts
       - apps/api/src/routes/comment-routes.ts
       - apps/api/src/routes/report-routes.ts
+      - apps/api/src/routes/attachment-routes.ts
     files:
       - apps/api/src/services/ticket-service.ts
       - apps/api/src/services/ticket-query-service.ts
       - apps/api/src/services/report-service.ts
       - apps/api/src/services/budget-service.ts
+      - apps/api/src/services/attachment-service.ts
       - apps/api/src/jobs/stuck-ticket-alarm.ts
       - apps/api/src/services/agent-activity-service.ts
       - packages/shared/src/ticket-schemas.ts
@@ -91,6 +94,7 @@ flows:
       - apps/api/test/pm-mention.test.ts
       - packages/shared/src/comment-mentions.test.ts
       - apps/api/test/cross-project-tickets.test.ts
+      - apps/api/test/attachment.test.ts
   machine-pairing:
     title: Ghép máy và xác thực máy
     doc: docs/flows/machine-pairing.md

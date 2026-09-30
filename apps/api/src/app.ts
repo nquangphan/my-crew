@@ -13,6 +13,7 @@ import { startHeartbeatSweeper } from './jobs/heartbeat-sweeper.js';
 import { startRuntimeImport } from './jobs/runtime-import.js';
 import { startStuckTicketAlarm, WaitingJobsRegistry } from './jobs/stuck-ticket-alarm.js';
 import { EventBus } from './realtime/event-bus.js';
+import { attachmentRoutes } from './routes/attachment-routes.js';
 import { authRoutes } from './routes/auth-routes.js';
 import { daemonBmadProfileRoutes } from './routes/bmad-profile-routes.js';
 import { commentRoutes } from './routes/comment-routes.js';
@@ -111,6 +112,7 @@ export async function buildApp({
     await owner.register(projectRoutes, deps);
     await owner.register(ticketRoutes, deps);
     await owner.register(commentRoutes, deps);
+    await owner.register(attachmentRoutes, deps);
     await owner.register(reportRoutes, deps);
     await owner.register(machineRoutes, deps);
     await owner.register(machineCommandRoutes, deps);
