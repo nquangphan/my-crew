@@ -79,6 +79,27 @@ describe('MarkdownEditor paste-to-upload', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Dữ liệu không hợp lệ.');
   });
 
+  it('shows a clear size message (not the generic one) when the pasted image is over 10MB', async () => {
+    mockFetch([
+      [
+        'POST /v1/tickets/TICKET-1/attachments',
+        () => ({
+          status: 413,
+          body: { error: { code: 'ATTACHMENT_TOO_LARGE', message: 'ảnh vượt quá 10MB' } },
+        }),
+      ],
+    ]);
+    renderWithApp(<Harness ticketId="TICKET-1" initial="AB" />);
+    const box = (await screen.findByRole('textbox', { name: 'Mô tả' })) as HTMLTextAreaElement;
+    box.setSelectionRange(1, 1);
+    pasteImage(box, new File(['x'], 'huge.png', { type: 'image/png' }));
+
+    await waitFor(() => expect(box.value).toBe('AB'));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Ảnh vượt quá giới hạn 10MB, hãy chọn ảnh nhỏ hơn.',
+    );
+  });
+
   it('rejects an unsupported image mime before uploading, without touching the content', async () => {
     const calls = mockFetch([]);
     renderWithApp(<Harness ticketId="TICKET-1" initial="AB" />);

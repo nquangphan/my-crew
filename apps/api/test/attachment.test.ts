@@ -68,7 +68,7 @@ describe('POST /v1/tickets/:id/attachments', () => {
     expect(await ctx.db.select().from(attachments)).toHaveLength(0);
   });
 
-  it('rejects an image over 10MB and stores nothing', async () => {
+  it('rejects an image just over 10MB (still under the route body limit) with a clear size message', async () => {
     const ticket = await createRequestTicket(ctx.db, { title: 'Dán ảnh' });
     const huge = Buffer.alloc(MAX_ATTACHMENT_BYTES + 1, 1);
     const res = await upload(ticket.id, {
@@ -76,8 +76,23 @@ describe('POST /v1/tickets/:id/attachments', () => {
       mimeType: 'image/png',
       content: huge.toString('base64'),
     });
-    expect(res.statusCode).toBe(400);
-    expect(res.json().error.code).toBe('VALIDATION_FAILED');
+    expect(res.statusCode).toBe(413);
+    expect(res.json().error).toMatchObject({ code: 'ATTACHMENT_TOO_LARGE', message: 'ảnh vượt quá 10MB' });
+    expect(await ctx.db.select().from(attachments)).toHaveLength(0);
+  });
+
+  it('rejects an image far over 10MB (past the route body limit) with the same clear size message, not a generic error', async () => {
+    const ticket = await createRequestTicket(ctx.db, { title: 'Dán ảnh' });
+    // 20MB raw: the base64 body is well past `UPLOAD_BODY_LIMIT`, so Fastify itself rejects it before
+    // `decodeImage()` ever runs — this must not fall through to the app-wide handler's generic 413/VALIDATION_FAILED.
+    const wayTooBig = Buffer.alloc(20 * 1024 * 1024, 1);
+    const res = await upload(ticket.id, {
+      filename: 'huge.png',
+      mimeType: 'image/png',
+      content: wayTooBig.toString('base64'),
+    });
+    expect(res.statusCode).toBe(413);
+    expect(res.json().error).toMatchObject({ code: 'ATTACHMENT_TOO_LARGE', message: 'ảnh vượt quá 10MB' });
     expect(await ctx.db.select().from(attachments)).toHaveLength(0);
   });
 

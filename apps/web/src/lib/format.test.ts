@@ -22,4 +22,10 @@ describe('format', () => {
     expect(errorMessage(new ApiRequestError(500, 'INTERNAL', 'x'))).toBe('Lỗi máy chủ (500).');
     expect(errorMessage(new Error('boom'))).toBe('Đã có lỗi xảy ra.');
   });
+
+  it('shows a clear size message for an over-limit attachment, regardless of the raw backend message', () => {
+    expect(errorMessage(new ApiRequestError(413, 'ATTACHMENT_TOO_LARGE', 'ảnh vượt quá 10MB'))).toBe(
+      'Ảnh vượt quá giới hạn 10MB, hãy chọn ảnh nhỏ hơn.',
+    );
+  });
 });
