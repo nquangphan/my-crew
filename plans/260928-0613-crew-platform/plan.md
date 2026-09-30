@@ -309,3 +309,9 @@ Reports: [security](./reports/red-team-security.md) · [failure modes](./reports
   1. Each job gets a short temp dir (e.g. `/tmp/crew/<short id>`) and `PWTEST_SOCKETS_DIR` is set to a short path for MCP servers.
   2. The docs-only check looks only at the commit(s) of the dev/bug ticket under test (the docs job's single commit: `head_sha^..head_sha`, or the ticket's own recorded base), not the default branch.
   3. An owner comment on a `blocked` ticket unblocks it (same as moving it to "Đang làm").
+
+### Session 25 — 2026-09-30 (owner follow-up)
+- **Owner decision:** remove TOTP everywhere. Login is password only; pairing a machine, approving a takeover, approving a project type/MCP change and changing the password need no TOTP code (a confirm click, and the current password for a password change). The owner keeps the current password and accepts the risk (the site is public and controls agents that run and push code on the owner's machines); the login rate limit stays. The TOTP secret and recovery-code columns stay in the database unused (no destructive migration).
+
+### Session 26 — 2026-09-30 (owner follow-up)
+- **Owner decision:** stop repeated macOS permission prompts: sign every build with one stable self-signed certificate (grants survive updates), guide the owner to grant Full Disk Access once, and rely on hot updates so most updates don't change the binary. Details in plans/260930-0940-server-config-and-hot-update/phase-02-signed-hot-updates.md.

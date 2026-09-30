@@ -40,3 +40,24 @@ change the app binary, so macOS does not ask for Documents access again.
 - Tests: signing/verification (good, bad signature, tampered file, wrong shellRange, path traversal), update state
   machine, rollback on failed boot, E2E: publish a signed test bundle to a test server → running app switches without
   reinstall.
+
+## Scope extension (owner, 2026-09-30): ask for OS permissions once
+
+Owner: "gom thành quyền lớn hỏi 1 lần; spam hỏi quyền nhiều quá". macOS binds privacy (TCC) grants to the app's code
+signature; an ad-hoc signature changes on every build, so every update re-prompts.
+
+- **Stable signing identity:** CI signs every app build with the same self-signed code-signing certificate (free; no
+  Apple Developer account). The certificate and its private key live only in GitHub Actions secrets (p12 + password);
+  document generating it (`security`/`openssl`), adding the secrets, and verifying the designated requirement
+  (`codesign -d -r-`) is anchored to the certificate, not just the bundle identifier. Local packaging uses the same
+  certificate when present in the login keychain, else stays ad-hoc with a clear warning. Gatekeeper still needs
+  "Open Anyway" on the first install (not notarized).
+- **Full Disk Access once:** the gateway app's setup and status view check whether Full Disk Access is granted (e.g. by
+  probing a protected path such as `~/Library/Safari` or the TCC database read, without prompting), and if not, explain
+  in Vietnamese and open System Settings → Privacy & Security → Full Disk Access with one button
+  (`x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles`). Once granted, no per-folder prompts.
+  Folder-access waiting logic stays as a fallback.
+- **With hot updates (this phase)** most updates don't change the binary at all; with the stable identity even shell
+  updates keep the grants.
+- Tests: FDA detection unit (mocked probes), signing verification script in CI (designated requirement contains the
+  certificate's leaf hash).
