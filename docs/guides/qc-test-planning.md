@@ -115,8 +115,8 @@ Mô tả (`description`) của mỗi subtask `qc` bắt buộc có mục này, �
   kiểm thử UI bắt buộc):
   1. QC bị chặn (`blocked`) ngay khi MCP kiểm thử UI bắt buộc chưa kết nối trên máy; daemon bình luận nhắc chủ
      dự án sửa kết nối hoặc gắn thẻ `@pm` nếu thay đổi thật ra không có giao diện.
-  2. QC không đóng được ticket (không qua được `submit_report`) khi MCP đó chưa từng được gọi công cụ nào trong
-     lượt chạy.
+  2. QC không đóng được ticket (không qua được `update_status` → `done`) khi MCP đó chưa từng được gọi công cụ
+     nào trong lượt chạy.
 - **Ngoại lệ diff chỉ đổi docs**: nếu diff của ticket dev đi kèm chỉ đổi `docs/**` hay Markdown ở gốc repo, QC
   không bị hai cổng trên chặn dù có loại UI trong phương án và không chạy test UI; report của QC ghi đúng câu
   "Không có thay đổi giao diện (chỉ docs) nên không chạy test UI."
@@ -150,8 +150,8 @@ dev đi kèm thật ra không có giao diện — phương án kiểm thử ch�
 - **Daemon chặn khi MCP chưa kết nối**: khi một MCP bắt buộc của ticket chưa kết nối trên máy, daemon không cho
   QC chạy — ticket chuyển `blocked` ngay từ đầu lượt.
 - **Daemon không cho đóng khi MCP đã kết nối nhưng chưa được gọi**: ngay cả khi MCP đã kết nối, daemon cũng
-  không cho QC hoàn tất `submit_report` nếu MCP đó chưa được gọi công cụ nào trong lượt chạy — QC phải thật sự
-  dùng công cụ kiểm thử UI, không chỉ khai đã dùng.
+  không cho QC hoàn tất `update_status` → `done` nếu MCP đó chưa được gọi công cụ nào trong lượt chạy — QC phải
+  thật sự dùng công cụ kiểm thử UI, không chỉ khai đã dùng.
 - **Maestro cần simulator/emulator đang chạy**: MCP Maestro cần máy có simulator iOS/Android hoặc thiết bị thật
   kết nối sẵn, khó cấu hình trên mọi máy — dự án chỉ có QC về API hay daemon vẫn bị kẹt vì Maestro không sẵn
   sàng.
