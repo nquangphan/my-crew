@@ -45,7 +45,9 @@ Cùng một container phục vụ cả DB dev lẫn DB test:
 ## Biến môi trường API
 
 `apps/api` đọc cấu hình qua biến môi trường; file mẫu nằm ở `apps/api/.env.example`. Dưới đây chỉ liệt tên
-biến và ý nghĩa — lấy giá trị mẫu cục bộ thật từ chính file đó, không chép giá trị bí mật vào đâu khác:
+biến và ý nghĩa — bộ giá trị dùng được cho dev nằm ở mục
+[Nạp biến môi trường trước khi chạy lệnh `apps/api`](#nạp-biến-môi-trường-trước-khi-chạy-lệnh-appsapi) bên
+dưới, không chép giá trị bí mật vào đâu khác:
 
 | Biến | Ý nghĩa |
 |------|---------|
