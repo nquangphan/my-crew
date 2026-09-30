@@ -52,7 +52,12 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    mới chạy cổng `missingUiServers()`
    trước khi chạy (MCP bắt buộc chưa kết nối hoặc bị tắt thì không chạy — khác với cổng lúc đóng ticket,
    `unusedUiServers()` ở `ticket-mcp-server.ts`, chặn QC đóng khi MCP đã kết nối nhưng chưa từng được gọi, xem
-   flow `agent-runs`); diff chỉ đổi docs thì bỏ qua cổng này, prompt QC nêu rõ lý do không cần kiểm thử UI và
+   flow `agent-runs`) — `missingUiServers()` chỉ tính trên `requiredMcps` của ticket, mà server chỉ gắn MCP kiểm
+   thử UI khi phương án PM chọn (`testKinds`) có `ui_web`/`ui_mobile`, nên một QC không có loại UI không bao giờ
+   chạm cổng này dù MCP đó chưa kết nối trên máy. Cổng chặn (nội bộ, không export) đăng bình luận nêu MCP còn
+   thiếu và nhắc thêm đường gỡ: thay đổi của ticket dev đi kèm không có giao diện thì gắn thẻ `@pm` để PM đổi
+   phương án bằng `plan_qc_test` (không tự mở chặn) rồi `retry_subtask`; diff chỉ đổi docs thì bỏ qua cổng này,
+   prompt QC nêu rõ lý do không cần kiểm thử UI và
    yêu cầu report ghi đúng câu cố định (`DOCS_ONLY_QC_NOTE`), còn `PlannedRun.requiredMcps` của lượt chạy đó
    đặt rỗng (flow `agent-runs`); còn lại gọi `resolveModel()`, dựng biến prompt (`promptVars()`) và
    `renderPrompt()`; với
@@ -60,13 +65,25 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug. `promptVars()` → `ownerRequest()`: ba bước PM
    (`pm_analyze`/`pm_monitor`/`pm_accept`) nhận thêm nguyên văn yêu cầu gốc của chủ dự án (tiêu đề, mô tả và
    bình luận của ticket `request` cha) nối vào `header` — **không bọc** vì chủ dự án tự viết, khác với mô tả
-   `pm_task` (tóm tắt của assistant, vẫn bị `wrapUntrusted()`). `promptVars()` → `ownerCallsNote()`: khi job có
+   `pm_task` (tóm tắt của assistant, vẫn bị `wrapUntrusted()`). `promptVars()` → `testPlanText()`/
+   `testKindsText()`: biến `test_plan` (mục 4 bước 3 của `qc.md`) render phương án PM đã chọn cho ticket QC
+   kind theo kind từ bảng dùng chung `TEST_KIND_INFO` (`@crew/shared`) cộng `testReason` (bọc
+   `<untrusted-data source="ticket KEY testReason">`) và danh sách MCP bắt buộc khi `requiredMcps` không rỗng
+   (giữ nguyên chỉ dẫn Playwright/Maestro của `uiTestText()`); ticket QC tạo trước khi có phương án (`testKinds`
+   là `null`) hoặc diff chỉ đổi docs giữ nguyên văn bản `uiTestText()` cũ. Biến `test_kinds` (mục "Phương án kiểm
+   thử của QC" của `pm-analyze.md`, và bước 4 của `pm-monitor.md`) là bảng loại kiểm thử ↔ công cụ cùng nguồn,
+   cộng dòng loại UI mà `platform` của dự án dùng được (`isTestKindSupported()`) — `platform` lấy qua
+   `projectPlatform()` (nội bộ, gọi `ctx.vps.listProjects()`, chỉ ở `pm_analyze`/`pm_monitor`; không đọc được
+   thì `testKindsText()` in câu chung "Server từ chối loại UI mà platform của dự án không hỗ trợ."). Biến `ui_test`
+   vẫn được điền như cũ cho một prompt ghi đè trên web còn dùng `{{ui_test}}`. `promptVars()` → `ownerCallsNote()`: khi job có
    lời gọi `@pm`, thêm mục `## Chủ dự án gọi PM (@pm)` vào đầu ghi chú prompt (mọi bước PM) — mỗi lời gọi (mới
-   nhất 5, `MAX_OWNER_CALLS`) nêu ticket được tag (key/loại/trạng thái/`complexity`), lỗi job gần nhất của daemon
+   nhất 5, `MAX_OWNER_CALLS`) nêu ticket được tag (key/loại/trạng thái/`complexity`; riêng ticket `qc` thêm một
+   dòng phương án kiểm thử hiện tại và MCP bắt buộc), lỗi job gần nhất của daemon
    trên ticket đó (`lastJobError()`, bọc `<untrusted-data source="job error of KEY">`), bình luận agent/system
    gần nhất khi ticket đang `blocked` (bọc `source="last agent comment on KEY"`), và nguyên văn bình luận của
    owner — **không bọc**, vì owner tự viết — cộng danh sách việc PM có thể làm (`rate_subtask` khi thiếu
-   `complexity`, `retry_subtask` khi nguyên nhân chặn khác đã hết, `create_subtask` khi cần việc mới, `ask_owner`
+   `complexity`, `plan_qc_test` cộng `retry_subtask` khi QC `blocked` vì MCP kiểm thử UI mà thay đổi không có
+   giao diện, `retry_subtask` khi nguyên nhân chặn khác đã hết, `create_subtask` khi cần việc mới, `ask_owner`
    khi cần huỷ hay chưa rõ ý owner) và luôn `comment` lại trên ticket được tag.
 3. `apps/daemon/src/roles/model-policy.ts` → `resolveModel()`: `docs_init`/`docs_update` luôn `sonnet`/`high`
    (`DOCS_MODEL`, quyết định của chủ dự án, không phụ thuộc ticket hay allowlist máy); `dev`/`qc` (kể cả `bug`)
@@ -147,7 +164,22 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
     `pm-accept`, `dev`, `docs-update`, `qc`, `docs-init`) thêm bước docs-trước-code, việc riêng của bước, và
     luồng trạng thái hợp lệ khớp với `STAGES` của bước 1. `pm-monitor.md` (bước 5, "bình luận và lời gọi @pm của
     chủ dự án"): xử lý mục "Chủ dự án gọi PM" trước, theo đúng ticket được tag rồi `comment` lại trên nó, trước
-    khi trả lời bình luận thường khác trên chính pm_task.
+    khi trả lời bình luận thường khác trên chính pm_task. `pm-analyze.md` (bước 4, "chia việc"): trước mỗi
+    `create_subtask` loại `qc`, mục "Phương án kiểm thử của QC" bắt buộc PM xem subtask dev đi kèm đổi gì (API,
+    logic daemon, CLI, schema dùng chung, giao diện web, màn hình mobile, hay chỉ docs), chọn `testKinds` theo
+    bảng `{{test_kinds}}`, theo luật chọn loại UI (chỉ chọn `ui_web`/`ui_mobile` khi có giao diện chạy được và
+    tiêu chí nghiệm thu cần thao tác trên đó; có giao diện thì phải có loại UI tương ứng; không chọn loại UI
+    platform dự án không có), viết `testReason` một dòng, và điền mục "## Phương án kiểm thử" bốn dòng bắt buộc
+    (loại kiểm thử, công cụ/lệnh, công cụ UI, tiêu chí nghiệm thu ↔ cách kiểm) vào mô tả subtask QC; phương án
+    của một QC đã tạo chưa hợp thì `plan_qc_test`, không tạo lại. Bảng ví dụ chấm `complexity` QC không còn gắn
+    cố định với Playwright (QC `medium` có thể là "gọi 4 endpoint qua HTTP" chứ không chỉ "kiểm 3 flow UI"), và
+    không còn câu "ngoài MCP kiểm thử UI mặc định của QC mà server tự thêm" — server chỉ gắn MCP kiểm thử UI khi
+    phương án có loại UI. `qc.md` (mục 4 bước 3): `{{test_plan}}` thay câu "Kiểm thử UI bằng MCP bắt buộc…" cố
+    định cũ; bước 4 yêu cầu report ghi từng loại kiểm thử đã chạy kèm kết quả, `testsRun` có ít nhất một dòng
+    mỗi loại. `pm-monitor.md` (bước 4, "đánh giá lại subtask và phương án kiểm thử"): QC `blocked` vì MCP kiểm
+    thử UI chưa kết nối/chưa được gọi mà thay đổi không có giao diện thì `plan_qc_test` đổi phương án, rồi
+    `retry_subtask` khi đang trả lời `@pm` hoặc `comment` báo chủ dự án mở chặn khi không; bảng `{{test_kinds}}`
+    liệt kê các loại chọn được.
 13. Ma trận vòng đời kịch bản (`apps/daemon/test/lifecycle.test.ts` + `apps/daemon/test/lifecycle/*.yaml`) và
     kịch bản thật (`apps/daemon/test/live-workflow.test.ts`), xem mục Tests.
 
@@ -155,7 +187,7 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/daemon/src/roles/role-planner.ts` | `RolePlanner` mặc định: prompt, cổng, model, report, follow-up theo bước | `rolePlanner`, `missingUiServers`, `diffNeedsUiTest`, `DOCS_ONLY_QC_NOTE`, `cleanupLines`, `ownerRequest`, `ownerCallsNote` |
+| `apps/daemon/src/roles/role-planner.ts` | `RolePlanner` mặc định: prompt, cổng, model, report, follow-up theo bước | `rolePlanner`, `missingUiServers`, `diffNeedsUiTest`, `DOCS_ONLY_QC_NOTE`, `cleanupLines`, `ownerRequest`, `ownerCallsNote`, `testPlanText`, `testKindsText` |
 | `apps/daemon/src/roles/role-registry.ts` | Bảng bước, đường trạng thái hợp lệ, chọn bước | `STAGES`, `resolveStage`, `isTerminal`, `workChildren` |
 | `apps/daemon/src/roles/prompt-templates.ts` | Nạp và render template Markdown | `renderPrompt`, `loadPrompt`, `setPromptsDir` |
 | `apps/daemon/src/roles/model-policy.ts` | Model/effort theo bước, kẹp theo allowlist | `resolveModel`, `clampModel`, `MissingComplexityError` |
@@ -213,7 +245,14 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 
 - `apps/daemon/test/role-contracts.test.ts`: mọi đường trong `STAGES[...].paths` và `FAILURE_PATHS` hợp lệ
   với `canTransition('agent', …)`; `resolveStage()` cho từng tổ hợp loại ticket/con/job; template render đúng
-  partial và biến, báo lỗi khi thiếu biến.
+  partial và biến, báo lỗi khi thiếu biến. Prompt QC theo `testPlanText()`: không loại UI thì liệt kê từng
+  loại từ `TEST_KIND_INFO` và không nhắc MCP, `ui_web`/`ui_mobile` nhắc đúng Playwright/Maestro, ticket
+  `testKinds: null` và diff chỉ đổi docs giữ nguyên văn bản `uiTestText()` cũ (`DOCS_ONLY_QC_NOTE` vẫn còn).
+  Prompt `pm-analyze`/`pm-monitor` có mục phân tích phương án, bảng loại ↔ công cụ đúng `TEST_KIND_INFO` (nhãn/
+  công cụ mỗi dòng, cột MCP kéo theo), luật chọn loại UI, dòng platform từ `testKindsText()`, mẫu mục "Phương án
+  kiểm thử" bốn dòng, và không còn câu "server tự thêm"/"MCP kiểm thử UI mặc định". Không file `.ts`/`.md` nào
+  dưới `apps/daemon/src` chép tay nhãn hay công cụ của `TEST_KIND_INFO`; mọi prompt đóng gói (`STAGES`) qua được
+  `validatePromptTemplate()`, `qc.md` còn `{{test_plan}}` và `pm-analyze.md` còn `{{test_kinds}}`.
 - `apps/daemon/test/model-policy.test.ts`: docs luôn `sonnet`/`high` bất kể lựa chọn; dev/qc theo đúng bản đồ
   độ phức tạp của máy, model/effort PM tự đặt trên subtask thắng bản đồ; dev/qc không `complexity` ném
   `MissingComplexityError` dù có đặt `model`; pm theo đúng thứ tự ưu tiên; kẹp model ngoài allowlist xuống
@@ -241,7 +280,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   xây trên chính ticket đang xét) không dùng được làm mốc cho ticket đó. Nhóm "dev run auto-transitions a todo
   ticket": `plan()` gọi `transition(ticketId, 'in_progress', key)` đúng một lần và trả về ticket đã
   `in_progress` khi ticket `dev` hoặc `bug` đang `todo`; ticket `dev` đã `in_progress` (mô phỏng resume/retry)
-  thì không gọi `transition`, `plan()` không lỗi.
+  thì không gọi `transition`, `plan()` không lỗi. Nhóm "QC run follows the PM test plan of its ticket": phương
+  án không loại UI chạy được dù Playwright chưa kết nối và ticket không mang MCP nào; phương án `ui_web` vẫn bị
+  chặn khi Playwright chưa kết nối (bình luận nhắc `plan_qc_test`) và nêu đúng chỉ dẫn Playwright khi đã kết
+  nối; ticket không có phương án (`testKinds: null`) giữ nguyên văn bản `uiTestText()` cũ; một prompt QC ghi đè
+  trên web còn dùng `{{ui_test}}` vẫn render đúng cho cả phương án có và không có loại UI.
 - `apps/daemon/test/lifecycle.test.ts` (kịch bản dưới `apps/daemon/test/lifecycle/*.yaml`, mỗi file có
   `description` riêng): toàn bộ vòng đời qua API và daemon thật, runner kịch bản (không tốn phí model), git
   worktree và hook crew-docs thật — happy path, docs bị hook từ chối rồi commit lại, capability preflight, dọn
@@ -256,11 +299,19 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   `apps/daemon/test/helpers/lifecycle.ts` xoá đánh giá đã có trước bước này), subtask chỉ về docs
   (`19-docs-only-readme.yaml`: subtask dev "Viết mục cài đặt trong README" bị guard từ chối ghi `README.md` nên
   bàn giao ngay không đụng code, job `docs_update` commit một mình `README.md` và qua đúng hook crew-docs, QC
-  giữ `playwright` trên ticket nhưng review tĩnh diff chỉ đổi docs, report ghi đúng câu `DOCS_ONLY_QC_NOTE` và
+  được PM lập phương án `ui_web` nên ticket mang `playwright` (không phải server tự thêm) nhưng review tĩnh diff
+  chỉ đổi docs, report ghi đúng câu `DOCS_ONLY_QC_NOTE` và
   `mcpsUsed`/`mcpsMissing` rỗng), docs-init kết thúc hai lần liền mà không nộp report
   (`20-docs-init-not-finished.yaml`: mỗi lượt chỉ đọc vài file rồi để lại một tin nhắn `say` chưa xong việc —
   cả bình luận thử lại lẫn bình luận chặn đều mang đủ khối chẩn đoán, tin nhắn cuối đã bị ẩn credential trích
-  dẫn trong đó) — mỗi kịch bản kết thúc ở trạng
+  dẫn trong đó), QC theo phương án không giao diện trên dự án `web`
+  (`21-qc-api-plan.yaml`: PM lập phương án `[api, integration]` cho một thay đổi chỉ có route và truy vấn DB —
+  ticket QC không mang MCP kiểm thử UI dù Playwright chưa kết nối trên máy, QC không bị chặn, chạy đúng phương
+  án và đóng `done` mà không gọi MCP UI nào, cả cây xong), gỡ QC kẹt vì chọn nhầm loại UI
+  (`22-qc-plan-changed.yaml`: PM lập phương án `ui_web` cho một thay đổi chỉ có API, QC bị chặn ngay vì
+  Playwright chưa kết nối; owner gắn thẻ `@pm` trên ticket QC, PM `plan_qc_test` đổi sang `[api]`,
+  `retry_subtask` mở lại rồi `comment` báo đã đổi phương án; QC chạy lại với `requiredMcps` rỗng, đóng `done`
+  không gọi MCP UI nào, cả cây xong) — mỗi kịch bản kết thúc ở trạng
   thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
 - `apps/daemon/test/pm-mention.test.ts`: PM chạy với đúng ghi chú "Chủ dự án gọi PM" (ticket được tag, trạng
   thái/complexity, lỗi job gần nhất và bình luận agent gần nhất bọc `<untrusted-data>`, bình luận owner nguyên

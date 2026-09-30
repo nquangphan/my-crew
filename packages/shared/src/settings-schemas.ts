@@ -103,6 +103,9 @@ export const PROMPT_VARIABLES: Readonly<Record<string, string>> = {
   hooks_note: 'Ghi chú về hook git của docs-init',
   review_base: 'Nhánh QC so sánh khi review',
   ui_test: 'Yêu cầu test UI của QC (hoặc lý do không cần)',
+  test_plan:
+    'Phương án kiểm thử PM chọn cho ticket QC: các loại, lý do và hướng dẫn từng loại (QC cũ chưa có phương án hoặc diff chỉ đổi docs: yêu cầu test UI như biến ui_test)',
+  test_kinds: 'Bảng loại kiểm thử ↔ công cụ và loại UI mà platform của dự án hỗ trợ (PM)',
   handoff: 'Bàn giao của dev cho job docs',
   paired_head: 'head_sha của ticket dev mà QC kiểm thử',
   paired_key: 'Key ticket dev mà QC kiểm thử',

@@ -1,4 +1,4 @@
-import type { TicketDetailResponse } from '@crew/shared';
+import type { TestKind, TicketDetailResponse } from '@crew/shared';
 import { DEFAULT_GUARD_POLICY } from '@crew/shared';
 import { describe, expect, it, vi } from 'vitest';
 import { createSubtask, fileBug } from '../../api/src/services/ticket-service.js';
@@ -11,7 +11,7 @@ import { evaluateToolCall } from '../src/runner/guard-hook.js';
 import { BUNDLED_SETTINGS } from '../src/settings/settings-store.js';
 import { StateDb } from '../src/state-db.js';
 import { JobWriter } from '../src/tools/ticket-mcp-server.js';
-import { fixture, pmTask, reportAndFinish, useApi } from './helpers/api.js';
+import { commentsOf, fixture, getTicket, pmTask, reportAndFinish, useApi } from './helpers/api.js';
 import { git, makeRepo, tempDir, writeFiles } from './helpers/git.js';
 
 describe('untrusted data', () => {
@@ -288,6 +288,130 @@ describe('dev run auto-transitions a todo ticket', () => {
     expect(result.stage).toBe('dev');
     expect(result.skip).toBeUndefined();
     expect((await vps.getTicket(ticketId)).ticket.status).toBe('in_progress');
+  });
+});
+
+describe('QC run follows the PM test plan of its ticket', () => {
+  const api = useApi();
+
+  /** Plans the QC run of a web project's QC ticket, with Playwright in the given state on this machine. */
+  async function planQc(
+    plan: { testKinds?: TestKind[]; testReason?: string },
+    options: { playwright?: string; prompts?: Record<string, string> } = {},
+  ) {
+    const f = await fixture(api);
+    const pm = await pmTask(api, f);
+    const dev = await createSubtask(api.db, { type: 'dev', ...RATED, parentId: pm.id, title: 'Việc gốc' });
+    const qc = await createSubtask(api.db, {
+      type: 'qc',
+      ...RATED,
+      parentId: pm.id,
+      title: 'QC việc gốc',
+      pairsWith: dev.id,
+      ...plan,
+    });
+    const vps = new VpsClient({ apiUrl: f.server.url, token: () => f.machine.token });
+    const state = new StateDb(':memory:');
+    const job = state.insertJob({
+      ticketId: qc.id,
+      projectId: f.projectId,
+      role: 'qc',
+      trigger: 'dependency.resolved',
+    });
+    const result = await rolePlanner.plan({
+      job,
+      kind: 'agent',
+      detail: await vps.getTicket(qc.id),
+      config: parseConfig({ apiUrl: f.server.url, machineName: 'm' }),
+      project: null,
+      inventory: {
+        skills: [],
+        mcpServers: [
+          { name: 'playwright', source: 'user', status: options.playwright ?? 'failed', tools: [] },
+        ],
+      },
+      ctx: {
+        vps,
+        state,
+        crewDocs: null,
+        writer: new JobWriter(state, job.id),
+        standardPath: null,
+        log: () => {},
+        settings: options.prompts ? { ...BUNDLED_SETTINGS, prompts: options.prompts } : BUNDLED_SETTINGS,
+      },
+    });
+    return { result, qc };
+  }
+
+  it('runs a plan without a UI kind although Playwright is not connected, and asks for no UI MCP', async () => {
+    const reason = 'Chỉ đổi route và truy vấn DB, không có giao diện';
+    const { result, qc } = await planQc({ testKinds: ['api', 'integration'], testReason: reason });
+    expect(qc.requiredMcps).toEqual([]);
+    expect(result.skip).toBeUndefined();
+    expect(result.stage).toBe('qc');
+    expect(result.prompt).toContain('Kiểm thử theo **phương án PM đã chọn**');
+    expect(result.prompt).toContain('`api` (');
+    expect(result.prompt).toContain('`integration` (');
+    expect(result.prompt).toContain(`<untrusted-data source="ticket ${qc.key} testReason">\n${reason}`);
+    expect(result.prompt).toContain('Skill và MCP bắt buộc của ticket này: không có.');
+    expect(result.prompt).not.toMatch(/playwright|maestro/i);
+    expect(await commentsOf(api.db, qc.id)).toEqual([]);
+    expect((await getTicket(api.db, qc.id)).status).toBe('todo');
+  });
+
+  it('still blocks a ui_web plan while Playwright is not connected, and names the way to change the plan', async () => {
+    const { result, qc } = await planQc({ testKinds: ['ui_web'], testReason: 'Trang mới cần thao tác UI' });
+    expect(qc.requiredMcps).toEqual(['playwright']);
+    expect(result.skip).toEqual({ reason: 'MCP bắt buộc chưa kết nối: playwright', status: 'blocked' });
+    const [comment] = await commentsOf(api.db, qc.id);
+    expect(comment?.body).toContain('`playwright` (failed)');
+    expect(comment?.body).toContain('QC không bỏ qua kiểm thử UI.');
+    expect(comment?.body).toContain('`@pm`');
+    expect(comment?.body).toContain('`plan_qc_test`');
+    expect((await getTicket(api.db, qc.id)).status).toBe('blocked');
+  });
+
+  it('tells a ui_web QC to use Playwright once it is connected', async () => {
+    const { result } = await planQc(
+      { testKinds: ['ui_web', 'unit'], testReason: 'Trang mới cần thao tác UI' },
+      { playwright: 'connected' },
+    );
+    expect(result.skip).toBeUndefined();
+    expect(result.prompt).toContain('`ui_web` (');
+    expect(result.prompt).toContain(
+      'MCP bắt buộc của ticket (phải gọi công cụ của từng server trước khi đóng',
+    );
+    expect(result.prompt).toContain('`playwright` (Playwright): mở ứng dụng trong trình duyệt');
+  });
+
+  it('keeps the older text for a QC ticket created without a plan', async () => {
+    const { result, qc } = await planQc({}, { playwright: 'connected' });
+    expect(qc).toMatchObject({ testKinds: null, requiredMcps: ['playwright'] });
+    expect(result.prompt).toContain(
+      '4. Kiểm thử UI bằng MCP bắt buộc khi diff đổi file nguồn (diff chỉ đổi docs thì review tĩnh là đủ): \n   - `playwright` (Playwright)',
+    );
+    expect(result.prompt).not.toContain('phương án PM đã chọn');
+  });
+
+  /** A prompt the owner saved on the web before the test plan existed. */
+  const OLD_OVERRIDE = '{{header}}\n\nKiểm thử UI: {{ui_test}}\n\n{{notes}}';
+
+  it('renders an override that still uses {{ui_test}} for a ui_web plan', async () => {
+    const { result } = await planQc(
+      { testKinds: ['ui_web'], testReason: 'Trang mới' },
+      { playwright: 'connected', prompts: { qc: OLD_OVERRIDE } },
+    );
+    expect(result.prompt).toContain('Kiểm thử UI: \n   - `playwright` (Playwright): mở ứng dụng');
+  });
+
+  it('renders an override that still uses {{ui_test}} for a plan without a UI kind', async () => {
+    const { result } = await planQc(
+      { testKinds: ['api'], testReason: 'Chỉ API' },
+      { prompts: { qc: OLD_OVERRIDE } },
+    );
+    expect(result.prompt).toContain(
+      'Kiểm thử UI: ticket không yêu cầu MCP kiểm thử UI (phương án kiểm thử của PM không có loại giao diện).',
+    );
   });
 });
 

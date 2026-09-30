@@ -64,7 +64,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `putBmadProfile(projectKey, profile, idempotencyKey)` (`PUT /v1/daemon/projects/:projectKey/bmad-profile`,
    cũng flow `project-claims`), `startCommand`/`finishCommand` (flow `machine-control`), hay
    `retrySubtask(pmTaskId, body, idempotencyKey)` (`POST .../retry-subtask`, gọi bởi tool PM cùng tên, flow
-   `agent-runs`/`ticket-lifecycle`), hay `runtime()`/`runtimeBundle(version, maxBytes)` (`GET
+   `agent-runs`/`ticket-lifecycle`), hay `updateTestPlan(pmTaskId, body, idempotencyKey)` (`POST
+   /v1/daemon/tickets/:id/test-plan`, `:id` là `pmTaskId`, gọi bởi tool PM `plan_qc_test` để đổi `testKinds`/
+   `testReason` của một subtask `qc` chưa đóng của chính pm_task đó, trả lại `Ticket` với `requiredMcps` đã tính
+   lại theo phương án mới, flow `agent-runs`/`ticket-lifecycle`), hay `runtime()`/`runtimeBundle(version, maxBytes)` (`GET
    /v1/daemon/runtime`/`GET /v1/daemon/runtime/:version/bundle`, flow `runtime-updates` — bản runtime này máy
    nên chạy, và tải tarball chưa kiểm để app desktop tự verify trước khi cài; `runtimeBundle()` từ chối câu
    trả lời lớn hơn `maxBytes` mà không tải hết). Tuỳ chọn `onError(failure: ApiFailure)`

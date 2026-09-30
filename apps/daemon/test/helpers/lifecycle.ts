@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { McpServerName, ProjectPlatform, RoleStage, TicketStatus } from '@crew/shared';
+import {
+  McpServerName,
+  ProjectPlatform,
+  RoleStage,
+  TEST_KIND_INFO,
+  TestKind,
+  TicketStatus,
+} from '@crew/shared';
 import { parse } from 'yaml';
 import { z } from 'zod';
 import { ticketReports, tickets } from '../../../api/src/db/schema.js';
@@ -154,7 +161,12 @@ function devFinish(step: RawStep): RawStep[] {
 function devStart(step: RawStep): RawStep[] {
   // The daemon itself transitions todo → in_progress before the agent sees the prompt (role-planner.ts
   // `plan()`), so the dev script no longer calls `update_status` for that step.
-  return [preflight(step), ...invokeSkills(step), ...readDocs(), { tool: 'Read', input: { file_path: 'src/app.js' } }];
+  return [
+    preflight(step),
+    ...invokeSkills(step),
+    ...readDocs(),
+    { tool: 'Read', input: { file_path: 'src/app.js' } },
+  ];
 }
 
 function docsUpdate(step: RawStep): RawStep[] {
@@ -254,6 +266,9 @@ function qc(step: RawStep): RawStep[] {
   ];
 }
 
+/** The QC test plan a scenario subtask gets when it names none: a logic-only change, no UI tooling. */
+const DEFAULT_QC_TEST_KINDS: TestKind[] = ['unit'];
+
 function pmAnalyze(step: RawStep): RawStep[] {
   const head: RawStep[] = [
     preflight(step),
@@ -276,6 +291,15 @@ function pmAnalyze(step: RawStep): RawStep[] {
       throw new Error(`subtask "${title}" needs complexity and qcComplexity in the scenario`);
     }
     const dependsOn = list(sub.dependsOn).map((dep) => `@{ticket:${titleRe(dep)}}`);
+    // The PM plans every QC: which kinds of testing, and why (only a UI kind brings a UI-test MCP server).
+    const testKinds = sub.testKinds ? z.array(TestKind).min(1).parse(sub.testKinds) : DEFAULT_QC_TEST_KINDS;
+    const uiKinds = testKinds.filter((kind) => TEST_KIND_INFO[kind].uiRole !== null);
+    const testReason = String(
+      sub.testReason ??
+        (uiKinds.length > 0
+          ? 'Thay đổi có giao diện chạy được, tiêu chí nghiệm thu cần thao tác trên giao diện'
+          : 'Thay đổi chỉ có logic, không có giao diện nên không cần công cụ UI'),
+    );
     return [
       t('create_subtask', {
         type: 'dev',
@@ -293,10 +317,21 @@ function pmAnalyze(step: RawStep): RawStep[] {
       t('create_subtask', {
         type: 'qc',
         title: `QC: ${title}`,
-        description: `Kiểm thử "${title}".`,
+        description: [
+          `Kiểm thử "${title}".`,
+          '',
+          '## Phương án kiểm thử',
+          '',
+          `- Loại kiểm thử: ${testKinds.join(', ')}`,
+          '- Công cụ / lệnh: `node --test`',
+          `- Công cụ UI: ${uiKinds.length > 0 ? `cần (${uiKinds.join(', ')})` : 'không cần'}, ${testReason}`,
+          '- Tiêu chí nghiệm thu ↔ cách kiểm: 1. Có test → chạy `node --test`.',
+        ].join('\n'),
         pairsWith: `@{ticket:${titleRe(title)}}`,
         complexity: sub.qcComplexity,
         complexityReason: String(sub.qcReason ?? 'Một flow kiểm thử'),
+        testKinds,
+        testReason,
         flows: ['app'],
       }),
     ];

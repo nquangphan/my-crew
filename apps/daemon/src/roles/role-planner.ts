@@ -3,8 +3,12 @@ import {
   canTransition,
   DEFAULT_GUARD_POLICY,
   type GuardPolicy,
+  isTestKindSupported,
+  type ProjectPlatform,
   type RoleStage,
   type SkillInventory,
+  TEST_KIND_INFO,
+  TestKind,
   type Ticket,
   type TicketDetailResponse,
   type TicketStatus,
@@ -159,9 +163,70 @@ function uiTestText(ticket: Ticket, uiTest: boolean, policy: GuardPolicy): strin
       lines.push(`\`${server}\`: dùng công cụ của server này cho các tiêu chí liên quan.`);
     }
   }
-  return lines.length > 0
-    ? `\n   - ${lines.join('\n   - ')}\n   Ghi lại flow hoặc script đã chạy và kết quả của chúng trong report.`
+  if (lines.length > 0) {
+    return `\n   - ${lines.join('\n   - ')}\n   Ghi lại flow hoặc script đã chạy và kết quả của chúng trong report.`;
+  }
+  return ticket.testKinds
+    ? 'ticket không yêu cầu MCP kiểm thử UI (phương án kiểm thử của PM không có loại giao diện).'
     : 'ticket không yêu cầu MCP kiểm thử UI (dự án backend hoặc thư viện).';
+}
+
+/**
+ * What QC must test (step 3 of `qc.md`): the PM's test plan, kind by kind from the shared table
+ * (`TEST_KIND_INFO`), with the MCP servers to use only when the ticket requires any. A QC ticket created
+ * before test plans existed (`testKinds` null) and the QC of a docs-only diff keep the older UI-test text.
+ */
+export function testPlanText(ticket: Ticket, uiTest: boolean, policy: GuardPolicy): string {
+  if (!ticket.testKinds || !uiTest) {
+    return `Kiểm thử UI bằng MCP bắt buộc khi diff đổi file nguồn (diff chỉ đổi docs thì review tĩnh là đủ): ${uiTestText(ticket, uiTest, policy)}`;
+  }
+  const kinds = ticket.testKinds.map(
+    (kind) => `   - \`${kind}\` (${TEST_KIND_INFO[kind].label}): ${TEST_KIND_INFO[kind].tooling}.`,
+  );
+  const mcps =
+    ticket.requiredMcps.length > 0
+      ? `MCP bắt buộc của ticket (phải gọi công cụ của từng server trước khi đóng ticket): ${uiTestText(ticket, true, policy)}`
+      : 'Phương án không có loại kiểm thử giao diện: không mở trình duyệt hay simulator, không cần MCP kiểm thử UI nào.';
+  return [
+    'Kiểm thử theo **phương án PM đã chọn** cho ticket này; làm đủ từng loại, không bỏ loại nào:',
+    ...kinds,
+    '   Lý do của PM cho phương án này:',
+    wrapUntrusted(`ticket ${ticket.key} testReason`, ticket.testReason?.trim() || '(PM không ghi lý do)'),
+    `   ${mcps}`,
+    '   Trong report ghi từng loại kiểm thử đã chạy và kết quả của nó.',
+  ].join('\n');
+}
+
+const UI_TEST_KINDS = TestKind.options.filter((kind) => TEST_KIND_INFO[kind].uiRole !== null);
+const kindList = (kinds: readonly TestKind[]) => kinds.map((kind) => `\`${kind}\``).join(', ');
+
+/**
+ * The PM's reference for planning a QC ticket: one row per test kind, rendered from the shared table
+ * (`TEST_KIND_INFO`, the only place the kinds are described), and the UI kinds the project's platform can
+ * run (the server refuses the others). `platform` is null when the daemon could not read it.
+ */
+export function testKindsText(platform: ProjectPlatform | null): string {
+  const rows = TestKind.options.map((kind) => {
+    const { label, tooling, uiRole } = TEST_KIND_INFO[kind];
+    const mcp = uiRole ? `MCP ${uiRole.charAt(0).toUpperCase()}${uiRole.slice(1)} của dự án` : 'không';
+    return `| \`${kind}\` | ${label} | ${tooling} | ${mcp} |`;
+  });
+  const usable = platform ? UI_TEST_KINDS.filter((kind) => isTestKindSupported(kind, platform)) : [];
+  const refused = platform ? UI_TEST_KINDS.filter((kind) => !isTestKindSupported(kind, platform)) : [];
+  const platformLine = !platform
+    ? 'Server từ chối loại UI mà platform của dự án không hỗ trợ.'
+    : [
+        `Dự án này có platform \`${platform}\`:`,
+        usable.length > 0 ? `loại UI dùng được là ${kindList(usable)}` : 'không có loại UI nào dùng được',
+        refused.length > 0 ? `(server từ chối ${kindList(refused)}).` : '(mọi loại UI đều dùng được).',
+      ].join(' ');
+  return [
+    '| `testKinds` | Loại kiểm thử | Công cụ | MCP kéo theo |',
+    '| --- | --- | --- | --- |',
+    ...rows,
+    '',
+    platformLine,
+  ].join('\n');
 }
 
 function formatHandoff(handoff: unknown): string {
@@ -225,6 +290,27 @@ async function ownerRequest(ctx: PlannerContext, requestId: string): Promise<str
   ].join('\n');
 }
 
+/**
+ * The project's platform as the server has it (the local project config does not carry it), so the PM knows
+ * which UI test kinds it may plan; null when there is no project or the server could not be asked.
+ */
+async function projectPlatform(
+  ctx: PlannerContext,
+  project: ProjectConfig | null,
+): Promise<ProjectPlatform | null> {
+  if (!project) return null;
+  try {
+    const { items } = await ctx.vps.listProjects();
+    return items.find((item) => item.key === project.key)?.platform ?? null;
+  } catch (error) {
+    ctx.log('warn', 'could not read the project platform for the PM prompt', {
+      project: project.key,
+      error: (error as Error).message,
+    });
+    return null;
+  }
+}
+
 /** At most this many owner calls are spelled out in one PM prompt (the newest). */
 const MAX_OWNER_CALLS = 5;
 
@@ -264,6 +350,11 @@ async function ownerCallsNote(
         '',
         `- Ticket: **${source.key}** (loại \`${source.type}\`, trạng thái \`${source.status}\`, complexity ${source.complexity ? `\`${source.complexity}\`` : 'chưa đánh giá'})`,
         `- Tiêu đề: ${ticketText(source).title}`,
+        ...(source.type === 'qc'
+          ? [
+              `- Phương án kiểm thử hiện tại: ${source.testKinds ? kindList(source.testKinds) : 'chưa có (QC tạo trước khi có phương án)'}; MCP bắt buộc: ${source.requiredMcps.map((server) => `\`${server}\``).join(', ') || 'không có'}`,
+            ]
+          : []),
         `- Lỗi gần nhất daemon ghi nhận: ${error ? `\n${wrapUntrusted(`job error of ${source.key}`, error.slice(0, 2_000))}` : 'không có'}`,
         ...(blockedBy
           ? [
@@ -289,7 +380,8 @@ async function ownerCallsNote(
     '',
     '- Subtask `blocked` vì chưa có `complexity`: `rate_subtask` ngay trên ticket đó (server tự chuyển về `in_progress` và daemon chạy lại).',
     '- Subtask `blocked` vì lý do khác mà nguyên nhân đã được xử lý (chủ dự án nói đã sửa, hoặc lỗi tạm thời): `retry_subtask`.',
-    '- Cần sửa code hay làm thêm việc: `create_subtask` (dev kèm QC, mỗi ticket có `complexity` và `complexityReason`).',
+    '- QC `blocked` vì MCP kiểm thử UI chưa kết nối hoặc chưa được gọi, mà thay đổi của ticket dev đi kèm **không có giao diện**: `plan_qc_test` đổi phương án sang các loại không UI (kèm `testReason`), rồi `retry_subtask` để QC chạy lại với MCP bắt buộc mới (`plan_qc_test` không tự mở chặn). Thay đổi có giao diện thật thì giữ phương án và nhắc chủ dự án sửa kết nối MCP (2P Crew → Sức khỏe).',
+    '- Cần sửa code hay làm thêm việc: `create_subtask` (dev kèm QC, mỗi ticket có `complexity` và `complexityReason`; QC có thêm `testKinds` và `testReason`).',
     '- Chủ dự án muốn huỷ việc: agent không tự huỷ ticket; `ask_owner` để xác nhận và nhắc chủ dự án huỷ trên web.',
     '- Chưa rõ chủ dự án muốn gì: `ask_owner`.',
     '- Sau khi xử lý, **luôn** `comment` với `ticket` là ticket được gắn thẻ, nói rõ bạn đã làm gì (hoặc vì sao chưa làm).',
@@ -411,7 +503,9 @@ async function blockQc(ctx: PlannerContext, ticket: Ticket, missing: { server: s
         body:
           `QC không chạy được: MCP server kiểm thử UI bắt buộc chưa kết nối trên máy này: ${list}. ` +
           'Mở 2P Crew → Sức khỏe (hoặc `crewd doctor`) để sửa kết nối, rồi mở chặn ticket. ' +
-          'QC không bỏ qua kiểm thử UI.',
+          'QC không bỏ qua kiểm thử UI. ' +
+          'Nếu thay đổi của ticket này không có giao diện để kiểm (phương án kiểm thử chọn nhầm loại UI), gắn thẻ ' +
+          '`@pm` trong một bình luận trên ticket này: PM đổi phương án bằng `plan_qc_test` rồi cho QC chạy lại.',
       },
       key,
     ),
@@ -559,6 +653,10 @@ async function promptVars(input: {
     hooks_note: 'daemon cài hook và chép file hook vào worktree trước lượt chạy, xem ghi chú cuối',
     review_base: project?.defaultBranch ?? 'main',
     ui_test: uiTestText(ticket, input.uiTest, ctx.settings.policy),
+    test_plan: testPlanText(ticket, input.uiTest, ctx.settings.policy),
+    test_kinds: testKindsText(
+      stage === 'pm_analyze' || stage === 'pm_monitor' ? await projectPlatform(ctx, project) : null,
+    ),
     handoff: '',
     paired_head: '(chưa có)',
     paired_key: '(chưa có)',

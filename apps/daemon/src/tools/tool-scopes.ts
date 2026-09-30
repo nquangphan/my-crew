@@ -16,6 +16,7 @@ export const TICKET_TOOL_NAMES = [
   'docs_where',
   'create_subtask',
   'rate_subtask',
+  'plan_qc_test',
   'retry_subtask',
   'resource_report',
   'cleanup_resources',
@@ -46,6 +47,7 @@ const ROLE_EXTRAS: Record<AgentRole, readonly TicketToolName[]> = {
   pm: [
     'create_subtask',
     'rate_subtask',
+    'plan_qc_test',
     'retry_subtask',
     'resource_report',
     'cleanup_resources',

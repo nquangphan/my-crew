@@ -1,7 +1,8 @@
 name: happy-path
 description: >-
   Owner request → assistant triage → PM asks one question → owner answers → PM breakdown (dev + paired QC)
-  → dev hands off → docs_update on sonnet commits code and docs together → QC passes through Playwright →
+  → dev hands off → docs_update on sonnet commits code and docs together → QC, planned with ui_web, passes
+  through Playwright →
   PM accept merges, runs the pre-push gate and pushes → assistant closes.
 inventory:
   skills: [api-design, requirements, planning, code-review]
@@ -23,7 +24,12 @@ scripts:
     steps:
       - macro: pm_analyze
         skills: [planning]
-        subtasks: [{ title: Viết route /health, skills: [api-design], complexity: trivial, qcComplexity: trivial }]
+        subtasks:
+          - title: Viết route /health
+            skills: [api-design]
+            complexity: trivial
+            qcComplexity: trivial
+            testKinds: [ui_web]
   - stage: dev
     title: Viết route /health
     steps: [{ macro: dev, skills: [api-design], file: src/health.js }]
