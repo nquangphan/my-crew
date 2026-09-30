@@ -73,7 +73,11 @@ và trang chi tiết ticket (tiêu đề, mô tả markdown, cây subtask dev↔
    nhận `ticketId={ticket.id}` để bật paste-to-upload ảnh clipboard, xem bước 12), banner vàng khi
    `needs_input` (nút "Trả lời" focus ô soạn), tabs Hoạt động (Bình luận/Lịch sử/Report), `DetailsBox` (dropdown
    trạng thái chỉ hiện `allowedTransitions('owner', …)`; mục "Độ phức tạp" hiện thêm dòng "Lý do: …" từ
-   `ticket.complexityReason` khi PM đã ghi lý do đánh giá), nút Hủy/Mở lại/Bỏ chặn, và `AgentActivityLine` (thay
+   `ticket.complexityReason` khi PM đã ghi lý do đánh giá; ticket `qc` có `testKinds` khác `null` thêm mục
+   "Kiểm thử" liệt kê nhãn tiếng Việt của từng loại — lấy từ `TEST_KIND_INFO` của `@crew/shared`, không có bản
+   nhãn riêng trên web — nối bằng ", ", kèm dòng phụ "Lý do: …" từ `ticket.testReason` khi có, cùng kiểu trình
+   bày với mục "Độ phức tạp"; ticket QC cũ (`testKinds = null`) hoặc ticket không phải `qc` không hiện mục
+   này), nút Hủy/Mở lại/Bỏ chặn, và `AgentActivityLine` (thay
    ô "Agent đang chạy" cũ) ngay dưới tiêu đề. Một `request`/`pm_task` còn con hiện `TicketTree` ("Cây ticket")
    thay cho danh sách "Ticket con" phẳng: nạp cả cây hậu duệ bằng một lần gọi (`useTicketTree()` →
    `GET /v1/tickets/:id/tree`, flow `ticket-lifecycle`), cả ticket mở và đã đóng; tiêu đề mục hiện số lượng
