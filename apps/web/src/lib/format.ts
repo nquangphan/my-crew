@@ -128,7 +128,7 @@ const ERROR_TEXT: Partial<Record<string, string>> = {
   REPORT_REQUIRED: 'Ticket cần có report trước khi chuyển sang Xong.',
   ILLEGAL_TRANSITION: 'Không thể chuyển sang trạng thái này.',
   BUDGET_HOLD: 'Ticket đang chờ bạn duyệt vượt giới hạn.',
-  UNAUTHORIZED: 'Phiên đăng nhập đã hết hạn hoặc mã không đúng.',
+  UNAUTHORIZED: 'Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.',
   CSRF_FAILED: 'Phiên không hợp lệ, hãy tải lại trang.',
   NOT_FOUND: 'Không tìm thấy.',
   CONFLICT: 'Dữ liệu bị trùng hoặc đã thay đổi.',

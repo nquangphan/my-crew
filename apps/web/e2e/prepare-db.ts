@@ -1,6 +1,6 @@
 /**
  * Prepares the E2E database before the API starts: recreates the schema from the migrations, seeds the
- * owner with a random password and TOTP secret, stores two single-use pairing codes, and writes what the
+ * owner with a random password, stores two single-use pairing codes, and writes what the
  * global setup and the tests need to `.e2e/state.json`. The machines pair over HTTP in the global setup.
  *
  * Run from apps/api so tsx maps `@crew/shared` to its sources:
@@ -51,7 +51,7 @@ async function main(): Promise<void> {
     const db = handle.db;
     const username = 'e2e-owner';
     const password = randomBytes(18).toString('base64url');
-    const owner = await seedOwner(db, { username, password, reset: true });
+    await seedOwner(db, { username, password, reset: true });
 
     const pairingCode = async () => {
       const code = Array.from({ length: 12 }, () => BASE32[randomInt(BASE32.length)]).join('');
@@ -62,7 +62,6 @@ async function main(): Promise<void> {
     const state: PreparedState = {
       username,
       password,
-      totpSecret: owner.totpSecret,
       pairingCodes: [await pairingCode(), await pairingCode()],
     };
     mkdirSync(dirname(E2E_STATE_FILE), { recursive: true });

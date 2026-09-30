@@ -90,10 +90,12 @@ export const owner = pgTable('owner', {
   id: uuid('id').primaryKey().defaultRandom(),
   username: text('username').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
+  /**
+   * Unused since login became password only; kept (and cleared by the seed CLI) to avoid a destructive
+   * migration. The next three columns belong together.
+   */
   totpSecret: text('totp_secret').notNull(),
-  /** Last accepted TOTP time step; codes at or before it are rejected (replay protection). */
   totpLastStep: integer('totp_last_step'),
-  /** SHA-256 hex of each unused recovery code. */
   recoveryCodeHashes: textArray('recovery_code_hashes'),
   createdAt: createdAt(),
   updatedAt: updatedAt(),

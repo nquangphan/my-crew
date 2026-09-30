@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import {
   Agent,
-  closeDb,
   expectNoHorizontalOverflow,
   login,
   openNav,
@@ -11,8 +10,6 @@ import {
   snap,
   viewportOf,
 } from './helpers';
-
-test.afterAll(closeDb);
 
 /**
  * The owner's core loop at every viewport: create a ticket, open it, answer an agent's `needs_input`,

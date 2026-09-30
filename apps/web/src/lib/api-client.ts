@@ -16,8 +16,6 @@ import {
   DocsSearchResponse,
   DocsSpaceResponse,
   type ListTicketsQuery,
-  LoginPasswordResponse,
-  type LoginTotpRequest,
   Machine,
   MachineCommand,
   MachineCommandListResponse,
@@ -112,7 +110,7 @@ interface RequestOptions<S extends z.ZodType | null> {
   query?: Query;
   schema: S;
   signal?: AbortSignal;
-  /** Session probe and login steps report 401 to the caller instead of the global handler. */
+  /** Session probe, login and password change report 401 to the caller instead of the global handler. */
   quiet401?: boolean;
 }
 
@@ -193,13 +191,11 @@ export const api = {
     request('/v1/auth/login', {
       method: 'POST',
       body: { username, password },
-      schema: LoginPasswordResponse,
+      schema: SessionResponse,
       quiet401: true,
     }),
-  loginTotp: (body: LoginTotpRequest) =>
-    request('/v1/auth/login/totp', { method: 'POST', body, schema: SessionResponse, quiet401: true }),
   logout: () => request('/v1/auth/logout', { method: 'POST', schema: null, quiet401: true }),
-  /** A 401 here usually means a wrong password or code, so the caller decides whether the session is gone. */
+  /** A 401 here usually means a wrong current password, so the caller decides whether the session is gone. */
   changePassword: (body: ChangePasswordRequest) =>
     request('/v1/auth/password', { method: 'POST', body, schema: SessionResponse, quiet401: true }),
 
@@ -274,8 +270,8 @@ export const api = {
     request(`/v1/machines/${encodeURIComponent(id)}`, { schema: MachineDetailResponse }),
   revokeMachine: (id: string) =>
     request(`/v1/machines/${encodeURIComponent(id)}/revoke`, { method: 'POST', schema: Machine }),
-  createPairingCode: (code: string) =>
-    request('/v1/machines/pairing-codes', { method: 'POST', body: { code }, schema: PairingCodeResponse }),
+  createPairingCode: () =>
+    request('/v1/machines/pairing-codes', { method: 'POST', schema: PairingCodeResponse }),
   assignToMachine: (machineId: string, body: OwnerAssignRequest) =>
     request(`/v1/machines/${encodeURIComponent(machineId)}/claims`, {
       method: 'POST',
@@ -299,19 +295,17 @@ export const api = {
 
   listClaimRequests: (status?: ClaimRequestStatus) =>
     request('/v1/claim-requests', { schema: ClaimRequestListResponse, query: { status } }),
-  decideClaim: (id: string, decision: 'approve' | 'reject', code: string) =>
+  decideClaim: (id: string, decision: 'approve' | 'reject') =>
     request(`/v1/claim-requests/${encodeURIComponent(id)}/${decision}`, {
       method: 'POST',
-      body: { code },
       schema: ClaimRequest,
     }),
 
   listProjectChanges: (status?: ProjectChangeStatus) =>
     request('/v1/project-change-requests', { schema: ProjectChangeListResponse, query: { status } }),
-  decideProjectChange: (id: string, decision: 'approve' | 'reject', code: string) =>
+  decideProjectChange: (id: string, decision: 'approve' | 'reject') =>
     request(`/v1/project-change-requests/${encodeURIComponent(id)}/${decision}`, {
       method: 'POST',
-      body: { code },
       schema: ProjectChangeRequest,
     }),
 

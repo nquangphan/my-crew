@@ -23,7 +23,6 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
 | `apps/api/src/auth/owner-auth.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/auth/password.ts` | [owner-auth](flows/owner-auth.md) (file) |
-| `apps/api/src/auth/totp.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/cli/seed-owner.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/config.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/db/client.ts` | [api-platform](flows/api-platform.md) (file) |
@@ -262,6 +261,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/cancel-dialog.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/comment-thread.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/comment-thread.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `apps/web/src/components/confirm-dialog.tsx` | [web-admin](flows/web-admin.md) (file) |
 | `apps/web/src/components/details-box.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/docs-page-tree.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
 | `apps/web/src/components/docs-page-view.tsx` | [docs-sync-viewer](flows/docs-sync-viewer.md) (file) |
@@ -299,7 +299,6 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/ticket-tree.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/ticket-view.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/ticket-view.tsx` | [web-tickets](flows/web-tickets.md) (file) |
-| `apps/web/src/components/totp-dialog.tsx` | [web-admin](flows/web-admin.md) (file) |
 | `apps/web/src/components/type-icon.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/ui/button.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `apps/web/src/components/ui/dialog.tsx` | [web-shell](flows/web-shell.md) (file) |

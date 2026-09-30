@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Creates the single owner account (or, with --reset, replaces its password, TOTP and recovery codes) on the
-# running stack. Interactive only: run it over `ssh -t` from the deploy root (/opt/crew):
+# Creates the single owner account (or, with --reset, replaces its password and signs out every session) on
+# the running stack. Interactive only: run it over `ssh -t` from the deploy root (/opt/crew):
 #
 #   scripts/seed-owner.sh <username> [--reset]
 #
 # The password is typed twice at a hidden prompt inside crew-api; it is never passed on the command line,
-# read from a file or defaulted. The TOTP secret and recovery codes are printed once.
+# read from a file or defaulted.
 set -euo pipefail
 # shellcheck source=lib/common.sh
 source "$(dirname "$0")/lib/common.sh"

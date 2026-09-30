@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api-client';
 import { formatFullDateTime } from '../lib/format';
 import { keys } from '../lib/queries';
-import { TotpDialog } from './totp-dialog';
+import { ConfirmDialog } from './confirm-dialog';
 import { Button } from './ui/button';
 import { DialogContent, DialogRoot } from './ui/dialog';
 
@@ -21,8 +21,8 @@ function useCountdown(until: string | null): string {
 }
 
 /**
- * Creates a single-use pairing code after a fresh TOTP. The code is shown once; projects and folders are
- * chosen later in the desktop app.
+ * Creates a single-use pairing code once the owner confirms. The code is shown once; projects and folders
+ * are chosen later in the desktop app.
  */
 export function PairingDialog({
   open,
@@ -81,13 +81,13 @@ export function PairingDialog({
   }
 
   return (
-    <TotpDialog
+    <ConfirmDialog
       open={open}
       onOpenChange={onOpenChange}
       title="Ghép máy mới"
-      description="Xác nhận bằng mã TOTP để tạo mã ghép máy (hết hạn sau 10 phút)."
+      description="Tạo một mã ghép máy dùng một lần (hết hạn sau 10 phút)."
       confirmLabel="Tạo mã ghép"
-      onConfirm={async (code) => setResult(await api.createPairingCode(code))}
+      onConfirm={async () => setResult(await api.createPairingCode())}
     />
   );
 }

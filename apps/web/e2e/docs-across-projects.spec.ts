@@ -1,7 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import {
   Agent,
-  closeDb,
   expectNoHorizontalOverflow,
   login,
   openNav,
@@ -12,8 +11,6 @@ import {
   type Viewport,
   viewportOf,
 } from './helpers';
-
-test.afterAll(closeDb);
 
 /**
  * Two more projects per viewport, sorted after SHOP (and the cross-project spec's keys) so the other specs

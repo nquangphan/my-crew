@@ -1,6 +1,6 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import type { SessionResponse } from '@crew/shared';
-import { and, eq, lt, or, sql } from 'drizzle-orm';
+import { and, eq, lt, or } from 'drizzle-orm';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { AppConfig } from '../config.js';
 import type { Executor } from '../db/client.js';
@@ -8,12 +8,10 @@ import { type OwnerRow, owner, sessions } from '../db/schema.js';
 import { ApiError } from '../errors.js';
 import { assertAllowedOrigin, assertCsrfToken, CSRF_COOKIE, csrfTokenFor, isMutating } from './csrf.js';
 import { hashPassword, verifyAgainstDummy, verifyPassword } from './password.js';
-import { hashRecoveryCode, verifyTotp } from './totp.js';
 
 export const SESSION_COOKIE = 'crew_session';
 export const SESSION_IDLE_TTL_MS = 12 * 60 * 60 * 1000;
 export const SESSION_ABSOLUTE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-export const LOGIN_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 /** last_seen_at is written at most this often, to keep reads cheap. */
 const TOUCH_INTERVAL_MS = 60 * 1000;
 
@@ -33,37 +31,13 @@ declare module 'fastify' {
 const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
 
 // ---------------------------------------------------------------------------
-// Login step 1: password -> signed, short-lived challenge
+// Login: username and password -> session
 // ---------------------------------------------------------------------------
 
-function sign(secret: string, payload: string): string {
-  return createHmac('sha256', secret).update(`login:${payload}`).digest('base64url');
-}
-
-export function issueChallenge(secret: string, ownerId: string, now = Date.now()) {
-  const expiresAt = now + LOGIN_CHALLENGE_TTL_MS;
-  const payload = Buffer.from(JSON.stringify({ o: ownerId, e: expiresAt })).toString('base64url');
-  return { challenge: `${payload}.${sign(secret, payload)}`, expiresAt: new Date(expiresAt).toISOString() };
-}
-
-function readChallenge(secret: string, challenge: string): string {
-  const [payload, signature] = challenge.split('.');
-  const expected = payload ? sign(secret, payload) : '';
-  if (
-    !payload ||
-    !signature ||
-    signature.length !== expected.length ||
-    !timingSafeEqual(Buffer.from(signature), Buffer.from(expected))
-  ) {
-    throw new ApiError('UNAUTHORIZED', 'invalid or expired login challenge');
-  }
-  const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as { o?: unknown; e?: unknown };
-  if (typeof data.o !== 'string' || typeof data.e !== 'number' || data.e < Date.now()) {
-    throw new ApiError('UNAUTHORIZED', 'invalid or expired login challenge');
-  }
-  return data.o;
-}
-
+/**
+ * Checks the owner's credentials. An unknown username still runs a dummy hash, so both failures take
+ * about the same time and give the same 401.
+ */
 export async function checkPassword(db: Executor, username: string, password: string): Promise<OwnerRow> {
   const [row] = await db.select().from(owner).where(eq(owner.username, username));
   const ok = row ? await verifyPassword(row.passwordHash, password) : await verifyAgainstDummy(password);
@@ -71,52 +45,13 @@ export async function checkPassword(db: Executor, username: string, password: st
   return row;
 }
 
-// ---------------------------------------------------------------------------
-// Login step 2: TOTP or recovery code -> session
-// ---------------------------------------------------------------------------
-
-/**
- * Checks a TOTP code for the owner and records its time step, so the same code cannot be used twice.
- * Also used to re-confirm the owner before sensitive actions such as creating a pairing code.
- */
-export async function verifyOwnerTotp(db: Executor, ownerId: string, code: string): Promise<boolean> {
-  return db.transaction(async (tx) => {
-    const [row] = await tx.select().from(owner).where(eq(owner.id, ownerId)).for('update');
-    if (!row) return false;
-    const step = verifyTotp(row.totpSecret, code, row.totpLastStep);
-    if (step === null) return false;
-    await tx.update(owner).set({ totpLastStep: step, updatedAt: new Date() }).where(eq(owner.id, ownerId));
-    return true;
-  });
-}
-
-/** Consumes a recovery code; each works once. */
-async function consumeRecoveryCode(db: Executor, ownerId: string, code: string): Promise<boolean> {
-  const codeHash = hashRecoveryCode(code);
-  const updated = await db
-    .update(owner)
-    .set({
-      recoveryCodeHashes: sql`array_remove(${owner.recoveryCodeHashes}, ${codeHash})`,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(owner.id, ownerId), sql`${codeHash} = any(${owner.recoveryCodeHashes})`))
-    .returning({ id: owner.id });
-  return updated.length === 1;
-}
-
-export async function completeLogin(
+export async function login(
   db: Executor,
   config: AppConfig,
-  input: { challenge: string; code?: string; recoveryCode?: string },
+  input: { username: string; password: string },
 ): Promise<{ sessionId: string; session: SessionResponse }> {
-  const ownerId = readChallenge(config.sessionSecret, input.challenge);
-  const ok = input.code
-    ? await verifyOwnerTotp(db, ownerId, input.code)
-    : input.recoveryCode
-      ? await consumeRecoveryCode(db, ownerId, input.recoveryCode)
-      : false;
-  if (!ok) throw new ApiError('UNAUTHORIZED', 'invalid verification code');
-  return issueSession(db, config, ownerId);
+  const row = await checkPassword(db, input.username, input.password);
+  return issueSession(db, config, row.id);
 }
 
 /** Stores a new session for the owner and returns its id (for the cookie) and the session response. */
@@ -141,7 +76,6 @@ async function issueSession(
     session: {
       owner: { username: row.username },
       csrfToken: csrfTokenFor(config.sessionSecret, sessionIdHash),
-      recoveryCodesLeft: row.recoveryCodeHashes.length,
     },
   };
 }
@@ -150,30 +84,23 @@ async function issueSession(
 // Password change
 // ---------------------------------------------------------------------------
 
-const PASSWORD_CHANGE_REJECTED = 'invalid password or verification code';
+const PASSWORD_CHANGE_REJECTED = 'invalid password';
 
 /**
- * Changes the owner's password. The current password is checked first, so a stolen session alone cannot
- * burn TOTP steps or recovery codes; then the TOTP code (no reuse) or a recovery code (consumed). Either
- * failure gives the same 401. On success every session of the owner is deleted and a new one is issued,
- * so other devices are signed out and the calling device continues under a new session id.
+ * Changes the owner's password after checking the current one. On success every session of the owner is
+ * deleted and a new one is issued, so other devices are signed out and the calling device continues under
+ * a new session id.
  */
 export async function changeOwnerPassword(
   db: Executor,
   config: AppConfig,
   ownerId: string,
-  input: { currentPassword: string; newPassword: string; code?: string; recoveryCode?: string },
+  input: { currentPassword: string; newPassword: string },
 ): Promise<{ sessionId: string; session: SessionResponse }> {
   const [row] = await db.select().from(owner).where(eq(owner.id, ownerId));
   if (!row || !(await verifyPassword(row.passwordHash, input.currentPassword))) {
     throw new ApiError('UNAUTHORIZED', PASSWORD_CHANGE_REJECTED);
   }
-  const confirmed = input.code
-    ? await verifyOwnerTotp(db, ownerId, input.code)
-    : input.recoveryCode
-      ? await consumeRecoveryCode(db, ownerId, input.recoveryCode)
-      : false;
-  if (!confirmed) throw new ApiError('UNAUTHORIZED', PASSWORD_CHANGE_REJECTED);
 
   const passwordHash = await hashPassword(input.newPassword);
   return db.transaction(async (tx) => {
@@ -284,14 +211,6 @@ export function ownerGuard(db: Executor, config: AppConfig) {
     }
     request.ownerSession = session;
   };
-}
-
-export async function recoveryCodesLeft(db: Executor, ownerId: string): Promise<number> {
-  const [row] = await db
-    .select({ n: sql<number>`cardinality(${owner.recoveryCodeHashes})` })
-    .from(owner)
-    .where(eq(owner.id, ownerId));
-  return row?.n ?? 0;
 }
 
 /** Removes sessions past their absolute or idle TTL. */

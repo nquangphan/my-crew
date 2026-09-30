@@ -53,8 +53,11 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    dùng chung, tự gắn header CSRF (`setCsrfToken()`) trên request ghi, gọi `onUnauthorized()` khi gặp 401 —
    gồm cả các route chỉ owner mới thấy như `/v1/project-change-requests*` (flow `project-claims`) và
    `/v1/notices/read*` (flow `event-delivery`) mà trang Inbox (flow `web-admin`) dùng. Ngoại lệ `quiet401`
-   (ví dụ `api.changePassword()` gọi `/v1/auth/password`, flow `owner-auth`) không gọi `onUnauthorized()` khi
-   gặp 401, để trang tự quyết định xử lý. `api.getTicketTree(idOrKey)` gọi `GET /v1/tickets/:id/tree`, kiểm
+   (`api.login()` gọi `/v1/auth/login`, một bước duy nhất trả về `SessionResponse`; và
+   `api.changePassword()` gọi `/v1/auth/password`, flow `owner-auth`) không gọi `onUnauthorized()` khi
+   gặp 401, để trang tự quyết định xử lý. `api.createPairingCode()`, `api.decideClaim(id, decision)` và
+   `api.decideProjectChange(id, decision)` (flow `machine-pairing`/`project-claims`) không còn gửi body — chỉ
+   gọi đúng route với method POST. `api.getTicketTree(idOrKey)` gọi `GET /v1/tickets/:id/tree`, kiểm
    response bằng `TicketTreeResponse` (flow `ticket-lifecycle`). `api.search(q, projectIds?)` gọi
    `GET /v1/search`, `api.getDocsOverview()` gọi `GET /v1/docs`, `api.searchDocsAcross(q, projectIds?)` gọi
    `GET /v1/docs/search` (cả hai route docs ở flow `docs-sync-viewer`). `api.getSettings()`,
@@ -76,7 +79,10 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
 10. `apps/web/src/lib/format.ts` → `errorMessage()`: dịch `ApiErrorCode` (`ERROR_TEXT`) sang một câu tiếng
     Việt cho form/toast đọc từ `ApiRequestError` — ví dụ `PM_NOT_AVAILABLE` ("Không gọi được PM: ticket này
-    không thuộc PM task nào đang mở. Bỏ @pm để gửi bình luận thường.", flow `ticket-lifecycle`). `describeEvent()`
+    không thuộc PM task nào đang mở. Bỏ @pm để gửi bình luận thường.", flow `ticket-lifecycle`), hay
+    `UNAUTHORIZED` ("Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.") mà `onUnauthorized()` (bước 1) không tự
+    hiện — `errorMessage()` chỉ dịch khi một trang khác (ví dụ `ChangePasswordForm`, flow `owner-auth`) tự đọc
+    lỗi 401 qua `quiet401`. `describeEvent()`
     dịch mỗi `EventEnvelope` sang một dòng lịch sử ticket — `ticket.pm_mentioned` thành "Bạn gọi PM (@pm) từ
     <sourceTicketKey>", hiện trên tab Lịch sử của pm_task (flow `web-tickets`).
 

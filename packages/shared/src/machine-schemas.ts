@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AgentRole, Effort, JobWaitDetail, JobWaitReason, RoleStage } from './agent-schemas.js';
-import { CreateCommentRequest, TotpCode } from './api-schemas.js';
+import { CreateCommentRequest } from './api-schemas.js';
 import { BmadProfile } from './bmad-schemas.js';
 import {
   CreateProjectRequest,
@@ -25,10 +25,6 @@ export const PairingCode = z
   .string()
   .trim()
   .regex(/^[A-Za-z2-7]{4}-?[A-Za-z2-7]{4}-?[A-Za-z2-7]{4}$/, 'pairing codes look like ABCD-EFGH-IJKL');
-
-/** Owner, from the web: re-confirms the TOTP before a pairing code is shown. */
-export const CreatePairingCodeRequest = z.object({ code: TotpCode });
-export type CreatePairingCodeRequest = z.infer<typeof CreatePairingCodeRequest>;
 
 export const PairingCodeResponse = z.object({ pairingCode: z.string(), expiresAt: z.iso.datetime() });
 export type PairingCodeResponse = z.infer<typeof PairingCodeResponse>;
@@ -309,10 +305,6 @@ export const ClaimRequestListQuery = z.object({ status: ClaimRequestStatus.optio
 export const ClaimRequestListResponse = z.object({ items: z.array(ClaimRequest) });
 export type ClaimRequestListResponse = z.infer<typeof ClaimRequestListResponse>;
 
-/** Approving or rejecting a takeover needs a fresh TOTP code. */
-export const ClaimDecisionRequest = z.object({ code: TotpCode });
-export type ClaimDecisionRequest = z.infer<typeof ClaimDecisionRequest>;
-
 /** Owner reassigns a project, or the assistant role, to the machine in the path. */
 export const OwnerAssignRequest = z.union([
   z.object({ projectId: z.uuid() }).strict(),
@@ -330,7 +322,7 @@ export type ProjectTestSetup = z.infer<typeof ProjectTestSetup>;
 
 /**
  * `POST /v1/daemon/projects/:projectKey/change-requests`: the owning machine asks to change its project's
- * type and UI-test MCP mapping. Nothing changes until the owner approves it on the web with a TOTP.
+ * type and UI-test MCP mapping. Nothing changes until the owner approves it on the web.
  */
 export const ProjectChangeBody = ProjectTestSetup.strict();
 export type ProjectChangeBody = z.input<typeof ProjectChangeBody>;

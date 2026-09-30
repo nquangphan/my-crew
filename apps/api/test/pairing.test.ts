@@ -5,7 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { machineSkills, machines, machineTokens, pairingCodes } from '../src/db/schema.js';
 import { ROTATION_GRACE_MS } from '../src/services/machine-service.js';
-import { freshTotp, insertPairingCode, pairTestMachine, setTokenExpiry } from './helpers/machines.js';
+import { insertPairingCode, pairTestMachine, setTokenExpiry } from './helpers/machines.js';
 import { type LoggedInOwner, makeApp, seedAndLogin } from './helpers/owner-session.js';
 import { ORIGIN, useTestDb } from './helpers/test-db.js';
 
@@ -40,20 +40,11 @@ async function projectsAs(token: string) {
 }
 
 describe('pairing codes', () => {
-  it('need a fresh TOTP, are shown once and stored only as a hash', async () => {
-    const bad = await app.inject({
-      method: 'POST',
-      url: '/v1/machines/pairing-codes',
-      headers: owner.headers,
-      payload: { code: '000000' },
-    });
-    expect(bad.statusCode).toBe(401);
-
+  it('need only the owner session, are shown once and stored only as a hash', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/v1/machines/pairing-codes',
       headers: owner.headers,
-      payload: { code: await freshTotp(ctx.db, owner.totpSecret) },
     });
     expect(res.statusCode).toBe(201);
     const { pairingCode, expiresAt } = res.json();
@@ -73,16 +64,24 @@ describe('pairing codes', () => {
       method: 'POST',
       url: '/v1/machines/pairing-codes',
       headers: { origin: ORIGIN },
-      payload: { code: '123456' },
     });
     expect(noSession.statusCode).toBe(401);
     const noCsrf = await app.inject({
       method: 'POST',
       url: '/v1/machines/pairing-codes',
       headers: { cookie: owner.cookie, origin: ORIGIN },
-      payload: { code: '123456' },
     });
     expect(noCsrf.statusCode).toBe(403);
+  });
+
+  it('ignore a verification code an older client still sends', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/v1/machines/pairing-codes',
+      headers: owner.headers,
+      payload: { code: '000000' },
+    });
+    expect(res.statusCode).toBe(201);
   });
 
   it('are rate limited', async () => {
@@ -92,11 +91,10 @@ describe('pairing codes', () => {
         method: 'POST',
         url: '/v1/machines/pairing-codes',
         headers: owner.headers,
-        payload: { code: '000000' },
       });
       statuses.push(res.statusCode);
     }
-    expect(statuses.slice(0, 5)).toEqual([401, 401, 401, 401, 401]);
+    expect(statuses.slice(0, 5)).toEqual([201, 201, 201, 201, 201]);
     expect(statuses[5]).toBe(429);
   });
 });

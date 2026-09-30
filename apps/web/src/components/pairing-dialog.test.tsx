@@ -5,7 +5,7 @@ import { mockFetch, renderWithApp } from '../test/render';
 import { PairingDialog } from './pairing-dialog';
 
 describe('PairingDialog', () => {
-  it('confirms the TOTP, then shows the single-use code once', async () => {
+  it('creates the code with a confirm click (no code field), then shows it once', async () => {
     const calls = mockFetch([
       [
         'POST /v1/machines/pairing-codes',
@@ -17,9 +17,25 @@ describe('PairingDialog', () => {
     ]);
     const user = userEvent.setup();
     renderWithApp(<PairingDialog open onOpenChange={() => {}} />);
-    await user.type(await screen.findByLabelText('Mã xác thực (TOTP)'), '123456');
-    await user.click(screen.getByRole('button', { name: 'Tạo mã ghép' }));
+    const confirm = await screen.findByRole('button', { name: 'Tạo mã ghép' });
+    expect(screen.queryByRole('textbox')).toBeNull();
+    await user.click(confirm);
     expect(await screen.findByRole('status', { name: 'Mã ghép máy' })).toHaveTextContent('ABCD-EFGH-IJKL');
-    expect(calls[0]?.body).toEqual({ code: '123456' });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.body).toBeUndefined();
+  });
+
+  it('keeps the dialog open with the error when the request fails', async () => {
+    mockFetch([
+      [
+        'POST /v1/machines/pairing-codes',
+        () => ({ status: 429, body: { error: { code: 'RATE_LIMITED', message: 'rate limit exceeded' } } }),
+      ],
+    ]);
+    const user = userEvent.setup();
+    renderWithApp(<PairingDialog open onOpenChange={() => {}} />);
+    await user.click(await screen.findByRole('button', { name: 'Tạo mã ghép' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Thử quá nhiều lần, hãy đợi một chút.');
+    expect(screen.getByRole('button', { name: 'Tạo mã ghép' })).toBeEnabled();
   });
 });

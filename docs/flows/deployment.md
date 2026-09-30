@@ -47,8 +47,8 @@ build/test/kiểm docs trước khi merge.
    HTTP mới gắn chỉ dùng để kiểm và phục vụ thử thách ACME — đăng nhập cần HTTPS vì cookie session là `Secure`
    và `PUBLIC_ORIGIN` là `https://`).
 6. Một lần: `ssh -t <vps> 'cd /opt/crew && scripts/seed-owner.sh <username>'` — chạy CLI `seed-owner` bên trong
-   `crew-api`, hỏi mật khẩu ẩn hai lần (không truyền qua argv, không đọc file, không có mặc định), in TOTP
-   secret/URI và 10 mã khôi phục đúng một lần.
+   `crew-api`, hỏi mật khẩu ẩn hai lần (không truyền qua argv, không đọc file, không có mặc định), in đúng một
+   dòng xác nhận đã lưu owner, không in mật khẩu hay bất kỳ secret nào.
 7. Sau khi DNS của `CREW_DOMAIN` trỏ về VPS: `scripts/enable-https.sh` — kiểm bản ghi A khớp IP máy, ghi một
    file thử vào webroot certbot rồi tải lại qua `http://$CREW_DOMAIN/.well-known/acme-challenge/` (xác nhận
    đường dẫn thử thách tới đúng nginx này), `certbot certonly --webroot -w /var/www/certbot -d $CREW_DOMAIN

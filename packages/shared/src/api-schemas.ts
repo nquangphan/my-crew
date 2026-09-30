@@ -57,33 +57,16 @@ export type ApiErrorBody = z.infer<typeof ApiErrorBody>;
 /** Header carrying the double-submit CSRF token on every mutating owner request. */
 export const CSRF_HEADER = 'x-csrf-token';
 
-export const TotpCode = z.string().regex(/^\d{6}$/, 'TOTP codes are 6 digits');
-export const RecoveryCode = z
-  .string()
-  .trim()
-  .regex(/^[A-Za-z2-7]{4}(-?[A-Za-z2-7]{4}){3}$/, 'recovery codes look like ABCD-EFGH-IJKL-MNOP');
-
-/** Step 1: password. Returns a short-lived challenge for the TOTP step. */
-export const LoginPasswordRequest = z.object({
+/** Owner login: username and password; the response is the new session. */
+export const LoginRequest = z.object({
   username: z.string().trim().min(1).max(100),
   password: z.string().min(1).max(1024),
 });
-export type LoginPasswordRequest = z.infer<typeof LoginPasswordRequest>;
-
-export const LoginPasswordResponse = z.object({ challenge: z.string(), expiresAt: z.iso.datetime() });
-export type LoginPasswordResponse = z.infer<typeof LoginPasswordResponse>;
-
-/** Step 2: a TOTP code or a one-time recovery code. */
-export const LoginTotpRequest = z.union([
-  z.object({ challenge: z.string().min(1).max(2000), code: TotpCode }),
-  z.object({ challenge: z.string().min(1).max(2000), recoveryCode: RecoveryCode }),
-]);
-export type LoginTotpRequest = z.infer<typeof LoginTotpRequest>;
+export type LoginRequest = z.infer<typeof LoginRequest>;
 
 export const SessionResponse = z.object({
   owner: z.object({ username: z.string() }),
   csrfToken: z.string(),
-  recoveryCodesLeft: z.number().int(),
 });
 export type SessionResponse = z.infer<typeof SessionResponse>;
 
@@ -98,14 +81,11 @@ const NewPassword = z
   .max(MAX_PASSWORD_LENGTH);
 
 /**
- * Owner password change: the current password plus a TOTP code or a one-time recovery code, and a new
- * password that differs from the current one. The response is the rotated session.
+ * Owner password change: the current password and a new password that differs from it. The response is
+ * the rotated session. Unknown fields (such as a code from an older client) are ignored.
  */
 export const ChangePasswordRequest = z
-  .union([
-    z.object({ currentPassword: CurrentPassword, newPassword: NewPassword, code: TotpCode }),
-    z.object({ currentPassword: CurrentPassword, newPassword: NewPassword, recoveryCode: RecoveryCode }),
-  ])
+  .object({ currentPassword: CurrentPassword, newPassword: NewPassword })
   .refine((body) => body.newPassword !== body.currentPassword, {
     path: ['newPassword'],
     message: 'the new password must differ from the current one',

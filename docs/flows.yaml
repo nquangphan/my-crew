@@ -50,7 +50,6 @@ flows:
       - apps/api/src/auth/owner-auth.ts
       - apps/api/src/auth/csrf.ts
       - apps/api/src/auth/password.ts
-      - apps/api/src/auth/totp.ts
       - apps/api/src/cli/seed-owner.ts
     tests:
       - apps/api/test/auth.test.ts
@@ -317,7 +316,7 @@ flows:
       - apps/web/src/lib/inbox.ts
       - apps/web/src/components/project-form.tsx
       - apps/web/src/components/pairing-dialog.tsx
-      - apps/web/src/components/totp-dialog.tsx
+      - apps/web/src/components/confirm-dialog.tsx
     tests:
       - apps/web/src/routes/inbox.test.tsx
       - apps/web/src/routes/project-settings.test.tsx

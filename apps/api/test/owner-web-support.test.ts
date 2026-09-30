@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { owner as ownerTable } from '../src/db/schema.js';
 import { appendEvents } from '../src/services/event-service.js';
 import { submitReport } from '../src/services/report-service.js';
 import { addComment, createRequestTicket } from '../src/services/ticket-service.js';
@@ -151,8 +150,7 @@ describe('inbox read state on the server', () => {
     expect(readEvent?.payload).toEqual({ type: 'inbox.read', data: { unread: 2 } });
 
     // Another device (a second login of the same owner) sees the same state.
-    await ctx.db.update(ownerTable).set({ totpLastStep: null });
-    const phone = await loginOwner(app, owner);
+    const phone = await loginOwner(app);
     const onPhone = (
       await app.inject({ method: 'GET', url: '/v1/notices', headers: { cookie: phone.cookie } })
     ).json();

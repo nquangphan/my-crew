@@ -92,11 +92,6 @@ function OwnerMenu({ onShortcuts }: { onShortcuts: () => void }) {
       </MenuTrigger>
       <MenuContent align="end">
         <MenuLabel>{session.owner.username}</MenuLabel>
-        {session.recoveryCodesLeft <= 3 && (
-          <MenuLabel>
-            <span className="text-bad">Còn {session.recoveryCodesLeft} mã khôi phục</span>
-          </MenuLabel>
-        )}
         <MenuItem onSelect={() => void router.navigate({ to: '/account' })}>
           <UserCog size={16} aria-hidden /> Tài khoản
         </MenuItem>

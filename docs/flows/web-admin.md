@@ -29,9 +29,9 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
    tới thông báo mới nhất đang hiển thị (`markAllRead(newest.id)`, để thông báo tới trong lúc đang mở không bị
    đánh dấu hụt), thông báo chưa đọc lúc mở giữ chấm chưa đọc suốt lượt xem đó (`openedUnread`); thông báo còn
    chưa đọc trên server có nút "Đã đọc" (`markRead([id])`), có nút "Đánh dấu tất cả đã đọc" và đếm "N chưa đọc"
-   khi còn thông báo chưa đọc. `ClaimItem` mở `TotpDialog` để duyệt/từ chối yêu cầu chuyển máy (gọi
-   `api.decideClaim`, flow `project-claims`); `ProjectChangeItem` cũng mở `TotpDialog` để duyệt/từ chối yêu
-   cầu đổi loại project (gọi `api.decideProjectChange`); `describeNotice()` diễn giải từng loại sự kiện thông
+   khi còn thông báo chưa đọc. `ClaimItem` mở `ConfirmDialog` để duyệt/từ chối yêu cầu chuyển máy bằng một cú
+   nhấp (gọi `api.decideClaim`, flow `project-claims`); `ProjectChangeItem` cũng mở `ConfirmDialog` để duyệt/
+   từ chối yêu cầu đổi loại project (gọi `api.decideProjectChange`); `describeNotice()` diễn giải từng loại sự kiện thông
    báo (`machine.claimed`, `claim.requested`, `machine.released`, `project.created`, `machine.offline`,
    `machine.unhealthy`, `budget.exceeded`, `project.change_requested`, `ticket.stuck`) thành câu tiếng Việt —
    riêng `budget.exceeded` và `ticket.stuck` (flow `ticket-lifecycle`) kèm link "mở ticket". Bộ lọc "Dự án"
@@ -73,10 +73,10 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 7. `apps/web/src/routes/machines.tsx` → `Inventory()`: xổ danh sách skill/MCP theo từng project (và cấp máy)
    từ `MachineDetailResponse.inventories`, mỗi skill có tooltip chạm (`InfoTip`, flow `web-shell`) hiện nguồn
    và mô tả.
-8. `apps/web/src/components/pairing-dialog.tsx` → `PairingDialog()`: yêu cầu TOTP, tạo mã pairing một lần
-   (hiện kèm đếm ngược), gọi `POST /v1/machines/pairing-codes` (flow `machine-pairing`).
-9. `apps/web/src/components/totp-dialog.tsx` → `TotpDialog()`: hộp thoại xác nhận hành động nhạy cảm bằng mã
-   TOTP, dùng chung cho duyệt claim, duyệt đổi loại project và tạo mã pairing.
+8. `apps/web/src/components/pairing-dialog.tsx` → `PairingDialog()`: hộp thoại xác nhận, tạo mã pairing một
+   lần (hiện kèm đếm ngược), gọi `POST /v1/machines/pairing-codes` (flow `machine-pairing`).
+9. `apps/web/src/components/confirm-dialog.tsx` → `ConfirmDialog()`: hộp thoại xác nhận hành động nhạy cảm
+   bằng một cú nhấp, dùng chung cho duyệt claim, duyệt đổi loại project và tạo mã pairing.
 
 ## Files
 
@@ -89,7 +89,7 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 | `apps/web/src/lib/inbox.ts` | Gộp dữ liệu Inbox + đếm chưa đọc | `useInboxSummary`, `InboxSummary` |
 | `apps/web/src/components/project-form.tsx` | Form project + chuyển máy | `ProjectForm`, `ReassignDialog`, `PLATFORM_LABEL` |
 | `apps/web/src/components/pairing-dialog.tsx` | Tạo mã pairing | `PairingDialog` |
-| `apps/web/src/components/totp-dialog.tsx` | Xác nhận TOTP dùng chung | `TotpDialog` |
+| `apps/web/src/components/confirm-dialog.tsx` | Xác nhận hành động nhạy cảm dùng chung | `ConfirmDialog` |
 
 ## Dữ liệu
 
@@ -123,14 +123,14 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 
 ## Tests
 
-- `apps/web/src/routes/inbox.test.tsx`: duyệt claim kèm TOTP (và mã sai), đếm badge, nhóm hiển thị đúng, đánh
+- `apps/web/src/routes/inbox.test.tsx`: duyệt claim bằng một cú nhấp (và lỗi hiện trong dialog), đếm badge, nhóm hiển thị đúng, đánh
   dấu đã đọc (một thông báo và tất cả) phản ánh đúng số chưa đọc; bộ lọc "Dự án" ẩn claim/ticket/máy/project
   chưa có máy/thông báo không thuộc project đã chọn, gửi `projectIds` cho server, hiện `ProjectBadge`.
-- `apps/web/src/components/pairing-dialog.test.tsx`: tạo mã, đếm ngược, lỗi TOTP.
+- `apps/web/src/components/pairing-dialog.test.tsx`: tạo mã bằng một cú nhấp (không có trường mã), đếm ngược, lỗi hiện trong dialog.
 - `apps/web/src/routes/project-settings.test.tsx`: hiện đúng hồ sơ BMAD chỉ đọc trên trang cài đặt project;
   báo đúng câu khi chưa máy nào báo cáo hồ sơ.
 - `apps/web/src/routes/machines.test.tsx`: badge project trên mỗi job; bộ lọc "Dự án" giữ đúng máy và chỉ job
   của project đã chọn, ghi lại `project=` trong URL.
 - `apps/web/e2e/owner-admin.spec.ts`: phím tắt (kể cả "Tạo thêm"), quick search, kéo-thả bị từ chối, đổi ưu
-  tiên hàng loạt, ghép máy bằng TOTP, duyệt chuyển máy từ máy B trong Inbox rồi chuyển project về từ trang Dự
+  tiên hàng loạt, ghép máy và duyệt chuyển máy từ máy B trong Inbox bằng một cú nhấp rồi chuyển project về từ trang Dự
   án, chế độ tối.

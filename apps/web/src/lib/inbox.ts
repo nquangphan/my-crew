@@ -13,7 +13,7 @@ import {
 
 export interface InboxSummary {
   pendingClaims: ClaimRequest[];
-  /** Type and UI-test MCP changes machines asked for, waiting for the owner's TOTP. */
+  /** Type and UI-test MCP changes machines asked for, waiting for the owner's confirmation. */
   pendingChanges: ProjectChangeRequest[];
   /** Tickets waiting for an owner answer; those with `budgetHold` wait for a cap or budget approval. */
   needsInput: Ticket[];

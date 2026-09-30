@@ -18,7 +18,6 @@ import {
 import { and, asc, eq, gt, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { MachineContext } from '../auth/machine-auth.js';
 import { generateMachineToken, hashMachineToken } from '../auth/machine-auth.js';
-import { verifyOwnerTotp } from '../auth/owner-auth.js';
 import type { Executor } from '../db/client.js';
 import {
   type MachineRow,
@@ -51,15 +50,8 @@ const normalizePairingCode = (code: string) => code.trim().toUpperCase().replace
 // Pairing and tokens
 // ---------------------------------------------------------------------------
 
-/** Owner creates a single-use pairing code after re-confirming the TOTP. Only its hash is stored. */
-export async function createPairingCode(
-  db: Executor,
-  ownerId: string,
-  totpCode: string,
-): Promise<PairingCodeResponse> {
-  if (!(await verifyOwnerTotp(db, ownerId, totpCode))) {
-    throw new ApiError('UNAUTHORIZED', 'invalid verification code');
-  }
+/** Owner creates a single-use pairing code from the web. Only its hash is stored. */
+export async function createPairingCode(db: Executor): Promise<PairingCodeResponse> {
   const raw = Array.from({ length: 12 }, () => BASE32[randomInt(BASE32.length)]).join('');
   const expiresAt = new Date(Date.now() + PAIRING_CODE_TTL_MS);
   await db.insert(pairingCodes).values({ codeHash: sha256(raw), expiresAt });

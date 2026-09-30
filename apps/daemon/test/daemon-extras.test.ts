@@ -369,7 +369,7 @@ describe('daemon wiring', () => {
       'running',
     );
 
-    const { freshTotp, pairTestMachine, writeHeaders } = await import('../../api/test/helpers/machines.js');
+    const { pairTestMachine, writeHeaders } = await import('../../api/test/helpers/machines.js');
     const other = await pairTestMachine(api.db, 'other-mac');
     const claimed = await f.server.app.inject({
       method: 'POST',
@@ -382,7 +382,6 @@ describe('daemon wiring', () => {
       method: 'POST',
       url: `/v1/claim-requests/${claimed.json().claimRequestId}/approve`,
       headers: f.owner.headers,
-      payload: { code: await freshTotp(api.db, f.owner.totpSecret) },
     });
     expect(approved.statusCode).toBe(200);
     const stopped = await waitFor(

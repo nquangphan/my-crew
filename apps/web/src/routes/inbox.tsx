@@ -9,11 +9,11 @@ import type {
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { type ReactNode, useEffect, useState } from 'react';
+import { ConfirmDialog } from '../components/confirm-dialog';
 import { ProjectBadge, projectKeyResolver } from '../components/project-badge';
 import { ProjectFilterMenu, selectedProjects } from '../components/project-filter';
 import { PLATFORM_LABEL } from '../components/project-form';
 import { StatusLozenge } from '../components/status-lozenge';
-import { TotpDialog } from '../components/totp-dialog';
 import { TypeIcon } from '../components/type-icon';
 import { Button } from '../components/ui/button';
 import { useToast } from '../components/ui/toast';
@@ -83,7 +83,7 @@ function ClaimItem({ claim, machines }: { claim: ClaimRequest; machines: Map<str
         Duyệt
       </Button>
       <Button onClick={() => setDecision('reject')}>Từ chối</Button>
-      <TotpDialog
+      <ConfirmDialog
         open={decision !== null}
         onOpenChange={(open) => !open && setDecision(null)}
         title={decision === 'approve' ? 'Duyệt chuyển máy' : 'Từ chối yêu cầu'}
@@ -94,9 +94,9 @@ function ClaimItem({ claim, machines }: { claim: ClaimRequest; machines: Map<str
         }`}
         confirmLabel={decision === 'approve' ? 'Duyệt' : 'Từ chối'}
         confirmVariant={decision === 'approve' ? 'primary' : 'danger'}
-        onConfirm={async (code) => {
+        onConfirm={async () => {
           if (!decision) return;
-          await api.decideClaim(claim.id, decision, code);
+          await api.decideClaim(claim.id, decision);
           setDecision(null);
           toast(decision === 'approve' ? 'Đã duyệt yêu cầu' : 'Đã từ chối yêu cầu', 'success');
           await Promise.all([
@@ -135,7 +135,7 @@ function ProjectChangeItem({ change }: { change: ProjectChangeRequest }) {
         Duyệt
       </Button>
       <Button onClick={() => setDecision('reject')}>Từ chối</Button>
-      <TotpDialog
+      <ConfirmDialog
         open={decision !== null}
         onOpenChange={(open) => !open && setDecision(null)}
         title={decision === 'approve' ? 'Duyệt đổi loại dự án' : 'Từ chối đổi loại dự án'}
@@ -146,9 +146,9 @@ function ProjectChangeItem({ change }: { change: ProjectChangeRequest }) {
         }`}
         confirmLabel={decision === 'approve' ? 'Duyệt' : 'Từ chối'}
         confirmVariant={decision === 'approve' ? 'primary' : 'danger'}
-        onConfirm={async (code) => {
+        onConfirm={async () => {
           if (!decision) return;
-          await api.decideProjectChange(change.id, decision, code);
+          await api.decideProjectChange(change.id, decision);
           setDecision(null);
           toast(decision === 'approve' ? 'Đã duyệt thay đổi dự án' : 'Đã từ chối thay đổi dự án', 'success');
           await Promise.all([
@@ -227,7 +227,7 @@ function describeNotice(
 }
 
 /**
- * The owner's "needs me" list: takeover requests (approve or reject with TOTP), agents waiting for an
+ * The owner's "needs me" list: takeover requests (approve or reject with a confirm click), agents waiting for an
  * answer, cap and budget approvals, offline machines with the affected tickets, red health, unowned
  * projects, and the machine notice feed.
  */
