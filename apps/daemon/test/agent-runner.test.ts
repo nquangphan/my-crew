@@ -1,6 +1,22 @@
-import type { Options, Query, SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+import type { Options, Query, SDKMessage, SDKUserMessage } from '@anthropic-ai/claude-agent-sdk';
 import { describe, expect, it } from 'vitest';
-import { agentEnv, createSdkRunner, type RunAgentOptions, RunControl } from '../src/runner/agent-runner.js';
+import {
+  type AgentRunResult,
+  agentEnv,
+  createSdkRunner,
+  type RunAgentOptions,
+  RunControl,
+} from '../src/runner/agent-runner.js';
+import { sleep, waitFor } from './helpers/daemon.js';
+
+/** Polls every few ms (the shared `waitFor` polls too coarsely for the short ceilings used here). */
+async function until(check: () => boolean, what: string, timeoutMs = 3_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!check()) {
+    if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+    await sleep(2);
+  }
+}
 
 /** A fake SDK `query` that records its options and replays messages. */
 function fakeQuery(messages: (options: Options) => SDKMessage[]) {
@@ -22,6 +38,114 @@ function fakeQuery(messages: (options: Options) => SDKMessage[]) {
   }) as unknown as typeof import('@anthropic-ai/claude-agent-sdk').query;
   return { query, calls, interrupted: () => interrupted };
 }
+
+const textOf = (message: SDKUserMessage) => String((message.message as { content: unknown }).content);
+
+/**
+ * A fake SDK session the test drives message by message. Like the runtime, it reads the prompt stream, and
+ * its message stream ends when that input closes (unless `staysOpen`). `events` lists, in order, what the
+ * runner did to the session.
+ */
+function liveQuery(settings: { staysOpen?: boolean; failStop?: string[] } = {}) {
+  const calls: { prompt: unknown; options: Options }[] = [];
+  const events: string[] = [];
+  const received: string[] = [];
+  const pending: SDKMessage[] = [];
+  let ended = false;
+  let failure: Error | null = null;
+  let wake: (() => void) | null = null;
+  const notify = () => {
+    wake?.();
+    wake = null;
+  };
+  const query = ((params: { prompt: AsyncIterable<SDKUserMessage>; options: Options }) => {
+    calls.push(params);
+    void (async () => {
+      for await (const message of params.prompt) {
+        received.push(textOf(message));
+        events.push(`input:${received.length}`);
+      }
+      events.push('input-closed');
+      if (!settings.staysOpen) ended = true;
+      notify();
+    })();
+    const onAbort = () => {
+      events.push('aborted');
+      failure = new Error('aborted');
+      notify();
+    };
+    // Like the SDK: an abort, also one that came before the query started, makes the message stream throw.
+    const signal = params.options.abortController?.signal;
+    if (signal?.aborted) onAbort();
+    else signal?.addEventListener('abort', onAbort);
+    const iterator = (async function* () {
+      for (;;) {
+        if (failure) throw failure;
+        const next = pending.shift();
+        if (next) yield next;
+        else if (ended) return;
+        else
+          await new Promise<void>((resolve) => {
+            wake = resolve;
+          });
+      }
+    })();
+    return Object.assign(iterator, {
+      interrupt: async () => {
+        events.push('interrupt');
+        return undefined;
+      },
+      stopTask: async (taskId: string) => {
+        events.push(`stop:${taskId}`);
+        if (settings.failStop?.includes(taskId)) throw new Error(`no task ${taskId}`);
+      },
+      close: () => {
+        events.push('close');
+        ended = true;
+        notify();
+      },
+    }) as unknown as Query;
+  }) as unknown as typeof import('@anthropic-ai/claude-agent-sdk').query;
+  return {
+    query,
+    calls,
+    events,
+    received,
+    emit(...messages: SDKMessage[]) {
+      pending.push(...messages);
+      notify();
+    },
+    /** The process goes away on its own: the message stream ends. */
+    die() {
+      ended = true;
+      notify();
+    },
+  };
+}
+
+/** Starts a run on a live fake session; `settled()` tells whether the run has returned. */
+function startRun(fake: ReturnType<typeof liveQuery>, over: Partial<RunAgentOptions> = {}) {
+  let done = false;
+  const run: Promise<AgentRunResult> = createSdkRunner({ query: fake.query })(options(over)).finally(() => {
+    done = true;
+  });
+  return { run, settled: () => done };
+}
+
+const backgroundTasks = (...ids: string[]) =>
+  ({
+    type: 'system',
+    subtype: 'background_tasks_changed',
+    tasks: ids.map((id) => ({ task_id: id, task_type: 'local_bash', description: `lệnh ${id}` })),
+    session_id: 'sess-1',
+  }) as unknown as SDKMessage;
+
+const say = (id: string, text: string) =>
+  ({
+    type: 'assistant',
+    parent_tool_use_id: null,
+    message: { id, content: [{ type: 'text', text }] },
+  }) as unknown as SDKMessage;
 
 const init = (over: Record<string, unknown> = {}) =>
   ({
@@ -100,6 +224,15 @@ describe('SDK agent runner', () => {
     expect(sdk.model).toBe('sonnet');
     expect(sdk.effort).toBe('high');
     expect(typeof sdk.spawnClaudeCodeProcess).toBe('function');
+    // The prompt is a stream the daemon drives; its first message is the run's prompt.
+    const prompt = fake.calls[0]?.prompt as AsyncIterable<SDKUserMessage>;
+    expect(typeof prompt).not.toBe('string');
+    const first = await prompt[Symbol.asyncIterator]().next();
+    expect(first.value).toEqual({
+      type: 'user',
+      message: { role: 'user', content: '/ak:cook làm việc' },
+      parent_tool_use_id: null,
+    });
     expect(run).toMatchObject({
       sessionId: 'sess-1',
       resultSubtype: 'success',
@@ -213,5 +346,286 @@ describe('SDK agent runner', () => {
     const fake = fakeQuery(() => [init()]);
     const run = await createSdkRunner({ query: fake.query })(options());
     expect(run.isError).toBe(true);
+  });
+
+  describe('background tasks', () => {
+    it('closes the input and ends the run when a result arrives with no background task', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake);
+      fake.emit(init());
+      await waitFor(() => fake.received.length === 1, 2_000, 'the prompt');
+      expect(fake.received).toEqual(['/ak:cook làm việc']);
+      await sleep(20);
+      // The input stays open until the turn's result.
+      expect(fake.events).toEqual(['input:1']);
+      expect(settled()).toBe(false);
+      fake.emit(result({ num_turns: 3, duration_ms: 900 }));
+      const out = await run;
+      expect(fake.events).toEqual(['input:1', 'input-closed', 'close']);
+      expect(out).toMatchObject({
+        resultSubtype: 'success',
+        isError: false,
+        aborted: false,
+        totalCostUsd: 0.42,
+        backgroundTasksLeft: [],
+        reminded: false,
+      });
+      expect(out.capture).toMatchObject({ numTurns: 3, durationMs: 900 });
+    });
+
+    it('keeps the input open while a background task is alive, then ends after the next turn and sums every turn', async () => {
+      const fake = liveQuery();
+      const inits: string[] = [];
+      const { run, settled } = startRun(fake, { onInit: (info) => inits.push(info.sessionId) });
+      fake.emit(
+        init(),
+        {
+          type: 'assistant',
+          parent_tool_use_id: null,
+          message: {
+            id: 'm1',
+            content: [{ type: 'tool_use', name: 'Read', input: { file_path: '/work/src/a.ts' } }],
+          },
+        } as unknown as SDKMessage,
+        backgroundTasks('t1'),
+        say('m2', 'Đang chờ.'),
+        result({
+          total_cost_usd: 0.1,
+          num_turns: 2,
+          duration_ms: 1_000,
+          modelUsage: { 'claude-haiku': { costUSD: 0.1, inputTokens: 10, outputTokens: 5 } },
+        }),
+      );
+      await sleep(80);
+      expect(settled()).toBe(false);
+      expect(fake.events).toEqual(['input:1']);
+
+      // The runtime delivers the notification: the task leaves the set and the agent runs another turn.
+      fake.emit(
+        backgroundTasks(),
+        init(),
+        say('m3', 'Đã nhận.'),
+        result({
+          total_cost_usd: 0.25,
+          num_turns: 3,
+          duration_ms: 500,
+          modelUsage: { 'claude-haiku': { costUSD: 0.25, inputTokens: 30, outputTokens: 12 } },
+        }),
+      );
+      const out = await run;
+      expect(fake.events).toEqual(['input:1', 'input-closed', 'close']);
+      expect(fake.received).toHaveLength(1);
+      // `total_cost_usd` and `modelUsage` are cumulative; `num_turns` and `duration_ms` count one turn each.
+      expect(out).toMatchObject({
+        resultSubtype: 'success',
+        isError: false,
+        totalCostUsd: 0.25,
+        modelUsage: { 'claude-haiku': { costUSD: 0.25, inputTokens: 30, outputTokens: 12 } },
+        backgroundTasksLeft: [],
+        reminded: false,
+      });
+      expect(out.capture).toEqual({
+        numTurns: 5,
+        durationMs: 1_500,
+        compactions: 0,
+        lastMessage: 'Đã nhận.',
+        lastTools: [{ tool: 'Read', target: 'src/a.ts' }],
+      });
+      // The runtime sends `init` for every turn; the run reports it once.
+      expect(inits).toEqual(['sess-1']);
+    });
+
+    it('keeps the input open for the notification of a task that ended during the last answer of the turn', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake);
+      // The live set is already empty when the turn's result arrives.
+      fake.emit(
+        init(),
+        backgroundTasks('t1'),
+        backgroundTasks(),
+        say('m1', 'Đang chờ.'),
+        result({ total_cost_usd: 0.1, num_turns: 2, duration_ms: 1_000 }),
+      );
+      await sleep(150);
+      expect(settled()).toBe(false);
+      expect(fake.events).toEqual(['input:1']);
+      // The runtime starts the notification turn right after the result.
+      fake.emit(
+        init(),
+        say('m2', 'Đã nhận.'),
+        result({ total_cost_usd: 0.2, num_turns: 1, duration_ms: 300 }),
+      );
+      const out = await run;
+      expect(fake.events).toEqual(['input:1', 'input-closed', 'close']);
+      expect(out).toMatchObject({
+        isError: false,
+        totalCostUsd: 0.2,
+        backgroundTasksLeft: [],
+        reminded: false,
+      });
+      expect(out.capture).toMatchObject({ numTurns: 3, durationMs: 1_300, lastMessage: 'Đã nhận.' });
+    });
+
+    it('fails the run when the process goes away while the session waits for a background task', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake);
+      fake.emit(init(), backgroundTasks('a'), result({ total_cost_usd: 0.1 }));
+      await sleep(80);
+      expect(settled()).toBe(false);
+      fake.die();
+      const out = await run;
+      // The earlier turn's `success` is not the run's outcome.
+      expect(out).toMatchObject({ isError: true, resultSubtype: null, aborted: false, totalCostUsd: 0.1 });
+      expect(out.errors).toEqual(['agent process ended while its session was still open']);
+      expect(out.backgroundTasksLeft.map((task) => task.id)).toEqual(['a']);
+      expect(fake.events).toContain('stop:a');
+    });
+
+    it('reminds once when the wait hits its ceiling, then stops every task and closes after the answering turn', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake, { backgroundWaitMs: 200 });
+      fake.emit(init(), backgroundTasks('a', 'b'), result({ total_cost_usd: 0.1 }));
+      await until(() => fake.received.length === 2, 'the reminder');
+      expect(fake.received[1]).toContain('Nhắc từ daemon');
+      expect(fake.received[1]).toContain('lệnh a (id a)');
+      expect(fake.received[1]).toContain('lệnh b (id b)');
+      // The answering turn outlasts the ceiling; the tasks are still alive when it ends.
+      fake.emit(init(), say('m1', 'Em vẫn cần lệnh này.'));
+      await sleep(450);
+      expect(settled()).toBe(false);
+      expect(fake.received).toHaveLength(2);
+      fake.emit(result({ total_cost_usd: 0.3 }));
+      const out = await run;
+      expect(fake.received).toHaveLength(2);
+      expect(fake.events).toEqual(['input:1', 'input:2', 'stop:a', 'stop:b', 'input-closed', 'close']);
+      expect(out).toMatchObject({ isError: false, totalCostUsd: 0.3, reminded: true });
+      expect(out.backgroundTasksLeft).toEqual([
+        { id: 'a', type: 'local_bash', description: 'lệnh a', ambient: false },
+        { id: 'b', type: 'local_bash', description: 'lệnh b', ambient: false },
+      ]);
+    });
+
+    it('does not wait after an error result: the tasks are stopped, a failing stop included, then the input closes', async () => {
+      const fake = liveQuery({ failStop: ['a'] });
+      const { run } = startRun(fake, { maxBudgetUsd: 1 });
+      fake.emit(
+        init(),
+        backgroundTasks('a', 'b'),
+        result({ subtype: 'error_max_budget_usd', is_error: true, errors: ['budget'], total_cost_usd: 1.2 }),
+      );
+      const out = await run;
+      expect(fake.events).toEqual(['input:1', 'stop:a', 'stop:b', 'input-closed', 'close']);
+      expect(out).toMatchObject({
+        isError: true,
+        resultSubtype: 'error_max_budget_usd',
+        errors: ['budget'],
+        reminded: false,
+      });
+      expect(out.backgroundTasksLeft.map((task) => task.id)).toEqual(['a', 'b']);
+    });
+
+    it('does not wait after a tool asked to end the run: the tasks are stopped before the session closes', async () => {
+      const control = new RunControl();
+      const fake = liveQuery();
+      const { run } = startRun(fake, { control });
+      fake.emit(init(), backgroundTasks('a'));
+      await waitFor(() => fake.received.length === 1, 2_000, 'the prompt');
+      control.requestEnd('handoff_docs');
+      fake.emit(
+        say('m1', 'Đã bàn giao.'),
+        result({ subtype: 'error_during_execution', is_error: true, errors: ['interrupted'] }),
+      );
+      const out = await run;
+      expect(fake.events).toEqual(['input:1', 'interrupt', 'stop:a', 'input-closed', 'close']);
+      expect(out).toMatchObject({ endedBy: 'handoff_docs', isError: false, reminded: false });
+      expect(out.backgroundTasksLeft.map((task) => task.id)).toEqual(['a']);
+    });
+
+    it.each(['mid-turn', 'waiting'] as const)(
+      'stops the tasks before the process goes when the run is aborted %s',
+      async (phase) => {
+        const controller = new AbortController();
+        const fake = liveQuery();
+        const { run, settled } = startRun(fake, { abortSignal: controller.signal });
+        fake.emit(init(), backgroundTasks('a'));
+        if (phase === 'waiting') fake.emit(result());
+        await sleep(80);
+        expect(settled()).toBe(false);
+        expect(fake.events).toEqual(['input:1']);
+        controller.abort();
+        const out = await run;
+        expect(fake.events.slice(0, 2)).toEqual(['input:1', 'stop:a']);
+        expect(fake.events.indexOf('stop:a')).toBeLessThan(fake.events.indexOf('aborted'));
+        expect(out.aborted).toBe(true);
+        expect(out.backgroundTasksLeft.map((task) => task.id)).toEqual(['a']);
+      },
+    );
+
+    it('aborts at once, as before, when no background task is alive', async () => {
+      const controller = new AbortController();
+      const fake = liveQuery();
+      const { run } = startRun(fake, { abortSignal: controller.signal });
+      fake.emit(init());
+      await waitFor(() => fake.received.length === 1, 2_000, 'the prompt');
+      controller.abort();
+      const out = await run;
+      expect(fake.events.filter((event) => event.startsWith('stop:'))).toEqual([]);
+      expect(out).toMatchObject({ aborted: true, backgroundTasksLeft: [] });
+    });
+
+    it('reports an abort that came before the run started, without stopping anything', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      const fake = liveQuery();
+      const out = await startRun(fake, { abortSignal: controller.signal }).run;
+      expect(fake.calls[0]?.options.abortController?.signal.aborted).toBe(true);
+      expect(fake.events.filter((event) => event.startsWith('stop:'))).toEqual([]);
+      expect(out).toMatchObject({ aborted: true, isError: false, backgroundTasksLeft: [] });
+    });
+
+    it('does not wait when the run reports its work as finished: the tasks are stopped and the run ends', async () => {
+      const fake = liveQuery();
+      const asked: number[] = [];
+      const { run } = startRun(fake, {
+        workDone: async () => {
+          asked.push(fake.events.length);
+          return true;
+        },
+      });
+      fake.emit(init(), backgroundTasks('a'), result());
+      const out = await run;
+      expect(asked).toHaveLength(1);
+      expect(fake.events).toEqual(['input:1', 'stop:a', 'input-closed', 'close']);
+      expect(out).toMatchObject({ isError: false, resultSubtype: 'success', reminded: false });
+      expect(out.backgroundTasksLeft.map((task) => task.id)).toEqual(['a']);
+    });
+
+    it('waits when the run reports its work as unfinished', async () => {
+      const fake = liveQuery();
+      const { run, settled } = startRun(fake, { workDone: () => false });
+      fake.emit(init(), backgroundTasks('a'), result());
+      await sleep(80);
+      expect(settled()).toBe(false);
+      fake.emit(backgroundTasks(), init(), result());
+      expect((await run).backgroundTasksLeft).toEqual([]);
+      expect(fake.events).toEqual(['input:1', 'input-closed', 'close']);
+    });
+
+    it('ends the run when a turn starts after the session was closed', async () => {
+      const fake = liveQuery({ staysOpen: true });
+      const { run, settled } = startRun(fake, { backgroundWaitMs: 200 });
+      fake.emit(init(), backgroundTasks('a'), result({ total_cost_usd: 0.1 }));
+      await until(() => fake.received.length === 2, 'the reminder');
+      // The turn that crossed the reminder ends with the task alive: the session closes.
+      fake.emit(init(), result({ total_cost_usd: 0.2 }));
+      await until(() => fake.events.includes('input-closed'), 'the input to close');
+      expect(settled()).toBe(false);
+      // The runtime still starts the reminder's turn: the runner ends the process instead of running it.
+      fake.emit(init(), say('m9', 'Trả lời lời nhắc.'));
+      const out = await run;
+      expect(fake.events).toEqual(['input:1', 'input:2', 'stop:a', 'input-closed', 'close']);
+      expect(out).toMatchObject({ isError: false, totalCostUsd: 0.2, reminded: true, aborted: false });
+      expect(out.capture.lastMessage).toBeNull();
+    });
   });
 });

@@ -14,9 +14,9 @@ export interface TraceStep {
 
 /** What a runner records while the run streams, for the diagnosis of a run that ends badly. */
 export interface RunCapture {
-  /** `num_turns` of the final result, or null without one. */
+  /** `num_turns` added up over the run's results (one per turn), or null without one. */
   numTurns: number | null;
-  /** `duration_ms` of the final result, or null without one. */
+  /** `duration_ms` added up over the run's results (the waits between turns are not counted), or null without one. */
   durationMs: number | null;
   /** Context compactions seen (`system/compact_boundary`). */
   compactions: number;

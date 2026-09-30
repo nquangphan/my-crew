@@ -7,11 +7,13 @@ import {
   type McpServerConfig,
   type Options,
   type SDKMessage,
+  type SDKUserMessage,
   query as sdkQuery,
 } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentRole, Effort, RoleStage } from '@crew/shared';
 import type { JobKind } from '../state-db.js';
 import type { AnyToolDefinition, EndReason } from '../tools/ticket-mcp-server.js';
+import { BackgroundSession, type BackgroundTask } from './background-session.js';
 import { emptyCapture, type RunCapture, recordTool } from './run-trace.js';
 import { slashCommandsIn } from './skill-usage.js';
 
@@ -77,6 +79,16 @@ export interface RunAgentOptions {
   disabledMcpjsonServers?: string[];
   appendSystemPrompt?: string;
   control: RunControl;
+  /**
+   * Ceiling of one wait for the agent's background tasks, in ms (default 30 minutes). When it passes, the
+   * daemon reminds the agent once in the open session.
+   */
+  backgroundWaitMs?: number;
+  /**
+   * True once the run's own work is finished (the ticket left in-progress): a turn that ends then never waits
+   * for background tasks. Without it a turn that ends with background tasks always waits.
+   */
+  workDone?: () => boolean | Promise<boolean>;
   /** The agent process started (its pid is also its process group id). */
   onSpawn?: (pid: number) => void;
   onInit?: (info: InitInfo) => void;
@@ -87,7 +99,10 @@ export interface AgentRunResult {
   /** `success`, an `error_*` subtype, or null when the run produced no result message. */
   resultSubtype: string | null;
   isError: boolean;
-  /** The final result's `total_cost_usd` (a resumed session already includes its earlier spend). */
+  /**
+   * The last result's `total_cost_usd`: cumulative over every turn of the run (a resumed session already
+   * includes its earlier spend).
+   */
   totalCostUsd: number;
   modelUsage: Record<string, { costUSD: number; inputTokens: number; outputTokens: number }>;
   skillsListed: string[];
@@ -103,6 +118,10 @@ export interface AgentRunResult {
   claudeCodeVersion: string | null;
   /** Turns, duration, compactions, the last message and tool calls, for diagnosing a run that ends badly. */
   capture: RunCapture;
+  /** Background tasks still alive when the session closed (the daemon stopped them); empty after a clean end. */
+  backgroundTasksLeft: BackgroundTask[];
+  /** True when a wait for background tasks hit its ceiling and the daemon reminded the agent. */
+  reminded: boolean;
 }
 
 /** Same interface for the real SDK runner and the scripted test double. */
@@ -125,6 +144,8 @@ export function emptyResult(): AgentRunResult {
     apiKeySource: null,
     claudeCodeVersion: null,
     capture: emptyCapture(),
+    backgroundTasksLeft: [],
+    reminded: false,
   };
 }
 
@@ -190,6 +211,46 @@ export function sdkRuntimeVersion(): string | null {
   }
 }
 
+/** The session input the daemon drives: the run's prompt, later messages, then the end of input. */
+export interface PromptStream extends AsyncIterable<SDKUserMessage> {
+  /** Queues one user message (ignored once closed). */
+  send(text: string): void;
+  /** Ends the input after what is already queued. */
+  close(): void;
+}
+
+export function createPromptStream(): PromptStream {
+  const queue: SDKUserMessage[] = [];
+  let closed = false;
+  let wake: (() => void) | null = null;
+  const notify = () => {
+    wake?.();
+    wake = null;
+  };
+  return {
+    send(text) {
+      if (closed) return;
+      queue.push({ type: 'user', message: { role: 'user', content: text }, parent_tool_use_id: null });
+      notify();
+    },
+    close() {
+      closed = true;
+      notify();
+    },
+    async *[Symbol.asyncIterator]() {
+      for (;;) {
+        const next = queue.shift();
+        if (next) yield next;
+        else if (closed) return;
+        else
+          await new Promise<void>((resolve) => {
+            wake = resolve;
+          });
+      }
+    },
+  };
+}
+
 export interface SdkRunnerOptions {
   query?: typeof sdkQuery;
   /** Path of the Claude Code executable (the desktop app points the SDK at its bundled runtime). */
@@ -201,6 +262,11 @@ export interface SdkRunnerOptions {
  * `dontAsk` permission mode plus the role's `allowedTools`, the inline `PreToolUse` guard and the
  * in-process ticket server. The agent process runs in its own process group so cleanup can stop it and
  * everything it started.
+ *
+ * The prompt is a stream the daemon keeps open: with a plain string the runtime closes its input after the
+ * first result and kills the agent's background tasks 5 seconds later. A turn that ends with background
+ * tasks leaves the session open (`BackgroundSession`), so the runtime can deliver their notifications and
+ * the agent runs further turns; the live tasks are stopped before the session closes.
  */
 export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
   const query = options.query ?? sdkQuery;
@@ -208,9 +274,7 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
     const result = emptyResult();
     result.slashCommands.push(...slashCommandsIn(run.prompt));
     const abortController = new AbortController();
-    const onAbort = () => abortController.abort();
-    if (run.abortSignal.aborted) onAbort();
-    run.abortSignal.addEventListener('abort', onAbort, { once: true });
+    if (run.abortSignal.aborted) abortController.abort();
     const stderr: string[] = [];
 
     const sdkOptions: Options = {
@@ -262,7 +326,29 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
       },
     };
 
-    const q = query({ prompt: run.prompt, options: sdkOptions });
+    const input = createPromptStream();
+    input.send(run.prompt);
+    const q = query({ prompt: input, options: sdkOptions });
+    const session = new BackgroundSession({
+      port: {
+        send: (text) => input.send(text),
+        stopTask: (taskId) => q.stopTask(taskId),
+        close: () => input.close(),
+      },
+      ...(run.backgroundWaitMs !== undefined ? { waitMs: run.backgroundWaitMs } : {}),
+      endRequested: () => run.control.endReason !== null,
+      ...(run.workDone ? { workDone: run.workDone } : {}),
+    });
+    /** The abort arrived while the session was still open (mid-turn or waiting for background tasks). */
+    let cutShort = false;
+    /** The message stream ended while the session was still open: the process went away on its own. */
+    let lost = false;
+    const onAbort = () => {
+      if (!session.closed) cutShort = true;
+      // The agent's background tasks are stopped first; then the process goes, as before.
+      void session.shutdown().finally(() => abortController.abort());
+    };
+    if (!run.abortSignal.aborted) run.abortSignal.addEventListener('abort', onAbort, { once: true });
     let interrupted = false;
     const interrupt = () => {
       if (interrupted) return;
@@ -273,11 +359,25 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
       result.endedBy = run.control.endReason;
     });
     const lastTextId = { id: null as string | null };
+    let initSeen = false;
     try {
       for await (const message of q) {
+        if (
+          (message.type === 'system' && message.subtype === 'init') ||
+          (message.type === 'assistant' && message.parent_tool_use_id === null)
+        ) {
+          // No turn runs once the daemon closed the session (a reminder that crossed a turn): end here.
+          if (session.closed) break;
+          session.turnStarted();
+        }
         if (run.control.endReason && message.type === 'assistant') interrupt();
         if (message.type === 'assistant') captureAssistant(result.capture, message, run.cwd, lastTextId);
-        if (message.type === 'system' && message.subtype === 'init') {
+        if (message.type === 'system' && message.subtype === 'background_tasks_changed') {
+          session.tasksChanged(message.tasks);
+        } else if (message.type === 'system' && message.subtype === 'init') {
+          // The runtime sends `init` at the start of every turn; the run's init is the first one.
+          if (initSeen) continue;
+          initSeen = true;
           result.sessionId = message.session_id;
           result.skillsListed = [...message.skills];
           result.mcpServers = message.mcp_servers.map((server) => ({
@@ -306,9 +406,13 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
           result.sessionId = message.session_id;
           result.resultSubtype = message.subtype;
           result.isError = message.is_error;
+          // `total_cost_usd` and `modelUsage` are cumulative over the session's process, so the last result
+          // carries the whole run; `num_turns` and `duration_ms` count one turn each and are added up.
           result.totalCostUsd = message.total_cost_usd;
-          if (typeof message.num_turns === 'number') result.capture.numTurns = message.num_turns;
-          if (typeof message.duration_ms === 'number') result.capture.durationMs = message.duration_ms;
+          if (typeof message.num_turns === 'number')
+            result.capture.numTurns = (result.capture.numTurns ?? 0) + message.num_turns;
+          if (typeof message.duration_ms === 'number')
+            result.capture.durationMs = (result.capture.durationMs ?? 0) + message.duration_ms;
           result.modelUsage = Object.fromEntries(
             Object.entries(message.modelUsage).map(([model, usage]) => [
               model,
@@ -316,23 +420,40 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
             ]),
           );
           if (message.subtype !== 'success') result.errors.push(...message.errors);
+          // Closes the input (after stopping what is still running), or leaves the session open so the
+          // runtime can deliver the background tasks' notifications and the agent runs another turn.
+          await session.turnEnded({ isError: message.is_error || message.subtype !== 'success' });
           if (run.control.endReason) break;
         }
       }
     } catch (error) {
-      if (abortController.signal.aborted) result.aborted = true;
+      if (run.abortSignal.aborted) result.aborted = true;
       else result.errors.push((error as Error).message);
     } finally {
       run.abortSignal.removeEventListener('abort', onAbort);
+      lost = !session.closed;
+      // Whatever ended the run, what is still running is stopped before the session goes away.
+      await session.shutdown();
+      session.dispose();
       q.close();
     }
+    if (cutShort) result.aborted = true;
+    result.backgroundTasksLeft = session.tasksLeft;
+    result.reminded = session.reminded;
     result.endedBy = run.control.endReason;
+    // A process that dies during a later turn, or while the session waits for background tasks, leaves the
+    // earlier turn's result behind: the run did not end with it.
+    const died = lost && result.resultSubtype !== null && !result.endedBy && !result.aborted;
+    if (died) result.resultSubtype = null;
     // A run ended by ask_owner / handoff_docs is a normal end even though the turn was interrupted.
     if (result.endedBy) result.isError = false;
     else if (result.resultSubtype === null && !result.aborted) {
       result.isError = true;
       if (result.errors.length === 0)
-        result.errors.push(stderr.join('').slice(-2_000) || 'no result message');
+        result.errors.push(
+          stderr.join('').slice(-2_000) ||
+            (died ? 'agent process ended while its session was still open' : 'no result message'),
+        );
     }
     result.slashCommands = [...new Set(result.slashCommands)];
     return result;

@@ -154,7 +154,12 @@ function devFinish(step: RawStep): RawStep[] {
 function devStart(step: RawStep): RawStep[] {
   // The daemon itself transitions todo → in_progress before the agent sees the prompt (role-planner.ts
   // `plan()`), so the dev script no longer calls `update_status` for that step.
-  return [preflight(step), ...invokeSkills(step), ...readDocs(), { tool: 'Read', input: { file_path: 'src/app.js' } }];
+  return [
+    preflight(step),
+    ...invokeSkills(step),
+    ...readDocs(),
+    { tool: 'Read', input: { file_path: 'src/app.js' } },
+  ];
 }
 
 function docsUpdate(step: RawStep): RawStep[] {
