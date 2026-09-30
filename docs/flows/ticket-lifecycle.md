@@ -16,6 +16,8 @@ pm_task.
   `GET /v1/tickets/:id/tree`, `POST /v1/tickets/:id/transition`, `GET /v1/search`.
 - `apps/api/src/routes/comment-routes.ts` — owner: `POST /v1/tickets/:id/comments`.
 - `apps/api/src/routes/report-routes.ts` — owner: `GET /v1/tickets/:id/report`.
+- `apps/api/src/routes/attachment-routes.ts` — owner: `POST /v1/tickets/:id/attachments`,
+  `GET /v1/attachments/:id`.
 
 Ghi của agent (tạo subtask, file bug, nộp report, bình luận/transition với `actor='agent'`) đi qua route
 daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dưới đây.
@@ -160,6 +162,21 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     gọi, nên `Ticket.agentActivity` luôn vắng ở đó. `recordHeartbeat()` (flow `machine-pairing`) dùng
     `activitySignatures()`/`changedTicketIds()`/`heartbeatFresh()` cùng file để biết ticket nào cần phát
     `agent.activity_changed`.
+16. `apps/api/src/services/attachment-service.ts` → `uploadAttachment()`/`getAttachmentContent()`: ảnh dán
+    clipboard vào ô mô tả/comment ticket (phần paste ở UI là subtask riêng, chưa làm ở đây). `uploadAttachment()`
+    validate `mimeType` theo whitelist (`AttachmentMimeType` = `image/png|jpeg|gif|webp`) và kích thước **bytes
+    đã decode** (không phải độ dài chuỗi base64) ≤ `MAX_ATTACHMENT_BYTES` (10MB) trước khi ghi gì, dùng
+    `getTicketRow()` (từ `ticket-service.ts`) nên `:id` nhận cả uuid lẫn ticket key như route ticket khác, ticket
+    không tồn tại thì 404 và không tạo bản ghi; lưu ảnh vào cột `bytea` bảng `attachments`, trả
+    `Attachment { id, url, mimeType, sizeBytes }` với `url` là đường dẫn `GET` để chèn vào markdown. Mime
+    whitelist được kiểm hai lần: ở zod boundary (`UploadAttachmentRequest`, route `attachmentRoutes`) và lại
+    trong `decodeImage()` trước khi ghi DB, để `mimeType` lưu luôn nằm trong whitelist dù input đi từ đâu.
+    `getAttachmentContent()` đọc `mime_type`/`content` theo `id`, 404 khi không tồn tại; route GET stream đúng
+    bytes kèm header `Content-Type` từ `mimeType` đã lưu và `cache-control: private, no-store`. `AttachmentMimeType`,
+    `MAX_ATTACHMENT_BYTES`, `UploadAttachmentRequest`, `Attachment` khai ở `packages/shared/src/api-schemas.ts`
+    (cùng file nói ở bước 10). Route POST tự đặt `bodyLimit` riêng (đủ base64 10MB + margin JSON) để không đụng
+    `bodyLimit` mặc định 2MB của Fastify (flow `api-platform`) — cùng cách `runtime-routes.ts` (flow
+    `runtime-updates`) làm với `UPLOAD_BODY_LIMIT`. Không có route cho daemon/agent (agent không paste ảnh).
 
 ## Files
 
@@ -168,6 +185,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/routes/ticket-routes.ts` | Route ticket owner + search | `ticketRoutes` |
 | `apps/api/src/routes/comment-routes.ts` | Route bình luận owner | `commentRoutes` |
 | `apps/api/src/routes/report-routes.ts` | Route đọc report owner | `reportRoutes` |
+| `apps/api/src/routes/attachment-routes.ts` | Route upload/đọc ảnh đính kèm owner | `attachmentRoutes` |
 | `apps/api/src/services/ticket-service.ts` | Tạo, đánh giá lại, transition, bug loop, bình luận (kể cả tag `@pm`), sửa ticket | `createRequestTicket`, `createSubtask`, `rateSubtask`, `retrySubtask`, `fileBug`, `transitionTicket`, `addComment`, `toCommentDto`, `updateTicket`, `lockWithParent`, `governingPmTask` |
 | `apps/api/src/services/ticket-query-service.ts` | Danh sách, chi tiết, cây hậu duệ, tìm kiếm | `listTickets`, `getTicketDetail`, `getTicketTree`, `search`, `inProjectsFilter`, `TREE_LIMIT` |
 | `packages/shared/src/comment-mentions.ts` | Tag `@pm` trong bình luận owner | `CommentMention`, `parseMentions` |
@@ -175,13 +193,16 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/services/budget-service.ts` | Trần con, ngân sách, hold | `enforceChildCap`, `addCost`, `applyHold`, `liftHold`, `getBudgetStatus` |
 | `apps/api/src/jobs/stuck-ticket-alarm.ts` | Báo ticket đứng yên không ai xử lý | `findStuckTickets`, `raiseStuckTicketAlarms`, `startStuckTicketAlarm`, `WaitingJobsRegistry` |
 | `apps/api/src/services/agent-activity-service.ts` | Tính hoạt động agent hiển thị cho owner, từ heartbeat máy | `loadAgentActivity`, `withAgentActivity`, `activitySignatures`, `changedTicketIds`, `heartbeatFresh` |
+| `apps/api/src/services/attachment-service.ts` | Lưu/đọc ảnh đính kèm (bytea), validate mime + size | `uploadAttachment`, `getAttachmentContent` |
 | `packages/shared/src/ticket-schemas.ts` | Enum trạng thái/loại/ưu tiên/actor ticket | `TicketStatus`, `TicketType`, `Actor` |
 | `packages/shared/src/agent-schemas.ts` | Enum role/complexity/model/effort/bước agent, lý do chờ job và hoạt động agent | `AgentRole`, `Complexity`, `ModelAlias`, `SelectableModel`, `Effort`, `RoleStage`, `DOCS_MODEL`, `JobWaitReason`, `JobWaitDetail`, `AGENT_ACTIVITY_STALE_MS`, `AgentActivityStatus`, `AgentActivity` |
 | `packages/shared/src/status-workflow.ts` | Bảng cạnh workflow, kiểm tra transition | `canTransition`, `allowedTransitions`, `AGENT_EDGES`, `OWNER_EDGES`, `TERMINAL_STATUSES` |
 
 ## Dữ liệu
 
-- Bảng: `tickets`, `ticket_counters`, `comments`, `ticket_reports`, `budgets_usage`.
+- Bảng: `tickets`, `ticket_counters`, `comments`, `ticket_reports`, `budgets_usage`, `attachments` (ảnh dán
+  clipboard, nội dung `bytea`, FK `ticket_id`/`owner_id` cascade delete, cột `bytea` custom type dùng chung
+  với `runtime_bundles` của flow `runtime-updates`, khai ở `apps/api/src/db/schema.ts` flow `api-platform`).
 - Trường tính không lưu DB: `Ticket.agentActivity` — `withAgentActivity()` đọc bảng `machines` (flow
   `machine-pairing`) mỗi lần trả owner đọc, không cache.
 - Sự kiện: `ticket.assigned`, `ticket.status_changed`, `ticket.cancelled`, `ticket.comment_added`,
@@ -210,6 +231,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   `findStuckTickets()` dùng để không báo nhầm ticket đang chờ thử lại.
 - server-settings: `AgentActivity.settingsRevision` của ticket đang chạy là bản cài đặt server job đó bắt
   đầu với.
+- api-platform: bảng `attachments` khai ở `apps/api/src/db/schema.ts`, migration
+  `apps/api/drizzle/0010_attachments.sql` chạy qua `runMigrations()` như mọi migration khác; cột `bytea` custom
+  type dùng chung với `runtime_bundles` (flow `runtime-updates`).
 
 ## Tests
 
@@ -251,6 +275,10 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 - `packages/shared/src/status-workflow.test.ts`: `canTransition`/`allowedTransitions` cho từng actor.
 - `packages/shared/src/comment-mentions.test.ts`: `@pm` nhận diện không phân biệt hoa thường, bỏ qua trong code
   block/inline code và trong email/URL (`team@pm.example.com`), không nhận `@pm-x`/`@pm.x`.
+- `apps/api/test/attachment.test.ts`: upload từng mime hỗ trợ (png/jpeg/gif/webp) lưu đúng bytes, nhận cả ticket
+  key lẫn uuid ở `:id`; từ chối mime lạ (`application/pdf`) và ảnh > 10MB, không lưu gì cả hai trường hợp; ticket
+  không tồn tại → 404, không tạo bản ghi; thiếu session owner hoặc CSRF → 401/403; `GET` trả đúng `Content-Type`
+  và byte-for-byte với ảnh đã upload, 404 khi không tồn tại, cần session owner.
 - `apps/api/test/pm-mention.test.ts`: tag `@pm` từ mọi loại ticket của cây (pm_task, dev, qc, bug, docs_init, kể
   cả con đã đóng của cây còn mở) đều đánh thức đúng PM của cây, nhắm đúng máy chủ dự án; chỉ PM được đánh thức —
   ticket được tag không đổi trạng thái `needs_input`; tag ngay trên pm_task còn trả nó về `in_progress`; tag

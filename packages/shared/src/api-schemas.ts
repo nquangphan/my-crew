@@ -488,3 +488,34 @@ export type CrossDocsSearchResponse = z.infer<typeof CrossDocsSearchResponse>;
 
 export const HealthResponse = z.object({ status: z.literal('ok'), db: z.literal('ok') });
 export type HealthResponse = z.infer<typeof HealthResponse>;
+
+// ---------------------------------------------------------------------------
+// Attachments
+// ---------------------------------------------------------------------------
+
+/** Whitelisted image mimes for pasted attachments (ticket description/comments); anything else is refused. */
+export const AttachmentMimeType = z.enum(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+export type AttachmentMimeType = z.infer<typeof AttachmentMimeType>;
+
+/** Largest accepted attachment, in bytes (checked on the decoded content, not the base64 length). */
+export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+
+/**
+ * `POST /v1/tickets/:id/attachments`: image bytes as base64 JSON (no multipart dependency). The server
+ * still re-checks `mimeType` against `AttachmentMimeType` and the decoded size against `MAX_ATTACHMENT_BYTES`.
+ */
+export const UploadAttachmentRequest = z.object({
+  filename: z.string().trim().min(1).max(255),
+  mimeType: AttachmentMimeType,
+  content: z.string().min(1),
+});
+export type UploadAttachmentRequest = z.infer<typeof UploadAttachmentRequest>;
+
+/** Response of an upload and of the attachment metadata: `url` is the `GET` path to embed in markdown. */
+export const Attachment = z.object({
+  id: z.string(),
+  url: z.string(),
+  mimeType: AttachmentMimeType,
+  sizeBytes: z.number().int().nonnegative(),
+});
+export type Attachment = z.infer<typeof Attachment>;
