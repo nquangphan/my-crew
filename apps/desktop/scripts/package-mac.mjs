@@ -9,6 +9,11 @@
  * dmg and zip are made from it, the other architecture's Claude Code binary and the other better-sqlite3
  * prebuilds are removed, so each app, and so each of its artifacts, carries only its own.
  * `--publish` uploads to GitHub Releases (the release job; needs GH_TOKEN).
+ *
+ * Signing: electron-builder signs ad hoc, then `afterSign` re-signs each app with the stable self-signed
+ * "2P Crew Code Signing" identity when the keychain has it (see scripts/codesign.mjs) and verifies that the
+ * designated requirement is anchored to the committed certificate, before the dmg and zip are made from it.
+ * Without the identity the build stays ad hoc (with a warning), unless CREW_CODESIGN_REQUIRED=1.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
@@ -17,6 +22,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import builder from 'electron-builder';
 import { parse } from 'yaml';
+import { certificateHash, findIdentity, signApp, verifyApp } from './codesign.mjs';
 
 const { Arch, Platform, build } = builder;
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -64,10 +70,30 @@ function keepOnlyArch(context) {
   }
 }
 
+const identity = findIdentity(certificateHash());
+if (!identity) {
+  if (process.env.CREW_CODESIGN_REQUIRED === '1') {
+    throw new Error('CREW_CODESIGN_REQUIRED=1 but the keychain has no "2P Crew Code Signing" identity');
+  }
+  console.warn(
+    'WARNING: no "2P Crew Code Signing" identity in the keychain: the app is signed ad hoc, so macOS asks ' +
+      'for folder and Full Disk Access again after installing it (docs/flows/runtime-updates.md).',
+  );
+}
+
+/** Re-signs the packed app with the stable identity and checks its designated requirement. */
+function signWithStableIdentity(context) {
+  if (!identity) return;
+  const app = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);
+  signApp(app, identity);
+  console.log(`signed ${app}\n  ${verifyApp(app)}`);
+}
+
 const config = parse(readFileSync(join(root, 'electron-builder.yml'), 'utf8'));
 config.directories = { output: join(root, 'release'), buildResources: join(root, 'build') };
 config.mac.icon = join(root, 'build', 'icon.png');
 config.afterPack = keepOnlyArch;
+config.afterSign = signWithStableIdentity;
 // The staged app has no electron dependency to read the version from.
 config.electronVersion = JSON.parse(
   readFileSync(join(root, 'node_modules', 'electron', 'package.json'), 'utf8'),

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import { E2E_API_URL } from './e2e-env';
@@ -43,7 +43,22 @@ test('first run: pair, check Claude, finish; projects come from the web and the 
     await expect(page.locator('[data-check="claude.api-key-env"][data-status="green"]')).toBeVisible();
     await page.getByRole('button', { name: 'Tiếp', exact: true }).click();
 
-    // 4. Finish: login item on, daemon started, the status view open. Nothing else is set up in the app.
+    // 4. Full Disk Access, asked once: detected without a prompt, one button opens the pane, then re-checked.
+    await expect(page.locator('[data-full-disk-access="denied"]')).toBeVisible();
+    await page.getByRole('button', { name: 'Mở cài đặt quyền' }).click();
+    await expect
+      .poll(() =>
+        existsSync(join(env.home, '.test-opened-settings'))
+          ? readFileSync(join(env.home, '.test-opened-settings'), 'utf8')
+          : '',
+      )
+      .toContain('x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles');
+    writeFileSync(join(env.home, '.test-full-disk-access'), 'granted');
+    await page.getByRole('button', { name: 'Kiểm tra lại' }).click();
+    await expect(page.getByText('Đã cấp quyền truy cập toàn bộ ổ đĩa')).toBeVisible();
+    await page.getByRole('button', { name: 'Tiếp', exact: true }).click();
+
+    // 5. Finish: login item on, daemon started, the status view open. Nothing else is set up in the app.
     await page.getByRole('button', { name: 'Hoàn tất' }).click();
     await expect(page.getByRole('heading', { name: 'Trạng thái máy' })).toBeVisible();
     const info = await appInfo(page);

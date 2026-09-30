@@ -11,6 +11,7 @@ import {
   type HeartbeatRequest,
   type JobWaitDetail,
   type JobWaitReason,
+  type MachineRuntimeState,
   type MachineSettingsState,
   type RunningJob,
   type SkillInventory,
@@ -109,6 +110,10 @@ export interface CreateDaemonOptions {
   appVersion?: string;
   /** Health summary for the heartbeat (the desktop app provides it). */
   health?: () => HealthSummary | undefined;
+  /** App and runtime versions and the runtime update state for the heartbeat (the desktop app provides it). */
+  runtime?: () => MachineRuntimeState | undefined;
+  /** A runtime bundle was published or this machine was pinned (the desktop app checks for an update). */
+  onRuntimeChanged?: () => void;
   /** Free slots override (tests); defaults to the resource monitor. */
   slots?: () => number;
   /** crew-docs bundle copied to `~/.crew/bin` at start; null skips the install. */
@@ -762,6 +767,13 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       case 'run_command':
         inBackground(runMachineCommand({ vps, handlers: commandHandlers, log }, effect.commandId));
         break;
+      case 'runtime_changed':
+        try {
+          options.onRuntimeChanged?.();
+        } catch (error) {
+          log('warn', 'runtime change handler failed', { error: (error as Error).message });
+        }
+        break;
       case 'ignored':
         break;
     }
@@ -883,6 +895,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       }))
       .slice(-200);
     const health = options.health?.();
+    const runtime = options.runtime?.();
     const body: HeartbeatRequest = {
       resources: {
         cpus: snapshot.cpus,
@@ -900,6 +913,7 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       paused,
       ...(health ? { health } : {}),
       settings: settingsState(),
+      ...(runtime ? { runtime } : {}),
     };
     const response = await vps.heartbeat(body);
     state.setMeta('tokenExpiresAt', response.tokenExpiresAt);

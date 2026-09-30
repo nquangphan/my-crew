@@ -50,6 +50,12 @@ export function invalidationsFor(event: EventEnvelope): QueryKey[] {
       return [keys.settings, keys.machines, ['machine']];
     case 'machine.settings_applied':
       return [keys.machines, ['machine']];
+    // A runtime bundle was published, a machine was pinned, or a machine reports another runtime or state.
+    case 'runtime.published':
+      return [keys.runtimeReleases, keys.machines];
+    case 'runtime.pinned':
+    case 'machine.runtime_changed':
+      return [keys.machines, ['machine']];
     // A remote action changed state; a pause or an inventory re-probe also shows on the machine.
     case 'machine.command':
     case 'machine.command_updated':

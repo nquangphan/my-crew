@@ -26,6 +26,8 @@ export const keys = {
   projects: ['projects'] as const,
   machines: ['machines'] as const,
   machine: (id: string) => ['machine', id] as const,
+  /** Refetched when a runtime bundle is published. */
+  runtimeReleases: ['runtime', 'releases'] as const,
   claims: (status?: ClaimRequestStatus) => ['claims', status ?? 'all'] as const,
   projectChanges: (status?: ProjectChangeStatus) => ['projectChanges', status ?? 'all'] as const,
   notices: ['notices'] as const,
@@ -198,6 +200,14 @@ export function useMachines(refetchMs = 30_000) {
     queryFn: async () => (await api.listMachines()).items,
     refetchInterval: refetchMs,
     staleTime: Math.min(10_000, refetchMs),
+  });
+}
+
+export function useRuntimeReleases() {
+  return useQuery({
+    queryKey: keys.runtimeReleases,
+    queryFn: () => api.listRuntimeReleases(),
+    staleTime: 60_000,
   });
 }
 

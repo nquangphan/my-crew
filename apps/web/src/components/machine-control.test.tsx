@@ -30,6 +30,7 @@ const machine = (overrides: Partial<Machine> = {}): Machine => ({
   revokedAt: null,
   projectKeys: [],
   settings: { reported: null, expectedRevision: '', current: false },
+  runtime: { reported: null, pinnedVersion: null },
   createdAt: '2026-09-28T00:00:00.000Z',
   ...overrides,
 });

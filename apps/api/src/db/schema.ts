@@ -15,11 +15,13 @@ import {
   MachineCommandStatus,
   type MachineHardware,
   type MachineResources,
+  type MachineRuntimeState,
   type MachineSettingsState,
   type ModelAlias,
   ProjectChangeStatus,
   ProjectPlatform,
   type RunningJob,
+  type RuntimeShellRange,
   SettingsKind,
   SettingsScope,
   TicketPriority,
@@ -35,6 +37,7 @@ import {
   bigserial,
   boolean,
   check,
+  customType,
   date,
   index,
   integer,
@@ -145,6 +148,10 @@ export const machines = pgTable(
     appVersion: text('app_version'),
     /** The settings revision the daemon applies to new jobs, from its latest heartbeat. */
     settingsState: jsonb('settings_state').$type<MachineSettingsState>(),
+    /** The app and runtime versions and runtime update state, from its latest heartbeat. */
+    runtimeState: jsonb('runtime_state').$type<MachineRuntimeState>(),
+    /** The runtime release the owner pinned this machine to (null: the newest its app can run). */
+    runtimePinnedVersion: text('runtime_pinned_version'),
     /** A revoked machine keeps its row for history; it can never authenticate again. */
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     createdAt: createdAt(),
@@ -496,6 +503,39 @@ export const machineCommands = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Runtime bundles (signed hot updates of the desktop app)
+// ---------------------------------------------------------------------------
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' });
+
+/**
+ * Signed runtime bundles machines can run, newest by version. The manifest is kept as the exact bytes that were
+ * signed (the shell verifies the signature itself); the tarball lives in `runtime_bundles`.
+ */
+export const runtimeReleases = pgTable('runtime_releases', {
+  version: text('version').primaryKey(),
+  manifest: text('manifest').notNull(),
+  signature: text('signature').notNull(),
+  keyId: text('key_id').notNull(),
+  commit: text('commit').notNull(),
+  shellRange: jsonb('shell_range').$type<RuntimeShellRange>().notNull(),
+  bundleSha256: text('bundle_sha256').notNull(),
+  size: integer('size').notNull(),
+  source: text('source').$type<'github' | 'upload'>().notNull(),
+  publishedBy: text('published_by').notNull(),
+  /** When CI built it (from the manifest). */
+  builtAt: timestamp('built_at', { withTimezone: true }).notNull(),
+  publishedAt: timestamp('published_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const runtimeBundles = pgTable('runtime_bundles', {
+  version: text('version')
+    .primaryKey()
+    .references(() => runtimeReleases.version, { onDelete: 'cascade' }),
+  data: bytea('data').notNull(),
+});
+
+// ---------------------------------------------------------------------------
 // Owner inbox read state
 // ---------------------------------------------------------------------------
 
@@ -597,3 +637,4 @@ export type DocsSnapshotRow = typeof docsSnapshots.$inferSelect;
 export type DocsFileRow = typeof docsFiles.$inferSelect;
 export type SettingsRevisionRow = typeof settingsRevisions.$inferSelect;
 export type MachineCommandRow = typeof machineCommands.$inferSelect;
+export type RuntimeReleaseRow = typeof runtimeReleases.$inferSelect;

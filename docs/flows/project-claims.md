@@ -134,7 +134,9 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
   thuộc claim/project ở đây — dùng bởi cảnh báo "ticket đứng yên" và bởi `AgentActivity` mà owner đọc trên
   ticket, cả hai của flow `ticket-lifecycle` (xem flow `daemon-api`). `HeartbeatRequest.settings`
   (`MachineSettingsState`) và `Machine.settings` (`reported`/`expectedRevision`/`current`) cũng sống trong
-  file dùng chung này nhưng thuộc flow `server-settings`, không phải claim/project.
+  file dùng chung này nhưng thuộc flow `server-settings`, không phải claim/project. Cùng file cũng có
+  `HeartbeatRequest.runtime` (`MachineRuntimeState`, tuỳ chọn) và `Machine.runtime`
+  (`reported`/`pinnedVersion`) — thuộc flow `runtime-updates`, không phải claim/project.
 - Sự kiện: `machine.claimed`, `claim.requested`, `claim.changed`, `machine.released`, `project.created`,
   `ticket.assigned {reassigned: true}`, `project.change_requested {requestId, projectId, machineId}` (owner
   stream, cũng là một loại thông báo trong `NOTICE_EVENT_TYPES`), `project.change_decided {requestId,

@@ -295,3 +295,19 @@ describe('dispatcher', () => {
     expect(state.listJobs()).toHaveLength(0);
   });
 });
+
+describe('runtime events', () => {
+  it('asks the desktop app to check its runtime and queues no job', () => {
+    const state = new StateDb(':memory:');
+    const published = dispatchEvent(
+      state,
+      envelope({ type: 'runtime.published', data: { version: '0.3.1' } }, null),
+    );
+    const pinned = dispatchEvent(
+      state,
+      envelope({ type: 'runtime.pinned', data: { machineId: 'machine-1', version: null } }, null),
+    );
+    expect([published.kind, pinned.kind]).toEqual(['runtime_changed', 'runtime_changed']);
+    expect(state.listJobs(['queued', 'running'])).toHaveLength(0);
+  });
+});

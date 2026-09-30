@@ -237,6 +237,7 @@ export async function recordHeartbeat(
         waitingJobs: machines.waitingJobs,
         failedJobs: machines.failedJobs,
         settingsState: machines.settingsState,
+        runtimeState: machines.runtimeState,
       })
       .from(machines)
       .where(eq(machines.id, machine.machineId))
@@ -260,6 +261,7 @@ export async function recordHeartbeat(
         paused: data.paused,
         ...(data.health ? { health: data.health } : {}),
         ...(data.settings ? { settingsState: data.settings } : {}),
+        ...(data.runtime ? { runtimeState: data.runtime } : {}),
         online: true,
         lastSeenAt: sql`now()`,
         lastHeartbeatAt: sql`now()`,
@@ -281,6 +283,21 @@ export async function recordHeartbeat(
           payload: {
             type: 'machine.settings_applied',
             data: { machineId: machine.machineId, revision: data.settings.revision },
+          },
+        },
+      ]);
+    }
+    if (
+      data.runtime &&
+      (data.runtime.version !== row.runtimeState?.version ||
+        data.runtime.state !== row.runtimeState?.state ||
+        data.runtime.shellVersion !== row.runtimeState?.shellVersion)
+    ) {
+      await appendEvents(tx, [
+        {
+          payload: {
+            type: 'machine.runtime_changed',
+            data: { machineId: machine.machineId, version: data.runtime.version, state: data.runtime.state },
           },
         },
       ]);
@@ -357,6 +374,7 @@ function toMachineDto(
       expectedRevision: extras.expectedRevision,
       current: row.settingsState?.revision === extras.expectedRevision,
     },
+    runtime: { reported: row.runtimeState, pinnedVersion: row.runtimePinnedVersion },
     createdAt: row.createdAt.toISOString(),
   };
 }

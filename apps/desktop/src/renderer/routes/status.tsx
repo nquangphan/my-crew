@@ -5,6 +5,7 @@ import type {
   FolderValidation,
   HealthCheckResult,
   HealthReport,
+  MachineRuntimeState,
   Navigate,
   ProjectStatus,
   SettingsSource,
@@ -13,6 +14,7 @@ import type {
 } from '@crew/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { FolderPicker } from '../components/folder-picker';
+import { FullDiskAccessPanel } from '../components/full-disk-access';
 import { HealthCheckRow } from '../components/health-check-row';
 import {
   ErrorBox,
@@ -37,6 +39,30 @@ const UPDATE_TEXT: Record<UpdateStatus['state'], string> = {
   downloaded: 'Bản mới đã tải xong, sẽ cài khi không còn job chạy.',
   error: 'Không kiểm tra được bản mới.',
 };
+
+/** One line about the runtime bundle (daemon, host and this window's code) and its hot update. */
+export function runtimeText(runtime: MachineRuntimeState): { text: string; tone: Tone } {
+  const target = runtime.target ?? '';
+  switch (runtime.state) {
+    case 'idle':
+      return { text: 'Đang chạy bản mới nhất máy này được nhận.', tone: 'ok' };
+    case 'checking':
+      return { text: 'Đang hỏi server bản runtime nào cần chạy…', tone: 'info' };
+    case 'downloading':
+      return { text: `Đang tải bản ${target}…`, tone: 'info' };
+    case 'installing':
+      return { text: `Đang kiểm tra chữ ký và cài bản ${target}…`, tone: 'info' };
+    case 'switching':
+      return { text: `Đang chuyển sang bản ${target} (daemon khởi động lại, job chạy tiếp)…`, tone: 'info' };
+    case 'disabled':
+      return { text: 'Bản chạy thử: không cập nhật runtime.', tone: 'gray' };
+    case 'waiting':
+    case 'shell_update_required':
+      return { text: runtime.message ?? `Chờ cập nhật bản ${target}.`, tone: 'warn' };
+    default:
+      return { text: runtime.message ?? 'Cập nhật runtime gặp lỗi.', tone: 'bad' };
+  }
+}
 
 const SETTINGS_SOURCE: Record<SettingsSource, string> = {
   server: 'từ server',
@@ -173,6 +199,7 @@ export function StatusPage({ info, status, runtime, navigate, onInfoChange }: St
   const [view, setView] = useState<StatusView | null>(null);
   const [health, setHealth] = useState<HealthReport | null>(null);
   const [update, setUpdate] = useState(info.update);
+  const [bundle, setBundle] = useState<MachineRuntimeState | null>(info.runtime ?? null);
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
   const [fixing, setFixing] = useState<string | null>(null);
@@ -194,6 +221,7 @@ export function StatusPage({ info, status, runtime, navigate, onInfoChange }: St
   }, [load]);
   useDesktopEvent('health.report', setHealth);
   useDesktopEvent('update.status', setUpdate);
+  useDesktopEvent('runtime.status', setBundle);
 
   const run = async (task: () => Promise<unknown>) => {
     setError(null);
@@ -254,6 +282,16 @@ export function StatusPage({ info, status, runtime, navigate, onInfoChange }: St
           <dd className="m-0 font-mono text-xs">{info.apiUrl ?? '—'}</dd>
           <dt className="text-muted">Phiên bản app</dt>
           <dd className="m-0">{info.version}</dd>
+          <dt className="text-muted">Bản runtime</dt>
+          <dd className="m-0" data-runtime-version={bundle?.version ?? ''}>
+            {bundle ? (
+              <>
+                {bundle.version} ({bundle.source === 'builtin' ? 'đi kèm app' : 'cập nhật nóng đã ký'})
+              </>
+            ) : (
+              '—'
+            )}
+          </dd>
           <dt className="text-muted">Cài đặt đang dùng</dt>
           <dd className="m-0">
             {view?.settings ? (
@@ -275,6 +313,11 @@ export function StatusPage({ info, status, runtime, navigate, onInfoChange }: St
           trong hộp thoại trên máy này. Job của các dự án đó chờ đến khi được phép.
         </Notice>
       )}
+
+      <section aria-label="Quyền truy cập ổ đĩa" className="card space-y-3 p-5">
+        <h2 className="font-semibold">Quyền truy cập ổ đĩa</h2>
+        <FullDiskAccessPanel />
+      </section>
 
       <section aria-label="Sức khỏe" className="card space-y-3 p-5">
         <div className="flex items-center gap-3">
@@ -399,6 +442,26 @@ export function StatusPage({ info, status, runtime, navigate, onInfoChange }: St
             )}
           </div>
         </div>
+        {bundle && (
+          <div className="flex items-center justify-between gap-3" data-runtime-state={bundle.state}>
+            <div className="text-sm">
+              <div>
+                Runtime {bundle.version}: {runtimeText(bundle).text}
+              </div>
+              <div className="text-xs text-muted">
+                Daemon, host và giao diện này cập nhật nóng từ server, có chữ ký, không cần cài lại app.
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn"
+              disabled={bundle.state === 'disabled'}
+              onClick={() => void run(async () => setBundle(await invoke('app.checkRuntime', {})))}
+            >
+              Kiểm tra runtime
+            </button>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           <button
             type="button"

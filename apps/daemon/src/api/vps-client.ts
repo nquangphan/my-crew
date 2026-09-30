@@ -10,6 +10,7 @@ import {
   type CreateSubtaskRequest,
   type DaemonCreateProjectRequest,
   DaemonProjectsResponse,
+  DaemonRuntimeResponse,
   type DocsSyncRequest,
   DocsSyncResponse,
   EffectiveSettings,
@@ -455,6 +456,59 @@ export class VpsClient {
       idempotencyKey,
       schema: SaveSettingsResponse,
     });
+  }
+
+  // -------------------------------------------------------------------------
+  // Runtime bundles (signed hot updates of the desktop app)
+  // -------------------------------------------------------------------------
+
+  /** The runtime this machine should run (pinned, else the newest its app can run) with its signed manifest. */
+  runtime() {
+    return this.request({
+      method: 'GET',
+      path: '/v1/daemon/runtime',
+      schema: DaemonRuntimeResponse,
+      attempts: 2,
+    });
+  }
+
+  /**
+   * Downloads one runtime tarball (bytes, unverified: the caller checks it against the signed manifest before
+   * using it). Refuses an answer larger than `maxBytes`.
+   */
+  async runtimeBundle(version: string, maxBytes: number): Promise<Buffer> {
+    const path = `/v1/daemon/runtime/${encodeURIComponent(version)}/bundle`;
+    const options = { method: 'GET' as const, path, schema: null };
+    try {
+      let response: Response;
+      try {
+        response = await this.fetchImpl(`${this.apiUrl}${path}`, {
+          headers: { accept: 'application/gzip', ...this.authHeader() },
+          signal: AbortSignal.timeout(Math.max(this.timeoutMs, 10 * 60 * 1000)),
+        });
+      } catch (error) {
+        throw new VpsError(0, 'NETWORK', `GET ${path}: ${(error as Error).message}`);
+      }
+      if (!response.ok) {
+        const parsed = ApiErrorBody.safeParse(safeJson(await response.text()));
+        if (parsed.success) {
+          const { code, message, details } = parsed.data.error;
+          throw new VpsError(response.status, code, message, details);
+        }
+        throw new VpsError(response.status, 'HTTP', `GET ${path}: HTTP ${response.status}`);
+      }
+      if (Number(response.headers.get('content-length') ?? '0') > maxBytes) {
+        throw new VpsError(response.status, 'BAD_RESPONSE', `GET ${path}: larger than ${maxBytes} bytes`);
+      }
+      const data = Buffer.from(await response.arrayBuffer());
+      if (data.length > maxBytes) {
+        throw new VpsError(response.status, 'BAD_RESPONSE', `GET ${path}: larger than ${maxBytes} bytes`);
+      }
+      return data;
+    } catch (error) {
+      this.report(options, error, 1);
+      throw error;
+    }
   }
 
   // -------------------------------------------------------------------------

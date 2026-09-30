@@ -55,8 +55,10 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
    `keys.machines`/`['machine']` — vì trang cài đặt và trạng thái "đã nhận" của máy đều đổi,
    `machine.settings_applied` làm mới `keys.machines`/`['machine']` — flow `server-settings`;
    `machine.command`/`machine.command_updated` làm mới `['machineCommands']` cộng `keys.machines`/`['machine']`
-   — một lệnh tạm dừng hay dò lại inventory cũng đổi hiện trạng máy, flow `machine-control`), gộp theo lô
-   100ms (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với
+   — một lệnh tạm dừng hay dò lại inventory cũng đổi hiện trạng máy, flow `machine-control`; `runtime.published`
+   làm mới `keys.runtimeReleases` cộng `keys.machines`/`['machine']` — danh sách bản runtime và cột runtime
+   của mỗi máy đều có thể đổi; `runtime.pinned`/`machine.runtime_changed` làm mới `keys.machines`/`['machine']`
+   — cả ba của flow `runtime-updates`), gộp theo lô 100ms (`batchMs`). Khi trình duyệt tự đóng hẳn stream (`readyState CLOSED`), mở lại với
    `?cursor=<lastEventId>` sau `retryMs`, và invalidate toàn bộ query sau mỗi lần nối lại (vì có thể đã lỡ sự
    kiện lúc mất kết nối).
 8. `apps/api/src/services/notice-read-service.ts` → `listOwnerNotices()`: mỗi thông báo (loại sự kiện trong
@@ -96,6 +98,11 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
   {commandId, machineId, action}` (owner stream cộng đúng máy đó, không phải notice) phát bởi
   `createMachineCommand()` khi owner gửi một hành động từ web; `machine.command_updated {commandId, machineId,
   status}` (owner stream) phát mỗi lần lệnh đó đổi trạng thái — cả hai của flow `machine-control`.
+  `runtime.published {version}` (owner stream cộng mọi máy còn sống, không phải notice) phát bởi
+  `publishRelease()` khi một bản runtime đã ký được lưu; `runtime.pinned {machineId, version}` (owner stream
+  cộng đúng máy đó) phát bởi `pinRuntime()` khi owner ghim/bỏ ghim; `machine.runtime_changed {machineId,
+  version, state}` (owner stream) phát bởi `recordHeartbeat()` khi version/trạng thái/shell runtime một máy
+  báo đổi — cả ba của flow `runtime-updates`.
 - Gọi ngoài: không (chỉ Postgres LISTEN/NOTIFY nội bộ).
 
 ## Flow liên quan
@@ -118,6 +125,9 @@ kiện, và ánh xạ sự kiện sang việc làm mới dữ liệu trên web.
 - machine-control: `machine.command`/`machine.command_updated` phát từ đó qua cùng `appendEvents()`; daemon
   đang nghe `/v1/daemon/stream` nhận `machine.command` khi nhắm đúng máy (ánh xạ sang effect `run_command`,
   flow `daemon-scheduling`).
+- runtime-updates: `runtime.published`/`runtime.pinned`/`machine.runtime_changed` phát từ đó qua cùng
+  `appendEvents()`; daemon nghe được `runtime.published`/`runtime.pinned` (ánh xạ sang effect
+  `runtime_changed`, flow `daemon-scheduling`) và báo main process kiểm lại runtime.
 
 ## Tests
 

@@ -1,3 +1,4 @@
+import { createHash, createPrivateKey, createPublicKey, type KeyObject } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -25,4 +26,23 @@ export function assertE2eDatabase(url: string): void {
   const name = new URL(url).pathname.replace(/^\//, '');
   if (!name.endsWith('_test'))
     throw new Error(`Refusing to use "${name}" for E2E: the name must end with _test`);
+}
+
+/**
+ * The test-only Ed25519 key the runtime E2E signs its bundles with, derived from a fixed label (no key material
+ * is committed). The E2E API trusts its public half (RUNTIME_EXTRA_PUBLIC_KEYS) and so does the app, which reads
+ * CREW_RUNTIME_TEST_KEYS only in its test mode.
+ */
+export function e2eRuntimeKey(): { privateKey: KeyObject; publicKey: string } {
+  const seed = createHash('sha256').update('crew-desktop-e2e-runtime-key').digest();
+  const privateKey = createPrivateKey({
+    key: Buffer.concat([Buffer.from('302e020100300506032b657004220420', 'hex'), seed]),
+    format: 'der',
+    type: 'pkcs8',
+  });
+  const publicKey = createPublicKey(privateKey)
+    .export({ format: 'der', type: 'spki' })
+    .subarray(-32)
+    .toString('base64');
+  return { privateKey, publicKey };
 }

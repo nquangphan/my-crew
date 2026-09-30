@@ -70,15 +70,24 @@ build/test/kiểm docs trước khi merge.
     scratch cạnh DB thật, in số dòng mỗi bảng: thật vs khôi phục); `--target crew --yes` thay DB thật (dừng
     `crew-api`/`crew-backup` trong lúc khôi phục, khởi động lại, kiểm health). `--expect-match` thoát mã 3 nếu
     một bảng nào lệch số dòng (dùng cho diễn tập khôi phục ngay sau một dump mới).
-11. CI (`.github/workflows/ci.yml`, một workflow trên push/pull_request, service Postgres 17): `pnpm install`,
-    typecheck, lint, toàn bộ test (kể cả ma trận vòng đời job scripted của daemon), build web, `crew-docs check
-    --range` và `check --all`, build daemon, build desktop (electron-vite), shellcheck các script deploy; job
-    `e2e` chạy bộ E2E; job `release` (runner macOS) trên tag `v*` build dmg và zip từng kiến trúc (arm64, x64)
-    bằng `pnpm --filter @crew/desktop package:mac` (không `--publish`), rồi một bước riêng tạo đúng một GitHub
-    Release cho tag bằng `gh release create` kèm mọi dmg/zip/blockmap và `latest-mac.yml` (workflow artifact
-    `mac-release`) — tách hai bước vì publish song song của electron-builder từng tạo release cho cùng tag hai
-    lần (v0.1.0 bị chia thành hai bản, một bản thiếu `latest-mac.yml`), nên electron-updater không tìm thấy nó. Bộ
-    E2E (`e2e/`, Playwright ở viewport điện thoại/
+11. CI (`.github/workflows/ci.yml`, chạy trên push/pull_request cộng tag `v*`/`runtime-v*`, service Postgres
+    17): `pnpm install`, typecheck, lint, toàn bộ test (kể cả ma trận vòng đời job scripted của daemon), build
+    web, `crew-docs check --range` và `check --all`, build daemon, build desktop (electron-vite), shellcheck
+    các script deploy; job `e2e` chạy bộ E2E; job `release` (runner macOS) trên tag `v*` nhập danh tính ký
+    code ổn định "2P Crew Code Signing" (secret `CREW_CODESIGN_P12_BASE64`/`CREW_CODESIGN_P12_PASSWORD` vào
+    keychain tạm, đặt `CREW_CODESIGN_REQUIRED=1` nếu có — thiếu secret thì build tiếp với cảnh báo, ký ad-hoc
+    như trước, flow `runtime-updates`) rồi build dmg và zip từng kiến trúc (arm64, x64) bằng
+    `pnpm --filter @crew/desktop package:mac` (không `--publish`, `afterSign` tự ký lại bằng danh tính đó khi
+    có), kiểm lại bằng `codesign.mjs verify` khi `CREW_CODESIGN_REQUIRED=1`, rồi một bước riêng tạo đúng một
+    GitHub Release cho tag bằng `gh release create` kèm mọi dmg/zip/blockmap và `latest-mac.yml` (workflow
+    artifact `mac-release`) — tách hai bước vì publish song song của electron-builder từng tạo release cho
+    cùng tag hai lần (v0.1.0 bị chia thành hai bản, một bản thiếu `latest-mac.yml`), nên electron-updater
+    không tìm thấy nó. Job `runtime-release` (runner Ubuntu, độc lập với job `release`) trên tag
+    `runtime-v<crewRuntime.version>` build và ký bản runtime (secret `CREW_RUNTIME_SIGNING_KEY` — thiếu thì
+    publish bản không ký kèm cảnh báo, mọi app/server sẽ từ chối nó), kiểm lại bằng `runtime-bundle.mjs
+    verify`, rồi tạo một GitHub Release riêng cho tag đó (`--latest=false`, để `electron-updater` của bản dmg
+    không đọc nhầm sang đây) — toàn bộ cơ chế ký/kiểm/nhập bản runtime ở flow `runtime-updates`. Bộ E2E (`e2e/`,
+    Playwright ở viewport điện thoại/
     tablet/desktop, chạy `deploy/compose.yml` + `deploy/compose.test.yml` cộng một daemon với config test)
     chạy bằng `pnpm --filter @crew/e2e test:e2e`, cần Docker.
 
@@ -103,17 +112,20 @@ build/test/kiểm docs trước khi merge.
 | `scripts/restore.sh` | Khôi phục dump vào DB scratch hoặc DB thật | `usage`, `backup` |
 | `scripts/seed-owner.sh` | Tạo/reset tài khoản owner duy nhất qua CLI trong `crew-api` | — |
 | `.dockerignore` | Loại trừ khỏi build context Docker; mở lại ngoại lệ `apps/daemon/src/roles/prompts` dưới quy tắc loại `apps/daemon`, để image api có bản prompt mặc định (flow `server-settings`) | — |
-| `.github/workflows/ci.yml` | CI: typecheck/lint/test/build/docs check, release dmg và zip trên tag `v*` | — |
+| `.github/workflows/ci.yml` | CI: typecheck/lint/test/build/docs check; release dmg/zip (ký bằng danh tính ổn định khi có secret) trên tag `v*`; release bản runtime đã ký trên tag `runtime-v*` (flow `runtime-updates`) | — |
 | `deploy/compose.test.yml` | Lớp test trên `compose.yml` cho E2E: nginx biên `crew-edge` render đúng `crew-http.conf` trên `127.0.0.1:18180`, `COOKIE_SECURE=false`, tắt `crew-backup` | — |
 
 ## Dữ liệu
 
 - Bảng: không sở hữu bảng nào (dùng chung `apps/api/src/db/schema.ts`, flow `api-platform`); riêng có volume
-  Docker `crew-pgdata` (dữ liệu Postgres) và `crew-backups` (dump).
+  Docker `crew-pgdata` (dữ liệu Postgres) và `crew-backups` (dump) — tarball mỗi bản runtime đã ký nằm trong
+  Postgres (`runtime_bundles`, flow `runtime-updates`) nên đi theo cùng dump/backup đêm, không cần thêm gì ở
+  compose.
 - Sự kiện: không tự phát; endpoint được kiểm là `GET /v1/health` (flow `api-platform`) và `/healthz` của
   `crew-web`.
 - Gọi ngoài: `2ps-landing-nginx`/`2ps-landing-certbot` (compose project khác trên cùng VPS, ngoài repo này);
-  Let's Encrypt qua certbot; GitHub Releases (job `release`, dùng chung cơ chế với flow `desktop-app`).
+  Let's Encrypt qua certbot; GitHub Releases (job `release` cho tag app, job `runtime-release` cho tag runtime
+  — dùng chung cơ chế `gh release create`, flow `desktop-app`/`runtime-updates`).
 
 ## Flow liên quan
 
@@ -125,6 +137,10 @@ build/test/kiểm docs trước khi merge.
   tạo release, thay cho lệnh tay `package-mac.mjs --publish`.
 - daemon-setup: sau khi VPS đã chạy theo flow này, owner mới cấu hình máy local để trỏ về đúng
   `https://$CREW_DOMAIN`.
+- runtime-updates: job `runtime-release` của `.github/workflows/ci.yml` build/ký/publish bản runtime trên tag
+  `runtime-v*`; secret `CREW_RUNTIME_SIGNING_KEY`, `CREW_CODESIGN_P12_BASE64`, `CREW_CODESIGN_P12_PASSWORD`
+  khai báo cùng chỗ với secret ký app; API env `RUNTIME_RELEASES_REPO`/`RUNTIME_EXTRA_PUBLIC_KEYS` có mặc định
+  chạy được ngay (không cần thêm gì vào `.env`/`deploy/compose.yml` để dùng tính năng này).
 - server-settings: `deploy/Dockerfile`/`.dockerignore` đưa bản prompt mặc định của daemon vào image api để
   trang "Cài đặt hệ thống → Prompts" có gì để so sánh/hiện là mặc định.
 

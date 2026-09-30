@@ -17,6 +17,8 @@ import { assertTestDatabase, TEST_DATABASE_URL } from './test-database-url.js';
 
 const TABLES = [
   'machine_commands',
+  'runtime_bundles',
+  'runtime_releases',
   'settings_revisions',
   'notice_reads',
   'project_change_requests',

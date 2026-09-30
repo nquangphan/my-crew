@@ -1,5 +1,5 @@
 import { defineConfig } from '@playwright/test';
-import { E2E_API_PORT, E2E_API_URL, E2E_DATABASE_URL } from './test/e2e/e2e-env';
+import { E2E_API_PORT, E2E_API_URL, E2E_DATABASE_URL, e2eRuntimeKey } from './test/e2e/e2e-env';
 
 /**
  * Electron E2E (`_electron`) of the staged app against the real API on its own database.
@@ -33,6 +33,9 @@ export default defineConfig({
       COOKIE_SECURE: 'false',
       LOGIN_RATE_LIMIT_PER_MINUTE: '1000',
       LOG_LEVEL: 'warn',
+      // The runtime E2E publishes bundles signed with the test key; nothing is imported from GitHub.
+      RUNTIME_EXTRA_PUBLIC_KEYS: e2eRuntimeKey().publicKey,
+      RUNTIME_RELEASES_REPO: '',
     },
   },
 });

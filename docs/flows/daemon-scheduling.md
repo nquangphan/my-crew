@@ -39,7 +39,10 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
    `refreshSettings()` khi thấy effect này. `machine.command` (owner gửi một hành động từ web nhắm đúng máy
    này, flow `machine-control`) trả effect `run_command {commandId}` (không sinh job, không qua luật
    một-job-mỗi-ticket vì lệnh không gắn với ticket nào) — `daemon.ts` chạy `runMachineCommand()` ngay trong
-   nền khi thấy effect này. Riêng `ticket.pm_mentioned` (`ticketId` là pm_task; owner tag
+   nền khi thấy effect này. `runtime.published`/`runtime.pinned` (một bản runtime mới được ký, hoặc máy này
+   bị ghim/bỏ ghim, flow `runtime-updates`) đều trả effect `runtime_changed` (không sinh job) — chỉ app
+   desktop cấp `CreateDaemonOptions.onRuntimeChanged` mới làm gì với hiệu ứng này, CLI trần bỏ qua. Riêng
+   `ticket.pm_mentioned` (`ticketId` là pm_task; owner tag
    `@pm`, flow `ticket-lifecycle`): trước khi áp luật một-job-mỗi-ticket ở trên, `state.recordPmMention()` lưu
    lời gọi (`event_id` khoá chính, nên sự kiện phát lại chỉ ghi một lần) vào bảng SQLite cục bộ `pm_mentions`
    (flow `daemon-runtime`), để job PM dù được tạo mới, hấp thụ hay gộp follow-up đều đọc lại được qua
@@ -114,6 +117,8 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
   `settings`/`settingsRevision` của flow đó.
 - machine-control: `machine.command` ánh xạ sang effect `run_command`, chạy ngay trong `daemon.ts` ngoài
   `Scheduler` (không chiếm slot, không sinh job).
+- runtime-updates: `runtime.published`/`runtime.pinned` ánh xạ sang effect `runtime_changed`; app desktop
+  (flow đó) là nơi duy nhất làm gì với hiệu ứng này qua `onRuntimeChanged`.
 
 ## Tests
 
@@ -128,7 +133,8 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
   chạy gộp thành đúng một job tiếp theo (kể cả khi job tiếp theo đã được tạo trong cùng transaction); bình
   luận chủ dự án resume session khi không có job hoạt động; `dependency.resolved` kiểm lại job đang chờ;
   `ticket.cancelled` hủy job `queued` ngay và đánh dấu job `running`; sự kiện không có job bị bỏ qua,
-  `claim.changed` và `project.change_decided` đều yêu cầu refresh project. `ticket.pm_mentioned` (tag `@pm`)
+  `claim.changed` và `project.change_decided` đều yêu cầu refresh project; `runtime.published`/`runtime.pinned`
+  đều trả effect `runtime_changed`. `ticket.pm_mentioned` (tag `@pm`)
   đánh thức đúng job PM của pm_task (không sinh job nào cho ticket được tag), được `absorbed`/`folded` như mọi
   wake event khác, và mỗi lời gọi được `pmMentions()` đọc lại đúng dù job hấp thụ, gộp follow-up hay bị phát lại
   (ghi một lần nhờ khoá `event_id`).

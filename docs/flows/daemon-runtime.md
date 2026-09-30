@@ -64,7 +64,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `putBmadProfile(projectKey, profile, idempotencyKey)` (`PUT /v1/daemon/projects/:projectKey/bmad-profile`,
    cũng flow `project-claims`), `startCommand`/`finishCommand` (flow `machine-control`), hay
    `retrySubtask(pmTaskId, body, idempotencyKey)` (`POST .../retry-subtask`, gọi bởi tool PM cùng tên, flow
-   `agent-runs`/`ticket-lifecycle`). Tuỳ chọn `onError(failure: ApiFailure)`
+   `agent-runs`/`ticket-lifecycle`), hay `runtime()`/`runtimeBundle(version, maxBytes)` (`GET
+   /v1/daemon/runtime`/`GET /v1/daemon/runtime/:version/bundle`, flow `runtime-updates` — bản runtime này máy
+   nên chạy, và tải tarball chưa kiểm để app desktop tự verify trước khi cài; `runtimeBundle()` từ chối câu
+   trả lời lớn hơn `maxBytes` mà không tải hết). Tuỳ chọn `onError(failure: ApiFailure)`
    được gọi đúng một lần cho mỗi request cuối cùng thất bại (sau khi hết lượt thử lại) với `method`, `path`,
    `status` (`0` khi request không có phản hồi — mạng/TLS/timeout), `code`, `message`, `attempts` — không bao
    giờ có header hay body; lỗi của chính `onError` không đổi kết quả request. `CreateDaemonOptions.onApiError`
@@ -91,7 +94,11 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `settings-imported:<machineId>`) rồi refresh lại. `Daemon.settings()`/`effectiveConfig()` lộ trạng thái này
    cho CLI/app desktop (`crewd doctor`, dashboard); `setProjectMcp(projectKey, disabled, note)` gọi
    `VpsClient.putProjectMcp()` rồi `refreshSettings()` ngay để áp cho job kế tiếp — dùng bởi fix sức khỏe
-   (flow `daemon-health`) và công tắc MCP của app desktop (flow `desktop-app`). `CreateDaemonOptions.commandHandlers`
+   (flow `daemon-health`) và công tắc MCP của app desktop (flow `desktop-app`).
+   `CreateDaemonOptions.runtime`/`onRuntimeChanged` (tuỳ chọn, app desktop cấp: `runtime` đọc trạng thái cập
+   nhật runtime hiện tại để gửi kèm heartbeat, `onRuntimeChanged` được gọi khi dispatcher trả effect
+   `runtime_changed` từ sự kiện `runtime.published`/`runtime.pinned` — app desktop phát tiếp một sự kiện host
+   để main tự kiểm lại runtime, flow `runtime-updates`). `CreateDaemonOptions.commandHandlers`
    (tuỳ chọn, `MachineCommandHandlers` của flow `machine-control`): daemon tự có sẵn `pause`/`resume`/
    `inventory.refresh`/`jobs.list`/`project.release`/`assistant.release` (bảng `commandHandlers()`, cạnh
    `pause()`/`resume()` dưới đây); app desktop thêm `health.run`/`health.fix`/`bmad.install`/`logs.tail` qua
@@ -114,7 +121,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    giờ (không tính vào `orphansCleaned`); `timings.probeWorktreeTtlMs`/`timings.probeClock` cho test kiểm soát
    thời gian này.
    `heartbeat()` gửi thêm `settings: settingsStore.state()` (`revision`, `source`: server/cache/bundled,
-   `rejected[]` — flow `server-settings`) mỗi lượt, và `settingsRevision` trên mỗi `runningJobs[]`/
+   `rejected[]` — flow `server-settings`) mỗi lượt, cộng `runtime: options.runtime?.()` khi app desktop cấp
+   tuỳ chọn đó (`MachineRuntimeState` — version/trạng thái cập nhật runtime, flow `runtime-updates`; CLI trần
+   không cấp nên không gửi trường này), và `settingsRevision` trên mỗi `runningJobs[]`/
    `waitingJobs[]` (bản cài đặt job đó bắt đầu với). `heartbeat()` gửi `runningJobs` kèm `stage`/`model`/`effort` của lượt đang chạy, `waitingJobs` cho mọi job
    `queued`/`backoff` kèm `role`/`kind`/`stage`/`since` và lý do chờ hiện tại (`waitOf()`: tạm dừng máy hoặc
    `retryAt` còn hạn thắng quyết định cuối của scheduler; `no_slots` mang số tải/RAM/slot sống ngay lúc gửi,
@@ -220,6 +229,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 - server-settings: `SettingsStore` được dựng và điều khiển bên trong `createDaemon()`; `VpsClient.settings()`/
   `importSettings()`/`putProjectMcp()` sống ở `vps-client.ts` (file của flow này) nhưng phục vụ flow đó; cột
   `jobs.settings_revision` sống trong `state-db.ts` ở đây.
+- runtime-updates: `VpsClient.runtime()`/`runtimeBundle()` sống ở `vps-client.ts` (file của flow này) nhưng
+  phục vụ flow đó; `CreateDaemonOptions.runtime`/`onRuntimeChanged` là điểm nối app desktop truyền trạng thái
+  runtime vào heartbeat và nhận lại hiệu ứng `runtime_changed` của dispatcher (flow `daemon-scheduling`).
 
 ## Tests
 

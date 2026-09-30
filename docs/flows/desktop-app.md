@@ -8,7 +8,11 @@
 App Electron chạy trên máy của chủ dự án, thay cho `crewd` dòng lệnh: một tiến trình main quản lý cửa sổ,
 tray, mở cùng máy và cập nhật, và một tiến trình con (Electron `utilityProcess`) chạy daemon thật
 (`createDaemon()`, flow `daemon-runtime`) cùng các thao tác trình cài đặt và sức khỏe máy. Tách daemon khỏi
-main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job agent đang chạy.
+main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job agent đang chạy. Từ bản `0.3.0`, tiến trình con
+này không còn fork một bundle cố định cạnh main: nó fork đúng "runtime" (host + renderer) mà
+`RuntimeManager` (flow `runtime-updates`) đang chọn — bản đóng gói sẵn trong app, hoặc một bản cập nhật nóng
+đã tải và kiểm chữ ký; xem flow đó cho toàn bộ cơ chế ký/tải/chuyển/quay lui. File này chỉ còn mô tả phần
+"shell" (main, preload) không đổi giữa các cập nhật đó.
 
 ## Điểm vào
 
@@ -21,14 +25,20 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 
 1. `packages/shared/src/desktop-ipc.ts` → `DesktopRequests`, `HostOnlyRequests`, `ToHost`, `FromHost`: hợp
    đồng IPC dùng chung. Renderer chỉ gọi được các method trong `DesktopRequests` (mỗi method có schema zod
-   input/output); main ↔ host nói thêm `HostOnlyRequests` (`host.startDaemon`, `host.stopDaemon`,
-   `host.status`, `host.appState`) qua khung `ToHost`/`FromHost` (`request`/`facts` đi vào, `ready`/
-   `response`/`event` đi ra).
+   input/output) — gồm `app.checkRuntime`, `app.fullDiskAccess`, `app.openFullDiskAccess` (schema
+   `FullDiskAccess`, flow `runtime-updates`); main ↔ host nói thêm `HostOnlyRequests` (`host.startDaemon`,
+   `host.stopDaemon`, `host.status`, `host.appState`, `host.runtimeCheck`, `host.runtimeDownload`) qua khung
+   `ToHost`/`FromHost` (`request`/`facts` đi vào, `ready`/`response`/`event` đi ra). `AppInfo.runtime` và
+   `AppFacts.runtime` (cả hai tuỳ chọn: `MachineRuntimeState`) mang trạng thái cập nhật runtime; sự kiện
+   renderer `DesktopEvents['runtime.status']` báo ngay khi trạng thái đó đổi, không chờ `app.info` được gọi
+   lại. Hợp đồng này thuộc **shell**: một bản cập nhật nóng runtime không tự đổi được nó — cần một bản shell
+   mới (flow `runtime-updates`).
 2. `apps/desktop/src/main/ipc-handlers.ts` → `dispatchDesktopRequest()`, `isTrustedSender()`: mọi lời gọi từ
    renderer được validate lại bằng schema (renderer là input không tin cậy) trước khi chạy; chỉ frame của
    renderer đã bundle (hoặc dev server) mới được xử lý, người gọi khác nhận lỗi thay vì bị throw.
 3. `apps/desktop/src/main/index.ts` → `mainHandlers`, `APP_FIXES`: các method cần chính app (`app.info`,
-   `setup.*`, `folder.pick`, `daemon.pause/resume/restart`, 4 fix `open-claude-login`/`enable-login-item`/
+   `setup.*`, `folder.pick`, `daemon.pause/resume/restart`, `app.checkRuntime`/`app.fullDiskAccess`/
+   `app.openFullDiskAccess` (flow `runtime-updates`), 4 fix `open-claude-login`/`enable-login-item`/
    `install-update`/`restart-daemon`) được trả lời ngay trong main; mọi method khác forward sang daemon host
    qua `supervisor.request()`. Main dựng một `AppLog` (`apps/desktop/src/main/app-log.ts`) ghi
    `~/.crew/logs/app.log` — chỉ tiến trình main viết trực tiếp file này (host gửi dòng của nó qua port, xem
@@ -55,7 +65,12 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    khởi động daemon đầu tiên có thể phải chờ chủ dự án trả lời hộp thoại quyền macOS (xem bước 7).
    `stop('drain' | 'requeue')` dừng có kiểm soát: `drain` tạm dừng nhận job rồi chờ
    job đang chạy xong, `requeue` dừng ngay để job resume ở lần chạy sau. Sự kiện `host-log` chuyển tiếp mỗi
-   dòng `app.log` mà host gửi (`kind: 'log'`) cho main ghi vào `AppLog`.
+   dòng `app.log` mà host gửi (`kind: 'log'`) cho main ghi vào `AppLog`. `relaunch()` (`stop('requeue')` rồi
+   `start()` lại) là cách một cập nhật runtime (flow `runtime-updates`) chuyển sang host mới: `fork` được main
+   truyền vào luôn đọc `runtime.current().hostEntry` mới nhất tại thời điểm gọi, nên host kế tiếp fork đúng
+   bản vừa chuyển sang, kèm biến môi trường `CREW_RUNTIME_VERSION`. Sự kiện `host-crash` (host thoát khi chưa
+   từng báo `ready`, phân biệt với việc dừng có chủ đích) nuôi `RuntimeManager.onHostCrash()` của flow đó để
+   tính quay lui trong giai đoạn thử một bản mới.
 5. `apps/desktop/src/daemon-host/index.ts` là điểm vào tối thiểu của tiến trình host: đăng ký
    `uncaughtException`/`unhandledRejection` (`handlers`) trước khi nạp bất cứ gì khác, tính `./prompts/` cạnh
    chính nó rồi nạp `host-main.js` bằng `import()` động — lỗi lúc nạp hay crash trước khi host chạy được ghi
@@ -71,9 +86,10 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    về cặp handler crash/rejection thay cho handler tối thiểu của entry: `crash` ghi qua
    `service.activity.logger` và `service.host.log` rồi `shutdown(1)` (mã khác 0 để supervisor khởi động lại
    cả host lẫn daemon); `rejection` chỉ ghi log, không thoát. Prompt vai trò của flow `agent-roles` là file
-   Markdown, không phải code nên `electron-vite` không tự bundle: `apps/desktop/electron.vite.config.ts`
-   (plugin `copyRolePrompts`, hook `writeBundle` của build main) chép `apps/daemon/src/roles/prompts/*.md`
-   vào `out/main/prompts/` cạnh bundle main.
+   Markdown, không phải code nên `electron-vite` không tự bundle: `copyRolePrompts` (định nghĩa ở
+   `apps/desktop/electron.vite.config.ts`, dùng bởi build host — `apps/desktop/electron.vite.host.config.ts`,
+   flow `runtime-updates`, vì host giờ nằm trong runtime cập nhật nóng được, không còn trong bundle main) chép
+   `apps/daemon/src/roles/prompts/*.md` vào `out/runtime/host/prompts/` cạnh entry host.
 6. `apps/desktop/src/daemon-host/host-service.ts` → `HostService`: constructor không đụng đĩa hay repo — chỉ
    dựng `HostContext`/`HealthOps`/`Activity` — để host báo `ready` (bước 5) trước khi làm gì tốn thời gian.
    `start()` (chạy một lần, nhớ lại promise) là việc dọn dẹp lúc khởi động, chạy sau khi đã báo `ready`: cài
@@ -82,9 +98,16 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
    không còn chạy được (ví dụ app đã bị chuyển chỗ), giữ nguyên hook đang chạy tốt của project khác.
    `startDaemon()`/`dispatch()`: `startDaemon()` cũng `await repoAccess()` trước (daemon khởi động chạy git
    đồng bộ trong repo) rồi mới gọi `createDaemon()` (flow `daemon-runtime`) **bên trong tiến trình host
-   này** — daemon chạy độc lập với cửa sổ và renderer; `dispatch()` định tuyến method sang `setup-ops.ts`
+   này** — daemon chạy độc lập với cửa sổ và renderer; `startDaemon()` truyền `runtime`/`onRuntimeChanged`
+   (`CreateDaemonOptions` của flow `daemon-runtime`) đọc từ `this.health.facts?.runtime` và phát sự kiện host
+   `runtime.changed` khi daemon thấy `runtime.published`/`runtime.pinned` — main nghe sự kiện đó để gọi
+   `RuntimeManager.check()` (flow `runtime-updates`); `dispatch()` định tuyến method sang `setup-ops.ts`
    (trình cài đặt, thư mục project ở trang trạng thái), `health-ops.ts` (sức khỏe), `activity.ts` (job, log)
-   hoặc gọi thẳng `daemon.pause()/resume()`. `createDaemon()` nhận `onApiError: this.host.logApiError` nên
+   hoặc gọi thẳng `daemon.pause()/resume()`, cộng `host.runtimeCheck`/`host.runtimeDownload` (flow
+   `runtime-updates`: hỏi server bản runtime nào cần chạy, và tải một tarball vào thư mục incoming cho main
+   verify/cài) — hai method này chỉ host gọi được (`HostOnlyRequests`), không phải renderer. `setFacts()` đẩy
+   một heartbeat ngay (`reportSoon()`) khi `facts.runtime` đổi so với lượt trước, để web thấy cập nhật runtime
+   gần như tức thời thay vì chờ nhịp 30 giây. `createDaemon()` nhận `onApiError: this.host.logApiError` nên
    mọi lỗi API của daemon (không riêng của setup-ops) cũng vào `app.log`, cộng `commandHandlers` (flow
    `machine-control`): `health.run`/`health.fix` chạy `HealthOps` — một fix chỉ main process làm được
    (`APP_HEALTH_FIXES`) được `remoteFix()` chuyển qua sự kiện host `app.fix` cho main rồi chạy lại health,
@@ -221,12 +244,18 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
     (`keepOnlyArch()` trong `package-mac.mjs`) chạy một lần cho mỗi kiến trúc, trước khi ký và trước khi dmg
     hay zip được dựng từ app đó, xoá binary Claude Code của kiến trúc còn lại và mọi prebuild `better-sqlite3`
     trừ `prebuilds/darwin-<arch>.node` của chính app đó, nên mỗi app — và cả dmg, zip dựng từ nó — chỉ chứa
-    đúng Electron, Claude Code binary và native module của kiến trúc của nó. Ký ad-hoc (`identity: "-"` trong
-    `electron-builder.yml`), `hardenedRuntime: false`.
+    đúng Electron, Claude Code binary và native module của kiến trúc của nó. `electron-builder` vẫn ký ad-hoc
+    trước (`identity: "-"` trong `electron-builder.yml`, `hardenedRuntime: false` — nó không tự ký được bằng
+    một chứng chỉ tự tạo); `afterSign` của `package-mac.mjs` gọi `signApp()`/`verifyApp()`
+    (`apps/desktop/scripts/codesign.mjs`, flow `runtime-updates`) để ký lại mỗi app bằng danh tính ổn định "2P
+    Crew Code Signing" khi máy build có nó trong keychain (bắt buộc trên CI qua `CREW_CODESIGN_REQUIRED=1`) —
+    danh tính này không đổi qua các bản build nên macOS không hỏi lại Full Disk Access hay quyền đọc thư mục
+    mỗi lần cập nhật; app phiên bản `0.3.0` cũng khai `crewRuntime: {version, shell}` trong `package.json` cho
+    bản runtime cập nhật nóng được (cùng flow đó), tách khỏi `version` của chính app.
     `better-sqlite3` 13 nạp prebuild Node-API theo kiến trúc (`prebuilds/darwin-<arch>.node`) nên cùng một
-    binary chạy được trong Electron. Chưa ký Developer ID và chưa notarize: lần đầu mở phải bấm chuột phải →
+    binary chạy được trong Electron. Chưa notarize dù đã ký ổn định: lần đầu mở phải bấm chuột phải →
     Open (Gatekeeper), và cập nhật tự động vẫn chỉ mở link tải file dmg đúng kiến trúc (`Updater.check()`, bước
-    16) — zip đã được dựng và đăng cùng dmg, chỉ chưa dùng tới vì app chưa ký. Job CI phát hành trên tag `v*`
+    16) — zip đã được dựng và đăng cùng dmg, chỉ chưa dùng tới vì app chưa ký Developer ID. Job CI phát hành trên tag `v*`
     (`.github/workflows/ci.yml`, xem flow `deployment`) chạy `package:mac` này (không `--publish`), rồi tạo
     đúng một GitHub Release cho tag bằng `gh release create` với mọi dmg/zip/blockmap và `latest-mac.yml` —
     publish song song của electron-builder từng tạo release cho cùng tag hai lần nên bước tạo release được
@@ -273,7 +302,7 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 | `apps/desktop/src/daemon-host/activity.ts` | Nhật ký daemon và log tail cho lệnh từ xa | `Activity` |
 | `apps/desktop/src/daemon-host/test-seams.ts` | Thay SDK Claude, probe skill và trình cài BMAD bằng bản giả lập cho E2E | `testSeams`, `TestSeams`, `fakeBmadRunner` |
 | `packages/shared/src/desktop-ipc.ts` | Hợp đồng IPC renderer↔main↔host | `DesktopRequests`, `DesktopEvents`, `HostOnlyRequests`, `ToHost`, `FromHost` |
-| `apps/desktop/electron.vite.config.ts` | Build electron-vite (main/preload/renderer); chép prompt vai trò cạnh bundle main | `copyRolePrompts`, `ROLE_PROMPTS_SOURCE` |
+| `apps/desktop/electron.vite.config.ts` | Build shell (main, preload) và renderer của runtime; định nghĩa `copyRolePrompts` dùng bởi build host (flow `runtime-updates`) | `copyRolePrompts`, `ROLE_PROMPTS_SOURCE`, `alias` |
 
 ## Dữ liệu
 
@@ -289,17 +318,26 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 - Sự kiện: kênh IPC nội bộ Electron `crew:invoke`/`crew:event` (`DESKTOP_INVOKE_CHANNEL`/
   `DESKTOP_EVENT_CHANNEL`) giữa renderer và main; giao thức `ToHost`/`FromHost` (`request`/`facts` vào,
   `ready`/`response`/`event`/`log` ra — tên sự kiện host, `HostEventName`: `daemon.status`, `health.report`,
-  `job.blocked`, `app.fix` — fix chỉ main làm được, xem bước 6) giữa main và daemon host qua `MessagePort` của
-  `utilityProcess`; danh sách sự kiện main phát cho renderer (`DesktopEvents`, hẹp hơn) ở flow `desktop-ui`.
+  `job.blocked`, `app.fix` — fix chỉ main làm được, xem bước 6, và `runtime.changed` — daemon thấy
+  `runtime.published`/`runtime.pinned` trên stream, flow `runtime-updates`) giữa main và daemon host qua
+  `MessagePort` của `utilityProcess`; `DaemonSupervisor` cũng phát nội bộ (`EventEmitter`, không qua
+  `MessagePort`) `runtime` (đổi trạng thái host), `ready-timeout` và `host-crash` — hai sự kiện cuối nuôi
+  `RuntimeManager.onReadyTimeout()`/`onHostCrash()` của flow đó; danh sách sự kiện main phát cho renderer
+  (`DesktopEvents`, hẹp hơn, gồm `runtime.status`) ở flow `desktop-ui`.
 - Gọi ngoài: VPS API và Agent SDK qua daemon thật (xem `daemon-runtime`, `daemon-health`); GitHub Releases
-  của `nquangphan/my-crew` qua `electron-updater` (kiểm và tải bản mới) và `npm pack`/`gh`-style publish lúc
-  đóng gói; `/usr/bin/osascript` mở Terminal; `/usr/bin/codesign` kiểm chữ ký lúc quyết định tự cài bản mới;
-  `app.setLoginItemSettings` (launchd login item); shell đăng nhập của owner để đọc PATH.
+  của `nquangphan/my-crew` qua `electron-updater` (kiểm và tải bản mới, khác GitHub Releases của bản runtime,
+  flow `runtime-updates`) và `npm pack`/`gh`-style publish lúc đóng gói; `/usr/bin/osascript` mở Terminal;
+  `/usr/bin/codesign` kiểm chữ ký lúc quyết định tự cài bản mới; `app.setLoginItemSettings` (launchd login
+  item); shell đăng nhập của owner để đọc PATH.
 
 ## Flow liên quan
 
 - desktop-ui: renderer gọi đúng các method của `DesktopRequests` qua preload và nhận sự kiện của
   `DesktopEvents`; điều hướng bằng `Navigate` (route/section/projectKey).
+- runtime-updates: `DaemonSupervisor.relaunch()`/sự kiện `host-crash`, `HostService.runtimeCheck()`/
+  `runtimeDownload()`, và `mainHandlers['app.checkRuntime'|'app.fullDiskAccess'|'app.openFullDiskAccess']`
+  (file này) lắp ráp phần shell của cập nhật runtime; `RuntimeManager`, việc ký/kiểm bản, danh tính ký code ổn
+  định và Full Disk Access sống ở flow đó.
 - daemon-runtime: `HostService.startDaemon()` gọi `createDaemon()`; `setup-ops.ts`/`health-ops.ts`/
   `activity.ts` dùng lại mọi export của `apps/daemon/src/library.ts` (config, secrets, state DB, VPS client).
 - daemon-health: `health-ops.ts` chạy `HEALTH_CHECKS`/`runHealthChecks()`/`applyHealthFix()` với
@@ -331,7 +369,9 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   đúng, kể cả dòng `app.log` của host qua sự kiện `host-log`; dừng có kiểm soát theo từng chế độ không khởi
   động lại; `restart()` thay host ngay cho fix "khởi động lại daemon"; một host không báo `ready` kịp bị kill
   rồi force-kill (SIGKILL) khi SIGTERM không có tác dụng, và được khởi động lại vẫn trả lời được request đang
-  chờ; một host đã báo `ready` thì không bao giờ bị force-kill hay tính ready-timeout.
+  chờ; một host đã báo `ready` thì không bao giờ bị force-kill hay tính ready-timeout; `relaunch()` dừng có
+  kiểm soát kiểu `requeue` rồi khởi động lại daemon trên host mới, phát sự kiện `host-crash` khi host thoát
+  trước khi từng báo `ready` (dùng bởi `RuntimeManager` của flow `runtime-updates`).
 - `apps/desktop/test/main-logic.test.ts`: `decideQuit()` hỏi đúng khi có job chạy; biên IPC từ chối method lạ
   và input sai trước khi chạy gì, trả lời method của main, forward phần còn lại, biến lỗi thành message, chỉ
   nhận renderer đã bundle, tên kênh preload khớp hợp đồng dùng chung; `ipcLogEntry()` ghi đúng outcome/ms/lỗi
@@ -348,7 +388,10 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
   được ghi vào hook git đúng binary; chạy kiểm tra sức khỏe, fix của nó và log tail mà owner hỏi từ web (các
   hành động của flow `machine-control`); dựng `HostService` không đụng repo nào, hook có runtime đã biến mất
   chỉ được sửa lại sau khi gọi `start()` (không phải lúc dựng), hook đang chạy tốt bằng runtime khác (mô
-  phỏng CLI node cạnh binary app) được giữ nguyên — tất cả chạy trên API thật.
+  phỏng CLI node cạnh binary app) được giữ nguyên; nghe một `runtime.published` thật, báo đúng version app/
+  runtime qua heartbeat ngay (không chờ nhịp định kỳ), rồi `host.runtimeCheck`/`host.runtimeDownload` trả
+  đúng bản cần tải và từ chối một version dò đường ra ngoài (`../0.3.1`) — tất cả chạy trên API thật (phần
+  kiểm chữ ký/hash của bản tải về thuộc flow `runtime-updates`, kiểm ở `runtime-update.test.ts`).
 - `apps/desktop/test/folder-access.test.ts`: đọc một thư mục chậm không chặn tick của event loop và vẫn ghi
   đúng thứ tự sự kiện chờ/xong, đọc từng thư mục một lúc (thư mục sau chỉ bắt đầu khi thư mục trước xong); một
   thư mục bị từ chối báo đúng mã lỗi (`EPERM`) qua `onResolved`, một thư mục đọc được báo `null`.
@@ -370,13 +413,6 @@ main để một UI crash hoặc đóng cửa sổ không bao giờ dừng job a
 - `apps/desktop/test/e2e/health.spec.ts` (Electron thật qua Playwright `_electron`, bộ `test:e2e`): phá một
   check cho nó chuyển đỏ rồi tự sửa cho nó xanh lại; daemon sống sót qua việc đóng/mở lại cửa sổ và tự khởi
   động lại sau khi host bị kill.
-- `apps/desktop/test/e2e/first-project.spec.ts` (Electron thật, bộ `test:e2e`): một project mobile chưa có
-  docs được điền ở khung "Thêm project mới từ thư mục" trong trình cài đặt và lưu bằng nút của bước ("Lưu và
-  nhận project" tự tạo project đang nháp trước khi áp dụng phần đã tick, "Tiếp" bị khoá tới khi tạo xong);
-  commit của chủ dự án đi qua trước docs-init với một dòng cảnh báo; dashboard không đỏ (hook xanh, docs xanh
-  kèm ghi chú); tạo lại đúng project từ trang Project là thành công, key trùng của project khác vẫn báo lỗi rõ
-  ràng; "Mở thư mục log" gọi đúng `shell.openPath`; `app.log` có đủ các dòng mong đợi, không lộ mã ghép hay
-  token, và file ở mode 0600.
 - `pnpm --filter @crew/desktop smoke:mac` (`scripts/smoke-packaged.mjs`, thủ công, chỉ macOS): mở app đã
   đóng gói qua LaunchServices (`open -n`, giống Finder/login item nên stdio đi vào `/dev/null`) với
   `CREW_HOME`/`CREW_DESKTOP_USER_DATA` tạm, chờ tới 60 s cho `app.log` báo `daemon-host` ở trạng thái

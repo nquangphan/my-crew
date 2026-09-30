@@ -9,6 +9,7 @@ import {
   ProjectPlatform,
   UiTestMcp,
 } from './project-schemas.js';
+import { MachineRuntimeState, MachineRuntimeView } from './runtime-schemas.js';
 import { MachineSettingsState } from './settings-schemas.js';
 
 // ---------------------------------------------------------------------------
@@ -179,6 +180,8 @@ export const HeartbeatRequest = z.object({
   health: HealthSummary.optional(),
   /** The settings revision new jobs start with, and where it came from (server, cache or bundled). */
   settings: MachineSettingsState.optional(),
+  /** The app and runtime versions and the runtime update state (desktop app only; unknown shapes are dropped). */
+  runtime: MachineRuntimeState.optional().catch(undefined),
 });
 export type HeartbeatRequest = z.input<typeof HeartbeatRequest>;
 
@@ -236,6 +239,8 @@ export const Machine = z.object({
       current: z.boolean(),
     })
     .default({ reported: null, expectedRevision: '', current: false }),
+  /** The runtime the desktop app reports running and updating, and the release the owner pinned it to. */
+  runtime: MachineRuntimeView.default({ reported: null, pinnedVersion: null }),
   createdAt: z.iso.datetime(),
 });
 export type Machine = z.infer<typeof Machine>;

@@ -101,3 +101,110 @@ describe('MachinesPage', () => {
     expect(router.state.location.search).toEqual({ project: 'KIDYADMIN,NOTE' });
   });
 });
+
+describe('MachinesPage runtime updates', () => {
+  const release = (version: string, app = '>=0.3.0 <0.4.0') => ({
+    version,
+    commit: 'abcdef1234567890',
+    createdAt: '2026-09-30T05:00:00.000Z',
+    publishedAt: '2026-09-30T05:10:00.000Z',
+    shellRange: { app, electron: '44' },
+    size: 1000,
+    bundleSha256: 'a'.repeat(64),
+    source: 'github',
+    publishedBy: 'github:nquangphan/my-crew',
+    keyId: 'crew-runtime-2026-09',
+  });
+  const runtimeState = (overrides: object = {}) => ({
+    shellVersion: '0.3.0',
+    version: '0.3.1',
+    source: 'installed',
+    state: 'idle',
+    target: null,
+    message: null,
+    checkedAt: '2026-09-30T05:20:00.000Z',
+    ...overrides,
+  });
+
+  function setupRuntime(pinnedVersion: string | null = null, reported: object = runtimeState()) {
+    return mockFetch([
+      [
+        'GET /v1/machines',
+        () => ({
+          body: {
+            items: [
+              {
+                ...machine('00000000-0000-4000-8000-0000000000a1', 'macbook', [], []),
+                appVersion: '0.3.0',
+                runtime: { reported, pinnedVersion },
+              },
+              machine('00000000-0000-4000-8000-0000000000a2', 'mac-cu', [], []),
+            ],
+          },
+        }),
+      ],
+      ['GET /v1/projects', () => ({ body: { items: [] } })],
+      [
+        'GET /v1/runtime/releases',
+        () => ({ body: { items: [release('0.3.2'), release('0.3.1')], githubRepo: 'nquangphan/my-crew' } }),
+      ],
+      [
+        'PUT /v1/machines/',
+        (call) => ({
+          body: {
+            machineId: call.path.split('/')[3],
+            pinnedVersion: (call.body as { version: string | null }).version,
+          },
+        }),
+      ],
+      ['POST /v1/runtime/releases/import', () => ({ body: { imported: ['0.3.3'], skipped: [] } })],
+    ]);
+  }
+
+  it("shows each machine's app and runtime versions, its update state and the published releases", async () => {
+    setupRuntime(
+      null,
+      runtimeState({
+        state: 'rolled_back',
+        target: '0.3.2',
+        message: 'Bản runtime 0.3.2 không khởi động được; đã quay lại bản 0.3.1.',
+      }),
+    );
+    renderWithApp(<MachinesPage search={{}} />);
+    const card = await screen.findByRole('listitem', { name: 'Máy macbook' });
+    await within(card).findByText(/không khởi động được/);
+    expect(card.querySelector('[data-runtime="0.3.1"]')).not.toBeNull();
+    expect(card.textContent).toContain('app 0.3.0 · runtime 0.3.1 (cập nhật nóng)');
+    const old = screen.getByRole('listitem', { name: 'Máy mac-cu' });
+    expect(within(old).getByText(/máy chưa báo runtime/)).toBeInTheDocument();
+    const releases = screen.getByRole('region', { name: 'Bản runtime' });
+    await within(releases).findByText('0.3.2');
+    expect(within(releases).getByText(/mới nhất/)).toBeInTheDocument();
+  });
+
+  it('pins a machine to an older release (a rollback), unpins it, and imports new releases from GitHub', async () => {
+    const calls = setupRuntime('0.3.1');
+    const user = userEvent.setup();
+    renderWithApp(<MachinesPage search={{}} />);
+    const card = await screen.findByRole('listitem', { name: 'Máy macbook' });
+    await within(card).findByText(/ghim bản 0.3.1/);
+    const select = within(card).getByRole('combobox', { name: 'Bản runtime cho macbook' });
+    await within(select).findByRole('option', { name: /0\.3\.2/ });
+    await user.selectOptions(select, '');
+    await user.click(within(card).getByRole('button', { name: 'Bỏ ghim' }));
+    await waitFor(() =>
+      expect(calls.find((call) => call.method === 'PUT')).toMatchObject({
+        path: '/v1/machines/00000000-0000-4000-8000-0000000000a1/runtime',
+        body: { version: null },
+      }),
+    );
+    await user.selectOptions(select, '0.3.2');
+    await user.click(within(card).getByRole('button', { name: 'Ghim bản này' }));
+    await waitFor(() =>
+      expect(calls.filter((call) => call.method === 'PUT').at(-1)?.body).toEqual({ version: '0.3.2' }),
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Nhập bản mới từ GitHub' }));
+    await screen.findByText('Đã nhập runtime 0.3.3');
+  });
+});

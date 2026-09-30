@@ -1,8 +1,9 @@
-import { existsSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadConfig } from '@crew/daemon';
 import type {
   AppLogEntry,
+  DaemonRuntimeResponse,
   DaemonStatusView,
   FolderValidation,
   HealthReport,
@@ -13,6 +14,7 @@ import type {
 } from '@crew/shared';
 import { describe, expect, inject, it } from 'vitest';
 import { settingsRevisions } from '../../api/src/db/schema.js';
+import { publishRelease } from '../../api/src/services/runtime-service.js';
 import { insertPairingCode } from '../../api/test/helpers/machines.js';
 import { type LoggedInOwner, seedAndLogin } from '../../api/test/helpers/owner-session.js';
 import { createTestProject } from '../../api/test/helpers/test-db.js';
@@ -20,6 +22,7 @@ import { useApi as apiFixture } from '../../daemon/test/helpers/api.js';
 import { git, makeRepo, onCleanup, tempDir } from '../../daemon/test/helpers/git.js';
 import { HostService } from '../src/daemon-host/host-service.js';
 import { testSeams } from '../src/daemon-host/test-seams.js';
+import { buildRelease, testKey } from './runtime-fixtures.js';
 
 const api = apiFixture();
 
@@ -116,6 +119,69 @@ function web(app: ApiApp, owner: LoggedInOwner, machineId: string) {
     },
   };
 }
+
+describe('daemon host: runtime updates against the real API', () => {
+  it('hears a published runtime, reports the app and runtime versions, and downloads the tarball for the shell', async () => {
+    const server = await api.server();
+    const owner = await seedAndLogin(server.app, api.db);
+    const home = join(tempDir('crew-desktop-home-'), 'crew');
+    const { call, service, events } = host(home);
+    expect(await call('host.runtimeCheck')).toBeNull();
+    const paired = await call<PairResult>('setup.pair', {
+      apiUrl: server.url,
+      code: await insertPairingCode(api.db),
+      machineName: 'mac-runtime',
+    });
+    await call('host.startDaemon');
+    await until(() => service.status()?.connected === true);
+
+    // The shell's runtime state goes out in a heartbeat at once.
+    service.setFacts({
+      version: '0.3.0',
+      loginItem: true,
+      update: { state: 'disabled', version: null, canAutoInstall: false, downloadUrl: null, message: null },
+      runtime: {
+        shellVersion: '0.3.0',
+        version: '0.3.0',
+        source: 'builtin',
+        state: 'idle',
+        target: null,
+        message: null,
+        checkedAt: null,
+      },
+    });
+    await until(async () => {
+      const res = await server.app.inject({ method: 'GET', url: '/v1/machines', headers: owner.headers });
+      const machine = (res.json().items as Machine[]).find((item) => item.id === paired.machineId);
+      return machine?.runtime.reported?.shellVersion === '0.3.0';
+    });
+
+    const key = testKey('host-service');
+    const built = buildRelease(key.privateKey, '0.3.1');
+    await publishRelease(
+      api.db,
+      { manifest: built.manifest, signature: built.signature ?? '', bundle: built.bundle },
+      { source: 'upload', publishedBy: 'owner:owner', keys: [{ id: 'test', publicKey: key.publicKey }] },
+    );
+    // The stream event reaches the host, which tells the main process to check.
+    await until(() => events.some((event) => event.name === 'runtime.changed'));
+    const answer = await call<DaemonRuntimeResponse>('host.runtimeCheck');
+    expect(answer.desired).toMatchObject({
+      version: '0.3.1',
+      manifest: built.manifest,
+      signature: built.signature,
+    });
+
+    const downloaded = await call<{ path: string; size: number }>('host.runtimeDownload', {
+      version: '0.3.1',
+    });
+    expect(downloaded.path).toBe(join(home, 'runtime', '.incoming', '0.3.1.tar.gz'));
+    expect(readFileSync(downloaded.path).equals(built.bundle)).toBe(true);
+    await expect(call('host.runtimeDownload', { version: '../0.3.1' })).rejects.toThrow(
+      /Dữ liệu không hợp lệ/,
+    );
+  });
+});
 
 describe('daemon host: the gateway against the real API', () => {
   it('pairs, shows the projects assigned on the web, saves a picked folder to the server and runs the project', async () => {

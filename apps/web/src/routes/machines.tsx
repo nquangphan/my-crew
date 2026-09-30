@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Hourglass, Plus, TriangleAlert } from 'lucide-r
 import { type ReactNode, useState } from 'react';
 import { describeWait, formatClock } from '../components/agent-activity';
 import { MachineControl } from '../components/machine-control';
+import { MachineRuntime, RuntimeReleases } from '../components/machine-runtime';
 import { PairingDialog } from '../components/pairing-dialog';
 import { ProjectBadge, projectKeyResolver } from '../components/project-badge';
 import { ProjectFilterMenu, selectedProjects } from '../components/project-filter';
@@ -329,12 +330,10 @@ function MachineCard({ machine, projectIds }: { machine: Machine; projectIds: Re
           )}
         </Fact>
         <Fact label="Phiên bản">
-          {[
-            machine.appVersion && `app ${machine.appVersion}`,
-            machine.cliVersion && `crewd ${machine.cliVersion}`,
-          ]
-            .filter(Boolean)
-            .join(' · ') || '—'}
+          <MachineRuntime machine={machine} />
+          {machine.cliVersion && (
+            <span className="text-[13px] text-muted">Claude Code {machine.cliVersion}</span>
+          )}
         </Fact>
         <Fact label="Token hết hạn">
           {machine.tokenExpiresAt ? (
@@ -468,6 +467,7 @@ export function MachinesPage({ search = {} }: { search?: ProjectFilterSearch }) 
       {chosen.length > 0 && hidden > 0 && (
         <p className="m-0 text-xs text-muted">Ẩn {hidden} máy không giữ dự án đã chọn.</p>
       )}
+      <RuntimeReleases />
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {active.map((m) => (
           <MachineCard key={m.id} machine={m} projectIds={chosenIds} />

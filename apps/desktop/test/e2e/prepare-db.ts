@@ -69,7 +69,7 @@ async function main(): Promise<void> {
     const state: E2eState = {
       username,
       password,
-      pairingCodes: await Promise.all(Array.from({ length: 9 }, () => pairingCode())),
+      pairingCodes: await Promise.all(Array.from({ length: 10 }, () => pairingCode())),
       project: { key: 'SHOP', repoUrl },
     };
     mkdirSync(dirname(E2E_STATE_FILE), { recursive: true });

@@ -25,9 +25,10 @@ mac:
   artifactName: 2P-Crew-${version}-${arch}-mac.${ext}
   category: public.app-category.developer-tools
   icon: build/icon.png
-  # Ad-hoc signature: no Developer ID certificate yet. The app runs after right-click → Open on first launch,
-  # and updates fall back to a download link. See docs/flows/desktop-app.md for the signing and notarizing
-  # step (CSC_LINK / CSC_KEY_PASSWORD, identity, hardenedRuntime, notarize).
+  # electron-builder signs ad hoc; package-mac.mjs (afterSign) then re-signs with the stable self-signed
+  # "2P Crew Code Signing" certificate when the keychain has it, so macOS keeps its privacy grants across
+  # updates (scripts/codesign.mjs). No Developer ID yet: the first launch still needs right-click → Open, and
+  # updates fall back to a download link. See docs/flows/desktop-app.md for the Developer ID step.
   identity: "-"
   # The hardened runtime is for Developer ID builds; with an ad-hoc signature it blocks loading native
   # modules (library validation). Turn it on together with the signing identity.

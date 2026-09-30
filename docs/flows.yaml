@@ -36,6 +36,7 @@ flows:
       - apps/api/drizzle/0006_pm_complexity_reason.sql
       - apps/api/drizzle/0007_project_bmad_profile.sql
       - apps/api/drizzle/0008_server_settings_and_machine_commands.sql
+      - apps/api/drizzle/0009_runtime_releases.sql
       - packages/shared/src/index.ts
     tests:
       - apps/api/test/shutdown.test.ts
@@ -530,6 +531,7 @@ flows:
       - apps/desktop/src/renderer/components/health-check-row.tsx
       - apps/desktop/src/renderer/components/folder-picker.tsx
       - apps/desktop/src/renderer/components/ui.tsx
+      - apps/desktop/src/renderer/components/full-disk-access.tsx
     tests:
       - apps/desktop/test/e2e/onboarding.spec.ts
       - apps/desktop/test/e2e/project-bmad.spec.ts
@@ -595,6 +597,29 @@ flows:
       - apps/api/test/machine-commands.test.ts
       - apps/daemon/test/machine-commands.test.ts
       - apps/web/src/components/machine-control.test.tsx
+  runtime-updates:
+    title: Cập nhật nóng runtime đã ký, chữ ký app ổn định và quyền ổ đĩa
+    doc: docs/flows/runtime-updates.md
+    entrypoints:
+      - apps/api/src/routes/runtime-routes.ts
+      - apps/desktop/src/main/runtime-manager.ts
+    files:
+      - apps/api/src/services/runtime-service.ts
+      - apps/api/src/jobs/runtime-import.ts
+      - packages/shared/src/runtime-schemas.ts
+      - apps/desktop/src/main/runtime-store.ts
+      - apps/desktop/src/main/runtime-archive.ts
+      - apps/desktop/src/main/runtime-verify.ts
+      - apps/desktop/src/main/full-disk-access.ts
+      - apps/desktop/electron.vite.host.config.ts
+      - apps/web/src/components/machine-runtime.tsx
+    tests:
+      - apps/api/test/runtime.test.ts
+      - packages/shared/src/runtime-schemas.test.ts
+      - apps/desktop/test/runtime-update.test.ts
+      - apps/desktop/test/full-disk-access.test.ts
+      - apps/desktop/test/codesign.test.ts
+      - apps/desktop/test/e2e/runtime-update.spec.ts
   daemon-setup:
     title: Cài đặt máy local (daemon)
     doc: docs/flows/daemon-setup.md

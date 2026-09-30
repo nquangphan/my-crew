@@ -28,6 +28,20 @@ const EnvSchema = z.object({
   /** Budget days are calendar days in this zone. */
   BUDGET_TIMEZONE: z.string().default('Asia/Ho_Chi_Minh'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  /**
+   * GitHub repository (`owner/name`) whose `runtime-v*` releases the server imports (hourly and on the owner's
+   * request). Empty turns the import off; uploads from the web still work.
+   */
+  RUNTIME_RELEASES_REPO: z
+    .string()
+    .trim()
+    .regex(/^$|^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/, 'owner/name')
+    .default('nquangphan/my-crew'),
+  /**
+   * Extra public keys (raw Ed25519, base64, comma-separated) whose runtime signatures this server accepts besides
+   * the ones built in (@crew/shared RUNTIME_SIGNING_KEYS): a staging or test key.
+   */
+  RUNTIME_EXTRA_PUBLIC_KEYS: CsvList.default([]),
 });
 
 export interface AppConfig {
@@ -41,6 +55,10 @@ export interface AppConfig {
   loginRateLimitPerMinute: number;
   budgetTimezone: string;
   logLevel: string;
+  /** `owner/name` of the GitHub repo runtime releases are imported from; null or absent: import off. */
+  runtimeReleasesRepo?: string | null;
+  /** Runtime signing keys accepted besides the built-in ones. */
+  runtimeExtraKeys?: { id: string; publicKey: string }[];
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -62,6 +80,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     loginRateLimitPerMinute: e.LOGIN_RATE_LIMIT_PER_MINUTE,
     budgetTimezone: e.BUDGET_TIMEZONE,
     logLevel: e.LOG_LEVEL,
+    runtimeReleasesRepo: e.RUNTIME_RELEASES_REPO || null,
+    runtimeExtraKeys: e.RUNTIME_EXTRA_PUBLIC_KEYS.map((publicKey, index) => ({
+      id: `extra-${index + 1}`,
+      publicKey,
+    })),
   };
 }
 

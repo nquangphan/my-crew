@@ -10,6 +10,7 @@ import type { AppConfig } from './config.js';
 import type { Database } from './db/client.js';
 import { ApiError } from './errors.js';
 import { startHeartbeatSweeper } from './jobs/heartbeat-sweeper.js';
+import { startRuntimeImport } from './jobs/runtime-import.js';
 import { startStuckTicketAlarm, WaitingJobsRegistry } from './jobs/stuck-ticket-alarm.js';
 import { EventBus } from './realtime/event-bus.js';
 import { authRoutes } from './routes/auth-routes.js';
@@ -22,10 +23,12 @@ import { machineRoutes, pairRoutes } from './routes/machine-routes.js';
 import { projectRoutes } from './routes/project-routes.js';
 import { reportRoutes } from './routes/report-routes.js';
 import type { RouteDeps } from './routes/route-deps.js';
+import { daemonRuntimeRoutes, runtimeRoutes } from './routes/runtime-routes.js';
 import { daemonSettingsRoutes, settingsRoutes } from './routes/settings-routes.js';
 import { daemonStreamRoutes, ownerStreamRoutes } from './routes/stream-routes.js';
 import { ticketRoutes } from './routes/ticket-routes.js';
 import { purgeExpiredIdempotencyKeys } from './services/idempotency.js';
+import { trustedRuntimeKeys } from './services/runtime-service.js';
 
 export interface BuildAppOptions {
   config: AppConfig;
@@ -113,6 +116,7 @@ export async function buildApp({
     await owner.register(machineCommandRoutes, deps);
     await owner.register(docsRoutes, deps);
     await owner.register(settingsRoutes, deps);
+    await owner.register(runtimeRoutes, deps);
     await owner.register(ownerStreamRoutes, deps);
   });
   // Daemon routes: machine bearer token only; cookies are ignored.
@@ -123,17 +127,26 @@ export async function buildApp({
     await daemon.register(daemonBmadProfileRoutes, deps);
     await daemon.register(daemonSettingsRoutes, deps);
     await daemon.register(daemonCommandRoutes, deps);
+    await daemon.register(daemonRuntimeRoutes, deps);
     await daemon.register(daemonStreamRoutes, deps);
   });
 
   let timer: NodeJS.Timeout | undefined;
   let stopSweeper: (() => void) | undefined;
   let stopStuckAlarm: (() => void) | undefined;
+  let stopRuntimeImport: (() => void) | undefined;
   app.addHook('onReady', async () => {
     await bus.start();
     if (realtime.sweeper !== false) {
       stopSweeper = startHeartbeatSweeper(db, app.log);
       stopStuckAlarm = startStuckTicketAlarm(db, deps.waitingJobs, app.log);
+      if (config.runtimeReleasesRepo) {
+        stopRuntimeImport = startRuntimeImport(
+          db,
+          { repo: config.runtimeReleasesRepo, keys: trustedRuntimeKeys(config) },
+          app.log,
+        );
+      }
     }
     timer = setInterval(() => {
       Promise.all([purgeExpiredIdempotencyKeys(db), purgeExpiredSessions(db)]).catch((error: unknown) =>
@@ -170,6 +183,7 @@ export async function buildApp({
     }
     stopSweeper?.();
     stopStuckAlarm?.();
+    stopRuntimeImport?.();
     await bus.stop();
   });
   app.addHook('onClose', async () => clearInterval(timer));

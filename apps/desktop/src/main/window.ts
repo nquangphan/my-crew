@@ -3,8 +3,11 @@ import { isTrustedSender } from './ipc-handlers.js';
 
 export interface WindowOptions {
   preload: string;
-  /** `file://…/renderer/index.html`, or the dev server URL in development. */
-  rendererUrl: string;
+  /**
+   * `file://…/renderer/index.html` of the runtime running now (it changes when a runtime update switches), or
+   * the dev server URL in development.
+   */
+  rendererUrl: () => string;
   route: string;
 }
 
@@ -33,9 +36,9 @@ export function createMainWindow(options: WindowOptions): BrowserWindow {
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', (event, url) => {
-    if (!isTrustedSender(url, options.rendererUrl)) event.preventDefault();
+    if (!isTrustedSender(url, options.rendererUrl())) event.preventDefault();
   });
   window.once('ready-to-show', () => window.show());
-  void window.loadURL(`${options.rendererUrl}#/${options.route}`);
+  void window.loadURL(`${options.rendererUrl()}#/${options.route}`);
   return window;
 }

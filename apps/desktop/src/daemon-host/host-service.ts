@@ -1,3 +1,5 @@
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createDaemon, HEALTH_CHECKS, type JobRow, runHealthChecks, scrubSecrets } from '@crew/daemon';
 import {
   APP_HEALTH_FIXES,
@@ -9,6 +11,7 @@ import {
   type HostMethod,
   hostInputSchema,
   type LogLine,
+  RUNTIME_LIMITS,
 } from '@crew/shared';
 import { z } from 'zod';
 import { Activity } from './activity.js';
@@ -87,7 +90,33 @@ export class HostService {
   }
 
   setFacts(facts: AppFacts): void {
+    const before = JSON.stringify(this.health.facts?.runtime ?? null);
     this.health.facts = facts;
+    // A new runtime version or update state reaches the web at once, not with the next 30 s heartbeat.
+    if (this.host.daemon && JSON.stringify(facts.runtime ?? null) !== before) {
+      void this.host.daemon.heartbeat().catch(() => undefined);
+    }
+  }
+
+  /** Which runtime the paired server wants this machine to run (null: not paired yet). */
+  private async runtimeCheck() {
+    const config = this.host.config();
+    if (!config?.machineId || !this.host.tokenStore.get()) return null;
+    return this.host.vps(config.apiUrl).runtime();
+  }
+
+  /**
+   * Downloads a runtime tarball into `<home>/runtime/.incoming/` for the main process, which verifies the
+   * signature and every hash before it unpacks or runs anything.
+   */
+  private async runtimeDownload(version: string): Promise<{ path: string; size: number }> {
+    const data = await this.host.vps().runtimeBundle(version, RUNTIME_LIMITS.bundleBytes);
+    const dir = join(this.host.deps.home, 'runtime', '.incoming');
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    const path = join(dir, `${version}.tar.gz`);
+    writeFileSync(path, data, { mode: 0o600 });
+    this.host.log('info', 'runtime-downloaded', { version, size: data.length });
+    return { path, size: data.length };
   }
 
   status(): DaemonStatusView | null {
@@ -149,6 +178,8 @@ export class HostService {
       logger: this.activity.logger,
       onApiError: this.host.logApiError,
       health: () => this.health.summary(),
+      runtime: () => this.health.facts?.runtime,
+      onRuntimeChanged: () => this.host.deps.emit('runtime.changed', {}),
       // Remote actions from the web that only this app can perform (the daemon adds pause, resume, the
       // inventory re-probe, the job list and the releases itself).
       commandHandlers: {
@@ -281,6 +312,10 @@ export class HostService {
           paired: Boolean(config?.machineId && ctx.tokenStore.get()),
         };
       }
+      case 'host.runtimeCheck':
+        return this.runtimeCheck();
+      case 'host.runtimeDownload':
+        return this.runtimeDownload((input as { version: string }).version);
       case 'setup.checkServer':
         return checkServer(ctx, as<'setup.checkServer'>().apiUrl);
       case 'setup.pair': {

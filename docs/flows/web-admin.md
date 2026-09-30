@@ -62,13 +62,18 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
    đã biết key kèm `ProjectBadge` của ticket đó —, project sở hữu (hiện bằng badge), phiên bản app/CLI, hạn
    token — đỏ khi dưới `TOKEN_WARN_DAYS=14`), `SettingsPickup()` (bản cài đặt server máy đang áp và đã nhận
    bản mới nhất chưa, từ heartbeat — flow `server-settings`, component dùng lại của
-   `system-settings.tsx`) và link "Cài đặt máy" tới `/settings/machines/$machineId`, nút "Ghép máy mới"
+   `system-settings.tsx`), `MachineRuntime()` (`apps/web/src/components/machine-runtime.tsx`, flow
+   `runtime-updates`: phiên bản app/runtime máy đang chạy, trạng thái cập nhật bằng tiếng Việt, và một `Select`
+   ghim máy vào một bản runtime cụ thể hoặc để nó theo bản mới nhất) và link "Cài đặt máy" tới
+   `/settings/machines/$machineId`, nút "Ghép máy mới"
    (`PairingDialog`), "Đặt làm máy trợ lý"/"Thu hồi" (xác nhận rồi gọi
    `api.assignToMachine`/`api.revokeMachine`, flow `machine-pairing`), và nút "Điều khiển" mở/đóng
    `MachineControl` (flow `machine-control`) ngay dưới thẻ máy — tạm dừng, kiểm tra sức khỏe và fix từ xa, dò
    lại skill/MCP, job gần đây, log, gỡ project hoặc vai trò trợ lý. Bộ lọc
    "Dự án" (`ProjectFilterMenu`, URL `project=KEY,KEY`, flow `web-tickets`) chỉ giữ máy có `projectKeys` chứa
-   một project đã chọn (kèm dòng "Ẩn N máy không giữ dự án đã chọn."); `MachineJobs` chỉ liệt kê job có ticket
+   một project đã chọn (kèm dòng "Ẩn N máy không giữ dự án đã chọn."). Trang còn có mục "Bản runtime" ở cuối
+   (`RuntimeReleases()`, cùng file `machine-runtime.tsx`, flow `runtime-updates`): 5 bản mới nhất trên server
+   và nút "Nhập bản mới từ GitHub" khi máy chủ có cấu hình repo nhập. `MachineJobs` chỉ liệt kê job có ticket
    thuộc project đã chọn (job có ticket chưa tải xong vẫn hiện tạm tới khi biết project).
 7. `apps/web/src/routes/machines.tsx` → `Inventory()`: xổ danh sách skill/MCP theo từng project (và cấp máy)
    từ `MachineDetailResponse.inventories`, mỗi skill có tooltip chạm (`InfoTip`, flow `web-shell`) hiện nguồn
@@ -120,6 +125,8 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 - web-shell: dùng chung `Breadcrumbs`, `StatusLozenge`, `ui/*`, `useStoredState`.
 - server-settings: `SettingsPickup()`/`ProjectMcpSummary()` đọc lại cài đặt server (`Machine.settings`,
   `project_mcp` của project) và link tới trang máy/dự án tương ứng của "Cài đặt hệ thống".
+- runtime-updates: `MachineRuntime()`/`RuntimeReleases()` (`components/machine-runtime.tsx`) hiện danh sách
+  bản runtime và cho phép ghim mỗi máy vào một bản; toàn bộ cơ chế ký/tải/chuyển bản thuộc flow đó.
 
 ## Tests
 
@@ -130,7 +137,9 @@ sách, chuyển máy); quản lý máy (ghép máy, thu hồi, đặt máy trợ
 - `apps/web/src/routes/project-settings.test.tsx`: hiện đúng hồ sơ BMAD chỉ đọc trên trang cài đặt project;
   báo đúng câu khi chưa máy nào báo cáo hồ sơ.
 - `apps/web/src/routes/machines.test.tsx`: badge project trên mỗi job; bộ lọc "Dự án" giữ đúng máy và chỉ job
-  của project đã chọn, ghi lại `project=` trong URL.
+  của project đã chọn, ghi lại `project=` trong URL; mỗi máy hiện đúng version app/runtime, trạng thái cập
+  nhật và mục "Bản runtime" liệt kê bản mới nhất trên server; ghim một máy vào một bản gọi đúng route rồi làm
+  mới; nút "Nhập bản mới từ GitHub" báo đúng số bản đã nhập (flow `runtime-updates`).
 - `apps/web/e2e/owner-admin.spec.ts`: phím tắt (kể cả "Tạo thêm"), quick search, kéo-thả bị từ chối, đổi ưu
   tiên hàng loạt, ghép máy và duyệt chuyển máy từ máy B trong Inbox bằng một cú nhấp rồi chuyển project về từ trang Dự
   án, chế độ tối.

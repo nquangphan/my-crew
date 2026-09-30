@@ -18,6 +18,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/drizzle/0006_pm_complexity_reason.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0007_project_bmad_profile.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0009_runtime_releases.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/app.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/auth/csrf.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
@@ -31,6 +32,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/errors.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/index.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/jobs/heartbeat-sweeper.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
+| `apps/api/src/jobs/runtime-import.ts` | [runtime-updates](flows/runtime-updates.md) (file) |
 | `apps/api/src/jobs/stuck-ticket-alarm.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/realtime/event-bus.ts` | [event-delivery](flows/event-delivery.md) (file) |
 | `apps/api/src/realtime/sse.ts` | [event-delivery](flows/event-delivery.md) (file) |
@@ -44,6 +46,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/routes/project-routes.ts` | [project-claims](flows/project-claims.md) (điểm vào) |
 | `apps/api/src/routes/report-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
 | `apps/api/src/routes/route-deps.ts` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/src/routes/runtime-routes.ts` | [runtime-updates](flows/runtime-updates.md) (điểm vào) |
 | `apps/api/src/routes/settings-routes.ts` | [server-settings](flows/server-settings.md) (điểm vào) |
 | `apps/api/src/routes/stream-routes.ts` | [event-delivery](flows/event-delivery.md) (điểm vào) |
 | `apps/api/src/routes/ticket-routes.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (điểm vào) |
@@ -63,6 +66,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/src/services/project-change-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/project-service.ts` | [project-claims](flows/project-claims.md) (file) |
 | `apps/api/src/services/report-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
+| `apps/api/src/services/runtime-service.ts` | [runtime-updates](flows/runtime-updates.md) (file) |
 | `apps/api/src/services/settings-service.ts` | [server-settings](flows/server-settings.md) (file) |
 | `apps/api/src/services/ticket-query-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
 | `apps/api/src/services/ticket-service.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (file) |
@@ -88,6 +92,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/test/project-changes.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `apps/api/test/rate-subtask.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
 | `apps/api/test/revoke-stream.test.ts` | [event-delivery](flows/event-delivery.md) (test) |
+| `apps/api/test/runtime.test.ts` | [runtime-updates](flows/runtime-updates.md) (test) |
 | `apps/api/test/settings.test.ts` | [server-settings](flows/server-settings.md) (test) |
 | `apps/api/test/shutdown.test.ts` | [api-platform](flows/api-platform.md) (test) |
 | `apps/api/test/stuck-ticket-alarm.test.ts` | [ticket-lifecycle](flows/ticket-lifecycle.md) (test) |
@@ -197,6 +202,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/units.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
 | `apps/daemon/test/worktree-manager.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/desktop/electron.vite.config.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/electron.vite.host.config.ts` | [runtime-updates](flows/runtime-updates.md) (file) |
 | `apps/desktop/src/daemon-host/activity.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/bmad-install.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/daemon-host/folder-access.ts` | [desktop-app](flows/desktop-app.md) (file) |
@@ -210,11 +216,16 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/src/main/app-log.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/daemon-supervisor.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/desktop-state.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/full-disk-access.ts` | [runtime-updates](flows/runtime-updates.md) (file) |
 | `apps/desktop/src/main/index.ts` | [desktop-app](flows/desktop-app.md) (điểm vào) |
 | `apps/desktop/src/main/ipc-handlers.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/login-item.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/notifications.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/quit-guard.ts` | [desktop-app](flows/desktop-app.md) (file) |
+| `apps/desktop/src/main/runtime-archive.ts` | [runtime-updates](flows/runtime-updates.md) (file) |
+| `apps/desktop/src/main/runtime-manager.ts` | [runtime-updates](flows/runtime-updates.md) (điểm vào) |
+| `apps/desktop/src/main/runtime-store.ts` | [runtime-updates](flows/runtime-updates.md) (file) |
+| `apps/desktop/src/main/runtime-verify.ts` | [runtime-updates](flows/runtime-updates.md) (file) |
 | `apps/desktop/src/main/shell-env.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/terminal-launcher.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/main/tray-view.ts` | [desktop-app](flows/desktop-app.md) (file) |
@@ -224,6 +235,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/src/preload/index.ts` | [desktop-app](flows/desktop-app.md) (file) |
 | `apps/desktop/src/renderer/app.tsx` | [desktop-ui](flows/desktop-ui.md) (điểm vào) |
 | `apps/desktop/src/renderer/components/folder-picker.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
+| `apps/desktop/src/renderer/components/full-disk-access.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/components/health-check-row.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/components/ui.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/src/renderer/components/wizard-step.tsx` | [desktop-ui](flows/desktop-ui.md) (file) |
@@ -236,14 +248,18 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/desktop/src/renderer/styles.css` | [desktop-ui](flows/desktop-ui.md) (file) |
 | `apps/desktop/test/app-log.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/bmad-install.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/desktop/test/codesign.test.ts` | [runtime-updates](flows/runtime-updates.md) (test) |
 | `apps/desktop/test/daemon-supervisor.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/e2e/health.spec.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/e2e/onboarding.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
 | `apps/desktop/test/e2e/project-bmad.spec.ts` | [desktop-ui](flows/desktop-ui.md) (test) |
+| `apps/desktop/test/e2e/runtime-update.spec.ts` | [runtime-updates](flows/runtime-updates.md) (test) |
 | `apps/desktop/test/folder-access.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/desktop/test/full-disk-access.test.ts` | [runtime-updates](flows/runtime-updates.md) (test) |
 | `apps/desktop/test/host-service.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/main-logic.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
 | `apps/desktop/test/role-prompts-bundle.test.ts` | [desktop-app](flows/desktop-app.md) (test) |
+| `apps/desktop/test/runtime-update.test.ts` | [runtime-updates](flows/runtime-updates.md) (test) |
 | `apps/web/e2e/account-password.spec.ts` | [owner-auth](flows/owner-auth.md) (test) |
 | `apps/web/e2e/agent-activity.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/e2e/core-flows.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
@@ -275,6 +291,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/issue-table.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/machine-control.test.tsx` | [machine-control](flows/machine-control.md) (test) |
 | `apps/web/src/components/machine-control.tsx` | [machine-control](flows/machine-control.md) (điểm vào) |
+| `apps/web/src/components/machine-runtime.tsx` | [runtime-updates](flows/runtime-updates.md) (file) |
 | `apps/web/src/components/markdown-editor.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/markdown-view.tsx` | [web-tickets](flows/web-tickets.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
 | `apps/web/src/components/model-settings-form.tsx` | [server-settings](flows/server-settings.md) (file) |
@@ -426,6 +443,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `packages/shared/src/machine-schemas.ts` | [machine-pairing](flows/machine-pairing.md) (dùng chung), [project-claims](flows/project-claims.md) (dùng chung), [daemon-api](flows/daemon-api.md) (dùng chung) |
 | `packages/shared/src/project-schemas.test.ts` | [project-claims](flows/project-claims.md) (test) |
 | `packages/shared/src/project-schemas.ts` | [project-claims](flows/project-claims.md) (file) |
+| `packages/shared/src/runtime-schemas.test.ts` | [runtime-updates](flows/runtime-updates.md) (test) |
+| `packages/shared/src/runtime-schemas.ts` | [runtime-updates](flows/runtime-updates.md) (file) |
 | `packages/shared/src/secret-scrubber.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `packages/shared/src/settings-schemas.test.ts` | [server-settings](flows/server-settings.md) (test) |
 | `packages/shared/src/settings-schemas.ts` | [server-settings](flows/server-settings.md) (file) |

@@ -1,6 +1,6 @@
 ---
 title: "Phase 2: Signed hot updates"
-status: todo
+status: done
 priority: P1
 effort: 12h
 dependsOn: [1]
@@ -61,3 +61,16 @@ signature; an ad-hoc signature changes on every build, so every update re-prompt
   updates keep the grants.
 - Tests: FDA detection unit (mocked probes), signing verification script in CI (designated requirement contains the
   certificate's leaf hash).
+
+## Implementation notes (2026-09-30)
+
+Done; details in [the implementation report](./reports/phase-02-implementation-report.md).
+
+- The shell keeps the Electron main process (it is the trust anchor that verifies bundles); the runtime bundle is
+  the daemon host (with the daemon library and prompts) plus the renderer. Main-process fixes still need a dmg.
+- Bundles are stored in Postgres (`runtime_releases`, `runtime_bundles`); machines download only from their paired
+  server. The server imports signed `runtime-v*` GitHub Releases hourly (and on the owner's click), so CI needs no
+  server credential.
+- The public certificate is `apps/desktop/signing/codesign-cert.crt` (`*.pem` is gitignored).
+- App version bumped to 0.3.0 (`crewRuntime` 0.3.0, shell range `>=0.3.0 <0.4.0`): the first install of 0.3.0 is a
+  dmg; later runtime fixes are hot updates.

@@ -62,7 +62,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    `GET /v1/search`, `api.getDocsOverview()` gọi `GET /v1/docs`, `api.searchDocsAcross(q, projectIds?)` gọi
    `GET /v1/docs/search` (cả hai route docs ở flow `docs-sync-viewer`). `api.getSettings()`,
    `api.getSettingsHistory()`, `api.validateSettings()`, `api.saveSettings()`, `api.restoreSettings()`,
-   `api.diffSettings()` gọi các route `/v1/settings*` (flow `server-settings`).
+   `api.diffSettings()` gọi các route `/v1/settings*` (flow `server-settings`). `api.listRuntimeReleases()`,
+   `api.importRuntimeReleases()`, `api.pinMachineRuntime(machineId, version)` gọi các route
+   `/v1/runtime/releases*`/`/v1/machines/:id/runtime` (flow `runtime-updates`).
 8. `apps/web/src/lib/queries.ts` → `keys`, `sessionQuery`, `useTickets`/`useTicket`/`useProjects`/`useNotices`/
    `useProjectChanges`/…: định nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác;
    `patchCachedTicket()` viết ticket vừa đổi vào mọi cache list/detail sau một lượt ghi — vì response ghi
@@ -74,7 +76,9 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    `docsSpaceQuery()` phục vụ trang chủ docs và bộ chuyển dự án của flow `docs-sync-viewer`. `keys.settings`,
    `keys.settingsHistory(key)`, `useSettingsOverview()`, `useSettingsHistory(key)`, `useMachine(id)`,
    `useProjectByKey(key)` phục vụ mọi trang "Cài đặt hệ thống" (flow `server-settings`); `keys.settings` được
-   invalidate khi nhận `settings.changed` (`invalidationsFor()`, flow `event-delivery`).
+   invalidate khi nhận `settings.changed` (`invalidationsFor()`, flow `event-delivery`). `keys.runtimeReleases`,
+   `useRuntimeReleases()` phục vụ mục "Bản runtime" và bộ ghim của trang Máy (flow `runtime-updates`);
+   invalidate khi nhận `runtime.published`/`runtime.pinned`/`machine.runtime_changed`.
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
 10. `apps/web/src/lib/format.ts` → `errorMessage()`: dịch `ApiErrorCode` (`ERROR_TEXT`) sang một câu tiếng
@@ -133,6 +137,8 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 - server-settings: mục sidebar "Cài đặt hệ thống"; `api.getSettings()`/`saveSettings()`/`restoreSettings()`/
   `diffSettings()`/`validateSettings()`/`getSettingsHistory()` và `keys.settings`/`keys.settingsHistory`/
   `useSettingsOverview`/`useSettingsHistory` phục vụ mọi trang cài đặt của flow đó.
+- runtime-updates: `api.listRuntimeReleases()`/`importRuntimeReleases()`/`pinMachineRuntime()` và
+  `keys.runtimeReleases`/`useRuntimeReleases` phục vụ mục "Bản runtime" của trang Máy (flow `web-admin`).
 
 ## Tests
 

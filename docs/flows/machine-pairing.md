@@ -65,6 +65,12 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
     `putInventory()` ghi đè kho skill/MCP theo máy (`projectKey=null`) hoặc theo project mà máy đó sở hữu —
     `InventoryMcpServer.disabled` (do daemon gửi lên khi chủ dự án tắt server đó cho project, flow
     `daemon-runtime`) được lưu nguyên vào `machine_skills` và đọc lại bởi `assertKnownCapabilities()`.
+    Heartbeat của app desktop còn mang `runtime: MachineRuntimeState` (tuỳ chọn, hình dạng lạ bị bỏ qua thầm
+    lặng — flow `runtime-updates`): ghi vào `machines.runtime_state`; version, trạng thái cập nhật hay phiên
+    bản shell đổi so với lần trước thì phát thêm `machine.runtime_changed {machineId, version, state}` (owner
+    stream) — web thấy ngay app/runtime của máy vừa đổi mà không cần tự poll. `toMachineDto()` (`listMachines`/
+    `getMachineDetail`) lộ nó ra là `Machine.runtime {reported, pinnedVersion}` (`pinnedVersion` đọc từ
+    `machines.runtime_pinned_version`, sửa qua `PUT /v1/machines/:id/runtime` của flow đó).
 12. `apps/api/src/jobs/heartbeat-sweeper.ts` → `sweepOfflineMachines()`: chạy mỗi `SWEEP_INTERVAL_MS` (1
     phút), đặt `online=false` cho máy có `last_seen_at` cũ hơn `OFFLINE_AFTER_MS` (5 phút) và phát một
     `machine.offline` mỗi máy.
@@ -84,8 +90,9 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 - Sự kiện: `machine.unhealthy` (health chuyển đỏ), `machine.offline` (sweep), `agent.activity_changed` (báo
   cáo job của một ticket đổi giữa hai heartbeat, owner stream — định nghĩa và tiêu thụ ở flow
   `ticket-lifecycle`/`event-delivery`), `machine.settings_applied` (heartbeat báo một bản cài đặt server mới,
-  owner stream, flow `server-settings`). `machine.claimed`, `machine.released` phát từ flow `project-claims` khi
-  thu hồi giải phóng claim.
+  owner stream, flow `server-settings`), `machine.runtime_changed` (heartbeat báo version/trạng thái/shell
+  runtime đổi, owner stream, flow `runtime-updates`). `machine.claimed`, `machine.released` phát từ flow
+  `project-claims` khi thu hồi giải phóng claim.
 - Gọi ngoài: không.
 
 ## Flow liên quan
@@ -106,6 +113,8 @@ heartbeat và kho skill/MCP inventory theo máy/project, và việc quét máy i
 - event-delivery: `revokeMachine()` đóng stream SSE qua `EventBus.revokeMachine()`.
 - server-settings: `recordHeartbeat()` ghi `machines.settings_state` và phát `machine.settings_applied`;
   `Machine.settings` (đọc lại ở `toMachineDto()`) và `expectedRevisions()` thuộc flow đó.
+- runtime-updates: `recordHeartbeat()` ghi `machines.runtime_state` và phát `machine.runtime_changed`;
+  `Machine.runtime`/`machines.runtime_pinned_version` và mọi cơ chế ký/tải/chuyển bản runtime thuộc flow đó.
 - web-admin: trang Máy hiển thị danh sách/chi tiết máy và hành động tạo mã pairing, thu hồi.
 
 ## Tests

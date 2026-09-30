@@ -239,4 +239,31 @@ describe('daemon supervisor', () => {
     await until(() => hosts.length === 2 && supervisor.runtime().daemonStarted);
     expect(hosts[1]?.methods()).toContain('host.startDaemon');
   });
+
+  it('relaunch() stops the host gracefully (jobs re-queued) and starts the daemon on a new host', async () => {
+    const { supervisor, hosts } = setup();
+    await supervisor.startDaemon();
+    await until(() => supervisor.runtime().daemonStarted);
+    const crashes: unknown[] = [];
+    supervisor.on('host-crash', (fields) => crashes.push(fields));
+    await supervisor.relaunch();
+    expect(hosts[0]?.received).toContainEqual(
+      expect.objectContaining({ kind: 'request', method: 'host.stopDaemon', params: { mode: 'requeue' } }),
+    );
+    await until(() => hosts.length === 2 && supervisor.runtime().daemonStarted);
+    expect(hosts[1]?.methods()).toContain('host.startDaemon');
+    // A requested stop is not a crash.
+    expect(crashes).toEqual([]);
+  });
+
+  it('reports an exit nobody asked for as a host crash', async () => {
+    const { supervisor, hosts } = setup();
+    const crashes: { code: number }[] = [];
+    supervisor.on('host-crash', (fields) => crashes.push(fields));
+    supervisor.start();
+    await until(() => supervisor.runtime().state === 'running');
+    hosts[0]?.crash(3);
+    await until(() => crashes.length === 1);
+    expect(crashes[0]).toMatchObject({ code: 3 });
+  });
 });

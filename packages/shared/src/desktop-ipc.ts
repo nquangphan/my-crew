@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { HealthCheckResult, HealthFixId, HealthGroup, HealthReport } from './health-schemas.js';
 import { OwnerState, PairingCode } from './machine-schemas.js';
 import { ProjectKey } from './project-schemas.js';
+import { DaemonRuntimeResponse, MachineRuntimeState, RuntimeVersion } from './runtime-schemas.js';
 import { MachineSettingsState } from './settings-schemas.js';
 
 /**
@@ -79,7 +80,18 @@ export const DaemonStatusView = z.object({
 });
 export type DaemonStatusView = z.infer<typeof DaemonStatusView>;
 
+/**
+ * macOS Full Disk Access of the app, found by reading a protected path without prompting. `unsupported`: not
+ * macOS; `unknown`: no probe gave a clear answer.
+ */
+export const FullDiskAccess = z.object({
+  state: z.enum(['granted', 'denied', 'unknown', 'unsupported']),
+  checkedAt: z.iso.datetime(),
+});
+export type FullDiskAccess = z.infer<typeof FullDiskAccess>;
+
 export const AppInfo = z.object({
+  /** The app (shell) version. */
   version: z.string(),
   platform: z.string(),
   packaged: z.boolean(),
@@ -91,6 +103,8 @@ export const AppInfo = z.object({
   daemon: DaemonRuntime,
   status: DaemonStatusView.nullable(),
   update: UpdateStatus,
+  /** The runtime bundle running now and its update state (absent from shells without hot updates). */
+  runtime: MachineRuntimeState.optional(),
 });
 export type AppInfo = z.infer<typeof AppInfo>;
 
@@ -190,6 +204,12 @@ export const DesktopRequests = {
   /** Opens `~/.crew/logs` (app.log and daemon.log) in Finder. */
   'app.openLogFolder': request(Empty, z.null()),
   /** An uncaught error or unhandled rejection in the renderer, written to app.log. */
+  /** Checks Full Disk Access without prompting. */
+  'app.fullDiskAccess': request(Empty, FullDiskAccess),
+  /** Opens System Settings → Privacy & Security → Full Disk Access. */
+  'app.openFullDiskAccess': request(Empty, z.null()),
+  /** Checks the server for the runtime this machine should run now (instead of waiting for the hourly check). */
+  'app.checkRuntime': request(Empty, MachineRuntimeState),
   'app.reportError': request(
     z
       .object({
@@ -250,6 +270,7 @@ export const DesktopEvents = {
   'daemon.runtime': DaemonRuntime,
   'health.report': HealthReport,
   'update.status': UpdateStatus,
+  'runtime.status': MachineRuntimeState,
   'app.navigate': Navigate,
 } as const;
 
@@ -276,6 +297,8 @@ export const AppFacts = z.object({
   version: z.string(),
   loginItem: z.boolean(),
   update: UpdateStatus,
+  /** Reported in the heartbeat, so the web shows each machine's app and runtime versions. */
+  runtime: MachineRuntimeState.optional(),
 });
 export type AppFacts = z.infer<typeof AppFacts>;
 
@@ -288,6 +311,16 @@ export const HostOnlyRequests = {
   'host.appState': request(
     Empty,
     z.object({ apiUrl: z.string().nullable(), machineName: z.string().nullable(), paired: z.boolean() }),
+  ),
+  /** Asks the paired server which runtime this machine should run (null: the machine is not paired). */
+  'host.runtimeCheck': request(Empty, DaemonRuntimeResponse.nullable()),
+  /**
+   * Downloads a runtime bundle from the paired server into the app's incoming folder. The host only fetches:
+   * the main process verifies the signature and every hash before anything is unpacked or run.
+   */
+  'host.runtimeDownload': request(
+    z.object({ version: RuntimeVersion }).strict(),
+    z.object({ path: z.string(), size: z.number().int() }),
   ),
 } as const;
 
@@ -310,7 +343,14 @@ export function hostInputSchema(method: string): z.ZodType | null {
   return null;
 }
 
-export const HostEventName = z.enum(['daemon.status', 'health.report', 'job.blocked', 'app.fix']);
+/** `runtime.changed`: the server published a runtime or pinned this machine; the main process checks again. */
+export const HostEventName = z.enum([
+  'daemon.status',
+  'health.report',
+  'job.blocked',
+  'app.fix',
+  'runtime.changed',
+]);
 export type HostEventName = z.infer<typeof HostEventName>;
 
 export const ToHost = z.discriminatedUnion('kind', [

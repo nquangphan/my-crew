@@ -26,12 +26,15 @@ import {
   NoticeReadResponse,
   type OwnerAssignRequest,
   PairingCodeResponse,
+  PinRuntimeResponse,
   Project,
   ProjectChangeListResponse,
   ProjectChangeRequest,
   type ProjectChangeStatus,
   ProjectListResponse,
   ReportResponse,
+  RuntimeImportResponse,
+  RuntimeReleaseListResponse,
   type SaveSettingsRequest,
   SaveSettingsResponse,
   SearchResponse,
@@ -292,6 +295,18 @@ export const api = {
     }),
   listMachineCommands: (machineId: string) =>
     request(`/v1/machines/${encodeURIComponent(machineId)}/commands`, { schema: MachineCommandListResponse }),
+
+  /** Signed runtime bundles on the server, newest first, and the GitHub repo they are imported from. */
+  listRuntimeReleases: () => request('/v1/runtime/releases', { schema: RuntimeReleaseListResponse }),
+  importRuntimeReleases: () =>
+    request('/v1/runtime/releases/import', { method: 'POST', schema: RuntimeImportResponse }),
+  /** Pins a machine to a runtime release (an older one rolls it back); null follows the newest again. */
+  pinMachineRuntime: (machineId: string, version: string | null) =>
+    request(`/v1/machines/${encodeURIComponent(machineId)}/runtime`, {
+      method: 'PUT',
+      body: { version },
+      schema: PinRuntimeResponse,
+    }),
 
   listClaimRequests: (status?: ClaimRequestStatus) =>
     request('/v1/claim-requests', { schema: ClaimRequestListResponse, query: { status } }),

@@ -20,7 +20,9 @@ của mình vào app do flow này dựng lên.
    `SIGINT`/`SIGTERM` để đóng app sạch, rồi `app.listen({ host, port })`.
 2. `apps/api/src/config.ts` → `loadConfig()`: parse `process.env` bằng zod (`EnvSchema`), kiểm tra
    `BUDGET_TIMEZONE` hợp lệ, gộp `PUBLIC_ORIGIN` và `ALLOWED_ORIGINS` thành `allowedOrigins`; ném lỗi rõ ràng
-   nếu thiếu/sai biến.
+   nếu thiếu/sai biến. `RUNTIME_RELEASES_REPO` (mặc định `nquangphan/my-crew`, rỗng tắt việc nhập release
+   `runtime-v*`) và `RUNTIME_EXTRA_PUBLIC_KEYS` (danh sách khoá Ed25519 base64, phân tách bằng dấu phẩy, tin
+   thêm ngoài `RUNTIME_SIGNING_KEYS` đóng gói sẵn) thuộc flow `runtime-updates`.
 3. `apps/api/src/db/client.ts` → `createDb()`: mở pool `postgres.js`, bọc bằng `drizzle()` với `schema`, trả
    `DbHandle { db, close }`.
 4. `apps/api/src/app.ts` → `buildApp()`: tạo instance Fastify (`trustProxy` theo whitelist CIDR,
@@ -29,10 +31,13 @@ của mình vào app do flow này dựng lên.
    `waitingJobs`, mặc định một registry mới — test tự truyền registry riêng để xem). Tham số `closeDrainMs`
    chỉnh thời gian đóng app đợi request đang chạy trước khi cắt kết nối của chúng (mặc định `CLOSE_DRAIN_MS`,
    test rút ngắn để không phải đợi). Sau đó đăng ký ba nhóm route:
-   public (`authRoutes`, `pairRoutes`), owner (bọc hook `ownerGuard`) và daemon (bọc hook `machineGuard`). Hook
+   public (`authRoutes`, `pairRoutes`), owner (bọc hook `ownerGuard`, gồm `runtimeRoutes` — flow
+   `runtime-updates`) và daemon (bọc hook `machineGuard`, gồm `daemonRuntimeRoutes` cùng flow đó). Hook
    `onReady` khởi động `EventBus`, `startHeartbeatSweeper` và `startStuckTicketAlarm()` (flow `ticket-lifecycle`,
-   cả hai timer cùng tắt khi `realtime.sweeper: false`), cộng thêm timer dọn `idempotency_keys`/`sessions` hết
-   hạn mỗi giờ (`MAINTENANCE_INTERVAL_MS`). Đóng app có giới hạn thời gian: khi `preClose` chạy, một cờ
+   cả hai timer cùng tắt khi `realtime.sweeper: false`), cộng thêm `startRuntimeImport()` (cùng điều kiện
+   sweeper, chỉ khi `config.runtimeReleasesRepo` không rỗng — nhập release `runtime-v*` từ GitHub mỗi giờ, flow
+   `runtime-updates`) và timer dọn `idempotency_keys`/`sessions` hết hạn mỗi giờ (`MAINTENANCE_INTERVAL_MS`).
+   Đóng app có giới hạn thời gian: khi `preClose` chạy, một cờ
    `closing` bật lên, từ đó hook `onSend` gắn header `connection: close` vào mọi response và hook `onResponse`
    tự kết thúc socket (`socket.end()`) — bù cho response đã gửi header kiểu keep-alive ngay trước khi đóng bắt
    đầu, việc mà Fastify tự trả 503 cho request đến sau `close()` không che được, vì `server.close()` vẫn đợi
@@ -77,7 +82,8 @@ của mình vào app do flow này dựng lên.
 | `apps/api/drizzle/0006_pm_complexity_reason.sql` | Migration thêm cột `tickets.complexity_reason` text (flow `ticket-lifecycle`: lý do PM đánh giá `complexity` của subtask dev/QC) | — |
 | `apps/api/drizzle/0007_project_bmad_profile.sql` | Migration thêm cột `projects.bmad_profile` jsonb, nullable (flow `project-claims`: hồ sơ cài BMAD mà máy sở hữu project báo cáo, dùng cho tính năng "Cài BMAD" trên máy khác) | — |
 | `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | Migration thêm bảng `settings_revisions` và cột `machines.settings_state` jsonb (flow `server-settings`: cài đặt server theo bản, prompt/quy tắc/model/tài nguyên/thư mục dự án/MCP dự án), và bảng `machine_commands` (flow `machine-control`: lệnh từ xa owner gửi từ web) | — |
-| `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, `bmad-schemas.ts` của flow `project-claims`, `secret-scrubber.ts` của flow `agent-runs`, và `comment-mentions.ts` của flow `ticket-lifecycle`) | — |
+| `apps/api/drizzle/0009_runtime_releases.sql` | Migration thêm bảng `runtime_releases`/`runtime_bundles` và cột `machines.runtime_state`/`runtime_pinned_version` (flow `runtime-updates`: bản runtime đã ký, ghim máy vào một bản) | — |
+| `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, `bmad-schemas.ts` của flow `project-claims`, `secret-scrubber.ts` của flow `agent-runs`, `comment-mentions.ts` của flow `ticket-lifecycle`, và `runtime-schemas.ts` của flow `runtime-updates`) | — |
 
 ## Dữ liệu
 
@@ -102,6 +108,9 @@ của mình vào app do flow này dựng lên.
 - machine-control: `machineCommandRoutes` (nhóm route owner) và `daemonCommandRoutes` (nhóm route daemon)
   cũng đăng ký tại `buildApp()`; migration `0008_server_settings_and_machine_commands.sql` (phần
   `machine_commands`) chạy qua `runMigrations()` như mọi migration khác.
+- runtime-updates: `runtimeRoutes`/`daemonRuntimeRoutes` đăng ký tại `buildApp()`, `startRuntimeImport()`
+  khởi động cạnh sweeper/stuck-alarm; migration `0009_runtime_releases.sql` chạy qua `runMigrations()`;
+  `RUNTIME_RELEASES_REPO`/`RUNTIME_EXTRA_PUBLIC_KEYS` đọc ở `config.ts`.
 
 ## Tests
 

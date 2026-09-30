@@ -38,7 +38,11 @@
   (`docs/flows/desktop-app.md`); daemon thật và các thao tác trình cài đặt/sức khỏe chạy trong một
   `utilityProcess` riêng, nên đóng cửa sổ hay UI crash không dừng job đang chạy. Renderer React
   (`docs/flows/desktop-ui.md`) chỉ nói chuyện với hai tiến trình đó qua một cầu IPC có kiểu
-  (`packages/shared/src/desktop-ipc.ts`), sandbox, không có Node.
+  (`packages/shared/src/desktop-ipc.ts`), sandbox, không có Node. Từ bản `0.3.0`, app tách "shell" (main,
+  preload, native module — chỉ đổi bằng dmg mới) khỏi "runtime" (daemon host + renderer) có thể **cập nhật
+  nóng**: server ký một bản, máy tải và tự kiểm chữ ký/hash trước khi chuyển sang chạy nó, không cần cài lại;
+  đi cùng đó là một danh tính ký code tự tạo ổn định qua các bản build (macOS không hỏi lại quyền riêng tư mỗi
+  lần cập nhật) và một bước hỏi Full Disk Access rõ ràng, đúng một lần (`docs/flows/runtime-updates.md`).
 
 ## Lưu trữ dữ liệu
 

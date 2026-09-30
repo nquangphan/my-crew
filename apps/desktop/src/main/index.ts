@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -15,16 +15,26 @@ import {
   type DesktopEventPayload,
   type HealthReport,
   type Navigate,
+  parseRuntimeManifest,
 } from '@crew/shared';
 import { app, type BrowserWindow, dialog, ipcMain, Notification, shell, utilityProcess } from 'electron';
 import electronUpdater from 'electron-updater';
 import { AppLog, lineSplitter } from './app-log.js';
 import { DaemonSupervisor, type HostProcess } from './daemon-supervisor.js';
 import { DesktopStateStore } from './desktop-state.js';
+import {
+  defaultProbes,
+  detectFullDiskAccess,
+  FULL_DISK_ACCESS_PANE,
+  type Probe,
+} from './full-disk-access.js';
 import { dispatchDesktopRequest, ipcLogEntry, isTrustedSender, type MainHandlers } from './ipc-handlers.js';
 import { electronLoginItem, fileLoginItem } from './login-item.js';
 import { type BlockedJob, Notifier } from './notifications.js';
 import { decideQuit, QUIT_BUTTONS, quitMessage } from './quit-guard.js';
+import { type LaunchTarget, RuntimeManager } from './runtime-manager.js';
+import { RuntimeStore } from './runtime-store.js';
+import { trustedKeys } from './runtime-verify.js';
 import { loginShellPath } from './shell-env.js';
 import { macTerminalLauncher, recordingTerminalLauncher } from './terminal-launcher.js';
 import { CrewTray } from './tray.js';
@@ -77,10 +87,58 @@ const loginItem = testMode ? fileLoginItem(join(home, '.test-login-item')) : ele
 const openClaudeLogin = testMode
   ? recordingTerminalLauncher(join(home, '.test-terminal-launches'))
   : macTerminalLauncher();
-const rendererUrl =
-  !app.isPackaged && process.env.ELECTRON_RENDERER_URL
+
+/**
+ * The runtime bundle (daemon host + renderer) the app ships with, next to the main bundle: `out/runtime/`. Its
+ * manifest gives the version; it is part of the signed app, so it is never re-verified here.
+ */
+const builtinDir = join(here, '..', 'runtime');
+function builtinVersion(): string {
+  try {
+    const parsed = parseRuntimeManifest(readFileSync(join(builtinDir, 'manifest.json'), 'utf8'));
+    if ('manifest' in parsed) return parsed.manifest.version;
+    log('error', 'runtime-builtin-manifest-invalid', { error: parsed.error });
+  } catch (error) {
+    log('error', 'runtime-builtin-manifest-missing', { error: (error as Error).message });
+  }
+  return app.getVersion();
+}
+
+const shellFacts = { appVersion: app.getVersion(), electronVersion: process.versions.electron ?? '0.0.0' };
+/**
+ * Signed hot updates of the runtime bundle (packaged apps, and the E2E test mode). A development build runs
+ * what it was built with.
+ */
+const runtimeUpdates = (app.isPackaged || testMode) && process.env.CREW_RUNTIME_UPDATES !== '0';
+const runtime = new RuntimeManager({
+  store: new RuntimeStore(home, trustedKeys(process.env), shellFacts),
+  builtin: { version: builtinVersion(), dir: builtinDir },
+  shell: shellFacts,
+  enabled: runtimeUpdates,
+  nodeModules: join(app.getAppPath(), 'node_modules'),
+  check: () => supervisor.request('host.runtimeCheck', {}, 60_000),
+  download: async (version) =>
+    (await supervisor.request('host.runtimeDownload', { version }, 15 * 60_000)).path,
+  runningJobs: () => latestStatus?.jobs.running ?? 0,
+  switchTo: (target) => switchRuntime(target),
+  onState: (state) => {
+    send('runtime.status', state);
+    pushFacts();
+  },
+  log: (level, event, fields = {}) => log(level, event, fields),
+  // The E2E suite watches a new runtime for seconds, not minutes.
+  ...(testMode && process.env.CREW_RUNTIME_PROBATION_MS
+    ? { probationMs: Number(process.env.CREW_RUNTIME_PROBATION_MS) }
+    : {}),
+});
+runtime.select();
+
+/** The renderer of the runtime running now (the dev server in development). */
+function rendererUrl(): string {
+  return !app.isPackaged && process.env.ELECTRON_RENDERER_URL
     ? process.env.ELECTRON_RENDERER_URL
-    : pathToFileURL(join(here, '..', 'renderer', 'index.html')).toString();
+    : pathToFileURL(runtime.current().rendererIndex).toString();
+}
 
 let window: BrowserWindow | null = null;
 let tray: CrewTray | null = null;
@@ -94,7 +152,7 @@ function send<E extends DesktopEventName>(name: E, payload: DesktopEventPayload<
 
 const supervisor = new DaemonSupervisor({
   fork: (): HostProcess => {
-    const child = utilityProcess.fork(join(here, 'daemon-host.js'), [], {
+    const child = utilityProcess.fork(runtime.current().hostEntry, [], {
       serviceName: '2P Crew daemon',
       // Piped into app.log: launched from Finder or at login the app's own stdio goes nowhere.
       stdio: 'pipe',
@@ -104,6 +162,7 @@ const supervisor = new DaemonSupervisor({
         CREW_APP_EXECUTABLE: app.getPath('exe'),
         CREW_DOCS_SOURCE: crewDocsSource(),
         CREW_APP_VERSION: app.getVersion(),
+        CREW_RUNTIME_VERSION: runtime.current().version,
       },
     });
     for (const [stream, level, event] of [
@@ -163,8 +222,39 @@ const notifier = new Notifier((title, body) => {
 });
 
 function facts(): AppFacts {
-  return { version: app.getVersion(), loginItem: loginItem.enabled(), update: updater.current() };
+  return {
+    version: app.getVersion(),
+    loginItem: loginItem.enabled(),
+    update: updater.current(),
+    runtime: runtime.state(),
+  };
 }
+
+/**
+ * Moves the app onto another runtime bundle: the host stops gracefully (running jobs are re-queued and resume
+ * on the new host), a new host starts from the new bundle, and an open window reloads the new renderer on the
+ * page it showed.
+ */
+async function switchRuntime(target: LaunchTarget): Promise<void> {
+  log('info', 'runtime-switching', { version: target.version, source: target.source });
+  await supervisor.relaunch();
+  if (window && !window.isDestroyed()) {
+    const hash = new URL(window.webContents.getURL() || 'file:///#/status').hash || '#/status';
+    await window.loadURL(`${rendererUrl()}${hash}`);
+  }
+}
+
+/** The probes read a protected path; test mode reads a marker file in the test's crew home instead. */
+const fullDiskProbes: Probe[] = testMode
+  ? [
+      () => {
+        const marker = join(home, '.test-full-disk-access');
+        if (!existsSync(marker) || readFileSync(marker, 'utf8').trim() !== 'granted') {
+          throw Object.assign(new Error('not granted'), { code: 'EPERM' });
+        }
+      },
+    ]
+  : defaultProbes();
 
 function pushFacts(): void {
   supervisor.setFacts(facts());
@@ -228,6 +318,7 @@ async function appInfo(): Promise<AppInfo> {
     daemon: supervisor.runtime(),
     status: latestStatus,
     update: updater.current(),
+    runtime: runtime.state(),
   };
 }
 
@@ -271,6 +362,18 @@ const mainHandlers: MainHandlers = {
     return null;
   },
   'app.checkUpdate': () => updater.check(),
+  'app.checkRuntime': () => runtime.check(),
+  'app.fullDiskAccess': async () => {
+    const access = detectFullDiskAccess(fullDiskProbes);
+    log('info', 'full-disk-access', { state: access.state });
+    return access;
+  },
+  'app.openFullDiskAccess': async () => {
+    if (testMode)
+      writeFileSync(join(home, '.test-opened-settings'), `${FULL_DISK_ACCESS_PANE}\n`, { flag: 'a' });
+    else await shell.openExternal(FULL_DISK_ACCESS_PANE);
+    return null;
+  },
   'app.installUpdate': () => updater.install(),
   'app.openLogFolder': async () => {
     mkdirSync(logsDir, { recursive: true, mode: 0o700 });
@@ -343,9 +446,21 @@ supervisor.on('runtime', (runtime: DaemonRuntime) => {
   refreshTray();
 });
 supervisor.on('host-log', (entry: AppLogEntry) => appLog.write({ ...entry, source: 'host' }));
-supervisor.on('ready-timeout', (fields: { pid: number | null; ms: number }) =>
-  log('error', 'daemon-host-ready-timeout', fields),
-);
+supervisor.on('ready-timeout', (fields: { pid: number | null; ms: number }) => {
+  log('error', 'daemon-host-ready-timeout', { ...fields, runtime: runtime.current().version });
+  runtime.onReadyTimeout();
+});
+supervisor.on('host-crash', (fields: { code: number; uptimeMs: number }) => {
+  log('warn', 'daemon-host-crash', { ...fields, runtime: runtime.current().version });
+  runtime.onHostCrash();
+});
+/** The first runtime check waits for the host (it asks the server through the host's machine token). */
+let runtimeChecked = false;
+supervisor.on('runtime', (state: DaemonRuntime) => {
+  if (runtimeChecked || state.state !== 'running') return;
+  runtimeChecked = true;
+  void runtime.check();
+});
 supervisor.on('host-event', (name: string, payload: unknown) => {
   if (name === 'daemon.status') {
     latestStatus = payload as DaemonStatusView | null;
@@ -376,6 +491,8 @@ supervisor.on('host-event', (name: string, payload: unknown) => {
     refreshTray();
   } else if (name === 'job.blocked') {
     notifier.onJobBlocked(payload as BlockedJob);
+  } else if (name === 'runtime.changed') {
+    void runtime.check();
   }
 });
 
@@ -397,6 +514,7 @@ async function quit(): Promise<void> {
   if (decision === 'cancel') return;
   quitting = true;
   await supervisor.stop(decision).catch(() => undefined);
+  runtime.dispose();
   tray?.destroy();
   app.exit(0);
 }
@@ -419,7 +537,7 @@ if (!app.requestSingleInstanceLock()) {
   app.whenReady().then(() => {
     ipcMain.handle(DESKTOP_INVOKE_CHANNEL, async (event, method: unknown, input: unknown) => {
       const started = Date.now();
-      const result = isTrustedSender(event.senderFrame?.url, rendererUrl)
+      const result = isTrustedSender(event.senderFrame?.url, rendererUrl())
         ? await dispatchDesktopRequest(method, input, mainHandlers, (name, value) =>
             supervisor.request(name, value as never, 10 * 60 * 1000),
           )
@@ -468,5 +586,6 @@ if (!app.requestSingleInstanceLock()) {
     setInterval(() => void runHealth(true), HEALTH_INTERVAL_MS);
     void updater.check();
     setInterval(() => void updater.check(), UPDATE_INTERVAL_MS);
+    runtime.schedule();
   });
 }

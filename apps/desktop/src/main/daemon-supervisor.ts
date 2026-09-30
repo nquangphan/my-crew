@@ -62,7 +62,7 @@ export class HostUnavailableError extends Error {
  * A host that does not report ready within `readyTimeoutMs` is killed and restarted the same way.
  *
  * Events: `runtime` (DaemonRuntime), `host-event` (name, payload), `host-log` (AppLogEntry for app.log),
- * `ready-timeout` ({ pid, ms }).
+ * `ready-timeout` ({ pid, ms }), `host-crash` ({ code, uptimeMs }: an exit nobody asked for).
  */
 export class DaemonSupervisor extends EventEmitter {
   private child: HostProcess | null = null;
@@ -226,6 +226,7 @@ export class DaemonSupervisor extends EventEmitter {
       this.emit('stopped');
       return;
     }
+    this.emit('host-crash', { code, uptimeMs: this.options.now() - this.startedAt });
     if (this.options.now() - this.startedAt >= this.options.stableMs)
       this.backoffMs = this.options.initialBackoffMs;
     const delay = this.backoffMs;
@@ -304,6 +305,17 @@ export class DaemonSupervisor extends EventEmitter {
     }
     if (this.child) this.killHost(this.child);
     else if (this.wantHost) this.spawn();
+  }
+
+  /**
+   * Replaces the host with a new one, forked by whatever `fork` launches now (a switched runtime bundle): a
+   * graceful stop in which running jobs are re-queued (they resume on the new host), then a fresh start. The
+   * daemon starts again when it ran before.
+   */
+  async relaunch(): Promise<void> {
+    await this.stop('requeue');
+    this.backoffMs = this.options.initialBackoffMs;
+    this.start();
   }
 
   /**

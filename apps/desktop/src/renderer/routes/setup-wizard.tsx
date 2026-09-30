@@ -1,5 +1,6 @@
-import type { AppInfo, HealthCheckResult, ServerCheck } from '@crew/shared';
+import type { AppInfo, FullDiskAccess, HealthCheckResult, ServerCheck } from '@crew/shared';
 import { useEffect, useState } from 'react';
+import { FullDiskAccessPanel } from '../components/full-disk-access';
 import { HealthCheckRow } from '../components/health-check-row';
 import { Notice } from '../components/ui';
 import { WIZARD_STEPS, WizardStep, type WizardStepId } from '../components/wizard-step';
@@ -34,6 +35,7 @@ export function SetupWizard({ info, section, onFinished }: SetupWizardProps) {
     info.paired ? { name: info.machineName ?? '', expiresAt: null } : null,
   );
   const [claude, setClaude] = useState<HealthCheckResult[] | null>(null);
+  const [access, setAccess] = useState<FullDiskAccess | null>(null);
 
   const index = WIZARD_STEPS.findIndex((item) => item.id === step);
   const go = (offset: number) => {
@@ -198,6 +200,24 @@ export function SetupWizard({ info, section, onFinished }: SetupWizardProps) {
             "Kiểm tra lại".
           </p>
         )}
+      </WizardStep>
+    );
+  }
+
+  if (step === 'access') {
+    const granted = access?.state === 'granted' || access?.state === 'unsupported';
+    return (
+      <WizardStep
+        step="access"
+        description="Cấp quyền một lần để macOS không hỏi lại từng thư mục dự án. Có thể làm sau từ trang Trạng thái máy."
+        canNext
+        nextLabel={granted ? 'Tiếp' : 'Để sau'}
+        busy={busy}
+        error={error}
+        onBack={() => go(-1)}
+        onNext={() => go(1)}
+      >
+        <FullDiskAccessPanel onChange={setAccess} />
       </WizardStep>
     );
   }

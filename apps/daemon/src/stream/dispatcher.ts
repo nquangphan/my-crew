@@ -18,6 +18,8 @@ export type DispatchEffect =
   | { kind: 'refresh_settings' }
   /** The owner asked this machine for a whitelisted action from the web. */
   | { kind: 'run_command'; commandId: string }
+  /** A runtime bundle was published or this machine was pinned: the desktop app checks which one to run. */
+  | { kind: 'runtime_changed' }
   | { kind: 'ignored'; reason: string };
 
 /** Events that wake the ticket's assignee: a new job, or a fold into the active one. */
@@ -53,6 +55,8 @@ export function dispatchEvent(state: StateDb, envelope: EventEnvelope, now = new
   }
   if (payload.type === 'settings.changed') return { kind: 'refresh_settings' };
   if (payload.type === 'machine.command') return { kind: 'run_command', commandId: payload.data.commandId };
+  if (payload.type === 'runtime.published' || payload.type === 'runtime.pinned')
+    return { kind: 'runtime_changed' };
 
   if (payload.type === 'ticket.cancelled') {
     const ticketId = payload.data.ticketId;

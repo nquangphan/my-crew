@@ -1,20 +1,26 @@
 {
   "name": "@crew/desktop",
   "productName": "2P Crew",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "2P Crew: ứng dụng máy local chạy daemon, trình cài đặt và bảng sức khỏe",
   "author": "2P Solutions",
   "type": "module",
   "main": "./out/main/index.js",
+  "crewRuntime": {
+    "version": "0.3.0",
+    "shell": ">=0.3.0 <0.4.0"
+  },
   "scripts": {
-    "dev": "electron-vite dev",
-    "build": "tsc -p tsconfig.json && electron-vite build",
+    "dev": "pnpm build:app && electron-vite dev",
+    "build": "tsc -p tsconfig.json && pnpm build:app",
+    "build:app": "electron-vite build && electron-vite build -c electron.vite.host.config.ts && node scripts/runtime-bundle.mjs builtin",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "stage": "electron-vite build && node scripts/stage-app.mjs",
+    "stage": "pnpm build:app && node scripts/stage-app.mjs",
     "test:e2e": "node scripts/stage-app.mjs --if-missing && playwright test",
-    "package:mac": "electron-vite build && node scripts/package-mac.mjs",
+    "package:mac": "pnpm build:app && node scripts/package-mac.mjs",
+    "runtime:release": "pnpm build:app && node scripts/runtime-bundle.mjs release",
     "smoke:mac": "node scripts/smoke-packaged.mjs"
   },
   "dependencies": {

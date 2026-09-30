@@ -162,6 +162,21 @@ export const EventPayload = z.discriminatedUnion('type', [
     type: z.literal('machine.command_updated'),
     data: z.object({ commandId: z.string(), machineId: z.string(), status: z.string() }),
   }),
+  /**
+   * A signed runtime bundle was published on this server (uploaded or imported from GitHub). Sent to the owner
+   * stream and to every machine; each app checks which runtime it should run.
+   */
+  z.object({ type: z.literal('runtime.published'), data: z.object({ version: z.string() }) }),
+  /** The owner pinned a machine to a runtime release (null: follow the newest). Sent to that machine and the owner. */
+  z.object({
+    type: z.literal('runtime.pinned'),
+    data: z.object({ machineId: z.string(), version: z.string().nullable() }),
+  }),
+  /** A machine's heartbeat reports another runtime version or update state. Owner stream only. */
+  z.object({
+    type: z.literal('machine.runtime_changed'),
+    data: z.object({ machineId: z.string(), version: z.string(), state: z.string() }),
+  }),
   /** A machine's heartbeat reports a new settings revision (it picked up a change). Owner stream only. */
   z.object({
     type: z.literal('machine.settings_applied'),

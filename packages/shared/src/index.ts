@@ -9,6 +9,7 @@ export * from './health-schemas.js';
 export * from './machine-command-schemas.js';
 export * from './machine-schemas.js';
 export * from './project-schemas.js';
+export * from './runtime-schemas.js';
 export * from './secret-scrubber.js';
 export * from './settings-schemas.js';
 export * from './status-workflow.js';

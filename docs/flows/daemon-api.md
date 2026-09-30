@@ -30,8 +30,10 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
 3. `apps/api/src/routes/daemon-routes.ts` → token/heartbeat/inventory: `POST /v1/daemon/token/rotate` (không
    cần Idempotency-Key vì response là secret) gọi `rotateToken()`; `POST /v1/daemon/heartbeat` (không cần
    key, là bản thay toàn trạng thái mỗi 30s) gọi `recordHeartbeat()` — nay cũng lưu `failedJobs`, lý do chờ
-   (`waitReason`/`waitDetail`) của mỗi `waitingJobs[]` và `settings` (`MachineSettingsState`, bản cài đặt
-   server máy đang áp dụng, flow `server-settings`, phát `machine.settings_applied` khi đổi) — schema
+   (`waitReason`/`waitDetail`) của mỗi `waitingJobs[]`, `settings` (`MachineSettingsState`, bản cài đặt
+   server máy đang áp dụng, flow `server-settings`, phát `machine.settings_applied` khi đổi) và `runtime`
+   (`MachineRuntimeState`, tuỳ chọn — hình dạng lạ bị bỏ qua thầm lặng — version/trạng thái cập nhật runtime
+   của app desktop, flow `runtime-updates`, phát `machine.runtime_changed` khi đổi) — schema
    `HeartbeatRequest`, flow `machine-pairing` — vào bảng `machines` — rồi route còn ghi riêng `waitingJobs` của
    body (tối đa 500, job `queued`/`backoff` daemon đang giữ) vào `RouteDeps.waitingJobs`
    (`WaitingJobsRegistry`, flow `ticket-lifecycle`) theo máy, một bộ nhớ tạm khác phục vụ cảnh báo "ticket
@@ -107,6 +109,9 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
   `recordHeartbeat()` (flow `machine-pairing`); route `GET/POST/PUT /v1/daemon/settings*` không nằm trong
   `daemon-routes.ts` mà đăng ký riêng bởi flow đó (`settings-routes.ts`), tuy cùng nhóm route daemon của
   `buildApp()`.
+- runtime-updates: `HeartbeatRequest.runtime` cũng đi qua route heartbeat ở đây; route
+  `GET /v1/daemon/runtime`/`GET /v1/daemon/runtime/:version/bundle` không nằm trong `daemon-routes.ts` mà
+  đăng ký riêng bởi flow đó (`runtime-routes.ts`), cùng nhóm route daemon.
 
 ## Tests
 
