@@ -7,9 +7,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 
 | File | Flows |
 |------|-------|
+| `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
 | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
 | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
 | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+| `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
 | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
 | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
 | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
