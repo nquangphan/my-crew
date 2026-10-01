@@ -10,9 +10,11 @@ flows:
     files:
       - src/model-policy.ts
       - src/workflow-policy.ts
+      - src/ticket-policy.ts
     tests:
       - test/workspace.test.ts
       - test/model-policy.test.ts
       - test/workflow-policy.test.ts
+      - test/ticket-policy.test.ts
 shared: {}
 unassigned: []
