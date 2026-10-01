@@ -23,7 +23,6 @@ Ghi của agent (tạo subtask, file bug, nộp report, bình luận/transition 
 daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dưới đây.
 
 ## Các bước
-
 1. `apps/api/src/services/ticket-service.ts` → `createRequestTicket()`: owner tạo ticket `request`, gán cho
    máy đang host assistant (nếu có), cấp key bằng `allocateKey()` (khoá theo scope `AST`). Nhận thêm tham số
    tuỳ chọn `ownerId` (route `POST /v1/tickets` truyền `request.ownerSession.ownerId`, caller khác — ví dụ
@@ -36,10 +35,20 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 2. `apps/api/src/services/ticket-service.ts` → `createSubtask()`: PM/dev/QC tạo con — kiểm tra đúng cấp cha
    (`pm_task` dưới `request`, `dev/qc/docs_init` dưới `pm_task`), cha chưa đóng, `enforceChildCap()` (flow này
    gọi sang `budget-service.ts`), QC bắt buộc `pairsWith` một dev/bug còn sống và chưa có QC khác
-   (`assertPairable`), `dependsOn` chỉ được là ticket anh em (`assertSiblings`), QC luôn được cộng thêm MCP
-   test UI mặc định theo platform (`qcDefaultMcps`, từ flow `project-claims`). Subtask `dev`/`qc` bắt buộc có
+   (`assertPairable`), `dependsOn` chỉ được là ticket anh em (`assertSiblings`). QC có phương án kiểm thử
+   (`testKinds`, kèm `testReason` bắt buộc đi cùng — `CreateSubtaskRequest.superRefine`, cùng file
+   `api-schemas.ts` nói ở bước 11): `requiredMcps` = MCP PM tự thêm ∪ MCP UI suy từ `testKinds`
+   (`uiMcpsForTestKinds()`, `packages/shared/src/project-schemas.ts`, flow `project-claims`) — **không** cộng
+   `qcDefaultMcps()` nữa, phương án là nguồn sự thật duy nhất cho MCP UI của ticket đó. Loại UI mà `platform`
+   dự án không hỗ trợ (`assertTestKindsSupported()`, dùng `isTestKindSupported()`) bị từ chối
+   `VALIDATION_FAILED` nêu rõ loại và platform (`details: {unsupported, platform}`); `requiredMcps` PM gửi chứa
+   tên MCP Playwright/Maestro của dự án (`Object.values(project.uiTestMcp)`) mà `testKinds` không có loại UI
+   tương ứng cũng bị từ chối `VALIDATION_FAILED` (`details: {mismatched}`). QC **không** gửi `testKinds` (daemon
+   bản cũ) giữ nguyên hành vi cũ: luôn được cộng thêm MCP test UI mặc định theo platform (`qcDefaultMcps()`, flow
+   `project-claims`); `testKinds`/`testReason` chỉ hợp lệ với `type: 'qc'`, đặt trên loại khác bị từ chối ngay
+   ở schema. Subtask `dev`/`qc` bắt buộc có
    `complexity` và một dòng `complexityReason` (`CreateSubtaskRequest.superRefine`, cùng file `api-schemas.ts`
-   nói ở bước 10) — không có model mặc định cho hai loại này (flow `agent-roles`); thiếu một trong hai trường bị
+   nói ở bước 11) — không có model mặc định cho hai loại này (flow `agent-roles`); thiếu một trong hai trường bị
    từ chối `VALIDATION_FAILED` với `details` nêu đúng trường còn thiếu.
 3. `apps/api/src/services/ticket-service.ts` → `rateSubtask()`: PM đánh giá (hoặc đánh giá lại) `complexity` của
    một subtask `dev`/`qc`/`bug` **của chính pm_task đó**, ngay tại chỗ, không tạo subtask thay thế —
@@ -58,14 +67,24 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    thức lại bằng cách phát `ticket.assigned` (role = vai trò được giao của ticket) cho đúng máy — daemon xếp
    một job mới (job cũ đã thất bại, không còn hoạt động) mà không cần owner bình luận; một ticket `todo` đã có
    `complexity` từ trước thì không bị đánh thức lại kiểu này.
-4. `apps/api/src/services/ticket-service.ts` → `retrySubtask()`: PM chuyển một subtask `dev`/`qc`/`bug`/
+4. `apps/api/src/services/ticket-service.ts` → `updateQcTestPlan()`: PM đổi phương án kiểm thử
+   (`testKinds`/`testReason`) của một subtask `qc` **của chính pm_task đó** tại chỗ, không đổi trạng thái —
+   cùng khuôn với `rateSubtask()` ở bước 3: `:id` phải là `pm_task` (không thì `FORBIDDEN`), ticket đích phải là
+   con `qc` còn sống của đúng pm_task đó (không thì `FORBIDDEN`), chưa đóng (`done`/`cancelled` thì
+   `TICKET_CLOSED`). Ghi `testKinds`/`testReason` mới rồi tính lại `requiredMcps` = (`requiredMcps` hiện tại
+   trừ mọi tên MCP UI của dự án, `Object.values(project.uiTestMcp)`) ∪ MCP UI suy từ phương án mới
+   (`uiMcpsForTestKinds()`, flow `project-claims`) — cùng luật kiểm tra platform như bước 2
+   (`assertTestKindsSupported()`, `VALIDATION_FAILED` khi loại UI dự án không hỗ trợ). Phát
+   `ticket.updated{change: 'fields'}` như `rateSubtask()`. Route `POST /v1/daemon/tickets/:id/test-plan` (flow
+   `daemon-api`) idempotent như mọi ghi khác của daemon.
+5. `apps/api/src/services/ticket-service.ts` → `retrySubtask()`: PM chuyển một subtask `dev`/`qc`/`bug`/
    `docs_init` đang `blocked` **của chính pm_task đó** về `in_progress` và đánh thức agent của nó
    (`ticket.unblocked`), như owner tự bỏ chặn — dùng khi owner gọi PM bằng `@pm` và nguyên nhân chặn đã được xử
    lý (không phải thiếu `complexity`, việc đó dùng `rateSubtask()` ở bước 3). `:id` không phải `pm_task`, hay
    ticket đích không phải con của đúng `pm_task` đó đều `FORBIDDEN`; ticket đích không `blocked` thì
    `ILLEGAL_TRANSITION`. Route `POST /v1/daemon/tickets/:id/retry-subtask` (flow `daemon-api`) idempotent như
    mọi ghi khác của daemon.
-5. `apps/api/src/services/ticket-service.ts` → `fileBug()`: hai nguồn tạo `bug` — QC báo lỗi trên ticket dev/bug
+6. `apps/api/src/services/ticket-service.ts` → `fileBug()`: hai nguồn tạo `bug` — QC báo lỗi trên ticket dev/bug
    nó verify (`pairsWith`), hoặc PM từ chối một ticket dev/bug đã `done` khi nghiệm thu (`reject_work`, flow
    `agent-roles`; ticket nguồn khi đó chính là ticket bị từ chối, không phải QC). Tính `cycle = bugCycle + 1`
    của dev gốc (`originDevId`); vượt `MAX_BUG_CYCLES` (3) thì không tạo ticket, gọi `applyHold()` park pm_task
@@ -76,20 +95,24 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    thừa `complexity`/`model`/`effort`/`requiredSkills`/`requiredMcps` của **QC ticket đang kiểm ticket bị từ
    chối** (tìm qua `pairsWith`), không phải của ticket nguồn, kể cả khi nguồn là PM từ chối chứ không phải
    chính QC đó báo lỗi, với `complexityReason` = `kế thừa từ <QC-KEY>: <lý do>`; một lý do đã bắt đầu bằng
-   `kế thừa từ ` (retest của retest) được giữ nguyên, không lồng thêm tiền tố.
-6. `apps/api/src/services/ticket-service.ts` → `transitionTicket()`: `canTransition(actor, from, to)` (từ
+   `kế thừa từ ` (retest của retest) được giữ nguyên, không lồng thêm tiền tố. Retest cũng chép nguyên
+   `testKinds`/`testReason` của QC ticket đó: có phương án (`testKinds` khác `null`) thì `requiredMcps` chép
+   thẳng của QC gốc, **không** cộng `qcDefaultMcps()` lần nữa (phương án gốc đã là nguồn sự thật); QC gốc là
+   ticket cũ không có phương án (`testKinds: null`) thì giữ hành vi hiện tại — cộng `qcDefaultMcps()` vào
+   `requiredMcps` chép được như trước khi có phương án kiểm thử.
+7. `apps/api/src/services/ticket-service.ts` → `transitionTicket()`: `canTransition(actor, from, to)` (từ
    `packages/shared/src/status-workflow.ts`) gác cổng; `to='done'` bắt buộc đã có report hiện hành
    (`REPORT_REQUIRED`); sau khi cập nhật trạng thái trong cùng transaction: `cascadeCancel()` khi huỷ,
    `resolveDependents()` phát `dependency.resolved` cho ticket đang chờ khi `done`, `ownerWakeUp()` phát
    `ticket.reopened`/`ticket.unblocked` khi owner mở lại/bỏ chặn, `childrenAllDone()` phát
    `children.all_done` khi con cuối cùng đóng (dù `done` hay `cancelled`).
-7. `packages/shared/src/status-workflow.ts` → `canTransition()`/`allowedTransitions()`: bảng cạnh hợp lệ theo
+8. `packages/shared/src/status-workflow.ts` → `canTransition()`/`allowedTransitions()`: bảng cạnh hợp lệ theo
    actor (`AGENT_EDGES`, `OWNER_EDGES`); `system` (dùng cho cascade cancel) được thêm cạnh `* → cancelled`.
    `packages/shared/src/agent-schemas.ts` → `RoleStage`: bước của một agent run (`assistant_triage`,
    `pm_analyze`, `dev`, `docs_update`, `qc`, `docs_init`, …); mỗi bước có đường trạng thái riêng phải hợp lệ
    với `canTransition('agent', …)` (định nghĩa và kiểm ở flow `agent-roles`, không lặp lại ở đây). `DOCS_MODEL`
    (`= 'sonnet'`) là model cố định của `docs_init`/`docs_update`.
-8. `apps/api/src/services/ticket-service.ts` → `addComment()`: bình luận owner trên ticket đang
+9. `apps/api/src/services/ticket-service.ts` → `addComment()`: bình luận owner trên ticket đang
    `needs_input` tự chuyển nó về `in_progress` và gọi `liftHold()`; bình luận owner (không tag `@pm`) trên
    ticket đang `blocked` cũng mở chặn nó về `in_progress` (`unblockByComment()`), phát `ticket.status_changed`
    (`blocked`→`in_progress`) và `ticket.unblocked` cho máy phụ trách — y hệt owner tự đổi trạng thái — trước
@@ -109,12 +132,12 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    tag). Ticket không thuộc cây pm_task nào (ví dụ `request`) hay pm_task đã đóng (`done`/`cancelled`) bị từ
    chối `PM_NOT_AVAILABLE` (400, `packages/shared/src/api-schemas.ts` → `ApiErrorCode`, flow `api-platform`) —
    không lưu bình luận, không phát sự kiện nào. `toCommentDto()` dựng DTO `Comment` cho mọi phản hồi (owner
-   POST, daemon POST, chi tiết ticket ở bước 13) với trường `mentions` tính từ text, chỉ cho bình luận owner
+   POST, daemon POST, chi tiết ticket ở bước 14) với trường `mentions` tính từ text, chỉ cho bình luận owner
    (agent/system luôn `[]`); một bình luận owner có tag đã lưu trong DB luôn từng đánh thức được PM, vì tag bị
    từ chối ngay khi không có PM nào để gọi.
-9. `apps/api/src/services/ticket-service.ts` → `updateTicket()`: owner sửa tiêu đề/mô tả/ưu tiên tại chỗ,
+10. `apps/api/src/services/ticket-service.ts` → `updateTicket()`: owner sửa tiêu đề/mô tả/ưu tiên tại chỗ,
    không bao giờ đánh thức agent, chỉ phát `ticket.updated{change:'fields'}`.
-10. `apps/api/src/services/report-service.ts` → `submitReport()`: lưu report mới là bản hiện hành (bản cũ mất
+11. `apps/api/src/services/report-service.ts` → `submitReport()`: lưu report mới là bản hiện hành (bản cũ mất
    `is_current`), cộng `costUsd` của report vào ticket/ngân sách qua `addCost()` (flow này gọi sang
    `budget-service.ts`), phát `ticket.updated{change:'report'}`. `SubmitReportRequest`/subtask (`requiredMcps`)
    ở `packages/shared/src/api-schemas.ts` validate tên MCP server (`mcpsUsed`, `mcpsSelected`) bằng
@@ -123,16 +146,16 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
    schema xác thực owner, gồm `LoginRequest`/`SessionResponse`/`ChangePasswordRequest` và `MIN_PASSWORD_LENGTH`
    (flow `owner-auth`) — ba schema này không còn trường xác thực hai bước (mã TOTP, mã khôi phục, challenge)
    sau khi tính năng đó bị bỏ.
-11. `apps/api/src/services/report-service.ts` → `recordAgentMeta()`: daemon ghi `agentSessionId`/`agentModel`/
+12. `apps/api/src/services/report-service.ts` → `recordAgentMeta()`: daemon ghi `agentSessionId`/`agentModel`/
     `agentEffort` và cộng `costDeltaUsd` cho lượt chạy không kết thúc bằng report (hợp đồng: chi phí một lượt
     chạy chỉ được cộng đúng một lần, hoặc qua report hoặc qua delta này, không bao giờ cả hai).
-12. `apps/api/src/services/budget-service.ts` → `enforceChildCap()`, `addCost()`, `applyHold()`, `liftHold()`:
+13. `apps/api/src/services/budget-service.ts` → `enforceChildCap()`, `addCost()`, `applyHold()`, `liftHold()`:
     kiểm tra trần con mỗi ticket (`maxChildrenPerTicket`), ngân sách cây pm_task
     (`ticketTreeBudgetUsd`) và ngân sách ngày dự án (`dailyBudgetUsd`, theo múi giờ project); vượt trần thì
     park pm_task (`budgetHold`), bình luận hệ thống giải thích, phát `budget.exceeded`; owner bình luận hoặc
     chuyển `needs_input → in_progress` sẽ gỡ hold cho toàn bộ cây pm_task đó (`childCapLifted`/
     `costBudgetLifted`), không chỉ một batch.
-13. `apps/api/src/services/ticket-query-service.ts` → `listTickets()`, `getTicketDetail()`, `getTicketTree()`,
+14. `apps/api/src/services/ticket-query-service.ts` → `listTickets()`, `getTicketDetail()`, `getTicketTree()`,
     `search()`, `inProjectsFilter()`: danh sách có lọc/sắp xếp/keyset-pagination (cursor mã hoá base64url) —
     lọc `projectId` (một dự án) hoặc `projectIds` (tối đa 100 uuid, `ListTicketsQuery` ở
     `packages/shared/src/api-schemas.ts`): không lọc dự án nào trả về ticket mọi dự án cộng mọi request; có
@@ -150,15 +173,15 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     mỗi ticket trả kèm `projectId` (`null` cho request); `projectIds` (nếu có, cùng `ProjectIdsFilter` mà
     `ListTicketsQuery` dùng) thu hẹp cả ticket (qua `inProjectsFilter()`, gồm request được route hoặc gợi ý)
     lẫn docs (`searchAllDocs(db, q, projectIds)`) về đúng các dự án đó; bình luận trong chi tiết ticket qua
-    `toCommentDto()` (bước 8) nên cũng có `mentions`.
-14. `apps/api/src/jobs/stuck-ticket-alarm.ts` → `findStuckTickets()`/`raiseStuckTicketAlarms()`: mỗi
+    `toCommentDto()` (bước 9) nên cũng có `mentions`.
+15. `apps/api/src/jobs/stuck-ticket-alarm.ts` → `findStuckTickets()`/`raiseStuckTicketAlarms()`: mỗi
     `STUCK_CHECK_INTERVAL_MS` (5 phút) tìm ticket không kết thúc, im lặng quá `STUCK_AFTER_MS` (30 phút, tính
     theo lần đổi trường ticket gần nhất hoặc bất kỳ sự kiện nào khác ngoài cảnh báo trước đó), không đang chờ
     owner (`needs_input`/`blocked`/`request` ở `in_review`), không còn con hay `dependsOn` mở, và không máy nào
     đang chạy (heartbeat `runningJobs`) hay giữ trong hàng đợi/backoff (heartbeat `waitingJobs`, nhớ tối đa 2
     phút mỗi máy qua `WaitingJobsRegistry`) — mỗi lần im lặng như vậy chỉ phát đúng một sự kiện `ticket.stuck`
     (flow `event-delivery`, chỉ owner stream) cho tới khi có hoạt động mới.
-15. `apps/api/src/services/agent-activity-service.ts` → `loadAgentActivity()`: cho mỗi ticket, chọn báo cáo tốt
+16. `apps/api/src/services/agent-activity-service.ts` → `loadAgentActivity()`: cho mỗi ticket, chọn báo cáo tốt
     nhất giữa các máy chưa bị revoke — job đang chạy tươi > job đang chờ tươi > job vừa lỗi > mọi báo cáo cũ
     (đọc `machines.runningJobs`/`waitingJobs`/`failedJobs`, flow `machine-pairing`); heartbeat cũ hơn
     `AGENT_ACTIVITY_STALE_MS` (2 phút) hoặc máy offline đọc thành `unknown`, không bao giờ `running`. Ticket
@@ -171,7 +194,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     gọi, nên `Ticket.agentActivity` luôn vắng ở đó. `recordHeartbeat()` (flow `machine-pairing`) dùng
     `activitySignatures()`/`changedTicketIds()`/`heartbeatFresh()` cùng file để biết ticket nào cần phát
     `agent.activity_changed`.
-16. `apps/api/src/services/attachment-service.ts` → `uploadAttachment()`/`uploadDraftAttachment()`/
+17. `apps/api/src/services/attachment-service.ts` → `uploadAttachment()`/`uploadDraftAttachment()`/
     `getAttachmentContent()`: ảnh dán clipboard vào ô mô tả/comment ticket (phần paste-to-upload ở UI là
     `usePasteImage()` của flow `web-tickets`), cộng ảnh dán vào hộp thoại "Tạo ticket" khi ticket chưa tồn
     tại. Cả `uploadAttachment()` (route `POST /v1/tickets/:id/attachments`, dùng `getTicketRow()` từ
@@ -195,7 +218,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
     `mime_type`/`content` theo `id`, 404 khi không tồn tại; route GET stream đúng bytes kèm header
     `Content-Type` từ `mimeType` đã lưu và `cache-control: private, no-store` — dùng chung cho ảnh đã gắn
     ticket lẫn ảnh nháp. `AttachmentMimeType`, `MAX_ATTACHMENT_BYTES`, `UploadAttachmentRequest`, `Attachment`,
-    mã lỗi `ATTACHMENT_TOO_LARGE` khai ở `packages/shared/src/api-schemas.ts` (cùng file nói ở bước 10), status
+    mã lỗi `ATTACHMENT_TOO_LARGE` khai ở `packages/shared/src/api-schemas.ts` (cùng file nói ở bước 11), status
     413 ánh xạ ở `apps/api/src/errors.ts` (flow `api-platform`). Cả hai route POST tự đặt `bodyLimit` riêng (đủ
     base64 10MB + margin JSON, dư ra ~49KB quy đổi ảnh gốc) để không đụng `bodyLimit` mặc định 2MB của Fastify
     (flow `api-platform`) — cùng cách `runtime-routes.ts` (flow `runtime-updates`) làm với `UPLOAD_BODY_LIMIT`;
@@ -222,7 +245,7 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
 | `apps/api/src/routes/comment-routes.ts` | Route bình luận owner | `commentRoutes` |
 | `apps/api/src/routes/report-routes.ts` | Route đọc report owner | `reportRoutes` |
 | `apps/api/src/routes/attachment-routes.ts` | Route upload/đọc ảnh đính kèm owner (kể cả ảnh nháp), cộng route đọc cho daemon | `attachmentRoutes`, `daemonAttachmentRoutes` |
-| `apps/api/src/services/ticket-service.ts` | Tạo, đánh giá lại, transition, bug loop, bình luận (kể cả tag `@pm`), sửa ticket | `createRequestTicket`, `createSubtask`, `rateSubtask`, `retrySubtask`, `fileBug`, `transitionTicket`, `addComment`, `toCommentDto`, `updateTicket`, `lockWithParent`, `governingPmTask`, `claimDraftAttachments` |
+| `apps/api/src/services/ticket-service.ts` | Tạo, đánh giá lại, transition, bug loop, bình luận (kể cả tag `@pm`), sửa ticket, đổi phương án kiểm thử QC | `createRequestTicket`, `createSubtask`, `rateSubtask`, `updateQcTestPlan`, `retrySubtask`, `fileBug`, `transitionTicket`, `addComment`, `toCommentDto`, `updateTicket`, `lockWithParent`, `governingPmTask`, `claimDraftAttachments`, `assertTestKindsSupported` |
 | `apps/api/src/services/ticket-query-service.ts` | Danh sách, chi tiết, cây hậu duệ, tìm kiếm | `listTickets`, `getTicketDetail`, `getTicketTree`, `search`, `inProjectsFilter`, `TREE_LIMIT` |
 | `packages/shared/src/comment-mentions.ts` | Tag `@pm` trong bình luận owner | `CommentMention`, `parseMentions`, `markdownWithoutCode` |
 | `apps/api/src/services/report-service.ts` | Report và agent-meta | `submitReport`, `recordAgentMeta`, `getReports`, `getCurrentReport` |
@@ -242,7 +265,11 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   `ticket_id` **nullable** (từ migration `0011_attachments_nullable_ticket_id.sql`, flow `api-platform`) vẫn
   giữ FK `ON DELETE cascade` khi có giá trị: `NULL` là ảnh nháp chưa gắn ticket (`POST /v1/attachments`), được
   `claimDraftAttachments()` gắn khi tạo ticket tham chiếu nó, hoặc bị dọn sau 24 giờ nếu bỏ quên
-  (`deleteOrphanedDraftAttachments()`).
+  (`deleteOrphanedDraftAttachments()`). Cột `tickets.test_kinds` (`text[]`, nullable) và `tickets.test_reason`
+  (`text`, nullable, migration `apps/api/drizzle/0012_qc_test_plan.sql` flow `api-platform`) — phương án kiểm
+  thử của một ticket `qc` (`null` cho `dev` và cho QC tạo trước khi có tính năng này); `TestKind`/
+  `TEST_KIND_INFO`/`isTestKindSupported`/`uiMcpsForTestKinds` (`packages/shared/src/project-schemas.ts`, flow
+  `project-claims`) là nguồn sự thật duy nhất cho nhãn, công cụ gợi ý và MCP UI suy ra từ từng loại.
 - Trường tính không lưu DB: `Ticket.agentActivity` — `withAgentActivity()` đọc bảng `machines` (flow
   `machine-pairing`) mỗi lần trả owner đọc, không cache.
 - Sự kiện: `ticket.assigned`, `ticket.status_changed`, `ticket.cancelled`, `ticket.comment_added`,
@@ -260,8 +287,9 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   `recordHeartbeat()`) để tính `AgentActivity` của từng ticket; `agent.activity_changed` do `recordHeartbeat()`
   phát khi báo cáo đổi. `daemonAttachmentRoutes` dùng lại `assertTicketReadable()` của flow này để kiểm phạm
   vi ticket sở hữu ảnh trước khi trả bytes, không viết luật phạm vi mới.
-- project-claims: `qcDefaultMcps()` (project-schemas) quyết định MCP bắt buộc của QC; `retargetOpenTickets()`
-  ở đó cập nhật `assignee_machine_id` khi project đổi chủ.
+- project-claims: `qcDefaultMcps()` (project-schemas) quyết định MCP bắt buộc của QC không có phương án kiểm
+  thử; `uiMcpsForTestKinds()`/`isTestKindSupported()` (cùng file) quyết định MCP UI của QC có `testKinds`;
+  `retargetOpenTickets()` ở đó cập nhật `assignee_machine_id` khi project đổi chủ.
 - event-delivery: mọi `NewEvent` sinh ra ở đây được `appendEvents()` ghi vào outbox `events` rồi phát qua SSE.
 - docs-sync-viewer: `search()` gộp kết quả `searchAllDocs()`; `flows[]` của ticket liên kết tới trang
   `docs/flows/<id>.md` tương ứng trên web.
@@ -284,11 +312,26 @@ daemon ở flow `daemon-api`, nhưng dùng cùng các hàm service mô tả dư�
   `runtime_bundles` (flow `runtime-updates`); `attachmentRoutes` dùng lại `sendApiError()`
   (`apps/api/src/errors.ts`) cho mọi lỗi khác lỗi vượt kích thước; mã lỗi `ATTACHMENT_TOO_LARGE` ánh xạ 413 ở
   `STATUS_BY_CODE` (`errors.ts`); `startDraftAttachmentCleanup()` đăng ký/dừng ở `buildApp()` cạnh
-  `startStuckTicketAlarm()`, cùng vòng đời `onReady`/`preClose`.
+  `startStuckTicketAlarm()`, cùng vòng đời `onReady`/`preClose`. Cột `tickets.test_kinds`/`tickets.test_reason`
+  cũng khai ở `apps/api/src/db/schema.ts`, migration `apps/api/drizzle/0012_qc_test_plan.sql` chạy qua
+  `runMigrations()` như mọi migration khác.
 
 ## Tests
 
 - `apps/api/test/ticket-service.test.ts`: key đầu tiên là `AST-1`, key không trùng khi tạo đồng thời.
+- `apps/api/test/qc-test-plan.test.ts`: `createSubtask()` — `testKinds` chỉ gồm loại không-UI (`api`,
+  `integration`) trên dự án `web`/`web_mobile` không cộng MCP UI vào `requiredMcps`; `['ui_web']` trên `web`
+  chứa đúng tên `uiTestMcp.playwright` của dự án (kể cả tên khác mặc định), `['ui_web','ui_mobile']` trên
+  `web_mobile` chứa cả hai; `ui_mobile` trên `web`, `ui_web` trên `mobile`, mọi loại UI trên `backend` đều
+  `VALIDATION_FAILED`; `requiredMcps` có MCP UI của dự án mà `testKinds` không có loại UI tương ứng
+  → `VALIDATION_FAILED`; `testKinds`/`testReason` trên ticket `dev` → 400 `VALIDATION_FAILED` qua route daemon;
+  không gửi `testKinds` giữ nguyên hành vi cũ (`qcDefaultMcps`, `testKinds`/`testReason` là `null`). `fileBug()`
+  — QC gốc có `testKinds`: retest có cùng `testKinds`/`testReason`/`requiredMcps`, không có MCP UI; QC gốc
+  không có `testKinds` (ticket cũ): giữ hành vi hiện tại. `POST /v1/daemon/tickets/:id/test-plan` — đổi
+  `['ui_web']` → `['api']` gỡ `playwright` khỏi `requiredMcps`, giữ MCP khác; đổi ngược lại thêm `playwright`
+  vào; không đổi trạng thái ticket, chỉ đổi `requiredMcps`/`testKinds`/`testReason`; ticket `done`/`cancelled`
+  → `TICKET_CLOSED`; ticket không phải `qc`, không thuộc đúng `pm_task`, hoặc `:id` không phải `pm_task` →
+  `FORBIDDEN`; gửi lại cùng `Idempotency-Key` không tạo thay đổi thứ hai.
 - `apps/api/test/transition.test.ts`: đủ ma trận cạnh hợp lệ theo actor, `REPORT_REQUIRED`, mã lỗi HTTP.
 - `apps/api/test/lifecycle-effects.test.ts`: `dependency.resolved`, đúng một `children.all_done` khi tuần tự
   lẫn đồng thời, cascade cancel phát đúng một `ticket.cancelled` mỗi máy, đánh thức owner, rollback nguyên tử;

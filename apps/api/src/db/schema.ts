@@ -24,6 +24,7 @@ import {
   type RuntimeShellRange,
   SettingsKind,
   SettingsScope,
+  type TestKind,
   TicketPriority,
   TicketStatus,
   TicketType,
@@ -216,6 +217,10 @@ export const tickets = pgTable(
     effort: effortEnum('effort'),
     requiredSkills: textArray('required_skills'),
     requiredMcps: textArray('required_mcps'),
+    /** QC test plan (qc tickets only): which kinds of testing it needs; null for dev and legacy QC rows. */
+    testKinds: text('test_kinds').array().$type<TestKind[]>(),
+    /** One-line reason for the test plan; goes with testKinds. */
+    testReason: text('test_reason'),
     dependsOn: uuid('depends_on').array().notNull().default(sql`'{}'::uuid[]`),
     pairsWith: uuid('pairs_with').references((): AnyPgColumn => tickets.id, { onDelete: 'restrict' }),
     originDevId: uuid('origin_dev_id').references((): AnyPgColumn => tickets.id, { onDelete: 'restrict' }),

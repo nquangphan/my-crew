@@ -104,7 +104,7 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
 | `apps/api/src/services/project-change-service.ts` | Máy xin đổi platform/MCP test UI, owner duyệt bằng một cú nhấp xác nhận, rút yêu cầu khi máy mất project | `requestProjectChange`, `decideProjectChange`, `listProjectChanges`, `getProjectChange`, `changesOf`, `withdrawProjectChanges` |
 | `apps/api/src/services/project-service.ts` | CRUD project và DTO | `createProject`, `updateProject`, `listProjects`, `getProject`, `toProjectDto` |
 | `apps/api/src/services/bmad-profile-service.ts` | Lưu hồ sơ cài BMAD do máy sở hữu project báo cáo, chỉ máy sở hữu mới ghi, bản mới nhất thắng | `putBmadProfile` |
-| `packages/shared/src/project-schemas.ts` | Schema project, `qcDefaultMcps`, giới hạn mặc định, tên MCP server | `CreateProjectRequest`, `UpdateProjectRequest`, `Project`, `qcDefaultMcps`, `McpServerName` |
+| `packages/shared/src/project-schemas.ts` | Schema project, `qcDefaultMcps`, giới hạn mặc định, tên MCP server, bảng loại kiểm thử QC | `CreateProjectRequest`, `UpdateProjectRequest`, `Project`, `qcDefaultMcps`, `McpServerName`, `TestKind`, `TEST_KIND_INFO`, `isTestKindSupported`, `uiMcpsForTestKinds` |
 | `packages/shared/src/bmad-schemas.ts` | Schema hồ sơ cài BMAD dùng chung server/daemon/desktop, từ chối câu trả lời cá nhân/credential/đường dẫn tuyệt đối | `BmadProfile`, `BmadSetting`, `BmadPin`, `PutBmadProfileResponse`, `BMAD_PERSONAL_KEYS` |
 
 ## Dữ liệu
@@ -124,6 +124,15 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
   namespace (`plugin:claude-mem:mcp-search`) và connector claude.ai có dấu cách (`claude.ai Figma`); trước đó
   một report có `mcpsUsed` chứa tên như vậy bị server từ chối. Dùng lại bởi `UiTestMcp` ở đây và bởi schema
   report/ticket của `packages/shared/src/api-schemas.ts` (flow `ticket-lifecycle`).
+- `packages/shared/src/project-schemas.ts` → `TestKind` (enum `static_review | unit | integration | api |
+  ui_web | ui_mobile`), `TEST_KIND_INFO` (bảng duy nhất: nhãn tiếng Việt, công cụ gợi ý, vai trò MCP UI —
+  `ui_web` → `playwright`, `ui_mobile` → `maestro`, còn lại `null` — daemon/web dùng lại bảng này, không chép
+  lại), `isTestKindSupported(kind, platform)` (`ui_web` cần `web`/`web_mobile`, `ui_mobile` cần
+  `mobile`/`web_mobile`, `backend` không hỗ trợ loại UI nào), `uiMcpsForTestKinds(testKinds, platform, mapping)`
+  (suy MCP UI từ phương án kiểm thử của một ticket `qc`, tự bỏ qua loại UI mà `platform` không hỗ trợ — nơi gọi
+  vẫn phải tự chặn bằng `isTestKindSupported()` để trả lỗi thay vì âm thầm bỏ qua). Dùng bởi `createSubtask()`/
+  `fileBug()`/`updateQcTestPlan()` của flow `ticket-lifecycle` để tính `requiredMcps` từ `testKinds` của
+  `Ticket`, thay cho `qcDefaultMcps()` khi ticket QC có phương án kiểm thử.
 - `packages/shared/src/machine-schemas.ts` → `InventoryMcpServer.disabled` là cờ dùng chung với flow
   `machine-pairing`/`daemon-api`, không thuộc file của flow này: nguồn của nó nay là cài đặt `project_mcp`
   của server (`disabledMcpServers`, flow `server-settings`) áp qua `effectiveConfig()` xuống
@@ -156,7 +165,8 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
   mỗi khi đổi; app desktop dùng lại hồ sơ server trả về để chạy trình cài `bmad-method` trên máy đang giữ
   project khi owner bấm "Cài BMAD" trên web (trang Dự án, flow `machine-control`).
 - ticket-lifecycle: `retargetOpenTickets()` cập nhật `assignee_machine_id` của ticket khi quyền sở hữu project
-  đổi.
+  đổi; `createSubtask()`, `fileBug()` và `updateQcTestPlan()` gọi `uiMcpsForTestKinds()`/
+  `isTestKindSupported()` ở đây để tính `requiredMcps` từ `Ticket.testKinds`.
 - daemon-scheduling: `dispatchEvent()` ánh xạ `project.change_decided` (như `claim.changed`) sang effect
   `refresh_projects`, để daemon của máy đã hỏi thấy `platform`/`ui_test_mcp` mới ngay.
 - desktop-app: `VpsClient.requestProjectChange()` (route change-requests) hiện không còn nơi gọi — app đã bỏ
@@ -187,3 +197,8 @@ trả, hoặc máy bị thu hồi) — chỉ máy đang sở hữu mới đượ
 - `packages/shared/src/project-schemas.test.ts`: `McpServerName` chấp nhận tên plugin có namespace và
   connector claude.ai có dấu cách như Claude Code thật báo cáo, từ chối tên rỗng/có khoảng trắng đầu-cuối/ký
   tự điều khiển; một report với `mcpsUsed`/`mcpsSelected` chứa các tên đó được schema report chấp nhận.
+  `TEST_KIND_INFO` có đúng một dòng mỗi `TestKind`, chỉ `ui_web`/`ui_mobile` có `uiRole`; `isTestKindSupported`
+  đúng theo platform (`ui_web` chỉ `web`/`web_mobile`, `ui_mobile` chỉ `mobile`/`web_mobile`, `backend` không
+  loại UI nào, mọi platform chạy được loại không-UI); `uiMcpsForTestKinds` trả rỗng khi phương án chỉ có loại
+  không-UI, suy đúng tên `playwright` của dự án (kể cả tên khác mặc định), suy cả hai vai trò khi phương án có
+  cả `ui_web`/`ui_mobile` trên `web_mobile`, và bỏ qua (không suy) loại UI mà platform không hỗ trợ.
