@@ -422,7 +422,7 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
   (`StateDb.imagesSentInSession()` theo đúng phiên mới); một ticket bị `no_handoff` hai lần liên tiếp trên cùng
   một phiên sạch (các lượt resume không gửi lại ảnh) rồi `blocked`, owner mở chặn mở một phiên mới theo quy tắc
   mở chặn (gửi lại ảnh) và phiên đó backoff, retry sau backoff resume đúng phiên mới đó (không gửi lại ảnh lần
-  nữa). Nhóm "background tasks (scripted
+  nữa) — bốn lượt của ca này khớp đúng mẫu ảnh gửi/rỗng/ảnh/rỗng (`[[image.id], [], [image.id], []]`). Nhóm "background tasks (scripted
   runner)" (daemon thật + `createScriptedRunner()`, trần chờ nhỏ qua `config.backgroundWaitMinutes` của
   `makeDaemon` khi cần): một lệnh `bgBash` sống qua ranh giới lượt rồi kết thúc job đúng lúc, agent được thông
   báo và làm tiếp trong **cùng một job** (một job, không retry); một lệnh không bao giờ xong với trần chờ ~60ms
