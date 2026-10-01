@@ -836,12 +836,7 @@ describe('abandoned sessions', () => {
       null,
       backoff.sessionId,
     ]);
-    expect(runs.map((run) => (run.images ?? []).map((i) => i.id))).toEqual([
-      [image.id],
-      [],
-      [image.id],
-      [],
-    ]);
+    expect(runs.map((run) => (run.images ?? []).map((i) => i.id))).toEqual([[image.id], [], [image.id], []]);
     // The unblocked job ran in another session than the one its images were first sent to.
     expect(t.daemon.state.imagesSentInSession(backoff.sessionId as string)).toEqual([image.id]);
     await t.daemon.stop();
