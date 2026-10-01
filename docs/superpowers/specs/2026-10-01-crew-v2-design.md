@@ -65,6 +65,10 @@ Một mục trong pool xác định nguồn/runtime, model, máy, khả năng c�
 Cùng tên model ở hai nguồn không được coi là cùng một mục. Trợ lý chọn cặp runtime/model trên máy
 sở hữu dự án; không điều chuyển code sang máy khác để tận dụng model.
 
+Pool khai báo khả năng đọc ảnh và loại tài liệu của model/runtime. Khi đầu vào chứa ảnh hoặc file,
+Trợ lý chọn cách đọc tương thích: model đọc trực tiếp hoặc công cụ trích xuất phù hợp. Không chọn
+model chỉ đọc text rồi âm thầm bỏ ảnh; fallback phải giữ khả năng xử lý đầu vào cần thiết.
+
 Đánh giá ticket theo độ phức tạp, phạm vi ảnh hưởng, rủi ro và mức thiếu thông tin. Ticket ít dòng nhưng
 đụng auth hoặc migration có thể cần model mạnh. Lưu đánh giá, model chọn và lý do; được đánh giá lại
 khi có bằng chứng mới. Không đặt bảng ánh xạ model cứng dựa vào tên hãng.
@@ -214,6 +218,30 @@ số vòng sửa, kết quả kiểm chứng, commit và trạng thái docs. Tra
 pool model, hai bộ workflow và app version, cùng nút cài/update. Có lựa chọn máy/model Trợ lý và
 danh sách vấn đề cần owner xử lý. Điều khiển pause, cancel và duyệt deploy gửi lệnh có phản hồi thực.
 
+### Tạo ticket, clipboard và attachment
+
+Owner có thể paste ảnh trực tiếp từ clipboard vào form tạo ticket trước khi ticket tồn tại, chọn
+file để đính kèm hoặc kéo thả. Hiển thị ảnh xem trước, tên file, dung lượng và trạng thái upload;
+cho phép gỡ attachment trước khi gửi. Cùng khả năng này áp dụng khi bổ sung thông tin vào ticket
+hoặc hội thoại với Trợ lý.
+
+Upload dùng vùng tạm gắn với owner và lần soạn yêu cầu; khi gửi, liên kết attachment đã upload
+thành công với ticket. Upload lỗi phải hiện rõ và cho retry; không tạo ticket thiếu attachment
+mà owner tưởng đã gửi. File tạm bị bỏ hoặc form bị đóng được dọn sau thời gian lưu tạm. Tạo ticket
+và gắn các attachment phải có cơ chế chống trùng khi retry.
+
+Trợ lý phải đọc nội dung ảnh và file liên quan trước khi phân tích, tạo ticket bước hoặc trả lời.
+Hỗ trợ ảnh, PDF, văn bản/code, DOCX và bảng tính XLSX/CSV; tài liệu scan cần đọc ảnh trang hoặc OCR.
+Giữ bản gốc và metadata; phần trích xuất phải liên kết tới attachment, trang, sheet hoặc vùng ảnh
+khi có thể để owner kiểm tra căn cứ. Ticket con nhận tham chiếu tới attachment cần thiết, không
+phải tải lại hoặc nhân bản mọi file. Attachment vẫn khả dụng khi resume hoặc đổi model/runtime.
+
+Loại file không hỗ trợ, file hỏng, có mật khẩu hoặc đọc chưa đầy đủ phải được báo rõ trên ticket;
+Trợ lý không tuyên bố đã đọc hoặc suy đoán nội dung bị thiếu. UI công bố giới hạn upload được cấu
+hình và kiểm tra ở cả client/server. File được kiểm tra loại nội dung, truy cập theo quyền owner
+và machine được giao việc. Nội dung file là dữ liệu đầu vào, không được dùng để ghi đè quyền hạn
+hay workflow của agent hoặc tự thực thi macro/script nhúng trong tài liệu.
+
 ### Chế độ flow chart
 
 Ngoài board và danh sách, mỗi yêu cầu có chế độ flow chart tương tác của workflow thực tế. Node biểu
@@ -262,6 +290,10 @@ Các tình huống bắt buộc nghiệm thu:
 - Board, danh sách và flow chart phản ánh cùng trạng thái; sơ đồ hiển thị phụ thuộc, ticket con và vòng sửa,
   mở đúng ticket khi chọn node; không nhầm sơ đồ workflow định nghĩa với lịch sử run thực tế.
 - Docs có cây trang, tìm kiếm và liên kết ticket theo dự án; trạng thái cập nhật và commit nguồn nhìn thấy được.
+- Paste ảnh và thêm nhiều attachment ngay lúc tạo ticket; preview, gỡ, retry upload, gửi lại không trùng,
+  dọn file tạm; ảnh/file còn truy cập được sau resume và fallback.
+- Trợ lý đọc ảnh, PDF scan, DOCX, XLSX/CSV và text/code; kết luận truy được về nguồn; file không đọc
+  được hoặc chỉ đọc một phần được báo rõ, không âm thầm bỏ qua đầu vào.
 
 ## 13. Phân rã kế hoạch tiếp theo
 
