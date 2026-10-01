@@ -82,7 +82,7 @@ Mô tả (`description`) của mỗi subtask `qc` bắt buộc có mục này, �
 ## Phương án kiểm thử
 
 - Loại kiểm thử: api, unit
-- Công cụ / lệnh: `pnpm --filter @crew/api test:api` và `curl -X POST http://localhost:8787/v1/…`
+- Công cụ / lệnh: `pnpm --filter @crew/api test` và `curl -X POST http://localhost:8787/v1/…`
 - Công cụ UI: Không cần, thay đổi chỉ là endpoint mới và DB migration, không có giao diện
 - Tiêu chí nghiệm thu ↔ cách kiểm:
   1. Endpoint trả đúng response theo spec → gọi curl hoặc supertest
