@@ -1,6 +1,6 @@
 # Crew v2 Domain Foundation Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Xây thư viện miền độc lập kiểm chứng quy tắc ticket, eligibility model/workflow và completion docs cho v2.
 
@@ -48,7 +48,7 @@ Không tạo server, DB, Electron, web, provider client hoặc data mock trong p
 **Files:** Create `v2/package.json`, `v2/tsconfig.json`, `v2/test/workspace.test.ts`, `v2/docs/index.md`, `v2/docs/architecture.md`, `v2/docs/flows.yaml`, `v2/docs/flows/domain-foundation.md`; Generate `v2/docs/files.md`.
 **Interfaces:** Produces scripts `pnpm --dir v2 test` và `pnpm --dir v2 typecheck`.
 
-- [ ] Step 1: tạo test, chạy `node --test v2/test/workspace.test.ts`; expected FAIL do package chưa có.
+- [x] Step 1: tạo test, chạy `node --test v2/test/workspace.test.ts`; expected FAIL do package chưa có.
 
 ```ts
 import test from 'node:test';
@@ -61,7 +61,7 @@ test('workspace v2 không có dependency ứng dụng v1', () => {
 });
 ```
 
-- [ ] Step 2: tạo package và tsconfig bằng nội dung sau.
+- [x] Step 2: tạo package và tsconfig bằng nội dung sau.
 
 ```json
 {"name":"@crew-v2/domain","private":true,"type":"module","packageManager":"pnpm@10.32.1","engines":{"node":">=24.12"},"scripts":{"test":"node --test test/*.test.ts","typecheck":"tsc --noEmit"},"devDependencies":{"typescript":"7.0.2","@types/node":"26.6.3"}}
@@ -71,8 +71,8 @@ test('workspace v2 không có dependency ứng dụng v1', () => {
 {"compilerOptions":{"target":"ESNext","module":"NodeNext","strict":true,"noEmit":true,"allowImportingTsExtensions":true,"erasableSyntaxOnly":true,"verbatimModuleSyntax":true},"include":["src/**/*.ts","test/**/*.ts"]}
 ```
 
-- [ ] Step 3: chạy `pnpm --dir v2 install --ignore-workspace`; commit lockfile mới. Expected không sửa pnpm-lock.yaml v1.
-- [ ] Step 4: tạo docs theo chuẩn đã duyệt. Index mô tả domain library; architecture nêu hàm thuần và server transaction nằm ngoài phần này. Trang flow dùng đúng bảy heading của STANDARD.md, liệt kê từng file/symbol, test và giới hạn.
+- [x] Step 3: chạy `pnpm --dir v2 install --ignore-workspace`; commit lockfile mới. Expected không sửa pnpm-lock.yaml v1.
+- [x] Step 4: tạo docs theo chuẩn đã duyệt. Index mô tả domain library; architecture nêu hàm thuần và server transaction nằm ngoài phần này. Trang flow dùng đúng bảy heading của STANDARD.md, liệt kê từng file/symbol, test và giới hạn.
 
 ```yaml
 version: 1
@@ -90,15 +90,15 @@ shared: {}
 unassigned: []
 ```
 
-- [ ] Step 5: chạy `pnpm --dir v2 test`, `pnpm --dir v2 typecheck`, rồi từ `v2/` chạy `node ../packages/docs-kit/dist/crew-docs.cjs generate` và `check --all`; expected PASS. Bundle v1 chỉ là công cụ kiểm tra tạm lúc phát triển, không dependency runtime v2.
-- [ ] Step 6: `git add -- v2`; `git diff --cached --check`; `git commit -m "feat(v2): establish independent domain workspace"`.
+- [x] Step 5: chạy `pnpm --dir v2 test`, `pnpm --dir v2 typecheck`, rồi từ `v2/` chạy `node ../packages/docs-kit/dist/crew-docs.cjs generate` và `check --all`; expected PASS. Bundle v1 chỉ là công cụ kiểm tra tạm lúc phát triển, không dependency runtime v2.
+- [x] Step 6: `git add -- v2`; `git diff --cached --check`; `git commit -m "feat(v2): establish independent domain workspace"`.
 
 ### Task 02: Model eligibility
 
 **Files:** Create `v2/src/model-policy.ts`, `v2/test/model-policy.test.ts`; Modify `v2/docs/flows.yaml`, `v2/docs/flows/domain-foundation.md`.
 **Interfaces:** Consumes Model[] và Selection; produces eligibleModels(models: Model[], policy: Selection): Model[]. Trợ lý tự xếp hạng các ứng viên còn lại, không coi hàm này là toàn bộ chọn model.
 
-- [ ] Step 1: ghi test sau vào `v2/test/model-policy.test.ts`.
+- [x] Step 1: ghi test sau vào `v2/test/model-policy.test.ts`.
 
 ```ts
 import test from 'node:test';
@@ -117,8 +117,8 @@ test('fallback giữ tools và vision, không chọn model thiếu khả năng',
 });
 ```
 
-- [ ] Step 2: `node --test v2/test/model-policy.test.ts`; expected FAIL module chưa tồn tại. Không chấp nhận syntax error làm bằng chứng red.
-- [ ] Step 3: ghi nội dung sau vào `v2/src/model-policy.ts`.
+- [x] Step 2: `node --test v2/test/model-policy.test.ts`; expected FAIL module chưa tồn tại. Không chấp nhận syntax error làm bằng chứng red.
+- [x] Step 3: ghi nội dung sau vào `v2/src/model-policy.ts`.
 
 ```ts
 export type Runtime = 'claude' | 'codex' | 'api';
@@ -131,16 +131,16 @@ export function eligibleModels(models: Model[], policy: Selection): Model[] {
 }
 ```
 
-- [ ] Step 4: thêm `src/model-policy.ts` vào files và `test/model-policy.test.ts` vào tests của flow domain-foundation. Cập nhật các bước, bảng Files và Tests bằng tên hàm và hành vi thực tế ở trên; giữ các heading chuẩn. Chạy generate trong v2.
-- [ ] Step 5: `node --test v2/test/model-policy.test.ts`, `pnpm --dir v2 typecheck`, `pnpm --dir v2 test`; expected tất cả PASS. Chạy `node ../packages/docs-kit/dist/crew-docs.cjs check --all` từ v2.
-- [ ] Step 6: `git add -- v2/src/model-policy.ts v2/test/model-policy.test.ts v2/docs`; `git diff --cached --check`; `git commit -m "feat(v2): add model-policy"`.
+- [x] Step 4: thêm `src/model-policy.ts` vào files và `test/model-policy.test.ts` vào tests của flow domain-foundation. Cập nhật các bước, bảng Files và Tests bằng tên hàm và hành vi thực tế ở trên; giữ các heading chuẩn. Chạy generate trong v2.
+- [x] Step 5: `node --test v2/test/model-policy.test.ts`, `pnpm --dir v2 typecheck`, `pnpm --dir v2 test`; expected tất cả PASS. Chạy `node ../packages/docs-kit/dist/crew-docs.cjs check --all` từ v2.
+- [x] Step 6: `git add -- v2/src/model-policy.ts v2/test/model-policy.test.ts v2/docs`; `git diff --cached --check`; `git commit -m "feat(v2): add model-policy"`.
 
 ### Task 03: Workflow pin và skill provenance
 
 **Files:** Create `v2/src/workflow-policy.ts`, `v2/test/workflow-policy.test.ts`; Modify `v2/docs/flows.yaml`, `v2/docs/flows/domain-foundation.md`.
 **Interfaces:** Consumes Pin; produces samePin, workflowsReady(required: Pin[], installed: Pin[]): boolean và assertSkillAllowed(run: Pin, origin: Pin): void. Chỉ là contract gate, không thay kiểm soát skill loader của runtime ở phần 03 lộ trình.
 
-- [ ] Step 1: ghi test sau vào `v2/test/workflow-policy.test.ts`.
+- [x] Step 1: ghi test sau vào `v2/test/workflow-policy.test.ts`.
 
 ```ts
 import test from 'node:test';
@@ -161,8 +161,8 @@ test('skill bộ khác hoặc revision khác bị chặn, kể cả khi tên ski
 });
 ```
 
-- [ ] Step 2: `node --test v2/test/workflow-policy.test.ts`; expected FAIL module chưa tồn tại. Không chấp nhận syntax error làm bằng chứng red.
-- [ ] Step 3: ghi nội dung sau vào `v2/src/workflow-policy.ts`.
+- [x] Step 2: `node --test v2/test/workflow-policy.test.ts`; expected FAIL module chưa tồn tại. Không chấp nhận syntax error làm bằng chứng red.
+- [x] Step 3: ghi nội dung sau vào `v2/src/workflow-policy.ts`.
 
 ```ts
 export type Workflow = 'bmad' | 'superpowers';
@@ -181,16 +181,16 @@ export function assertSkillAllowed(run: Pin, origin: Pin): void {
 }
 ```
 
-- [ ] Step 4: thêm `src/workflow-policy.ts` vào files và `test/workflow-policy.test.ts` vào tests của flow domain-foundation. Cập nhật các bước, bảng Files và Tests bằng tên hàm và hành vi thực tế ở trên; giữ các heading chuẩn. Chạy generate trong v2.
-- [ ] Step 5: `node --test v2/test/workflow-policy.test.ts`, `pnpm --dir v2 typecheck`, `pnpm --dir v2 test`; expected tất cả PASS. Chạy `node ../packages/docs-kit/dist/crew-docs.cjs check --all` từ v2.
-- [ ] Step 6: `git add -- v2/src/workflow-policy.ts v2/test/workflow-policy.test.ts v2/docs`; `git diff --cached --check`; `git commit -m "feat(v2): add workflow-policy"`.
+- [x] Step 4: thêm `src/workflow-policy.ts` vào files và `test/workflow-policy.test.ts` vào tests của flow domain-foundation. Cập nhật các bước, bảng Files và Tests bằng tên hàm và hành vi thực tế ở trên; giữ các heading chuẩn. Chạy generate trong v2.
+- [x] Step 5: `node --test v2/test/workflow-policy.test.ts`, `pnpm --dir v2 typecheck`, `pnpm --dir v2 test`; expected tất cả PASS. Chạy `node ../packages/docs-kit/dist/crew-docs.cjs check --all` từ v2.
+- [x] Step 6: `git add -- v2/src/workflow-policy.ts v2/test/workflow-policy.test.ts v2/docs`; `git diff --cached --check`; `git commit -m "feat(v2): add workflow-policy"`.
 
 ### Task 04: Ticket transitions và năm vòng sửa
 
 **Files:** Create `v2/src/ticket-policy.ts`, `v2/test/ticket-policy.test.ts`; Modify `v2/docs/flows.yaml`, `v2/docs/flows/domain-foundation.md`.
 **Interfaces:** Consumes Status/Signal; produces transition(status: Status, signal: Signal): Status và recordRepairFailure(number). Caller chỉ phát signal confirmed/passed sau kiểm chứng, kiểm tra dependency và lease trong transaction server; chưa triển khai transaction ở phần này.
 
-- [ ] Step 1: ghi test sau vào `v2/test/ticket-policy.test.ts`.
+- [x] Step 1: ghi test sau vào `v2/test/ticket-policy.test.ts`.
 
 ```ts
 import test from 'node:test';
@@ -214,8 +214,8 @@ test('thất bại vòng năm hỏi owner, không vượt hoặc reset bộ đ�
 });
 ```
 
-- [ ] Step 2: `node --test v2/test/ticket-policy.test.ts`; expected FAIL module chưa tồn tại. Không chấp nhận syntax error làm bằng chứng red.
-- [ ] Step 3: ghi nội dung sau vào `v2/src/ticket-policy.ts`.
+- [x] Step 2: `node --test v2/test/ticket-policy.test.ts`; expected FAIL module chưa tồn tại. Không chấp nhận syntax error làm bằng chứng red.
+- [x] Step 3: ghi nội dung sau vào `v2/src/ticket-policy.ts`.
 
 ```ts
 export type Status = 'pending' | 'ready' | 'running' | 'needs_input' | 'paused' | 'done' | 'cancelled';
@@ -239,16 +239,16 @@ export function recordRepairFailure(completedCycles: number): { cycles: number; 
 }
 ```
 
-- [ ] Step 4: thêm `src/ticket-policy.ts` vào files và `test/ticket-policy.test.ts` vào tests của flow domain-foundation. Cập nhật các bước, bảng Files và Tests bằng tên hàm và hành vi thực tế ở trên; giữ các heading chuẩn. Chạy generate trong v2.
-- [ ] Step 5: `node --test v2/test/ticket-policy.test.ts`, `pnpm --dir v2 typecheck`, `pnpm --dir v2 test`; expected tất cả PASS. Chạy `node ../packages/docs-kit/dist/crew-docs.cjs check --all` từ v2.
-- [ ] Step 6: `git add -- v2/src/ticket-policy.ts v2/test/ticket-policy.test.ts v2/docs`; `git diff --cached --check`; `git commit -m "feat(v2): add ticket-policy"`.
+- [x] Step 4: thêm `src/ticket-policy.ts` vào files và `test/ticket-policy.test.ts` vào tests của flow domain-foundation. Cập nhật các bước, bảng Files và Tests bằng tên hàm và hành vi thực tế ở trên; giữ các heading chuẩn. Chạy generate trong v2.
+- [x] Step 5: `node --test v2/test/ticket-policy.test.ts`, `pnpm --dir v2 typecheck`, `pnpm --dir v2 test`; expected tất cả PASS. Chạy `node ../packages/docs-kit/dist/crew-docs.cjs check --all` từ v2.
+- [x] Step 6: `git add -- v2/src/ticket-policy.ts v2/test/ticket-policy.test.ts v2/docs`; `git diff --cached --check`; `git commit -m "feat(v2): add ticket-policy"`.
 
 ### Task 05: Completion gate theo docs commit và approval deploy
 
 **Files:** Create `v2/src/completion-policy.ts`, `v2/test/completion-policy.test.ts`; Modify `v2/docs/flows.yaml`, `v2/docs/flows/domain-foundation.md`.
 **Interfaces:** Consumes Completion; produces canComplete(input: Completion): boolean và canDeploy({hasDeployTicket, ownerApproved}): boolean. Server xác thực nguồn approval, artifact và commits; không tin các boolean do client tùy ý gửi.
 
-- [ ] Step 1: ghi test sau vào `v2/test/completion-policy.test.ts`.
+- [x] Step 1: ghi test sau vào `v2/test/completion-policy.test.ts`.
 
 ```ts
 import test from 'node:test';
@@ -271,8 +271,8 @@ test('deploy phải có approval hoặc ticket riêng, không kế thừa từ h
 });
 ```
 
-- [ ] Step 2: `node --test v2/test/completion-policy.test.ts`; expected FAIL module chưa tồn tại. Không chấp nhận syntax error làm bằng chứng red.
-- [ ] Step 3: ghi nội dung sau vào `v2/src/completion-policy.ts`.
+- [x] Step 2: `node --test v2/test/completion-policy.test.ts`; expected FAIL module chưa tồn tại. Không chấp nhận syntax error làm bằng chứng red.
+- [x] Step 3: ghi nội dung sau vào `v2/src/completion-policy.ts`.
 
 ```ts
 export type Completion = { kind: 'code' | 'research' | 'docs'; mandatoryStepsPassed: boolean; evidenceReady: boolean; mergedCommit: string | null; docsCommit: string | null };
@@ -287,24 +287,24 @@ export function canDeploy(input: { hasDeployTicket: boolean; ownerApproved: bool
 }
 ```
 
-- [ ] Step 4: thêm `src/completion-policy.ts` vào files và `test/completion-policy.test.ts` vào tests của flow domain-foundation. Cập nhật các bước, bảng Files và Tests bằng tên hàm và hành vi thực tế ở trên; giữ các heading chuẩn. Chạy generate trong v2.
-- [ ] Step 5: `node --test v2/test/completion-policy.test.ts`, `pnpm --dir v2 typecheck`, `pnpm --dir v2 test`; expected tất cả PASS. Chạy `node ../packages/docs-kit/dist/crew-docs.cjs check --all` từ v2.
-- [ ] Step 6: `git add -- v2/src/completion-policy.ts v2/test/completion-policy.test.ts v2/docs`; `git diff --cached --check`; `git commit -m "feat(v2): add completion-policy"`.
+- [x] Step 4: thêm `src/completion-policy.ts` vào files và `test/completion-policy.test.ts` vào tests của flow domain-foundation. Cập nhật các bước, bảng Files và Tests bằng tên hàm và hành vi thực tế ở trên; giữ các heading chuẩn. Chạy generate trong v2.
+- [x] Step 5: `node --test v2/test/completion-policy.test.ts`, `pnpm --dir v2 typecheck`, `pnpm --dir v2 test`; expected tất cả PASS. Chạy `node ../packages/docs-kit/dist/crew-docs.cjs check --all` từ v2.
+- [x] Step 6: `git add -- v2/src/completion-policy.ts v2/test/completion-policy.test.ts v2/docs`; `git diff --cached --check`; `git commit -m "feat(v2): add completion-policy"`.
 
 ## Nghiệm thu phần 01 và self-review
 
-- [ ] Chạy đầy đủ test và typecheck riêng v2, validator docs v2; lưu output thật.
-- [ ] Xác nhận không có import `apps/`, `packages/` hoặc role/schema v1 trong `v2/src`.
-- [ ] Kiểm tra những gate trên chỉ là hàm miền, chưa quảng cáo app đã chạy được workflow hay đã cách ly runtime.
-- [ ] Năm Review Focus đều có test cụ thể trong các task 02–05.
-- [ ] Spec coverage cho phần 01: model/switches ở 02, pin/isolation contract ở 03, trạng thái/năm vòng ở 04,
+- [x] Chạy đầy đủ test và typecheck riêng v2, validator docs v2; lưu output thật.
+- [x] Xác nhận không có import `apps/`, `packages/` hoặc role/schema v1 trong `v2/src`.
+- [x] Kiểm tra những gate trên chỉ là hàm miền, chưa quảng cáo app đã chạy được workflow hay đã cách ly runtime.
+- [x] Năm Review Focus đều có test cụ thể trong các task 02–05.
+- [x] Spec coverage cho phần 01: model/switches ở 02, pin/isolation contract ở 03, trạng thái/năm vòng ở 04,
   completion/docs/deploy policy ở 05. Các yêu cầu persistence, host, UI và provider nằm ở lộ trình, không
   coi là đã triển khai bởi các hàm thuần này.
-- [ ] Review phần 01 trước khi lập kế hoạch server: thêm command envelope, lease/fencing, event store,
+- [x] Review phần 01 trước khi lập kế hoạch server: thêm command envelope, lease/fencing, event store,
   runtime validation và import docs vào kế hoạch phần 02, không chèn một fake server vào nền tảng.
 
 ## Handoff
 
-Owner review lộ trình và kế hoạch này, chọn native hoặc subagent-driven. Native phù hợp phần 01 vì
-chỉ có năm task dùng cùng hợp đồng và không tác động production; review độc lập cuối phần vẫn cần.
-Chưa có lựa chọn cách thực thi từ owner, nên chưa tạo workspace hoặc viết code sản phẩm.
+Owner đã chọn subagent-driven và giao PM quyết định chạy song song theo resource máy. Phần 01 đã
+triển khai trên codex/crew-v2-foundation, review từng task và toàn nhánh đạt. Chưa merge/push.
+Task02–05 ghi file riêng; PM serialize docs và commit. Các điều chỉnh khi thực thi nằm trong báo cáo nghiệm thu.

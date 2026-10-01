@@ -1,7 +1,7 @@
 # Crew v2 — Lộ trình triển khai
 
 **Spec đã duyệt:** [/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md](/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md).
-**Trạng thái:** lộ trình và kế hoạch chi tiết nền tảng chờ owner review; chưa triển khai.
+**Trạng thái:** phần 01 đã triển khai và review đạt; các phần 02–09 cần kế hoạch chi tiết riêng.
 
 ## Cách chia việc
 
@@ -74,3 +74,10 @@ thức. Cùng thư viện phổ biến với v1 không đồng nghĩa tái dùng
 Đọc spec, lộ trình và kế hoạch phần 01. Chọn native hoặc subagent-driven trước khi thực thi.
 Không bắt đầu phần kế tiếp chỉ vì phần trước xong: cần kế hoạch chi tiết được review cho phần đó.
 Không coi lộ trình này là đã hoàn thành kế hoạch task/code cho toàn bộ chín phần.
+
+## Yêu cầu bổ sung đã chốt khi thực thi phần 01
+
+Trợ lý v2 làm PM: chia task, review độc lập từng task, chạy song song theo phụ thuộc/ownership,
+kiểm tra telemetry trước mọi implement/review/fix dispatch và cleanup tài nguyên run. Yêu cầu này
+đã ghi vào spec; phần 03 xây telemetry/resource registry, phần 06 xây điều phối, phần 09 nghiệm thu
+cleanup/recovery. Thư viện miền phần 01 chưa triển khai những chức năng runtime này.
