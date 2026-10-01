@@ -41,12 +41,17 @@ describe('tool scopes', () => {
     expect(extras('pm')).toEqual([
       'create_subtask',
       'rate_subtask',
+      'plan_qc_test',
       'retry_subtask',
       'resource_report',
       'cleanup_resources',
       'reject_work',
       'merge_and_push',
     ]);
+    // Only the PM plans (or re-plans) how a QC ticket is tested.
+    for (const role of ['dev', 'qc', 'assistant'] as const) {
+      expect(ticketToolsFor(role, 'agent'), role).not.toContain('plan_qc_test');
+    }
     expect(extras('qc')).toEqual(['file_bug']);
     expect(extras('dev')).toEqual(['handoff_docs']);
     expect(extras('dev', 'docs_update')).toEqual(['return_to_dev']);
@@ -176,6 +181,8 @@ describe('ticket MCP tools against the real API', () => {
       parentId: pm.id,
       title: 'QC',
       pairsWith: dev.id,
+      testKinds: ['ui_web'],
+      testReason: 'Thay đổi có giao diện web',
     });
     const state = new StateDb(':memory:');
     const job = state.insertJob({ ticketId: qc.id, projectId: f.projectId, role: 'qc', trigger: 't' });
@@ -193,6 +200,8 @@ describe('ticket MCP tools against the real API', () => {
     const refused = await t.call('update_status', { to: 'done' });
     expect(refused.isError).toBe(true);
     expect(JSON.stringify(refused.content)).toContain('playwright');
+    // The refusal also names the way out when the change has no UI to test.
+    expect(JSON.stringify(refused.content)).toContain('plan_qc_test');
     state.logTool({
       jobId: job.id,
       tool: 'mcp__playwright__browser_navigate',
@@ -216,6 +225,8 @@ describe('ticket MCP tools against the real API', () => {
       parentId: pm.id,
       title: 'QC',
       pairsWith: dev.id,
+      testKinds: ['ui_web'],
+      testReason: 'Thay đổi có giao diện web',
     });
     const state = new StateDb(':memory:');
     const job = state.insertJob({ ticketId: qc.id, projectId: f.projectId, role: 'qc', trigger: 't' });
@@ -336,6 +347,181 @@ describe('ticket MCP tools against the real API', () => {
     expect(
       tools({ vps, state, jobId: devJob.id, ticketId: dev.id, role: 'dev' }).list.map((x) => x.name),
     ).not.toContain('rate_subtask');
+  });
+
+  /** A client that records every request it sends: method, path and JSON body. */
+  function recordingClient(f: Awaited<ReturnType<typeof fixture>>) {
+    const sent: { method: string; path: string; body: Record<string, unknown> | null }[] = [];
+    const vps = new VpsClient({
+      apiUrl: f.server.url,
+      token: () => f.machine.token,
+      fetch: async (input, init) => {
+        sent.push({
+          method: init?.method ?? 'GET',
+          path: new URL(String(input)).pathname,
+          body: typeof init?.body === 'string' ? JSON.parse(init.body) : null,
+        });
+        return fetch(input, init);
+      },
+    });
+    return { vps, sent };
+  }
+  const errorText = (result: { isError?: boolean; content: unknown[] }) =>
+    result.isError ? (result.content[0] as { text: string }).text : null;
+  const jsonOf = (result: { content: unknown[] }) => JSON.parse((result.content[0] as { text: string }).text);
+
+  it('create_subtask wants a test plan on a QC subtask and none on a dev one, before any server call', async () => {
+    const f = await fixture(api);
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'API giỏ hàng');
+    const uiDev = await devTicket(api, pm.id, 'Trang giỏ hàng');
+    const state = new StateDb(':memory:');
+    const job = state.insertJob({ ticketId: pm.id, projectId: f.projectId, role: 'pm', trigger: 't' });
+    const { vps, sent } = recordingClient(f);
+    const t = tools({ vps, state, jobId: job.id, ticketId: pm.id, role: 'pm', ticketType: 'pm_task' });
+    const qc = { type: 'qc', ...RATED, title: 'QC: API giỏ hàng', pairsWith: dev.id };
+    const reason = 'Chỉ đổi route và truy vấn, không có giao diện nên không cần trình duyệt';
+
+    // Each refusal names exactly the missing field(s) and sends the PM back to the analysis.
+    const neither = errorText(await t.call('create_subtask', qc));
+    expect(neither).toContain('Subtask `qc` thiếu `testKinds` và `testReason`.');
+    expect(neither).toContain('Phân tích phương án kiểm thử trước');
+    expect(neither).toContain('Chỉ `ui_web`/`ui_mobile` mới kéo theo MCP kiểm thử UI');
+    const noReason = errorText(await t.call('create_subtask', { ...qc, testKinds: ['api'] }));
+    expect(noReason).toContain('Subtask `qc` thiếu `testReason`.');
+    for (const input of [
+      { ...qc, testReason: reason },
+      { ...qc, testKinds: [], testReason: reason },
+    ]) {
+      expect(errorText(await t.call('create_subtask', input))).toContain('Subtask `qc` thiếu `testKinds`.');
+    }
+    // A dev subtask carries no test plan.
+    const devPlan = { type: 'dev', ...RATED, title: 'Việc khác' };
+    expect(errorText(await t.call('create_subtask', { ...devPlan, testKinds: ['unit'] }))).toContain(
+      'Subtask `dev` không nhận `testKinds`',
+    );
+    expect(
+      errorText(await t.call('create_subtask', { ...devPlan, testKinds: ['unit'], testReason: reason })),
+    ).toContain('Subtask `dev` không nhận `testKinds` và `testReason`');
+    // Nothing went to the server and no ticket was created.
+    expect(sent).toEqual([]);
+    expect(state.getJob(job.id)?.toolSeq).toBe(0);
+    expect((await getTicket(api.db, pm.id)).status).toBe('in_progress');
+    expect((await vps.getTicket(pm.id)).children.map((child) => child.title)).toEqual([
+      'API giỏ hàng',
+      'Trang giỏ hàng',
+    ]);
+
+    // A complete plan goes out in the body; without a UI kind the ticket gets no UI-test MCP server.
+    sent.length = 0;
+    const created = await t.call('create_subtask', {
+      ...qc,
+      testKinds: ['api', 'integration', 'api'],
+      testReason: reason,
+    });
+    expect(errorText(created)).toBeNull();
+    const post = sent.find((request) => request.method === 'POST');
+    expect(post?.path).toBe('/v1/daemon/tickets');
+    expect(post?.body).toMatchObject({
+      type: 'qc',
+      parentId: pm.id,
+      pairsWith: dev.id,
+      testKinds: ['api', 'integration'],
+      testReason: reason,
+    });
+    expect(jsonOf(created)).toMatchObject({ testKinds: ['api', 'integration'], requiredMcps: [] });
+    expect(await getTicket(api.db, jsonOf(created).id)).toMatchObject({
+      type: 'qc',
+      testKinds: ['api', 'integration'],
+      testReason: reason,
+      requiredMcps: [],
+    });
+    // The server still refuses a UI kind the project's platform does not have.
+    const mobile = errorText(
+      await t.call('create_subtask', {
+        ...qc,
+        title: 'QC: app',
+        pairsWith: uiDev.id,
+        testKinds: ['ui_mobile'],
+        testReason: 'x',
+      }),
+    );
+    expect(mobile).toContain('VALIDATION_FAILED');
+    expect(mobile).toContain('ui_mobile');
+    // A UI kind is what brings the project's UI-test MCP server (a web project: Playwright).
+    const ui = await t.call('create_subtask', {
+      ...qc,
+      title: 'QC: Trang giỏ hàng',
+      pairsWith: uiDev.id,
+      testKinds: ['ui_web'],
+      testReason: 'Trang mới, tiêu chí nghiệm thu cần thao tác trên giao diện',
+    });
+    expect(jsonOf(ui)).toMatchObject({ testKinds: ['ui_web'], requiredMcps: ['playwright'] });
+  });
+
+  it('PM changes the test plan of an open QC subtask in place with plan_qc_test; it never unblocks', async () => {
+    const f = await fixture(api);
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'API giỏ hàng');
+    const { createSubtask } = await import('../../api/src/services/ticket-service.js');
+    const qc = await createSubtask(api.db, {
+      type: 'qc',
+      ...RATED,
+      parentId: pm.id,
+      title: 'QC: API giỏ hàng',
+      pairsWith: dev.id,
+      testKinds: ['ui_web'],
+      testReason: 'Chọn nhầm loại UI',
+    });
+    expect(qc.requiredMcps).toEqual(['playwright']);
+    await setStatus(api.db, qc.id, 'blocked');
+    const state = new StateDb(':memory:');
+    const job = state.insertJob({ ticketId: pm.id, projectId: f.projectId, role: 'pm', trigger: 't' });
+    const { vps, sent } = recordingClient(f);
+    const t = tools({ vps, state, jobId: job.id, ticketId: pm.id, role: 'pm', ticketType: 'pm_task' });
+    const plan = {
+      ticket: qc.key,
+      testKinds: ['api', 'unit'],
+      testReason: 'Thay đổi chỉ ở API, không có giao diện để mở bằng trình duyệt',
+    };
+
+    const planned = await t.call('plan_qc_test', plan);
+    expect(errorText(planned)).toBeNull();
+    // One write, to the test-plan endpoint of the pm_task, through the job's idempotent writer.
+    expect(sent.map((request) => [request.method, request.path])).toEqual([
+      ['POST', `/v1/daemon/tickets/${pm.id}/test-plan`],
+    ]);
+    expect(sent[0]?.body).toEqual(plan);
+    expect(state.getJob(job.id)?.toolSeq).toBe(1);
+    // The UI-test MCP server left with the UI kind; the ticket stays blocked (retry_subtask reopens it).
+    expect(jsonOf(planned)).toEqual({
+      key: qc.key,
+      status: 'blocked',
+      testKinds: ['api', 'unit'],
+      testReason: plan.testReason,
+      requiredMcps: [],
+    });
+    expect(await getTicket(api.db, qc.id)).toMatchObject({
+      status: 'blocked',
+      testKinds: ['api', 'unit'],
+      requiredMcps: [],
+    });
+    // Planning a UI kind again brings the server back.
+    const back = await t.call('plan_qc_test', { ...plan, testKinds: ['ui_web'], testReason: 'Có trang mới' });
+    expect(jsonOf(back)).toMatchObject({ testKinds: ['ui_web'], requiredMcps: ['playwright'] });
+
+    // The tool input needs at least one kind; the server refuses a dev ticket and a closed QC.
+    await expect(t.call('plan_qc_test', { ...plan, testKinds: [] })).rejects.toThrow();
+    expect(errorText(await t.call('plan_qc_test', { ...plan, ticket: dev.key }))).toContain('FORBIDDEN');
+    await setStatus(api.db, qc.id, 'done');
+    expect(errorText(await t.call('plan_qc_test', plan))).toContain('TICKET_CLOSED');
+
+    // Dev, QC and assistant runs do not get the tool.
+    const qcJob = state.insertJob({ ticketId: qc.id, projectId: f.projectId, role: 'qc', trigger: 't' });
+    for (const role of ['dev', 'qc', 'assistant'] as const) {
+      const names = tools({ vps, state, jobId: qcJob.id, ticketId: qc.id, role }).list.map((x) => x.name);
+      expect(names, role).not.toContain('plan_qc_test');
+    }
   });
 
   it('PM answers an owner @pm call on the tagged subtask, and retries a blocked subtask only then', async () => {

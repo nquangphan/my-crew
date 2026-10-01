@@ -9,6 +9,7 @@ import type {
   TicketDetailResponse,
   TicketPriority,
   TicketStatus,
+  UploadAttachmentRequest,
 } from '@crew/shared';
 import { type QueryClient, queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api-client';
@@ -345,5 +346,19 @@ export function useAddComment(ticketKey: string) {
   return useMutation({
     mutationFn: (body: string) => api.addComment(ticketKey, body),
     onSettled: () => invalidateTicketData(queryClient),
+  });
+}
+
+/** Paste-to-upload of a pasted image (ticket description or comment); does not change ticket state. */
+export function useUploadAttachment(ticketIdOrKey: string) {
+  return useMutation({
+    mutationFn: (body: UploadAttachmentRequest) => api.uploadAttachment(ticketIdOrKey, body),
+  });
+}
+
+/** Draft paste-to-upload (the "create ticket" dialog, before a ticket exists); does not touch any ticket. */
+export function useUploadDraftAttachment() {
+  return useMutation({
+    mutationFn: (body: UploadAttachmentRequest) => api.uploadDraftAttachment(body),
   });
 }

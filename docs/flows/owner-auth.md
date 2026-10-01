@@ -54,7 +54,11 @@ server-side và CSRF cho mọi route owner, cấp tài khoản owner ban đầu 
    `@pm` của owner), mã lỗi `PM_NOT_AVAILABLE`, `ListTicketsQuery.projectIds` (lọc nhiều dự án cho
    board/danh sách "Tất cả dự án"), `TicketTreeResponse` (cây hậu duệ của `GET /v1/tickets/:id/tree`) và
    `SearchQuery`/`DocsOverviewResponse`/`CrossDocsSearchQuery` (bộ lọc `projectIds` của tìm kiếm nhanh và
-   trang chủ docs, flow `docs-sync-viewer`), không ảnh hưởng gì tới schema này; 400 khi mật khẩu mới quá ngắn
+   trang chủ docs, flow `docs-sync-viewer`) và `AttachmentMimeType`/`UploadAttachmentRequest`/`Attachment`/mã
+   lỗi `ApiErrorCode.ATTACHMENT_TOO_LARGE` (ảnh đính kèm dán clipboard vượt 10MB, flow `ticket-lifecycle`), và
+   `Ticket.testKinds`/`Ticket.testReason`, `testKinds`/`testReason` của `CreateSubtaskRequest`,
+   `UpdateTestPlanRequest` (phương án kiểm thử của ticket QC và endpoint đổi phương án, flow `ticket-lifecycle`),
+   không ảnh hưởng gì tới schema này; 400 khi mật khẩu mới quá ngắn
    hoặc trùng mật khẩu hiện tại), gọi `changeOwnerPassword()` rồi `setSessionCookies()` với session mới. Không
    dùng `Idempotency-Key` (route owner không dùng cơ chế này).
 10. `apps/api/src/auth/owner-auth.ts` → `changeOwnerPassword()`: xác minh mật khẩu hiện tại trước; sai thì trả

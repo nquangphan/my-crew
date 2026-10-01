@@ -10,7 +10,7 @@ import {
 import { CommentMention } from './comment-mentions.js';
 import { DocsPageSummary, DocsSnapshotInfo } from './docs-schemas.js';
 import { EventEnvelope } from './event-schemas.js';
-import { DocsStatus, McpServerName } from './project-schemas.js';
+import { DocsStatus, McpServerName, TestKind } from './project-schemas.js';
 import { TicketPriority, TicketStatus, TicketType } from './ticket-schemas.js';
 
 // ---------------------------------------------------------------------------
@@ -19,6 +19,9 @@ import { TicketPriority, TicketStatus, TicketType } from './ticket-schemas.js';
 
 export const ApiErrorCode = z.enum([
   'VALIDATION_FAILED',
+  /** A pasted attachment's decoded bytes exceed `MAX_ATTACHMENT_BYTES`, including when the raw upload is so
+   * large Fastify's route `bodyLimit` rejects it before `decodeImage()` runs. */
+  'ATTACHMENT_TOO_LARGE',
   'UNAUTHORIZED',
   'FORBIDDEN',
   'CSRF_FAILED',
@@ -123,6 +126,10 @@ export const Ticket = z.object({
   effort: Effort.nullable(),
   requiredSkills: z.array(z.string()),
   requiredMcps: z.array(z.string()),
+  /** QC test plan (qc tickets only): which kinds of testing it needs; null for dev and for a legacy QC. */
+  testKinds: z.array(TestKind).nullable(),
+  /** The PM's one-line reason for the test plan; goes with `testKinds`. */
+  testReason: z.string().nullable(),
   dependsOn: z.array(z.string()),
   pairsWith: z.string().nullable(),
   originDevId: z.string().nullable(),
@@ -183,29 +190,83 @@ const SubtaskFields = z.object({
   /** Required for qc: the dev or bug ticket it verifies. */
   pairsWith: z.uuid().optional(),
   flows: z.array(FlowRef).max(100).default([]),
+  /** QC test plan (type: 'qc' only): which kinds of testing it needs; required together with testReason. */
+  testKinds: z.array(TestKind).max(TestKind.options.length).optional(),
+  /** The PM's one-line reason for the test plan; required together with testKinds. */
+  testReason: z.string().trim().min(1).max(500).optional(),
 });
 
 /**
  * Agents create pm_task (under a request) and dev/qc/bug/docs_init (under a pm_task). A dev or QC subtask
- * needs `complexity` and a one-line `complexityReason`: the run's model comes from that rating.
+ * needs `complexity` and a one-line `complexityReason`: the run's model comes from that rating. A qc subtask
+ * may also carry a test plan (`testKinds`/`testReason`, required together): the PM's chosen test kinds are
+ * then the only source of truth for which UI-test MCP servers the ticket needs (see `createSubtask()`).
  */
 export const CreateSubtaskRequest = SubtaskFields.superRefine((data, ctx) => {
-  if (!RATED_TYPES.includes(data.type)) return;
-  if (!data.complexity) {
+  if (RATED_TYPES.includes(data.type)) {
+    if (!data.complexity) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['complexity'],
+        message:
+          `Subtask ${data.type} bắt buộc có complexity (trivial | small | medium | large): PM đánh giá độ ` +
+          'phức tạp để chọn model, không có model mặc định cho dev và QC.',
+      });
+    }
+    if (!data.complexityReason) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['complexityReason'],
+        message: `Subtask ${data.type} bắt buộc có complexityReason: một dòng lý do cho mức complexity đã chọn.`,
+      });
+    }
+  }
+
+  if (data.type !== 'qc') {
+    if (data.testKinds !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['testKinds'],
+        message: `testKinds chỉ hợp lệ với ticket type: qc; ticket này là type: ${data.type}.`,
+      });
+    }
+    if (data.testReason !== undefined) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['testReason'],
+        message: `testReason chỉ hợp lệ với ticket type: qc; ticket này là type: ${data.type}.`,
+      });
+    }
+    return;
+  }
+  if (data.testKinds !== undefined && data.testReason === undefined) {
     ctx.addIssue({
       code: 'custom',
-      path: ['complexity'],
-      message:
-        `Subtask ${data.type} bắt buộc có complexity (trivial | small | medium | large): PM đánh giá độ ` +
-        'phức tạp để chọn model, không có model mặc định cho dev và QC.',
+      path: ['testReason'],
+      message: 'testReason bắt buộc khi có testKinds: một dòng lý do cho phương án kiểm thử.',
     });
   }
-  if (!data.complexityReason) {
+  if (data.testReason !== undefined && data.testKinds === undefined) {
     ctx.addIssue({
       code: 'custom',
-      path: ['complexityReason'],
-      message: `Subtask ${data.type} bắt buộc có complexityReason: một dòng lý do cho mức complexity đã chọn.`,
+      path: ['testKinds'],
+      message: 'testKinds bắt buộc khi có testReason: chọn ít nhất một loại kiểm thử.',
     });
+  }
+  if (data.testKinds !== undefined) {
+    if (data.testKinds.length === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['testKinds'],
+        message: 'testKinds không được rỗng: chọn ít nhất một loại kiểm thử.',
+      });
+    } else if (new Set(data.testKinds).size !== data.testKinds.length) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['testKinds'],
+        message: 'testKinds không được trùng loại kiểm thử.',
+      });
+    }
   }
 });
 export type CreateSubtaskRequest = z.input<typeof CreateSubtaskRequest>;
@@ -240,6 +301,27 @@ export const RetrySubtaskRequest = z.object({
   ticket: z.string().trim().min(1).max(100),
 });
 export type RetrySubtaskRequest = z.infer<typeof RetrySubtaskRequest>;
+
+/**
+ * `POST /v1/daemon/tickets/:id/test-plan`, where `:id` is the PM's pm_task: change an existing qc subtask's
+ * test plan (testKinds/testReason) in place. `requiredMcps` is recomputed from the new plan; the ticket's
+ * status is not touched.
+ */
+export const UpdateTestPlanRequest = z.object({
+  /** Id or key of the qc subtask. */
+  ticket: z.string().trim().min(1).max(100),
+  testKinds: z
+    .array(TestKind, { error: 'testKinds bắt buộc: chọn ít nhất một loại kiểm thử.' })
+    .min(1, 'testKinds không được rỗng: chọn ít nhất một loại kiểm thử.')
+    .max(TestKind.options.length)
+    .refine((kinds) => new Set(kinds).size === kinds.length, 'testKinds không được trùng loại kiểm thử.'),
+  testReason: z
+    .string({ error: 'testReason bắt buộc: một dòng lý do cho phương án kiểm thử.' })
+    .trim()
+    .min(1, 'testReason bắt buộc: một dòng lý do cho phương án kiểm thử.')
+    .max(500),
+});
+export type UpdateTestPlanRequest = z.input<typeof UpdateTestPlanRequest>;
 
 /** `PATCH /v1/tickets/:id`: owner inline edits (title, description, priority). */
 export const UpdateTicketRequest = z
@@ -488,3 +570,34 @@ export type CrossDocsSearchResponse = z.infer<typeof CrossDocsSearchResponse>;
 
 export const HealthResponse = z.object({ status: z.literal('ok'), db: z.literal('ok') });
 export type HealthResponse = z.infer<typeof HealthResponse>;
+
+// ---------------------------------------------------------------------------
+// Attachments
+// ---------------------------------------------------------------------------
+
+/** Whitelisted image mimes for pasted attachments (ticket description/comments); anything else is refused. */
+export const AttachmentMimeType = z.enum(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
+export type AttachmentMimeType = z.infer<typeof AttachmentMimeType>;
+
+/** Largest accepted attachment, in bytes (checked on the decoded content, not the base64 length). */
+export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+
+/**
+ * `POST /v1/tickets/:id/attachments`: image bytes as base64 JSON (no multipart dependency). The server
+ * still re-checks `mimeType` against `AttachmentMimeType` and the decoded size against `MAX_ATTACHMENT_BYTES`.
+ */
+export const UploadAttachmentRequest = z.object({
+  filename: z.string().trim().min(1).max(255),
+  mimeType: AttachmentMimeType,
+  content: z.string().min(1),
+});
+export type UploadAttachmentRequest = z.infer<typeof UploadAttachmentRequest>;
+
+/** Response of an upload and of the attachment metadata: `url` is the `GET` path to embed in markdown. */
+export const Attachment = z.object({
+  id: z.string(),
+  url: z.string(),
+  mimeType: AttachmentMimeType,
+  sizeBytes: z.number().int().nonnegative(),
+});
+export type Attachment = z.infer<typeof Attachment>;

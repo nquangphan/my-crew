@@ -5,8 +5,15 @@ import { describe, expect, it } from 'vitest';
 import { events, ticketReports, tickets } from '../../api/src/db/schema.js';
 import { isDocsPath } from '../src/runner/guard-hook.js';
 import { commentsOf, RATED, useApi } from './helpers/api.js';
+import { waitFor } from './helpers/daemon.js';
 import { git } from './helpers/git.js';
-import { type LifecycleResult, loadScenario, runScenario, stuckTickets } from './helpers/lifecycle.js';
+import {
+  type LifecycleResult,
+  loadScenario,
+  type PastedImage,
+  runScenario,
+  stuckTickets,
+} from './helpers/lifecycle.js';
 import { crewDocs } from './helpers/workflow.js';
 
 /**
@@ -88,9 +95,19 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     const devReport = await report(dev.id);
     expect(devReport).toMatchObject({ docsFirst: true, skillsMissing: [], leftResources: false });
     expect(devReport?.skillsUsed).toContain('api-design');
+    // The PM planned this QC with ui_web: the ticket carries Playwright and the prompt tells QC to use it.
     const qc = await one(/^QC: Viết route/);
-    expect(qc.requiredMcps).toEqual(['playwright']);
+    expect(qc).toMatchObject({ testKinds: ['ui_web'], requiredMcps: ['playwright'] });
+    expect(qc.description).toContain('## Phương án kiểm thử');
+    const qcPrompt = r.runs.find((run) => run.ticketId === qc.id && run.stage === 'qc')?.prompt;
+    expect(qcPrompt).toContain('phương án PM đã chọn');
+    expect(qcPrompt).toContain('`ui_web` (Kiểm thử giao diện web)');
+    expect(qcPrompt).toContain('`playwright` (Playwright): mở ứng dụng trong trình duyệt');
     expect((await report(qc.id))?.mcpsUsed).toEqual(['playwright']);
+    // The PM's breakdown prompt carried the test-plan analysis with the project's platform.
+    const analyze = r.runs.find((run) => run.stage === 'pm_analyze')?.prompt;
+    expect(analyze).toContain('### Phương án kiểm thử của QC');
+    expect(analyze).toContain('Dự án này có platform `web`: loại UI dùng được là `ui_web`');
     // The PM question was answered once and the same session resumed.
     const pm = await one(/^Thêm endpoint \/health$/, 'pm_task');
     const pmJobs = jobsOf(r, pm.id).filter((j) => j.stage === 'pm_analyze' && j.status === 'done');
@@ -165,10 +182,11 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(
       (await commentsOf(api.db, dev.id)).some((c) => c.body.includes('Skill đã chọn `brainstorm`')),
     ).toBe(true);
-    // QC of a web project gets playwright automatically and uses it.
-    expect(qc.requiredMcps).toEqual(['playwright']);
+    // A QC planned with ui_web on a web project gets playwright and uses it.
+    expect(qc).toMatchObject({ testKinds: ['ui_web'], requiredMcps: ['playwright'] });
     expect((await report(qc.id))?.mcpsUsed).toEqual(['playwright']);
-    // A mobile project's QC gets maestro, a web+mobile one both.
+    // A QC created without a test plan (before plans existed) still gets the platform's default servers: a
+    // mobile project's QC maestro, a web+mobile one both.
     const { createTestProject } = await import('../../api/test/helpers/test-db.js');
     const { createRequestTicket, createSubtask } = await import('../../api/src/services/ticket-service.js');
     for (const [key, platform, expected] of [
@@ -197,7 +215,8 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
   },
 
   async 'resources-cleanup'(r) {
-    const dev = await one(/^Chạy thử máy chủ$/);
+    // Request, pm_task and dev share this title: name the type, row order is not stable.
+    const dev = await one(/^Chạy thử máy chủ$/, 'dev');
     const devJob = jobsOf(r, dev.id).find((j) => j.stage === 'dev');
     const [record] = r.daemon.daemon.state.cleanups({ jobId: devJob?.id as string });
     expect(record?.ports).toContain(4391);
@@ -244,6 +263,15 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(agentModels(dev.id)).toEqual([['opus', 'high']]);
     // QC runs on its own rating, not the dev one.
     expect(agentModels(qc.id)).toEqual([['haiku', 'low']]);
+    // The PM's test plan: unit only, so no UI-test MCP on the ticket, and the prompt follows the plan.
+    expect(qc).toMatchObject({
+      testKinds: ['unit'],
+      testReason: 'Hàm thuần không có giao diện, test đơn vị của repo là đủ',
+      requiredMcps: [],
+    });
+    const qcPrompt = r.runs.find((run) => run.ticketId === qc.id && run.stage === 'qc')?.prompt;
+    expect(qcPrompt).toContain('`unit` (Unit test)');
+    expect(qcPrompt).toContain('Hàm thuần không có giao diện, test đơn vị của repo là đủ');
     const bug = await one(/^Lỗi làm tròn thuế$/, 'bug');
     expect(bug).toMatchObject({
       complexity: 'large',
@@ -251,7 +279,7 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     });
     expect(agentModels(bug.id)).toEqual([['opus', 'high']]);
     const retest = await one(/^Kiểm thử lại/, 'qc');
-    expect(retest).toMatchObject({ complexity: 'trivial' });
+    expect(retest).toMatchObject({ complexity: 'trivial', testKinds: ['unit'], requiredMcps: [] });
     expect(agentModels(retest.id)).toEqual([['haiku', 'low']]);
   },
 
@@ -316,7 +344,7 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
   },
 
   async 'backoff-resume'(r) {
-    const dev = await one(/^Trang giới thiệu$/);
+    const dev = await one(/^Trang giới thiệu$/, 'dev');
     const [first] = jobsOf(r, dev.id);
     expect(first?.attempts).toBe(1);
     expect(first?.status).toBe('done');
@@ -489,7 +517,86 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(qc.status).toBe('blocked');
     const bodies = (await commentsOf(api.db, qc.id)).map((c) => c.body);
     expect(bodies.some((b) => b.includes('`playwright`') && b.includes('chưa kết nối'))).toBe(true);
+    // The comment also names the way out when the plan itself is wrong.
+    expect(bodies.some((b) => b.includes('`@pm`') && b.includes('`plan_qc_test`'))).toBe(true);
+    expect(qc).toMatchObject({ testKinds: ['ui_web'], requiredMcps: ['playwright'] });
     expect(r.runs.some((run) => run.ticketId === qc.id)).toBe(false);
+  },
+
+  async 'qc-api-plan'(r) {
+    await assertDocsJobCommits(r);
+    const qc = await one(/^QC: Route danh sách đơn hàng$/, 'qc');
+    // No UI kind in the plan: no UI-test MCP on the ticket, although the project is a web one.
+    expect(qc).toMatchObject({
+      testKinds: ['api', 'integration'],
+      testReason: 'Thay đổi chỉ có route và truy vấn DB, không có giao diện nên không cần trình duyệt',
+      requiredMcps: [],
+    });
+    // Playwright is not connected, and QC ran anyway: one run, never blocked.
+    expect(jobsOf(r, qc.id).map((j) => [j.kind, j.status])).toEqual([['agent', 'done']]);
+    const bodies = (await commentsOf(api.db, qc.id)).map((c) => c.body);
+    expect(bodies.some((b) => b.includes('chưa kết nối') || b.includes('`playwright`'))).toBe(false);
+    const qcRun = r.runs.find((run) => run.ticketId === qc.id && run.stage === 'qc');
+    expect(qcRun?.prompt).toContain('phương án PM đã chọn');
+    expect(qcRun?.prompt).toContain('`api` (Kiểm thử API)');
+    expect(qcRun?.prompt).toContain('`integration` (Integration test)');
+    expect(qcRun?.prompt).toContain(
+      `<untrusted-data source="ticket ${qc.key} testReason">\nThay đổi chỉ có route và truy vấn DB`,
+    );
+    expect(qcRun?.prompt).toContain('không cần MCP kiểm thử UI nào');
+    expect(qcRun?.prompt).not.toMatch(/playwright|maestro/i);
+    // It closed without a single UI MCP tool call.
+    const tools = jobsOf(r, qc.id).flatMap((job) => r.daemon.daemon.state.toolLog(job.id).map((e) => e.tool));
+    expect(tools.filter((tool) => /^mcp__(playwright|maestro)__/.test(tool))).toEqual([]);
+    expect(tools).toContain('mcp__tickets__update_status');
+    expect(await report(qc.id)).toMatchObject({ mcpsUsed: [], mcpsMissing: [] });
+    expect(git(r.repo.remote, 'show', 'main:src/orders.js')).toBeTruthy();
+  },
+
+  async 'qc-plan-changed'(r) {
+    await assertDocsJobCommits(r);
+    const pm = await one(/^Lọc đơn hàng theo trạng thái$/, 'pm_task');
+    const qc = await one(/^QC: Bộ lọc đơn hàng$/, 'qc');
+    // Blocked before it ran on the ui_web plan; ran once the PM had changed the plan and reopened it.
+    const qcJobs = jobsOf(r, qc.id);
+    expect(qcJobs.map((j) => [j.kind, j.status])).toEqual([
+      ['agent', 'blocked'],
+      ['agent', 'done'],
+    ]);
+    expect(qcJobs[1]?.trigger).toBe('ticket.unblocked');
+    expect(qc).toMatchObject({
+      testKinds: ['api'],
+      testReason: 'Thay đổi chỉ ở API lọc đơn hàng, không có giao diện để mở bằng trình duyệt',
+      requiredMcps: [],
+    });
+    // The PM's monitor run saw the blocked QC, its plan and the way to change it.
+    const monitor = r.runs.find((run) => run.ticketId === pm.id && run.stage === 'pm_monitor');
+    expect(monitor?.prompt).toContain(`### Gọi từ ${qc.key}`);
+    expect(monitor?.prompt).toContain('Phương án kiểm thử hiện tại: `ui_web`; MCP bắt buộc: `playwright`');
+    expect(monitor?.prompt).toContain('MCP server kiểm thử UI bắt buộc chưa kết nối');
+    expect(monitor?.prompt).toContain('`plan_qc_test` đổi phương án sang các loại không UI');
+    const monitorJob = jobsOf(r, pm.id).find((j) => j.stage === 'pm_monitor');
+    expect(
+      r.daemon.daemon.state
+        .toolLog(monitorJob?.id ?? '')
+        .filter((e) => e.decision === 'allow' && e.tool.startsWith('mcp__tickets__'))
+        .map((e) => e.tool),
+    ).toEqual([
+      'mcp__tickets__select_capabilities',
+      'mcp__tickets__plan_qc_test',
+      'mcp__tickets__retry_subtask',
+      'mcp__tickets__comment',
+    ]);
+    expect((await commentsOf(api.db, qc.id)).filter((c) => c.authorRole === 'pm').map((c) => c.body)).toEqual(
+      ['PM đã đổi phương án kiểm thử sang api (không cần Playwright) và cho QC chạy lại.'],
+    );
+    // The QC run followed the new plan: no UI MCP named, none called.
+    const qcRun = r.runs.find((run) => run.ticketId === qc.id && run.stage === 'qc');
+    expect(qcRun?.prompt).toContain('`api` (Kiểm thử API)');
+    expect(qcRun?.prompt).toContain('không cần MCP kiểm thử UI nào');
+    const tools = jobsOf(r, qc.id).flatMap((job) => r.daemon.daemon.state.toolLog(job.id).map((e) => e.tool));
+    expect(tools.filter((tool) => /^mcp__(playwright|maestro)__/.test(tool))).toEqual([]);
+    expect(await report(qc.id)).toMatchObject({ mcpsUsed: [], mcpsMissing: [] });
   },
 
   async 'docs-only-readme'(r) {
@@ -510,11 +617,14 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(git(r.repo.repo, 'show', '--name-only', '--format=', commit).split('\n').filter(Boolean)).toEqual([
       'README.md',
     ]);
-    // QC kept Playwright on the ticket but reviewed the docs-only diff statically and said why.
+    // QC kept Playwright on the ticket (a ui_web plan) but reviewed the docs-only diff statically and said why.
     const qc = await one(/^QC: Viết mục cài đặt trong README$/);
-    expect(qc.requiredMcps).toEqual(['playwright']);
+    expect(qc).toMatchObject({ testKinds: ['ui_web'], requiredMcps: ['playwright'] });
     const qcRun = r.runs.find((run) => run.ticketId === qc.id && run.stage === 'qc');
     expect(qcRun?.prompt).toContain('diff chỉ đổi docs');
+    // The docs-only exception keeps its own text instead of the plan's UI instructions.
+    expect(qcRun?.prompt).toContain('Kiểm thử UI bằng MCP bắt buộc khi diff đổi file nguồn');
+    expect(qcRun?.prompt).not.toContain('phương án PM đã chọn');
     const qcReport = await report(qc.id);
     expect(qcReport?.summaryMd).toContain('Không có thay đổi giao diện (chỉ docs) nên không chạy test UI.');
     expect(qcReport?.mcpsUsed).toEqual([]);
@@ -522,6 +632,86 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     const qcBodies = (await commentsOf(api.db, qc.id)).map((c) => c.body);
     expect(qcBodies.some((b) => b.includes('`playwright`'))).toBe(false);
     expect(git(r.repo.remote, 'show', 'main:README.md')).toContain('## Cài đặt');
+  },
+
+  async 'ticket-images'(r) {
+    await assertDocsJobCommits(r);
+    const login = r.images.get('login') as PastedImage;
+    const narrow = r.images.get('narrow') as PastedImage;
+    const request = await one(/^Sửa bố cục trang đăng nhập$/, 'request');
+    const pm = await one(/^Sửa bố cục trang đăng nhập$/, 'pm_task');
+    const dev = await one(/^Sửa CSS trang đăng nhập$/, 'dev');
+    const qc = await one(/^QC: Sửa CSS trang đăng nhập$/);
+    const runOf = (ticketId: string, stage: string, n = 1) => {
+      const run = r.runs.find(
+        (entry) => entry.ticketId === ticketId && entry.stage === stage && entry.n === n,
+      );
+      if (!run) throw new Error(`no ${stage} run #${n}`);
+      return run;
+    };
+    /** What a run received: every image as an intact file inside that job's own temp dir. */
+    const received = (run: ReturnType<typeof runOf>) => {
+      for (const image of run.images) {
+        expect(image.path.startsWith(`${run.tmpDir}/`), `${run.stage} image in the job temp dir`).toBe(true);
+        expect(image.intact, `${run.stage} image bytes`).toBe(true);
+        expect(image.mediaType).toBe('image/png');
+      }
+      return run.images.map((image) => [image.index, image.id, image.source]);
+    };
+
+    // The assistant gets the image of the request's description.
+    const triage = runOf(request.id, 'assistant_triage');
+    expect(received(triage)).toEqual([[1, login.id, `mô tả ticket ${request.key}`]]);
+    expect(triage.prompt).toContain('## Ảnh đính kèm trong ticket');
+    expect(triage.prompt).toContain(
+      `link \`/v1/attachments/${login.id}\` · file \`${triage.images[0]?.path}\``,
+    );
+
+    // The PM's first run gets the owner's request above its own ticket.
+    const analyze = runOf(pm.id, 'pm_analyze');
+    expect(analyze.resumeSessionId).toBeNull();
+    expect(received(analyze)).toEqual([[1, login.id, `mô tả ticket ${request.key}`]]);
+
+    // The owner's answer carries a new image: the resumed session gets that one only, the earlier one is
+    // downloaded again for this job and listed as already sent.
+    const resumed = runOf(pm.id, 'pm_analyze', 2);
+    expect(resumed.resumeSessionId).toBeTruthy();
+    expect(received(resumed)).toEqual([
+      [
+        1,
+        narrow.id,
+        expect.stringMatching(new RegExp(`^bình luận thứ \\d+ của ticket ${pm.key} \\(chủ dự án viết\\)$`)),
+      ],
+    ]);
+    expect(resumed.prompt).toMatch(
+      new RegExp(
+        `2\\. Nguồn: mô tả ticket ${request.key} · link \`/v1/attachments/${login.id}\` · file \`${resumed.tmpDir}/ticket-images/${login.id}\\.png\` \\(image/png, 1 KB\\) · phiên này đã nhận ảnh ở lượt chạy trước, không gửi lại\\.`,
+      ),
+    );
+    const pmJobs = jobsOf(r, pm.id).filter((j) => j.stage === 'pm_analyze');
+    expect(pmJobs.map((j) => j.imagesSent)).toEqual([[login.id], [narrow.id]]);
+    expect(pmJobs[1]?.sessionId).toBe(pmJobs[0]?.sessionId);
+
+    // The PM kept the image link in the dev ticket, so the dev run gets the image and reads its file.
+    expect(dev.description).toContain(`![ảnh](/v1/attachments/${login.id})`);
+    const devRun = runOf(dev.id, 'dev');
+    expect(received(devRun)).toEqual([[1, login.id, `mô tả ticket ${dev.key}`]]);
+    const read = r.daemon.daemon.state
+      .toolLog(devRun.jobId)
+      .find((entry) => entry.tool === 'Read' && entry.target?.endsWith(`${login.id}.png`));
+    expect(read).toMatchObject({ decision: 'allow', target: devRun.images[0]?.path });
+    expect((await report(dev.id))?.docsFirst).toBe(true);
+
+    // A ticket without an image link runs exactly as before: no images, no image section.
+    const qcRun = runOf(qc.id, 'qc');
+    expect(qcRun.images).toEqual([]);
+    expect(qcRun.prompt).not.toContain('Ảnh đính kèm');
+    expect(jobsOf(r, qc.id).map((j) => j.imagesSent)).toEqual([[]]);
+
+    // Every job's temp dir, images included, is gone once the job ended.
+    const withImages = r.runs.filter((run) => run.images.length > 0);
+    expect(withImages.length).toBeGreaterThanOrEqual(5);
+    await waitFor(() => r.runs.every((run) => !existsSync(run.tmpDir)), 15_000, 'job temp dirs removed');
   },
 };
 

@@ -186,6 +186,54 @@ một bản runtime cụ thể (kể cả bản cũ hơn, để quay lui) hoặc
     hỏi cho phép `codesign` dùng khoá trong keychain — bấm "Always Allow" một lần; cấp Full Disk Access một
     lần sau khi cài bản `0.3.0`; lần cài `0.3.0` đầu tiên vẫn cần chuột phải → "Open Anyway" (chưa notarize).
 
+## Phát hành một bản runtime
+
+Việc tay của chủ dự án sau khi PM merge một nhánh đã nâng `crewRuntime.version` trong
+`apps/desktop/package.json` — agent không tự đẩy tag, tạo GitHub Release hay deploy; mọi bước dưới đây chủ dự
+án bấm tay.
+
+**Trước khi phát hành**
+
+- CI xanh trên đúng commit đã merge (`.github/workflows/ci.yml`: typecheck, lint, test, build, docs check).
+- Secret `CREW_RUNTIME_SIGNING_KEY` đã nạp trên GitHub Actions — thiếu thì job `runtime-release` (bước 3) chỉ
+  in `::warning::` rồi vẫn publish một bản **không ký**, và mọi app/server sẽ từ chối bản đó.
+- Đối chiếu `git diff <tag bản trước>..HEAD --stat` với phần vỏ Electron (`apps/desktop/src/main/**`,
+  `apps/desktop/src/preload/**`, `packages/shared/src/desktop-ipc.ts`, `dependencies` của
+  `apps/desktop/package.json`, `electron-builder.yml`): có đổi thì cập nhật nóng không đủ — cần một bản dmg mới
+  (tag `v*`) trước, và xét lại `crewRuntime.shell`; không đổi gì thì bản runtime mới đi được thẳng bằng cập
+  nhật nóng, giữ nguyên `crewRuntime.shell`.
+
+**Thứ tự phát hành**
+
+1. Deploy API lên VPS trước (`scripts/deploy.sh`, flow `deployment`) để route/tính năng API mà bản runtime mới
+   cần đã có sẵn.
+2. Đẩy tag `runtime-v<version>` (ví dụ `runtime-v0.3.1`) trên đúng commit đã merge. Thứ tự ngược lại (đẩy tag
+   trước khi deploy API) không làm hỏng gì — daemon mới gặp server cũ vẫn chạy job bình thường, chỉ thiếu tính
+   năng phía API cho tới khi deploy xong.
+3. Tuỳ chọn: đẩy thêm tag `v<version>` nếu cũng cần dmg mới cho máy cài mới; bỏ qua nếu chỉ phát hành cập nhật
+   nóng runtime.
+
+**Sau khi đẩy tag**
+
+- Job CI `runtime-release` build, ký bằng `CREW_RUNTIME_SIGNING_KEY`, tự `runtime-bundle.mjs verify` rồi tạo
+  một GitHub Release riêng cho tag đó (`--latest=false`, bước 3 ở trên).
+- Server tự nhập bản mới mỗi giờ (`startRuntimeImport()`), hoặc owner bấm "Nhập bản mới từ GitHub" trên trang
+  Máy để nhập ngay (bước 7).
+- Từng máy chuyển sang bản mới sau khi job agent đang chạy xong (`waitForJobs()`, chờ tối đa
+  `waitForJobsMs`, mặc định 30 phút, bước 12).
+
+**Kiểm sau phát hành**
+
+- Trang Máy hiện đúng version runtime mới với nguồn "cập nhật nóng" (không phải "đi kèm app").
+- Tạo một ticket có ảnh trong mô tả hoặc bình luận, xác nhận agent mô tả được ảnh — kiểm tính năng mới của bản
+  đó đã chạy được trên host vừa cập nhật.
+
+**Quay lui**
+
+- Tay: ghim máy về version trước trên trang Máy (`PUT /v1/machines/:id/runtime`, bước 6).
+- Tự động: app tự quay lui nếu host mới lỗi trong thời gian thử (probation) — 2 lần ready-timeout hoặc 3 lần
+  crash trong 5 phút (bước 13).
+
 ## Files
 
 | Đường dẫn | Vai trò | Symbol chính |

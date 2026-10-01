@@ -24,6 +24,7 @@ import {
   type RuntimeShellRange,
   SettingsKind,
   SettingsScope,
+  type TestKind,
   TicketPriority,
   TicketStatus,
   TicketType,
@@ -59,6 +60,7 @@ const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull(
 const updatedAt = () => timestamp('updated_at', { withTimezone: true }).notNull().defaultNow();
 const textArray = (name: string) => text(name).array().notNull().default(sql`'{}'::text[]`);
 const usd = (name: string) => numeric(name, { precision: 14, scale: 6, mode: 'number' });
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' });
 
 export const ticketStatusEnum = pgEnum('ticket_status', enumValues(TicketStatus));
 export const ticketTypeEnum = pgEnum('ticket_type', enumValues(TicketType));
@@ -215,6 +217,10 @@ export const tickets = pgTable(
     effort: effortEnum('effort'),
     requiredSkills: textArray('required_skills'),
     requiredMcps: textArray('required_mcps'),
+    /** QC test plan (qc tickets only): which kinds of testing it needs; null for dev and legacy QC rows. */
+    testKinds: text('test_kinds').array().$type<TestKind[]>(),
+    /** One-line reason for the test plan; goes with testKinds. */
+    testReason: text('test_reason'),
     dependsOn: uuid('depends_on').array().notNull().default(sql`'{}'::uuid[]`),
     pairsWith: uuid('pairs_with').references((): AnyPgColumn => tickets.id, { onDelete: 'restrict' }),
     originDevId: uuid('origin_dev_id').references((): AnyPgColumn => tickets.id, { onDelete: 'restrict' }),
@@ -294,6 +300,32 @@ export const ticketReports = pgTable(
     uniqueIndex('ticket_reports_version_uq').on(t.ticketId, t.version),
     uniqueIndex('ticket_reports_current_uq').on(t.ticketId).where(sql`${t.isCurrent}`),
   ],
+);
+
+/**
+ * Pasted images (clipboard paste into a ticket description or comment): the bytes live in Postgres
+ * (`content`), not on disk, so the nightly Postgres backup covers them too. `mime_type` is text, not an
+ * enum, validated at the API boundary against `AttachmentMimeType` — the whitelist can grow without a
+ * migration. `ticket_id` is nullable: a draft attachment (`POST /v1/attachments`, pasted while composing a
+ * ticket that does not exist yet) is uploaded with it null, then claimed (set to the new ticket) when
+ * `createRequestTicket()` finds it referenced in the description; an unclaimed draft is deleted by the
+ * orphan cleanup job after 24 hours (`deleteOrphanedDraftAttachments()`).
+ */
+export const attachments = pgTable(
+  'attachments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ticketId: uuid('ticket_id').references(() => tickets.id, { onDelete: 'cascade' }),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => owner.id, { onDelete: 'cascade' }),
+    filename: text('filename').notNull(),
+    mimeType: text('mime_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    content: bytea('content').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('attachments_ticket_idx').on(t.ticketId)],
 );
 
 // ---------------------------------------------------------------------------
@@ -506,8 +538,6 @@ export const machineCommands = pgTable(
 // Runtime bundles (signed hot updates of the desktop app)
 // ---------------------------------------------------------------------------
 
-const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' });
-
 /**
  * Signed runtime bundles machines can run, newest by version. The manifest is kept as the exact bytes that were
  * signed (the shell verifies the signature itself); the tarball lives in `runtime_bundles`.
@@ -629,6 +659,7 @@ export type MachineRow = typeof machines.$inferSelect;
 export type TicketRow = typeof tickets.$inferSelect;
 export type CommentRow = typeof comments.$inferSelect;
 export type ReportRow = typeof ticketReports.$inferSelect;
+export type AttachmentRow = typeof attachments.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
 export type MachineTokenRow = typeof machineTokens.$inferSelect;
 export type ClaimRequestRow = typeof claimRequests.$inferSelect;

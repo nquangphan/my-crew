@@ -64,7 +64,13 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    `api.getSettingsHistory()`, `api.validateSettings()`, `api.saveSettings()`, `api.restoreSettings()`,
    `api.diffSettings()` gọi các route `/v1/settings*` (flow `server-settings`). `api.listRuntimeReleases()`,
    `api.importRuntimeReleases()`, `api.pinMachineRuntime(machineId, version)` gọi các route
-   `/v1/runtime/releases*`/`/v1/machines/:id/runtime` (flow `runtime-updates`).
+   `/v1/runtime/releases*`/`/v1/machines/:id/runtime` (flow `runtime-updates`). `api.uploadAttachment(idOrKey,
+   body)` gọi `POST /v1/tickets/:id/attachments`, kiểm response bằng `Attachment` (flow `ticket-lifecycle`) —
+   dùng bởi paste-to-upload ảnh clipboard vào ticket đã tồn tại/bình luận (`usePasteImage()`, flow
+   `web-tickets`). `api.uploadDraftAttachment(body)` gọi `POST /v1/attachments` (cùng schema request/response
+   `UploadAttachmentRequest`/`Attachment`, không có `:id` vì chưa có ticket), dùng bởi `usePasteImage()` ở chế
+   độ nháp (`draft: true`) của hộp thoại tạo ticket mới — server tự gắn ảnh nháp vào ticket khi mô tả tham
+   chiếu `url` trả về (flow `ticket-lifecycle`).
 8. `apps/web/src/lib/queries.ts` → `keys`, `sessionQuery`, `useTickets`/`useTicket`/`useProjects`/`useNotices`/
    `useProjectChanges`/…: định nghĩa toàn bộ query key và hook TanStack Query dùng chung cho các trang khác;
    `patchCachedTicket()` viết ticket vừa đổi vào mọi cache list/detail sau một lượt ghi — vì response ghi
@@ -78,12 +84,22 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
    `useProjectByKey(key)` phục vụ mọi trang "Cài đặt hệ thống" (flow `server-settings`); `keys.settings` được
    invalidate khi nhận `settings.changed` (`invalidationsFor()`, flow `event-delivery`). `keys.runtimeReleases`,
    `useRuntimeReleases()` phục vụ mục "Bản runtime" và bộ ghim của trang Máy (flow `runtime-updates`);
-   invalidate khi nhận `runtime.published`/`runtime.pinned`/`machine.runtime_changed`.
+   invalidate khi nhận `runtime.published`/`runtime.pinned`/`machine.runtime_changed`. `useUploadAttachment(
+   ticketIdOrKey)` — mutation gọi `api.uploadAttachment()`, không invalidate cache ticket (upload ảnh không đổi
+   trạng thái ticket) — dùng bởi `usePasteImage()` khi có `ticketId` (flow `web-tickets`).
+   `useUploadDraftAttachment()` — mutation gọi `api.uploadDraftAttachment()`, cũng không invalidate cache gì
+   (ảnh nháp chưa gắn ticket nào) — dùng bởi `usePasteImage()` ở chế độ nháp trong hộp thoại tạo ticket mới
+   (flow `web-tickets`).
 9. `apps/web/src/lib/ui-state.ts` → `useViewport()`, `useTheme()`, `useStoredState()`: phát hiện breakpoint
    (phone/tablet/desktop), theme sáng/tối lưu cục bộ, state lưu localStorage dùng chung.
 10. `apps/web/src/lib/format.ts` → `errorMessage()`: dịch `ApiErrorCode` (`ERROR_TEXT`) sang một câu tiếng
-    Việt cho form/toast đọc từ `ApiRequestError` — ví dụ `PM_NOT_AVAILABLE` ("Không gọi được PM: ticket này
-    không thuộc PM task nào đang mở. Bỏ @pm để gửi bình luận thường.", flow `ticket-lifecycle`), hay
+    Việt cho form/toast đọc từ `ApiRequestError` — tra thẳng theo `code`, bỏ qua `message` thô backend trả, nên
+    mỗi mã lỗi cần một câu riêng trong `ERROR_TEXT` mới hiện đúng nguyên nhân (không tự "mượn" được message chi
+    tiết của backend) — ví dụ `PM_NOT_AVAILABLE` ("Không gọi được PM: ticket này
+    không thuộc PM task nào đang mở. Bỏ @pm để gửi bình luận thường.", flow `ticket-lifecycle`),
+    `ATTACHMENT_TOO_LARGE` ("Ảnh vượt quá giới hạn 10MB, hãy chọn ảnh nhỏ hơn.", ảnh dán clipboard vượt
+    `MAX_ATTACHMENT_BYTES`, flow `ticket-lifecycle` — mã lỗi riêng tách khỏi `VALIDATION_FAILED` chung mà mọi
+    lỗi 4xx không có `ApiError` cụ thể, kể cả `FST_ERR_CTP_BODY_TOO_LARGE` của Fastify, từng rơi vào), hay
     `UNAUTHORIZED` ("Phiên đăng nhập đã hết hạn, hãy đăng nhập lại.") mà `onUnauthorized()` (bước 1) không tự
     hiện — `errorMessage()` chỉ dịch khi một trang khác (ví dụ `ChangePasswordForm`, flow `owner-auth`) tự đọc
     lỗi 401 qua `quiet401`. `describeEvent()`
@@ -133,7 +149,10 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
   `useDocsSearchAcross`/`docsSpaceQuery` ở `queries.ts` phục vụ trang chủ docs và bộ chuyển dự án của flow đó.
 - web-tickets, web-admin: dùng lại `queries.ts`, `format.ts`, `ui-state.ts`, component `ui/*` và
   `ShellContext` của flow này; `ProjectFilterMenu`/`selectedProjects()` (`components/project-filter.tsx`, flow
-  `web-tickets`) là bộ lọc "Dự án" dùng chung mà Inbox và Máy (flow `web-admin`) cũng dùng lại.
+  `web-tickets`) là bộ lọc "Dự án" dùng chung mà Inbox và Máy (flow `web-admin`) cũng dùng lại;
+  `api.uploadAttachment()`/`useUploadAttachment()` và `api.uploadDraftAttachment()`/`useUploadDraftAttachment()`
+  phục vụ `usePasteImage()` (paste-to-upload ảnh clipboard, kể cả đường ảnh nháp của hộp thoại tạo ticket) của
+  flow đó.
 - server-settings: mục sidebar "Cài đặt hệ thống"; `api.getSettings()`/`saveSettings()`/`restoreSettings()`/
   `diffSettings()`/`validateSettings()`/`getSettingsHistory()` và `keys.settings`/`keys.settingsHistory`/
   `useSettingsOverview`/`useSettingsHistory` phục vụ mọi trang cài đặt của flow đó.
@@ -147,7 +166,10 @@ schema và CSRF, và các tiện ích định dạng/URL dùng lại ở mọi m
 - `apps/web/src/lib/queries.test.tsx`: hook query trả đúng dữ liệu/khoá cache.
 - `apps/web/src/lib/search-params.test.ts`: parse/serialize filter URL, `safeRedirect` chỉ cho path cùng gốc.
 - `apps/web/src/lib/shortcuts.test.ts`: khớp phím, bỏ qua khi đang gõ/desktop-only.
-- `apps/web/src/lib/format.test.ts`: định dạng ngày giờ (Asia/Ho_Chi_Minh) và tiền.
+- `apps/web/src/lib/format.test.ts`: định dạng ngày giờ (Asia/Ho_Chi_Minh) và thời gian tương đối;
+  `errorMessage()` dịch đúng câu theo mã lỗi (`REPORT_REQUIRED`, `INTERNAL` kèm status, lỗi không phải
+  `ApiRequestError` → câu chung "Đã có lỗi xảy ra."), và ảnh đính kèm vượt 10MB (`ATTACHMENT_TOO_LARGE`) luôn
+  hiện đúng câu cụ thể bất kể `message` thô nào backend trả.
 - `apps/web/src/layout/quick-search.test.tsx`: badge project trên mỗi kết quả; chip phạm vi tìm kiếm gửi
   `projectIds` và trả focus về ô input sau khi chọn, danh sách kết quả vẫn mở (lượt đóng trễ sau khi blur bị
   hủy khi ô input được focus lại).

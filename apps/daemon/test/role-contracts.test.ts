@@ -1,7 +1,18 @@
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Ticket, TicketDetailResponse, TicketType } from '@crew/shared';
-import { canTransition, RoleStage } from '@crew/shared';
+import {
+  canTransition,
+  DEFAULT_GUARD_POLICY,
+  RoleStage,
+  TEST_KIND_INFO,
+  TestKind,
+  validatePromptTemplate,
+} from '@crew/shared';
 import { describe, expect, it } from 'vitest';
 import { loadPrompt, renderPrompt } from '../src/roles/prompt-templates.js';
+import { DOCS_ONLY_QC_NOTE, testKindsText, testPlanText } from '../src/roles/role-planner.js';
 import { FAILURE_PATHS, resolveStage, STAGES } from '../src/roles/role-registry.js';
 import { StateDb } from '../src/state-db.js';
 
@@ -26,6 +37,8 @@ function ticket(overrides: Partial<Ticket> = {}): Ticket {
     effort: null,
     requiredSkills: [],
     requiredMcps: [],
+    testKinds: null,
+    testReason: null,
     dependsOn: [],
     pairsWith: null,
     originDevId: null,
@@ -94,6 +107,146 @@ describe('role contracts', () => {
     expect(renderPrompt('pm-accept', vars)).toContain('merge_and_push');
     expect(renderPrompt('pm-analyze', vars)).toContain('resource_report');
     expect(renderPrompt('pm-analyze', vars)).toContain('pairsWith');
+  });
+
+  /** Placeholder values for every variable but the ones a test renders for real. */
+  const varsWith = (real: Record<string, string>) =>
+    new Proxy<Record<string, string>>(real, { get: (t, key) => t[String(key)] ?? `<${String(key)}>` });
+  const LEGACY_UI_TEXT =
+    'Kiểm thử UI bằng MCP bắt buộc khi diff đổi file nguồn (diff chỉ đổi docs thì review tĩnh là đủ): ';
+
+  it('the QC prompt follows the PM test plan and names a UI-test MCP server only for a UI kind', () => {
+    const render = (qc: Ticket, uiTest = true) =>
+      renderPrompt('qc', varsWith({ test_plan: testPlanText(qc, uiTest, DEFAULT_GUARD_POLICY) }));
+    const reason = 'Chỉ đổi route và truy vấn, không có giao diện';
+
+    // No UI kind: the plan kind by kind from the shared table, the PM's reason as data, and no UI MCP.
+    const apiOnly = render(
+      ticket({ type: 'qc', key: 'WEB-7', testKinds: ['api', 'integration'], testReason: reason }),
+    );
+    expect(apiOnly).toContain('4. Kiểm thử theo **phương án PM đã chọn** cho ticket này');
+    for (const kind of ['api', 'integration'] as const) {
+      const { label, tooling } = TEST_KIND_INFO[kind];
+      expect(apiOnly).toContain(`   - \`${kind}\` (${label}): ${tooling}.`);
+    }
+    expect(apiOnly).toContain(
+      `<untrusted-data source="ticket WEB-7 testReason">\n${reason}\n</untrusted-data>`,
+    );
+    expect(apiOnly).toContain('không cần MCP kiểm thử UI nào');
+    expect(apiOnly).not.toMatch(/playwright|maestro/i);
+    expect(apiOnly).not.toContain(LEGACY_UI_TEXT);
+    expect(apiOnly).not.toContain('`unit`');
+    // The report names every kind that ran.
+    expect(apiOnly).toContain('**từng loại kiểm thử đã chạy**');
+
+    // ui_web: Playwright, with the same instruction as before; ui_mobile: Maestro.
+    const web = render(
+      ticket({ type: 'qc', testKinds: ['ui_web', 'api'], testReason: reason, requiredMcps: ['playwright'] }),
+    );
+    expect(web).toContain(`\`ui_web\` (${TEST_KIND_INFO.ui_web.label})`);
+    expect(web).toContain(
+      '`playwright` (Playwright): mở ứng dụng trong trình duyệt và kiểm tra từng tiêu chí nghiệm thu.',
+    );
+    expect(web).toContain('Ghi lại flow hoặc script đã chạy và kết quả của chúng trong report.');
+    expect(web).not.toMatch(/maestro/i);
+    const mobile = render(
+      ticket({ type: 'qc', testKinds: ['ui_mobile'], testReason: reason, requiredMcps: ['maestro'] }),
+    );
+    expect(mobile).toContain('`maestro` (Maestro): chạy app trên simulator/emulator');
+
+    // A QC ticket from before test plans (testKinds null) keeps the older text, word for word.
+    const legacy = render(ticket({ type: 'qc', requiredMcps: ['playwright'] }));
+    expect(legacy).toContain(
+      `4. ${LEGACY_UI_TEXT}\n   - \`playwright\` (Playwright): mở ứng dụng trong trình duyệt và kiểm tra từng tiêu chí nghiệm thu.\n   Ghi lại flow hoặc script đã chạy và kết quả của chúng trong report.`,
+    );
+    expect(legacy).not.toContain('phương án PM đã chọn');
+    expect(render(ticket({ type: 'qc' }))).toContain(
+      `4. ${LEGACY_UI_TEXT}ticket không yêu cầu MCP kiểm thử UI (dự án backend hoặc thư viện).`,
+    );
+    // So does the QC of a docs-only diff, plan or not.
+    const docsOnly = render(
+      ticket({ type: 'qc', testKinds: ['ui_web'], testReason: reason, requiredMcps: ['playwright'] }),
+      false,
+    );
+    expect(docsOnly).toContain(`4. ${LEGACY_UI_TEXT}không cần: diff chỉ đổi docs`);
+    expect(docsOnly).toContain(DOCS_ONLY_QC_NOTE);
+    expect(docsOnly).not.toContain('phương án PM đã chọn');
+  });
+
+  it('the PM prompts carry the test-plan analysis, with the kind table rendered from the shared source', () => {
+    const analyze = renderPrompt('pm-analyze', varsWith({ test_kinds: testKindsText('web') }));
+    expect(analyze).toContain('### Phương án kiểm thử của QC');
+    expect(analyze).toContain('Xem subtask dev đổi gì: route/service/DB của API, logic daemon, CLI');
+    // Kind ↔ tooling table: one row per kind, label and tooling straight from TEST_KIND_INFO.
+    for (const kind of TestKind.options) {
+      const { label, tooling, uiRole } = TEST_KIND_INFO[kind];
+      const row = analyze.split('\n').find((line) => line.startsWith(`| \`${kind}\` |`));
+      expect(row, kind).toContain(`| ${label} | ${tooling} |`);
+      expect(row?.endsWith('| không |'), kind).toBe(uiRole === null);
+    }
+    // The rules for the UI kinds and the section every QC description needs.
+    expect(analyze).toContain('Chỉ chọn `ui_web`/`ui_mobile` khi thay đổi có **giao diện chạy được**');
+    expect(analyze).toContain('Thay đổi có giao diện thì **phải** có loại UI tương ứng');
+    expect(analyze).toContain('Không chọn loại UI mà platform của dự án không có');
+    expect(analyze).toContain(
+      'Dự án này có platform `web`: loại UI dùng được là `ui_web` (server từ chối `ui_mobile`).',
+    );
+    expect(analyze).toContain('## Phương án kiểm thử\n');
+    for (const line of [
+      '- Loại kiểm thử:',
+      '- Công cụ / lệnh:',
+      '- Công cụ UI:',
+      '- Tiêu chí nghiệm thu ↔ cách kiểm:',
+    ]) {
+      expect(analyze).toContain(line);
+    }
+    expect(analyze).toContain('`testKinds` và `testReason`: **bắt buộc với `qc`**');
+    expect(analyze).toContain('plan_qc_test');
+    // The server no longer adds a default UI-test MCP server to every QC.
+    expect(analyze).not.toContain('server tự thêm');
+    expect(analyze).not.toContain('MCP kiểm thử UI mặc định');
+    expect(analyze).not.toContain('kiểm 3 flow UI bằng Playwright');
+
+    expect(testKindsText('backend')).toContain(
+      'Dự án này có platform `backend`: không có loại UI nào dùng được (server từ chối `ui_web`, `ui_mobile`).',
+    );
+    expect(testKindsText('web_mobile')).toContain(
+      'loại UI dùng được là `ui_web`, `ui_mobile` (mọi loại UI đều dùng được).',
+    );
+    expect(testKindsText(null)).toContain('Server từ chối loại UI mà platform của dự án không hỗ trợ.');
+
+    // The monitor stage knows how to free a QC stuck on a UI-test MCP server it should never have needed.
+    const monitor = renderPrompt('pm-monitor', varsWith({ test_kinds: testKindsText('web') }));
+    expect(monitor).toContain('QC `blocked` vì MCP kiểm thử UI chưa kết nối');
+    expect(monitor).toContain('Gọi `plan_qc_test` trên ticket QC');
+    expect(monitor).toContain('`plan_qc_test` không mở chặn ticket');
+    expect(monitor).toContain('thì gọi `retry_subtask` ngay sau đó');
+    expect(monitor).toContain(`| \`api\` | ${TEST_KIND_INFO.api.label} |`);
+  });
+
+  it('keeps the test-kind labels and tooling in the shared table only, and every bundled prompt valid', () => {
+    const src = fileURLToPath(new URL('../src/', import.meta.url));
+    const files = readdirSync(src, { recursive: true, encoding: 'utf8' }).filter((file) =>
+      /\.(ts|md)$/.test(file),
+    );
+    expect(files.length).toBeGreaterThan(50);
+    for (const file of files) {
+      const text = readFileSync(join(src, file), 'utf8');
+      for (const kind of TestKind.options) {
+        expect(text.includes(TEST_KIND_INFO[kind].label), `${file} copies the label of ${kind}`).toBe(false);
+        expect(text.includes(TEST_KIND_INFO[kind].tooling), `${file} copies the tooling of ${kind}`).toBe(
+          false,
+        );
+      }
+    }
+    // The new variables are declared where the web editor and the daemon validate a prompt.
+    for (const contract of Object.values(STAGES)) {
+      expect(validatePromptTemplate(contract.prompt, loadPrompt(contract.prompt)), contract.prompt).toEqual(
+        [],
+      );
+    }
+    expect(loadPrompt('qc')).toContain('{{test_plan}}');
+    expect(loadPrompt('pm-analyze')).toContain('{{test_kinds}}');
   });
 
   it('refuses a variable without a value, and never expands template text inside a value', () => {

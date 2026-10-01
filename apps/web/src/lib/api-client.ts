@@ -1,6 +1,7 @@
 import {
   ApiErrorBody,
   type ApiErrorCode,
+  Attachment,
   type ChangePasswordRequest,
   ClaimRequest,
   ClaimRequestListResponse,
@@ -51,6 +52,7 @@ import {
   TicketTreeResponse,
   type UpdateProjectRequest,
   type UpdateTicketRequest,
+  type UploadAttachmentRequest,
   ValidateSettingsResponse,
 } from '@crew/shared';
 import type { z } from 'zod';
@@ -221,6 +223,23 @@ export const api = {
       method: 'POST',
       body: { body },
       schema: Comment,
+    }),
+  /** Paste-to-upload (ticket description or comment): stores a pasted image, returns its `url` to embed. */
+  uploadAttachment: (idOrKey: string, body: UploadAttachmentRequest) =>
+    request(`/v1/tickets/${encodeURIComponent(idOrKey)}/attachments`, {
+      method: 'POST',
+      body,
+      schema: Attachment,
+    }),
+  /**
+   * Draft paste-to-upload (the "create ticket" dialog, before a ticket exists): stores the image the same way,
+   * the server claims it into the new ticket when its description references the returned `url`.
+   */
+  uploadDraftAttachment: (body: UploadAttachmentRequest) =>
+    request('/v1/attachments', {
+      method: 'POST',
+      body,
+      schema: Attachment,
     }),
   getReports: (idOrKey: string) =>
     request(`/v1/tickets/${encodeURIComponent(idOrKey)}/report`, { schema: ReportResponse }),

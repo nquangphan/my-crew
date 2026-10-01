@@ -43,6 +43,7 @@ import {
   Ticket,
   TicketDetailResponse,
   type TicketStatus,
+  type UpdateTestPlanRequest,
 } from '@crew/shared';
 import type { z } from 'zod';
 
@@ -377,6 +378,17 @@ export class VpsClient {
     });
   }
 
+  /** The PM (`pmTaskId`) changes the test plan of one of its open qc subtasks in place (status untouched). */
+  updateTestPlan(pmTaskId: string, body: UpdateTestPlanRequest, idempotencyKey: string) {
+    return this.request({
+      method: 'POST',
+      path: `/v1/daemon/tickets/${encodeURIComponent(pmTaskId)}/test-plan`,
+      body,
+      idempotencyKey,
+      schema: Ticket,
+    });
+  }
+
   fileBug(ticketId: string, body: FileBugRequest, idempotencyKey: string) {
     return this.request({
       method: 'POST',
@@ -478,13 +490,30 @@ export class VpsClient {
    */
   async runtimeBundle(version: string, maxBytes: number): Promise<Buffer> {
     const path = `/v1/daemon/runtime/${encodeURIComponent(version)}/bundle`;
-    const options = { method: 'GET' as const, path, schema: null };
+    const download = await this.download(path, {
+      accept: 'application/gzip',
+      maxBytes,
+      timeoutMs: Math.max(this.timeoutMs, 10 * 60 * 1000),
+      tooLargeCode: 'BAD_RESPONSE',
+    });
+    return download.data;
+  }
+
+  /**
+   * One GET that answers bytes instead of JSON (one attempt). Refuses an answer larger than `maxBytes`: by
+   * its `content-length` before reading the body, and by the bytes actually read.
+   */
+  private async download(
+    path: string,
+    options: { accept: string; maxBytes: number; timeoutMs: number; tooLargeCode: string },
+  ): Promise<{ data: Buffer; contentType: string }> {
+    const { maxBytes } = options;
     try {
       let response: Response;
       try {
         response = await this.fetchImpl(`${this.apiUrl}${path}`, {
-          headers: { accept: 'application/gzip', ...this.authHeader() },
-          signal: AbortSignal.timeout(Math.max(this.timeoutMs, 10 * 60 * 1000)),
+          headers: { accept: options.accept, ...this.authHeader() },
+          signal: AbortSignal.timeout(options.timeoutMs),
         });
       } catch (error) {
         throw new VpsError(0, 'NETWORK', `GET ${path}: ${(error as Error).message}`);
@@ -497,18 +526,44 @@ export class VpsClient {
         }
         throw new VpsError(response.status, 'HTTP', `GET ${path}: HTTP ${response.status}`);
       }
+      const tooLarge = () =>
+        new VpsError(response.status, options.tooLargeCode, `GET ${path}: larger than ${maxBytes} bytes`);
       if (Number(response.headers.get('content-length') ?? '0') > maxBytes) {
-        throw new VpsError(response.status, 'BAD_RESPONSE', `GET ${path}: larger than ${maxBytes} bytes`);
+        // The body is not read: the connection is dropped instead of downloading what will be refused.
+        await response.body?.cancel().catch(() => undefined);
+        throw tooLarge();
       }
-      const data = Buffer.from(await response.arrayBuffer());
-      if (data.length > maxBytes) {
-        throw new VpsError(response.status, 'BAD_RESPONSE', `GET ${path}: larger than ${maxBytes} bytes`);
+      let data: Buffer;
+      try {
+        data = Buffer.from(await response.arrayBuffer());
+      } catch (error) {
+        throw new VpsError(0, 'NETWORK', `GET ${path}: ${(error as Error).message}`);
       }
-      return data;
+      if (data.length > maxBytes) throw tooLarge();
+      return { data, contentType: response.headers.get('content-type') ?? '' };
     } catch (error) {
-      this.report(options, error, 1);
+      this.report({ method: 'GET', path, schema: null }, error, 1);
       throw error;
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Ticket attachments (images the owner pasted into a description or a comment)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Downloads one pasted image of a ticket this machine may read: its bytes and the mime type the server
+   * stored for it. Refuses an answer larger than `maxBytes` (`ATTACHMENT_TOO_LARGE`). One attempt: a run never
+   * waits on an image, the caller tells the agent which one it could not get.
+   */
+  async attachment(id: string, maxBytes: number): Promise<{ data: Buffer; mimeType: string }> {
+    const { data, contentType } = await this.download(`/v1/daemon/attachments/${encodeURIComponent(id)}`, {
+      accept: 'image/*',
+      maxBytes,
+      timeoutMs: this.timeoutMs,
+      tooLargeCode: 'ATTACHMENT_TOO_LARGE',
+    });
+    return { data, mimeType: (contentType.split(';')[0] ?? '').trim().toLowerCase() };
   }
 
   // -------------------------------------------------------------------------

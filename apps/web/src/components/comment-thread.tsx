@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { cn } from '../lib/cn';
 import { errorMessage, formatFullDateTime, formatRelative, ROLE_META } from '../lib/format';
+import { usePasteImage } from '../lib/paste-image';
 import { useAddComment } from '../lib/queries';
 import { MarkdownView } from './markdown-view';
 import { RoleAvatar } from './role-avatar';
@@ -133,6 +134,11 @@ export const CommentComposer = forwardRef<
   const [caret, setCaret] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const add = useAddComment(ticketKey);
+  const { onPaste, error: pasteError } = usePasteImage({
+    ticketId: ticketKey,
+    value: body,
+    onChange: setBody,
+  });
   const id = useId();
   const box = useRef<HTMLTextAreaElement>(null);
   const placeCaret = useRef<number | null>(null);
@@ -217,6 +223,7 @@ export const CommentComposer = forwardRef<
         }}
         onSelect={trackCaret}
         onKeyDown={onKeyDown}
+        onPaste={onPaste}
         rows={compact ? 2 : 3}
         maxLength={50_000}
         aria-controls={suggesting ? `${id}-tags` : undefined}
@@ -258,6 +265,11 @@ export const CommentComposer = forwardRef<
       {add.isError && (
         <p role="alert" className="m-0 text-sm text-bad">
           {errorMessage(add.error)}
+        </p>
+      )}
+      {pasteError && (
+        <p role="alert" className="m-0 text-sm text-bad">
+          {pasteError}
         </p>
       )}
       <div>

@@ -45,7 +45,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    của agent, ghi sau mọi lượt chạy dù thành hay bại) đọc bởi `failedJobText()` (flow `agent-roles`) cho
    heartbeat, cột `wait_reason`/`wait_detail` mà `Scheduler` ghi qua `updateJob()` (flow `daemon-scheduling`),
    cột `settings_revision` (flow `server-settings`/`agent-runs`: bản cài đặt server job đó snapshot lúc bắt
-   đầu, ghi bởi `JobRunner.execute()`, đọc lại bởi bình luận lỗi/crash và bởi heartbeat)),
+   đầu, ghi bởi `JobRunner.execute()`, đọc lại bởi bình luận lỗi/crash và bởi heartbeat), cột `images_sent`
+   (JSON, flow `agent-runs`: id các ảnh đính kèm ticket lượt chạy của job đó đã gửi làm khối ảnh, ghi lúc
+   `onInit` — `StateDb.imagesSentInSession(sessionId)` gộp cột này của mọi job cùng `session_id`, dùng để một
+   lượt resume không gửi lại ảnh phiên đó đã nhận)),
    `pending_wakeups`, `pm_mentions` (khoá chính `event_id`; `pm_task_id`, `source_ticket_id`,
    `source_ticket_key`, `comment_id`, `created_at` — mỗi owner tag `@pm` nhận được, ghi bởi
    `recordPmMention()`/đọc bằng `pmMentions(eventIds)`, dùng bởi flow `daemon-scheduling`/`agent-roles`),
@@ -64,10 +67,19 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `putBmadProfile(projectKey, profile, idempotencyKey)` (`PUT /v1/daemon/projects/:projectKey/bmad-profile`,
    cũng flow `project-claims`), `startCommand`/`finishCommand` (flow `machine-control`), hay
    `retrySubtask(pmTaskId, body, idempotencyKey)` (`POST .../retry-subtask`, gọi bởi tool PM cùng tên, flow
-   `agent-runs`/`ticket-lifecycle`), hay `runtime()`/`runtimeBundle(version, maxBytes)` (`GET
+   `agent-runs`/`ticket-lifecycle`), hay `updateTestPlan(pmTaskId, body, idempotencyKey)` (`POST
+   /v1/daemon/tickets/:id/test-plan`, `:id` là `pmTaskId`, gọi bởi tool PM `plan_qc_test` để đổi `testKinds`/
+   `testReason` của một subtask `qc` chưa đóng của chính pm_task đó, trả lại `Ticket` với `requiredMcps` đã tính
+   lại theo phương án mới, flow `agent-runs`/`ticket-lifecycle`), hay `runtime()`/`runtimeBundle(version, maxBytes)` (`GET
    /v1/daemon/runtime`/`GET /v1/daemon/runtime/:version/bundle`, flow `runtime-updates` — bản runtime này máy
    nên chạy, và tải tarball chưa kiểm để app desktop tự verify trước khi cài; `runtimeBundle()` từ chối câu
-   trả lời lớn hơn `maxBytes` mà không tải hết). Tuỳ chọn `onError(failure: ApiFailure)`
+   trả lời lớn hơn `maxBytes` mà không tải hết), hay `attachment(id, maxBytes)` (`GET
+   /v1/daemon/attachments/:id`, flow `agent-runs`/`ticket-lifecycle` — một ảnh chủ dự án dán vào mô tả hay bình
+   luận ticket, cho máy trong phạm vi ticket đó; trả bytes cộng mime server lưu). `runtimeBundle()` và
+   `attachment()` đều gọi một `download()` private dùng chung (một lần thử, từ chối bằng `content-length` trước
+   khi đọc hết body, rồi bằng số byte đọc được, mỗi bên một mã lỗi `tooLargeCode` riêng —
+   `ATTACHMENT_TOO_LARGE` cho ảnh, `BAD_RESPONSE` cho runtime bundle như trước khi tách hàm này); hành vi của
+   `runtimeBundle()` không đổi. Tuỳ chọn `onError(failure: ApiFailure)`
    được gọi đúng một lần cho mỗi request cuối cùng thất bại (sau khi hết lượt thử lại) với `method`, `path`,
    `status` (`0` khi request không có phản hồi — mạng/TLS/timeout), `code`, `message`, `attempts` — không bao
    giờ có header hay body; lỗi của chính `onError` không đổi kết quả request. `CreateDaemonOptions.onApiError`
@@ -207,7 +219,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
   gọi `wakeTicket()`; `decide()` (dùng bởi `Scheduler.pass()`) trả thêm lý do chờ máy đọc được (`wait`/`detail`)
   và khoá các ticket phụ thuộc chưa xong; `onWaitChange` gọi `logWaitChange()` ở đây.
 - agent-runs: `JobRunner` được tạo trong `createDaemon()` với `workspace`, `contextBlock`, `resourceOps`,
-  `standardPath`, `onCleaned` lấy từ các flow khác.
+  `standardPath`, `onCleaned` lấy từ các flow khác; `VpsClient.attachment()` (file của flow này) tải ảnh đính
+  kèm ticket cho `collectTicketImages()`; cột `jobs.images_sent` (sống trong `state-db.ts` ở đây) và
+  `StateDb.imagesSentInSession()` thuộc flow đó.
 - agent-roles: `rolePlanner` là `RolePlanner` mặc định của `JobRunner`; cột `jobs` mới (`stage`,
   `failed_attempts`, `capabilities`, `return_to_dev`) thuộc flow đó nhưng sống trong `state-db.ts` ở đây.
 - agent-workspace: `createDaemon()` gọi `ensureWorktree`/`detectSharedPaths`/`probeInventory` để chuẩn bị

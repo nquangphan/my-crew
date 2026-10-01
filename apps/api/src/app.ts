@@ -8,11 +8,12 @@ import { machineGuard } from './auth/machine-auth.js';
 import { ownerGuard, purgeExpiredSessions } from './auth/owner-auth.js';
 import type { AppConfig } from './config.js';
 import type { Database } from './db/client.js';
-import { ApiError } from './errors.js';
+import { ApiError, sendApiError } from './errors.js';
 import { startHeartbeatSweeper } from './jobs/heartbeat-sweeper.js';
 import { startRuntimeImport } from './jobs/runtime-import.js';
 import { startStuckTicketAlarm, WaitingJobsRegistry } from './jobs/stuck-ticket-alarm.js';
 import { EventBus } from './realtime/event-bus.js';
+import { attachmentRoutes, daemonAttachmentRoutes } from './routes/attachment-routes.js';
 import { authRoutes } from './routes/auth-routes.js';
 import { daemonBmadProfileRoutes } from './routes/bmad-profile-routes.js';
 import { commentRoutes } from './routes/comment-routes.js';
@@ -27,6 +28,7 @@ import { daemonRuntimeRoutes, runtimeRoutes } from './routes/runtime-routes.js';
 import { daemonSettingsRoutes, settingsRoutes } from './routes/settings-routes.js';
 import { daemonStreamRoutes, ownerStreamRoutes } from './routes/stream-routes.js';
 import { ticketRoutes } from './routes/ticket-routes.js';
+import { startDraftAttachmentCleanup } from './services/attachment-service.js';
 import { purgeExpiredIdempotencyKeys } from './services/idempotency.js';
 import { trustedRuntimeKeys } from './services/runtime-service.js';
 
@@ -76,16 +78,9 @@ export async function buildApp({
       new ApiError('RATE_LIMITED', `too many attempts, retry in ${Math.ceil(context.ttl / 1000)}s`),
   });
 
-  app.setErrorHandler((error: FastifyError | ApiError, request, reply) => {
-    if (error instanceof ApiError) return reply.status(error.statusCode).send(error.toBody());
-    const status = error.statusCode ?? 500;
-    if (status >= 400 && status < 500) {
-      const code = status === 401 ? 'UNAUTHORIZED' : status === 404 ? 'NOT_FOUND' : 'VALIDATION_FAILED';
-      return reply.status(status).send(new ApiError(code, error.message).toBody());
-    }
-    request.log.error({ err: error }, 'unhandled error');
-    return reply.status(500).send(new ApiError('INTERNAL', 'internal server error').toBody());
-  });
+  app.setErrorHandler((error: FastifyError | ApiError, request, reply) =>
+    sendApiError(error, request, reply),
+  );
   app.setNotFoundHandler((_request, reply) =>
     reply.status(404).send(new ApiError('NOT_FOUND', 'route not found').toBody()),
   );
@@ -111,6 +106,7 @@ export async function buildApp({
     await owner.register(projectRoutes, deps);
     await owner.register(ticketRoutes, deps);
     await owner.register(commentRoutes, deps);
+    await owner.register(attachmentRoutes, deps);
     await owner.register(reportRoutes, deps);
     await owner.register(machineRoutes, deps);
     await owner.register(machineCommandRoutes, deps);
@@ -123,6 +119,7 @@ export async function buildApp({
   await app.register(async (daemon) => {
     daemon.addHook('onRequest', machineGuard(db));
     await daemon.register(daemonRoutes, deps);
+    await daemon.register(daemonAttachmentRoutes, deps);
     await daemon.register(daemonDocsRoutes, deps);
     await daemon.register(daemonBmadProfileRoutes, deps);
     await daemon.register(daemonSettingsRoutes, deps);
@@ -134,12 +131,14 @@ export async function buildApp({
   let timer: NodeJS.Timeout | undefined;
   let stopSweeper: (() => void) | undefined;
   let stopStuckAlarm: (() => void) | undefined;
+  let stopDraftAttachmentCleanup: (() => void) | undefined;
   let stopRuntimeImport: (() => void) | undefined;
   app.addHook('onReady', async () => {
     await bus.start();
     if (realtime.sweeper !== false) {
       stopSweeper = startHeartbeatSweeper(db, app.log);
       stopStuckAlarm = startStuckTicketAlarm(db, deps.waitingJobs, app.log);
+      stopDraftAttachmentCleanup = startDraftAttachmentCleanup(db, app.log);
       if (config.runtimeReleasesRepo) {
         stopRuntimeImport = startRuntimeImport(
           db,
@@ -183,6 +182,7 @@ export async function buildApp({
     }
     stopSweeper?.();
     stopStuckAlarm?.();
+    stopDraftAttachmentCleanup?.();
     stopRuntimeImport?.();
     await bus.stop();
   });
