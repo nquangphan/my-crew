@@ -59,10 +59,21 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    phương án bằng `plan_qc_test` (không tự mở chặn) rồi `retry_subtask`; diff chỉ đổi docs thì bỏ qua cổng này,
    prompt QC nêu rõ lý do không cần kiểm thử UI và
    yêu cầu report ghi đúng câu cố định (`DOCS_ONLY_QC_NOTE`), còn `PlannedRun.requiredMcps` của lượt chạy đó
-   đặt rỗng (flow `agent-runs`); còn lại gọi `resolveModel()`, dựng biến prompt (`promptVars()`) và
-   `renderPrompt()`; với
-   một ticket `bug`,
-   `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug. `promptVars()` → `ownerRequest()`: ba bước PM
+   đặt rỗng (flow `agent-runs`); còn lại gọi `resolveModel()`, `resumeSession()` rồi dựng biến prompt
+   (`promptVars()`) và `renderPrompt()`. `resumeSession()`: ứng viên là phiên của chính job
+   (`job.sessionId`), nếu không thì phiên mới nhất cùng loại của ticket (`docs_update`/lượt `ticket.assigned`
+   đầu luôn mở mới) — ứng viên này luôn đi qua `StateDb.resumeChoice(ticketId, candidate, job)` (flow
+   `daemon-runtime`, điểm quyết định phiên duy nhất): kết quả là mở **phiên mới** (`sessionId: null`) thay
+   ứng viên khi chính job này bị daemon dừng/crash dẫn tới lượt này (`job.resumeMode`), khi một lượt trước đã
+   đánh dấu ứng viên đó bỏ dở (`StateDb.abandonedBy()`), hay khi lượt này mở chặn (`job.trigger ===
+   'ticket.unblocked'`, cả chủ dự án tự mở lẫn PM gọi `retry_subtask`) sau một lỗi `no_handoff`/`not_finished`
+   ở lượt kết thúc gần nhất của ticket **chỉ khi ứng viên không phải phiên chính job mở chặn này đã tạo** ở
+   lượt đầu của nó (hàng job mang đúng ứng viên và không job nào khác của ticket từng chạy trên nó) — cách
+   một phiên hỏng từ trước khi có dấu nhận ra được; lần chạy lại sau backoff (hay sau khi job mở chặn hấp thụ
+   một sự kiện không đổi trigger) resume đúng phiên sạch của chính nó; còn lại resume đúng ứng viên.
+   `resume.interrupted` (lượt bị bỏ dở, khác null chỉ khi mở phiên mới vì nó) được truyền vào
+   `promptVars()`; với một ticket `bug`, `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug.
+   `promptVars()` → `ownerRequest()`: ba bước PM
    (`pm_analyze`/`pm_monitor`/`pm_accept`) nhận thêm nguyên văn yêu cầu gốc của chủ dự án (tiêu đề, mô tả và
    bình luận của ticket `request` cha) nối vào `header` — **không bọc** vì chủ dự án tự viết, khác với mô tả
    `pm_task` (tóm tắt của assistant, vẫn bị `wrapUntrusted()`). Cùng lúc `ownerRequest()` trả thêm mô tả và
@@ -89,7 +100,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    owner — **không bọc**, vì owner tự viết — cộng danh sách việc PM có thể làm (`rate_subtask` khi thiếu
    `complexity`, `plan_qc_test` cộng `retry_subtask` khi QC `blocked` vì MCP kiểm thử UI mà thay đổi không có
    giao diện, `retry_subtask` khi nguyên nhân chặn khác đã hết, `create_subtask` khi cần việc mới, `ask_owner`
-   khi cần huỷ hay chưa rõ ý owner) và luôn `comment` lại trên ticket được tag.
+   khi cần huỷ hay chưa rõ ý owner) và luôn `comment` lại trên ticket được tag. Sau mục đó (nếu có),
+   `resume.interrupted` khác null làm `promptVars()` chèn tiếp `freshSessionNote(resume.interrupted, detail)`
+   (`run-trace.ts`, flow `agent-runs`) vào `notes` — tóm tắt lượt bị bỏ dở mà phiên mới này không nối tiếp,
+   thay cho mục "## Khởi động lại" cũ (`restartNote()`, đã bị xóa khỏi `job-runner.ts`); `defaultPlanner`
+   (flow `agent-runs`) chèn cùng hàm này khi `choice.interrupted` khác null.
 3. `apps/daemon/src/roles/model-policy.ts` → `resolveModel()`: `docs_init`/`docs_update` luôn `sonnet`/`high`
    (`DOCS_MODEL`, quyết định của chủ dự án, không phụ thuộc ticket hay allowlist máy); `dev`/`qc` (kể cả `bug`)
    không có mặc định — lấy bản đồ độ phức tạp của máy theo `complexity` PM đã chấm cho subtask, model/effort
@@ -139,7 +154,13 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 9. `apps/daemon/src/roles/role-planner.ts` → `afterRun()`: một lượt kết thúc mà không nộp report và không
    `handoff_docs` (các bước không nộp report: assistant/PM ngoài `pm_accept`) vẫn bị đối chiếu skill/MCP —
    cảnh báo tính theo **phiên**, không theo từng job: một lượt resume một phiên đã `select_capabilities` ở
-   job trước (ví dụ chạy tiếp sau khi chủ dự án trả lời) không bị coi là thiếu preflight. Rồi gọi
+   job trước (ví dụ chạy tiếp sau khi chủ dự án trả lời) không bị coi là thiếu preflight. Logic này vẫn đúng
+   khi phiên đổi giữa các job của cùng ticket: một job chạy lại ở **phiên mới** (sau một lượt bị bỏ dở, hay
+   mở chặn trên một phiên hỏng từ trước) luôn thiếu preflight của chính phiên đó dù chính job này (hay một
+   job trước đó trên ticket) đã từng `select_capabilities` ở phiên cũ, vì `JobRunner.execute()` xoá
+   `job.capabilities` ngay khi thấy phiên đổi (bước 3, flow `agent-runs`) — nên một job resume lại đúng phiên
+   của chính nó không cảnh báo, còn một job (dù cùng id hay job mới) rơi vào phiên mới thì cảnh báo cho tới
+   khi phiên đó tự `select_capabilities`. Rồi gọi
    `apps/daemon/src/roles/docs-update-handoff.ts` → `afterDevRun()`/`afterDocsRun()` theo `stage`: `dev` kết
    thúc bằng `handoff_docs` xếp tiếp một job `docs_update` trên cùng worktree, phiên mới, model `sonnet`;
    không `handoff_docs`/`ask_owner` là một lượt thất bại (`no_handoff`). `docs_update` kết thúc bằng
@@ -149,7 +170,16 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 10. `apps/daemon/src/roles/failure-policy.ts` → `decideFailure()`: `budget` chặn ticket ngay (`blocked`, chờ
     chủ dự án); các lý do khác được thử lại tới `MAX_ATTEMPTS` (2) lần thì mới chặn; một `docs_rejected` được
     thử lại bằng một job `dev` mới trên phiên dev cũ, mang theo nguyên văn output hook bị từ chối, mọi lý do
-    khác lặp lại đúng loại job cũ. Cả bình luận thử lại ("Lần thử …/2 không thành: …") lẫn bình luận chặn
+    khác lặp lại đúng loại job cũ — "phiên dev cũ"/"job cũ" chỉ được resume nếu còn resumable: tham số tuỳ
+    chọn `resumable` (mặc định giữ nguyên `sessionId`) lọc qua `StateDb.resumeChoice()` trước khi gán vào
+    `followUp.sessionId`, nên retry chỉ mở **phiên mới** thay vì resume khi một lượt trước đã đánh dấu phiên
+    đó bỏ dở (`StateDb.abandonedBy()`). Quy tắc mở chặn (lượt kết thúc gần nhất của ticket fail
+    `no_handoff`/`not_finished`) chỉ áp cho job `ticket.unblocked` trong `resumeChoice()`, không bao giờ áp
+    cho trigger `retry:<reason>` — nên thử lại sau `no_handoff` của một phiên sạch (chưa từng bị đánh dấu bỏ
+    dở) vẫn resume đúng phiên đó. `role-planner.ts` → `failureDecision()` truyền `resumable: (sessionId) =>
+    state.resumeChoice(ticketId, sessionId, { trigger }).sessionId` với `trigger` là `retry:<reason>`, áp
+    dụng cho cả `job.sessionId` (lượt thường) và `devSessionId` (retry sau `docs_rejected`). Cả bình luận
+    thử lại ("Lần thử …/2 không thành: …") lẫn bình luận chặn
     ("Ticket bị chặn: …") đều nối thêm khối chẩn đoán `traceMarkdown()` của lượt vừa chạy (`run-trace.ts`, flow
     `agent-runs`) khi lượt đó để lại một `RunTrace` — áp dụng cho mọi lý do (`not_finished`, `budget`, lỗi
     runner kể cả `error_max_turns`, `no_handoff`, `docs_rejected`), nên một ticket dừng giữa chừng mà không nộp
@@ -237,7 +267,9 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   ticket `select_capabilities`, `return_to_dev`, `reject_work`, `merge_and_push` gọi vào các hàm của flow này.
 - local-merge: `merge_and_push` (tool PM) gọi `mergeAndPush()`; `pm-accept.md` mô tả đúng luồng nghiệm thu đó.
 - daemon-runtime: `rolePlanner` là `RolePlanner` mặc định của `createDaemon()`; cột job của flow này sống
-  trong `state-db.ts` (migration cộng cột, không phá schema cũ).
+  trong `state-db.ts` (migration cộng cột, không phá schema cũ); `resumeSession()`/`failureDecision()` gọi
+  `StateDb.resumeChoice()` (điểm quyết định phiên resume hay mở mới, sở hữu bởi flow đó) ở mọi lượt chạy và
+  mọi retry.
 - agent-workspace: `prepare()` merge head vào worktree `ensureWorktree()` đã dựng; `select_capabilities` đối
   chiếu với kho skill/MCP `probeInventory()` cấp.
 - resource-hygiene: `cleanupLines()` đọc `job_cleanup` để đưa vào prompt PM; PM cảnh báo `leftResources` dựa
@@ -275,7 +307,12 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   án đã có docs cho `pm_analyze` chạy ngay.
 - `apps/daemon/test/docs-update-handoff.test.ts`: `handoff_docs` xếp đúng job `docs_update` tiếp theo;
   `return_to_dev`, thiếu `handoff_docs`, ticket chưa đóng đều thành lượt thất bại đúng lý do; `decideFailure()`
-  thử lại rồi chặn ở `MAX_ATTEMPTS`.
+  thử lại rồi chặn ở `MAX_ATTEMPTS`; tham số `resumable` lọc `followUp.sessionId` về `null` khi lượt vừa
+  thất bại để lại phiên bỏ dở (dù lý do thất bại là gì) — áp dụng cho cả lượt thường và retry sau
+  `docs_rejected` (chỉ resume `devSessionId` khi `resumable` cho qua, ngược lại mở phiên mới); thử lại sau
+  `no_handoff` trên một phiên sạch (chưa từng bị đánh dấu bỏ dở) vẫn resume đúng phiên đó vì trigger
+  `retry:<reason>` không bao giờ rơi vào quy tắc mở chặn của `resumeChoice()`, trong khi cùng trạng thái đó
+  với trigger `ticket.unblocked` thì mở phiên mới.
 - `apps/daemon/test/role-policies.test.ts`: bọc dữ liệu không tin cậy và vô hiệu hoá delimiter bên trong; QC
   phát hiện đúng MCP bắt buộc chưa kết nối/bị tắt; `diffNeedsUiTest()` đọc đúng `docsPaths` của cài đặt server
   truyền vào (một `policy` tuỳ biến coi thêm `handbook/**` là docs); `diffNeedsUiTest()` coi diff chỉ đổi `README.md`,
@@ -298,7 +335,9 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   `description` riêng): toàn bộ vòng đời qua API và daemon thật, runner kịch bản (không tốn phí model), git
   worktree và hook crew-docs thật — happy path, docs bị hook từ chối rồi commit lại, capability preflight, dọn
   tài nguyên và đánh thức PM, nhiều bug liên tiếp, chạm trần chu kỳ bug, huỷ ticket giữa lúc dev đang chạy,
-  crash giữa lúc PM chia việc, resume sau backoff, xung đột block docs sinh tự động khi merge, dự án chưa có
+  crash giữa lúc PM chia việc (`08-crash-mid-breakdown.yaml`: job analyze chạy lại đúng job đó ở **phiên mới**
+  kèm tóm tắt lượt bị crash, không resume; tạo đúng ticket QC còn thiếu, không subtask/bình luận trùng; không
+  cảnh báo preflight vì phiên mới tự chạy lại `select_capabilities`), resume sau backoff, xung đột block docs sinh tự động khi merge, dự án chưa có
   docs, chạm trần con, budget hold, QC thiếu MCP bắt buộc, PM từ chối một ticket dev, PM chấm dev/QC riêng
   (`16-qc-own-rating.yaml`: dev `large` chạy `opus`, QC `trivial` chạy `haiku`, bug kế thừa mức của dev, retest
   kế thừa mức của QC), owner gọi PM bằng `@pm` (`18-owner-calls-pm.yaml`, kịch bản `owner-calls-pm`: một dev mất
@@ -326,7 +365,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   (`22-qc-plan-changed.yaml`: PM lập phương án `ui_web` cho một thay đổi chỉ có API, QC bị chặn ngay vì
   Playwright chưa kết nối; owner gắn thẻ `@pm` trên ticket QC, PM `plan_qc_test` đổi sang `[api]`,
   `retry_subtask` mở lại rồi `comment` báo đã đổi phương án; QC chạy lại với `requiredMcps` rỗng, đóng `done`
-  không gọi MCP UI nào, cả cây xong) — mỗi kịch bản kết thúc ở trạng
+  không gọi MCP UI nào, cả cây xong), một lượt dev chạy lệnh nền rồi bàn giao
+  (`23-background-task-handoff.yaml`: dev khởi động `bgBash` rồi `endTurn`, được thông báo khi lệnh xong, làm
+  tiếp rồi `handoff_docs`; `docs_update` commit code và docs cùng nhau; QC đóng ticket — cả cây xong trong đúng
+  một job agent cho phần dev, không `no_handoff`/`not_finished`, không bình luận thử lại, xem thêm
+  `docs/flows/agent-runs.md` cho hành vi `bgBash`/`endTurn` của runner kịch bản) — mỗi kịch bản kết thúc ở trạng
   thái ổn định, không ticket nào bị kẹt (`stuckTickets()`).
 - `apps/daemon/test/pm-mention.test.ts`: PM chạy với đúng ghi chú "Chủ dự án gọi PM" (ticket được tag, trạng
   thái/complexity, lỗi job gần nhất và bình luận agent gần nhất bọc `<untrusted-data>`, bình luận owner nguyên

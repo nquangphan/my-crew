@@ -491,9 +491,9 @@ export interface RunRecord {
   kind: string;
   model: string;
   prompt: string;
-  n: number;
-  /** The run's session to resume, if any. */
+  /** The session the run resumed, or null for a fresh one. */
   resumeSessionId: string | null;
+  n: number;
   /** The job's temp dir while the run was going. */
   tmpDir: string;
   /** The images the runner received, each checked against the pasted bytes while the run was going. */
@@ -608,8 +608,8 @@ export async function runScenario(
       kind: run.kind,
       model: run.model,
       prompt: run.prompt,
-      n,
       resumeSessionId: run.resumeSessionId ?? null,
+      n,
       tmpDir: String(run.env.TMPDIR),
       images: (run.images ?? []).map((image) => {
         const pasted = [...images.values()].find((entry) => entry.id === image.id);

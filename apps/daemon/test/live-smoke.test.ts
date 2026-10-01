@@ -1,12 +1,15 @@
+import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { type SDKMessage, query as sdkQuery } from '@anthropic-ai/claude-agent-sdk';
 import { describe, expect, it } from 'vitest';
 import { detectSharedPaths, ensureWorktree } from '../src/git/worktree-manager.js';
 import { loginProbe } from '../src/health/checks/claude.js';
-import { agentEnv, createSdkRunner } from '../src/runner/agent-runner.js';
+import { type AgentRunResult, agentEnv, createSdkRunner, RunControl } from '../src/runner/agent-runner.js';
 import type { RolePlanner } from '../src/runner/job-runner.js';
 import { probeInventory } from '../src/skills/skill-inventory.js';
 import { commentsOf, devTicket, fixture, getTicket, pmTask, useApi } from './helpers/api.js';
 import { makeDaemon, waitFor } from './helpers/daemon.js';
-import { makeRepo, writeFiles } from './helpers/git.js';
+import { makeRepo, tempDir, writeFiles } from './helpers/git.js';
 import { ownerDescribes, stripesPng, uploadImage } from './helpers/images.js';
 
 /**
@@ -162,4 +165,257 @@ describe.skipIf(!live)('live Agent SDK smoke', () => {
     expect((await getTicket(api.db, dev.id)).costUsd).toBeCloseTo(job.costUsd, 5);
     await t.daemon.stop();
   }, 240_000);
+
+  it('a background command outlives the turn that started it, and its notification starts the next turn', async () => {
+    const { run, cwd, marker, results, taskSets, notifications, markerAtFirstResult } = await backgroundRun([
+      'Đây là bài kiểm tra tự động. Làm đúng các việc sau:',
+      '1. Gọi công cụ Bash với run_in_background: true và command đúng là: sleep 12 && echo xong > done.txt',
+      '2. Ngay sau đó kết thúc lượt, chỉ trả lời "đang chờ". Không gọi sleep, không chờ, không kiểm tra lệnh.',
+      '3. Khi được thông báo lệnh nền đã xong, chạy lệnh Bash: cat done.txt > seen.txt rồi trả lời "đã nhận".',
+    ]);
+    const first = results[0];
+    const last = results.at(-1);
+    if (!first || !last) throw new Error('the run produced no result message');
+    const markerAfterFirstResultMs = existsSync(marker) ? statSync(marker).mtimeMs - first.at : null;
+    console.info(
+      `[live] background run: ${describeRun(run, results, taskSets, notifications)}; done.txt written ${markerAfterFirstResultMs} ms after the first result`,
+    );
+
+    expect(run).toMatchObject({ isError: false, resultSubtype: 'success', aborted: false });
+    // The first turn ended while the command was still running, and the command was in the live task set.
+    expect(results.length).toBeGreaterThanOrEqual(2);
+    expect(markerAtFirstResult).toBe(false);
+    expect(taskSets.some((set) => set.at <= first.at && set.tasks.length > 0)).toBe(true);
+    // It survived well past the 5 seconds the runtime grants once the input is closed.
+    expect(markerAfterFirstResultMs).toBeGreaterThan(5_000);
+    // The runtime notified the agent, which then ran the turn the prompt asked for.
+    expect(notifications.some((entry) => entry.at > first.at && entry.status === 'completed')).toBe(true);
+    expect(readFileSync(join(cwd, 'seen.txt'), 'utf8').trim()).toBe('xong');
+    // A clean end: nothing left to stop, no reminder; the run carries every turn.
+    expect(run.backgroundTasksLeft).toEqual([]);
+    expect(run.reminded).toBe(false);
+    expect(run.totalCostUsd).toBe(last.message.total_cost_usd);
+    expect(run.totalCostUsd).toBeGreaterThan(first.message.total_cost_usd);
+    expect(run.capture.numTurns).toBe(results.reduce((sum, entry) => sum + entry.message.num_turns, 0));
+    expect(run.capture.durationMs).toBe(results.reduce((sum, entry) => sum + entry.message.duration_ms, 0));
+  }, 240_000);
+
+  it('a background command that ends while the agent writes the last answer of its turn still gets its notification turn', async () => {
+    const { run, cwd, results, taskSets, notifications } = await backgroundRun([
+      'Đây là bài kiểm tra tự động. Làm đúng các việc sau, theo thứ tự:',
+      '1. Gọi công cụ Bash với run_in_background: true và command đúng là: sleep 3 && echo xong > done.txt',
+      '2. Ngay sau đó, KHÔNG gọi thêm công cụ nào, viết một bài văn khoảng 700 từ về lịch sử cây lúa nước rồi kết thúc lượt.',
+      '3. Chỉ khi được thông báo lệnh nền đã xong (ở một lượt sau), chạy lệnh Bash: cat done.txt > seen.txt rồi trả lời "đã nhận".',
+    ]);
+    const first = results[0];
+    if (!first) throw new Error('the run produced no result message');
+    // Whether the run hit the case at all depends on the model's pace; the outcome must hold either way.
+    const endedBeforeFirstResult = taskSets.some((set) => set.at <= first.at && set.tasks.length === 0);
+    console.info(
+      `[live] late notification run (task ended before the first result: ${endedBeforeFirstResult}): ${describeRun(run, results, taskSets, notifications)}`,
+    );
+    expect(run).toMatchObject({ isError: false, resultSubtype: 'success', aborted: false });
+    expect(results.length).toBeGreaterThanOrEqual(2);
+    expect(readFileSync(join(cwd, 'seen.txt'), 'utf8').trim()).toBe('xong');
+    expect(run.backgroundTasksLeft).toEqual([]);
+    expect(run.reminded).toBe(false);
+  }, 240_000);
+
+  it('two background commands that end at the same moment both get their notification turn', async () => {
+    const { run, cwd, results, taskSets, notifications } = await backgroundRun(
+      [
+        'Đây là bài kiểm tra tự động. Làm đúng các việc sau:',
+        '1. Trong CÙNG MỘT lượt, gọi công cụ Bash hai lần, cả hai với run_in_background: true:',
+        '   - command thứ nhất đúng là: while [ ! -f go ]; do sleep 0.05; done; echo a > a.txt',
+        '   - command thứ hai đúng là: while [ ! -f go ]; do sleep 0.05; done; echo b > b.txt',
+        '2. Ngay sau đó kết thúc lượt, chỉ trả lời "đang chờ". Không kiểm tra lệnh, không tạo file go.',
+        '3. Mỗi khi được thông báo MỘT lệnh nền đã xong, chạy lệnh Bash ghi tên file kết quả vào seen.txt',
+        '   (echo a >> seen.txt hoặc echo b >> seen.txt) rồi trả lời "đã nhận".',
+      ],
+      // Both commands wait for the same file, so they exit within a few milliseconds of each other.
+      { goAfterFirstResultMs: 3_000 },
+    );
+    const last = results.at(-1);
+    if (!last) throw new Error('the run produced no result message');
+    // Whether the runtime sent an empty result depends on its timing; the outcome must hold either way.
+    const emptyResult = results.some((entry) => entry.message.num_turns === 0);
+    console.info(
+      `[live] simultaneous end run (empty result seen: ${emptyResult}): ${describeRun(run, results, taskSets, notifications)}`,
+    );
+    expect(run).toMatchObject({ isError: false, resultSubtype: 'success', aborted: false });
+    expect(existsSync(join(cwd, 'a.txt')) && existsSync(join(cwd, 'b.txt'))).toBe(true);
+    const seen = readFileSync(join(cwd, 'seen.txt'), 'utf8').split(/\s+/).filter(Boolean);
+    expect([...new Set(seen)].sort()).toEqual(['a', 'b']);
+    expect(run.backgroundTasksLeft).toEqual([]);
+    expect(run.reminded).toBe(false);
+    expect(run.totalCostUsd).toBe(last.message.total_cost_usd);
+    expect(run.capture.numTurns).toBe(results.reduce((sum, entry) => sum + entry.message.num_turns, 0));
+  }, 240_000);
+
+  it('a background command that ends right after the reminder goes in still gets its notification turn', async () => {
+    const { run, cwd, results, taskSets, notifications } = await backgroundRun(
+      [
+        'Đây là bài kiểm tra tự động. Làm đúng các việc sau, theo thứ tự:',
+        '1. Gọi công cụ Bash với run_in_background: true và command đúng là: while [ ! -f go ]; do sleep 0.05; done; echo a > a.txt',
+        '2. Ngay sau đó kết thúc lượt, chỉ trả lời "đang chờ". Không kiểm tra lệnh, không tạo file go.',
+        '3. Khi được thông báo lệnh nền đã xong, chạy lệnh Bash: cat a.txt > seen.txt rồi trả lời "đã nhận".',
+        '4. Nếu nhận được tin nhắn nhắc từ daemon mà chưa có thông báo lệnh xong: không gọi công cụ nào, chỉ trả lời "vẫn đang chờ".',
+      ],
+      {
+        backgroundWaitMs: 6_000,
+        // The command ends as soon as the reminder goes into the session, before the reminder's turn starts.
+        onInput: (index, dir) => {
+          if (index === 2) writeFileSync(join(dir, 'go'), '');
+        },
+      },
+    );
+    console.info(
+      `[live] reminder crossing a notification: ${describeRun(run, results, taskSets, notifications)}`,
+    );
+    expect(run).toMatchObject({ isError: false, resultSubtype: 'success', aborted: false, reminded: true });
+    expect(readFileSync(join(cwd, 'seen.txt'), 'utf8').trim()).toBe('a');
+    expect(run.backgroundTasksLeft).toEqual([]);
+    expect(run.totalCostUsd).toBe(results.at(-1)?.message.total_cost_usd);
+  }, 240_000);
 });
+
+type ResultMessage = Extract<SDKMessage, { type: 'result' }>;
+interface Timed<T> {
+  at: number;
+  message: T;
+}
+interface TaskSet {
+  at: number;
+  tasks: Record<string, unknown>[];
+}
+interface Notification {
+  at: number;
+  status: string;
+}
+
+/**
+ * One haiku run of the SDK runner in a temp dir with only Bash allowed, with every message the runner reads
+ * recorded together with its arrival time. `done.txt` is the file the prompt's background command writes.
+ * `goAfterFirstResultMs` creates the file `go` in the temp dir that long after the first result. `onInput`
+ * sees each message of the session input (1 is the prompt) as the runtime reads it.
+ */
+async function backgroundRun(
+  prompt: string[],
+  options: {
+    goAfterFirstResultMs?: number;
+    backgroundWaitMs?: number;
+    onInput?: (index: number, cwd: string) => void;
+  } = {},
+) {
+  const cwd = tempDir('crew-live-bg-');
+  const marker = join(cwd, 'done.txt');
+  const seen: Timed<SDKMessage>[] = [];
+  let markerAtFirstResult: boolean | null = null;
+  const tapped: typeof sdkQuery = (params) => {
+    const onInput = options.onInput;
+    const input = params.prompt;
+    const q = sdkQuery(
+      onInput && typeof input !== 'string'
+        ? {
+            ...params,
+            prompt: (async function* () {
+              let index = 0;
+              for await (const message of input) {
+                index += 1;
+                onInput(index, cwd);
+                yield message;
+              }
+            })(),
+          }
+        : params,
+    );
+    const tap: typeof q = new Proxy(q, {
+      get(target, property) {
+        if (property === Symbol.asyncIterator) return () => tap;
+        if (property === 'next') {
+          return async (...args: Parameters<typeof q.next>) => {
+            const step = await target.next(...args);
+            if (!step.done) {
+              if (step.value.type === 'result' && markerAtFirstResult === null) {
+                markerAtFirstResult = existsSync(marker);
+                if (options.goAfterFirstResultMs !== undefined)
+                  setTimeout(() => writeFileSync(join(cwd, 'go'), ''), options.goAfterFirstResultMs);
+              }
+              seen.push({ at: Date.now(), message: step.value });
+            }
+            return step;
+          };
+        }
+        const value = Reflect.get(target, property, target) as unknown;
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+    return tap;
+  };
+  const run = await createSdkRunner({ query: tapped })({
+    jobId: 'live-bg',
+    ticketId: 'live-bg',
+    ticketKey: 'LIVE-BG',
+    role: 'dev',
+    kind: 'agent',
+    cwd,
+    model: 'haiku',
+    effort: 'low',
+    prompt: prompt.join('\n'),
+    allowedTools: ['Bash'],
+    abortSignal: new AbortController().signal,
+    env: agentEnv(process.env, {}),
+    mcpServers: {},
+    ticketTools: [],
+    preToolUse: async () => ({}),
+    control: new RunControl(),
+    backgroundWaitMs: options.backgroundWaitMs ?? 120_000,
+  });
+  const results = seen.filter((entry): entry is Timed<ResultMessage> => entry.message.type === 'result');
+  const system = (subtype: string) =>
+    seen.filter((entry) => entry.message.type === 'system' && (entry.message.subtype as string) === subtype);
+  const taskSets: TaskSet[] = system('background_tasks_changed').map((entry) => ({
+    at: entry.at,
+    tasks: (entry.message as unknown as { tasks: Record<string, unknown>[] }).tasks,
+  }));
+  const notifications: Notification[] = system('task_notification').map((entry) => ({
+    at: entry.at,
+    status: (entry.message as unknown as { status: string }).status,
+  }));
+  return {
+    run,
+    cwd,
+    marker,
+    results,
+    taskSets,
+    notifications,
+    markerAtFirstResult: markerAtFirstResult as boolean | null,
+  };
+}
+
+/** The numbers of every result next to what the runner reported for the whole run. */
+function describeRun(
+  run: AgentRunResult,
+  results: Timed<ResultMessage>[],
+  taskSets: TaskSet[],
+  notifications: Notification[],
+): string {
+  return `${results.length} results ${JSON.stringify(
+    results.map((entry) => ({
+      subtype: entry.message.subtype,
+      total_cost_usd: entry.message.total_cost_usd,
+      num_turns: entry.message.num_turns,
+      duration_ms: entry.message.duration_ms,
+      duration_api_ms: entry.message.duration_api_ms,
+      modelCostUsd: Object.values(entry.message.modelUsage).map((usage) => usage.costUSD),
+    })),
+  )}; task sets ${JSON.stringify(taskSets.map((set) => set.tasks))}; notifications ${JSON.stringify(
+    notifications.map((entry) => entry.status),
+  )}; run ${JSON.stringify({
+    totalCostUsd: run.totalCostUsd,
+    numTurns: run.capture.numTurns,
+    durationMs: run.capture.durationMs,
+    reminded: run.reminded,
+    backgroundTasksLeft: run.backgroundTasksLeft,
+  })}`;
+}

@@ -142,6 +142,15 @@ export const DaemonConfig = z.object({
   budgets: z.object({ perJobUsd: z.number().positive().max(10_000).nullable().default(null) }).prefault({}),
   /** When true the assistant moves a finished request straight to `done`, otherwise to `in_review`. */
   autoCloseRequests: z.boolean().default(false),
+  /**
+   * How long a run whose turn ended waits for the agent's background tasks before the daemon reminds the
+   * agent in the open session (each wait; one reminder per run). Local only: the server does not manage it.
+   */
+  backgroundWaitMinutes: z
+    .number()
+    .positive()
+    .max(24 * 60)
+    .default(30),
 });
 export type DaemonConfig = z.infer<typeof DaemonConfig>;
 export type DaemonConfigInput = z.input<typeof DaemonConfig>;

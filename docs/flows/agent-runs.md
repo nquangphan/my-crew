@@ -79,7 +79,12 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
    không có ảnh nào thì `note` rỗng nên prompt và `RunAgentOptions.images` giữ nguyên như trước khi có việc này
    (không thêm mục ảnh rỗng). Sau khi job kết thúc, `JobRunner.cleanup()` xoá thư mục `ticket-images/` trước khi
    gọi `cleanupJob()` (bước 12, flow `resource-hygiene`), nên ảnh daemon tự tải không bị tính vào `bytes_freed`
-   hay ghi chú dọn dẹp PM đọc (`cleanupLines()`, flow `agent-roles`).
+   hay ghi chú dọn dẹp PM đọc (`cleanupLines()`, flow `agent-roles`). Ngay trước khi runner bắt đầu, cùng một
+   lần ghi đồng bộ (SQLite `synchronous=FULL`, nên daemon chết ngay sau đây vẫn giữ được dấu), job nhận
+   `sessionId: plan.resumeSessionId`, `sessionAbandoned: 'run_started'` (dấu bị ghi trước, chốt lại ở bước 11
+   khi run xong) và `resumeMode: null` (một khởi động lại dẫn tới lượt này coi như đã xử lý); khi phiên đổi
+   (`plan.resumeSessionId` là `null` hoặc khác `sessionId` job đang giữ) `costUsd`/`capabilities`/`imagesSent`
+   của job bị xoá theo, vì cả ba thuộc về phiên, không phải job (bước 9 của flow `agent-roles`).
 5. `apps/daemon/src/runner/agent-runner.ts` → `createSdkRunner()`: gọi `query()` của Agent SDK với
    `settingSources: ['user', 'project', 'local']`, `permissionMode: 'dontAsk'` cộng `allowedTools` theo vai
    trò, `disallowedTools` là `mcp__<server>__*` của mọi MCP server bị chủ dự án tắt cho project
@@ -92,33 +97,122 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
    guard, env có `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=2`,
    `settings.enabledMcpjsonServers`/`disabledMcpjsonServers`, `spawnClaudeCodeProcess` tự spawn tiến trình con
    trong process group riêng (`detached: true`), để cleanup (flow `resource-hygiene`) có thể gửi tín hiệu tới
-   cả process group/cây tiến trình mà agent khởi động; thu message `system/init` (session id, skill, MCP
-   server, apiKeySource), `system/api_retry`, `system/compact_boundary` (đếm số lần context bị nén) và `result`
-   (subtype, chi phí, `modelUsage`, `num_turns`, `duration_ms`). `run.images?.length` (`RunAgentOptions.images`,
-   bước 4) đổi tham số `prompt` gửi cho `query()`: có ảnh thì `promptWithImages()` (cùng file) dựng một
-   `AsyncIterable<SDKUserMessage>` — tin nhắn `user` đầu gồm khối `text` (prompt) rồi mỗi ảnh một cặp khối
-   `text` (nhãn `Ảnh <số> (<nguồn>):`) và khối `image` base64 (`source.media_type` đúng định dạng thật của
-   file); một ảnh không đọc được file lúc gửi (hiếm, file vừa mất) chỉ còn nhãn text nêu lỗi, không chặn các
-   ảnh khác. Không có ảnh thì `query()` vẫn nhận `prompt` dạng chuỗi như trước khi có việc này. Mỗi message
-   `assistant` của agent chính (bỏ qua subagent) được `captureAssistant()`/`recordTool()` (`run-trace.ts`) gom
-   vào `RunCapture`: tin nhắn văn bản cuối cùng và tối đa 5 lời gọi tool cuối (chỉ tên tool và mục tiêu —
-   `file_path`/`notebook_path`/`path` tương đối trong worktree, hoặc tên skill của `Skill`; không bao giờ ghi
-   dòng lệnh Bash) — dữ liệu này dùng để chẩn đoán một lượt chạy kết thúc xấu (bước 11). `createScriptedRunner()`
-   (bước 7) ghi capture tương tự qua cùng `recordTool()`, cộng bước kịch bản `say: <text>` (một tin nhắn văn
-   bản của agent, qua cùng bộ giải template) làm tin nhắn cuối; nó nhận cùng `RunAgentOptions.images` qua chung
-   interface `AgentRunner`, không cần đổi gì thêm để test vòng đời kiểm được ảnh nào đã tới runner.
+   cả process group/cây tiến trình mà agent khởi động. Runner trả `result.sessionId`: nếu khác `sessionId` job
+   đang giữ (SDK đổi phiên), `execute()` ghi lại giá trị này trước khi quyết định `sessionAbandoned` (bước 11).
+   `prompt` truyền cho `query()` là một luồng do daemon
+   điều khiển (`createPromptStream()`, `PromptStream`), không còn là một chuỗi hay một `AsyncIterable` chỉ
+   `yield` một tin rồi kết thúc: tin nhắn đầu là `promptContent(run.prompt, run.images)` (cùng file,
+   `UserContent`) — không có ảnh (hoặc `images: []`) thì nội dung là chuỗi prompt y hệt trước khi có việc ảnh;
+   có ảnh thì nội dung là một mảng khối gồm khối `text` (prompt) rồi với mỗi ảnh một cặp khối `text` (nhãn
+   `Ảnh <số> (<nguồn>):`) và khối `image` base64 (`source.media_type` đúng định dạng thật của file, bước 4);
+   một ảnh không đọc được file lúc gửi (hiếm, file vừa mất) chỉ còn nhãn text nêu lỗi, không chặn các ảnh
+   khác. `promptContent()` được `await` **trước** bước kiểm `abortSignal.aborted`, để một abort đến đúng lúc
+   đang đọc file ảnh vẫn được thấy. `input.send(firstMessage)` xếp tin nhắn đầu này vào luồng ngay khi gọi
+   `query()`; `send()` sau đó xếp thêm tin nhắn (lời nhắc bước dưới) vào luồng đang mở, `close()` mới đóng
+   input — với `prompt` dạng chuỗi runtime Claude Code đóng stdin ngay, nên một lệnh nền còn sống quá 5 giây
+   sau `result` đầu tiên bị kill; luồng mở áp dụng cho **mọi** lượt chạy, có ảnh hay không.
+   `apps/daemon/src/runner/background-session.ts` → `BackgroundSession` (không phụ thuộc SDK, dùng chung với
+   `createScriptedRunner()`, bước 7, qua cùng `SessionPort`: `send`/`stopTask`/`close`) giữ tập tác vụ nền đang
+   sống, rỗng khi tiến trình khởi động và được thay toàn bộ mỗi message `system/background_tasks_changed`
+   (`tasksChanged()`); ở mỗi `result` (`turnEnded()`): hết tác vụ nền thì đóng input và lượt chạy kết thúc như
+   cũ (dù lượt đó có ảnh hay không); còn tác vụ thì giữ phiên mở chờ runtime giao thông báo tác vụ xong để
+   agent chạy lượt tiếp, trong một trần chờ (`run.backgroundWaitMs`, `JobRunner` cấp từ
+   `DaemonConfig.backgroundWaitMinutes`, flow `daemon-runtime`, bước 2); `result` lỗi, tool đã gọi
+   `RunControl.requestEnd()` (bước 6), hay `run.workDone?.()` trả `true` (tuỳ chọn `JobRunner` cấp, đọc trạng
+   thái ticket, `true` khi ticket đã rời `in_progress` — `done`/`in_review`/`cancelled`/`needs_input`/`blocked`)
+   đều không chờ. Hết trần mà còn tác vụ, daemon gửi đúng một tin nhắn tiếng Việt (`reminderText()`) vào chính
+   phiên đang mở rồi chờ thêm một trần — lời nhắc này cũng được tính là một lượt nợ; lượt trả lời lời nhắc mà
+   còn tác vụ thì không chờ nữa. `BackgroundSession` đếm số lượt runtime có thể còn nợ (`owed`): mỗi tác vụ rời
+   tập tác vụ — dù đang chạy lượt hay đang chờ, kể cả tác vụ bị dừng chứ không qua thông báo — và lời nhắc vừa
+   nói đều cộng thêm 1; đây là cận trên (một lượt có thể mang nhiều thông báo, còn tác vụ bị dừng thì không có
+   lượt thông báo). Một lượt chỉ có thể trả nợ khi nó *bắt đầu* lúc đã có nợ (`payable`, ghi ở cạnh chưa chạy →
+   đang chạy của `turnStarted()`); khi lượt đó kết thúc bằng một `result` thật, nó trả tối đa một lượt nợ —
+   `result` rỗng (`num_turns: 0`, runtime phát khi hai tác vụ nền xong cùng lúc rồi mới tới lượt mang thông báo
+   thật) không trả lượt nợ nào và không được tính là lượt trả lời lời nhắc. **Khi tập tác vụ về rỗng hoàn toàn**
+   (`liveWork().length === 0`) mà còn nợ (`owed > 0`) thì phiên không đóng ngay: nó chờ thêm một khoảng lắng
+   ngắn (`settleMs`, tuỳ chọn `SdkRunnerOptions.backgroundSettleMs` truyền xuống, mặc định `DEFAULT_SETTLE_MS`
+   10 giây) để runtime phát lượt trả nợ; đóng `idle` ngay chỉ khi hết cả tác vụ lẫn nợ. Hết khoảng lắng đó mà
+   vẫn không có tác vụ nào quay lại thì nợ còn lại bị xoá (`owed = 0`) và phiên đóng `idle`; một tác vụ mới
+   xuất hiện trong lúc lắng cũng xoá nợ, nhưng phiên chỉ đóng `reminded` ngay nếu trước đó đã từng được nhắc
+   (`remindedOnce`) — chưa từng được nhắc thì phiên **không** đóng `reminded`, nó chuyển sang chờ đủ **một
+   trần đầy đủ** như bình thường (rồi mới nhắc như thường nếu hết trần đó mà vẫn còn tác vụ). Vì `owed` là cận
+   trên, khi runtime gộp thông báo của nhiều tác vụ vào một lượt, phiên có thể đóng muộn thêm một khoảng lắng
+   sau lượt cuối thay vì đóng ngay — đây là đánh đổi được chấp nhận, model thật đã xác nhận đúng điều này.
+
+   **Khi vẫn còn tác vụ khác sống** (`liveWork().length > 0`) sau khi đã nhắc — nhánh này chỉ tới được khi
+   `remindedOnce` đã `true` — quyết định khác hẳn và không dùng `owed`: một tác vụ rời tập tác vụ giữa câu trả
+   lời cuối của lượt đang chạy (không qua thông báo, ví dụ bị dừng), hoặc một tác vụ kết thúc sau khi lời nhắc
+   được gửi nhưng trước khi lượt trả lời lời nhắc bắt đầu (`reminderPending`), được ghi nhận bằng cờ
+   `workEnded` (chỉ một lần, không phải bộ đếm). Lượt kết thúc ngay sau đó được cho thêm đúng một khoảng lắng
+   ngắn (`DEFAULT_SETTLE_MS`, 10 giây) nếu `workEnded` đang bật; nếu không, phiên đóng `reminded` ngay, không
+   chờ gì thêm. Hết khoảng lắng đó mà tác vụ còn sống không có lượt thông báo tới, daemon dừng tác vụ đó rồi
+   đóng phiên luôn với lý do `reminded` (không chờ thêm một trần đầy đủ nữa — câu này chỉ đúng ở nhánh đã nhắc
+   này, nhánh chưa nhắc ở trên chờ đủ một trần thay vì đóng `reminded`); còn nếu không có tác vụ sống nào (đã
+   kết thúc hoặc bị dừng) thì đóng với lý do `idle`.
+
+   Mọi đường đóng phiên — hết tác vụ, `result` lỗi, tool yêu cầu kết thúc, hết trần nhắc thêm một lần,
+   abort, hay khối `finally` khi tiến trình đi mất — đều gọi `Query.stopTask()` cho từng tác vụ còn sống trước
+   khi đóng input (lỗi của `stopTask` hay không trả lời trong 5 giây không chặn việc đóng). Vì phiên chạy nhiều
+   lượt trên cùng một tiến trình, `system/init` tới ở đầu **mỗi** lượt (runner chỉ nhận lượt đầu cho
+   `sessionId`/skill/MCP server/`apiKeySource`) và `result.total_cost_usd`/`modelUsage` là cộng dồn của cả
+   tiến trình nên runner lấy từ `result` cuối cùng, còn `num_turns`/`duration_ms` tính theo từng lượt nên được
+   cộng dồn qua mọi `result` của lượt chạy (không tính thời gian chờ giữa các lượt) vào `RunCapture`/
+   `AgentRunResult`. Tiến trình chết khi phiên còn mở (giữa lượt, hoặc đang chờ tác vụ nền) khiến lượt chạy
+   thành lỗi (`resultSubtype: null`) thay vì mang `success` của lượt trước đó. `AgentRunResult.backgroundTasksLeft`
+   báo đúng tác vụ nền còn sống lúc đóng phiên (rỗng sau một kết thúc sạch) và `reminded` báo daemon đã nhắc
+   hay chưa; tác vụ `ambient` (`ambient: true` của payload — tác vụ không thuộc phần việc của phiên, ví dụ
+   watcher riêng của runtime) không bao giờ được chờ và không vào `backgroundTasksLeft`, nhưng vẫn bị
+   `stopTask` khi đóng. Runner thu thêm message `system/api_retry`, `system/compact_boundary` (đếm số lần
+   context bị nén) như trước. Mỗi message `assistant` của agent chính (bỏ qua subagent) được
+   `captureAssistant()`/`recordTool()` (`run-trace.ts`) gom vào `RunCapture`: tin nhắn văn bản cuối cùng và tối
+   đa 5 lời gọi tool cuối (chỉ tên tool và mục tiêu — `file_path`/`notebook_path`/`path` tương đối trong
+   worktree, hoặc tên skill của `Skill`; không bao giờ ghi dòng lệnh Bash) — dữ liệu này dùng để chẩn đoán một
+   lượt chạy kết thúc xấu (bước 11). `createScriptedRunner()` (bước 7) ghi capture tương tự qua cùng
+   `recordTool()`, cộng bước kịch bản `say: <text>` (một tin nhắn văn bản của agent, qua cùng bộ giải template)
+   làm tin nhắn cuối; nó nhận cùng `RunAgentOptions.images` qua chung interface `AgentRunner`, không cần đổi gì
+   thêm để test vòng đời kiểm được ảnh nào đã tới runner.
 6. `apps/daemon/src/runner/agent-runner.ts` → `RunControl.requestEnd()`: khi tool `ask_owner` hoặc
    `handoff_docs` gọi `requestEnd()`, runner `interrupt()` turn hiện tại ngay sau message `assistant` tiếp
-   theo — kết thúc này được coi là bình thường (`isError` không bật) dù turn bị ngắt.
+   theo — kết thúc này được coi là bình thường (`isError` không bật) dù turn bị ngắt; `BackgroundSession` coi
+   đây là lý do đóng `end_requested` (bước 5): mọi tác vụ nền còn sống bị `stopTask` trước khi phiên đóng,
+   không chờ. `interrupt()` ở chế độ luồng vẫn khiến `q` trả về một `result` lỗi (`error_during_execution`)
+   nhưng không tự dừng tác vụ nền nào, nên đường kết thúc này vẫn cần `BackgroundSession` dừng tác vụ trước khi
+   đóng như mọi đường khác.
 7. `apps/daemon/src/runner/scripted-runner.ts` → `createScriptedRunner()`: test double cùng interface
    `AgentRunner`, đọc kịch bản YAML (bước `tool`/`bash`/`write`/`skill`/`sleep`/`say`/`apiError`/`fail`/`crash`,
    cộng `Edit` phát lại đúng `old_string`/`new_string`/`replace_all` như Claude Code thật) và thật sự phát lại
    qua guard hook, tool log, ticket tools; `script` có thể là hàm `async` (đọc trạng thái ticket trước khi chọn
    kịch bản) và một `resolve()` tuỳ chọn điền input của từng bước ngay trước khi chạy (ví dụ id một ticket bước
-   trước vừa tạo); phiên giả (`SessionState`) giữ chi phí lũy kế của session và tiến độ theo từng job
-   (`completed[jobId]`) — resume đúng job đó (ví dụ sau khi daemon khởi động lại) tiếp tục từ bước cuối job đó
-   đã hoàn thành, còn một job mới dùng chung session (job id khác) chạy lại kịch bản từ đầu và cộng dồn vào chi
-   phí session đã có; chỉ dùng cho test vòng đời, production dùng `createSdkRunner()`.
+   trước vừa tạo); phiên giả (`SessionState`) chỉ còn giữ chi phí lũy kế của session, tiến độ (bước cuối đã
+   xong) giữ riêng theo từng job ở một file khác (`<sessionsDir>/jobs/<jobId>.json`, `readProgress()`/
+   `writeProgress()`) — một job chạy lại (sau backoff, daemon dừng hay crash) làm tiếp từ bước cuối đã xong
+   khi nó resume đúng session của mình, **hoặc** khi prompt của nó chứa `FRESH_SESSION_TITLE` (`run-trace.ts`)
+   — mô phỏng agent thật đọc tóm tắt phiên mới rồi tự kiểm tra `git status`/`get_ticket` trước khi làm tiếp;
+   không có một trong hai thì chạy lại kịch bản từ đầu, và một job mới (prompt mới hẳn) luôn chạy lại từ đầu.
+   Khi làm tiếp trong một phiên mới (không resume), runner trước tiên chạy lại mọi bước `skill`/`Skill`/
+   `select_capabilities` đứng trước điểm dừng (phần gọi tool dùng chung một hàm nội bộ `callTool()`, logic
+   không đổi), vì prompt yêu cầu mọi phiên phải kiểm tra skill/MCP lại. Ba bước kịch bản mô
+   phỏng tác vụ nền: `bgBash: { id, command }` spawn thật một tiến trình con (`/bin/sh -c`, `detached: true`,
+   cùng `cwd`/`env` của job, qua đúng guard hook/tool log như `bash`) mà không chờ thoát, đăng ký thành một tác
+   vụ nền sống và báo cho `BackgroundSession` (bước 5, cùng file `background-session.ts`, dùng chung với runner
+   SDK thật qua cùng `SessionPort`) qua `tasksChanged()` đúng như message `system/background_tasks_changed`
+   thật; `stopBg: <id>` mô phỏng agent tự dừng một tác vụ nền đã khởi động; `endTurn: true` là ranh giới lượt —
+   đúng nơi `BackgroundSession.turnEnded()` chạy như một message `result` thật, dùng cùng trần
+   `run.backgroundWaitMs` và tuỳ chọn `run.workDone` mà `job-runner.ts` truyền vào (không có bản sao logic chờ/
+   nhắc/đóng riêng). Thân hàm chạy vòng lặp ngoài/trong: vòng trong chạy các bước của một lượt (dừng ở
+   `endTurn`, lỗi `apiError`/`fail`, tool gọi `requestEnd()`, hoặc hết mảng bước); vòng ngoài gọi
+   `bgSession.turnEnded()` sau mỗi lượt rồi, nếu quyết định là "chờ", đợi tiến trình nền thật thoát (tự mô
+   phỏng lượt thông báo của runtime) hoặc lời nhắc của daemon kích hoạt lượt tiếp trước khi lặp lại; nếu
+   "đóng" thì dừng luôn, bỏ qua các bước còn lại. `SessionPort.stopTask` của runner này giết thật tiến trình
+   nền (`SIGTERM` rồi `SIGKILL` sau 300ms nếu còn sống, ký `-pid` vì mỗi tiến trình nền tự làm group leader nhờ
+   `detached: true`) — được `BackgroundSession.shutdown()` gọi cho mọi tác vụ còn sống trước khi trả kết quả,
+   dù đường nào kết thúc lượt chạy; `AgentRunResult.backgroundTasksLeft`/`reminded` lấy thẳng từ
+   `bgSession.tasksLeft`/`bgSession.reminded` như runner SDK. Không script nào dùng `bgBash`/`endTurn` thì hành
+   vi y hệt trước đây (một lượt duy nhất, `turnEnded()` đóng ngay vì không có tác vụ nền). Bước `apiError` gán
+   `result.resultSubtype = step.apiError` (lớp lỗi cuối chính là `resultSubtype` của một message `result` thật,
+   ví dụ `error_max_budget_usd`) thay vì luôn đặt `'error_during_execution'` như trước; `job-runner.ts` vẫn
+   phân biệt backoff hay fail bằng `result.apiError` (bước 11), không đổi; chỉ dùng cho test vòng đời,
+   production dùng `createSdkRunner()`.
 8. `apps/daemon/src/runner/guard-hook.ts` → `evaluateToolCall()`: `Edit`/`Write`/`MultiEdit`/`NotebookEdit` bị
    từ chối khi ra ngoài `cwd` hoặc đi qua symlink ra ngoài `cwd` (trừ shared path đã link); ghi `AGENTS.md` hay
    `CLAUDE.md` ở gốc repo (`ROOT_AGENT_FILES`, so khớp không phân biệt hoa thường vì worktree macOS không phân
@@ -198,13 +292,26 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
    tắt, để check MCP (flow `daemon-health`) thấy đúng trạng thái của nó và cho "Bật lại" — `disallowedTools`/
    `deniedMcpServers` chỉ áp dụng cho lượt chạy job thật, không áp dụng cho lượt dò.
    `ticketToolsFor()`: mọi vai trò có `select_capabilities`; PM có thêm `reject_work`/`merge_and_push`/
-   `plan_qc_test` (chỉ PM, xem bước 8); dev có
+   `plan_qc_test` (chỉ PM, xem bước 9); dev có
    `handoff_docs` (chỉ `kind='agent'`, lượt `dev`) và `return_to_dev` (chỉ `kind='docs_update'`, lượt
    `docs_update` — hai tool loại trừ nhau theo `KIND_ONLY`).
-11. `apps/daemon/src/runner/job-runner.ts` → `execute()` (sau khi run xong): `buildRunTrace()` (`run-trace.ts`)
+11. `apps/daemon/src/runner/job-runner.ts` → `execute()` (khi run xong, kể cả runner ném lỗi): job được ghi
+    lại `sessionId` (từ `result.sessionId` nếu SDK đổi phiên giữa chừng) và `sessionAbandoned` được chốt bằng
+    `abandonReason(result, job, stopping)` (hàm export của `job-runner.ts`) — `null` (phiên sạch, mọi lượt sau
+    được resume) khi run có một message `result` (kể cả `result` lỗi như rate limit) và
+    `result.backgroundTasksLeft` rỗng; ngược lại là `daemon_stopped` (daemon đang dừng êm và run không bị
+    `cancelRequested`), `aborted` (job bị hủy hoặc daemon dừng êm nhưng job đã `cancelRequested`), `no_result`
+    (không có message `result`, ví dụ runner ném lỗi hay tiến trình chết), hay `background_tasks` (còn tác vụ
+    nền lúc đóng, kể cả sau khi daemon đã `stopTask` chúng) — dấu `run_started` ghi ở bước 4 chỉ còn sống nếu
+    daemon chết trước khi tới được đây. `buildRunTrace()` (`run-trace.ts`)
     dựng `RunTrace` từ `result.capture` (scrub credential trước, rồi cắt tin nhắn cuối còn 1500 ký tự) và được
     lưu vào cột `run_trace` của job (flow `daemon-runtime`) bất kể lượt chạy thành hay bại, để mọi lượt sau vẫn
-    thấy chẩn đoán lượt trước. `afterRun()` của role planner trả `comments` (đăng trước khi kết thúc), `block`
+    thấy chẩn đoán lượt trước. Daemon dừng nhẹ nhàng giữa lượt (`result.aborted`, không `cancelRequested`,
+    `stopping()`): job re-queue với `resumeMode: 'restart_fresh'` (luôn vậy — `restart_resume` không còn được
+    ghi mới, chỉ còn trên hàng cũ) và `runTrace` của lượt vừa bị dừng được lưu lại ngay, để lần chạy sau của
+    chính job này (phiên mới, không resume — `StateDb.resumeChoice()`, flow `daemon-runtime`) tóm tắt đúng
+    lượt đó (`freshSessionNote()`, flow `agent-roles`); nhánh này trả về trước khi tới `afterRun()`. `afterRun()`
+    của role planner trả `comments` (đăng trước khi kết thúc), `block`
     (chuyển ticket `blocked`) và `status` tuỳ chỉnh (mặc định
     `done`); job hủy hoặc `aborted` → `finish(status: 'cancelled')`; lỗi API thuộc lớp backoff
     (`retry-classifier.ts` → `classifyRetry()`: `rate_limit`/`overloaded`/`billing_error`/`account_on_hold`,
@@ -228,11 +335,12 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/daemon/src/runner/job-runner.ts` | Chạy một job từ đầu đến cuối | `JobRunner`, `defaultPlanner`, `chooseModel`, `crashText`, `RolePlanner`, `PlannerContext`, `PlannedRun`, `AfterRunDecision` |
-| `apps/daemon/src/runner/agent-runner.ts` | Runner SDK thật | `createSdkRunner`, `RunControl`, `agentEnv`, `AgentRunResult` |
+| `apps/daemon/src/runner/job-runner.ts` | Chạy một job từ đầu đến cuối | `JobRunner`, `defaultPlanner`, `chooseModel`, `abandonReason`, `crashText`, `RolePlanner`, `PlannerContext`, `PlannedRun`, `AfterRunDecision` |
+| `apps/daemon/src/runner/agent-runner.ts` | Runner SDK thật | `createSdkRunner`, `createPromptStream`, `PromptStream`, `UserContent`, `promptContent`, `RunControl`, `agentEnv`, `AgentRunResult`, `SdkRunnerOptions` |
+| `apps/daemon/src/runner/background-session.ts` | Máy trạng thái phiên: chờ tác vụ nền, đếm lượt còn nợ, nhắc một lần, dừng rồi đóng — dùng chung bởi runner thật và runner kịch bản | `BackgroundSession`, `SessionPort`, `BackgroundTask`, `CloseReason`, `EndedTurn`, `reminderText` |
 | `apps/daemon/src/runner/scripted-runner.ts` | Runner kịch bản YAML cho test | `createScriptedRunner`, `Script`, `ScriptedCrash` |
 | `apps/daemon/src/runner/ticket-images.ts` | Tìm, tải và liệt kê ảnh đính kèm ticket cho prompt | `extractAttachmentIds`, `ticketImageTexts`, `collectTicketImages`, `sniffImageType`, `RunImage`, `TicketImage`, `TicketImages` |
-| `apps/daemon/src/runner/run-trace.ts` | Thu và dựng chẩn đoán một lượt chạy | `RunCapture`, `recordTool`, `buildRunTrace`, `RunTrace`, `traceMarkdown`, `traceSummary` |
+| `apps/daemon/src/runner/run-trace.ts` | Thu và dựng chẩn đoán một lượt chạy; tóm tắt phiên mới sau một lượt bị dừng | `RunCapture`, `recordTool`, `buildRunTrace`, `RunTrace`, `traceMarkdown`, `traceSummary`, `freshSessionNote`, `FRESH_SESSION_TITLE` |
 | `apps/daemon/src/runner/guard-hook.ts` | Chặn ghi/Bash ngoài phạm vi | `evaluateToolCall`, `createGuardHook`, `isDocsPath`, `isProtectedPath` |
 | `apps/daemon/src/runner/skill-usage.ts` | Skill/MCP dùng trong run, từ tool log | `skillsInvoked`, `mcpServersUsed`, `mcpToolPrefix`, `slashCommandsIn` |
 | `apps/daemon/src/runner/retry-classifier.ts` | Phân loại lỗi API thành backoff/blocked | `classifyRetry`, `isBackoffError`, `BACKOFF_ERRORS` |
@@ -256,9 +364,16 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
 ## Flow liên quan
 
 - daemon-scheduling: `Scheduler.launch()` gọi `JobRunner.launch()`.
-- daemon-runtime: `JobRunner` được tạo trong `createDaemon()`; chi phí và trạng thái job đọc/ghi
-  `state-db.ts`; `VpsClient.attachment()` tải ảnh đính kèm ticket (bước 4); cột `jobs.images_sent` ghi dấu ảnh
-  đã gửi theo phiên, đọc bằng `StateDb.imagesSentInSession()`.
+- daemon-runtime: `JobRunner` được tạo trong `createDaemon()`; chi phí, trạng thái và dấu `sessionAbandoned`
+  của job đọc/ghi `state-db.ts`; `VpsClient.attachment()` tải ảnh đính kèm ticket (bước 4); cột
+  `jobs.images_sent` ghi dấu ảnh đã gửi theo phiên, đọc bằng `StateDb.imagesSentInSession()` — `job-runner.ts`
+  đọc `alreadySent` theo `plan.resumeSessionId` (phiên thực sự được resume sau `StateDb.resumeChoice()`, không
+  phải phiên ứng viên), nên một phiên mới (bỏ dở, hay mở theo quy tắc mở chặn) luôn gửi đủ ảnh còn resume phiên
+  sạch thì không gửi lại; một job chạy lại trong phiên khác (`sessionChanged`) được reset `imagesSent: []` cùng
+  với `costUsd`/`capabilities`, vì cả ba cột này thuộc về phiên; `JobRunner.execute()` truyền
+  `config.backgroundWaitMinutes` (khóa cục bộ, mặc định 30 phút, flow đó) xuống runner làm `backgroundWaitMs`
+  của bước 5; `defaultPlanner` cũng gọi `StateDb.resumeChoice()` (flow đó) để quyết định phiên resume hay mở
+  mới, giống `rolePlanner`.
 - agent-workspace: `workspace()`/`releaseWorkspace()` dùng `ensureWorktree`/`removeWorktree`;
   `probeInventory()` cấp danh sách skill/MCP cho `allowedToolsFor()`.
 - resource-hygiene: mỗi lần job kết thúc, `JobRunner.cleanup()` gọi `cleanupJob()`; PM dùng
@@ -278,25 +393,75 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
 
 - `apps/daemon/test/daemon.test.ts`: dừng đúng tiến trình job khi kết thúc mà không đụng tiến trình không
   gắn thẻ; sống sót qua crash giữa run (không mất sự kiện, một job hoạt động mỗi ticket, không tạo bản ghi
-  trùng); job QC bắt đầu ngay sau `dependency.resolved` và resume session khi chủ dự án bình luận; run bị rate
+  trùng) — job crash chạy lại đúng job đó ở **phiên mới** (`resumeSessionId` null, `sessionAbandoned`/
+  `resumeMode` được dọn về `null` khi xong), prompt chứa `FRESH_SESSION_TITLE` cộng lý do bằng lời và trích
+  bình luận cũ của ticket như dữ liệu không tin cậy, không làm lại bước đã xong; job QC bắt đầu ngay sau
+  `dependency.resolved` và resume session khi chủ dự án bình luận (phiên sạch); run bị rate
   limit tạm dừng ở backoff với `retry_at` tăng dần rồi `blocked` sau 4 lần; job đang chạy bị hủy khi ticket bị
-  hủy và worktree được gỡ; job được re-queue khi daemon dừng nhẹ nhàng và resume ở lần chạy sau (dừng xong
-  không còn thư mục tạm nào, gốc thư mục tạm rỗng cũng bị xóa); một job crash
+  hủy và worktree được gỡ; job được re-queue khi daemon dừng nhẹ nhàng (`sessionAbandoned: 'daemon_stopped'`,
+  `run_trace` của lượt bị dừng được giữ lại) rồi lần khởi động sau chạy lại đúng job đó ở **phiên mới** kèm
+  tóm tắt lượt bị dừng, không còn resume (dừng xong không còn thư mục tạm nào, gốc thư mục tạm rỗng cũng bị
+  xóa); một job crash
   trước khi agent chạy xong (lỗi khi chuẩn bị) đăng bình luận lỗi, chuyển ticket `blocked`, báo qua
   `failedJobs` trong heartbeat tới khi owner mở chặn cho job mới chạy xong; một ticket dev cũ chưa có
   `complexity` (tạo trước khi bắt buộc đánh giá) đi qua đúng đường crash này với `MissingComplexityError` thay
   vì tự chọn model mặc định, bình luận lỗi hướng PM dùng `rate_subtask`; PM đánh giá ticket đó xong (`rateSubtask()`)
-  thì ticket tự chạy lại (không cần owner mở chặn) trên model theo mức mới.
+  thì ticket tự chạy lại (không cần owner mở chặn) trên model theo mức mới. Nhóm "abandoned sessions": một
+  lượt còn tác vụ nền lúc đóng (`ask_owner` sau `bgBash`) để lại `sessionAbandoned: 'background_tasks'`; lượt
+  trả lời của chủ dự án sau đó chạy ở job mới, phiên mới, prompt trích đúng `run_trace` (tin nhắn cuối) của
+  lượt bị bỏ dở; một phiên sạch (`ask_owner` rồi 4 lần backoff `rate_limit` rồi mở chặn) resume đúng một
+  session suốt 6 lượt, không prompt nào chứa `FRESH_SESSION_TITLE`; runner ném lỗi không có `result` đánh dấu
+  `sessionAbandoned: 'no_result'`, ticket bị chặn rồi mở chặn chạy phiên mới kèm tóm tắt; thử lại `no_handoff`
+  trên phiên sạch resume không cảnh báo preflight (đã làm ở lượt trước trong cùng phiên), ticket bị chặn rồi
+  mở chặn chạy phiên mới (một `ticket.unblocked`, lỗi gần nhất là `no_handoff`) không preflight riêng nên bị
+  cảnh báo skill/MCP đúng một lần ở lượt thử lại kế tiếp của phiên đó; lượt đầu của job mở chặn sau đó gặp
+  `rate_limit` (phiên sạch, job vào `backoff`) thì lần chạy lại resume đúng phiên job đó tự mở, không prompt
+  nào chứa `FRESH_SESSION_TITLE`, cùng một hàng job, và `ask_owner` thành công. Cùng nhóm đó còn hai ca ảnh:
+  một phiên bỏ dở vì còn tác vụ nền (`sessionAbandoned: 'background_tasks'`) khiến lượt tiếp theo mở phiên mới
+  và gửi lại đủ ảnh ticket, còn lượt resume phiên sạch sau đó (đã có ảnh) thì không gửi lại
+  (`StateDb.imagesSentInSession()` theo đúng phiên mới); một ticket bị `no_handoff` hai lần liên tiếp trên cùng
+  một phiên sạch (các lượt resume không gửi lại ảnh) rồi `blocked`, owner mở chặn mở một phiên mới theo quy tắc
+  mở chặn (gửi lại ảnh) và phiên đó backoff, retry sau backoff resume đúng phiên mới đó (không gửi lại ảnh lần
+  nữa). Nhóm "background tasks (scripted
+  runner)" (daemon thật + `createScriptedRunner()`, trần chờ nhỏ qua `config.backgroundWaitMinutes` của
+  `makeDaemon` khi cần): một lệnh `bgBash` sống qua ranh giới lượt rồi kết thúc job đúng lúc, agent được thông
+  báo và làm tiếp trong **cùng một job** (một job, không retry); một lệnh không bao giờ xong với trần chờ ~60ms
+  khiến daemon nhắc đúng một lần rồi kết thúc job không treo, tiến trình (`job.pgid`) không còn sống sau đó;
+  `ask_owner`, `handoff_docs`, huỷ ticket (còn tác vụ nền vẫn sống thì đánh dấu `sessionAbandoned: 'aborted'`,
+  không job nào sau đó resume lại được — `resumeChoice()`/`resumableSession()` đều trả `null`), lỗi
+  `error_max_budget_usd` và dừng êm daemon đều kết thúc/re-queue
+  job đúng như trước dù có một lệnh nền `sleep 999999` còn sống lúc đó, và không còn tiến trình nào gắn
+  `CREW_JOB_ID` của job sau đó (`noTaggedProcessLeft()` dùng `ResourceTracker` như `resources.test.ts`); QC
+  `update_status: done` trong khi "dev server" mô phỏng (`bgBash`) còn sống kết thúc job ngay qua `workDone()`
+  (không chờ trần) và dừng lệnh nền đó.
 - `apps/daemon/test/agent-runner.test.ts`: `query()` chạy với đúng `settingSources`, `dontAsk`, allowlist,
   `disallowedTools`, `settings.deniedMcpServers` (map sang `{serverName}`), guard hook và env sạch; truyền đúng
   `resume` và ngân sách, báo đúng lớp lỗi API cuối; ngắt turn sau khi một tool yêu cầu kết thúc run và coi đó là
   kết thúc bình thường; run không có message `result` bị đánh dấu lỗi; `RunCapture` gom đúng `num_turns`,
   `duration_ms`, số lần `compact_boundary`, tin nhắn cuối của agent chính (bỏ qua message của subagent) và tối
-  đa 5 lời gọi tool cuối. Ba test ảnh: `run.images` rỗng hoặc vắng mặt gửi `prompt` dạng chuỗi y hệt trước khi có
-  việc này; ảnh có gửi đúng một tin nhắn `user` đầu gồm khối text prompt rồi từng cặp nhãn `Ảnh <số> (<nguồn>):`
-  và khối ảnh base64 đúng `media_type`, một file đã mất chỉ còn nhãn text báo lỗi (không chặn ảnh khác), còn
-  `resume`/ngân sách/allowlist/guard hook và kết quả run không đổi so với không có ảnh; một run có ảnh vẫn ngắt
-  turn bình thường sau khi tool yêu cầu kết thúc.
+  đa 5 lời gọi tool cuối. Ba test ảnh: `query()` luôn nhận luồng do daemon điều khiển, không phải chuỗi —
+  `run.images` rỗng hoặc vắng mặt thì tin nhắn đầu có `content` dạng chuỗi y hệt trước khi có việc ảnh; có ảnh
+  thì tin nhắn `user` đầu gồm khối text prompt rồi từng cặp nhãn `Ảnh <số> (<nguồn>):` và khối ảnh base64 đúng
+  `media_type`, một file đã mất chỉ còn nhãn text báo lỗi (không chặn ảnh khác), còn `resume`/ngân sách/
+  allowlist/guard hook và kết quả run không đổi so với không có ảnh; một run có ảnh vẫn ngắt turn bình thường
+  sau khi tool yêu cầu kết thúc. Nhóm "background tasks" (`query` giả phát message theo kịch bản): `prompt`
+  truyền cho `query()` là một `AsyncIterable` (stream do daemon điều khiển), tin nhắn đầu mang đúng prompt của
+  lượt chạy; `result` hết tác vụ nền đóng input và kết thúc lượt chạy như cũ; còn tác vụ nền thì giữ input mở
+  và lượt tiếp cộng dồn chi phí/`num_turns`/`duration_ms`/capture vào kết quả chung tới khi tập rỗng; một lượt
+  chạy có ảnh mà còn tác vụ nền vẫn gửi đúng khối ảnh (kể cả ảnh mất file) trong tin nhắn đầu của luồng và giữ
+  input mở cho tới khi tập tác vụ rỗng; một tác vụ rời tập giữa câu trả lời cuối của lượt vẫn được chờ thêm
+  lượt thông báo; hai tác vụ xong cùng lúc: một `result` rỗng (`num_turns: 0`) không đóng phiên, lượt mang
+  thông báo thật sau đó mới đóng và cộng dồn đúng chi phí/`numTurns`; nếu runtime không gộp chung mà chạy một
+  lượt riêng cho tác vụ thứ hai thì lượt đó vẫn được chạy tiếp trước khi đóng; tiến trình chết trong lúc phiên
+  còn mở (giữa lượt, hoặc đang chờ tác vụ nền) làm lượt chạy thành lỗi (`resultSubtype: null`) thay vì mang
+  `success` của lượt trước; hết trần chờ thì daemon gửi đúng một tin nhắn nhắc, lượt trả lời còn tác vụ nền thì
+  `stopTask` được gọi cho từng tác vụ rồi phiên đóng, lời nhắc không khởi động được lượt nào trong thêm một
+  trần cũng đóng; một tác vụ xong ngay sau khi lời nhắc được gửi nhưng trước khi lượt trả lời lời nhắc bắt đầu
+  vẫn được cấp đúng lượt thông báo riêng của nó; `result` lỗi, `RunControl.requestEnd()`
+  (`ask_owner`/`handoff_docs`), abort, hay tùy chọn `workDone()` trả `true` đều kết thúc ngay và dừng tác vụ còn
+  sống trước khi đóng; `AgentRunResult.backgroundTasksLeft` báo đúng tác vụ còn sống lúc đóng (rỗng khi kết
+  thúc sạch) và `reminded` báo daemon đã nhắc hay chưa; một lượt thông báo bắt đầu sau khi phiên đã đóng không
+  chạy tiếp.
 - `apps/daemon/test/ticket-images.test.ts`: `extractAttachmentIds()` khớp cả `![…](url)` lẫn `<img src="url">`,
   có/không origin, bỏ ảnh site khác, uuid sai dạng và link trong code block/inline code, một ảnh lặp nhiều lần
   chỉ tính một lần, giữ đúng thứ tự xuất hiện; `sniffImageType()` nhận đúng chữ ký PNG/JPEG/GIF/WEBP, trả `null`
@@ -307,6 +472,28 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
   `MAX_DOWNLOADED_IMAGES`, lỗi 403/404/mạng/vượt trần/loại tệp lạ (mỗi trường hợp một lý do daemon tự viết, không
   chép văn bản lỗi server) mà không ném lỗi; `note` liệt kê đúng số thứ tự, nguồn, link, đường dẫn file và tình
   trạng từng ảnh, rỗng khi không có ảnh nào.
+- `apps/daemon/test/background-session.test.ts`: máy trạng thái của `BackgroundSession` độc lập SDK, qua một
+  `SessionPort` giả (`send`/`stopTask`/`close`) — tập tác vụ rỗng lúc khởi động và được thay toàn bộ mỗi
+  `tasksChanged()`; chờ khi còn tác vụ, đóng khi tập về rỗng sau một lượt; không chờ sau `result` lỗi,
+  `endRequested()`, hay `workDone()` trả `true` (và dừng tác vụ trước khi đóng trong cả ba trường hợp, kể cả
+  khi turn bị interrupt vì một tool yêu cầu kết thúc mang về `result` lỗi — `end_requested` thắng `turn_error`);
+  giữ chờ khi `workDone()` trả `false` hay ném lỗi (không rõ trạng thái); nhắc đúng một lần khi hết trần (gồm cả
+  nội dung lời nhắc, `reminderText()`), rồi đóng `reminded` sau lượt trả lời còn tác vụ; mỗi trần chờ có hạn
+  riêng, một lượt bắt đầu kết thúc trần ngay không cần nhắc; đóng `reminded` ngay nếu lời nhắc không khởi động
+  được lượt nào trong thêm một trần đầy đủ. Mô hình lượt còn nợ (`EndedTurn.empty`, `owed`): một lượt rỗng
+  (`empty: true`, phát khi nhiều tác vụ xong cùng lúc) không trả lượt nợ nào và mỗi lượt thật chỉ trả tối đa
+  một lượt nợ đã có lúc nó *bắt đầu*; một lượt nợ không có lượt nào tới trả vẫn đóng `idle` sạch sau khoảng
+  lắng (`settleMs`) thay vì chờ hết cả trần; lời nhắc tự nó là một lượt nợ riêng nên một tác vụ xong sau khi đã
+  nhắc vẫn được cấp đúng lượt thông báo của nó, kể cả khi `result` của lượt trả lời lời nhắc tới mà không có
+  `turnStarted()` trước; một lượt rỗng không được tính là lượt trả lời lời nhắc (`reminded` vẫn chờ một lượt
+  thật). Sau khi đã nhắc (`remindedOnce`), nhánh còn tác vụ khác sống chỉ chờ tối đa một khoảng lắng cho lượt
+  còn nợ (không chờ cả trần nữa) trước khi dừng tác vụ còn sống và đóng `reminded`, dù lượt thông báo đó tới
+  hay không; một tác vụ rời tập giữa lượt (không qua thông báo, ví dụ bị dừng) hay xong trong lúc agent đang
+  trả lời lượt nhắc cũng được cho khoảng lắng đó, kể cả khi việc đó lặp lại hoặc không có tác vụ mới xuất hiện
+  trong khoảng lắng; `result` lỗi hay `endRequested()` cắt luôn khoảng lắng đó. Tác vụ `ambient` không bao giờ
+  được chờ nhưng vẫn bị dừng khi đóng; việc đóng vẫn xảy ra khi `stopTask` lỗi hay không trả lời; đóng chỉ chạy
+  một lần (gọi lại `turnEnded()`/`shutdown()` sau đó không làm gì thêm); một `turnEnded()` đang đọc trạng thái
+  run (`workDone()` chậm) không giữ `shutdown()` lại và không làm phiên mở lại sau khi đã đóng.
 - `apps/daemon/test/guard-hook.test.ts`: từ chối ghi ngoài `cwd` và vào `.githooks` dù có file settings được
   cài đặt cho phép; lời gọi được phép không trả quyết định (để `dontAsk`/`allowedTools` vẫn áp dụng); đường
   dẫn được bảo vệ theo từng loại job (job `docs_update` được ghi `docs/` và Markdown gốc như `README.md`,
@@ -343,14 +530,33 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
   trong bộ tool của PM, dev/QC/assistant không thấy tool này.
 - `apps/daemon/test/live-smoke.test.ts`: worktree của repo có `.claude` bị gitignore vẫn thấy đúng skill
   project như checkout chính; đăng nhập gói đăng ký hoạt động và không tính phí qua API key; một job haiku
-  dùng đúng ticket tools, bị guard kiểm soát, và ghi đúng `total_cost_usd`. Nhóm ảnh (`CREW_LIVE_AGENT_TESTS=1`,
-  model haiku): ảnh bốn sọc màu ngẫu nhiên dán vào mô tả ticket dev tới đúng model dưới dạng khối ảnh
-  (`job.imagesSent` khớp id ảnh) — agent nêu đúng thứ tự màu bằng bình luận trước khi `Read` file nào, rồi
-  `Read` được đúng đường dẫn nêu trong mục "Ảnh đính kèm trong ticket" và đọc đúng nội dung, `handoff_docs` vẫn
-  ngắt turn bình thường và chi phí được ghi (`job.costUsd` khớp `ticket.costUsd`).
+  dùng đúng ticket tools, bị guard kiểm soát, và ghi đúng `total_cost_usd`. Nhóm ảnh (model haiku): ảnh bốn sọc
+  màu ngẫu nhiên dán vào mô tả ticket dev tới đúng model dưới dạng khối ảnh (`job.imagesSent` khớp id ảnh) —
+  agent nêu đúng thứ tự màu bằng bình luận trước khi `Read` file nào, rồi `Read` được đúng đường dẫn nêu trong
+  mục "Ảnh đính kèm trong ticket" và đọc đúng nội dung, `handoff_docs` vẫn ngắt turn bình thường và chi phí
+  được ghi (`job.costUsd` khớp `ticket.costUsd`). Với model thật (haiku), lệnh nền: một lệnh (`sleep 12`) sống
+  quá 5 giây sau `result` đầu tiên (runtime đóng stdin của prompt dạng chuỗi sẽ kill nó ở giây thứ 5), runtime
+  giao thông báo tác vụ xong và agent chạy lượt tiếp, thật sự ghi file (`cat done.txt > seen.txt`);
+  `AgentRunResult` gộp đúng `total_cost_usd` (của `result` cuối, cộng dồn của cả phiên) và
+  `capture.numTurns`/`capture.durationMs` (tổng theo từng `result`), `backgroundTasksLeft` rỗng và `reminded`
+  là `false` sau một kết thúc sạch; một lệnh nền ngắn hơn (`sleep 3`) có thể đã kết thúc trước khi `result` đầu
+  tiên tới (tuỳ tốc độ model viết câu trả lời) vẫn được cấp đúng lượt thông báo ở một lượt sau và phiên vẫn kết
+  thúc sạch; hai lệnh nền kết thúc cùng lúc đều được cấp lượt thông báo riêng; một lệnh nền kết thúc ngay sau
+  khi lời nhắc được gửi vào phiên vẫn được cấp lượt thông báo. Toàn bộ nhóm ảnh và nhóm lệnh nền chạy sau
+  `describe.skipIf(!live)`, cần `CREW_LIVE_AGENT_TESTS=1` (tốn phí thật).
 - `apps/daemon/test/run-trace.test.ts`: `buildRunTrace()` ẩn credential trong tin nhắn cuối và mục tiêu tool
   rồi mới cắt còn 1500 ký tự (không cắt lộ nửa chuỗi credential); giữ đúng 5 lời gọi tool cuối với đường dẫn
   tương đối; hiện rõ khi không có kết quả/tin nhắn/tool nào; `decideFailure()` (flow `agent-roles`) nối đúng
   khối chẩn đoán vào cả bình luận thử lại và bình luận chặn; `failedJobText()` cho đúng dòng heartbeat (lý do
   bằng lời cộng chẩn đoán, tối đa 500 ký tự); cột `run_trace` được lưu trên `jobs` và được `StateDb.migrate()`
-  thêm vào một state DB cũ còn thiếu cột.
+  thêm vào một state DB cũ còn thiếu cột. Nhóm "state db": `StateDb.migrate()` cũng thêm cột
+  `session_abandoned` vào một state DB cũ thiếu cột đó — job cũ đọc ra `sessionAbandoned: null` (phiên sạch),
+  `abandonedBy()` không thấy gì và `resumableSession()` vẫn resume, tới khi job được đánh dấu thì
+  `resumableSession()` mới trả `null`. Nhóm "summary of a cut-short run for a fresh session":
+  `freshSessionNote()` mở bằng `FRESH_SESSION_TITLE`, nêu đây là phiên mới, giai đoạn và lý do lượt trước
+  dừng (theo `sessionAbandoned`, hay suy luận từ `error`/`resumeMode` trên hàng cũ không có dấu), yêu cầu
+  `git status`/`get_ticket` trước và không tạo lại ticket/bình luận/report đã có, kèm `traceMarkdown()` của
+  `run_trace` lượt đó (hiện rõ khi không có); mọi văn bản chủ dự án không viết (trace, danh sách ticket con,
+  bình luận agent/system, report) được bọc `<untrusted-data>` với delimiter bên trong đã vô hiệu hoá, còn
+  bình luận của chủ dự án giữ nguyên văn không bọc; mọi văn bản đi qua `scrubSecrets()` trước khi cắt, không
+  lộ credential.

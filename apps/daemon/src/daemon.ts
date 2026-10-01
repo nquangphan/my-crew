@@ -967,7 +967,10 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
     return orphansCleaned;
   }
 
-  /** Jobs left `running` by a previous process: stop what they left, then resume or reconcile them. */
+  /**
+   * Jobs left `running` by a previous process died mid-run: stop what they left, mark their session
+   * abandoned and re-queue them to run again in a fresh session with a summary of the cut-short run.
+   */
   async function reconcileRestart(): Promise<void> {
     for (const job of state.listJobs(['running'])) {
       await cleanupJob({ state, tracker, tmpRoot: paths.tmp, graceMs: timings.cleanupGraceMs }, job).catch(
@@ -975,7 +978,8 @@ export function createDaemon(options: CreateDaemonOptions): Daemon {
       );
       state.updateJob(job.id, {
         status: 'queued',
-        resumeMode: job.sessionId ? 'restart_resume' : 'restart_fresh',
+        resumeMode: 'restart_fresh',
+        sessionAbandoned: 'daemon_restart',
         pgid: null,
       });
     }

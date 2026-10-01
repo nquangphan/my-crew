@@ -17,6 +17,7 @@ import type { DaemonConfig, ProjectConfig } from '../config.js';
 import { MissingComplexityError } from '../roles/model-policy.js';
 import { type ActiveSettings, BUNDLED_SETTINGS } from '../settings/settings-store.js';
 import type {
+  AbandonReason,
   CleanupRecord,
   JobKind,
   JobPatch,
@@ -49,7 +50,7 @@ import { createGuardHook } from './guard-hook.js';
 import { cleanupJob, ensureJobTmpDir, jobTmpDir } from './job-cleanup.js';
 import type { ResourceTracker } from './resource-tracker.js';
 import { classifyRetry, isBackoffError } from './retry-classifier.js';
-import { buildRunTrace, traceMarkdown } from './run-trace.js';
+import { buildRunTrace, freshSessionNote, traceMarkdown } from './run-trace.js';
 import { ScriptedCrash } from './scripted-runner.js';
 import { scrubSecrets } from './secret-scrubber.js';
 import { mcpServersUsed, skillsInvoked } from './skill-usage.js';
@@ -215,57 +216,49 @@ export function chooseModel(
   return { model: config.models.allow.includes(model) ? model : 'sonnet', effort };
 }
 
-export function restartNote(job: JobRow, detail: TicketDetailResponse): string {
-  if (job.resumeMode === 'restart_resume') {
-    return [
-      'Daemon vừa khởi động lại giữa lượt chạy trước của bạn.',
-      'Trước tiên chạy `git status` và đọc lại ticket (get_ticket) để biết việc nào đã xong, rồi làm tiếp từ chỗ dừng.',
-      'Không làm lại việc đã xong, không tạo lại ticket, bình luận hay report đã có.',
-    ].join('\n');
-  }
-  if (job.resumeMode === 'restart_fresh') {
-    const children = detail.children.map((c) => `- ${c.key} [${c.type}, ${c.status}] ${c.title}`).join('\n');
-    const comments = detail.comments
-      .slice(-10)
-      .map((c) => `- (${c.authorKind}${c.authorRole ? `/${c.authorRole}` : ''}) ${c.body.slice(0, 500)}`)
-      .join('\n');
-    return [
-      'Một lượt chạy trước cho ticket này đã bị dừng giữa chừng. Hòa giải với những gì đã có, không tạo lại.',
-      `Ticket con hiện có:\n${children || '- (chưa có)'}`,
-      `Bình luận gần nhất:\n${comments || '- (chưa có)'}`,
-      `Report hiện tại: ${detail.report ? detail.report.summaryMd.slice(0, 1_000) : '(chưa có)'}`,
-    ].join('\n\n');
-  }
-  return '';
-}
-
 /**
- * The runtime's default planner: a generic Vietnamese prompt per trigger plus the restart prompts. The
- * role workflow replaces it with per-role prompts and policies.
+ * The runtime's default planner: a generic Vietnamese prompt per trigger, plus the summary of a cut-short
+ * run when the session starts fresh because of it (`StateDb.resumeChoice`). The role workflow replaces it
+ * with per-role prompts and policies.
  */
 export const defaultPlanner: RolePlanner = {
-  async plan({ job, kind, detail, config, project }) {
+  async plan({ job, kind, detail, config, project, ctx }) {
     const { ticket } = detail;
     const { model, effort } = chooseModel(config, kind, job.role, ticket);
-    const resume =
-      job.resumeMode === 'restart_fresh'
-        ? null
-        : (job.sessionId ?? (job.trigger === 'ticket.assigned' ? null : ticket.agentSessionId));
+    const candidate = job.sessionId ?? (job.trigger === 'ticket.assigned' ? null : ticket.agentSessionId);
+    const choice = ctx.state.resumeChoice(ticket.id, candidate, job);
     const lines = [
       `Bạn là agent vai trò ${job.role} của 2P Crew, làm ticket ${ticket.key}: ${ticket.title}.`,
       `Lý do lượt chạy: ${job.trigger}${job.eventIds.length > 1 ? ` (${job.eventIds.length} sự kiện)` : ''}.`,
       'Đọc ticket bằng công cụ get_ticket trước tiên. Bình luận, câu hỏi và report viết bằng tiếng Việt.',
-      restartNote(job, detail),
+      choice.interrupted ? freshSessionNote(choice.interrupted, detail) : '',
     ].filter(Boolean);
     return {
       prompt: lines.join('\n\n'),
       model,
       effort,
-      resumeSessionId: resume,
+      resumeSessionId: choice.sessionId,
       worktreeBase: project?.defaultBranch,
     };
   },
 };
+
+/**
+ * Whether a run left its session abandoned, and why (null: a clean session a later run may resume). A run
+ * is clean only when it ended with a `result` message (an error result such as a rate limit included) and
+ * no background task was alive when its session closed.
+ */
+export function abandonReason(
+  result: AgentRunResult,
+  job: Pick<JobRow, 'cancelRequested'>,
+  stopping: boolean,
+): AbandonReason | null {
+  if (result.aborted && stopping && !job.cancelRequested) return 'daemon_stopped';
+  if (result.aborted || job.cancelRequested) return 'aborted';
+  if (result.resultSubtype === null) return 'no_result';
+  if (result.backgroundTasksLeft.length > 0) return 'background_tasks';
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Report fields recorded by the daemon
@@ -362,6 +355,15 @@ export interface JobRunnerDeps {
 }
 
 const nowIso = () => new Date().toISOString();
+
+/** Ticket statuses that mean a run's own work is over: a turn ending there never waits for background tasks. */
+const RUN_FINISHED_STATUSES: ReadonlySet<Ticket['status']> = new Set([
+  'done',
+  'in_review',
+  'cancelled',
+  'needs_input',
+  'blocked',
+]);
 
 /**
  * One line naming an unexpected error for the ticket and the owner: its class (and errno code, e.g.
@@ -569,7 +571,9 @@ export class JobRunner {
 
     const { tmpDir, socketsDir } = ensureJobTmpDir(this.deps.tmpRoot, job.id);
     // Images the ticket texts show: downloaded into the job's temp dir, listed in the prompt, and sent as
-    // image blocks unless the session this run resumes already got them.
+    // image blocks unless the session this run resumes already got them. `plan.resumeSessionId` is the
+    // session the run really resumes (after `StateDb.resumeChoice`): a fresh session, also one opened instead
+    // of an abandoned candidate, has seen no image yet and gets them all.
     const images = await collectTicketImages({
       jobId: job.id,
       texts: [...ticketImageTexts(detail), ...(plan.imageTexts ?? [])],
@@ -580,6 +584,9 @@ export class JobRunner {
       log: this.deps.log,
     });
     const runPrompt = images.note ? `${prompt}\n\n${images.note}` : prompt;
+    // A job re-run in another session (a fresh one after its earlier run was cut short) starts its booked
+    // cost, its capability preflight and the images sent over: all belong to the session.
+    const sessionChanged = plan.resumeSessionId === null || plan.resumeSessionId !== job.sessionId;
     job = this.update(job.id, {
       kind,
       worktree: workspace.cwd,
@@ -587,6 +594,11 @@ export class JobRunner {
       effort: plan.effort,
       sessionId: plan.resumeSessionId,
       error: null,
+      // Marked abandoned until the run reports back cleanly: a daemon dying mid-run (before it can write
+      // anything at the end) leaves the mark in place. The restart that led here is consumed.
+      sessionAbandoned: 'run_started',
+      resumeMode: null,
+      ...(sessionChanged ? { costUsd: 0, capabilities: null, imagesSent: [] } : {}),
     });
 
     const control = new RunControl();
@@ -690,6 +702,15 @@ export class JobRunner {
         disabledMcpjsonServers: projectServers.filter((name) => disabled.includes(name)),
         ...(plan.appendSystemPrompt ? { appendSystemPrompt: plan.appendSystemPrompt } : {}),
         control,
+        backgroundWaitMs: config.backgroundWaitMinutes * 60_000,
+        workDone: async () => {
+          try {
+            return RUN_FINISHED_STATUSES.has((await vps.getTicket(ticket.id)).ticket.status);
+          } catch {
+            // The status is unknown (API unreachable): keep waiting, the wait has its own ceiling.
+            return false;
+          }
+        },
         onSpawn: (pid) => {
           if (!this.deps.halted()) job = this.update(job.id, { pgid: pid });
         },
@@ -710,15 +731,25 @@ export class JobRunner {
       result = { ...emptyResult(), isError: true, errors: [(error as Error).message] };
     }
     if (this.deps.halted()) return;
-    job = state.requireJob(job.id);
+    // The run reported back: its session is clean, or abandoned for a reason every later run avoids.
+    job = state.updateJob(job.id, {
+      ...(result.sessionId ? { sessionId: result.sessionId } : {}),
+      sessionAbandoned: abandonReason(result, state.requireJob(job.id), this.deps.stopping()),
+    });
+    const runTrace = buildRunTrace({
+      capture: result.capture,
+      subtype: result.resultSubtype,
+      costUsd: result.totalCostUsd,
+    });
 
-    // Graceful daemon stop: re-queue so the next start resumes the session.
+    // Graceful daemon stop: re-queue; the next start runs it in a fresh session with this run's summary.
     if (result.aborted && !job.cancelRequested && this.deps.stopping()) {
       await this.bookCost(job, ticket, result, plan);
       this.update(job.id, {
         status: 'queued',
-        resumeMode: job.sessionId ? 'restart_resume' : 'restart_fresh',
+        resumeMode: 'restart_fresh',
         costUsd: result.totalCostUsd,
+        runTrace,
       });
       await this.cleanup(state.requireJob(job.id));
       return;
@@ -727,11 +758,6 @@ export class JobRunner {
     await this.bookCost(job, ticket, result, plan);
     const log = state.toolLog(job.id);
     const skills = skillsInvoked(log, result.slashCommands);
-    const runTrace = buildRunTrace({
-      capture: result.capture,
-      subtype: result.resultSubtype,
-      costUsd: result.totalCostUsd,
-    });
     const base: JobPatch = {
       runTrace,
       costUsd: result.totalCostUsd,

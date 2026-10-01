@@ -8,6 +8,8 @@ import { homePaths } from '../src/config.js';
 import { rolePlanner } from '../src/roles/role-planner.js';
 import { jobTmpDir } from '../src/runner/job-cleanup.js';
 import { defaultPlanner } from '../src/runner/job-runner.js';
+import { ResourceTracker } from '../src/runner/resource-tracker.js';
+import { FRESH_SESSION_TITLE } from '../src/runner/run-trace.js';
 import { StateDb } from '../src/state-db.js';
 import {
   clearRating,
@@ -23,6 +25,7 @@ import {
 } from './helpers/api.js';
 import { makeDaemon, sleep, waitFor } from './helpers/daemon.js';
 import { makeRepo, onCleanup } from './helpers/git.js';
+import { ownerDescribes, tinyPng, uploadImage } from './helpers/images.js';
 
 const api = useApi();
 
@@ -160,10 +163,23 @@ describe('daemon', () => {
     expect(bodies.filter((b) => b === 'Bước 1')).toHaveLength(1);
     expect(bodies.filter((b) => b === 'Bước 2')).toHaveLength(1);
     expect((await commentsOf(api.db, other.id)).map((c) => c.body)).toEqual(['Việc mới đã nhận']);
-    // The resumed run continued the same session with the restart prompt.
-    const resumed = second.book.runs.filter((run) => run.ticketId === dev.id).at(-1);
-    expect(resumed?.resumeSessionId).toBeTruthy();
-    expect(resumed?.prompt).toContain('git status');
+    // The crash left the session abandoned: the job ran again in a fresh session whose prompt summarizes the
+    // cut-short run, and carried on from there (no step repeated above).
+    const devRuns = second.book.runs.filter((run) => run.ticketId === dev.id);
+    expect(devRuns).toHaveLength(2);
+    const [crashed, rerun] = devRuns;
+    expect(rerun?.jobId).toBe(crashed?.jobId);
+    expect(rerun?.resumeSessionId).toBeNull();
+    expect(rerun?.prompt).toContain(FRESH_SESSION_TITLE);
+    expect(rerun?.prompt).toContain('daemon tắt đột ngột giữa lượt chạy');
+    expect(rerun?.prompt).toContain('git status');
+    expect(rerun?.prompt).toContain('get_ticket');
+    // The summary quotes the ticket's comments as untrusted data.
+    expect(rerun?.prompt).toMatch(
+      /<untrusted-data source="comment by agent\/dev">\nBước 1\n<\/untrusted-data>/,
+    );
+    const [job] = second.daemon.state.jobsForTicket(dev.id);
+    expect(job).toMatchObject({ status: 'done', resumeMode: null, sessionAbandoned: null });
     for (const ticket of [dev.id, other.id, pm.id]) {
       expect(
         second.daemon.state
@@ -429,7 +445,7 @@ describe('daemon', () => {
     await t.daemon.stop();
   });
 
-  it('re-queues running jobs on a graceful stop and resumes them on the next start', async () => {
+  it('re-queues running jobs on a graceful stop and runs them again in a fresh session on the next start', async () => {
     const f = await fixture(api);
     const repo = makeRepo();
     const t = makeDaemon(f, { repoPath: repo });
@@ -444,7 +460,13 @@ describe('daemon', () => {
     const closed = new StateDb(homePaths(t.home).stateDb);
     const [job] = closed.jobsForTicket(dev.id);
     closed.close();
-    expect(job).toMatchObject({ status: 'queued', resumeMode: 'restart_resume' });
+    expect(job).toMatchObject({
+      status: 'queued',
+      resumeMode: 'restart_fresh',
+      sessionAbandoned: 'daemon_stopped',
+    });
+    // The stopped run's diagnosis is kept for the next session's summary.
+    expect(job?.runTrace?.lastTools).toEqual([{ tool: 'mcp__tickets__comment', target: null }]);
 
     const again = makeDaemon(f, { repoPath: repo, home: t.home, book: t.book });
     t.book.byTicket.set(dev.id, {
@@ -454,11 +476,677 @@ describe('daemon', () => {
     await waitFor(
       async () => (await commentsOf(api.db, dev.id)).some((c) => c.body === 'Hai'),
       15_000,
-      'resumed',
+      'run again',
     );
     expect((await commentsOf(api.db, dev.id)).map((c) => c.body)).toEqual(['Một', 'Hai']);
+    const rerun = t.book.runs.filter((run) => run.ticketId === dev.id).at(-1);
+    expect(rerun?.jobId).toBe(job?.id);
+    expect(rerun?.resumeSessionId).toBeNull();
+    expect(rerun?.prompt).toContain(FRESH_SESSION_TITLE);
+    expect(rerun?.prompt).toContain('daemon dừng giữa lượt chạy');
+    expect(rerun?.prompt).toContain('`mcp__tickets__comment`');
+    await waitFor(() => again.daemon.state.getJob(job?.id as string)?.status === 'done', 15_000, 'job done');
+    expect(again.daemon.state.getJob(job?.id as string)).toMatchObject({
+      resumeMode: null,
+      sessionAbandoned: null,
+    });
     await again.daemon.stop();
     // Every job temp dir was cleaned, so the stop dropped the empty temp root too.
     expect(existsSync(homePaths(t.home).tmp)).toBe(false);
+  });
+});
+
+describe('abandoned sessions', () => {
+  it('starts the next job in a fresh session with a summary after a run ended with a background task alive', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Hỏi chủ dự án khi còn lệnh nền');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'server', command: 'sleep 999999' } },
+        { say: 'Đang chờ server nền, cần hỏi chủ dự án.' },
+        tool('ask_owner', { question: 'Có cần thêm bước xác thực không?' }),
+      ],
+    });
+    await t.daemon.start();
+    const first = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'done'),
+      15_000,
+      'first job done',
+    );
+    // Closed with the background command alive (the daemon stopped it): the session is abandoned.
+    expect(first.sessionAbandoned).toBe('background_tasks');
+    expect(first.sessionId).toBeTruthy();
+
+    t.book.byTicket.set(dev.id, { steps: [tool('comment', { body: 'Đã nhận câu trả lời' })] });
+    await ownerComment(f, dev.id, 'Có, thêm xác thực.');
+    await waitFor(
+      async () => (await commentsOf(api.db, dev.id)).some((c) => c.body === 'Đã nhận câu trả lời'),
+      15_000,
+      'answer run',
+    );
+    const next = t.book.runs.filter((run) => run.ticketId === dev.id).at(-1);
+    expect(next?.jobId).not.toBe(first.id);
+    expect(next?.resumeSessionId).toBeNull();
+    expect(next?.prompt).toContain(FRESH_SESSION_TITLE);
+    expect(next?.prompt).toContain('phiên đóng khi agent còn tác vụ nền đang chạy');
+    // The earlier run's diagnosis, as untrusted data.
+    expect(next?.prompt).toMatch(
+      /<untrusted-data source="run trace of the interrupted run">[\s\S]*> Đang chờ server nền, cần hỏi chủ dự án\.[\s\S]*<\/untrusted-data>/,
+    );
+    await t.daemon.stop();
+  });
+
+  it('resumes a clean session as before: an ask_owner answer, the retries after backoff and the unblock after them', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Phiên sạch');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        tool('ask_owner', { question: 'Dùng cổng nào?' }),
+      ],
+    });
+    await t.daemon.start();
+    const asked = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'done'),
+      15_000,
+      'ask_owner done',
+    );
+    expect(asked.sessionAbandoned).toBeNull();
+    const session = asked.sessionId as string;
+
+    // The owner's answer resumes the session; this run keeps hitting a rate limit until blocked.
+    t.book.byTicket.set(dev.id, { steps: [{ apiError: 'rate_limit' }] });
+    await ownerComment(f, dev.id, 'Cổng 8080.');
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const job = await waitFor(
+        () =>
+          t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'backoff' && j.attempts === attempt),
+        15_000,
+        `backoff ${attempt}`,
+      );
+      expect(job.sessionAbandoned).toBeNull();
+      t.daemon.state.updateJob(job.id, { retryAt: new Date(Date.now() - 1000).toISOString() });
+    }
+    const blocked = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'blocked'),
+      15_000,
+      'blocked after 4 attempts',
+    );
+    expect(blocked).toMatchObject({ sessionId: session, sessionAbandoned: null, error: 'rate_limit' });
+
+    // Unblocked after an API error on a clean session: resumed, no summary.
+    t.book.byTicket.set(dev.id, { steps: [tool('comment', { body: 'Chạy tiếp' })] });
+    await ownerTransition(f, dev.id, 'in_progress');
+    await waitFor(
+      async () => (await commentsOf(api.db, dev.id)).some((c) => c.body === 'Chạy tiếp'),
+      15_000,
+      'run after the unblock',
+    );
+    const runs = t.book.runs.filter((run) => run.ticketId === dev.id);
+    expect(runs).toHaveLength(6);
+    expect(runs.slice(1).map((run) => run.resumeSessionId)).toEqual(Array(5).fill(session));
+    expect(t.daemon.state.jobsForTicket(dev.id).at(-1)?.trigger).toBe('ticket.unblocked');
+    for (const run of runs) expect(run.prompt).not.toContain(FRESH_SESSION_TITLE);
+    await t.daemon.stop();
+  });
+
+  it('marks a run whose runner throws without a result; the run after the unblock starts fresh with a summary', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Runner lỗi');
+    t.book.byTicket.set(dev.id, {
+      steps: [tool('update_status', { to: 'in_progress' }), tool('ask_owner', { question: 'Bắt đầu chứ?' })],
+    });
+    await t.daemon.start();
+    const asked = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'done'),
+      15_000,
+      'ask_owner done',
+    );
+    // The resumed run's agent process goes away before any result message.
+    t.book.byTicket.set(dev.id, () => {
+      throw new Error('claude process exited with code 1');
+    });
+    await ownerComment(f, dev.id, 'Bắt đầu đi.');
+    const failed = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'failed'),
+      15_000,
+      'runner error',
+    );
+    expect(failed).toMatchObject({ sessionId: asked.sessionId, sessionAbandoned: 'no_result' });
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'blocked', 10_000, 'blocked');
+
+    t.book.byTicket.set(dev.id, { steps: [tool('comment', { body: 'Làm lại từ đầu phiên mới' })] });
+    await ownerTransition(f, dev.id, 'in_progress');
+    await waitFor(
+      async () => (await commentsOf(api.db, dev.id)).some((c) => c.body === 'Làm lại từ đầu phiên mới'),
+      15_000,
+      'run after the unblock',
+    );
+    const next = t.book.runs.filter((run) => run.ticketId === dev.id).at(-1);
+    expect(next?.resumeSessionId).toBeNull();
+    expect(next?.prompt).toContain(FRESH_SESSION_TITLE);
+    expect(next?.prompt).toContain('tiến trình agent kết thúc mà không trả kết quả');
+    await t.daemon.stop();
+  });
+
+  it('retries no_handoff on the clean session, then starts fresh after the unblock and asks for a new preflight', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo, extra: { planner: rolePlanner } });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Không bàn giao');
+    const scripts = [
+      // 1: preflight done, no handoff. 2: the retry resumes the session, no handoff again: blocked.
+      [
+        tool('select_capabilities', { noneReason: 'không có skill hay MCP nào hợp' }),
+        tool('comment', { body: 'Lượt 1' }),
+      ],
+      [tool('comment', { body: 'Lượt 2' })],
+      // 3: after the unblock, a fresh session that skips its preflight (warned), no handoff: retried.
+      [tool('comment', { body: 'Lượt 3' })],
+      // 4: the retry resumes the fresh session and asks the owner.
+      [tool('ask_owner', { question: 'Bàn giao phần nào trước?' })],
+    ];
+    let runCount = 0;
+    t.book.byTicket.set(dev.id, () => ({ steps: scripts[runCount++] ?? [] }));
+    await t.daemon.start();
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'blocked', 20_000, 'blocked');
+    const [firstJob, retryJob] = t.daemon.state.jobsForTicket(dev.id);
+    expect(retryJob).toMatchObject({ trigger: 'retry:no_handoff', status: 'blocked', error: 'no_handoff' });
+    expect(firstJob?.sessionAbandoned).toBeNull();
+    let runs = t.book.runs.filter((run) => run.ticketId === dev.id);
+    expect(runs[1]?.resumeSessionId).toBe(firstJob?.sessionId);
+    expect(runs[1]?.prompt).not.toContain(FRESH_SESSION_TITLE);
+    const warnings = async () =>
+      (await commentsOf(api.db, dev.id)).filter((c) => c.body.includes('`select_capabilities`')).length;
+    // The retry resumed the session that already did its preflight: no warning.
+    expect(await warnings()).toBe(0);
+
+    // A session broken before the mark existed looks like this: an unblock after no_handoff starts fresh.
+    await ownerTransition(f, dev.id, 'in_progress');
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'needs_input', 20_000, 'asked');
+    runs = t.book.runs.filter((run) => run.ticketId === dev.id);
+    expect(runs).toHaveLength(4);
+    expect(runs[2]?.resumeSessionId).toBeNull();
+    expect(runs[2]?.prompt).toContain(FRESH_SESSION_TITLE);
+    expect(runs[2]?.prompt).toContain('lượt dev kết thúc mà không gọi `handoff_docs`');
+    const jobs = t.daemon.state.jobsForTicket(dev.id);
+    expect(jobs[2]?.trigger).toBe('ticket.unblocked');
+    expect(runs[3]?.resumeSessionId).toBe(jobs[2]?.sessionId);
+    // The fresh session had no preflight of its own: warned once (the resumed retry after it asked the owner).
+    expect(await warnings()).toBe(1);
+    await t.daemon.stop();
+  });
+
+  it('resumes the clean session the unblock opened when its run backs off after no_handoff', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo, extra: { planner: rolePlanner } });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Mở chặn rồi bị rate limit');
+    const scripts = [
+      // 1 and 2: no handoff twice (the retry resumes), blocked.
+      [
+        tool('select_capabilities', { noneReason: 'không có skill hay MCP nào hợp' }),
+        tool('comment', { body: 'Lượt 1' }),
+      ],
+      [tool('comment', { body: 'Lượt 2' })],
+      // 3: after the unblock, a fresh session that ends on a rate limit (a clean session): backoff.
+      [tool('comment', { body: 'Lượt 3' }), { apiError: 'rate_limit' }],
+      // 4: the backoff retry of the same job carries on after its last completed step and asks the owner.
+      [tool('comment', { body: 'Lượt 3' }), tool('ask_owner', { question: 'Bàn giao phần nào trước?' })],
+    ];
+    let runCount = 0;
+    t.book.byTicket.set(dev.id, () => ({ steps: scripts[runCount++] ?? [] }));
+    await t.daemon.start();
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'blocked', 20_000, 'blocked');
+    expect(t.daemon.state.jobsForTicket(dev.id).at(-1)).toMatchObject({ error: 'no_handoff' });
+
+    await ownerTransition(f, dev.id, 'in_progress');
+    const backoff = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'backoff'),
+      20_000,
+      'backoff after the unblock',
+    );
+    expect(backoff).toMatchObject({ trigger: 'ticket.unblocked', sessionAbandoned: null, attempts: 1 });
+    const fresh = backoff.sessionId as string;
+    expect(fresh).toBeTruthy();
+    t.daemon.state.updateJob(backoff.id, { retryAt: new Date(Date.now() - 1000).toISOString() });
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'needs_input', 20_000, 'asked');
+
+    const runs = t.book.runs.filter((run) => run.ticketId === dev.id);
+    expect(runs).toHaveLength(4);
+    // The unblock's first run starts fresh, summarizing the no_handoff run.
+    expect(runs[2]?.resumeSessionId).toBeNull();
+    expect(runs[2]?.prompt).toContain(FRESH_SESSION_TITLE);
+    // Its retry after the backoff resumes the session it opened, no summary.
+    expect(runs[3]?.resumeSessionId).toBe(fresh);
+    expect(runs[3]?.prompt).not.toContain(FRESH_SESSION_TITLE);
+    const jobs = t.daemon.state.jobsForTicket(dev.id);
+    expect(jobs).toHaveLength(3);
+    expect(jobs[2]).toMatchObject({ id: backoff.id, sessionId: fresh, status: 'done' });
+    await t.daemon.stop();
+  });
+
+  it('sends the ticket images again to the fresh session that replaces an abandoned one, not to a clean resumed one', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Ảnh và phiên bỏ dở');
+    const image = await uploadImage(f, dev.id, tinyPng(7));
+    await ownerDescribes(f, dev.id, `Ảnh lỗi: ${image.markdown}`);
+    const sentIn = (run: (typeof t.book.runs)[number] | undefined) => (run?.images ?? []).map((i) => i.id);
+
+    // 1: the first session gets the image, then closes with a background command alive: abandoned.
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'server', command: 'sleep 999999' } },
+        tool('ask_owner', { question: 'Lỗi ở trang nào?' }),
+      ],
+    });
+    await t.daemon.start();
+    const first = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'done'),
+      15_000,
+      'first job done',
+    );
+    expect(first).toMatchObject({ sessionAbandoned: 'background_tasks', imagesSent: [image.id] });
+
+    // 2: the answer's run would resume that session, but it was abandoned: the fresh one gets the image.
+    t.book.byTicket.set(dev.id, { steps: [tool('ask_owner', { question: 'Cần sửa cả bản mobile không?' })] });
+    await ownerComment(f, dev.id, 'Trang đăng nhập.');
+    await waitFor(() => t.book.runs.filter((run) => run.ticketId === dev.id).length === 2, 15_000, 'run 2');
+    await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).filter((j) => j.status === 'done').length === 2,
+      15_000,
+      'second job done',
+    );
+    // 3: the next answer resumes the clean fresh session, which already has the image.
+    t.book.byTicket.set(dev.id, { steps: [tool('comment', { body: 'Đã nhận' })] });
+    await ownerComment(f, dev.id, 'Không cần.');
+    await waitFor(
+      async () => (await commentsOf(api.db, dev.id)).some((c) => c.body === 'Đã nhận'),
+      15_000,
+      'run 3',
+    );
+    const runs = t.book.runs.filter((run) => run.ticketId === dev.id);
+    const jobs = t.daemon.state.jobsForTicket(dev.id);
+    expect(runs).toHaveLength(3);
+    expect(runs.map((run) => run.resumeSessionId)).toEqual([null, null, jobs[1]?.sessionId]);
+    expect(runs.map(sentIn)).toEqual([[image.id], [image.id], []]);
+    expect(jobs[1]).toMatchObject({ sessionAbandoned: null, imagesSent: [image.id] });
+    expect(jobs[1]?.sessionId).not.toBe(first.sessionId);
+    // The clean resumed run still lists the image (its file, already sent before) in the prompt.
+    expect(runs[2]?.prompt).toContain('## Ảnh đính kèm trong ticket');
+    expect(t.daemon.state.imagesSentInSession(jobs[1]?.sessionId as string)).toEqual([image.id]);
+    await t.daemon.stop();
+  });
+
+  it('sends the ticket images again to the fresh session an unblock opens, and not to the retries that resume', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo, extra: { planner: rolePlanner } });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Ảnh và mở chặn');
+    const image = await uploadImage(f, dev.id, tinyPng(8));
+    await ownerDescribes(f, dev.id, `Ảnh thiết kế: ${image.markdown}`);
+    const scripts = [
+      // 1 and 2: no handoff twice on one clean session (the retry resumes it): blocked.
+      [
+        tool('select_capabilities', { noneReason: 'không có skill hay MCP nào hợp' }),
+        tool('comment', { body: 'Lượt 1' }),
+      ],
+      [tool('comment', { body: 'Lượt 2' })],
+      // 3: the unblock opens a fresh session (the rule for a run left unfinished), which backs off.
+      [tool('comment', { body: 'Lượt 3' }), { apiError: 'rate_limit' }],
+      // 4: the retry after the backoff resumes that fresh session and asks the owner.
+      [tool('comment', { body: 'Lượt 3' }), tool('ask_owner', { question: 'Bàn giao phần nào trước?' })],
+    ];
+    let runCount = 0;
+    t.book.byTicket.set(dev.id, () => ({ steps: scripts[runCount++] ?? [] }));
+    await t.daemon.start();
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'blocked', 20_000, 'blocked');
+    await ownerTransition(f, dev.id, 'in_progress');
+    const backoff = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'backoff'),
+      20_000,
+      'backoff after the unblock',
+    );
+    t.daemon.state.updateJob(backoff.id, { retryAt: new Date(Date.now() - 1000).toISOString() });
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'needs_input', 20_000, 'asked');
+
+    const runs = t.book.runs.filter((run) => run.ticketId === dev.id);
+    const [firstJob] = t.daemon.state.jobsForTicket(dev.id);
+    expect(runs).toHaveLength(4);
+    expect(runs.map((run) => run.resumeSessionId)).toEqual([
+      null,
+      firstJob?.sessionId,
+      null,
+      backoff.sessionId,
+    ]);
+    expect(runs.map((run) => (run.images ?? []).map((i) => i.id))).toEqual([
+      [image.id],
+      [],
+      [image.id],
+      [],
+    ]);
+    // The unblocked job ran in another session than the one its images were first sent to.
+    expect(t.daemon.state.imagesSentInSession(backoff.sessionId as string)).toEqual([image.id]);
+    await t.daemon.stop();
+  });
+});
+
+/** No process tagged with this job's id is still alive (by `ResourceTracker`, like `resources.test.ts`). */
+async function noTaggedProcessLeft(jobId: string): Promise<void> {
+  const tracker = new ResourceTracker({ dockerBin: null });
+  await waitFor(
+    () => tracker.jobProcesses().every((p) => p.jobId !== jobId),
+    5_000,
+    `process tagged with job ${jobId} gone`,
+  );
+}
+
+describe('background tasks (scripted runner)', () => {
+  it('keeps a background command alive across a turn boundary and finishes the same job once notified', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Chạy lệnh nền rồi tiếp tục');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'build', command: 'sleep 0.2 && true' } },
+        { endTurn: true },
+        tool('comment', { body: 'Lệnh nền đã xong, tiếp tục việc.' }),
+        tool('submit_report', { summaryMd: 'Xong sau khi lệnh nền kết thúc.' }),
+        tool('update_status', { to: 'done' }),
+      ],
+    });
+    await t.daemon.start();
+    await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'done'),
+      15_000,
+      'dev job done',
+    );
+    // One job, one session, carried both turns: no retry, no second agent job.
+    const jobs = t.daemon.state.jobsForTicket(dev.id);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ status: 'done' });
+    expect((await getTicket(api.db, dev.id)).status).toBe('done');
+    expect((await commentsOf(api.db, dev.id)).map((c) => c.body)).toContain(
+      'Lệnh nền đã xong, tiếp tục việc.',
+    );
+    await t.daemon.stop();
+  });
+
+  it('reminds once when a background command never ends, then closes the job without hanging and kills it', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    // A ceiling small enough for a fast test: the reminder, then the close, both fire almost at once.
+    const t = makeDaemon(f, { repoPath: repo, config: { backgroundWaitMinutes: 0.001 } });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Lệnh nền không bao giờ xong');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'forever', command: 'sleep 999999' } },
+      ],
+    });
+    await t.daemon.start();
+    const running = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'running' && j.pgid),
+      15_000,
+      'background command running',
+    );
+    const pid = running.pgid as number;
+    expect(alive(pid)).toBe(true);
+    const done = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'done'),
+      15_000,
+      'job ends after the reminder instead of hanging',
+    );
+    expect(done.id).toBe(running.id);
+    expect(alive(pid)).toBe(false);
+    await t.daemon.stop();
+  });
+
+  it('ends the job via ask_owner while a background command is alive, and stops it', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Cần hỏi chủ dự án trong lúc có lệnh nền');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'server', command: 'sleep 999999' } },
+        tool('ask_owner', { question: 'Có cần thêm bước xác thực không?' }),
+      ],
+    });
+    await t.daemon.start();
+    const job = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'done'),
+      15_000,
+      'job done',
+    );
+    expect((await getTicket(api.db, dev.id)).status).toBe('needs_input');
+    await noTaggedProcessLeft(job.id);
+    await t.daemon.stop();
+  });
+
+  it('ends the job via handoff_docs while a background command is alive, and stops it', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Bàn giao docs trong lúc có lệnh nền');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'server', command: 'sleep 999999' } },
+        tool('handoff_docs', { summaryMd: 'Đã xong phần code.', files: [], tests: [], flows: [] }),
+      ],
+    });
+    await t.daemon.start();
+    const job = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'done'),
+      15_000,
+      'job done',
+    );
+    // handoff_docs leaves the ticket in_progress (a docs job picks it up next in the real role workflow).
+    expect((await getTicket(api.db, dev.id)).status).toBe('in_progress');
+    await noTaggedProcessLeft(job.id);
+    await t.daemon.stop();
+  });
+
+  it('cancels the job while a background command is alive, and stops it', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Sẽ bị huỷ trong lúc có lệnh nền');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'server', command: 'sleep 999999' } },
+        { sleep: 30_000 },
+      ],
+    });
+    await t.daemon.start();
+    const running = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'running' && j.worktree),
+      15_000,
+      'running',
+    );
+    await waitFor(
+      async () => (await getTicket(api.db, dev.id)).status === 'in_progress',
+      10_000,
+      'in progress',
+    );
+    await ownerTransition(f, dev.id, 'cancelled');
+    const cancelled = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'cancelled'),
+      10_000,
+      'cancelled',
+    );
+    expect(cancelled.id).toBe(running.id);
+    await noTaggedProcessLeft(cancelled.id);
+    await t.daemon.stop();
+  });
+
+  it('fails the job on a budget error while a background command is alive, blocks the ticket, and stops it', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Vượt ngân sách trong lúc có lệnh nền');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'server', command: 'sleep 999999' } },
+        { apiError: 'error_max_budget_usd' },
+      ],
+    });
+    await t.daemon.start();
+    const failed = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'failed'),
+      15_000,
+      'job failed on the budget error',
+    );
+    expect(failed.error).toBe('error_max_budget_usd');
+    await waitFor(
+      async () => (await getTicket(api.db, dev.id)).status === 'blocked',
+      10_000,
+      'ticket blocked',
+    );
+    await noTaggedProcessLeft(failed.id);
+    await t.daemon.stop();
+  });
+
+  it('re-queues the job on a graceful stop while a background command is alive, and stops it', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Dừng êm trong lúc có lệnh nền');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('comment', { body: 'Một' }),
+        { bgBash: { id: 'server', command: 'sleep 999999' } },
+        { sleep: 30_000 },
+        tool('comment', { body: 'Hai' }),
+      ],
+    });
+    await t.daemon.start();
+    await waitFor(async () => (await commentsOf(api.db, dev.id)).length === 1, 15_000, 'first comment');
+    const [running] = t.daemon.state.jobsForTicket(dev.id);
+    await t.daemon.stop();
+    const closed = new StateDb(homePaths(t.home).stateDb);
+    const [job] = closed.jobsForTicket(dev.id);
+    closed.close();
+    expect(job).toMatchObject({
+      status: 'queued',
+      resumeMode: 'restart_fresh',
+      sessionAbandoned: 'daemon_stopped',
+    });
+    await noTaggedProcessLeft(running?.id as string);
+  });
+
+  it('leaves the session abandoned when a cancelled run had a background command alive', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Huỷ giữa lượt có lệnh nền');
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'server', command: 'sleep 999999' } },
+        { sleep: 30_000 },
+      ],
+    });
+    await t.daemon.start();
+    await waitFor(
+      async () => (await getTicket(api.db, dev.id)).status === 'in_progress',
+      15_000,
+      'in progress',
+    );
+    await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'running' && j.pgid),
+      15_000,
+      'running',
+    );
+    await ownerTransition(f, dev.id, 'cancelled');
+    const cancelled = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'cancelled'),
+      10_000,
+      'cancelled',
+    );
+    expect(cancelled.sessionAbandoned).toBe('aborted');
+    expect(cancelled.sessionId).toBeTruthy();
+    // Nothing resumes it: any later job of the ticket starts fresh with a summary of the cancelled run.
+    const next = t.daemon.state.resumeChoice(dev.id, cancelled.sessionId, {
+      trigger: 'ticket.comment_added',
+    });
+    expect(next.sessionId).toBeNull();
+    expect(next.interrupted?.id).toBe(cancelled.id);
+    expect(t.daemon.state.resumableSession(dev.id, 'agent', 'ticket.comment_added')).toBeNull();
+    await t.daemon.stop();
+  });
+
+  it('ends a QC job at once when it closes the ticket while its own background dev server is still running', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Tính năng đã xong');
+    const { createSubtask } = await import('../../api/src/services/ticket-service.js');
+    const qc = await createSubtask(api.db, {
+      type: 'qc',
+      ...RATED,
+      parentId: pm.id,
+      title: 'QC: dev server nền',
+      pairsWith: dev.id,
+    });
+    t.book.byTicket.set(dev.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        tool('submit_report', { summaryMd: 'Xong.' }),
+        tool('update_status', { to: 'done' }),
+      ],
+    });
+    t.book.byTicket.set(qc.id, {
+      steps: [
+        tool('update_status', { to: 'in_progress' }),
+        { bgBash: { id: 'devserver', command: 'sleep 999999' } },
+        tool('submit_report', { summaryMd: 'Đạt: dev server nền chạy đúng.' }),
+        tool('update_status', { to: 'done' }),
+      ],
+    });
+    await t.daemon.start();
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'done', 15_000, 'dev done');
+    const started = Date.now();
+    const done = await waitFor(
+      () => t.daemon.state.jobsForTicket(qc.id).find((j) => j.status === 'done'),
+      15_000,
+      'qc job done',
+    );
+    // The ticket's own update_status to done ends the run at once, not after the (large default) ceiling.
+    expect(Date.now() - started).toBeLessThan(10_000);
+    await noTaggedProcessLeft(done.id);
+    await t.daemon.stop();
   });
 });
