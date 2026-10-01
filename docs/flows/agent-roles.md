@@ -64,9 +64,8 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    'ticket.unblocked'`, cả chủ dự án tự mở lẫn PM gọi `retry_subtask`) sau một lỗi `no_handoff`/`not_finished`
    ở lượt kết thúc gần nhất của ticket — cách một phiên hỏng từ trước khi có dấu nhận ra được; còn lại resume
    đúng ứng viên. `resume.interrupted` (lượt bị bỏ dở, khác null chỉ khi mở phiên mới vì nó) được truyền vào
-   `promptVars()`; với
-   một ticket `bug`,
-   `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug. `promptVars()` → `ownerRequest()`: ba bước PM
+   `promptVars()`; với một ticket `bug`, `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug.
+   `promptVars()` → `ownerRequest()`: ba bước PM
    (`pm_analyze`/`pm_monitor`/`pm_accept`) nhận thêm nguyên văn yêu cầu gốc của chủ dự án (tiêu đề, mô tả và
    bình luận của ticket `request` cha) nối vào `header` — **không bọc** vì chủ dự án tự viết, khác với mô tả
    `pm_task` (tóm tắt của assistant, vẫn bị `wrapUntrusted()`). `promptVars()` → `ownerCallsNote()`: khi job có
@@ -148,8 +147,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
     thử lại bằng một job `dev` mới trên phiên dev cũ, mang theo nguyên văn output hook bị từ chối, mọi lý do
     khác lặp lại đúng loại job cũ — "phiên dev cũ"/"job cũ" chỉ được resume nếu còn resumable: tham số tuỳ
     chọn `resumable` (mặc định giữ nguyên `sessionId`) lọc qua `StateDb.resumeChoice()` trước khi gán vào
-    `followUp.sessionId`, nên một job bị bỏ dở (hay chính lượt vừa thất bại rơi vào quy tắc mở chặn) khiến
-    retry mở **phiên mới** thay vì resume; `role-planner.ts` → `failureDecision()` truyền
+    `followUp.sessionId`, nên retry chỉ mở **phiên mới** thay vì resume khi một lượt trước đã đánh dấu phiên
+    đó bỏ dở (`StateDb.abandonedBy()`). Quy tắc mở chặn (lượt kết thúc gần nhất của ticket fail
+    `no_handoff`/`not_finished`) chỉ áp cho job `ticket.unblocked` trong `resumeChoice()`, không bao giờ áp
+    cho trigger `retry:<reason>` — nên thử lại sau `no_handoff` của một phiên sạch (chưa từng bị đánh dấu bỏ
+    dở) vẫn resume đúng phiên đó. `role-planner.ts` → `failureDecision()` truyền
     `resumable: (sessionId) => state.resumeChoice(ticketId, sessionId, { trigger: \`retry:${reason}\` }).sessionId`,
     áp dụng cho cả `job.sessionId` (lượt thường) và `devSessionId` (retry sau `docs_rejected`). Cả bình luận
     thử lại ("Lần thử …/2 không thành: …") lẫn bình luận chặn
@@ -256,7 +258,10 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   `return_to_dev`, thiếu `handoff_docs`, ticket chưa đóng đều thành lượt thất bại đúng lý do; `decideFailure()`
   thử lại rồi chặn ở `MAX_ATTEMPTS`; tham số `resumable` lọc `followUp.sessionId` về `null` khi lượt vừa
   thất bại để lại phiên bỏ dở (dù lý do thất bại là gì) — áp dụng cho cả lượt thường và retry sau
-  `docs_rejected` (chỉ resume `devSessionId` khi `resumable` cho qua, ngược lại mở phiên mới).
+  `docs_rejected` (chỉ resume `devSessionId` khi `resumable` cho qua, ngược lại mở phiên mới); thử lại sau
+  `no_handoff` trên một phiên sạch (chưa từng bị đánh dấu bỏ dở) vẫn resume đúng phiên đó vì trigger
+  `retry:<reason>` không bao giờ rơi vào quy tắc mở chặn của `resumeChoice()`, trong khi cùng trạng thái đó
+  với trigger `ticket.unblocked` thì mở phiên mới.
 - `apps/daemon/test/role-policies.test.ts`: bọc dữ liệu không tin cậy và vô hiệu hoá delimiter bên trong; QC
   phát hiện đúng MCP bắt buộc chưa kết nối/bị tắt; `diffNeedsUiTest()` đọc đúng `docsPaths` của cài đặt server
   truyền vào (một `policy` tuỳ biến coi thêm `handbook/**` là docs); `diffNeedsUiTest()` coi diff chỉ đổi `README.md`,
