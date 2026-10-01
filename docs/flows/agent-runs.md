@@ -156,12 +156,24 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
    gọi `mergeAndPush()`, flow `local-merge`); `create_subtask` từ chối MCP server bị dự án tắt và tự thêm
    `docs_init` (nếu có) vào `dependsOn`; subtask `dev`/`qc` bắt buộc `complexity` và `complexityReason` (không
    có model mặc định cho hai loại này, flow `ticket-lifecycle`/`agent-roles`); `model` chỉ nên đặt khi PM cố ý
-   ghi đè bảng độ phức tạp, chỉ nhận `haiku`/`sonnet`/`opus` (không có Fable). `rate_subtask` (PM-only) đánh
+   ghi đè bảng độ phức tạp, chỉ nhận `haiku`/`sonnet`/`opus` (không có Fable). `testPlanProblem()` (nội bộ)
+   chạy **trước mọi lời gọi server** của `create_subtask`: `type: 'qc'` thiếu `testKinds` (kể cả mảng rỗng) hoặc
+   `testReason` bị từ chối, nêu đúng trường thiếu và nhắc PM phân tích phương án kiểm thử trước (xem subtask dev
+   đổi gì, chọn loại hợp, viết lý do); `type: 'dev'` kèm một trong hai trường cũng bị từ chối — phương án chỉ
+   thuộc về subtask `qc`. Qua được cổng đó thì loại trùng trong `testKinds` được gộp, `testReason` qua
+   `scrubSecrets()`, và cả hai được gửi trong body tạo ticket; kết quả trả về thêm `testKinds` (server tự suy
+   `requiredMcps` từ nó, flow `ticket-lifecycle`/`agent-roles`). Tool `plan_qc_test` (PM-only) đổi `testKinds`/
+   `testReason` của một subtask `qc` **chưa đóng** của chính pm_task này ngay tại chỗ (không tạo QC thay thế,
+   không đổi trạng thái ticket) qua `VpsClient.updateTestPlan()` (flow `daemon-runtime`) — dùng khi phương án
+   hiện tại không hợp (ví dụ QC bị chặn vì MCP kiểm thử UI mà thay đổi không có giao diện, hoặc thay đổi có giao
+   diện mà phương án thiếu loại UI); ticket đang `blocked` thì gọi thêm `retry_subtask` sau đó (đang trả lời
+   `@pm`) hoặc `comment` báo chủ dự án mở chặn. `rate_subtask` (PM-only) đánh
    giá lại `complexity`/`complexityReason`/`model`/`effort` của một subtask `dev`/`qc`/`bug` đã có của chính
    PM task này, ngay tại chỗ thay vì tạo subtask thay thế — kể cả để đánh thức một ticket đang `blocked` vì
    chưa từng có đánh giá (`rateSubtask()`, flow `ticket-lifecycle`). `retry_subtask` (PM-only) chuyển một subtask
    `blocked` của chính pm_task này về `in_progress` (`retrySubtask()`, flow `ticket-lifecycle`) khi nguyên nhân
-   chặn khác `complexity` đã hết; bị từ chối (lỗi tool, không ném) trừ khi lượt chạy hiện tại đang trả lời một
+   chặn khác `complexity` đã hết (mô tả tool nhắc dùng `plan_qc_test` trước khi QC kẹt vì MCP kiểm thử UI mà
+   thay đổi không có giao diện); bị từ chối (lỗi tool, không ném) trừ khi lượt chạy hiện tại đang trả lời một
    lời gọi `@pm` đã ghi nhận (`answersOwnerCall()`: `ctx.state.pmMentions(job.eventIds)` không rỗng, flow
    `daemon-scheduling`) — PM không tự ý mở lại một ticket `blocked` ngoài luồng đó. `CHILD_CAP_EXCEEDED`/`BUDGET_HOLD` từ
    `create_subtask` và `BUG_CYCLE_CAP` từ `file_bug` kết thúc lượt chạy cho chủ dự án thay vì ném lỗi; PM không đóng ticket
@@ -169,7 +181,9 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
    đóng ticket (`update_status` sang `done`) khi MCP server bắt buộc của lượt chạy (`TicketToolContext.requiredMcps`,
    điền từ `PlannedRun.requiredMcps` nếu role planner thu hẹp nó, không thì từ `ticket.requiredMcps`, ở
    `job-runner.ts`) chưa có lời gọi công cụ nào trong bất kỳ lượt nào của ticket (`unusedUiServers()`, đọc
-   `tool_log`) — QC không thể âm thầm bỏ qua kiểm thử UI dù server có kết nối; diff chỉ đổi docs khiến danh
+   `tool_log`) — QC không thể âm thầm bỏ qua kiểm thử UI dù server có kết nối; thông báo từ chối còn nhắc đường
+   gỡ khi thay đổi không có giao diện để kiểm: bình luận lý do, chuyển `blocked`, chủ dự án gọi `@pm` để PM đổi
+   phương án bằng `plan_qc_test` rồi cho chạy lại; diff chỉ đổi docs khiến danh
    sách đó rỗng nên không chặn gì (flow `agent-roles`);
    `create_pm_ticket` nhận thêm `complexity`; `errorText()` nối thêm `details` của lỗi server (ví dụ trường nào
    sai) vào thông báo cho agent tự sửa input. `createDocsInitTicket()` là hàm nội bộ của daemon (không phải
@@ -183,7 +197,8 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
    Việc dò inventory (`probeInventory`, flow `agent-workspace`) vẫn cố ý khởi động mọi server kể cả server bị
    tắt, để check MCP (flow `daemon-health`) thấy đúng trạng thái của nó và cho "Bật lại" — `disallowedTools`/
    `deniedMcpServers` chỉ áp dụng cho lượt chạy job thật, không áp dụng cho lượt dò.
-   `ticketToolsFor()`: mọi vai trò có `select_capabilities`; PM có thêm `reject_work`/`merge_and_push`; dev có
+   `ticketToolsFor()`: mọi vai trò có `select_capabilities`; PM có thêm `reject_work`/`merge_and_push`/
+   `plan_qc_test` (chỉ PM, xem bước 8); dev có
    `handoff_docs` (chỉ `kind='agent'`, lượt `dev`) và `return_to_dev` (chỉ `kind='docs_update'`, lượt
    `docs_update` — hai tool loại trừ nhau theo `KIND_ONLY`).
 11. `apps/daemon/src/runner/job-runner.ts` → `execute()` (sau khi run xong): `buildRunTrace()` (`run-trace.ts`)
@@ -223,7 +238,7 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
 | `apps/daemon/src/runner/retry-classifier.ts` | Phân loại lỗi API thành backoff/blocked | `classifyRetry`, `isBackoffError`, `BACKOFF_ERRORS` |
 | `packages/shared/src/secret-scrubber.ts` | Luật ẩn credential dùng chung (daemon + app desktop) | `scrubSecrets`, `ScrubResult` |
 | `apps/daemon/src/runner/secret-scrubber.ts` | Re-export `scrubSecrets` từ `@crew/shared` cho code cũ trong daemon | `scrubSecrets` |
-| `apps/daemon/src/tools/ticket-mcp-server.ts` | MCP server ticket theo vai trò | `buildTicketTools`, `createTicketMcpServer`, `JobWriter`, `createDocsInitTicket`, `unusedUiServers` |
+| `apps/daemon/src/tools/ticket-mcp-server.ts` | MCP server ticket theo vai trò | `buildTicketTools`, `createTicketMcpServer`, `JobWriter`, `createDocsInitTicket`, `unusedUiServers` (tool `plan_qc_test` khai báo ở đây) |
 | `apps/daemon/src/tools/tool-scopes.ts` | Phạm vi tool theo vai trò | `ticketToolsFor`, `allowedToolsFor`, `disallowedToolsFor`, `builtinToolsFor`, `TICKET_TOOL_NAMES` |
 
 ## Dữ liệu
@@ -317,7 +332,15 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
   tool này trong danh sách của vai trò mình. PM `comment` được vào một subtask của chính pm_task mình (dùng
   `ticket`) nhưng bị từ chối trên ticket của cây khác; một vai trò không phải PM không `comment` được vào ticket
   khác ticket của lượt chạy; `retry_subtask` bị từ chối ngoài lượt trả lời `@pm`, thành công khi
-  lượt chạy đang trả lời một lời gọi đã ghi nhận.
+  lượt chạy đang trả lời một lời gọi đã ghi nhận. `create_subtask` từ chối subtask `qc` thiếu `testKinds` (kể
+  cả mảng rỗng) hoặc `testReason` và subtask `dev` kèm một trong hai — mỗi lần từ chối nêu đúng trường thiếu,
+  không gửi gì lên server và không tạo ticket; đủ cả hai thì gửi đúng body (loại trùng gộp lại), kết quả trả về
+  có `testKinds`, `ui_web`/`ui_mobile` kéo theo đúng MCP kiểm thử UI của dự án (`playwright`/`maestro`), và
+  server vẫn từ chối một loại UI platform dự án không có (ví dụ `ui_mobile` trên dự án `web`). `plan_qc_test`
+  gọi đúng endpoint `test-plan` của pm_task qua `JobWriter` (một lần ghi, Idempotency-Key của job), đổi được
+  `testKinds`/`testReason` của một QC `blocked` mà không mở chặn nó (không đổi `status`) và tính lại
+  `requiredMcps`; bị từ chối trên ticket `dev` (`FORBIDDEN`) và trên QC đã `done` (`TICKET_CLOSED`); chỉ có
+  trong bộ tool của PM, dev/QC/assistant không thấy tool này.
 - `apps/daemon/test/live-smoke.test.ts`: worktree của repo có `.claude` bị gitignore vẫn thấy đúng skill
   project như checkout chính; đăng nhập gói đăng ký hoạt động và không tính phí qua API key; một job haiku
   dùng đúng ticket tools, bị guard kiểm soát, và ghi đúng `total_cost_usd`. Nhóm ảnh (`CREW_LIVE_AGENT_TESTS=1`,

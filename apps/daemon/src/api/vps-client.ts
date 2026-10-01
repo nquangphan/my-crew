@@ -43,6 +43,7 @@ import {
   Ticket,
   TicketDetailResponse,
   type TicketStatus,
+  type UpdateTestPlanRequest,
 } from '@crew/shared';
 import type { z } from 'zod';
 
@@ -371,6 +372,17 @@ export class VpsClient {
     return this.request({
       method: 'POST',
       path: `/v1/daemon/tickets/${encodeURIComponent(pmTaskId)}/retry-subtask`,
+      body,
+      idempotencyKey,
+      schema: Ticket,
+    });
+  }
+
+  /** The PM (`pmTaskId`) changes the test plan of one of its open qc subtasks in place (status untouched). */
+  updateTestPlan(pmTaskId: string, body: UpdateTestPlanRequest, idempotencyKey: string) {
+    return this.request({
+      method: 'POST',
+      path: `/v1/daemon/tickets/${encodeURIComponent(pmTaskId)}/test-plan`,
       body,
       idempotencyKey,
       schema: Ticket,

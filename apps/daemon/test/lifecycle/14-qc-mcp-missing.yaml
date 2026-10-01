@@ -1,7 +1,8 @@
 name: qc-mcp-missing
 description: >-
-  A web project's QC needs the Playwright MCP, which is not connected on this machine: QC comments that,
-  moves to blocked without running, and never silently skips UI testing.
+  The PM plans a web project's QC with ui_web, so it needs the Playwright MCP, which is not connected on this
+  machine: QC comments that (and how the PM can change the plan), moves to blocked without running, and never
+  silently skips UI testing.
 inventory:
   mcpServers: [{ name: playwright, status: failed }]
 request:
@@ -13,7 +14,7 @@ scripts:
     steps:
       - macro: pm_analyze
         subtasks:
-          - { title: Trang tìm kiếm, complexity: trivial, qcComplexity: trivial }
+          - { title: Trang tìm kiếm, complexity: trivial, qcComplexity: trivial, testKinds: [ui_web] }
   - stage: dev
     steps: [{ macro: dev, file: src/search.js }]
   - stage: docs_update

@@ -78,13 +78,21 @@ Chuyển trạng thái hợp lệ theo actor (nguồn: schema workflow trong `pa
 
 ## Vai trò agent và giới hạn
 
-- **PM**: phân tích yêu cầu, chia subtask, chấm độ phức tạp, nghiệm thu và merge — không có công cụ ghi code,
-  chỉ dùng các tool ticket (`create_subtask`, `rate_subtask`, `retry_subtask`, `reject_work`, `merge_and_push`,
-  `comment`, …).
+- **PM**: phân tích yêu cầu, chia subtask, chấm độ phức tạp, phân tích phương án kiểm thử cho mỗi QC, nghiệm
+  thu và merge — không có công cụ ghi code, chỉ dùng các tool ticket (`create_subtask`, `rate_subtask`,
+  `plan_qc_test`, `retry_subtask`, `reject_work`, `merge_and_push`, `comment`, …). Trước mỗi subtask `qc`, PM
+  xem subtask dev đi kèm đổi gì (API, logic, CLI, schema dùng chung, giao diện web, màn hình mobile hay chỉ
+  docs) rồi chọn `testKinds` (`static_review`/`unit`/`integration`/`api`/`ui_web`/`ui_mobile`) và viết
+  `testReason`; **chỉ `ui_web`/`ui_mobile` mới kéo theo MCP kiểm thử UI** (Playwright/Maestro) — một ticket chỉ
+  đổi API hay logic không còn bị ép kiểm thử giao diện. Phương án của một QC chưa đóng chưa hợp thì
+  `plan_qc_test` đổi tại chỗ, không tạo QC thay thế.
 - **Dev**: viết code và test trên subtask `dev`/`bug` — bị guard chặn ghi `docs/**` hay Markdown ở gốc repo và
   chặn `git commit`; kết thúc lượt chạy bằng bàn giao cho job docs (`handoff_docs`).
-- **QC**: kiểm thử theo tiêu chí nghiệm thu của subtask; không đóng được ticket khi một MCP server bắt buộc
-  của lượt chạy chưa từng được gọi công cụ nào (trừ khi thay đổi đang xét chỉ đổi docs).
+- **QC**: kiểm thử theo tiêu chí nghiệm thu của subtask, làm đúng từng loại kiểm thử trong phương án PM đã
+  chọn (report ghi loại nào đã chạy và kết quả); không đóng được ticket khi một MCP server bắt buộc của lượt
+  chạy chưa từng được gọi công cụ nào (trừ khi thay đổi đang xét chỉ đổi docs). QC `blocked` vì MCP kiểm thử UI
+  chưa kết nối mà thay đổi thật ra không có giao diện: gắn thẻ `@pm` trên ticket QC, PM đổi phương án bằng
+  `plan_qc_test` rồi mở lại bằng `retry_subtask`.
 - **Trợ lý**: chỉ định tuyến ticket `request` và tổng hợp lúc đóng, không viết code hay docs.
 
 ## Cặp dev↔QC, `dependsOn` và vòng lặp bug
@@ -132,6 +140,12 @@ Trước khi làm việc, mỗi agent đọc `context.capabilities` (từ công 
 có sẵn trong thư mục làm việc, chọn mọi skill/MCP liên quan tới bước hiện tại qua `select_capabilities` (kèm
 lý do từng mục), rồi gọi các skill đã chọn bằng công cụ `Skill` trước khi bắt đầu việc chính. Skill hoặc MCP
 **bắt buộc** của ticket mà không được dùng trong lượt chạy sẽ bị ghi vào report kèm bình luận cảnh báo.
+
+MCP kiểm thử UI (Playwright/Maestro) không còn là MCP mặc định của mọi ticket QC: server chỉ thêm nó vào
+`requiredMcps` khi phương án kiểm thử PM chọn (`testKinds`) có `ui_web`/`ui_mobile`. QC không đóng được ticket
+khi một MCP bắt buộc chưa từng được gọi công cụ nào; QC bị chặn vì MCP kiểm thử UI chưa kết nối trong khi thay
+đổi thực ra không có giao diện thì không tự bỏ qua — gắn thẻ `@pm` để PM đổi phương án bằng `plan_qc_test`
+(server tính lại `requiredMcps`) rồi mở lại bằng `retry_subtask`.
 
 ## Ngân sách, thử lại và khi nào ticket bị chặn chờ chủ dự án
 

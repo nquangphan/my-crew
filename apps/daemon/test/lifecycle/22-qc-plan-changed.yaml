@@ -1,0 +1,55 @@
+name: qc-plan-changed
+description: >-
+  The PM planned an API-only change's QC with ui_web by mistake, and Playwright is not connected on this
+  machine: QC is blocked before it runs. The owner tags @pm on the QC ticket; the PM changes the plan in
+  place with plan_qc_test (api), reopens the ticket with retry_subtask and replies on it. QC then runs with
+  the new required MCP servers (none), closes without any UI MCP tool, and the tree finishes.
+inventory:
+  mcpServers: [{ name: playwright, status: failed }]
+request:
+  title: Lọc đơn hàng theo trạng thái
+owner:
+  - when: { title: '^QC: Bộ lọc đơn hàng$', type: qc, status: blocked, comment: 'chưa kết nối' }
+    comment: '@pm thay đổi này chỉ là API, không có giao diện. Đổi phương án kiểm thử rồi cho QC chạy lại.'
+scripts:
+  - stage: assistant_triage
+    steps: [{ macro: triage, title: Lọc đơn hàng theo trạng thái }]
+  - stage: pm_analyze
+    steps:
+      - macro: pm_analyze
+        subtasks:
+          - title: Bộ lọc đơn hàng
+            complexity: small
+            qcComplexity: small
+            testKinds: [ui_web]
+  - stage: dev
+    steps: [{ macro: dev, file: src/order-filter.js }]
+  - stage: docs_update
+    steps: [{ macro: docs_update, files: [src/order-filter.js] }]
+  - stage: pm_monitor
+    steps:
+      - macro: preflight
+      - tool: mcp__tickets__plan_qc_test
+        input:
+          ticket: '@{key:^QC: Bộ lọc đơn hàng$}'
+          testKinds: [api]
+          testReason: Thay đổi chỉ ở API lọc đơn hàng, không có giao diện để mở bằng trình duyệt
+      - tool: mcp__tickets__retry_subtask
+        input: { ticket: '@{key:^QC: Bộ lọc đơn hàng$}' }
+      - tool: mcp__tickets__comment
+        input:
+          ticket: '@{key:^QC: Bộ lọc đơn hàng$}'
+          body: PM đã đổi phương án kiểm thử sang api (không cần Playwright) và cho QC chạy lại.
+  - stage: qc
+    steps:
+      - macro: qc
+        summary: 'pass. api: GET /orders?status=paid trả đúng đơn đã thanh toán.'
+  - stage: pm_accept
+    steps: [{ macro: pm_accept }]
+  - stage: assistant_close
+    steps: [{ macro: close }]
+expect:
+  tickets:
+    - { title: '^Lọc đơn hàng theo trạng thái$', type: pm_task, status: done }
+    - { title: '^Bộ lọc đơn hàng$', type: dev, status: done }
+    - { title: '^QC: Bộ lọc đơn hàng$', type: qc, status: done }

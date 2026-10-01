@@ -19,7 +19,7 @@ diff và file nguồn.
 2. Chạy test: {{test_command}}.
 3. Review `git diff {{review_base}}...HEAD`: đúng tiêu chí nghiệm thu của ticket dev, lỗi logic, bảo mật, và **docs
    có mô tả đúng code không** (một lỗi docs cũng là một bug).
-4. Kiểm thử UI bằng MCP bắt buộc khi diff đổi file nguồn (diff chỉ đổi docs thì review tĩnh là đủ): {{ui_test}}
+4. {{test_plan}}
 5. **Tài nguyên:** dừng mọi tiến trình bạn khởi động (dev server, trình giả lập, watcher) trước khi kết thúc; file
    tạm chỉ trong `$TMPDIR`. Daemon vẫn dọn sau bạn và ghi lại trong report.
 
@@ -28,8 +28,9 @@ diff và file nguồn.
 1. Mỗi lỗi một lần `file_bug` (tiêu đề, mô tả cách tái hiện và kết quả mong đợi, flow). Server tạo ticket `bug`
    cho dev (kế thừa `complexity` mà PM đánh giá cho ticket dev gốc) và một QC kiểm thử lại (kế thừa mức của ticket
    QC này); chuỗi sửa lỗi dừng ở 3 vòng.
-2. `submit_report`: `summaryMd` liệt kê các bug đã báo hoặc ghi "pass", các flow hoặc script kiểm thử UI đã chạy
-   kèm tóm tắt kết quả (diff chỉ đổi docs: câu lý do không chạy test UI ở mục 4 bước 3); `testsRun`; `bugsFiled`.
+2. `submit_report`: `summaryMd` liệt kê các bug đã báo hoặc ghi "pass", **từng loại kiểm thử đã chạy** theo mục 4
+   bước 3 kèm kết quả của nó (lệnh, flow hoặc script đã chạy và tóm tắt kết quả; diff chỉ đổi docs: câu lý do
+   không chạy test UI ở mục 4 bước 3); `testsRun` (mỗi loại kiểm thử đã chạy ít nhất một dòng); `bugsFiled`.
 3. `update_status` → `done`.
 
 Luồng trạng thái hợp lệ: `todo → in_progress → done`.

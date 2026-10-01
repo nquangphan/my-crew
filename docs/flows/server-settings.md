@@ -44,7 +44,10 @@ bộ vì nó chạy như một shell command trên chính máy đó.
    được thoát ra ngoài repo). `PROMPT_VARIABLES`/`PROMPT_PARTIAL_PATTERN`/`PROMPT_VARIABLE_PATTERN`/
    `validatePromptTemplate()`: một prompt không hợp lệ khi rỗng, quá `PROMPT_MAX_CHARS`, dùng biến không có
    trong danh sách, chèn phần chung không tồn tại, hoặc một phần chung (`_`-prefix) lại chèn phần chung khác
-   (chỉ một lớp). `validateSettingsContent(kind, name, content)`/`SETTINGS_CONTENT`: validate theo schema đúng
+   (chỉ một lớp). `PROMPT_VARIABLES` có hai biến của phương án kiểm thử QC (flow `agent-roles`): `test_plan`
+   (mục 4 bước 3 của `qc.md`) và `test_kinds` (bảng loại ↔ công cụ trong `pm-analyze.md`/`pm-monitor.md`); biến
+   `ui_test` cũ vẫn còn trong danh sách nên một template ghi đè trên web viết trước khi có phương án kiểm thử
+   vẫn qua được `validatePromptTemplate()`. `validateSettingsContent(kind, name, content)`/`SETTINGS_CONTENT`: validate theo schema đúng
    kind rồi (riêng `prompt`) chạy thêm `validatePromptTemplate()`. `DEFAULT_GUARD_POLICY`/
    `DEFAULT_MODEL_SETTINGS`/`DEFAULT_RESOURCE_SETTINGS`/`DEFAULT_BUDGET_SETTINGS`: giá trị daemon dùng khi
    chưa có bản ghi đè nào (chính là luật crew-docs R6 cho `protectedPaths` và bảng model mặc định cũ). `settingsText()`
@@ -255,7 +258,8 @@ bộ vì nó chạy như một shell command trên chính máy đó.
   mục mới hợp lệ; bộ chọn thư mục của app ghi qua đúng route, giữ nguyên thư mục project khác.
 - `packages/shared/src/settings-schemas.test.ts`: glob khớp đúng docs/Markdown gốc như luật có sẵn, `dir/**`
   gồm cả `dir`, `**` giữa chuỗi, `*`/`?` trong một đoạn, escape ký tự regexp, chỉ nhận glob tương đối an toàn;
-  quy tắc guard nhận bản đóng gói, từ chối field lạ; prompt nhận đúng biến/phần chung đã biết, từ chối biến/
+  quy tắc guard nhận bản đóng gói, từ chối field lạ; prompt nhận đúng biến/phần chung đã biết (kể cả hai biến
+  mới `test_plan`/`test_kinds` của `qc`/`pm-analyze` đứng cạnh `{{ui_test}}` cũ), từ chối biến/
   phần chung lạ, phần chung lồng nhau, rỗng; liệt kê đúng mỗi prompt một lần; giữ `sonnet` luôn được phép,
   không bao giờ nhận `fable`; validate số trong khoảng và biến prompt; kiểm phạm vi từng kind và id nó cần;
   diff giữ/xoá/thêm đúng dòng; hiện prompt bằng text, cài đặt khác bằng JSON.
