@@ -11,7 +11,8 @@ export function samePin(a: Pin, b: Pin): boolean {
 export function workflowsReady(required: Pin[], installed: Pin[]): boolean {
   return (['bmad', 'superpowers'] as Workflow[]).every((name) => {
     const targets = required.filter((p) => p.workflow === name);
-    return targets.length === 1 && installed.some((p) => samePin(p, targets[0]!));
+    const target = targets[0];
+    return targets.length === 1 && target !== undefined && installed.some((p) => samePin(p, target));
   });
 }
 export function assertSkillAllowed(run: Pin, origin: Pin): void {

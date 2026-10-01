@@ -15,7 +15,7 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 s�
 
 | Thư mục | Vai trò |
 |---------|---------|
-| `src/` | Quy tắc miền; các module được thêm ở những phần tiếp theo |
+| `src/` | Bốn policy thuần cho chọn model, workflow, chuyển trạng thái ticket và hoàn tất |
 | `test/` | Kiểm thử hành vi và tính độc lập của workspace |
 | `docs/` | Kiến trúc, manifest flow và bảng tra file |
 

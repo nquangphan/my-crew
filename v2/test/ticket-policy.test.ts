@@ -1,6 +1,6 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import { transition, recordRepairFailure } from '../src/ticket-policy.ts';
+import test from 'node:test';
+import { recordRepairFailure, type Signal, type Status, transition } from '../src/ticket-policy.ts';
 
 test('mất mạng không đủ để running được start hoặc resume lần nữa', () => {
   assert.throws(() => transition('running', 'start'), /INVALID_TICKET_TRANSITION/);
@@ -19,4 +19,14 @@ test('thất bại vòng năm hỏi owner, không vượt hoặc reset bộ đ�
   assert.deepEqual(recordRepairFailure(4), { cycles: 5, action: 'ask_owner' });
   assert.deepEqual(recordRepairFailure(5), { cycles: 5, action: 'ask_owner' });
   assert.throws(() => recordRepairFailure(-1), /INVALID_REPAIR_COUNT/);
+});
+
+test('từ chối tên status hoặc signal kế thừa từ prototype', () => {
+  assert.throws(() => transition('pending', 'toString' as Signal), /INVALID_TICKET_TRANSITION/);
+  assert.throws(() => transition('pending', 'constructor' as Signal), /INVALID_TICKET_TRANSITION/);
+  assert.throws(() => transition('toString' as Status, 'call' as Signal), /INVALID_TICKET_TRANSITION/);
+  assert.throws(
+    () => transition('constructor' as Status, 'prototype' as Signal),
+    /INVALID_TICKET_TRANSITION/,
+  );
 });

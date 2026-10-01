@@ -33,7 +33,8 @@ export function transition(status: Status, signal: Signal): Status {
     needs_input: { resume: 'pending', cancel_confirmed: 'cancelled' },
     paused: { resume: 'pending', cancel_confirmed: 'cancelled' },
   };
-  const next = edges[status]?.[signal];
+  const statusEdges = Object.hasOwn(edges, status) ? edges[status] : undefined;
+  const next = statusEdges && Object.hasOwn(statusEdges, signal) ? statusEdges[signal] : undefined;
   if (!next) throw new Error('INVALID_TICKET_TRANSITION');
   return next;
 }

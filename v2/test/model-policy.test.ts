@@ -1,6 +1,7 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
+import test from 'node:test';
 import { eligibleModels, type Model, type Selection } from '../src/model-policy.ts';
+
 const model: Model = {
   id: 'claude:example',
   machineId: 'm1',

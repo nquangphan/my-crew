@@ -1,6 +1,7 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
-import { workflowsReady, assertSkillAllowed, type Pin } from '../src/workflow-policy.ts';
+import test from 'node:test';
+import { assertSkillAllowed, type Pin, workflowsReady } from '../src/workflow-policy.ts';
+
 const sp: Pin = { workflow: 'superpowers', version: '6.4.1', revision: 'sp-rev', checksum: 'sp-check' };
 const bm: Pin = { workflow: 'bmad', version: 'test-version', revision: 'bm-rev', checksum: 'bm-check' };
 test('cần đủ hai bộ đúng version revision checksum', () => {

@@ -20,14 +20,10 @@ Các module `src/` xuất hàm thuần để server/host sử dụng; không có
 
 1. `test/workspace.test.ts` → `workspace v2 không có dependency ứng dụng v1`: đọc manifest package và kiểm tra tên, dependency runtime.
 2. `package.json` → `test`, `typecheck`: chạy kiểm thử Node và kiểm tra kiểu TypeScript riêng cho `v2/`.
-
 3. `src/model-policy.ts` → `eligibleModels`: Loại model khác máy, không khả dụng, nguồn tắt, thiếu capability hoặc chưa áp dụng revision công tắc; trả các ứng viên để Trợ lý xếp hạng.
-
 4. `src/workflow-policy.ts` → `samePin, workflowsReady, assertSkillAllowed`: Kiểm tra máy có đủ hai bộ đúng pin và chặn nguồn skill khác workflow/version/revision/checksum của run. Đây là gate metadata, không thay sandbox runtime.
-
-5. `src/ticket-policy.ts` → `transition, recordRepairFailure`: Chuyển trạng thái theo signal hợp lệ; yêu cầu caller xác nhận process/lease trước signal confirmed. Đếm thất bại của vòng sửa đã thực hiện; đến vòng năm hỏi owner, không đếm lỗi model hay review ban đầu.
-
-6. `src/completion-policy.ts` → `canComplete, canDeploy`: Kiểm tra bằng chứng và các bước bắt buộc; yêu cầu code cần docs đúng commit merge, nghiên cứu cần artifact, docs cần snapshot. Deploy chỉ có ticket deploy hoặc approval đã xác thực.
+5. `src/ticket-policy.ts` → `transition, recordRepairFailure`: Chuyển trạng thái theo signal hợp lệ; chỉ nhận khóa status/signal thuộc chính đối tượng, từ chối khóa kế thừa như `toString` và `constructor`. Caller xác nhận process/lease trước signal confirmed. Đếm thất bại của vòng sửa đã thực hiện; đến vòng năm hỏi owner, không đếm lỗi model hay review ban đầu.
+6. `src/completion-policy.ts` → `canComplete, canDeploy`: Kiểm tra bằng chứng và các bước bắt buộc; code cần docs đúng commit merge, nghiên cứu cần artifact, docs cần snapshot. Deploy cần ticket deploy hoặc approval đã xác thực.
 
 ## Files
 
@@ -51,11 +47,11 @@ Các module `src/` xuất hàm thuần để server/host sử dụng; không có
 
 ## Dữ liệu
 
-Không có cơ sở dữ liệu, sự kiện hoặc lời gọi ra ngoài trong phần khởi tạo.
+Các hàm nhận dữ liệu do caller cung cấp và không lưu trạng thái. Package không có cơ sở dữ liệu, sự kiện hoặc lời gọi ra ngoài.
 
 ## Flow liên quan
 
-Các quy tắc model, workflow, ticket và hoàn tất sẽ được thêm vào flow này ở những phần tiếp theo. Server xử lý giao dịch và lease ngoài thư viện.
+Server và host sẽ gọi các policy này khi tích hợp Crew v2. Giao dịch, lease, đối chiếu tiến trình và xác thực approval nằm ngoài thư viện.
 
 ## Tests
 
@@ -65,6 +61,6 @@ Các quy tắc model, workflow, ticket và hoàn tất sẽ được thêm vào 
 
 `test/workflow-policy.test.ts`: Thiếu bộ, checksum sai, target trùng và skill khác revision/workflow bị từ chối.
 
-`test/ticket-policy.test.ts`: Không start/resume running khi chưa reconcile; pause/resume theo gate; vòng năm hỏi owner và không reset số vòng.
+`test/ticket-policy.test.ts`: Không start/resume running khi chưa reconcile; pause/resume theo gate; từ chối status/signal kế thừa; vòng năm hỏi owner và không reset số vòng.
 
-`test/completion-policy.test.ts`: Docs stale chặn đóng yêu cầu code; nghiên cứu không cần merge; deploy cần quyền rõ ràng.
+`test/completion-policy.test.ts`: Docs stale chặn đóng yêu cầu code; docs cần snapshot; mọi loại việc cần đủ bước và bằng chứng; nghiên cứu không cần merge; deploy cần quyền rõ ràng.
