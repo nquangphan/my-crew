@@ -65,6 +65,22 @@ Một mục trong pool xác định nguồn/runtime, model, máy, khả năng c�
 Cùng tên model ở hai nguồn không được coi là cùng một mục. Trợ lý chọn cặp runtime/model trên máy
 sở hữu dự án; không điều chuyển code sang máy khác để tận dụng model.
 
+Web có ba công tắc riêng trên từng máy: Claude Code, Codex và OpenAI-compatible API. Công tắc
+điều khiển nguồn thực thi được phép dùng trên máy đó, không gỡ cài đặt runtime hoặc xóa cấu hình.
+Tắt một nguồn loại toàn bộ model của nguồn đó khỏi lựa chọn mới và fallback, kể cả lựa chọn model
+Trợ lý trên máy. Nếu tắt hết nguồn, máy không nhận thực thi mới và UI hiển thị rõ lý do.
+
+Tắt nguồn không hủy attempt đang chạy; attempt được phép kết thúc, nhưng không nhận bước/attempt
+mới từ nguồn đã tắt. Muốn dừng ngay, owner dùng thao tác pause/cancel riêng. Model Trợ lý đã chọn
+thuộc nguồn bị tắt được đổi sang nguồn còn bật nếu khả dụng, sau lượt hiện tại; nếu không có nguồn
+phù hợp thì chờ và báo owner. Bật lại chỉ đưa các model thực sự khả dụng vào pool, không coi thao
+tác bật là bằng chứng runtime đã cài hoặc credential hợp lệ.
+
+Server lưu cấu hình mong muốn, máy xác nhận cấu hình áp dụng và thời điểm. Khi máy offline, web
+hiển thị chờ áp dụng; server ngừng dispatch mới từ nguồn đã tắt ngay khi ghi nhận quyết định. Máy
+online lại phải đồng bộ công tắc trước khi nhận việc mới. UI phân biệt nguồn bị owner tắt với nguồn
+được bật nhưng lỗi/hết quota/chưa cài.
+
 Pool khai báo khả năng đọc ảnh và loại tài liệu của model/runtime. Khi đầu vào chứa ảnh hoặc file,
 Trợ lý chọn cách đọc tương thích: model đọc trực tiếp hoặc công cụ trích xuất phù hợp. Không chọn
 model chỉ đọc text rồi âm thầm bỏ ảnh; fallback phải giữ khả năng xử lý đầu vào cần thiết.
@@ -217,6 +233,8 @@ Ticket hiển thị workflow/version, skill hiện tại, độ khó và lý do,
 số vòng sửa, kết quả kiểm chứng, commit và trạng thái docs. Trang máy hiển thị kết nối, dự án,
 pool model, hai bộ workflow và app version, cùng nút cài/update. Có lựa chọn máy/model Trợ lý và
 danh sách vấn đề cần owner xử lý. Điều khiển pause, cancel và duyệt deploy gửi lệnh có phản hồi thực.
+Trang máy có công tắc Claude Code, Codex và API độc lập theo máy, hiển thị cấu hình đang áp dụng
+hoặc chờ xác nhận; model từ nguồn bị tắt không thể được chọn trong form cấu hình Trợ lý.
 
 ### Tạo ticket, clipboard và attachment
 
@@ -290,6 +308,9 @@ Các tình huống bắt buộc nghiệm thu:
 - Cài/update một bộ thất bại; máy offline; version lệch; run cũ vẫn giữ version đã ghim.
 - Claude Code, Codex, API thực thi được công cụ; fallback giữa runtime không chạy trùng hoặc mất artifact.
 - Tất cả model hết quota; máy dự án hoặc Trợ lý offline; khôi phục sau reconnect.
+- Bật/tắt Claude Code, Codex và API độc lập theo máy; nguồn tắt không nhận việc hoặc fallback mới,
+  attempt đang chạy không bị hủy; tắt hết nguồn, tắt nguồn của Trợ lý và thay đổi lúc máy offline
+  đều có trạng thái chờ rõ ràng, đồng bộ trước dispatch và khôi phục đúng khi bật lại.
 - Review thất bại đến vòng 5; câu hỏi được tự trả lời hoặc chuyển owner đúng phạm vi.
 - Crash sau merge trước báo kết quả; conflict; nhánh đích đổi; không merge/deploy trùng.
 - Docs đổi sơ sài bị review phát hiện; cấu trúc sai bị validator chặn; sync lỗi không đóng ticket sớm.
