@@ -1,9 +1,0 @@
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "noEmit": true,
-    "types": ["node"],
-    "paths": { "@crew/shared": ["../../packages/shared/src/index.ts"] }
-  },
-  "include": ["src", "test", "vitest.config.ts", "drizzle.config.ts"]
-}
