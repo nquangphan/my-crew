@@ -13,19 +13,19 @@ import type { DaemonConfig, ProjectConfig } from '../config.js';
 import { docsSnapshot } from '../git/docs-kit-bridge.js';
 import type { AgentRunResult } from '../runner/agent-runner.js';
 import { isDocsPath } from '../runner/guard-hook.js';
-import {
-  type AfterRunDecision,
-  type AfterRunInput,
-  type PlanInput,
-  type PlannedRun,
-  type PlannerContext,
-  type PrepareInput,
-  type PrepareResult,
-  type ReportOverlayInput,
-  type RolePlanner,
-  restartNote,
+import type {
+  AfterRunDecision,
+  AfterRunInput,
+  PlanInput,
+  PlannedRun,
+  PlannerContext,
+  PrepareInput,
+  PrepareResult,
+  ReportOverlayInput,
+  RolePlanner,
 } from '../runner/job-runner.js';
-import type { JobKind, JobRow, PmMention, StateDb, ToolLogEntry } from '../state-db.js';
+import { freshSessionNote } from '../runner/run-trace.js';
+import type { JobKind, JobRow, PmMention, ResumeChoice, StateDb, ToolLogEntry } from '../state-db.js';
 import type { DocsHandoff, MergeHandoff, ReportOverlay } from '../tools/ticket-mcp-server.js';
 import { docsFirst } from './docs-first-check.js';
 import { docsInitGate } from './docs-init-gate.js';
@@ -299,12 +299,17 @@ async function ownerCallsNote(
   ].join('\n');
 }
 
-/** Session to resume: the job's own, else the ticket's latest of the same kind; docs jobs start fresh. */
-function resumeSession(job: JobRow, kind: JobKind, state: StateDb, ticketId: string): string | null {
-  if (job.resumeMode === 'restart_fresh') return null;
-  if (job.sessionId) return job.sessionId;
-  if (kind === 'docs_update' || job.trigger === 'ticket.assigned') return null;
-  return state.latestSession(ticketId, kind === 'docs_init' ? 'docs_init' : 'agent');
+/**
+ * Session to resume: the job's own, else the ticket's latest of the same kind (docs jobs and a first
+ * assignment start fresh) — unless `StateDb.resumeChoice` says the run starts fresh after a cut-short one.
+ */
+function resumeSession(job: JobRow, kind: JobKind, state: StateDb, ticketId: string): ResumeChoice {
+  const candidate =
+    job.sessionId ??
+    (kind === 'docs_update' || job.trigger === 'ticket.assigned'
+      ? null
+      : state.latestSession(ticketId, kind === 'docs_init' ? 'docs_init' : 'agent'));
+  return state.resumeChoice(ticketId, candidate, job);
 }
 
 /**
@@ -486,7 +491,19 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
   }
 
   const choice = resolveModel({ config, stage, ticket });
-  const vars = await promptVars({ stage, job, kind, detail, config, project, ctx, mentions, uiTest });
+  const resume = resumeSession(job, kind, ctx.state, ticket.id);
+  const vars = await promptVars({
+    stage,
+    job,
+    kind,
+    detail,
+    config,
+    project,
+    ctx,
+    mentions,
+    uiTest,
+    interrupted: resume.interrupted,
+  });
   const prompt = renderPrompt(STAGES[stage].prompt, vars, ctx.settings.prompts);
   let worktreeBase: string | undefined = project?.defaultBranch;
   if (ticket.type === 'bug' && ticket.parentId) {
@@ -498,7 +515,7 @@ async function plan(input: PlanInput): Promise<PlannedRun> {
     prompt,
     model: choice.model,
     effort: choice.effort,
-    resumeSessionId: resumeSession(job, kind, ctx.state, ticket.id),
+    resumeSessionId: resume.sessionId,
     ...(worktreeBase ? { worktreeBase } : {}),
     stage,
     notices: choice.notice ? [choice.notice] : [],
@@ -517,13 +534,14 @@ async function promptVars(input: {
   mentions: readonly PmMention[];
   /** QC only: false when the diff under test is docs-only. */
   uiTest: boolean;
+  /** The cut-short run this fresh session follows (its summary opens the notes), or null. */
+  interrupted: JobRow | null;
 }): Promise<Record<string, string>> {
   const { stage, job, detail, config, project, ctx, mentions } = input;
   const { ticket } = detail;
   const notes: string[] = [];
   if (mentions.length > 0) notes.push(await ownerCallsNote(ctx, ticket, mentions));
-  const restart = restartNote(job, detail);
-  if (restart) notes.push(`## Khởi động lại\n\n${restart}`);
+  if (input.interrupted) notes.push(freshSessionNote(input.interrupted, detail));
   if (job.trigger.startsWith('retry:')) {
     const reason = job.trigger.slice('retry:'.length) as FailureReason;
     notes.push(`## Lần thử ${job.failedAttempts + 1}\n\n${RETRY_TEXT[reason] ?? RETRY_TEXT.runner_error}`);
@@ -750,11 +768,14 @@ function failureDecision(input: {
   ticketId: string;
 }): AfterRunDecision {
   const { job, reason, result, state, ticketId } = input;
+  const trigger = `retry:${reason}`;
   const decision = decideFailure({
     job,
     reason,
     costUsd: result.totalCostUsd,
     devSessionId: state.latestSession(ticketId, 'agent'),
+    // A retry after a run that left its session abandoned starts fresh, with that run's summary.
+    resumable: (sessionId) => state.resumeChoice(ticketId, sessionId, { trigger }).sessionId,
   });
   if (decision.action === 'retry') {
     return { followUp: decision.followUp, comments: [decision.comment], error: reason, status: 'failed' };
@@ -786,7 +807,8 @@ async function afterRun(input: AfterRunInput): Promise<AfterRunDecision> {
     const use = capabilityUse(toolLog, result.slashCommands, [
       ...new Set([...input.inventory.mcpServers.map((server) => server.name), ...ticket.requiredMcps]),
     ]);
-    // The preflight belongs to the session: a run that resumes it (an owner answer) already has one.
+    // The preflight belongs to the session: a run that resumes it (an owner answer) already has one; a
+    // fresh session (after a cut-short run) needs its own, even on the same job (its choice is reset then).
     const sessionPreflight = ctx.state
       .jobsForTicket(ticket.id)
       .some(

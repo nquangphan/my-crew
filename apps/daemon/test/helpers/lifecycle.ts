@@ -459,6 +459,8 @@ export interface RunRecord {
   kind: string;
   model: string;
   prompt: string;
+  /** The session the run resumed, or null for a fresh one. */
+  resumeSessionId: string | null;
   n: number;
 }
 
@@ -539,6 +541,7 @@ export async function runScenario(
       kind: run.kind,
       model: run.model,
       prompt: run.prompt,
+      resumeSessionId: run.resumeSessionId ?? null,
       n,
     };
     runs.push(record);

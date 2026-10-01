@@ -53,7 +53,12 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    đặt socket của nó), `~/.crew/bin` lên đầu `PATH`). Ngay sau đó `planner.prepare?.()` chạy (worktree đã có
    nhưng agent chưa bắt đầu) — hook tuỳ chọn để role planner chuẩn bị thêm (ví dụ merge head nền, cài hook
    docs-init, flow `agent-roles`); nó cũng có thể trả `skip` (job kết thúc ngay) hoặc một `note` được nối vào
-   cuối prompt. `plan.notices` (nếu có) được đăng thành bình luận trước khi chạy.
+   cuối prompt. `plan.notices` (nếu có) được đăng thành bình luận trước khi chạy. Ngay trước khi runner bắt
+   đầu, cùng một lần ghi đồng bộ (SQLite `synchronous=FULL`, nên daemon chết ngay sau đây vẫn giữ được dấu),
+   job nhận `sessionId: plan.resumeSessionId`, `sessionAbandoned: 'run_started'` (dấu bị ghi trước, chốt lại ở
+   bước 10 khi run xong) và `resumeMode: null` (một khởi động lại dẫn tới lượt này coi như đã xử lý); khi
+   phiên đổi (`plan.resumeSessionId` là `null` hoặc khác `sessionId` job đang giữ) `costUsd`/`capabilities`
+   của job bị xoá theo, vì cả hai thuộc về phiên, không phải job (bước 9 của flow `agent-roles`).
 4. `apps/daemon/src/runner/agent-runner.ts` → `createSdkRunner()`: gọi `query()` của Agent SDK với
    `settingSources: ['user', 'project', 'local']`, `permissionMode: 'dontAsk'` cộng `allowedTools` theo vai
    trò, `disallowedTools` là `mcp__<server>__*` của mọi MCP server bị chủ dự án tắt cho project
@@ -66,7 +71,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    guard, env có `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH=2`,
    `settings.enabledMcpjsonServers`/`disabledMcpjsonServers`, `spawnClaudeCodeProcess` tự spawn tiến trình con
    trong process group riêng (`detached: true`), để cleanup (flow `resource-hygiene`) có thể gửi tín hiệu tới
-   cả process group/cây tiến trình mà agent khởi động. `prompt` truyền cho `query()` là một luồng do daemon
+   cả process group/cây tiến trình mà agent khởi động. Runner trả `result.sessionId`: nếu khác `sessionId` job
+   đang giữ (SDK đổi phiên), `execute()` ghi lại giá trị này trước khi quyết định `sessionAbandoned` (bước 10).
+   `prompt` truyền cho `query()` là một luồng do daemon
    điều khiển (`createPromptStream()`, `PromptStream`), không còn là một chuỗi: prompt của lượt chạy là tin
    nhắn đầu, `send()` xếp thêm tin nhắn (lời nhắc bước dưới) vào luồng đang mở, `close()` mới đóng input — với
    `prompt` dạng chuỗi runtime Claude Code đóng stdin ngay, nên một lệnh nền còn sống quá 5 giây sau `result`
@@ -115,10 +122,16 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    cộng `Edit` phát lại đúng `old_string`/`new_string`/`replace_all` như Claude Code thật) và thật sự phát lại
    qua guard hook, tool log, ticket tools; `script` có thể là hàm `async` (đọc trạng thái ticket trước khi chọn
    kịch bản) và một `resolve()` tuỳ chọn điền input của từng bước ngay trước khi chạy (ví dụ id một ticket bước
-   trước vừa tạo); phiên giả (`SessionState`) giữ chi phí lũy kế của session và tiến độ theo từng job
-   (`completed[jobId]`) — resume đúng job đó (ví dụ sau khi daemon khởi động lại) tiếp tục từ bước cuối job đó
-   đã hoàn thành, còn một job mới dùng chung session (job id khác) chạy lại kịch bản từ đầu và cộng dồn vào chi
-   phí session đã có; chỉ dùng cho test vòng đời, production dùng `createSdkRunner()`. Ba bước kịch bản mô
+   trước vừa tạo); phiên giả (`SessionState`) chỉ còn giữ chi phí lũy kế của session, tiến độ (bước cuối đã
+   xong) giữ riêng theo từng job ở một file khác (`<sessionsDir>/jobs/<jobId>.json`, `readProgress()`/
+   `writeProgress()`) — một job chạy lại (sau backoff, daemon dừng hay crash) làm tiếp từ bước cuối đã xong
+   khi nó resume đúng session của mình, **hoặc** khi prompt của nó chứa `FRESH_SESSION_TITLE` (`run-trace.ts`)
+   — mô phỏng agent thật đọc tóm tắt phiên mới rồi tự kiểm tra `git status`/`get_ticket` trước khi làm tiếp;
+   không có một trong hai thì chạy lại kịch bản từ đầu, và một job mới (prompt mới hẳn) luôn chạy lại từ đầu.
+   Khi làm tiếp trong một phiên mới (không resume), runner trước tiên chạy lại mọi bước `skill`/`Skill`/
+   `select_capabilities` đứng trước điểm dừng (phần gọi tool dùng chung một hàm nội bộ `callTool()`, logic
+   không đổi), vì prompt yêu cầu mọi phiên phải kiểm tra skill/MCP lại; chỉ dùng cho test vòng đời, production
+   dùng `createSdkRunner()`. Ba bước kịch bản mô
    phỏng tác vụ nền: `bgBash: { id, command }` spawn thật một tiến trình con (`/bin/sh -c`, `detached: true`,
    cùng `cwd`/`env` của job, qua đúng guard hook/tool log như `bash`) mà không chờ thoát, đăng ký thành một tác
    vụ nền sống và báo cho `BackgroundSession` (bước 4, cùng file `background-session.ts`, dùng chung với runner
@@ -206,10 +219,23 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    `ticketToolsFor()`: mọi vai trò có `select_capabilities`; PM có thêm `reject_work`/`merge_and_push`; dev có
    `handoff_docs` (chỉ `kind='agent'`, lượt `dev`) và `return_to_dev` (chỉ `kind='docs_update'`, lượt
    `docs_update` — hai tool loại trừ nhau theo `KIND_ONLY`).
-10. `apps/daemon/src/runner/job-runner.ts` → `execute()` (sau khi run xong): `buildRunTrace()` (`run-trace.ts`)
+10. `apps/daemon/src/runner/job-runner.ts` → `execute()` (khi run xong, kể cả runner ném lỗi): job được ghi
+    lại `sessionId` (từ `result.sessionId` nếu SDK đổi phiên giữa chừng) và `sessionAbandoned` được chốt bằng
+    `abandonReason(result, job, stopping)` (hàm export của `job-runner.ts`) — `null` (phiên sạch, mọi lượt sau
+    được resume) khi run có một message `result` (kể cả `result` lỗi như rate limit) và
+    `result.backgroundTasksLeft` rỗng; ngược lại là `daemon_stopped` (daemon đang dừng êm và run không bị
+    `cancelRequested`), `aborted` (job bị hủy hoặc daemon dừng êm nhưng job đã `cancelRequested`), `no_result`
+    (không có message `result`, ví dụ runner ném lỗi hay tiến trình chết), hay `background_tasks` (còn tác vụ
+    nền lúc đóng, kể cả sau khi daemon đã `stopTask` chúng) — dấu `run_started` ghi ở bước 3 chỉ còn sống nếu
+    daemon chết trước khi tới được đây. `buildRunTrace()` (`run-trace.ts`)
     dựng `RunTrace` từ `result.capture` (scrub credential trước, rồi cắt tin nhắn cuối còn 1500 ký tự) và được
     lưu vào cột `run_trace` của job (flow `daemon-runtime`) bất kể lượt chạy thành hay bại, để mọi lượt sau vẫn
-    thấy chẩn đoán lượt trước. `afterRun()` của role planner trả `comments` (đăng trước khi kết thúc), `block`
+    thấy chẩn đoán lượt trước. Daemon dừng nhẹ nhàng giữa lượt (`result.aborted`, không `cancelRequested`,
+    `stopping()`): job re-queue với `resumeMode: 'restart_fresh'` (luôn vậy — `restart_resume` không còn được
+    ghi mới, chỉ còn trên hàng cũ) và `runTrace` của lượt vừa bị dừng được lưu lại ngay, để lần chạy sau của
+    chính job này (phiên mới, không resume — `StateDb.resumeChoice()`, flow `daemon-runtime`) tóm tắt đúng
+    lượt đó (`freshSessionNote()`, flow `agent-roles`); nhánh này trả về trước khi tới `afterRun()`. `afterRun()`
+    của role planner trả `comments` (đăng trước khi kết thúc), `block`
     (chuyển ticket `blocked`) và `status` tuỳ chỉnh (mặc định
     `done`); job hủy hoặc `aborted` → `finish(status: 'cancelled')`; lỗi API thuộc lớp backoff
     (`retry-classifier.ts` → `classifyRetry()`: `rate_limit`/`overloaded`/`billing_error`/`account_on_hold`,
@@ -231,11 +257,11 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/daemon/src/runner/job-runner.ts` | Chạy một job từ đầu đến cuối | `JobRunner`, `defaultPlanner`, `chooseModel`, `crashText`, `RolePlanner`, `PlannerContext`, `PlannedRun`, `AfterRunDecision` |
+| `apps/daemon/src/runner/job-runner.ts` | Chạy một job từ đầu đến cuối | `JobRunner`, `defaultPlanner`, `chooseModel`, `abandonReason`, `crashText`, `RolePlanner`, `PlannerContext`, `PlannedRun`, `AfterRunDecision` |
 | `apps/daemon/src/runner/agent-runner.ts` | Runner SDK thật | `createSdkRunner`, `createPromptStream`, `PromptStream`, `RunControl`, `agentEnv`, `AgentRunResult` |
 | `apps/daemon/src/runner/background-session.ts` | Máy trạng thái phiên: chờ tác vụ nền, nhắc một lần, dừng rồi đóng — dùng chung bởi runner thật và runner kịch bản | `BackgroundSession`, `SessionPort`, `BackgroundTask`, `CloseReason`, `reminderText` |
 | `apps/daemon/src/runner/scripted-runner.ts` | Runner kịch bản YAML cho test | `createScriptedRunner`, `Script`, `ScriptedCrash` |
-| `apps/daemon/src/runner/run-trace.ts` | Thu và dựng chẩn đoán một lượt chạy | `RunCapture`, `recordTool`, `buildRunTrace`, `RunTrace`, `traceMarkdown`, `traceSummary` |
+| `apps/daemon/src/runner/run-trace.ts` | Thu và dựng chẩn đoán một lượt chạy; tóm tắt phiên mới sau một lượt bị dừng | `RunCapture`, `recordTool`, `buildRunTrace`, `RunTrace`, `traceMarkdown`, `traceSummary`, `freshSessionNote`, `FRESH_SESSION_TITLE` |
 | `apps/daemon/src/runner/guard-hook.ts` | Chặn ghi/Bash ngoài phạm vi | `evaluateToolCall`, `createGuardHook`, `isDocsPath`, `isProtectedPath` |
 | `apps/daemon/src/runner/skill-usage.ts` | Skill/MCP dùng trong run, từ tool log | `skillsInvoked`, `mcpServersUsed`, `mcpToolPrefix`, `slashCommandsIn` |
 | `apps/daemon/src/runner/retry-classifier.ts` | Phân loại lỗi API thành backoff/blocked | `classifyRetry`, `isBackoffError`, `BACKOFF_ERRORS` |
@@ -259,9 +285,10 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
 ## Flow liên quan
 
 - daemon-scheduling: `Scheduler.launch()` gọi `JobRunner.launch()`.
-- daemon-runtime: `JobRunner` được tạo trong `createDaemon()`; chi phí và trạng thái job đọc/ghi
-  `state-db.ts`; `JobRunner.execute()` truyền `config.backgroundWaitMinutes` (khóa cục bộ, mặc định 30 phút,
-  flow đó) xuống runner làm `backgroundWaitMs` của bước 4.
+- daemon-runtime: `JobRunner` được tạo trong `createDaemon()`; chi phí, trạng thái và dấu `sessionAbandoned`
+  của job đọc/ghi `state-db.ts`; `JobRunner.execute()` truyền `config.backgroundWaitMinutes` (khóa cục bộ, mặc
+  định 30 phút, flow đó) xuống runner làm `backgroundWaitMs` của bước 4; `defaultPlanner` gọi
+  `StateDb.resumeChoice()` (flow đó) để quyết định phiên resume hay mở mới, giống `rolePlanner`.
 - agent-workspace: `workspace()`/`releaseWorkspace()` dùng `ensureWorktree`/`removeWorktree`;
   `probeInventory()` cấp danh sách skill/MCP cho `allowedToolsFor()`.
 - resource-hygiene: mỗi lần job kết thúc, `JobRunner.cleanup()` gọi `cleanupJob()`; PM dùng
@@ -278,20 +305,35 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
 
 - `apps/daemon/test/daemon.test.ts`: dừng đúng tiến trình job khi kết thúc mà không đụng tiến trình không
   gắn thẻ; sống sót qua crash giữa run (không mất sự kiện, một job hoạt động mỗi ticket, không tạo bản ghi
-  trùng); job QC bắt đầu ngay sau `dependency.resolved` và resume session khi chủ dự án bình luận; run bị rate
+  trùng) — job crash chạy lại đúng job đó ở **phiên mới** (`resumeSessionId` null, `sessionAbandoned`/
+  `resumeMode` được dọn về `null` khi xong), prompt chứa `FRESH_SESSION_TITLE` cộng lý do bằng lời và trích
+  bình luận cũ của ticket như dữ liệu không tin cậy, không làm lại bước đã xong; job QC bắt đầu ngay sau
+  `dependency.resolved` và resume session khi chủ dự án bình luận (phiên sạch); run bị rate
   limit tạm dừng ở backoff với `retry_at` tăng dần rồi `blocked` sau 4 lần; job đang chạy bị hủy khi ticket bị
-  hủy và worktree được gỡ; job được re-queue khi daemon dừng nhẹ nhàng và resume ở lần chạy sau (dừng xong
-  không còn thư mục tạm nào, gốc thư mục tạm rỗng cũng bị xóa); một job crash
+  hủy và worktree được gỡ; job được re-queue khi daemon dừng nhẹ nhàng (`sessionAbandoned: 'daemon_stopped'`,
+  `run_trace` của lượt bị dừng được giữ lại) rồi lần khởi động sau chạy lại đúng job đó ở **phiên mới** kèm
+  tóm tắt lượt bị dừng, không còn resume (dừng xong không còn thư mục tạm nào, gốc thư mục tạm rỗng cũng bị
+  xóa); một job crash
   trước khi agent chạy xong (lỗi khi chuẩn bị) đăng bình luận lỗi, chuyển ticket `blocked`, báo qua
   `failedJobs` trong heartbeat tới khi owner mở chặn cho job mới chạy xong; một ticket dev cũ chưa có
   `complexity` (tạo trước khi bắt buộc đánh giá) đi qua đúng đường crash này với `MissingComplexityError` thay
   vì tự chọn model mặc định, bình luận lỗi hướng PM dùng `rate_subtask`; PM đánh giá ticket đó xong (`rateSubtask()`)
-  thì ticket tự chạy lại (không cần owner mở chặn) trên model theo mức mới. Nhóm "background tasks (scripted
+  thì ticket tự chạy lại (không cần owner mở chặn) trên model theo mức mới. Nhóm "abandoned sessions": một
+  lượt còn tác vụ nền lúc đóng (`ask_owner` sau `bgBash`) để lại `sessionAbandoned: 'background_tasks'`; lượt
+  trả lời của chủ dự án sau đó chạy ở job mới, phiên mới, prompt trích đúng `run_trace` (tin nhắn cuối) của
+  lượt bị bỏ dở; một phiên sạch (`ask_owner` rồi 4 lần backoff `rate_limit` rồi mở chặn) resume đúng một
+  session suốt 6 lượt, không prompt nào chứa `FRESH_SESSION_TITLE`; runner ném lỗi không có `result` đánh dấu
+  `sessionAbandoned: 'no_result'`, ticket bị chặn rồi mở chặn chạy phiên mới kèm tóm tắt; thử lại `no_handoff`
+  trên phiên sạch resume không cảnh báo preflight (đã làm ở lượt trước trong cùng phiên), ticket bị chặn rồi
+  mở chặn chạy phiên mới (một `ticket.unblocked`, lỗi gần nhất là `no_handoff`) không preflight riêng nên bị
+  cảnh báo skill/MCP đúng một lần ở lượt thử lại kế tiếp của phiên đó. Nhóm "background tasks (scripted
   runner)" (daemon thật + `createScriptedRunner()`, trần chờ nhỏ qua `config.backgroundWaitMinutes` của
   `makeDaemon` khi cần): một lệnh `bgBash` sống qua ranh giới lượt rồi kết thúc job đúng lúc, agent được thông
   báo và làm tiếp trong **cùng một job** (một job, không retry); một lệnh không bao giờ xong với trần chờ ~60ms
   khiến daemon nhắc đúng một lần rồi kết thúc job không treo, tiến trình (`job.pgid`) không còn sống sau đó;
-  `ask_owner`, `handoff_docs`, huỷ ticket, lỗi `error_max_budget_usd` và dừng êm daemon đều kết thúc/re-queue
+  `ask_owner`, `handoff_docs`, huỷ ticket (còn tác vụ nền vẫn sống thì đánh dấu `sessionAbandoned: 'aborted'`,
+  không job nào sau đó resume lại được — `resumeChoice()`/`resumableSession()` đều trả `null`), lỗi
+  `error_max_budget_usd` và dừng êm daemon đều kết thúc/re-queue
   job đúng như trước dù có một lệnh nền `sleep 999999` còn sống lúc đó, và không còn tiến trình nào gắn
   `CREW_JOB_ID` của job sau đó (`noTaggedProcessLeft()` dùng `ResourceTracker` như `resources.test.ts`); QC
   `update_status: done` trong khi "dev server" mô phỏng (`bgBash`) còn sống kết thúc job ngay qua `workDone()`
@@ -366,4 +408,14 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   tương đối; hiện rõ khi không có kết quả/tin nhắn/tool nào; `decideFailure()` (flow `agent-roles`) nối đúng
   khối chẩn đoán vào cả bình luận thử lại và bình luận chặn; `failedJobText()` cho đúng dòng heartbeat (lý do
   bằng lời cộng chẩn đoán, tối đa 500 ký tự); cột `run_trace` được lưu trên `jobs` và được `StateDb.migrate()`
-  thêm vào một state DB cũ còn thiếu cột.
+  thêm vào một state DB cũ còn thiếu cột. Nhóm "state db": `StateDb.migrate()` cũng thêm cột
+  `session_abandoned` vào một state DB cũ thiếu cột đó — job cũ đọc ra `sessionAbandoned: null` (phiên sạch),
+  `abandonedBy()` không thấy gì và `resumableSession()` vẫn resume, tới khi job được đánh dấu thì
+  `resumableSession()` mới trả `null`. Nhóm "summary of a cut-short run for a fresh session":
+  `freshSessionNote()` mở bằng `FRESH_SESSION_TITLE`, nêu đây là phiên mới, giai đoạn và lý do lượt trước
+  dừng (theo `sessionAbandoned`, hay suy luận từ `error`/`resumeMode` trên hàng cũ không có dấu), yêu cầu
+  `git status`/`get_ticket` trước và không tạo lại ticket/bình luận/report đã có, kèm `traceMarkdown()` của
+  `run_trace` lượt đó (hiện rõ khi không có); mọi văn bản chủ dự án không viết (trace, danh sách ticket con,
+  bình luận agent/system, report) được bọc `<untrusted-data>` với delimiter bên trong đã vô hiệu hoá, còn
+  bình luận của chủ dự án giữ nguyên văn không bọc; mọi văn bản đi qua `scrubSecrets()` trước khi cắt, không
+  lộ credential.

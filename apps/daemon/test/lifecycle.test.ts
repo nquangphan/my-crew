@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { events, ticketReports, tickets } from '../../api/src/db/schema.js';
 import { isDocsPath } from '../src/runner/guard-hook.js';
+import { FRESH_SESSION_TITLE } from '../src/runner/run-trace.js';
 import { commentsOf, RATED, useApi } from './helpers/api.js';
 import { git } from './helpers/git.js';
 import { type LifecycleResult, loadScenario, runScenario, stuckTickets } from './helpers/lifecycle.js';
@@ -312,7 +313,26 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(children.map((c) => c.title).sort()).toEqual(['QC: Trang liên hệ', 'Trang liên hệ']);
     const analyze = jobsOf(r, pm.id).filter((j) => j.stage === 'pm_analyze');
     expect(analyze).toHaveLength(1);
-    expect(analyze[0]?.resumeMode).toBe('restart_resume');
+    // The same analyze job ran again after the crash, in a fresh session (never resuming the one the crash
+    // cut short) whose prompt summarizes the interrupted run; it ended clean.
+    const runs = r.runs.filter((run) => run.jobId === analyze[0]?.id);
+    expect(runs).toHaveLength(2);
+    expect(runs[1]?.resumeSessionId).toBeNull();
+    expect(runs[1]?.prompt).toContain(FRESH_SESSION_TITLE);
+    expect(runs[1]?.prompt).toContain('daemon tắt đột ngột giữa lượt chạy');
+    expect(runs[1]?.prompt).toContain('git status');
+    expect(runs[0]?.prompt).not.toContain(FRESH_SESSION_TITLE);
+    expect(analyze[0]).toMatchObject({ status: 'done', resumeMode: null, sessionAbandoned: null });
+    // No duplicate records: each PM comment once, no capability warning (the fresh session redid its
+    // preflight).
+    const bodies = (await commentsOf(api.db, pm.id)).map((c) => c.body);
+    for (const body of [
+      'Yêu cầu chi tiết: mục tiêu, phạm vi, tiêu chí nghiệm thu.',
+      'Requirement confirmed',
+    ]) {
+      expect(bodies.filter((b) => b === body)).toHaveLength(1);
+    }
+    expect(bodies.some((b) => b.includes('Cảnh báo skill/MCP'))).toBe(false);
   },
 
   async 'backoff-resume'(r) {

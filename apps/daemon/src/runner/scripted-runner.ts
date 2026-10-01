@@ -9,7 +9,7 @@ import { mcpToolPrefix } from '../runner/skill-usage.js';
 import { TICKET_SERVER } from '../tools/tool-scopes.js';
 import { type AgentRunner, type AgentRunResult, emptyResult, type RunAgentOptions } from './agent-runner.js';
 import { BackgroundSession, type BackgroundTaskPayload } from './background-session.js';
-import { recordTool } from './run-trace.js';
+import { FRESH_SESSION_TITLE, recordTool } from './run-trace.js';
 
 const Step = z.union([
   z.object({ tool: z.string().min(1), input: z.record(z.string(), z.unknown()).default({}) }).strict(),
@@ -65,7 +65,10 @@ export class ScriptedCrash extends Error {
 export interface ScriptedRunnerOptions {
   /** The script for a run (YAML text or a parsed script), e.g. chosen by ticket, role and trigger. */
   script: (run: RunAgentOptions) => string | ScriptInput | Promise<string | ScriptInput>;
-  /** Where fake sessions keep their progress, so `resume` continues after the last completed step. */
+  /**
+   * Where fake sessions keep their cost and jobs their progress, so a job run again continues after its
+   * last completed step (see `readProgress`).
+   */
   sessionsDir: string;
   /**
    * Fills in a step's input right before it runs (e.g. the id of a ticket an earlier step created). Tool
@@ -81,24 +84,44 @@ function loadScript(source: string | ScriptInput): Script {
   return Script.parse(typeof source === 'string' ? (parse(source) ?? {}) : source);
 }
 
-/**
- * A fake session: its cumulative cost, and per job how many steps completed. Resuming the same job (after
- * a restart) continues after its last completed step; a new job on the session (a new prompt) starts over.
- */
+/** A fake session: its cumulative cost (like the SDK, a resumed session's total includes earlier spend). */
 interface SessionState {
   costUsd: number;
-  completed: Record<string, number>;
 }
 
 function readSession(dir: string, id: string): SessionState {
   const file = join(dir, `${id}.json`);
-  if (!existsSync(file)) return { costUsd: 0, completed: {} };
-  return JSON.parse(readFileSync(file, 'utf8')) as SessionState;
+  if (!existsSync(file)) return { costUsd: 0 };
+  return { costUsd: (JSON.parse(readFileSync(file, 'utf8')) as SessionState).costUsd };
 }
 
 function writeSession(dir: string, id: string, state: SessionState): void {
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, `${id}.json`), JSON.stringify(state));
+}
+
+/**
+ * How many steps a job's runs completed, kept per job rather than per session: a job run again after its
+ * earlier run was cut short (a backoff, a daemon stop or crash) carries on after its last completed step —
+ * by resuming its session, or in a fresh session whose prompt summarizes the cut-short run and tells the
+ * agent to check `git status` and the ticket first (`FRESH_SESSION_TITLE`), which is what a real agent does
+ * then. Without either, the fake agent knows nothing of the earlier run and starts over; a new job (a new
+ * prompt) always starts over.
+ */
+function progressFile(dir: string, jobId: string): string {
+  return join(dir, 'jobs', `${jobId}.json`);
+}
+
+function readProgress(dir: string, jobId: string): number {
+  const file = progressFile(dir, jobId);
+  if (!existsSync(file)) return 0;
+  return (JSON.parse(readFileSync(file, 'utf8')) as { completed: number }).completed;
+}
+
+function writeProgress(dir: string, jobId: string, completed: number): void {
+  const file = progressFile(dir, jobId);
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify({ completed }));
 }
 
 const sleep = (ms: number, signal: AbortSignal) =>
@@ -144,9 +167,7 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
     const result: AgentRunResult = emptyResult();
     let turns = 0;
     const sessionId = run.resumeSessionId ?? `scripted-${randomUUID()}`;
-    const session = run.resumeSessionId
-      ? readSession(options.sessionsDir, sessionId)
-      : { costUsd: 0, completed: {} };
+    const session = run.resumeSessionId ? readSession(options.sessionsDir, sessionId) : { costUsd: 0 };
     result.sessionId = sessionId;
     result.skillsListed = script.skills;
     result.mcpServers = script.mcpServers;
@@ -237,7 +258,70 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
       ...(run.workDone ? { workDone: run.workDone } : {}),
     });
 
-    let index = session.completed[run.jobId] ?? 0;
+    /** One tool call of a step, through the guard hook, the tool log and the ticket tools like a real run. */
+    const callTool = async (step: ScriptStep, index: number): Promise<void> => {
+      const planned = toolCall(step);
+      if (!planned) return;
+      const call = options.resolve
+        ? { tool: planned.tool, input: await options.resolve(planned.input, run) }
+        : planned;
+      turns++;
+      recordTool(result.capture, call.tool, call.input, run.cwd);
+      const hookInput: PreToolUseHookInput = {
+        hook_event_name: 'PreToolUse',
+        session_id: sessionId,
+        transcript_path: '',
+        cwd: run.cwd,
+        tool_name: call.tool,
+        tool_input: call.input,
+        tool_use_id: `${sessionId}-${index}`,
+      };
+      const verdict = await run.preToolUse(hookInput, hookInput.tool_use_id, { signal: run.abortSignal });
+      const denied =
+        'hookSpecificOutput' in verdict &&
+        verdict.hookSpecificOutput?.hookEventName === 'PreToolUse' &&
+        verdict.hookSpecificOutput.permissionDecision === 'deny';
+      const allowed = run.allowedTools.some(
+        (pattern) =>
+          pattern === call.tool || (pattern.endsWith('*') && call.tool.startsWith(pattern.slice(0, -1))),
+      );
+      if (denied || !allowed) return;
+      if (call.tool === 'Bash') {
+        if ('bgBash' in step) {
+          startBg(step.bgBash.id, String(call.input.command));
+        } else {
+          const pid = await runBash(
+            run,
+            String(call.input.command),
+            'bash' in step ? step.timeoutMs : undefined,
+          );
+          noteSpawn(pid);
+        }
+      } else if (call.tool === 'Write') {
+        const target = resolve(run.cwd, String(call.input.file_path));
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, String(call.input.content));
+      } else if (call.tool === 'Edit') {
+        applyEdit(run.cwd, call.input);
+      } else if (call.tool.startsWith(ticketPrefix)) {
+        const name = call.tool.slice(ticketPrefix.length);
+        const definition = run.ticketTools.find((tool) => tool.name === name);
+        if (definition) await definition.handler(z.object(definition.inputSchema).parse(call.input), {});
+      }
+    };
+
+    const carriesOn = Boolean(run.resumeSessionId) || run.prompt.includes(FRESH_SESSION_TITLE);
+    let index = carriesOn ? readProgress(options.sessionsDir, run.jobId) : 0;
+    // A fresh session carrying on a cut-short run first does its capability preflight again (the prompt asks
+    // every session for one), then continues after the last completed step.
+    if (index > 0 && !run.resumeSessionId) {
+      for (const [at, step] of script.steps.slice(0, index).entries()) {
+        const preflight =
+          'skill' in step ||
+          ('tool' in step && (step.tool === 'Skill' || step.tool === `${ticketPrefix}select_capabilities`));
+        if (preflight) await callTool(step, at);
+      }
+    }
     outer: for (;;) {
       let turnIsError = false;
       for (; index < script.steps.length; index++) {
@@ -248,8 +332,7 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
         const step = script.steps[index] as ScriptStep;
         if ('crash' in step) throw new ScriptedCrash();
         if ('endTurn' in step) {
-          session.completed[run.jobId] = index + 1;
-          writeSession(options.sessionsDir, sessionId, session);
+          writeProgress(options.sessionsDir, run.jobId, index + 1);
           index++;
           break;
         }
@@ -279,59 +362,9 @@ export function createScriptedRunner(options: ScriptedRunnerOptions): AgentRunne
           turnIsError = true;
           break;
         } else {
-          const planned = toolCall(step);
-          if (!planned) continue;
-          const call = options.resolve
-            ? { tool: planned.tool, input: await options.resolve(planned.input, run) }
-            : planned;
-          turns++;
-          recordTool(result.capture, call.tool, call.input, run.cwd);
-          const hookInput: PreToolUseHookInput = {
-            hook_event_name: 'PreToolUse',
-            session_id: sessionId,
-            transcript_path: '',
-            cwd: run.cwd,
-            tool_name: call.tool,
-            tool_input: call.input,
-            tool_use_id: `${sessionId}-${index}`,
-          };
-          const verdict = await run.preToolUse(hookInput, hookInput.tool_use_id, { signal: run.abortSignal });
-          const denied =
-            'hookSpecificOutput' in verdict &&
-            verdict.hookSpecificOutput?.hookEventName === 'PreToolUse' &&
-            verdict.hookSpecificOutput.permissionDecision === 'deny';
-          const allowed = run.allowedTools.some(
-            (pattern) =>
-              pattern === call.tool || (pattern.endsWith('*') && call.tool.startsWith(pattern.slice(0, -1))),
-          );
-          if (!denied && allowed) {
-            if (call.tool === 'Bash') {
-              if ('bgBash' in step) {
-                startBg(step.bgBash.id, String(call.input.command));
-              } else {
-                const pid = await runBash(
-                  run,
-                  String(call.input.command),
-                  'bash' in step ? step.timeoutMs : undefined,
-                );
-                noteSpawn(pid);
-              }
-            } else if (call.tool === 'Write') {
-              const target = resolve(run.cwd, String(call.input.file_path));
-              mkdirSync(dirname(target), { recursive: true });
-              writeFileSync(target, String(call.input.content));
-            } else if (call.tool === 'Edit') {
-              applyEdit(run.cwd, call.input);
-            } else if (call.tool.startsWith(ticketPrefix)) {
-              const name = call.tool.slice(ticketPrefix.length);
-              const definition = run.ticketTools.find((tool) => tool.name === name);
-              if (definition)
-                await definition.handler(z.object(definition.inputSchema).parse(call.input), {});
-            }
-          }
+          await callTool(step, index);
         }
-        session.completed[run.jobId] = index + 1;
-        writeSession(options.sessionsDir, sessionId, session);
+        writeProgress(options.sessionsDir, run.jobId, index + 1);
         if (run.control.endReason) {
           index++;
           break;

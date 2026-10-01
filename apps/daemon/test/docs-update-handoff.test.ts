@@ -86,6 +86,35 @@ describe('docs-update handoff', () => {
     expect(again.comment).toContain(`${MAX_ATTEMPTS}/${MAX_ATTEMPTS}`);
   });
 
+  it('retries in a fresh session when the failed run left its session abandoned', () => {
+    const state = new StateDb(':memory:');
+    const failed = state.insertJob({
+      ticketId: 't',
+      projectId: null,
+      role: 'dev',
+      trigger: 'ticket.assigned',
+    });
+    const row = state.updateJob(failed.id, {
+      status: 'failed',
+      sessionId: 's-dev',
+      sessionAbandoned: 'background_tasks',
+    });
+    const resumable = (sessionId: string | null) =>
+      state.resumeChoice('t', sessionId, { trigger: 'retry:no_handoff' }).sessionId;
+    expect(decideFailure({ job: row, reason: 'no_handoff', costUsd: 0, resumable })).toMatchObject({
+      action: 'retry',
+      followUp: { kind: 'agent', sessionId: null },
+    });
+    // A docs rejection goes back to the dev session only if no run left it abandoned.
+    const docs = job({ kind: 'docs_update', sessionId: 's-docs' });
+    expect(
+      decideFailure({ job: docs, reason: 'docs_rejected', costUsd: 0, devSessionId: 's-dev', resumable }),
+    ).toMatchObject({ followUp: { kind: 'agent', sessionId: null } });
+    expect(
+      decideFailure({ job: docs, reason: 'docs_rejected', costUsd: 0, devSessionId: 's-other', resumable }),
+    ).toMatchObject({ followUp: { kind: 'agent', sessionId: 's-other' } });
+  });
+
   it('blocks at once on the job budget and retries other failures once', () => {
     expect(decideFailure({ job: job(), reason: 'budget', costUsd: 5 }).action).toBe('block');
     const retry = decideFailure({ job: job(), reason: 'no_handoff', costUsd: 0.2 });

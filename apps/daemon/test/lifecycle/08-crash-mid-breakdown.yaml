@@ -1,7 +1,8 @@
 name: crash-mid-breakdown
 description: >-
   The daemon dies right after the PM created the dev subtask and before its QC; after the restart the same
-  analyze job resumes its session and creates only the missing QC ticket (no duplicate subtasks).
+  analyze job runs in a fresh session with a summary of the cut-short run and creates only the missing QC
+  ticket (no duplicate subtasks).
 project:
   platform: backend
 request:

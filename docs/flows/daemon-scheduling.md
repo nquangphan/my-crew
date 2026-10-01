@@ -31,7 +31,12 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
    kiện vào job đó (`absorbed`); nếu job đang `running` thì ghi vào `pending_wakeups` (`folded`) chờ job kết
    thúc. Một job mới (không phải `ticket.assigned`) resume đúng loại job (`resumeKind()`): job cuối là
    `docs_init` thì tiếp tục `docs_init`; job cuối là `docs_update` từng `ask_owner` thì tiếp tục `docs_update`
-   (câu trả lời của chủ dự án thuộc phiên đó); còn lại resume phiên `agent` (dev/PM/QC/assistant). `ticket.cancelled`
+   (câu trả lời của chủ dự án thuộc phiên đó); còn lại resume phiên `agent` (dev/PM/QC/assistant) — phiên mới
+   nhất của loại đó chỉ được gán làm `sessionId` của job mới khi `StateDb.resumableSession(ticketId, kind,
+   payload.type)` (flow `daemon-runtime`) đồng ý; một phiên bị một lượt trước đánh dấu bỏ dở, hay một
+   `ticket.unblocked` sau lỗi `no_handoff`/`not_finished` gần nhất của ticket, làm hàm đó trả `null` — job mới
+   tạo thẳng với `sessionId: null`, và `role-planner.ts`/`defaultPlanner` (flow `agent-runs`) tính lại đúng
+   quyết định này ngay trước khi job chạy để thêm tóm tắt lượt bị bỏ dở vào prompt. `ticket.cancelled`
    hủy job `queued`/`backoff` ngay hoặc đánh dấu `cancelRequested` cho job `running`. `claim.changed` và
    `project.change_decided` (owner duyệt/từ chối máy tự đổi `platform`/`uiTestMcp`, flow `project-claims`) đều
    trả effect `refresh_projects` (không sinh job). `settings.changed` (một bản cài đặt server mới áp dụng cho
@@ -50,11 +55,13 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
    `agent-roles`).
 4. `apps/daemon/src/stream/dispatcher.ts` → `foldWakeups()`: gọi trong transaction kết thúc job, gộp mọi
    `pending_wakeups` của ticket thành đúng một job tiếp theo (hoặc nối vào job vừa được tạo trong cùng
-   transaction, ví dụ job docs sau khi dev handoff).
+   transaction, ví dụ job docs sau khi dev handoff) — `sessionId` của job gộp cũng qua
+   `StateDb.resumableSession(ticketId, 'agent', 'wakeup')` như trên.
 5. `apps/daemon/src/stream/dispatcher.ts` → `wakeTicket()`: đánh thức nội bộ của daemon, không tới từ sự kiện
    VPS (ví dụ PM sau khi một subtask để lại tài nguyên, `wakePmForLeftovers()` ở flow `daemon-runtime`); áp
    đúng luật một-job-mỗi-ticket như `dispatchEvent()` (`folded`/`absorbed`/`enqueued`), gọi trong cùng
-   transaction state.
+   transaction state; cũng qua `resumableSession(ticketId, 'agent', input.trigger)` để không resume một phiên
+   bị đánh dấu bỏ dở.
 6. `apps/daemon/src/daemon.ts` → `onEffect()`/`releaseLostProjects()`: sau effect `refresh_projects`, daemon
    gọi `refreshProjects()` rồi `releaseLostProjects()` — job (`running`/`queued`/`backoff`) của project không
    còn thuộc máy này bị hủy (`running`) hoặc chuyển `skipped` (`queued`/`backoff`); ghi ở flow `daemon-runtime`.
@@ -106,7 +113,9 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
 ## Flow liên quan
 
 - daemon-runtime: `StreamClient` và `Scheduler` được tạo trong `createDaemon()`; `decide()` và
-  `releaseLostProjects()` sống trong `daemon.ts`.
+  `releaseLostProjects()` sống trong `daemon.ts`; `dispatchEvent()`/`foldWakeups()`/`wakeTicket()` đều gọi
+  `StateDb.resumableSession()` (dựa trên `StateDb.resumeChoice()`, điểm quyết định phiên resume hay mở mới
+  duy nhất, sở hữu bởi flow đó).
 - agent-runs: `Scheduler.launch()` gọi `JobRunner.launch()` khi một job được phép chạy.
 - agent-roles: `resumeKind()` resume đúng loại job (`docs_init`/`docs_update`/`agent`) khi một sự kiện của chủ
   dự án tạo job mới; `wakeTicket()` được `wakePmForLeftovers()` (flow `daemon-runtime`) gọi.
@@ -137,7 +146,15 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
   đều trả effect `runtime_changed`. `ticket.pm_mentioned` (tag `@pm`)
   đánh thức đúng job PM của pm_task (không sinh job nào cho ticket được tag), được `absorbed`/`folded` như mọi
   wake event khác, và mỗi lời gọi được `pmMentions()` đọc lại đúng dù job hấp thụ, gộp follow-up hay bị phát lại
-  (ghi một lần nhờ khoá `event_id`).
+  (ghi một lần nhờ khoá `event_id`). Nhóm "choosing the session a next run resumes": với mọi `AbandonReason`
+  (flow `daemon-runtime`), một job đã đánh dấu bỏ dở không được resume qua bất kỳ đường nào trong ba đường
+  của dispatcher (`dispatchEvent()` cho một sự kiện chủ dự án, job gộp của `foldWakeups()`, và
+  `wakeTicket()` nội bộ) lẫn `resumeChoice()` gọi trực tiếp như `role-planner.ts` sẽ gọi trước khi job chạy;
+  một phiên sạch vẫn resume bình thường (bình luận chủ dự án, một mở chặn sau lỗi đã sạch như `rate_limit` bị
+  chặn ở lần thử thứ 4); một mở chặn (`ticket.unblocked`) sau lỗi gần nhất của ticket là `no_handoff` hay
+  `not_finished` luôn mở phiên mới — kể cả khi có một job `skipped` xen giữa (ticket đã chờ owner) — còn một
+  bình luận thường trên cùng lịch sử đó vẫn resume; job re-queue sau daemon dừng/crash (`resumeMode` đặt,
+  gồm cả hàng cũ còn `restart_resume`) luôn mở phiên mới kèm lượt cần tóm tắt.
 - `apps/daemon/test/scheduler.test.ts`: công thức slot `min(maxConcurrentJobs, floor(cpus/2))` và 0 khi máy
   bận; PM/assistant có thêm một slot dự phòng; `runnableJobs()` liệt kê đúng job `queued` không chờ dependency
   và `backoff` đã tới hạn; `Scheduler` chạy tối đa `maxConcurrentJobs` job dev độc lập cùng lúc; job chờ
