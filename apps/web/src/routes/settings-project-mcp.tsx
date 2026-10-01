@@ -89,7 +89,9 @@ function ProjectMcpEditor({ overview, project }: { overview: SettingsOverviewRes
                   {status ?? 'máy không còn báo server này'}
                 </span>
                 {required.has(name) && (
-                  <span className="text-xs text-warn-ink">QC bắt buộc dùng cho loại dự án này</span>
+                  <span className="text-xs text-warn-ink">
+                    QC dùng server này khi PM chọn kiểm thử UI cho loại dự án này
+                  </span>
                 )}
               </label>
             </li>

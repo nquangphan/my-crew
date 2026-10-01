@@ -155,10 +155,14 @@ bộ vì nó chạy như một shell command trên chính máy đó.
     `settings-project-mcp.tsx`: sidebar "Cài đặt hệ thống" (`SlidersHorizontal`, flow `web-shell`) dẫn 5 tab —
     Prompts (danh sách 9 prompt, mở từng cái ở `/settings/prompts/$name`: `MarkdownEditor` có preview, hộp trợ
     giúp biến/phần chung, so sánh với bản đang dùng hoặc bản mặc định), Quy tắc (ba ô textarea mỗi dòng một
-    glob cộng checkbox `qcUiTestOnlyForNonDocs`), Models (bảng model + ngân sách mỗi lượt chạy chung cho mọi
-    máy), Máy (`/settings/machines/$machineId`: tài nguyên, bảng model/ngân sách riêng máy đó hoặc dùng chung),
-    MCP dự án (`/settings/projects/$projectKey`: công tắc MCP server máy sở hữu đã báo cáo, server QC bắt buộc
-    được đánh dấu, thêm server theo tên khi máy chưa báo cáo nó). Tab Máy có thêm mục "Thư mục dự án"
+    glob cộng checkbox `qcUiTestOnlyForNonDocs` — nhãn "Với QC mà PM đã chọn kiểm thử UI, cờ này chỉ bắt buộc
+    chạy khi thay đổi đụng file ngoài đường dẫn docs": cờ không còn áp dụng cho mọi QC, chỉ QC mà PM đã chọn
+    `testKinds` chứa kiểm thử UI, xem flow `web-tickets`), Models (bảng model + ngân sách mỗi lượt chạy chung
+    cho mọi máy), Máy (`/settings/machines/$machineId`: tài nguyên, bảng model/ngân sách riêng máy đó hoặc dùng
+    chung), MCP dự án (`/settings/projects/$projectKey`: công tắc MCP server máy sở hữu đã báo cáo, server QC
+    của loại dự án được đánh dấu kèm nhãn "QC dùng server này khi PM chọn kiểm thử UI cho loại dự án này" —
+    không còn khẳng định mọi QC bắt buộc dùng, tuỳ PM có chọn kiểm thử UI (`testKinds` chứa `ui_web`/`ui_mobile`)
+    cho ticket đó hay không, thêm server theo tên khi máy chưa báo cáo nó). Tab Máy có thêm mục "Thư mục dự án"
     (`MachineFolders`): một dòng mỗi project máy đang giữ (đường dẫn tuyệt đối trên máy, danh sách thư mục dùng
     chung mỗi dòng một đường dẫn) — dòng nào máy báo không dùng được (đọc `machine.settings.reported.rejected`,
     tách tiền tố `project_folder:`) hiện lý do ngay tại chỗ; lưu ghi cả danh sách project của máy đó thành một
