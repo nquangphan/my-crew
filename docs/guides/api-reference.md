@@ -161,6 +161,7 @@ mutating (`GET` không cần CSRF, ghi `owner (no CSRF)`); `daemon` = bearer tok
 | PUT | `/v1/daemon/tickets/:id/report` | daemon (`Idempotency-Key`) | Agent nộp report | [daemon-api](../flows/daemon-api.md) |
 | POST | `/v1/daemon/tickets/:id/bugs` | daemon (`Idempotency-Key`) | QC báo lỗi, hoặc PM từ chối việc, tạo ticket `bug` | [daemon-api](../flows/daemon-api.md) |
 | POST | `/v1/daemon/tickets/:id/rate-subtask` | daemon (`Idempotency-Key`) | PM chấm hoặc chấm lại `complexity` một subtask | [daemon-api](../flows/daemon-api.md) |
+| POST | `/v1/daemon/tickets/:id/test-plan` | daemon (`Idempotency-Key`) | PM đổi phương án kiểm thử (`testKinds`/`testReason`) một subtask `qc` | [daemon-api](../flows/daemon-api.md) |
 | POST | `/v1/daemon/tickets/:id/retry-subtask` | daemon (`Idempotency-Key`) | PM mở lại một subtask `blocked` | [daemon-api](../flows/daemon-api.md) |
 | PATCH | `/v1/daemon/tickets/:id/agent-meta` | daemon (`Idempotency-Key`) | Daemon ghi agentSessionId/model/effort/chi phí delta | [daemon-api](../flows/daemon-api.md) |
 

@@ -92,6 +92,7 @@ của mình vào app do flow này dựng lên.
 | `apps/api/drizzle/0009_runtime_releases.sql` | Migration thêm bảng `runtime_releases`/`runtime_bundles` và cột `machines.runtime_state`/`runtime_pinned_version` (flow `runtime-updates`: bản runtime đã ký, ghim máy vào một bản) | — |
 | `apps/api/drizzle/0010_attachments.sql` | Migration thêm bảng `attachments` (flow `ticket-lifecycle`: ảnh dán clipboard vào ticket, nội dung `bytea`, FK `ticket_id`/`owner_id` cascade delete) | — |
 | `apps/api/drizzle/0011_attachments_nullable_ticket_id.sql` | Migration đổi `attachments.ticket_id` thành nullable (flow `ticket-lifecycle`: ảnh nháp dán vào hộp thoại "Tạo ticket" trước khi ticket tồn tại, `POST /v1/attachments`), giữ nguyên FK `ON DELETE cascade` và index, không mất dữ liệu cũ | — |
+| `apps/api/drizzle/0012_qc_test_plan.sql` | Migration thêm cột `tickets.test_kinds` (`text[]`, nullable) và `tickets.test_reason` (`text`, nullable) (flow `ticket-lifecycle`: phương án kiểm thử của ticket `qc`, không đổi dữ liệu hàng cũ) | — |
 | `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, `bmad-schemas.ts` của flow `project-claims`, `secret-scrubber.ts` của flow `agent-runs`, `comment-mentions.ts` của flow `ticket-lifecycle`, và `runtime-schemas.ts` của flow `runtime-updates`) | — |
 
 ## Dữ liệu
@@ -109,11 +110,11 @@ của mình vào app do flow này dựng lên.
 - ticket-lifecycle: `startStuckTicketAlarm()`, `startDraftAttachmentCleanup()` và `WaitingJobsRegistry`
   (`RouteDeps.waitingJobs`) được tạo và khởi động/dừng cùng vòng đời `buildApp()`, cạnh `startHeartbeatSweeper`
   (flow `machine-pairing`); `attachmentRoutes` (nhóm route owner, gồm cả `POST /v1/attachments` ảnh nháp) đăng
-  ký tại `buildApp()`; migration `0010_attachments.sql` (tạo bảng) và `0011_attachments_nullable_ticket_id.sql`
-  (`ticket_id` nullable) chạy qua `runMigrations()` như mọi migration khác; `attachmentRoutes` tự đăng ký thêm
-  một `setErrorHandler` riêng (Fastify cô lập theo `register()`, không ảnh hưởng route khác) bắt riêng
-  `FST_ERR_CTP_BODY_TOO_LARGE` để trả đúng `ATTACHMENT_TOO_LARGE`, còn lại gọi lại `sendApiError()` (bước 6)
-  dùng chung với error handler toàn app.
+  ký tại `buildApp()`; migration `0010_attachments.sql` (tạo bảng), `0011_attachments_nullable_ticket_id.sql`
+  (`ticket_id` nullable) và `0012_qc_test_plan.sql` (cột `tickets.test_kinds`/`tickets.test_reason`) chạy qua
+  `runMigrations()` như mọi migration khác; `attachmentRoutes` tự đăng ký thêm một `setErrorHandler` riêng
+  (Fastify cô lập theo `register()`, không ảnh hưởng route khác) bắt riêng `FST_ERR_CTP_BODY_TOO_LARGE` để trả
+  đúng `ATTACHMENT_TOO_LARGE`, còn lại gọi lại `sendApiError()` (bước 6) dùng chung với error handler toàn app.
 - daemon-api, project-claims, docs-sync-viewer: route của các flow này được đăng ký bên trong `buildApp()`,
   gồm cả `daemonBmadProfileRoutes` (`apps/api/src/routes/bmad-profile-routes.ts`, flow `daemon-api`) trong
   nhóm route daemon.
