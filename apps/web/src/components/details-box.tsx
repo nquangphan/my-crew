@@ -1,4 +1,11 @@
-import type { Machine, Project, Ticket, TicketPriority, TicketStatus } from '@crew/shared';
+import {
+  type Machine,
+  type Project,
+  TEST_KIND_INFO,
+  type Ticket,
+  type TicketPriority,
+  type TicketStatus,
+} from '@crew/shared';
 import { Link } from '@tanstack/react-router';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
@@ -112,6 +119,12 @@ export function DetailsBox(props: DetailsBoxProps) {
           </span>
         )}
       </Item>
+      {ticket.type === 'qc' && ticket.testKinds && (
+        <Item label="Kiểm thử">
+          {ticket.testKinds.map((kind) => TEST_KIND_INFO[kind].label).join(', ')}
+          {ticket.testReason && <span className="block text-xs text-muted">Lý do: {ticket.testReason}</span>}
+        </Item>
+      )}
       <Item label="Skill bắt buộc">
         {ticket.requiredSkills.length > 0 ? (
           <span className="font-mono text-xs">{ticket.requiredSkills.join(', ')}</span>

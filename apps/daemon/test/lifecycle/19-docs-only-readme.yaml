@@ -2,8 +2,9 @@ name: docs-only-readme
 description: >-
   A docs-only subtask: the dev run may not write README.md (the guard denies it), so it hands off at once
   with what to write; the docs_update job writes README.md and commits it alone through the crew-docs
-  hooks; QC of that docs-only diff reviews it statically and closes without the Playwright MCP (not
-  connected on this machine), saying why; PM accept merges and pushes.
+  hooks; QC (planned with ui_web, so the ticket carries Playwright) reviews that docs-only diff statically
+  and closes without the Playwright MCP (not connected on this machine), saying why; PM accept merges and
+  pushes.
 inventory:
   mcpServers: [{ name: playwright, status: failed }]
 request:
@@ -15,7 +16,11 @@ scripts:
   - stage: pm_analyze
     steps:
       - macro: pm_analyze
-        subtasks: [{ title: Viết mục cài đặt trong README, complexity: trivial, qcComplexity: trivial }]
+        subtasks:
+          - title: Viết mục cài đặt trong README
+            complexity: trivial
+            qcComplexity: trivial
+            testKinds: [ui_web]
   - stage: dev
     steps:
       - macro: dev_start

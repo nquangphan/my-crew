@@ -9,6 +9,7 @@ import {
   canTransition,
   type FileBugRequest as FileBugInput,
   FileBugRequest,
+  isTestKindSupported,
   parseMentions,
   qcDefaultMcps,
   type RateSubtaskRequest as RateSubtaskInput,
@@ -17,15 +18,20 @@ import {
   type RetrySubtaskRequest as RetrySubtaskInput,
   RetrySubtaskRequest,
   TERMINAL_STATUSES,
+  type TestKind,
   type Ticket,
   type TicketStatus,
   type TicketType,
+  type UpdateTestPlanRequest as UpdateTestPlanInput,
+  UpdateTestPlanRequest,
   type UpdateTicketRequest as UpdateTicketInput,
   UpdateTicketRequest,
+  uiMcpsForTestKinds,
 } from '@crew/shared';
-import { and, arrayContains, asc, eq, inArray, ne, notInArray, sql } from 'drizzle-orm';
+import { and, arrayContains, asc, eq, inArray, isNull, ne, notInArray, sql } from 'drizzle-orm';
 import type { Executor, Transaction } from '../db/client.js';
 import {
+  attachments,
   type CommentRow,
   comments,
   machines,
@@ -76,6 +82,8 @@ export function toTicketDto(row: TicketRow): Ticket {
     effort: row.effort,
     requiredSkills: row.requiredSkills,
     requiredMcps: row.requiredMcps,
+    testKinds: row.testKinds,
+    testReason: row.testReason,
     dependsOn: row.dependsOn,
     pairsWith: row.pairsWith,
     originDevId: row.originDevId,
@@ -192,8 +200,44 @@ async function insertTicket(tx: Executor, scope: string, values: InsertTicket): 
   return row;
 }
 
-/** Owner creates a request; it is assigned to the machine hosting the assistant, when one is paired. */
-export async function createRequestTicket(db: Executor, input: CreateRequestInput): Promise<Ticket> {
+const ATTACHMENT_ID_RE =
+  /\/v1\/attachments\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/gi;
+
+/** Draft attachment ids referenced by `/v1/attachments/<uuid>` links in a ticket description. */
+function referencedAttachmentIds(description: string): string[] {
+  return [...new Set([...description.matchAll(ATTACHMENT_ID_RE)].map((match) => match[1] as string))];
+}
+
+/**
+ * Claims for `ticketId` the draft attachments (`ticket_id IS NULL`) referenced in `description` that belong
+ * to `ownerId`, in the same transaction as the ticket insert. An id that does not exist, is already claimed
+ * by another ticket, or belongs to another owner is silently skipped — it never fails ticket creation.
+ */
+async function claimDraftAttachments(
+  tx: Executor,
+  ticketId: string,
+  ownerId: string,
+  description: string,
+): Promise<void> {
+  const ids = referencedAttachmentIds(description);
+  if (ids.length === 0) return;
+  await tx
+    .update(attachments)
+    .set({ ticketId })
+    .where(and(inArray(attachments.id, ids), isNull(attachments.ticketId), eq(attachments.ownerId, ownerId)));
+}
+
+/**
+ * Owner creates a request; it is assigned to the machine hosting the assistant, when one is paired.
+ * `ownerId` (the session's owner, when the caller is an owner request) claims for the new ticket any draft
+ * attachment (`POST /v1/attachments`, pasted before the ticket existed) referenced in `description`, in the
+ * same transaction as the ticket insert.
+ */
+export async function createRequestTicket(
+  db: Executor,
+  input: CreateRequestInput,
+  ownerId?: string | null,
+): Promise<Ticket> {
   const data = CreateRequestTicket.parse(input);
   return db.transaction(async (tx) => {
     if (data.projectHintId && !(await findProject(tx, data.projectHintId))) throw notFound('hinted project');
@@ -210,6 +254,7 @@ export async function createRequestTicket(db: Executor, input: CreateRequestInpu
       allowConfigChange: data.allowConfigChange,
       assigneeMachineId: host?.id ?? null,
     });
+    if (ownerId) await claimDraftAttachments(tx, row.id, ownerId, row.description);
     return toTicketDto(row);
   });
 }
@@ -257,7 +302,25 @@ export async function createSubtask(db: Executor, input: CreateSubtaskInput): Pr
         throw new ApiError('VALIDATION_FAILED', 'a qc ticket needs pairsWith (its dev ticket)');
       await assertPairable(tx, parent.id, data.pairsWith);
       if (!dependsOn.includes(data.pairsWith)) dependsOn.push(data.pairsWith);
-      requiredMcps = mergeUnique(requiredMcps, qcDefaultMcps(project.platform, project.uiTestMcp));
+      if (data.testKinds) {
+        assertTestKindsSupported(data.testKinds, project.platform);
+        const uiMcps = uiMcpsForTestKinds(data.testKinds, project.platform, project.uiTestMcp);
+        const projectUiMcps = Object.values(project.uiTestMcp);
+        const mismatched = requiredMcps.filter(
+          (name) => projectUiMcps.includes(name) && !uiMcps.includes(name),
+        );
+        if (mismatched.length > 0) {
+          throw new ApiError(
+            'VALIDATION_FAILED',
+            `requiredMcps có MCP UI (${mismatched.join(', ')}) mà testKinds không có loại kiểm thử UI ` +
+              'tương ứng; testKinds là nguồn sự thật duy nhất cho MCP UI của ticket QC.',
+            { mismatched },
+          );
+        }
+        requiredMcps = mergeUnique(requiredMcps, uiMcps);
+      } else {
+        requiredMcps = mergeUnique(requiredMcps, qcDefaultMcps(project.platform, project.uiTestMcp));
+      }
     } else if (data.pairsWith) {
       throw new ApiError('VALIDATION_FAILED', 'only qc tickets pair with another ticket');
     }
@@ -278,6 +341,8 @@ export async function createSubtask(db: Executor, input: CreateSubtaskInput): Pr
       effort: data.effort ?? null,
       requiredSkills: [...new Set(data.requiredSkills)],
       requiredMcps,
+      testKinds: data.testKinds ?? null,
+      testReason: data.testReason ?? null,
       dependsOn,
       pairsWith: data.pairsWith ?? null,
       originDevId: null,
@@ -289,6 +354,18 @@ export async function createSubtask(db: Executor, input: CreateSubtaskInput): Pr
 }
 
 const mergeUnique = (a: readonly string[], b: readonly string[]) => [...new Set([...a, ...b])];
+
+/** Every UI test kind in `testKinds` must be runnable on `platform` (e.g. no `ui_mobile` on a `web` project). */
+function assertTestKindsSupported(testKinds: readonly TestKind[], platform: ProjectRow['platform']): void {
+  const unsupported = testKinds.filter((kind) => !isTestKindSupported(kind, platform));
+  if (unsupported.length > 0) {
+    throw new ApiError(
+      'VALIDATION_FAILED',
+      `platform '${platform}' của dự án không hỗ trợ loại kiểm thử: ${unsupported.join(', ')}`,
+      { unsupported, platform },
+    );
+  }
+}
 
 async function assertSiblings(tx: Executor, parentId: string, ids: readonly string[]): Promise<void> {
   if (ids.length === 0) return;
@@ -438,7 +515,14 @@ export async function fileBug(
       effort: origin.effort,
       requiredSkills: mergeUnique(verified.requiredSkills, data.requiredSkills),
       requiredMcps: verified.requiredMcps,
+      testKinds: null,
+      testReason: null,
     });
+    // A QC template with its own testKinds already has the right requiredMcps (no UI MCP added twice); a
+    // legacy template (no testKinds) keeps the old behaviour of always adding the platform's default MCPs.
+    const retestRequiredMcps = qcTemplate?.testKinds
+      ? qcTemplate.requiredMcps
+      : mergeUnique(qcTemplate?.requiredMcps ?? [], qcDefaultMcps(project.platform, project.uiTestMcp));
     const retest = await insertTicket(tx, project.key, {
       ...common,
       type: 'qc',
@@ -449,10 +533,9 @@ export async function fileBug(
       model: qcTemplate?.model ?? null,
       effort: qcTemplate?.effort ?? null,
       requiredSkills: qcTemplate?.requiredSkills ?? [],
-      requiredMcps: mergeUnique(
-        qcTemplate?.requiredMcps ?? [],
-        qcDefaultMcps(project.platform, project.uiTestMcp),
-      ),
+      requiredMcps: retestRequiredMcps,
+      testKinds: qcTemplate?.testKinds ?? null,
+      testReason: qcTemplate?.testReason ?? null,
       dependsOn: [bug.id],
       pairsWith: bug.id,
     });
@@ -586,6 +669,67 @@ export async function retrySubtask(
       statusChanged(ticket, 'blocked', 'in_progress'),
       toAssignee(ticket, { type: 'ticket.unblocked', data: { ticketId: ticket.id } }),
     ]);
+    return toTicketDto(row);
+  });
+}
+
+/**
+ * The PM changes an existing qc subtask's test plan (testKinds/testReason) in place: `requiredMcps` is
+ * recomputed from the new plan (the project's own UI-test MCP servers are dropped, then the servers the new
+ * plan implies are added back), same platform-support rule as `createSubtask()`. The ticket's status is
+ * untouched; the owner stream sees `ticket.updated{change: 'fields'}`, like `rateSubtask()`.
+ */
+export async function updateQcTestPlan(
+  db: Executor,
+  pmTaskId: string,
+  input: UpdateTestPlanInput,
+): Promise<Ticket> {
+  const data = UpdateTestPlanRequest.parse(input);
+  return db.transaction(async (tx) => {
+    const pmTask = await lockTicket(tx, pmTaskId);
+    if (pmTask.type !== 'pm_task') {
+      throw new ApiError(
+        'FORBIDDEN',
+        `only the PM changes a QC test plan; ${pmTask.key} is a ${pmTask.type} ticket`,
+      );
+    }
+    const found = await getTicketRow(tx, data.ticket);
+    if (found.parentId !== pmTask.id || found.type !== 'qc') {
+      throw new ApiError(
+        'FORBIDDEN',
+        `${found.key} is not a qc subtask of ${pmTask.key}; the PM changes the test plan only of its own QC ` +
+          'subtasks',
+      );
+    }
+    const ticket = await lockTicket(tx, found.id);
+    if (isTerminal(ticket.status)) {
+      throw new ApiError(
+        'TICKET_CLOSED',
+        `${ticket.key} is ${ticket.status}; only an open QC subtask's test plan is changed`,
+      );
+    }
+    const project = await findProject(tx, ticket.projectId);
+    if (!project) throw new ApiError('INVALID_HIERARCHY', `${ticket.key} has no project`);
+    assertTestKindsSupported(data.testKinds, project.platform);
+    const projectUiMcps = Object.values(project.uiTestMcp);
+    const keptMcps = ticket.requiredMcps.filter((name) => !projectUiMcps.includes(name));
+    const requiredMcps = mergeUnique(
+      keptMcps,
+      uiMcpsForTestKinds(data.testKinds, project.platform, project.uiTestMcp),
+    );
+
+    const [row] = await tx
+      .update(tickets)
+      .set({
+        testKinds: data.testKinds,
+        testReason: data.testReason,
+        requiredMcps,
+        updatedAt: new Date(),
+      })
+      .where(eq(tickets.id, ticket.id))
+      .returning();
+    if (!row) throw new Error('ticket update returned no row');
+    await appendEvents(tx, [ticketUpdated(row, 'fields')]);
     return toTicketDto(row);
   });
 }

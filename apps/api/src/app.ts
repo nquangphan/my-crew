@@ -13,7 +13,7 @@ import { startHeartbeatSweeper } from './jobs/heartbeat-sweeper.js';
 import { startRuntimeImport } from './jobs/runtime-import.js';
 import { startStuckTicketAlarm, WaitingJobsRegistry } from './jobs/stuck-ticket-alarm.js';
 import { EventBus } from './realtime/event-bus.js';
-import { attachmentRoutes } from './routes/attachment-routes.js';
+import { attachmentRoutes, daemonAttachmentRoutes } from './routes/attachment-routes.js';
 import { authRoutes } from './routes/auth-routes.js';
 import { daemonBmadProfileRoutes } from './routes/bmad-profile-routes.js';
 import { commentRoutes } from './routes/comment-routes.js';
@@ -28,6 +28,7 @@ import { daemonRuntimeRoutes, runtimeRoutes } from './routes/runtime-routes.js';
 import { daemonSettingsRoutes, settingsRoutes } from './routes/settings-routes.js';
 import { daemonStreamRoutes, ownerStreamRoutes } from './routes/stream-routes.js';
 import { ticketRoutes } from './routes/ticket-routes.js';
+import { startDraftAttachmentCleanup } from './services/attachment-service.js';
 import { purgeExpiredIdempotencyKeys } from './services/idempotency.js';
 import { trustedRuntimeKeys } from './services/runtime-service.js';
 
@@ -118,6 +119,7 @@ export async function buildApp({
   await app.register(async (daemon) => {
     daemon.addHook('onRequest', machineGuard(db));
     await daemon.register(daemonRoutes, deps);
+    await daemon.register(daemonAttachmentRoutes, deps);
     await daemon.register(daemonDocsRoutes, deps);
     await daemon.register(daemonBmadProfileRoutes, deps);
     await daemon.register(daemonSettingsRoutes, deps);
@@ -129,12 +131,14 @@ export async function buildApp({
   let timer: NodeJS.Timeout | undefined;
   let stopSweeper: (() => void) | undefined;
   let stopStuckAlarm: (() => void) | undefined;
+  let stopDraftAttachmentCleanup: (() => void) | undefined;
   let stopRuntimeImport: (() => void) | undefined;
   app.addHook('onReady', async () => {
     await bus.start();
     if (realtime.sweeper !== false) {
       stopSweeper = startHeartbeatSweeper(db, app.log);
       stopStuckAlarm = startStuckTicketAlarm(db, deps.waitingJobs, app.log);
+      stopDraftAttachmentCleanup = startDraftAttachmentCleanup(db, app.log);
       if (config.runtimeReleasesRepo) {
         stopRuntimeImport = startRuntimeImport(
           db,
@@ -178,6 +182,7 @@ export async function buildApp({
     }
     stopSweeper?.();
     stopStuckAlarm?.();
+    stopDraftAttachmentCleanup?.();
     stopRuntimeImport?.();
     await bus.stop();
   });

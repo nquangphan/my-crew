@@ -14,8 +14,11 @@ const INLINE = /(`+)[\s\S]*?(?<!`)\1(?!`)/g;
  */
 const PM_TAG = /(?<![\w@/.])@pm(?![\w-]|\.\w)/i;
 
-/** Comment text without its code: tags written inside code are examples, not calls. */
-function withoutCode(body: string): string {
+/**
+ * Markdown text without its code (fenced blocks and inline spans): a tag or an image link written inside
+ * code is an example, not a call or an attachment.
+ */
+export function markdownWithoutCode(body: string): string {
   return body.replace(FENCED, ' ').replace(INLINE, ' ');
 }
 
@@ -24,5 +27,5 @@ function withoutCode(body: string): string {
  * owner-written text.
  */
 export function parseMentions(body: string): CommentMention[] {
-  return PM_TAG.test(withoutCode(body)) ? ['pm'] : [];
+  return PM_TAG.test(markdownWithoutCode(body)) ? ['pm'] : [];
 }

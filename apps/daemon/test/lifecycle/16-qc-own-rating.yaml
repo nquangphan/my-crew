@@ -1,7 +1,8 @@
 name: qc-own-rating
 description: >-
   The PM rates dev and QC separately (dev large, QC trivial). Dev runs on the model of its rating (opus), QC
-  on the model of its own rating (haiku); the bug QC files inherits the dev rating and the retest the QC one.
+  on the model of its own rating (haiku); the bug QC files inherits the dev rating and the retest the QC one,
+  test plan (unit) included.
 project:
   platform: backend
 request:
@@ -18,6 +19,8 @@ scripts:
             reason: Đổi lõi tính giá ở nhiều module
             qcComplexity: trivial
             qcReason: Một hàm thuần, kiểm bằng test đơn vị
+            testKinds: [unit]
+            testReason: Hàm thuần không có giao diện, test đơn vị của repo là đủ
   - stage: dev
     title: '^Tính thuế theo vùng$'
     steps: [{ macro: dev, file: src/tax.js }]

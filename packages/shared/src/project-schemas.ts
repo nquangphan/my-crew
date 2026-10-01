@@ -48,6 +48,89 @@ export function qcDefaultMcps(platform: ProjectPlatform, mapping: UiTestMcp): st
   return UI_TEST_ROLES[platform].map((role) => mapping[role]);
 }
 
+/**
+ * How a QC ticket will be verified. The PM picks one or more when creating (or re-planning) a QC subtask,
+ * instead of always being forced onto the project's UI-test MCP servers.
+ */
+export const TestKind = z.enum(['static_review', 'unit', 'integration', 'api', 'ui_web', 'ui_mobile']);
+export type TestKind = z.infer<typeof TestKind>;
+
+/** One row per test kind: Vietnamese label, suggested tooling, and the UI-test MCP role it needs (if any). */
+export interface TestKindInfo {
+  label: string;
+  tooling: string;
+  /** The `UiTestMcp` role this kind needs; null when it needs no MCP server. */
+  uiRole: keyof UiTestMcp | null;
+}
+
+/**
+ * The single source of truth for every test kind: reused by the daemon (prompt/tooling hints) and the web
+ * (labels, form options) instead of being copied there.
+ */
+export const TEST_KIND_INFO: Record<TestKind, TestKindInfo> = {
+  static_review: {
+    label: 'Xem code tĩnh',
+    tooling: 'Đọc code, diff review; không chạy chương trình',
+    uiRole: null,
+  },
+  unit: {
+    label: 'Unit test',
+    tooling: 'Test hàm/module riêng lẻ (vitest, jest, pytest, …)',
+    uiRole: null,
+  },
+  integration: {
+    label: 'Integration test',
+    tooling: 'Test nhiều thành phần phối hợp (API + DB, service + service, …), không qua giao diện',
+    uiRole: null,
+  },
+  api: {
+    label: 'Kiểm thử API',
+    tooling: 'Gọi trực tiếp API (script, curl, Postman, supertest, …)',
+    uiRole: null,
+  },
+  ui_web: {
+    label: 'Kiểm thử giao diện web',
+    tooling: 'Trình duyệt tự động qua MCP Playwright',
+    uiRole: 'playwright',
+  },
+  ui_mobile: {
+    label: 'Kiểm thử giao diện mobile',
+    tooling: 'Thiết bị/simulator qua MCP Maestro',
+    uiRole: 'maestro',
+  },
+};
+
+/** Platforms that can run a UI test kind; a kind absent here (every non-UI kind) has no platform restriction. */
+const UI_TEST_KIND_PLATFORMS: Partial<Record<TestKind, readonly ProjectPlatform[]>> = {
+  ui_web: ['web', 'web_mobile'],
+  ui_mobile: ['mobile', 'web_mobile'],
+};
+
+/** Whether a project's `platform` supports running `kind` (always true for non-UI kinds). */
+export function isTestKindSupported(kind: TestKind, platform: ProjectPlatform): boolean {
+  const allowed = UI_TEST_KIND_PLATFORMS[kind];
+  return !allowed || allowed.includes(platform);
+}
+
+/**
+ * The UI-test MCP server names a test plan (`testKinds`) requires, per the project's platform and mapping.
+ * A kind the platform does not support (see `isTestKindSupported`) contributes no MCP server here; callers
+ * still validate platform support separately, to refuse the request instead of silently dropping the kind.
+ */
+export function uiMcpsForTestKinds(
+  testKinds: readonly TestKind[],
+  platform: ProjectPlatform,
+  mapping: UiTestMcp,
+): string[] {
+  const roles = new Set(
+    testKinds
+      .filter((kind) => isTestKindSupported(kind, platform))
+      .map((kind) => TEST_KIND_INFO[kind].uiRole)
+      .filter((role): role is keyof UiTestMcp => role !== null),
+  );
+  return [...roles].map((role) => mapping[role]);
+}
+
 export const DEFAULT_MAX_CHILDREN_PER_TICKET = 12;
 
 const RepoUrl = z

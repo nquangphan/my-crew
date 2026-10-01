@@ -20,6 +20,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0009_runtime_releases.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/drizzle/0010_attachments.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0011_attachments_nullable_ticket_id.sql` | [api-platform](flows/api-platform.md) (file) |
+| `apps/api/drizzle/0012_qc_test_plan.sql` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/app.ts` | [api-platform](flows/api-platform.md) (file) |
 | `apps/api/src/auth/csrf.ts` | [owner-auth](flows/owner-auth.md) (file) |
 | `apps/api/src/auth/machine-auth.ts` | [machine-pairing](flows/machine-pairing.md) (file) |
@@ -159,6 +161,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/runner/scripted-runner.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/secret-scrubber.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/skill-usage.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/runner/ticket-images.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/scheduler/resource-monitor.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
 | `apps/daemon/src/scheduler/scheduler.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (file) |
 | `apps/daemon/src/secrets.ts` | [daemon-runtime](flows/daemon-runtime.md) (file) |
@@ -202,6 +205,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/test/stream-atomicity.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
 | `apps/daemon/test/stream-client.test.ts` | [daemon-scheduling](flows/daemon-scheduling.md) (test) |
 | `apps/daemon/test/test-cleanup.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
+| `apps/daemon/test/ticket-images.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/ticket-tools.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/units.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
 | `apps/daemon/test/worktree-manager.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
@@ -301,6 +305,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/web/src/components/markdown-view.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/markdown-view.tsx` | [web-tickets](flows/web-tickets.md) (dùng chung), [docs-sync-viewer](flows/docs-sync-viewer.md) (dùng chung) |
 | `apps/web/src/components/model-settings-form.tsx` | [server-settings](flows/server-settings.md) (file) |
+| `apps/web/src/components/new-ticket-dialog.test.tsx` | [web-tickets](flows/web-tickets.md) (test) |
 | `apps/web/src/components/new-ticket-dialog.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `apps/web/src/components/pairing-dialog.test.tsx` | [web-admin](flows/web-admin.md) (test) |
 | `apps/web/src/components/pairing-dialog.tsx` | [web-admin](flows/web-admin.md) (file) |

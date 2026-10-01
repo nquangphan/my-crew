@@ -140,7 +140,9 @@ build/test/kiểm docs trước khi merge.
 - runtime-updates: job `runtime-release` của `.github/workflows/ci.yml` build/ký/publish bản runtime trên tag
   `runtime-v*`; secret `CREW_RUNTIME_SIGNING_KEY`, `CREW_CODESIGN_P12_BASE64`, `CREW_CODESIGN_P12_PASSWORD`
   khai báo cùng chỗ với secret ký app; API env `RUNTIME_RELEASES_REPO`/`RUNTIME_EXTRA_PUBLIC_KEYS` có mặc định
-  chạy được ngay (không cần thêm gì vào `.env`/`deploy/compose.yml` để dùng tính năng này).
+  chạy được ngay (không cần thêm gì vào `.env`/`deploy/compose.yml` để dùng tính năng này). Checklist các bước
+  tay khi phát hành một bản runtime mới (trước/trong/sau, quay lui): [Phát hành một bản
+  runtime](runtime-updates.md#phát-hành-một-bản-runtime).
 - server-settings: `deploy/Dockerfile`/`.dockerignore` đưa bản prompt mặc định của daemon vào image api để
   trang "Cài đặt hệ thống → Prompts" có gì để so sánh/hiện là mặc định.
 

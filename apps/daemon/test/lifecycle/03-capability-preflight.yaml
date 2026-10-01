@@ -1,7 +1,7 @@
 name: capability-preflight
 description: >-
   Every role runs the capability preflight and records its picks with reasons; the PM reads a design through
-  a Figma MCP, QC of a web project gets Playwright automatically, and a skill the dev picked but never used
+  a Figma MCP, a QC the PM planned with ui_web on a web project gets Playwright, and a skill the dev picked but never used
   is flagged (the PM accepts the dev's justification at merge).
 inventory:
   skills: [requirements, planning, code-review, api-design, brainstorm, testing]
@@ -20,7 +20,12 @@ scripts:
       - tool: mcp__figma__browser_navigate
         input: { url: 'figma://cart' }
       - macro: pm_analyze
-        subtasks: [{ title: Trang giỏ hàng, complexity: trivial, qcComplexity: trivial, skills: [api-design] }]
+        subtasks:
+          - title: Trang giỏ hàng
+            complexity: trivial
+            qcComplexity: trivial
+            skills: [api-design]
+            testKinds: [ui_web]
   - stage: dev
     title: Trang giỏ hàng
     steps:

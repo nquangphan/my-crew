@@ -34,9 +34,10 @@ của mình vào app do flow này dựng lên.
    test rút ngắn để không phải đợi). Sau đó đăng ký ba nhóm route:
    public (`authRoutes`, `pairRoutes`), owner (bọc hook `ownerGuard`, gồm `runtimeRoutes` — flow
    `runtime-updates`) và daemon (bọc hook `machineGuard`, gồm `daemonRuntimeRoutes` cùng flow đó). Hook
-   `onReady` khởi động `EventBus`, `startHeartbeatSweeper` và `startStuckTicketAlarm()` (flow `ticket-lifecycle`,
-   cả hai timer cùng tắt khi `realtime.sweeper: false`), cộng thêm `startRuntimeImport()` (cùng điều kiện
-   sweeper, chỉ khi `config.runtimeReleasesRepo` không rỗng — nhập release `runtime-v*` từ GitHub mỗi giờ, flow
+   `onReady` khởi động `EventBus`, `startHeartbeatSweeper`, `startStuckTicketAlarm()` và
+   `startDraftAttachmentCleanup()` — dọn ảnh nháp mồ côi mỗi giờ (cả ba flow `ticket-lifecycle`, cùng tắt khi
+   `realtime.sweeper: false`) — cộng thêm `startRuntimeImport()` (cùng điều kiện sweeper, chỉ khi
+   `config.runtimeReleasesRepo` không rỗng — nhập release `runtime-v*` từ GitHub mỗi giờ, flow
    `runtime-updates`) và timer dọn `idempotency_keys`/`sessions` hết hạn mỗi giờ (`MAINTENANCE_INTERVAL_MS`).
    Đóng app có giới hạn thời gian: khi `preClose` chạy, một cờ
    `closing` bật lên, từ đó hook `onSend` gắn header `connection: close` vào mọi response và hook `onResponse`
@@ -90,6 +91,8 @@ của mình vào app do flow này dựng lên.
 | `apps/api/drizzle/0008_server_settings_and_machine_commands.sql` | Migration thêm bảng `settings_revisions` và cột `machines.settings_state` jsonb (flow `server-settings`: cài đặt server theo bản, prompt/quy tắc/model/tài nguyên/thư mục dự án/MCP dự án), và bảng `machine_commands` (flow `machine-control`: lệnh từ xa owner gửi từ web) | — |
 | `apps/api/drizzle/0009_runtime_releases.sql` | Migration thêm bảng `runtime_releases`/`runtime_bundles` và cột `machines.runtime_state`/`runtime_pinned_version` (flow `runtime-updates`: bản runtime đã ký, ghim máy vào một bản) | — |
 | `apps/api/drizzle/0010_attachments.sql` | Migration thêm bảng `attachments` (flow `ticket-lifecycle`: ảnh dán clipboard vào ticket, nội dung `bytea`, FK `ticket_id`/`owner_id` cascade delete) | — |
+| `apps/api/drizzle/0011_attachments_nullable_ticket_id.sql` | Migration đổi `attachments.ticket_id` thành nullable (flow `ticket-lifecycle`: ảnh nháp dán vào hộp thoại "Tạo ticket" trước khi ticket tồn tại, `POST /v1/attachments`), giữ nguyên FK `ON DELETE cascade` và index, không mất dữ liệu cũ | — |
+| `apps/api/drizzle/0012_qc_test_plan.sql` | Migration thêm cột `tickets.test_kinds` (`text[]`, nullable) và `tickets.test_reason` (`text`, nullable) (flow `ticket-lifecycle`: phương án kiểm thử của ticket `qc`, không đổi dữ liệu hàng cũ) | — |
 | `packages/shared/src/index.ts` | Re-export toàn bộ schema zod dùng chung (kể cả `desktop-ipc.ts`/`health-schemas.ts` của flow `desktop-app`/`daemon-health`, `bmad-schemas.ts` của flow `project-claims`, `secret-scrubber.ts` của flow `agent-runs`, `comment-mentions.ts` của flow `ticket-lifecycle`, và `runtime-schemas.ts` của flow `runtime-updates`) | — |
 
 ## Dữ liệu
@@ -104,10 +107,14 @@ của mình vào app do flow này dựng lên.
 - owner-auth: `ownerGuard` được gắn vào nhóm route owner tại `buildApp()`.
 - machine-pairing: `pairRoutes` (public) và `machineGuard` (nhóm route daemon) được gắn tại `buildApp()`.
 - event-delivery: `EventBus` được tạo và khởi động/dừng theo vòng đời app tại đây.
-- ticket-lifecycle: `startStuckTicketAlarm()` và `WaitingJobsRegistry` (`RouteDeps.waitingJobs`) được tạo và
-  khởi động/dừng cùng vòng đời `buildApp()`, cạnh `startHeartbeatSweeper` (flow `machine-pairing`);
-  `attachmentRoutes` (nhóm route owner) đăng ký tại `buildApp()`; migration `0010_attachments.sql` chạy qua
-  `runMigrations()` như mọi migration khác; `attachmentRoutes` tự đăng ký thêm một `setErrorHandler` riêng
+- ticket-lifecycle: `startStuckTicketAlarm()`, `startDraftAttachmentCleanup()` và `WaitingJobsRegistry`
+  (`RouteDeps.waitingJobs`) được tạo và khởi động/dừng cùng vòng đời `buildApp()`, cạnh `startHeartbeatSweeper`
+  (flow `machine-pairing`); `attachmentRoutes` (nhóm route owner, gồm `POST /v1/tickets/:id/attachments`,
+  `POST /v1/attachments` ảnh nháp và `GET /v1/attachments/:id`) đăng ký tại `buildApp()`, `daemonAttachmentRoutes`
+  (cùng file, route đọc `GET /v1/daemon/attachments/:id` cho daemon) đăng ký cạnh `daemonRoutes` trong nhóm route
+  daemon; migration `0010_attachments.sql` (tạo bảng), `0011_attachments_nullable_ticket_id.sql` (`ticket_id`
+  nullable, phục vụ ảnh nháp) và `0012_qc_test_plan.sql` (cột `tickets.test_kinds`/`tickets.test_reason`) chạy
+  qua `runMigrations()` như mọi migration khác; `attachmentRoutes` tự đăng ký thêm một `setErrorHandler` riêng
   (Fastify cô lập theo `register()`, không ảnh hưởng route khác) bắt riêng `FST_ERR_CTP_BODY_TOO_LARGE` để trả
   đúng `ATTACHMENT_TOO_LARGE`, còn lại gọi lại `sendApiError()` (bước 6) dùng chung với error handler toàn app.
 - daemon-api, project-claims, docs-sync-viewer: route của các flow này được đăng ký bên trong `buildApp()`,

@@ -38,6 +38,8 @@ flows:
       - apps/api/drizzle/0008_server_settings_and_machine_commands.sql
       - apps/api/drizzle/0009_runtime_releases.sql
       - apps/api/drizzle/0010_attachments.sql
+      - apps/api/drizzle/0011_attachments_nullable_ticket_id.sql
+      - apps/api/drizzle/0012_qc_test_plan.sql
       - packages/shared/src/index.ts
     tests:
       - apps/api/test/shutdown.test.ts
@@ -305,6 +307,7 @@ flows:
       - apps/web/src/components/markdown-editor.test.tsx
       - apps/web/src/components/markdown-view.test.tsx
       - apps/web/src/components/cancel-dialog.test.tsx
+      - apps/web/src/components/new-ticket-dialog.test.tsx
       - apps/web/e2e/core-flows.spec.ts
       - apps/web/src/components/agent-activity.test.tsx
       - apps/web/e2e/agent-activity.spec.ts
@@ -371,6 +374,7 @@ flows:
     files:
       - apps/daemon/src/runner/agent-runner.ts
       - apps/daemon/src/runner/scripted-runner.ts
+      - apps/daemon/src/runner/ticket-images.ts
       - apps/daemon/src/runner/run-trace.ts
       - apps/daemon/src/runner/guard-hook.ts
       - apps/daemon/src/runner/skill-usage.ts
@@ -382,6 +386,7 @@ flows:
     tests:
       - apps/daemon/test/daemon.test.ts
       - apps/daemon/test/agent-runner.test.ts
+      - apps/daemon/test/ticket-images.test.ts
       - apps/daemon/test/guard-hook.test.ts
       - apps/daemon/test/ticket-tools.test.ts
       - apps/daemon/test/run-trace.test.ts

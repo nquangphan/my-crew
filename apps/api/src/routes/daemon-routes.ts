@@ -13,6 +13,7 @@ import {
   RetrySubtaskRequest,
   SubmitReportRequest,
   TransitionRequest,
+  UpdateTestPlanRequest,
 } from '@crew/shared';
 import type { FastifyInstance, HTTPMethods } from 'fastify';
 import type { z } from 'zod';
@@ -53,6 +54,7 @@ import {
   retrySubtask,
   toCommentDto,
   transitionTicket,
+  updateQcTestPlan,
 } from '../services/ticket-service.js';
 import { idParam, parseInput, type RouteDeps } from './route-deps.js';
 
@@ -252,6 +254,11 @@ export async function daemonRoutes(
   /** The PM (`:id` is its pm_task) sends one of its blocked subtasks back to work (after an owner `@pm`). */
   ticketWrite('POST', '/v1/daemon/tickets/:id/retry-subtask', RetrySubtaskRequest, 200, (tx, ticket, body) =>
     retrySubtask(tx, ticket.id, body),
+  );
+
+  /** The PM (`:id` is its pm_task) changes one of its qc subtasks' test plan in place. */
+  ticketWrite('POST', '/v1/daemon/tickets/:id/test-plan', UpdateTestPlanRequest, 200, (tx, ticket, body) =>
+    updateQcTestPlan(tx, ticket.id, body),
   );
 
   ticketWrite('PATCH', '/v1/daemon/tickets/:id/agent-meta', AgentMetaRequest, 200, (tx, ticket, body) =>

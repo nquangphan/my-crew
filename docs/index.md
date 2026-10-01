@@ -85,6 +85,8 @@ theo từng flow; agent đọc docs trước khi đọc code.
 - [Cài đặt môi trường dev](guides/dev-setup.md): từ máy trắng tới lúc chạy được API, web, daemon, app desktop ở chế độ dev.
 - [Hướng dẫn sử dụng](guides/user-guide.md): thao tác trên web cho chủ dự án, không cần biết code.
 - [Quy trình ticket](guides/workflow.md): một yêu cầu đi qua những bước nào từ lúc tạo tới lúc merge.
+- [Chọn phương án kiểm thử cho QC](guides/qc-test-planning.md): PM chọn loại kiểm thử và công cụ cho từng
+  subtask QC thay vì bị gắn cứng MCP kiểm thử UI theo dự án.
 - [Bảng tra API](guides/api-reference.md): danh sách endpoint, dẫn tới schema zod và trang flow sở hữu route.
 - [Hướng dẫn đóng góp](CONTRIBUTING.md): quy ước, thứ tự đọc docs trước khi sửa code, docs đi cùng mỗi commit.
 

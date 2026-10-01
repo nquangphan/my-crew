@@ -67,6 +67,13 @@ describe('prompt templates', () => {
     expect(validatePromptTemplate('dev', '{{> _shared-rules}}\n{{header}}\n{{notes}}')).toEqual([]);
   });
 
+  it('accepts the QC test-plan variables next to the older {{ui_test}}', () => {
+    expect(validatePromptTemplate('qc', '{{header}}\n{{test_plan}}\n{{notes}}')).toEqual([]);
+    // An override written before the test plan existed still validates.
+    expect(validatePromptTemplate('qc', '{{header}}\nKiểm thử UI: {{ui_test}}\n{{notes}}')).toEqual([]);
+    expect(validatePromptTemplate('pm-analyze', '{{header}}\n{{test_kinds}}\n{{notes}}')).toEqual([]);
+  });
+
   it('refuses unknown variables and partials, nested partials and empty text', () => {
     expect(validatePromptTemplate('dev', '{{hedaer}}')).toEqual(['Không có biến {{hedaer}}.']);
     expect(validatePromptTemplate('dev', '{{> _nope}}')).toEqual(['Không có phần chung "_nope".']);

@@ -1,14 +1,14 @@
 {
   "name": "@crew/desktop",
   "productName": "2P Crew",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "2P Crew: ứng dụng máy local chạy daemon, trình cài đặt và bảng sức khỏe",
   "author": "2P Solutions",
   "type": "module",
   "main": "./out/main/index.js",
   "crewRuntime": {
-    "version": "0.3.0",
+    "version": "0.3.1",
     "shell": ">=0.3.0 <0.4.0"
   },
   "scripts": {

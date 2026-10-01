@@ -66,13 +66,24 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
    và gọi `assertKnownCapabilities()` trước khi tạo — skill/MCP bắt buộc ngoài kho máy đã báo cáo (hoặc MCP bị
    tắt cho project) bị từ chối ngay, không tới lúc job chạy mới phát hiện; `POST .../rate-subtask` (`:id` là
    `pm_task` của chính PM, cũng trong phạm vi máy như mọi ghi khác) gọi `rateSubtask()` (flow `ticket-lifecycle`)
-   để PM đánh giá lại một subtask `dev`/`qc`/`bug` ngay tại chỗ; `POST .../retry-subtask` (`:id` là `pm_task`,
+   để PM đánh giá lại một subtask `dev`/`qc`/`bug` ngay tại chỗ; `POST .../test-plan` (`:id` là `pm_task`, cùng
+   phạm vi máy) gọi `updateQcTestPlan()` (flow `ticket-lifecycle`) để PM đổi phương án kiểm thử
+   (`testKinds`/`testReason`) của một subtask `qc` của chính pm_task đó ngay tại chỗ, cùng khuôn quyền/idempotency
+   với `rate-subtask`; `POST .../retry-subtask` (`:id` là `pm_task`,
    cùng phạm vi máy) gọi `retrySubtask()` (flow `ticket-lifecycle`) để PM chuyển một subtask `blocked` của chính
    nó về `in_progress`, dùng khi owner gọi PM bằng `@pm`; `POST .../bugs` gọi
    `assertKnownCapabilities()` cho `requiredSkills` của bug trước khi tạo (dùng cho cả QC báo lỗi lẫn PM từ
    chối một ticket dev/bug, flow `ticket-lifecycle`); các `ticketWrite()` còn lại — `POST .../comments`,
    `POST .../transition`, `PUT .../report`, `PATCH .../agent-meta` — gọi thẳng các hàm của flow
    `ticket-lifecycle` với `actor='agent'`.
+8. `apps/api/src/routes/attachment-routes.ts` → `daemonAttachmentRoutes()`: `GET /v1/daemon/attachments/:id`
+   (route đọc, không cần `Idempotency-Key`) — daemon tải lại ảnh chủ dự án đã dán vào ticket để đưa cho agent;
+   gọi `getAttachmentWithTicket()` (flow `ticket-lifecycle`) lấy `mimeType`/`content`/ticket sở hữu ảnh, rồi
+   `assertTicketReadable(db, machine.machineId, ticket)` (flow `machine-pairing`, luật y hệt
+   `GET /v1/daemon/tickets/:id` ở bước 7) trước khi trả bytes — ngoài phạm vi thì `403`, không rơi về `404` hay
+   lộ `mimeType`. File này thuộc flow `ticket-lifecycle` (chứa cả route owner `attachmentRoutes`), chỉ đăng ký
+   vào nhóm route daemon của `buildApp()` cạnh `daemonRoutes` (cùng cách `daemonBmadProfileRoutes` ở bước 6
+   đăng ký cạnh đó).
 
 ## Files
 
@@ -95,7 +106,9 @@ token, heartbeat, inventory, project/claim, và ghi ticket (`actor='agent'`). Ro
 - machine-pairing: `machineGuard`, `assertTicketInScope`, `assertTicketReadable`, `assertKnownCapabilities`,
   token/heartbeat/inventory.
 - ticket-lifecycle: mọi ghi ticket của agent dùng chung hàm service với route owner; `fileBug()` phục vụ cả QC
-  báo lỗi và PM từ chối (`reject_work`, flow `agent-roles`).
+  báo lỗi và PM từ chối (`reject_work`, flow `agent-roles`); `GET /v1/daemon/attachments/:id`
+  (`daemonAttachmentRoutes`, file `attachment-routes.ts` của flow này) đọc lại ảnh đính kèm cho agent, gọi
+  `getAttachmentWithTicket()`.
 - project-claims: route project/claim của daemon gọi thẳng `claim-service.ts`; route change-requests gọi
   `project-change-service.ts`; route `bmad-profile` gọi `bmad-profile-service.ts` (schema `BmadProfile` ở
   `packages/shared/src/bmad-schemas.ts`, cũng thuộc flow đó).

@@ -53,10 +53,12 @@ tạo tới lúc code được merge, xem [Quy trình ticket](workflow.md).
 - Hộp thoại tạo ticket (mở từ phím tắt hoặc nút tạo trên board/danh sách): chọn dự án gợi ý, mức ưu tiên, viết
   mô tả markdown, có thể bật "Cho phép sửa config" và "Tạo thêm" để tạo liên tiếp nhiều ticket; ticket luôn
   được giao cho trợ lý xử lý trước.
-- **Dán ảnh**: dán ảnh từ clipboard trực tiếp vào ô mô tả ticket hoặc ô bình luận — ảnh được tải lên ngay tại
+- **Dán ảnh**: dán ảnh từ clipboard trực tiếp vào ô mô tả — kể cả ô "Mô tả" của hộp thoại tạo ticket này, khi
+  ticket còn chưa được tạo — hoặc vào ô mô tả của một ticket đã có, hay ô bình luận; ảnh được tải lên ngay tại
   vị trí con trỏ (hiện placeholder "Đang tải ảnh..." rồi thay bằng ảnh thật). Chỉ nhận định dạng PNG/JPEG/GIF/
   WebP và tối đa 10MB; ảnh sai định dạng hoặc quá lớn báo lỗi ngay ("Ảnh vượt quá giới hạn 10MB, hãy chọn ảnh
-  nhỏ hơn." khi vượt kích thước), không tải lên và không mất nội dung đang soạn.
+  nhỏ hơn." khi vượt kích thước), không tải lên và không mất nội dung đang soạn. Trong hộp thoại tạo ticket,
+  nút "Tạo" tạm khoá (đổi nhãn "Đang tải ảnh…") cho tới khi mọi ảnh vừa dán tải xong.
 
 ## Theo dõi
 

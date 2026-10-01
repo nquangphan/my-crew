@@ -14,6 +14,8 @@ import {
   type RoleStage,
   SelectableModel,
   type SkillInventory,
+  TEST_KIND_INFO,
+  TestKind,
   TicketPriority,
   TicketStatus,
   type TicketType,
@@ -198,6 +200,46 @@ export class JobWriter {
 
 const scrub = (body: string) => scrubSecrets(body).text;
 
+// The test kinds in the tool texts come from the shared table (`TEST_KIND_INFO`), never from a copy here.
+const TEST_KIND_LIST = TestKind.options
+  .map((kind) => `\`${kind}\` (${TEST_KIND_INFO[kind].label})`)
+  .join(', ');
+const UI_TEST_KINDS = TestKind.options.filter((kind) => TEST_KIND_INFO[kind].uiRole !== null);
+const UI_TEST_KIND_RULE =
+  `Chỉ ${UI_TEST_KINDS.map((kind) => `\`${kind}\``).join('/')} mới kéo theo MCP kiểm thử UI ` +
+  `(${UI_TEST_KINDS.map((kind) => TEST_KIND_INFO[kind].tooling).join('; ')}); các loại khác không cần MCP ` +
+  'nào. Chỉ chọn loại UI khi thay đổi có giao diện chạy được và tiêu chí nghiệm thu cần thao tác trên giao diện đó.';
+
+/**
+ * Why `create_subtask` refuses a subtask's test plan before any server call, or null: a QC subtask needs
+ * both fields (the PM analyses what kind of testing the change needs first), a dev subtask takes neither.
+ */
+function testPlanProblem(input: {
+  type: 'dev' | 'qc';
+  testKinds?: TestKind[];
+  testReason?: string;
+}): string | null {
+  if (input.type !== 'qc') {
+    const given = [
+      input.testKinds === undefined ? null : '`testKinds`',
+      input.testReason === undefined ? null : '`testReason`',
+    ].filter(Boolean);
+    return given.length === 0
+      ? null
+      : `Subtask \`${input.type}\` không nhận ${given.join(' và ')}: phương án kiểm thử chỉ thuộc về subtask ` +
+          '`qc`. Bỏ trường đó ở đây và đặt phương án vào ticket QC đi kèm.';
+  }
+  const missing = [
+    (input.testKinds?.length ?? 0) > 0 ? null : '`testKinds`',
+    (input.testReason?.length ?? 0) > 0 ? null : '`testReason`',
+  ].filter(Boolean);
+  return missing.length === 0
+    ? null
+    : `Subtask \`qc\` thiếu ${missing.join(' và ')}. Phân tích phương án kiểm thử trước: xem subtask dev đi ` +
+        'kèm đổi gì (API, logic, CLI, schema dùng chung, giao diện web, màn hình mobile hay chỉ docs), chọn loại ' +
+        `kiểm thử hợp với thay đổi đó (${TEST_KIND_LIST}) và viết một dòng lý do, rồi gọi lại. ${UI_TEST_KIND_RULE}`;
+}
+
 const SubtaskShape = {
   type: z.enum(['dev', 'qc']).describe('Loại subtask (docs_init do daemon tạo)'),
   title: z.string().trim().min(1).max(300),
@@ -221,6 +263,21 @@ const SubtaskShape = {
   dependsOn: z.array(z.uuid()).max(50).default([]).describe('Id các ticket anh em phải xong trước'),
   pairsWith: z.uuid().optional().describe('Bắt buộc cho qc: ticket dev/bug mà QC kiểm tra'),
   flows: z.array(z.string()).max(100).default([]),
+  testKinds: z
+    .array(TestKind)
+    .max(TestKind.options.length)
+    .optional()
+    .describe(
+      `Bắt buộc cho qc (không dùng cho dev): các loại kiểm thử QC phải làm, chọn sau khi phân tích thay đổi của dev: ${TEST_KIND_LIST}. ${UI_TEST_KIND_RULE}`,
+    ),
+  testReason: z
+    .string()
+    .trim()
+    .max(500)
+    .optional()
+    .describe(
+      'Bắt buộc cho qc (không dùng cho dev): một dòng lý do cho phương án kiểm thử, gồm vì sao cần hoặc không cần công cụ UI',
+    ),
 };
 
 const ReportShape = {
@@ -374,7 +431,9 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
             return failure(
               `QC không được bỏ qua kiểm thử UI: chưa gọi công cụ nào của MCP bắt buộc ${skipped.map((s) => `\`${s}\``).join(', ')}. ` +
                 'Chạy ứng dụng, kiểm tra các tiêu chí nghiệm thu bằng các công cụ đó, ghi kết quả vào report rồi mới đóng. ' +
-                'Nếu server không dùng được, bình luận lý do rồi chuyển ticket sang blocked.',
+                'Nếu server không dùng được, bình luận lý do rồi chuyển ticket sang blocked. ' +
+                'Nếu thay đổi không có giao diện để kiểm (phương án kiểm thử của PM không hợp), bình luận lý do rồi chuyển ' +
+                'ticket sang blocked: chủ dự án gọi `@pm` để PM đổi phương án bằng `plan_qc_test` rồi cho chạy lại.',
             );
           }
         }
@@ -456,9 +515,12 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
     ),
     create_subtask: tool(
       'create_subtask',
-      'PM: tạo subtask dev/qc dưới ticket này (mỗi dev có một qc đi kèm qua pairsWith); mỗi subtask bắt buộc có complexity và complexityReason.',
+      'PM: tạo subtask dev/qc dưới ticket này (mỗi dev có một qc đi kèm qua pairsWith); mỗi subtask bắt buộc có complexity và complexityReason. ' +
+        `Subtask qc còn bắt buộc có phương án kiểm thử: testKinds (${TEST_KIND_LIST}) và testReason, chọn sau khi phân tích thay đổi của dev cần kiểm bằng gì. ${UI_TEST_KIND_RULE}`,
       SubtaskShape,
       async (input) => {
+        const planProblem = testPlanProblem(input);
+        if (planProblem) return failure(planProblem);
         const off = input.requiredMcps.filter((server) => disabledMcps.has(server));
         if (off.length > 0) {
           return failure(`MCP server đã bị chủ dự án tắt cho dự án này: ${off.join(', ')}. Chọn cái khác.`);
@@ -474,6 +536,8 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
           description: scrub(input.description),
           dependsOn,
           parentId: ctx.ticketId,
+          ...(input.testKinds ? { testKinds: [...new Set(input.testKinds)] } : {}),
+          ...(input.testReason ? { testReason: scrub(input.testReason) } : {}),
         };
         try {
           const ticket = await writer.write((key) => ctx.vps.createSubtask(body, key));
@@ -482,6 +546,7 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
             key: ticket.key,
             status: ticket.status,
             requiredMcps: ticket.requiredMcps,
+            testKinds: ticket.testKinds,
           });
         } catch (error) {
           if (error instanceof VpsError && OWNER_HOLDS.has(error.code)) {
@@ -520,9 +585,48 @@ export function buildTicketTools(ctx: TicketToolContext): AnyToolDefinition[] {
         });
       },
     ),
+    plan_qc_test: tool(
+      'plan_qc_test',
+      'PM: đổi phương án kiểm thử (testKinds, testReason) của một subtask QC chưa đóng của PM task này, ngay trên ticket đó, không tạo QC thay thế. Dùng khi phương án hiện tại không hợp với nội dung ticket (ví dụ QC bị chặn vì MCP kiểm thử UI trong khi thay đổi không có giao diện, hoặc thay đổi có giao diện mà phương án thiếu loại UI). Server tính lại MCP bắt buộc của ticket theo phương án mới; lượt QC kế tiếp dùng danh sách đó. Tool này không mở chặn ticket: QC đang `blocked` thì gọi thêm `retry_subtask` khi đang trả lời lời gọi @pm, không thì báo chủ dự án mở chặn. ' +
+        UI_TEST_KIND_RULE,
+      {
+        ticket: z.string().trim().min(1).max(100).describe('Id hoặc key của subtask QC (ví dụ WEB-12)'),
+        testKinds: z
+          .array(TestKind)
+          .min(1)
+          .max(TestKind.options.length)
+          .describe(`Bắt buộc: phương án mới, thay hẳn phương án cũ: ${TEST_KIND_LIST}`),
+        testReason: z
+          .string()
+          .trim()
+          .min(1)
+          .max(500)
+          .describe('Bắt buộc: một dòng lý do cho phương án mới, gồm vì sao cần hoặc không cần công cụ UI'),
+      },
+      async (input) => {
+        const ticket = await writer.write((key) =>
+          ctx.vps.updateTestPlan(
+            ctx.ticketId,
+            {
+              ticket: input.ticket,
+              testKinds: [...new Set(input.testKinds)],
+              testReason: scrub(input.testReason),
+            },
+            key,
+          ),
+        );
+        return text({
+          key: ticket.key,
+          status: ticket.status,
+          testKinds: ticket.testKinds,
+          testReason: ticket.testReason,
+          requiredMcps: ticket.requiredMcps,
+        });
+      },
+    ),
     retry_subtask: tool(
       'retry_subtask',
-      'PM, chỉ khi chủ dự án gọi bạn bằng @pm: chuyển một subtask đang `blocked` của PM task này về `in_progress` và đánh thức agent của nó chạy lại. Chỉ dùng khi nguyên nhân bị chặn đã được xử lý (ví dụ chủ dự án đã sửa môi trường); subtask thiếu complexity thì dùng `rate_subtask`.',
+      'PM, chỉ khi chủ dự án gọi bạn bằng @pm: chuyển một subtask đang `blocked` của PM task này về `in_progress` và đánh thức agent của nó chạy lại. Chỉ dùng khi nguyên nhân bị chặn đã được xử lý (ví dụ chủ dự án đã sửa môi trường); subtask thiếu complexity thì dùng `rate_subtask`; QC bị chặn vì MCP kiểm thử UI mà thay đổi không có giao diện thì `plan_qc_test` đổi phương án trước rồi mới `retry_subtask`.',
       { ticket: z.string().trim().min(1).max(100).describe('Id hoặc key của subtask (ví dụ WEB-12)') },
       async (input) => {
         if (!answersOwnerCall(ctx)) {
