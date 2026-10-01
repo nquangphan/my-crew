@@ -200,6 +200,11 @@ artifact workflow mô tả ý định và kế hoạch, hai loại phải đư�
 
 ## 10. UI web
 
+UI quản lý công việc tham khảo Jira: điều hướng theo dự án, board theo trạng thái, danh sách có bộ lọc,
+chi tiết ticket, phân cấp ticket và lịch sử. UI docs tham khảo Confluence: không gian tài liệu theo dự
+án, cây trang, tìm kiếm, liên kết giữa trang và ticket, hiển thị commit nguồn cùng trạng thái cập nhật.
+Đây là định hướng trải nghiệm, không yêu cầu sao chép thương hiệu hoặc toàn bộ chức năng của hai sản phẩm.
+
 Web cung cấp hội thoại với Trợ lý, chọn dự án/workflow, xem docs và trả lời tại ticket đang chờ.
 Trang yêu cầu thể hiện các bước, phụ thuộc, bước hiện tại, các nhánh sửa và ticket con. Timeline ghi
 quyết định, can thiệp, review, fallback và artifact, không chỉ transcript agent.
@@ -208,6 +213,22 @@ Ticket hiển thị workflow/version, skill hiện tại, độ khó và lý do,
 số vòng sửa, kết quả kiểm chứng, commit và trạng thái docs. Trang máy hiển thị kết nối, dự án,
 pool model, hai bộ workflow và app version, cùng nút cài/update. Có lựa chọn máy/model Trợ lý và
 danh sách vấn đề cần owner xử lý. Điều khiển pause, cancel và duyệt deploy gửi lệnh có phản hồi thực.
+
+### Chế độ flow chart
+
+Ngoài board và danh sách, mỗi yêu cầu có chế độ flow chart tương tác của workflow thực tế. Node biểu
+diễn ticket bước; cạnh biểu diễn phụ thuộc, nhánh thực thi và vòng quay lại sửa khi review không đạt.
+Hiển thị bước hiện tại, trạng thái, lý do chờ, máy/model và số vòng sửa. Phân biệt bước chưa chạy,
+đang chạy, hoàn thành và đang cần owner bằng nhãn cùng biểu tượng, không chỉ bằng màu.
+
+Owner có thể zoom, pan, đưa toàn bộ sơ đồ vào khung nhìn và mở chi tiết ticket bằng cách chọn node.
+Bước lớn có thể mở rộng để xem ticket công việc; mặc định giữ mức bước để sơ đồ dễ đọc. Cập nhật
+tiến độ từ cùng nguồn trạng thái với board và danh sách; chuyển chế độ không tạo bản workflow khác.
+Sơ đồ phản ánh các bước của workflow/version đã ghim, không gắn cứng chuỗi ví dụ BMAD hoặc Superpowers.
+
+Flow chart phục vụ quan sát và thao tác trên ticket. Chỉnh sửa định nghĩa workflow bằng kéo thả
+không thuộc phạm vi yêu cầu hiện tại. Trên màn hình nhỏ vẫn có thể mở ticket và theo dõi bước hiện
+tại qua danh sách, không bắt buộc thao tác sơ đồ rộng để trả lời Trợ lý.
 
 ## 11. Cập nhật app macOS từ xa
 
@@ -238,6 +259,9 @@ Các tình huống bắt buộc nghiệm thu:
 - Docs đổi sơ sài bị review phát hiện; cấu trúc sai bị validator chặn; sync lỗi không đóng ticket sớm.
 - Cập nhật app có chữ ký, đợi job, rollback lỗi và bảo toàn checkpoint.
 - Nhập docs cũ giữ nội dung; không nhập ticket, credential hoặc đăng ký máy v1.
+- Board, danh sách và flow chart phản ánh cùng trạng thái; sơ đồ hiển thị phụ thuộc, ticket con và vòng sửa,
+  mở đúng ticket khi chọn node; không nhầm sơ đồ workflow định nghĩa với lịch sử run thực tế.
+- Docs có cây trang, tìm kiếm và liên kết ticket theo dự án; trạng thái cập nhật và commit nguồn nhìn thấy được.
 
 ## 13. Phân rã kế hoạch tiếp theo
 
