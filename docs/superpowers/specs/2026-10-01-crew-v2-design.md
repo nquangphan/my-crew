@@ -1,7 +1,7 @@
 # Crew v2 — Thiết kế sản phẩm và kiến trúc
 
 Ngày: 2026-10-01, Asia/Ho_Chi_Minh.
-Trạng thái: thiết kế trong hội thoại đã được owner duyệt; bản spec này chờ review trước khi lập kế hoạch.
+Trạng thái: owner đã duyệt bản spec và các bổ sung ngày 2026-10-02; đang lập kế hoạch theo từng phần.
 
 ## 1. Mục tiêu và phạm vi
 
