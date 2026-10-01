@@ -166,7 +166,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
     `request` (chủ dự án viết trên web) là văn bản tin cậy.
 12. `apps/daemon/src/roles/prompts/_shared-rules.md`, `_capability-preflight.md`: mọi prompt vai trò include
     hai partial này trước — ngôn ngữ, dữ liệu không tin cậy, skill tương tác chạy chế độ không hỏi,
-    `ask_owner`, đường dẫn được bảo vệ; rồi bước bắt buộc kiểm tra skill/MCP (`get_ticket` →
+    `ask_owner`, đường dẫn được bảo vệ, lệnh dài (test/build/lint) phải chạy đồng bộ trong một lời gọi Bash
+    thay vì chạy nền rồi tự poll log/`git status`/`tail` nhiều lần (tránh bị môi trường chạy agent chặn giữa
+    chừng khiến lượt kết thúc mà chưa bàn giao được — thu hẹp phạm vi test theo file/module đã đổi khi lệnh có
+    thể lâu), dừng tiến trình tự khởi động chỉ bằng đúng PID mình ghi lại chứ không dùng `pkill -f` theo mẫu tên
+    rộng (nhiều job khác có thể spawn tiến trình trùng tên); rồi bước bắt buộc kiểm tra skill/MCP (`get_ticket` →
     `context.capabilities` → `select_capabilities` với lý do từng mục → gọi skill qua công cụ `Skill` trước
     khi làm việc). Từng prompt theo vai trò (`assistant-triage`, `assistant-close`, `pm-analyze`, `pm-monitor`,
     `pm-accept`, `dev`, `docs-update`, `qc`, `docs-init`) thêm bước docs-trước-code, việc riêng của bước, và

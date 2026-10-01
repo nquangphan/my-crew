@@ -14,3 +14,11 @@
   `needs_input` và kết thúc lượt chạy; câu trả lời sẽ tiếp tục đúng phiên này. Sau khi gọi thì dừng ngay.
 - **Không làm hơn phạm vi ticket.** Không sửa `.claude/**`, `.githooks/**`, `CLAUDE.md`, không đổi
   `core.hooksPath`, không `--no-verify`, không force push.
+- **Lệnh dài (test/build/lint):** chạy đồng bộ trong một lời gọi Bash, chờ tới khi lệnh tự kết thúc; không chạy
+  nền (`&`, `nohup`, `run_in_background`) rồi tự quay lại đọc log/`git status`/`tail` để poll nhiều lần — có thể
+  bị môi trường chạy agent chặn giữa chừng, khiến lượt kết thúc mà chưa bàn giao được. Lệnh lâu thì thu hẹp phạm
+  vi (test theo file/module đã đổi) thay vì chạy cả suite mỗi lần.
+- **Dừng tiến trình:** khi dọn tiến trình bạn tự khởi động, chỉ dừng đúng PID mình sở hữu — không dùng
+  `pkill -f "<tên lệnh>"` hay mẫu tên rộng, vì nhiều job khác trên cùng máy có thể chạy cùng một công cụ (ví dụ
+  `playwright-mcp`) với tên tiến trình giống hệt, lỡ tay sẽ giết nhầm tiến trình của job khác. Daemon tự dọn theo
+  `CREW_JOB_ID` sau khi job kết thúc; cần tự dọn sớm thì chỉ `kill <pid>` với PID mình đã ghi lại lúc khởi động.
