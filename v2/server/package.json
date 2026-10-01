@@ -1,0 +1,26 @@
+{
+  "name": "@crew-v2/server",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=24.12"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "test": "node scripts/test-db.ts",
+    "test:unit": "node --test test/*.unit.test.ts",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "node src/db/migrate.ts"
+  },
+  "dependencies": {
+    "fastify": "5.12.5",
+    "postgres": "3.4.9",
+    "yaml": "2.9.1",
+    "picomatch": "4.0.7"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "@types/node": "26.6.3"
+  }
+}

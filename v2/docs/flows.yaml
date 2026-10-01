@@ -1,6 +1,10 @@
 version: 1
 source:
-  include: [src/**]
+  include:
+    - src/**
+    - server/src/**
+    - server/scripts/**
+    - server/migrations/**
   exclude: []
 flows:
   domain-foundation:
@@ -18,5 +22,24 @@ flows:
       - test/workflow-policy.test.ts
       - test/ticket-policy.test.ts
       - test/completion-policy.test.ts
+  server-platform:
+    title: Nền tảng server và database riêng Crew v2
+    doc: docs/flows/server-platform.md
+    entrypoints:
+      - server/src/db/migrate.ts
+    files:
+      - server/src/platform/config.ts
+      - server/src/platform/contracts.ts
+      - server/src/platform/errors.ts
+      - server/src/platform/picomatch.d.ts
+      - server/src/platform/thread-stream.d.ts
+      - server/src/db/client.ts
+      - server/scripts/test-db.ts
+      - server/migrations/001_platform.sql
+      - server/package.json
+      - server/tsconfig.json
+    tests:
+      - server/test/platform.test.ts
+      - server/test/support/db.ts
 shared: {}
 unassigned: []
