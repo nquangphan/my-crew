@@ -198,4 +198,50 @@ describe('merge and push (real git, real crew-docs, bare origin)', () => {
     expect(outcome).toMatchObject({ status: 'conflict', ticketKey: b.key, files: ['README.md'] });
     expect(git(join(repo, '.crew/worktrees/WEB-1'), 'status', '--porcelain').trim()).toBe('');
   });
+
+  it('brings a head that a later finished head contains in with that head, not on its own first', async () => {
+    const { repo, remote, branch, run } = setup();
+    const a = ticket();
+    const b = ticket();
+    const fix = ticket({ dependsOn: [a.id, b.id] });
+    const bug = ticket({ type: 'bug', originDevId: fix.id, bugCycle: 1 });
+    const headA = branch('WEB-6', { 'README.md': '# Shop A\n' });
+    const headB = branch('WEB-7', { 'README.md': '# Shop B\n' });
+    // The fix merged A as its base and resolved B by hand: B's change is in its tree, B is not its ancestor.
+    const fixWt = ensureWorktree({ repo, key: 'WEB-8', base: 'main' });
+    git(fixWt.path, 'merge', '-q', '--no-edit', headA);
+    writeFiles(fixWt.path, { 'README.md': '# Shop A + B\n' });
+    git(fixWt.path, 'add', '-A');
+    git(fixWt.path, 'commit', '-q', '-m', 'resolve A and B');
+    const headFix = git(fixWt.path, 'rev-parse', 'HEAD').trim();
+    // The bug records B as merged into the fix without changing its tree.
+    const bugWt = ensureWorktree({ repo, key: 'WEB-9', base: headFix });
+    git(bugWt.path, 'merge', '-q', '-s', 'ours', '--no-edit', headB);
+    const headBug = git(bugWt.path, 'rev-parse', 'HEAD').trim();
+
+    const outcome = await run([a, b, fix, bug], {
+      [a.id]: headA,
+      [b.id]: headB,
+      [fix.id]: headFix,
+      [bug.id]: headBug,
+    });
+    // In dependency order B would conflict with A; carried by the bug's head, every ticket merges cleanly.
+    expect(outcome).toMatchObject({
+      status: 'merged',
+      merged: [bug.key, a.key, b.key, fix.key],
+      alreadyIn: [],
+    });
+    expect(git(remote, 'show', 'main:README.md')).toBe('# Shop A + B\n');
+    for (const head of [headA, headB, headFix, headBug])
+      expect(() => git(remote, 'merge-base', '--is-ancestor', head, 'main')).not.toThrow();
+  });
+
+  it('still reports a head that is already on the integration branch as already in', async () => {
+    const { repo, branch, run } = setup();
+    const dev = ticket();
+    const head = branch('WEB-10', { 'README.md': '# Shop mới\n' });
+    git(join(repo, '.crew/worktrees/WEB-1'), 'merge', '-q', '--no-edit', head);
+    const outcome = await run([dev], { [dev.id]: head });
+    expect(outcome).toMatchObject({ status: 'merged', merged: [], alreadyIn: [dev.key] });
+  });
 });
