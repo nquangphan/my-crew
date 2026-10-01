@@ -723,6 +723,8 @@ describe('abandoned sessions', () => {
     expect(fresh).toBeTruthy();
     t.daemon.state.updateJob(backoff.id, { retryAt: new Date(Date.now() - 1000).toISOString() });
     await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'needs_input', 20_000, 'asked');
+    // ask_owner flips the ticket mid-run; the job is only marked done once that run has returned.
+    await waitFor(() => t.daemon.state.getJob(backoff.id)?.status === 'done', 15_000, 'job done');
 
     const runs = t.book.runs.filter((run) => run.ticketId === dev.id);
     expect(runs).toHaveLength(4);
@@ -794,6 +796,80 @@ describe('abandoned sessions', () => {
     await t.daemon.stop();
   });
 
+  it('forgets the images a job sent to its old session when it re-runs in a fresh one that got none', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Ảnh và phiên mới không tải được ảnh');
+    const image = await uploadImage(f, dev.id, tinyPng(9));
+    await ownerDescribes(f, dev.id, `Ảnh lỗi: ${image.markdown}`);
+    const sentIn = (run: (typeof t.book.runs)[number] | undefined) => (run?.images ?? []).map((i) => i.id);
+
+    // 1: the first session gets the image, then the daemon stops mid-run: the job is re-queued.
+    const ask = tool('ask_owner', { question: 'Lỗi ở trang nào?' });
+    t.book.byTicket.set(dev.id, {
+      steps: [tool('update_status', { to: 'in_progress' }), { sleep: 30_000 }, ask],
+    });
+    await t.daemon.start();
+    const running = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.imagesSent.includes(image.id)),
+      15_000,
+      'image sent to the first session',
+    );
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'in_progress', 15_000, 'started');
+    await t.daemon.stop();
+
+    // 2: the next start re-runs the same job in a fresh session, but the image cannot be downloaded now.
+    let imagesDown = true;
+    const flakyFetch: typeof fetch = async (input, init) =>
+      imagesDown && String(input).includes('/v1/daemon/attachments/')
+        ? new Response('unavailable', { status: 503 })
+        : fetch(input, init);
+    const again = makeDaemon(f, { repoPath: repo, home: t.home, book: t.book, extra: { fetch: flakyFetch } });
+    // The fresh session carries on after the last completed step: it asks the owner.
+    t.book.byTicket.set(dev.id, {
+      steps: [tool('update_status', { to: 'in_progress' }), { sleep: 0 }, ask],
+    });
+    await again.daemon.start();
+    const rerun = await waitFor(
+      () => {
+        const job = again.daemon.state.getJob(running.id);
+        return job?.status === 'done' ? job : undefined;
+      },
+      15_000,
+      're-run done',
+    );
+    let runs = t.book.runs.filter((run) => run.ticketId === dev.id);
+    expect(runs).toHaveLength(2);
+    expect(runs[1]?.jobId).toBe(running.id);
+    expect(runs[1]?.resumeSessionId).toBeNull();
+    expect(sentIn(runs[1])).toEqual([]);
+    expect(runs[1]?.prompt).toContain('không tải được');
+    const fresh = rerun.sessionId as string;
+    expect(fresh).toBeTruthy();
+    expect(fresh).not.toBe(running.sessionId);
+    // The images sent belong to the old session: the fresh one has seen none.
+    expect(rerun).toMatchObject({ sessionAbandoned: null, imagesSent: [] });
+    expect(again.daemon.state.imagesSentInSession(fresh)).toEqual([]);
+
+    // 3: the answer resumes the clean fresh session, the image downloads again and is sent to it.
+    imagesDown = false;
+    t.book.byTicket.set(dev.id, { steps: [tool('comment', { body: 'Đã nhận' })] });
+    await ownerComment(f, dev.id, 'Trang đăng nhập.');
+    await waitFor(
+      async () => (await commentsOf(api.db, dev.id)).some((c) => c.body === 'Đã nhận'),
+      15_000,
+      'run 3',
+    );
+    runs = t.book.runs.filter((run) => run.ticketId === dev.id);
+    expect(runs).toHaveLength(3);
+    expect(runs[2]?.resumeSessionId).toBe(fresh);
+    expect(sentIn(runs[2])).toEqual([image.id]);
+    expect(again.daemon.state.imagesSentInSession(fresh)).toEqual([image.id]);
+    await again.daemon.stop();
+  });
+
   it('sends the ticket images again to the fresh session an unblock opens, and not to the retries that resume', async () => {
     const f = await fixture(api);
     const repo = makeRepo();
@@ -826,6 +902,8 @@ describe('abandoned sessions', () => {
     );
     t.daemon.state.updateJob(backoff.id, { retryAt: new Date(Date.now() - 1000).toISOString() });
     await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'needs_input', 20_000, 'asked');
+    // ask_owner flips the ticket mid-run; read the job state only once that run has returned.
+    await waitFor(() => t.daemon.state.getJob(backoff.id)?.status === 'done', 15_000, 'job done');
 
     const runs = t.book.runs.filter((run) => run.ticketId === dev.id);
     const [firstJob] = t.daemon.state.jobsForTicket(dev.id);
