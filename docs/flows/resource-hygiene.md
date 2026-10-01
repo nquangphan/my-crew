@@ -32,7 +32,10 @@ cách an toàn để xem/dọn tài nguyên qua ticket tool.
    tạm … không an toàn". `cleanupJob()`: gửi `SIGTERM` tới process group của job và mọi
    tiến trình gắn thẻ, chờ tối đa `graceMs` (mặc định 10s), còn sống thì `SIGKILL`; xóa thư mục tạm của job
    (`jobTmpDir`); ghi một dòng vào `job_cleanup` (pid, cổng, byte đã giải phóng, container thấy được trong cửa
-   sổ thời gian job chạy). Chạy ở mọi điểm kết thúc job, kể cả `backoff`/`cancelled`, không chỉ khi xong.
+   sổ thời gian job chạy). Chạy ở mọi điểm kết thúc job, kể cả `backoff`/`cancelled`, không chỉ khi xong. Ảnh
+   ticket daemon tự tải (`ticket-images/` trong thư mục tạm của job, flow `agent-runs`) là dữ liệu daemon tải
+   về chứ không phải file agent để lại: `JobRunner.cleanup()` xoá thư mục đó trước khi gọi `cleanupJob()`, nên
+   nó không được tính vào `bytes_freed` hay ghi chú dọn dẹp PM đọc (`cleanupLines()`, flow `agent-roles`).
 4. `apps/daemon/src/runner/job-cleanup.ts` → `findOrphans()`/`sweepOrphans()`: tìm tiến trình gắn thẻ một job
    mà state DB này biết và job đó không còn chạy trong tiến trình daemon hiện tại, cùng thư mục tạm của job
    không chạy — tên thư mục tạm ngắn (`jobTmpTag`) được tra ngược về job qua `StateDb.getJobByIdPrefix()`, nên
@@ -69,8 +72,8 @@ cách an toàn để xem/dọn tài nguyên qua ticket tool.
 
 ## Flow liên quan
 
-- agent-runs: `JobRunner.cleanup()` gọi `cleanupJob()` ở mọi điểm kết thúc job; `resourceOps` được lắp vào
-  ticket tool `resource_report`/`cleanup_resources` (chỉ PM).
+- agent-runs: `JobRunner.cleanup()` gọi `cleanupJob()` ở mọi điểm kết thúc job (sau khi tự xoá `ticket-images/`
+  của job, flow đó); `resourceOps` được lắp vào ticket tool `resource_report`/`cleanup_resources` (chỉ PM).
 - daemon-runtime: `createDaemon().sweep()` gọi `sweepOrphans()` lúc khởi động và theo timer 10 phút.
 - agent-workspace: `ResourceOps` gọi `removeWorktree()` khi PM dọn một worktree đã đóng ticket.
 

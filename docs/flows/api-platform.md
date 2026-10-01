@@ -108,10 +108,12 @@ của mình vào app do flow này dựng lên.
 - event-delivery: `EventBus` được tạo và khởi động/dừng theo vòng đời app tại đây.
 - ticket-lifecycle: `startStuckTicketAlarm()`, `startDraftAttachmentCleanup()` và `WaitingJobsRegistry`
   (`RouteDeps.waitingJobs`) được tạo và khởi động/dừng cùng vòng đời `buildApp()`, cạnh `startHeartbeatSweeper`
-  (flow `machine-pairing`); `attachmentRoutes` (nhóm route owner, gồm cả `POST /v1/attachments` ảnh nháp) đăng
-  ký tại `buildApp()`; migration `0010_attachments.sql` (tạo bảng) và `0011_attachments_nullable_ticket_id.sql`
-  (`ticket_id` nullable) chạy qua `runMigrations()` như mọi migration khác; `attachmentRoutes` tự đăng ký thêm
-  một `setErrorHandler` riêng (Fastify cô lập theo `register()`, không ảnh hưởng route khác) bắt riêng
+  (flow `machine-pairing`); `attachmentRoutes` (nhóm route owner, gồm `POST /v1/tickets/:id/attachments`,
+  `POST /v1/attachments` ảnh nháp và `GET /v1/attachments/:id`) đăng ký tại `buildApp()`, `daemonAttachmentRoutes`
+  (cùng file, route đọc `GET /v1/daemon/attachments/:id` cho daemon) đăng ký cạnh `daemonRoutes` trong nhóm route
+  daemon; migration `0010_attachments.sql` (tạo bảng) và `0011_attachments_nullable_ticket_id.sql` (`ticket_id`
+  nullable, phục vụ ảnh nháp) chạy qua `runMigrations()` như mọi migration khác; `attachmentRoutes` tự đăng ký
+  thêm một `setErrorHandler` riêng (Fastify cô lập theo `register()`, không ảnh hưởng route khác) bắt riêng
   `FST_ERR_CTP_BODY_TOO_LARGE` để trả đúng `ATTACHMENT_TOO_LARGE`, còn lại gọi lại `sendApiError()` (bước 6)
   dùng chung với error handler toàn app.
 - daemon-api, project-claims, docs-sync-viewer: route của các flow này được đăng ký bên trong `buildApp()`,

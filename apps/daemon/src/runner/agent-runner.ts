@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import {
@@ -7,6 +8,7 @@ import {
   type McpServerConfig,
   type Options,
   type SDKMessage,
+  type SDKUserMessage,
   query as sdkQuery,
 } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentRole, Effort, RoleStage } from '@crew/shared';
@@ -14,6 +16,7 @@ import type { JobKind } from '../state-db.js';
 import type { AnyToolDefinition, EndReason } from '../tools/ticket-mcp-server.js';
 import { emptyCapture, type RunCapture, recordTool } from './run-trace.js';
 import { slashCommandsIn } from './skill-usage.js';
+import type { RunImage } from './ticket-images.js';
 
 /** Lets a ticket tool (ask_owner, handoff_docs) end the run after its result. */
 export class RunControl {
@@ -53,6 +56,11 @@ export interface RunAgentOptions {
   model: string;
   effort: Effort;
   prompt: string;
+  /**
+   * Ticket images sent with the prompt as image blocks (the prompt lists each with its source and file). A
+   * run without images sends the prompt as plain text.
+   */
+  images?: RunImage[];
   resumeSessionId?: string | null;
   allowedTools: string[];
   /** Tools removed from the model's context (the disabled MCP servers' `mcp__<server>__*`). */
@@ -177,6 +185,38 @@ function captureAssistant(
   }
 }
 
+type UserContent = Exclude<SDKUserMessage['message']['content'], string>;
+
+/**
+ * The run's first message when it carries images: the prompt text, then each image as a base64 block under
+ * a label with its number in the prompt's list. An image whose file cannot be read is named instead of sent.
+ */
+export async function promptWithImages(
+  prompt: string,
+  images: readonly RunImage[],
+): Promise<AsyncIterable<SDKUserMessage>> {
+  const content: UserContent = [{ type: 'text', text: prompt }];
+  for (const image of images) {
+    try {
+      const data = (await readFile(image.path)).toString('base64');
+      content.push(
+        { type: 'text', text: `Ảnh ${image.index} (${image.source}):` },
+        { type: 'image', source: { type: 'base64', media_type: image.mediaType, data } },
+      );
+    } catch {
+      content.push({ type: 'text', text: `Ảnh ${image.index} (${image.source}): không đọc được file ảnh.` });
+    }
+  }
+  const message: SDKUserMessage = {
+    type: 'user',
+    message: { role: 'user', content },
+    parent_tool_use_id: null,
+  };
+  return (async function* () {
+    yield message;
+  })();
+}
+
 /** Version of the Claude Code runtime bundled with the pinned Agent SDK (`claudeCodeVersion`). */
 export function sdkRuntimeVersion(): string | null {
   try {
@@ -262,7 +302,10 @@ export function createSdkRunner(options: SdkRunnerOptions = {}): AgentRunner {
       },
     };
 
-    const q = query({ prompt: run.prompt, options: sdkOptions });
+    const q = query({
+      prompt: run.images?.length ? await promptWithImages(run.prompt, run.images) : run.prompt,
+      options: sdkOptions,
+    });
     let interrupted = false;
     const interrupt = () => {
       if (interrupted) return;

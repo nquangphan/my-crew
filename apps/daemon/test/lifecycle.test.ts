@@ -5,8 +5,15 @@ import { describe, expect, it } from 'vitest';
 import { events, ticketReports, tickets } from '../../api/src/db/schema.js';
 import { isDocsPath } from '../src/runner/guard-hook.js';
 import { commentsOf, RATED, useApi } from './helpers/api.js';
+import { waitFor } from './helpers/daemon.js';
 import { git } from './helpers/git.js';
-import { type LifecycleResult, loadScenario, runScenario, stuckTickets } from './helpers/lifecycle.js';
+import {
+  type LifecycleResult,
+  loadScenario,
+  type PastedImage,
+  runScenario,
+  stuckTickets,
+} from './helpers/lifecycle.js';
 import { crewDocs } from './helpers/workflow.js';
 
 /**
@@ -522,6 +529,86 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     const qcBodies = (await commentsOf(api.db, qc.id)).map((c) => c.body);
     expect(qcBodies.some((b) => b.includes('`playwright`'))).toBe(false);
     expect(git(r.repo.remote, 'show', 'main:README.md')).toContain('## Cài đặt');
+  },
+
+  async 'ticket-images'(r) {
+    await assertDocsJobCommits(r);
+    const login = r.images.get('login') as PastedImage;
+    const narrow = r.images.get('narrow') as PastedImage;
+    const request = await one(/^Sửa bố cục trang đăng nhập$/, 'request');
+    const pm = await one(/^Sửa bố cục trang đăng nhập$/, 'pm_task');
+    const dev = await one(/^Sửa CSS trang đăng nhập$/, 'dev');
+    const qc = await one(/^QC: Sửa CSS trang đăng nhập$/);
+    const runOf = (ticketId: string, stage: string, n = 1) => {
+      const run = r.runs.find(
+        (entry) => entry.ticketId === ticketId && entry.stage === stage && entry.n === n,
+      );
+      if (!run) throw new Error(`no ${stage} run #${n}`);
+      return run;
+    };
+    /** What a run received: every image as an intact file inside that job's own temp dir. */
+    const received = (run: ReturnType<typeof runOf>) => {
+      for (const image of run.images) {
+        expect(image.path.startsWith(`${run.tmpDir}/`), `${run.stage} image in the job temp dir`).toBe(true);
+        expect(image.intact, `${run.stage} image bytes`).toBe(true);
+        expect(image.mediaType).toBe('image/png');
+      }
+      return run.images.map((image) => [image.index, image.id, image.source]);
+    };
+
+    // The assistant gets the image of the request's description.
+    const triage = runOf(request.id, 'assistant_triage');
+    expect(received(triage)).toEqual([[1, login.id, `mô tả ticket ${request.key}`]]);
+    expect(triage.prompt).toContain('## Ảnh đính kèm trong ticket');
+    expect(triage.prompt).toContain(
+      `link \`/v1/attachments/${login.id}\` · file \`${triage.images[0]?.path}\``,
+    );
+
+    // The PM's first run gets the owner's request above its own ticket.
+    const analyze = runOf(pm.id, 'pm_analyze');
+    expect(analyze.resumeSessionId).toBeNull();
+    expect(received(analyze)).toEqual([[1, login.id, `mô tả ticket ${request.key}`]]);
+
+    // The owner's answer carries a new image: the resumed session gets that one only, the earlier one is
+    // downloaded again for this job and listed as already sent.
+    const resumed = runOf(pm.id, 'pm_analyze', 2);
+    expect(resumed.resumeSessionId).toBeTruthy();
+    expect(received(resumed)).toEqual([
+      [
+        1,
+        narrow.id,
+        expect.stringMatching(new RegExp(`^bình luận thứ \\d+ của ticket ${pm.key} \\(chủ dự án viết\\)$`)),
+      ],
+    ]);
+    expect(resumed.prompt).toMatch(
+      new RegExp(
+        `2\\. Nguồn: mô tả ticket ${request.key} · link \`/v1/attachments/${login.id}\` · file \`${resumed.tmpDir}/ticket-images/${login.id}\\.png\` \\(image/png, 1 KB\\) · phiên này đã nhận ảnh ở lượt chạy trước, không gửi lại\\.`,
+      ),
+    );
+    const pmJobs = jobsOf(r, pm.id).filter((j) => j.stage === 'pm_analyze');
+    expect(pmJobs.map((j) => j.imagesSent)).toEqual([[login.id], [narrow.id]]);
+    expect(pmJobs[1]?.sessionId).toBe(pmJobs[0]?.sessionId);
+
+    // The PM kept the image link in the dev ticket, so the dev run gets the image and reads its file.
+    expect(dev.description).toContain(`![ảnh](/v1/attachments/${login.id})`);
+    const devRun = runOf(dev.id, 'dev');
+    expect(received(devRun)).toEqual([[1, login.id, `mô tả ticket ${dev.key}`]]);
+    const read = r.daemon.daemon.state
+      .toolLog(devRun.jobId)
+      .find((entry) => entry.tool === 'Read' && entry.target?.endsWith(`${login.id}.png`));
+    expect(read).toMatchObject({ decision: 'allow', target: devRun.images[0]?.path });
+    expect((await report(dev.id))?.docsFirst).toBe(true);
+
+    // A ticket without an image link runs exactly as before: no images, no image section.
+    const qcRun = runOf(qc.id, 'qc');
+    expect(qcRun.images).toEqual([]);
+    expect(qcRun.prompt).not.toContain('Ảnh đính kèm');
+    expect(jobsOf(r, qc.id).map((j) => j.imagesSent)).toEqual([[]]);
+
+    // Every job's temp dir, images included, is gone once the job ended.
+    const withImages = r.runs.filter((run) => run.images.length > 0);
+    expect(withImages.length).toBeGreaterThanOrEqual(5);
+    await waitFor(() => r.runs.every((run) => !existsSync(run.tmpDir)), 15_000, 'job temp dirs removed');
   },
 };
 
