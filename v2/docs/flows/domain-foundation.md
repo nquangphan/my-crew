@@ -10,12 +10,16 @@ Các module `src/` xuất hàm thuần để server/host sử dụng; không có
 
 - `src/model-policy.ts` → `eligibleModels`.
 
+- `src/workflow-policy.ts` → `samePin, workflowsReady, assertSkillAllowed`.
+
 ## Các bước
 
 1. `test/workspace.test.ts` → `workspace v2 không có dependency ứng dụng v1`: đọc manifest package và kiểm tra tên, dependency runtime.
 2. `package.json` → `test`, `typecheck`: chạy kiểm thử Node và kiểm tra kiểu TypeScript riêng cho `v2/`.
 
 3. `src/model-policy.ts` → `eligibleModels`: Loại model khác máy, không khả dụng, nguồn tắt, thiếu capability hoặc chưa áp dụng revision công tắc; trả các ứng viên để Trợ lý xếp hạng.
+
+4. `src/workflow-policy.ts` → `samePin, workflowsReady, assertSkillAllowed`: Kiểm tra máy có đủ hai bộ đúng pin và chặn nguồn skill khác workflow/version/revision/checksum của run. Đây là gate metadata, không thay sandbox runtime.
 
 ## Files
 
@@ -27,6 +31,9 @@ Các module `src/` xuất hàm thuần để server/host sử dụng; không có
 
 | `src/model-policy.ts` | Quy tắc miền | `eligibleModels`; `Model, Selection` |
 | `test/model-policy.test.ts` | Kiểm chứng hành vi policy | node:test |
+
+| `src/workflow-policy.ts` | Quy tắc miền | `samePin, workflowsReady, assertSkillAllowed`; `Workflow, Pin` |
+| `test/workflow-policy.test.ts` | Kiểm chứng hành vi policy | node:test |
 
 ## Dữ liệu
 
@@ -41,3 +48,5 @@ Các quy tắc model, workflow, ticket và hoàn tất sẽ được thêm vào 
 `test/workspace.test.ts` kiểm tra package đúng tên và không khai báo dependency runtime.
 
 `test/model-policy.test.ts`: Máy khác, nguồn tắt, config cũ và fallback thiếu vision/tools bị loại.
+
+`test/workflow-policy.test.ts`: Thiếu bộ, checksum sai, target trùng và skill khác revision/workflow bị từ chối.

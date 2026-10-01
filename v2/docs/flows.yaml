@@ -9,8 +9,10 @@ flows:
     entrypoints: []
     files:
       - src/model-policy.ts
+      - src/workflow-policy.ts
     tests:
       - test/workspace.test.ts
       - test/model-policy.test.ts
+      - test/workflow-policy.test.ts
 shared: {}
 unassigned: []
