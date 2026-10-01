@@ -186,6 +186,34 @@ nhận tới tiến trình thực tế và lưu trạng thái, không chỉ đ�
 
 ## 8. Giám sát vận hành
 
+### Điều phối subagent và tài nguyên máy
+
+Trợ lý có thể làm vai PM như owner yêu cầu: chia task theo workflow, giao agent thực thi, tổ chức
+review độc lập cho từng task và trả findings cho agent sửa trước khi nghiệm thu. Review kiểm tra
+cả việc tuân thủ yêu cầu và chất lượng; self-review của agent thực thi không thay review độc lập.
+Review tổng thể cuối yêu cầu kiểm tra các hợp đồng giữa task. Các agent dùng skill của workflow
+đã ghim, không thêm bộ prompt role custom của Crew.
+
+Trợ lý đánh giá phụ thuộc và quyền ghi file/tài nguyên trước khi chạy task song song. Chỉ dispatch
+song song khi đầu vào đã sẵn sàng và ownership không xung đột; file dùng chung, Git index, commit,
+merge và migration cần được serialize hoặc cách ly rồi tích hợp có kiểm chứng. Không mở số lượng
+agent cố định chỉ dựa vào số CPU.
+
+Trước MỖI lượt dispatch agent thực thi, reviewer hoặc agent sửa lỗi, lấy telemetry mới từ máy
+đích: CPU/load, bộ nhớ khả dụng và memory pressure, dung lượng đĩa, các job đang chạy cùng giới
+hạn cấu hình. Thiếu telemetry mới hoặc vượt ngưỡng thì chờ thay vì dispatch mù. Trợ lý chọn mức
+concurrency trong giới hạn owner cấu hình và khả năng runtime; ghi căn cứ cùng quyết định vào
+timeline. Giảm dispatch mới khi pressure tăng, không kill tác vụ đang chạy chỉ để giảm concurrency.
+
+Mỗi run theo dõi tài nguyên tạm do nó tạo: workspace scratch, fixture, file upload tạm, process và
+cache riêng. Khi hoàn tất/hủy, dọn tài nguyên không còn được tham chiếu, sau khi xác nhận process
+đã dừng; không xóa tài nguyên dự án, tài nguyên run khác hoặc workspace còn thay đổi chưa lưu.
+Giữ code/commit, docs, attachment gốc, artifact cần thiết và báo cáo nghiệm thu. Cleanup chạy lại
+không gây mất dữ liệu; lỗi cleanup hiển thị và được giám sát xử lý tiếp. Khôi phục sau crash phải
+đối chiếu registry tài nguyên trước khi dọn, không dùng lệnh clean toàn bộ thư mục dùng chung.
+
+### Theo dõi và can thiệp
+
 Sự kiện cần xử lý đánh thức Trợ lý ngay: câu hỏi, model lỗi, máy mất kết nối, bước kết thúc, version
 lệch và lỗi docs. Kiểm tra dự phòng mỗi 5 phút tìm trạng thái stuck hoặc sự kiện bị bỏ lỡ. Server lưu
 việc cần xử lý khi máy Trợ lý offline; khi online khôi phục kiểm tra, không tạo nhiều Trợ lý song song.
@@ -312,6 +340,11 @@ Các tình huống bắt buộc nghiệm thu:
   attempt đang chạy không bị hủy; tắt hết nguồn, tắt nguồn của Trợ lý và thay đổi lúc máy offline
   đều có trạng thái chờ rõ ràng, đồng bộ trước dispatch và khôi phục đúng khi bật lại.
 - Review thất bại đến vòng 5; câu hỏi được tự trả lời hoặc chuyển owner đúng phạm vi.
+- Trợ lý chia task, review từng task và review tích hợp; chỉ chạy song song khi dependencies và
+  ownership cho phép. Mỗi lượt implement/review/fix có telemetry mới, capacity check và quyết định
+  được ghi nhận; telemetry thiếu hoặc memory pressure cao không phát sinh dispatch mới.
+- Cleanup chỉ xóa tài nguyên run tạo và không còn cần; bảo toàn dữ liệu owner/artifact, không ảnh
+  hưởng run khác; chạy lại, hủy giữa chừng và khôi phục crash không xóa nhầm.
 - Crash sau merge trước báo kết quả; conflict; nhánh đích đổi; không merge/deploy trùng.
 - Docs đổi sơ sài bị review phát hiện; cấu trúc sai bị validator chặn; sync lỗi không đóng ticket sớm.
 - Cập nhật app có chữ ký, đợi job, rollback lỗi và bảo toàn checkpoint.
