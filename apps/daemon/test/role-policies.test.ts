@@ -1,9 +1,17 @@
 import type { TicketDetailResponse } from '@crew/shared';
 import { DEFAULT_GUARD_POLICY } from '@crew/shared';
-import { describe, expect, it } from 'vitest';
-import { diffNeedsUiTest, missingUiServers } from '../src/roles/role-planner.js';
+import { describe, expect, it, vi } from 'vitest';
+import { createSubtask, fileBug } from '../../api/src/services/ticket-service.js';
+import { RATED, setStatus } from '../../api/test/helpers/test-db.js';
+import { VpsClient } from '../src/api/vps-client.js';
+import { parseConfig } from '../src/config.js';
+import { diffNeedsUiTest, missingUiServers, rolePlanner } from '../src/roles/role-planner.js';
 import { wrapTicketDetail, wrapUntrusted } from '../src/roles/untrusted-wrap.js';
 import { evaluateToolCall } from '../src/runner/guard-hook.js';
+import { BUNDLED_SETTINGS } from '../src/settings/settings-store.js';
+import { StateDb } from '../src/state-db.js';
+import { JobWriter } from '../src/tools/ticket-mcp-server.js';
+import { fixture, pmTask, reportAndFinish, useApi } from './helpers/api.js';
 import { git, makeRepo, tempDir, writeFiles } from './helpers/git.js';
 
 describe('untrusted data', () => {
@@ -200,6 +208,86 @@ describe('QC docs-only check looks at the ticket’s own commits', () => {
     expect(diffNeedsUiTest(repo, 'main', codeFix, [docsInit, dev])).toBe(true);
     // A later head built on the ticket under test (a finished fix) cannot bound its range.
     expect(diffNeedsUiTest(repo, 'main', dev, [docsInit, codeFix])).toBe(true);
+  });
+});
+
+describe('dev run auto-transitions a todo ticket', () => {
+  const api = useApi();
+
+  /** A dev ticket (or, via `viaBug`, a bug ticket filed on a finished dev/QC pair) under a running pm_task. */
+  async function planFor(status: 'todo' | 'in_progress', viaBug = false) {
+    const f = await fixture(api);
+    const pm = await pmTask(api, f);
+    let ticketId: string;
+    if (viaBug) {
+      const dev = await createSubtask(api.db, { type: 'dev', ...RATED, parentId: pm.id, title: 'Việc gốc' });
+      const qc = await createSubtask(api.db, {
+        type: 'qc',
+        ...RATED,
+        parentId: pm.id,
+        title: 'QC việc gốc',
+        pairsWith: dev.id,
+      });
+      await reportAndFinish(api.db, dev.id);
+      await setStatus(api.db, qc.id, 'in_progress');
+      ticketId = (await fileBug(api.db, qc.id, { title: 'Lỗi phát hiện' })).bug.id;
+    } else {
+      ticketId = (
+        await createSubtask(api.db, { type: 'dev', ...RATED, parentId: pm.id, title: 'Việc cần làm' })
+      ).id;
+    }
+    if (status !== 'todo') await setStatus(api.db, ticketId, status);
+    const vps = new VpsClient({ apiUrl: f.server.url, token: () => f.machine.token });
+    const state = new StateDb(':memory:');
+    const job = state.insertJob({
+      ticketId,
+      projectId: f.projectId,
+      role: 'dev',
+      trigger: 'ticket.assigned',
+    });
+    const detail = await vps.getTicket(ticketId);
+    const config = parseConfig({ apiUrl: f.server.url, machineName: 'm' });
+    const transition = vi.spyOn(vps, 'transition');
+    const result = await rolePlanner.plan({
+      job,
+      kind: 'agent',
+      detail,
+      config,
+      project: null,
+      inventory: { skills: [], mcpServers: [] },
+      ctx: {
+        vps,
+        state,
+        crewDocs: null,
+        writer: new JobWriter(state, job.id),
+        standardPath: null,
+        log: () => {},
+        settings: BUNDLED_SETTINGS,
+      },
+    });
+    return { result, transition, ticketId, vps };
+  }
+
+  it('moves a todo dev ticket to in_progress before building the prompt', async () => {
+    const { result, transition, ticketId, vps } = await planFor('todo');
+    expect(transition).toHaveBeenCalledExactlyOnceWith(ticketId, 'in_progress', expect.any(String));
+    expect(result.stage).toBe('dev');
+    expect(result.skip).toBeUndefined();
+    expect((await vps.getTicket(ticketId)).ticket.status).toBe('in_progress');
+  });
+
+  it('does the same for a bug ticket (same dev stage)', async () => {
+    const { transition, ticketId, vps } = await planFor('todo', true);
+    expect(transition).toHaveBeenCalledExactlyOnceWith(ticketId, 'in_progress', expect.any(String));
+    expect((await vps.getTicket(ticketId)).ticket.status).toBe('in_progress');
+  });
+
+  it('does nothing on resume/retry: the ticket is already in_progress', async () => {
+    const { result, transition, ticketId, vps } = await planFor('in_progress');
+    expect(transition).not.toHaveBeenCalled();
+    expect(result.stage).toBe('dev');
+    expect(result.skip).toBeUndefined();
+    expect((await vps.getTicket(ticketId)).ticket.status).toBe('in_progress');
   });
 });
 

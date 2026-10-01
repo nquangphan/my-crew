@@ -5,11 +5,18 @@ import {
   TransitionRequest,
   UpdateTicketRequest,
 } from '@crew/shared';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
+import { ApiError } from '../errors.js';
 import { withAgentActivity } from '../services/agent-activity-service.js';
 import { getTicketDetail, getTicketTree, listTickets, search } from '../services/ticket-query-service.js';
 import { createRequestTicket, transitionTicket, updateTicket } from '../services/ticket-service.js';
 import { idParam, parseInput, type RouteDeps } from './route-deps.js';
+
+function ownerId(request: FastifyRequest): string {
+  const session = request.ownerSession;
+  if (!session) throw new ApiError('UNAUTHORIZED', 'login required');
+  return session.ownerId;
+}
 
 /**
  * Owner ticket routes. Agent writes (subtasks, bugs, reports) go through the daemon routes. Owner reads
@@ -23,7 +30,7 @@ export async function ticketRoutes(app: FastifyInstance, { db }: RouteDeps): Pro
 
   app.post('/v1/tickets', async (request, reply) => {
     const body = parseInput(CreateRequestTicket, request.body);
-    return reply.status(201).send(await createRequestTicket(db, body));
+    return reply.status(201).send(await createRequestTicket(db, body, ownerId(request)));
   });
 
   app.get('/v1/tickets/:id', async (request) => {
