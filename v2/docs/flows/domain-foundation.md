@@ -32,16 +32,12 @@ Các module `src/` xuất hàm thuần để server/host sử dụng; không có
 | `package.json` | Cấu hình package và lệnh kiểm tra | `test`, `typecheck` |
 | `tsconfig.json` | Bật strict types, type stripping tương thích và không phát sinh mã | `compilerOptions` |
 | `test/workspace.test.ts` | Kiểm tra tính độc lập của workspace | `workspace v2 không có dependency ứng dụng v1` |
-
 | `src/model-policy.ts` | Quy tắc miền | `eligibleModels`; `Model, Selection` |
 | `test/model-policy.test.ts` | Kiểm chứng hành vi policy | node:test |
-
 | `src/workflow-policy.ts` | Quy tắc miền | `samePin, workflowsReady, assertSkillAllowed`; `Workflow, Pin` |
 | `test/workflow-policy.test.ts` | Kiểm chứng hành vi policy | node:test |
-
 | `src/ticket-policy.ts` | Quy tắc miền | `transition, recordRepairFailure`; `Status, Signal` |
 | `test/ticket-policy.test.ts` | Kiểm chứng hành vi policy | node:test |
-
 | `src/completion-policy.ts` | Quy tắc miền | `canComplete, canDeploy`; `Completion` |
 | `test/completion-policy.test.ts` | Kiểm chứng hành vi policy | node:test |
 
