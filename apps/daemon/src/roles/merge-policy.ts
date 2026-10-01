@@ -203,6 +203,20 @@ export function mergeOrder(items: readonly WorkItem[]): WorkItem[] {
   return ordered;
 }
 
+/**
+ * Moves every item whose head another item's head already contains (a fix that merged it as its base, or
+ * a merge that recorded it) behind the others, keeping the order otherwise. It then comes in with the
+ * containing head: merging it on its own first would replay the conflict the containing ticket resolved.
+ */
+function withCarriedLast(cwd: string, ordered: readonly WorkItem[]): WorkItem[] {
+  const carried = new Set(
+    ordered.filter((item) =>
+      ordered.some((other) => other.headSha !== item.headSha && isAncestor(cwd, item.headSha, other.headSha)),
+    ),
+  );
+  return [...ordered.filter((item) => !carried.has(item)), ...ordered.filter((item) => carried.has(item))];
+}
+
 // ---------------------------------------------------------------------------
 // Local merge
 // ---------------------------------------------------------------------------
@@ -405,9 +419,10 @@ export async function mergeAndPush(input: MergeAndPushInput): Promise<MergeOutco
 
   const merged: string[] = [];
   const alreadyIn: string[] = [];
-  for (const item of mergeOrder(items)) {
+  const before = gitOut(cwd, ['rev-parse', 'HEAD']);
+  for (const item of withCarriedLast(cwd, mergeOrder(items))) {
     if (isAncestor(cwd, item.headSha, 'HEAD')) {
-      alreadyIn.push(item.ticket.key);
+      (isAncestor(cwd, item.headSha, before) ? alreadyIn : merged).push(item.ticket.key);
       continue;
     }
     const title = item.ticket.title.replace(/\s+/g, ' ').slice(0, 120);

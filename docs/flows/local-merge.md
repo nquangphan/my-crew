@@ -27,7 +27,13 @@ của `origin` — không có bước nào trong đây agent tự chạy `git me
 3. `apps/daemon/src/roles/merge-policy.ts` → `mergeAndPush()`: có vi phạm nghiệm thu thì dừng ngay
    (`status: rejected`, không đụng git); worktree PM còn thay đổi chưa commit cũng dừng
    (`status: gate_failed`); `git fetch origin <default>` rồi merge nhánh mặc định (`origin/<default>` nếu có)
-   vào `crew/<pm-key>` trước, sau đó từng `head_sha` theo `mergeOrder()`.
+   vào `crew/<pm-key>` trước, ghi lại HEAD lúc này (`before`) để biết head nào đã có sẵn trước vòng merge. Sau
+   đó `withCarriedLast()` dời mọi ticket có `head_sha` là tổ tiên của head một ticket khác trong cùng vòng
+   nghiệm thu ra cuối thứ tự `mergeOrder()` (thứ tự còn lại giữ nguyên) — ticket đó không bị merge riêng trước
+   nữa mà vào cùng head chứa nó, tránh lặp lại xung đột mà ticket chứa đã tự giải quyết. Merge lần lượt theo
+   thứ tự đã dời: head nào đã là tổ tiên của `before` được ghi vào `alreadyIn` (đã có sẵn trên nhánh tích hợp
+   từ trước vòng này); head chỉ trở thành tổ tiên trong vòng này — vì đi vào cùng một head khác chứa nó — được
+   ghi vào `merged`.
 4. `apps/daemon/src/roles/merge-policy.ts` → `mergeOne()`/`takeOurs()`: mỗi merge dùng `--no-ff`; xung đột giới
    hạn đúng trong `docs/index.md`/`docs/files.md` (block sinh tự động) được tự giải quyết — giữ "ours"
    (`takeOurs()` giữ nguyên hai bên hunk sạch, bỏ phần xung đột của "theirs") rồi `crew-docs generate` và
@@ -63,7 +69,7 @@ của `origin` — không có bước nào trong đây agent tự chạy `git me
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/daemon/src/roles/merge-policy.ts` | Luật nghiệm thu, thứ tự merge, merge cục bộ, cổng pre-push, push | `mergeAndPush`, `acceptanceViolations`, `mergeOrder`, `prePushGate`, `takeOurs` |
+| `apps/daemon/src/roles/merge-policy.ts` | Luật nghiệm thu, thứ tự merge, merge cục bộ, cổng pre-push, push | `mergeAndPush`, `acceptanceViolations`, `mergeOrder`, `withCarriedLast`, `prePushGate`, `takeOurs` |
 
 ## Dữ liệu
 
@@ -95,4 +101,7 @@ của `origin` — không có bước nào trong đây agent tự chạy `git me
   giữ đúng hunk sạch; xung đột giới hạn trong block docs sinh tự động tự giải quyết, xung đột khác abort và trả
   danh sách file; cổng pre-push chặn đúng bước rớt (test, `crew-docs check`, đường dẫn được bảo vệ thiếu
   trailer, kể cả `.claude/settings.json` và `AGENTS.md`); push thật lên remote bare và dời nhánh mặc định cục
-  bộ mà không đụng checkout đang dirty.
+  bộ mà không đụng checkout đang dirty; `withCarriedLast()` dời head bị một head khác (đã tự giải quyết xung
+  đột, kể cả bằng `-s ours`) chứa ra merge cùng head đó thay vì merge riêng trước — `merged` liệt kê đúng thứ
+  tự, `alreadyIn` rỗng, remote có nội dung đã giải quyết và mọi head đều là tổ tiên; head đã có sẵn trên nhánh
+  tích hợp trước vòng merge vẫn được báo `alreadyIn`.
