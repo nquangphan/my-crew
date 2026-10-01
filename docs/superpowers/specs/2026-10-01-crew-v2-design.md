@@ -225,6 +225,14 @@ file để đính kèm hoặc kéo thả. Hiển thị ảnh xem trước, tên 
 cho phép gỡ attachment trước khi gửi. Cùng khả năng này áp dụng khi bổ sung thông tin vào ticket
 hoặc hội thoại với Trợ lý.
 
+Form comment trong ticket có đầy đủ khả năng paste ảnh clipboard, kéo thả/chọn file, preview,
+gỡ attachment trước khi gửi và retry upload như form tạo ticket. Attachment gắn với đúng comment;
+có thể gửi comment chỉ chứa ảnh/file. Gửi lại không tạo comment hoặc attachment trùng. Trợ lý được
+đánh thức khi có comment mới, đọc cả nội dung và attachment trước khi trả lời hoặc đánh giá lại
+ticket. Comment đến trong lúc đang chạy được ghi nhận bền vững, không bị bỏ qua và không tạo một
+lần thực thi ticket trùng. Các yêu cầu về quyền truy cập, trích xuất, fallback và báo lỗi đọc file
+áp dụng như attachment lúc tạo ticket.
+
 Upload dùng vùng tạm gắn với owner và lần soạn yêu cầu; khi gửi, liên kết attachment đã upload
 thành công với ticket. Upload lỗi phải hiện rõ và cho retry; không tạo ticket thiếu attachment
 mà owner tưởng đã gửi. File tạm bị bỏ hoặc form bị đóng được dọn sau thời gian lưu tạm. Tạo ticket
@@ -292,6 +300,8 @@ Các tình huống bắt buộc nghiệm thu:
 - Docs có cây trang, tìm kiếm và liên kết ticket theo dự án; trạng thái cập nhật và commit nguồn nhìn thấy được.
 - Paste ảnh và thêm nhiều attachment ngay lúc tạo ticket; preview, gỡ, retry upload, gửi lại không trùng,
   dọn file tạm; ảnh/file còn truy cập được sau resume và fallback.
+- Comment hỗ trợ cùng thao tác ảnh/file, kể cả comment chỉ có attachment; gắn đúng comment,
+  không trùng khi gửi lại; Trợ lý đọc comment và file mới trong cả ticket đang chờ hoặc đang chạy.
 - Trợ lý đọc ảnh, PDF scan, DOCX, XLSX/CSV và text/code; kết luận truy được về nguồn; file không đọc
   được hoặc chỉ đọc một phần được báo rõ, không âm thầm bỏ qua đầu vào.
 
