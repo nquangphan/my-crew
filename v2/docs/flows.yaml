@@ -1,0 +1,13 @@
+version: 1
+source:
+  include: [src/**]
+  exclude: []
+flows:
+  domain-foundation:
+    title: Hợp đồng miền Crew v2
+    doc: docs/flows/domain-foundation.md
+    entrypoints: []
+    files: []
+    tests: [test/workspace.test.ts]
+shared: {}
+unassigned: []
