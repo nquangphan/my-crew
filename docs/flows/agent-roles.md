@@ -158,7 +158,7 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    khi phiên đổi giữa các job của cùng ticket: một job chạy lại ở **phiên mới** (sau một lượt bị bỏ dở, hay
    mở chặn trên một phiên hỏng từ trước) luôn thiếu preflight của chính phiên đó dù chính job này (hay một
    job trước đó trên ticket) đã từng `select_capabilities` ở phiên cũ, vì `JobRunner.execute()` xoá
-   `job.capabilities` ngay khi thấy phiên đổi (bước 3, flow `agent-runs`) — nên một job resume lại đúng phiên
+   `job.capabilities` ngay khi thấy phiên đổi (bước 4, flow `agent-runs`) — nên một job resume lại đúng phiên
    của chính nó không cảnh báo, còn một job (dù cùng id hay job mới) rơi vào phiên mới thì cảnh báo cho tới
    khi phiên đó tự `select_capabilities`. Rồi gọi
    `apps/daemon/src/roles/docs-update-handoff.ts` → `afterDevRun()`/`afterDocsRun()` theo `stage`: `dev` kết

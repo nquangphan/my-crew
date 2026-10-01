@@ -35,7 +35,7 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    bộ**: cấu hình một job thực sự chạy với là `effectiveConfig()` (chồng cài đặt server lên trên, flow
    `server-settings`), không phải `loadConfig()` trực tiếp. `DaemonConfig.backgroundWaitMinutes` (số phút,
    mặc định 30, tối đa 1440) là trần chờ một lượt chạy giữ phiên mở cho tác vụ nền của agent trước khi daemon
-   nhắc agent hoàn tất hay tự dừng tác vụ (flow `agent-runs`, bước 4); khóa cục bộ — `effectiveConfig()` không
+   nhắc agent hoàn tất hay tự dừng tác vụ (flow `agent-runs`, bước 5); khóa cục bộ — `effectiveConfig()` không
    chồng cài đặt server lên nó, không có cài đặt tương ứng trên server hay web.
 3. `apps/daemon/src/secrets.ts` → `defaultTokenStore()`: Keychain macOS qua `KeychainTokenStore` (ghi bằng
    `security -i` nhận lệnh trên stdin, token không bao giờ nằm trong argv của tiến trình) hoặc
