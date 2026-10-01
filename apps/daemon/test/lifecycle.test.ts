@@ -103,7 +103,9 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     const qcPrompt = r.runs.find((run) => run.ticketId === qc.id && run.stage === 'qc')?.prompt;
     expect(qcPrompt).toContain('phương án PM đã chọn');
     expect(qcPrompt).toContain('`ui_web` (Kiểm thử giao diện web)');
-    expect(qcPrompt).toContain('`playwright` (Playwright): mở ứng dụng trong trình duyệt');
+    expect(qcPrompt).toContain(
+      '`playwright` (Playwright): mở ứng dụng và kiểm tra từng tiêu chí nghiệm thu. Server chạy headless/nền',
+    );
     expect((await report(qc.id))?.mcpsUsed).toEqual(['playwright']);
     // The PM's breakdown prompt carried the test-plan analysis with the project's platform.
     const analyze = r.runs.find((run) => run.stage === 'pm_analyze')?.prompt;
@@ -564,7 +566,7 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
       `<untrusted-data source="ticket ${qc.key} testReason">\nThay đổi chỉ có route và truy vấn DB`,
     );
     expect(qcRun?.prompt).toContain('không cần MCP kiểm thử UI nào');
-    expect(qcRun?.prompt).not.toMatch(/playwright|maestro/i);
+    expect(qcRun?.prompt).not.toMatch(/`(playwright|maestro)`/i);
     // It closed without a single UI MCP tool call.
     const tools = jobsOf(r, qc.id).flatMap((job) => r.daemon.daemon.state.toolLog(job.id).map((e) => e.tool));
     expect(tools.filter((tool) => /^mcp__(playwright|maestro)__/.test(tool))).toEqual([]);

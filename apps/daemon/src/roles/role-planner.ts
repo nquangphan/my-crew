@@ -143,7 +143,11 @@ function complexityText(config: DaemonConfig): string {
 /** What QC reports when the diff under test is docs-only and it skipped the UI test. */
 export const DOCS_ONLY_QC_NOTE = 'Không có thay đổi giao diện (chỉ docs) nên không chạy test UI.';
 
-function uiTestText(ticket: Ticket, uiTest: boolean, policy: GuardPolicy): string {
+export function uiTestText(
+  ticket: Pick<Ticket, 'requiredMcps' | 'testKinds'>,
+  uiTest: boolean,
+  policy: GuardPolicy,
+): string {
   if (!uiTest) {
     return (
       `không cần: diff chỉ đổi docs (${policy.docsPaths.map((glob) => `\`${glob}\``).join(', ')}), không đụng file nguồn nên review tĩnh là đủ. ` +
@@ -158,7 +162,9 @@ function uiTestText(ticket: Ticket, uiTest: boolean, policy: GuardPolicy): strin
       );
     } else if (/playwright/i.test(server)) {
       lines.push(
-        `\`${server}\` (Playwright): mở ứng dụng trong trình duyệt và kiểm tra từng tiêu chí nghiệm thu.`,
+        `\`${server}\` (Playwright): mở ứng dụng và kiểm tra từng tiêu chí nghiệm thu. Server chạy headless/nền ` +
+          `(không chiếm màn hình máy) nên bạn sẽ không thấy cửa sổ trình duyệt thật — đừng kỳ vọng điều đó, cứ dựa ` +
+          `vào accessibility snapshot/kết quả tool trả về.`,
       );
     } else {
       lines.push(`\`${server}\`: dùng công cụ của server này cho các tiêu chí liên quan.`);

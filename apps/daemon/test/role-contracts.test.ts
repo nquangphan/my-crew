@@ -133,7 +133,7 @@ describe('role contracts', () => {
       `<untrusted-data source="ticket WEB-7 testReason">\n${reason}\n</untrusted-data>`,
     );
     expect(apiOnly).toContain('không cần MCP kiểm thử UI nào');
-    expect(apiOnly).not.toMatch(/playwright|maestro/i);
+    expect(apiOnly).not.toMatch(/`(playwright|maestro)`/i);
     expect(apiOnly).not.toContain(LEGACY_UI_TEXT);
     expect(apiOnly).not.toContain('`unit`');
     // The report names every kind that ran.
@@ -145,7 +145,7 @@ describe('role contracts', () => {
     );
     expect(web).toContain(`\`ui_web\` (${TEST_KIND_INFO.ui_web.label})`);
     expect(web).toContain(
-      '`playwright` (Playwright): mở ứng dụng trong trình duyệt và kiểm tra từng tiêu chí nghiệm thu.',
+      '`playwright` (Playwright): mở ứng dụng và kiểm tra từng tiêu chí nghiệm thu. Server chạy headless/nền (không chiếm màn hình máy) nên bạn sẽ không thấy cửa sổ trình duyệt thật — đừng kỳ vọng điều đó, cứ dựa vào accessibility snapshot/kết quả tool trả về.',
     );
     expect(web).toContain('Ghi lại flow hoặc script đã chạy và kết quả của chúng trong report.');
     expect(web).not.toMatch(/maestro/i);
@@ -157,7 +157,7 @@ describe('role contracts', () => {
     // A QC ticket from before test plans (testKinds null) keeps the older text, word for word.
     const legacy = render(ticket({ type: 'qc', requiredMcps: ['playwright'] }));
     expect(legacy).toContain(
-      `4. ${LEGACY_UI_TEXT}\n   - \`playwright\` (Playwright): mở ứng dụng trong trình duyệt và kiểm tra từng tiêu chí nghiệm thu.\n   Ghi lại flow hoặc script đã chạy và kết quả của chúng trong report.`,
+      `4. ${LEGACY_UI_TEXT}\n   - \`playwright\` (Playwright): mở ứng dụng và kiểm tra từng tiêu chí nghiệm thu. Server chạy headless/nền (không chiếm màn hình máy) nên bạn sẽ không thấy cửa sổ trình duyệt thật — đừng kỳ vọng điều đó, cứ dựa vào accessibility snapshot/kết quả tool trả về.\n   Ghi lại flow hoặc script đã chạy và kết quả của chúng trong report.`,
     );
     expect(legacy).not.toContain('phương án PM đã chọn');
     expect(render(ticket({ type: 'qc' }))).toContain(

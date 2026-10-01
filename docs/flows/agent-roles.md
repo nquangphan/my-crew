@@ -59,8 +59,12 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    phương án bằng `plan_qc_test` (không tự mở chặn) rồi `retry_subtask`; diff chỉ đổi docs thì bỏ qua cổng này,
    prompt QC nêu rõ lý do không cần kiểm thử UI và
    yêu cầu report ghi đúng câu cố định (`DOCS_ONLY_QC_NOTE`), còn `PlannedRun.requiredMcps` của lượt chạy đó
-   đặt rỗng (flow `agent-runs`); còn lại gọi `resolveModel()`, `resumeSession()` rồi dựng biến prompt
-   (`promptVars()`) và `renderPrompt()`. `resumeSession()`: ứng viên là phiên của chính job
+   đặt rỗng (flow `agent-runs`); cần kiểm thử UI thì `uiTestText()` dựng đoạn hướng dẫn QC dùng từng MCP bắt
+   buộc — nhánh Playwright (`/playwright/i.test(server)`) nói rõ server chạy headless/nền (không chiếm màn
+   hình máy) nên QC không nên kỳ vọng thấy cửa sổ trình duyệt thật, cứ dựa vào accessibility snapshot/kết quả
+   tool trả về; không có MCP nào thì câu trả về tuỳ ticket có phương án kiểm thử (`testKinds`) hay không, nên
+   hàm nhận cả `requiredMcps` lẫn `testKinds`; còn lại gọi `resolveModel()`, `resumeSession()` rồi dựng biến
+   prompt (`promptVars()`) và `renderPrompt()`. `resumeSession()`: ứng viên là phiên của chính job
    (`job.sessionId`), nếu không thì phiên mới nhất cùng loại của ticket (`docs_update`/lượt `ticket.assigned`
    đầu luôn mở mới) — ứng viên này luôn đi qua `StateDb.resumeChoice(ticketId, candidate, job)` (flow
    `daemon-runtime`, điểm quyết định phiên duy nhất): kết quả là mở **phiên mới** (`sessionId: null`) thay
@@ -193,7 +197,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
     `request` (chủ dự án viết trên web) là văn bản tin cậy.
 12. `apps/daemon/src/roles/prompts/_shared-rules.md`, `_capability-preflight.md`: mọi prompt vai trò include
     hai partial này trước — ngôn ngữ, dữ liệu không tin cậy, skill tương tác chạy chế độ không hỏi,
-    `ask_owner`, đường dẫn được bảo vệ; rồi bước bắt buộc kiểm tra skill/MCP (`get_ticket` →
+    `ask_owner`, đường dẫn được bảo vệ, lệnh dài (test/build/lint) phải chạy đồng bộ trong một lời gọi Bash
+    thay vì chạy nền rồi tự poll log/`git status`/`tail` nhiều lần (tránh bị môi trường chạy agent chặn giữa
+    chừng khiến lượt kết thúc mà chưa bàn giao được — thu hẹp phạm vi test theo file/module đã đổi khi lệnh có
+    thể lâu), dừng tiến trình tự khởi động chỉ bằng đúng PID mình ghi lại chứ không dùng `pkill -f` theo mẫu tên
+    rộng (nhiều job khác có thể spawn tiến trình trùng tên); rồi bước bắt buộc kiểm tra skill/MCP (`get_ticket` →
     `context.capabilities` → `select_capabilities` với lý do từng mục → gọi skill qua công cụ `Skill` trước
     khi làm việc). Từng prompt theo vai trò (`assistant-triage`, `assistant-close`, `pm-analyze`, `pm-monitor`,
     `pm-accept`, `dev`, `docs-update`, `qc`, `docs-init`) thêm bước docs-trước-code, việc riêng của bước, và
@@ -226,7 +234,7 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
 
 | Đường dẫn | Vai trò | Symbol chính |
 |-----------|---------|--------------|
-| `apps/daemon/src/roles/role-planner.ts` | `RolePlanner` mặc định: prompt, cổng, model, report, follow-up theo bước | `rolePlanner`, `missingUiServers`, `diffNeedsUiTest`, `DOCS_ONLY_QC_NOTE`, `cleanupLines`, `ownerRequest`, `ownerCallsNote`, `testPlanText`, `testKindsText` |
+| `apps/daemon/src/roles/role-planner.ts` | `RolePlanner` mặc định: prompt, cổng, model, report, follow-up theo bước | `rolePlanner`, `missingUiServers`, `diffNeedsUiTest`, `uiTestText`, `DOCS_ONLY_QC_NOTE`, `cleanupLines`, `ownerRequest`, `ownerCallsNote`, `testPlanText`, `testKindsText` |
 | `apps/daemon/src/roles/role-registry.ts` | Bảng bước, đường trạng thái hợp lệ, chọn bước | `STAGES`, `resolveStage`, `isTerminal`, `workChildren` |
 | `apps/daemon/src/roles/prompt-templates.ts` | Nạp và render template Markdown | `renderPrompt`, `loadPrompt`, `setPromptsDir` |
 | `apps/daemon/src/roles/model-policy.ts` | Model/effort theo bước, kẹp theo allowlist | `resolveModel`, `clampModel`, `MissingComplexityError` |
@@ -318,7 +326,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   truyền vào (một `policy` tuỳ biến coi thêm `handbook/**` là docs); `diffNeedsUiTest()` coi diff chỉ đổi `README.md`,
   `CHANGELOG.md` hay `docs/` là không cần kiểm thử UI, còn đổi bất kỳ file nào ngoài docs (file nguồn, `AGENTS.md`,
   một file `.md` lồng trong `src/`) hay khi không suy ra được (lỗi git, diff rỗng) vẫn cần; guard giữ lượt dev
-  ngoài docs (`docs/`, `README.md`, Markdown gốc khác) và tránh `git commit`. Nhóm "QC docs-only check looks at
+  ngoài docs (`docs/`, `README.md`, Markdown gốc khác) và tránh `git commit`; `uiTestText()` cho nhánh Playwright
+  nêu đúng từ "headless" và "không chiếm màn hình máy", không còn câu "mở ứng dụng trong trình duyệt" cũ. Prompt QC
+  không có loại kiểm thử giao diện không nêu tên server MCP UI nào (`` `playwright` ``/`` `maestro` ``) — quy tắc
+  chung ở `_shared-rules.md` có nhắc `playwright-mcp` làm ví dụ, không tính là yêu cầu dùng MCP. Nhóm
+  "QC docs-only check looks at
   the ticket's own commits": một commit chỉ đổi `README.md` trên nền commit docs-init chưa merge vào nhánh
   chính vẫn tính là docs-only khi biết `builtOn`, còn tính là cần kiểm thử UI khi không biết head đó; merge
   sạch một head nền không thêm gì, merge xung đột được job docs kết luận cùng code thì tính; một bug fix được
