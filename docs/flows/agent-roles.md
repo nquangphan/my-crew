@@ -62,8 +62,11 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    ứng viên khi chính job này bị daemon dừng/crash dẫn tới lượt này (`job.resumeMode`), khi một lượt trước đã
    đánh dấu ứng viên đó bỏ dở (`StateDb.abandonedBy()`), hay khi lượt này mở chặn (`job.trigger ===
    'ticket.unblocked'`, cả chủ dự án tự mở lẫn PM gọi `retry_subtask`) sau một lỗi `no_handoff`/`not_finished`
-   ở lượt kết thúc gần nhất của ticket — cách một phiên hỏng từ trước khi có dấu nhận ra được; còn lại resume
-   đúng ứng viên. `resume.interrupted` (lượt bị bỏ dở, khác null chỉ khi mở phiên mới vì nó) được truyền vào
+   ở lượt kết thúc gần nhất của ticket **chỉ khi ứng viên không phải phiên chính job mở chặn này đã tạo** ở
+   lượt đầu của nó (hàng job mang đúng ứng viên và không job nào khác của ticket từng chạy trên nó) — cách
+   một phiên hỏng từ trước khi có dấu nhận ra được; lần chạy lại sau backoff (hay sau khi job mở chặn hấp thụ
+   một sự kiện không đổi trigger) resume đúng phiên sạch của chính nó; còn lại resume đúng ứng viên.
+   `resume.interrupted` (lượt bị bỏ dở, khác null chỉ khi mở phiên mới vì nó) được truyền vào
    `promptVars()`; với
    một ticket `bug`,
    `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug. `promptVars()` → `ownerRequest()`: ba bước PM

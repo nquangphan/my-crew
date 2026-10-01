@@ -686,6 +686,56 @@ describe('abandoned sessions', () => {
     expect(await warnings()).toBe(1);
     await t.daemon.stop();
   });
+
+  it('resumes the clean session the unblock opened when its run backs off after no_handoff', async () => {
+    const f = await fixture(api);
+    const repo = makeRepo();
+    const t = makeDaemon(f, { repoPath: repo, extra: { planner: rolePlanner } });
+    const pm = await pmTask(api, f);
+    const dev = await devTicket(api, pm.id, 'Mở chặn rồi bị rate limit');
+    const scripts = [
+      // 1 and 2: no handoff twice (the retry resumes), blocked.
+      [
+        tool('select_capabilities', { noneReason: 'không có skill hay MCP nào hợp' }),
+        tool('comment', { body: 'Lượt 1' }),
+      ],
+      [tool('comment', { body: 'Lượt 2' })],
+      // 3: after the unblock, a fresh session that ends on a rate limit (a clean session): backoff.
+      [tool('comment', { body: 'Lượt 3' }), { apiError: 'rate_limit' }],
+      // 4: the backoff retry of the same job carries on after its last completed step and asks the owner.
+      [tool('comment', { body: 'Lượt 3' }), tool('ask_owner', { question: 'Bàn giao phần nào trước?' })],
+    ];
+    let runCount = 0;
+    t.book.byTicket.set(dev.id, () => ({ steps: scripts[runCount++] ?? [] }));
+    await t.daemon.start();
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'blocked', 20_000, 'blocked');
+    expect(t.daemon.state.jobsForTicket(dev.id).at(-1)).toMatchObject({ error: 'no_handoff' });
+
+    await ownerTransition(f, dev.id, 'in_progress');
+    const backoff = await waitFor(
+      () => t.daemon.state.jobsForTicket(dev.id).find((j) => j.status === 'backoff'),
+      20_000,
+      'backoff after the unblock',
+    );
+    expect(backoff).toMatchObject({ trigger: 'ticket.unblocked', sessionAbandoned: null, attempts: 1 });
+    const fresh = backoff.sessionId as string;
+    expect(fresh).toBeTruthy();
+    t.daemon.state.updateJob(backoff.id, { retryAt: new Date(Date.now() - 1000).toISOString() });
+    await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'needs_input', 20_000, 'asked');
+
+    const runs = t.book.runs.filter((run) => run.ticketId === dev.id);
+    expect(runs).toHaveLength(4);
+    // The unblock's first run starts fresh, summarizing the no_handoff run.
+    expect(runs[2]?.resumeSessionId).toBeNull();
+    expect(runs[2]?.prompt).toContain(FRESH_SESSION_TITLE);
+    // Its retry after the backoff resumes the session it opened, no summary.
+    expect(runs[3]?.resumeSessionId).toBe(fresh);
+    expect(runs[3]?.prompt).not.toContain(FRESH_SESSION_TITLE);
+    const jobs = t.daemon.state.jobsForTicket(dev.id);
+    expect(jobs).toHaveLength(3);
+    expect(jobs[2]).toMatchObject({ id: backoff.id, sessionId: fresh, status: 'done' });
+    await t.daemon.stop();
+  });
 });
 
 /** No process tagged with this job's id is still alive (by `ResourceTracker`, like `resources.test.ts`). */

@@ -71,9 +71,15 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `{ sessionId: candidate, interrupted: null }` (resume) trừ ba trường hợp đều trả `{ sessionId: null,
    interrupted: <job bị bỏ dở> }` (mở phiên mới kèm lượt cần tóm tắt) — `next.resumeMode` đã đặt (job này bị
    daemon dừng/crash dẫn tới lượt này), `abandonedBy(candidate)` tìm thấy một job đã đánh dấu bỏ dở trên
-   `candidate`, hoặc `next.trigger === 'ticket.unblocked'` và job kết thúc gần nhất của ticket (bỏ qua
+   `candidate`, hoặc `next.trigger === 'ticket.unblocked'`, `candidate` không phải phiên do chính job `next`
+   mở (`isOwnSession(ticketId, candidate, next.id)`: hàng job đó mang đúng `candidate` và không job nào khác
+   của ticket từng chạy trên phiên này — một phiên thừa hưởng từ job trước, ví dụ phiên hỏng của lượt
+   `no_handoff`, không bao giờ tính là phiên của chính job), và job kết thúc gần nhất của ticket (bỏ qua
    `skipped` và job đang hoạt động) lỗi `no_handoff`/`not_finished` — cách một phiên hỏng từ trước khi có cột
-   này trông như vậy. `StateDb.resumableSession(ticketId, kind, trigger)` là bản rút gọn chỉ trả `sessionId`,
+   này trông như vậy. Một khi job mở chặn đã có phiên sạch của riêng nó (vào `backoff` sau lượt đầu, hay đang
+   `queued`/`backoff` và hấp thụ một sự kiện không đổi trigger), `isOwnSession()` nhận ra ngay nên lần chạy
+   lại resume đúng phiên đó, không kèm tóm tắt — trừ khi chính phiên đó đã bị đánh dấu bỏ dở, rơi vào trường
+   hợp thứ hai ở trên trước khi tới đây. `StateDb.resumableSession(ticketId, kind, trigger)` là bản rút gọn chỉ trả `sessionId`,
    lấy ứng viên từ `latestSession(ticketId, kind)` rồi đưa qua `resumeChoice()` — dùng ở nơi chưa cần tóm tắt
    lượt bị bỏ dở (dispatcher ghi `sessionId` ban đầu của job, flow `daemon-scheduling`); việc tóm tắt luôn
    được tính lại đúng ở `resumeSession()`/`defaultPlanner` (flow `agent-runs`) ngay trước khi job đó chạy, nên

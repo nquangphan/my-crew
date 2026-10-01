@@ -326,7 +326,9 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   `sessionAbandoned: 'no_result'`, ticket bị chặn rồi mở chặn chạy phiên mới kèm tóm tắt; thử lại `no_handoff`
   trên phiên sạch resume không cảnh báo preflight (đã làm ở lượt trước trong cùng phiên), ticket bị chặn rồi
   mở chặn chạy phiên mới (một `ticket.unblocked`, lỗi gần nhất là `no_handoff`) không preflight riêng nên bị
-  cảnh báo skill/MCP đúng một lần ở lượt thử lại kế tiếp của phiên đó. Nhóm "background tasks (scripted
+  cảnh báo skill/MCP đúng một lần ở lượt thử lại kế tiếp của phiên đó; lượt đầu của job mở chặn sau đó gặp
+  `rate_limit` (phiên sạch, job vào `backoff`) thì lần chạy lại resume đúng phiên job đó tự mở, không prompt
+  nào chứa `FRESH_SESSION_TITLE`, cùng một hàng job, và `ask_owner` thành công. Nhóm "background tasks (scripted
   runner)" (daemon thật + `createScriptedRunner()`, trần chờ nhỏ qua `config.backgroundWaitMinutes` của
   `makeDaemon` khi cần): một lệnh `bgBash` sống qua ranh giới lượt rồi kết thúc job đúng lúc, agent được thông
   báo và làm tiếp trong **cùng một job** (một job, không retry); một lệnh không bao giờ xong với trần chờ ~60ms

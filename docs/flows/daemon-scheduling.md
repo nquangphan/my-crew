@@ -34,9 +34,12 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
    (câu trả lời của chủ dự án thuộc phiên đó); còn lại resume phiên `agent` (dev/PM/QC/assistant) — phiên mới
    nhất của loại đó chỉ được gán làm `sessionId` của job mới khi `StateDb.resumableSession(ticketId, kind,
    payload.type)` (flow `daemon-runtime`) đồng ý; một phiên bị một lượt trước đánh dấu bỏ dở, hay một
-   `ticket.unblocked` sau lỗi `no_handoff`/`not_finished` gần nhất của ticket, làm hàm đó trả `null` — job mới
-   tạo thẳng với `sessionId: null`, và `role-planner.ts`/`defaultPlanner` (flow `agent-runs`) tính lại đúng
-   quyết định này ngay trước khi job chạy để thêm tóm tắt lượt bị bỏ dở vào prompt. `ticket.cancelled`
+   `ticket.unblocked` sau lỗi `no_handoff`/`not_finished` gần nhất của ticket (chỉ khi phiên ứng viên không
+   phải phiên do chính job mở chặn đó tự mở — `isOwnSession()`, flow `daemon-runtime`), làm hàm đó trả `null`
+   — job mới tạo thẳng với `sessionId: null`, và `role-planner.ts`/`defaultPlanner` (flow `agent-runs`) tính
+   lại đúng quyết định này ngay trước khi job chạy để thêm tóm tắt lượt bị bỏ dở vào prompt. Một khi job mở
+   chặn đã có phiên sạch của riêng nó (vào `backoff`, hay hấp thụ một sự kiện sau đó mà không đổi trigger),
+   `isOwnSession()` nhận ra và lần chạy lại resume đúng phiên đó. `ticket.cancelled`
    hủy job `queued`/`backoff` ngay hoặc đánh dấu `cancelRequested` cho job `running`. `claim.changed` và
    `project.change_decided` (owner duyệt/từ chối máy tự đổi `platform`/`uiTestMcp`, flow `project-claims`) đều
    trả effect `refresh_projects` (không sinh job). `settings.changed` (một bản cài đặt server mới áp dụng cho
@@ -152,9 +155,16 @@ job đang có) không mất không lặp, rồi quyết định job nào đượ
   `wakeTicket()` nội bộ) lẫn `resumeChoice()` gọi trực tiếp như `role-planner.ts` sẽ gọi trước khi job chạy;
   một phiên sạch vẫn resume bình thường (bình luận chủ dự án, một mở chặn sau lỗi đã sạch như `rate_limit` bị
   chặn ở lần thử thứ 4); một mở chặn (`ticket.unblocked`) sau lỗi gần nhất của ticket là `no_handoff` hay
-  `not_finished` luôn mở phiên mới — kể cả khi có một job `skipped` xen giữa (ticket đã chờ owner) — còn một
-  bình luận thường trên cùng lịch sử đó vẫn resume; job re-queue sau daemon dừng/crash (`resumeMode` đặt,
-  gồm cả hàng cũ còn `restart_resume`) luôn mở phiên mới kèm lượt cần tóm tắt.
+  `not_finished` luôn mở phiên mới ở lượt đầu của nó — kể cả khi có một job `skipped` xen giữa (ticket đã chờ
+  owner) — còn một bình luận thường trên cùng lịch sử đó vẫn resume; job re-queue sau daemon dừng/crash
+  (`resumeMode` đặt, gồm cả hàng cũ còn `restart_resume`) luôn mở phiên mới kèm lượt cần tóm tắt. Test riêng
+  (`resumes the clean session the unblock job opened itself after a backoff or an absorbed event`, cho cả
+  `no_handoff` và `not_finished`): lượt đầu của job mở chặn mở phiên mới và tóm tắt lượt cũ; job đó vào
+  `backoff` trên phiên vừa mở (phiên sạch) thì lần chạy lại resume đúng phiên đó, không tóm tắt; một bình luận
+  chủ dự án được job `queued`/`backoff` này hấp thụ (`absorbed`, trigger vẫn `ticket.unblocked`) cũng resume
+  đúng phiên đó; hàng job mang phiên hỏng cũ (`s-old`, thừa hưởng từ job trước) vẫn mở phiên mới vì
+  `isOwnSession()` không nhận nó là phiên của chính job; và một phiên của chính job mở chặn bị đánh dấu bỏ dở
+  (`sessionAbandoned`) vẫn mở phiên mới kèm tóm tắt lượt đó, không phải lượt cũ hơn.
 - `apps/daemon/test/scheduler.test.ts`: công thức slot `min(maxConcurrentJobs, floor(cpus/2))` và 0 khi máy
   bận; PM/assistant có thêm một slot dự phòng; `runnableJobs()` liệt kê đúng job `queued` không chờ dependency
   và `backoff` đã tới hạn; `Scheduler` chạy tối đa `maxConcurrentJobs` job dev độc lập cùng lúc; job chờ

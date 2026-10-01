@@ -214,6 +214,53 @@ describe('choosing the session a next run resumes', () => {
     expect(state.resumeChoice(ticket, 's-old', { trigger: 'ticket.unblocked' }).sessionId).toBe('s-old');
   });
 
+  it('resumes the clean session the unblock job opened itself after a backoff or an absorbed event', () => {
+    for (const error of ['no_handoff', 'not_finished'] as const) {
+      const state = new StateDb(':memory:');
+      const ticket = randomUUID();
+      const stuck = ended(state, ticket, 's-old', { status: 'blocked', error });
+      const effect = dispatchEvent(state, unblocked(ticket));
+      const unblock = effect.kind === 'enqueued' ? effect.job : null;
+      expect(unblock?.sessionId, error).toBeNull();
+      const first = unblock as NonNullable<typeof unblock>;
+      // The first run of the unblock starts fresh, summarizing the stuck run.
+      expect(state.resumeChoice(ticket, 's-old', first)).toEqual({
+        sessionId: null,
+        interrupted: expect.objectContaining({ id: stuck.id }),
+      });
+      // It opens s-new and ends on a rate limit (a clean session): the same job row goes to backoff.
+      const backoff = state.updateJob(first.id, {
+        sessionId: 's-new',
+        sessionAbandoned: null,
+        status: 'backoff',
+        attempts: 1,
+        error: 'rate_limit',
+      });
+      expect(state.resumeChoice(ticket, 's-new', backoff), error).toEqual({
+        sessionId: 's-new',
+        interrupted: null,
+      });
+      // An owner comment absorbed by the waiting job keeps its trigger, and still resumes s-new.
+      const absorbed = dispatchEvent(state, comment(ticket));
+      expect(absorbed.kind, error).toBe('absorbed');
+      const waiting = state.requireJob(first.id);
+      expect(waiting.trigger).toBe('ticket.unblocked');
+      expect(state.resumeChoice(ticket, waiting.sessionId, waiting).sessionId, error).toBe('s-new');
+      // The stuck session is never the unblock job's own, even if the job row carried it.
+      const inherited = state.updateJob(first.id, { sessionId: 's-old' });
+      expect(state.resumeChoice(ticket, 's-old', inherited)).toEqual({
+        sessionId: null,
+        interrupted: expect.objectContaining({ id: stuck.id }),
+      });
+      // A run that left the unblock job's own session abandoned still starts fresh, summarizing that run.
+      const cut = state.updateJob(first.id, { sessionId: 's-new', sessionAbandoned: 'background_tasks' });
+      expect(state.resumeChoice(ticket, 's-new', cut)).toEqual({
+        sessionId: null,
+        interrupted: expect.objectContaining({ id: first.id }),
+      });
+    }
+  });
+
   it('runs a job re-queued after a daemon stop or crash in a fresh session, older restart rows included', () => {
     const state = new StateDb(':memory:');
     const ticket = randomUUID();

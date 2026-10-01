@@ -556,9 +556,11 @@ export class StateDb {
    *
    * - the job itself was cut short by a daemon stop or crash (`resumeMode` set);
    * - a run left `candidate` abandoned (`sessionAbandoned`);
-   * - it answers an unblock (`ticket.unblocked`: the owner's, or the PM's `retry_subtask`) and the ticket's
-   *   latest finished job failed with `no_handoff` or `not_finished` — how a session broken before the mark
-   *   existed looks.
+   * - it answers an unblock (`ticket.unblocked`: the owner's, or the PM's `retry_subtask`), `candidate` is
+   *   not a session this job opened itself, and the ticket's latest finished job failed with `no_handoff` or
+   *   `not_finished` — how a session broken before the mark existed looks. Once the unblock job has a clean
+   *   session of its own (it went to backoff, or absorbed an event, after its first run), that session is
+   *   resumed like any other.
    *
    * Otherwise `candidate` is resumed as it is (null: a fresh session by design, nothing to summarize).
    */
@@ -572,7 +574,7 @@ export class StateDb {
       const by = this.abandonedBy(candidate);
       if (by) return { sessionId: null, interrupted: by };
     }
-    if (next.trigger === 'ticket.unblocked') {
+    if (next.trigger === 'ticket.unblocked' && !this.isOwnSession(ticketId, candidate, next.id)) {
       const last = this.jobsForTicket(ticketId)
         .filter(
           (job) =>
@@ -588,6 +590,18 @@ export class StateDb {
       }
     }
     return { sessionId: candidate, interrupted: null };
+  }
+
+  /**
+   * Whether `session` was opened by job `jobId` itself: the job's row carries it and no other job of the
+   * ticket ever ran on it (a session inherited from an earlier job is never the job's own).
+   */
+  private isOwnSession(ticketId: string, session: string | null, jobId: string | undefined): boolean {
+    if (!session || !jobId || this.getJob(jobId)?.sessionId !== session) return false;
+    const other = this.db
+      .prepare('select 1 from jobs where ticket_id = ? and session_id = ? and id != ? limit 1')
+      .get(ticketId, session, jobId);
+    return other === undefined;
   }
 
   /** The session a new job of this kind resumes: the ticket's latest, unless `resumeChoice` says fresh. */
