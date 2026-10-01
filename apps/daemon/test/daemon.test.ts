@@ -723,6 +723,8 @@ describe('abandoned sessions', () => {
     expect(fresh).toBeTruthy();
     t.daemon.state.updateJob(backoff.id, { retryAt: new Date(Date.now() - 1000).toISOString() });
     await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'needs_input', 20_000, 'asked');
+    // ask_owner flips the ticket mid-run; the job is only marked done once that run has returned.
+    await waitFor(() => t.daemon.state.getJob(backoff.id)?.status === 'done', 15_000, 'job done');
 
     const runs = t.book.runs.filter((run) => run.ticketId === dev.id);
     expect(runs).toHaveLength(4);
@@ -732,13 +734,6 @@ describe('abandoned sessions', () => {
     // Its retry after the backoff resumes the session it opened, no summary.
     expect(runs[3]?.resumeSessionId).toBe(fresh);
     expect(runs[3]?.prompt).not.toContain(FRESH_SESSION_TITLE);
-    // `ask_owner` moves the ticket to needs_input mid-run; the daemon closes the job only after the run ends.
-    await waitFor(
-      () =>
-        !['queued', 'running', 'backoff'].includes(t.daemon.state.getJob(backoff.id)?.status ?? 'running'),
-      20_000,
-      'the backoff job to finish',
-    );
     const jobs = t.daemon.state.jobsForTicket(dev.id);
     expect(jobs).toHaveLength(3);
     expect(jobs[2]).toMatchObject({ id: backoff.id, sessionId: fresh, status: 'done' });
@@ -907,6 +902,8 @@ describe('abandoned sessions', () => {
     );
     t.daemon.state.updateJob(backoff.id, { retryAt: new Date(Date.now() - 1000).toISOString() });
     await waitFor(async () => (await getTicket(api.db, dev.id)).status === 'needs_input', 20_000, 'asked');
+    // ask_owner flips the ticket mid-run; read the job state only once that run has returned.
+    await waitFor(() => t.daemon.state.getJob(backoff.id)?.status === 'done', 15_000, 'job done');
 
     const runs = t.book.runs.filter((run) => run.ticketId === dev.id);
     const [firstJob] = t.daemon.state.jobsForTicket(dev.id);

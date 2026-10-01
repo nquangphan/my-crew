@@ -419,21 +419,20 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
   mở chặn chạy phiên mới (một `ticket.unblocked`, lỗi gần nhất là `no_handoff`) không preflight riêng nên bị
   cảnh báo skill/MCP đúng một lần ở lượt thử lại kế tiếp của phiên đó; lượt đầu của job mở chặn sau đó là phiên mới (prompt có `FRESH_SESSION_TITLE`) và gặp
   `rate_limit` (phiên sạch, job vào `backoff`), thì lần chạy lại sau backoff resume đúng phiên job đó tự mở,
-  prompt không chứa `FRESH_SESSION_TITLE`, vẫn cùng một hàng job, và `ask_owner` thành công — test chờ job
-  backoff đóng xong (trạng thái `done`) rồi mới kiểm tra hàng job, vì `ask_owner` đổi ticket sang `needs_input`
-  trước khi daemon đóng job. Cùng nhóm đó còn ba ca ảnh:
+  prompt không chứa `FRESH_SESSION_TITLE`, vẫn cùng một hàng job, và `ask_owner` thành công — vì `ask_owner`
+  đổi ticket sang `needs_input` trước khi daemon đóng job, test chờ đúng job backoff đó chuyển `done` ngay sau
+  khi thấy ticket `needs_input`, rồi mới đọc assert trên `runs` và hàng job. Cùng nhóm đó còn ba ca ảnh:
   một phiên bỏ dở vì còn tác vụ nền (`sessionAbandoned: 'background_tasks'`) khiến lượt tiếp theo mở phiên mới
   và gửi lại đủ ảnh ticket, còn lượt resume phiên sạch sau đó (đã có ảnh) thì không gửi lại
   (`StateDb.imagesSentInSession()` theo đúng phiên mới); một ticket bị `no_handoff` hai lần liên tiếp trên cùng
   một phiên sạch (các lượt resume không gửi lại ảnh) rồi `blocked`, owner mở chặn mở một phiên mới theo quy tắc
   mở chặn (gửi lại ảnh) và phiên đó backoff, retry sau backoff resume đúng phiên mới đó (không gửi lại ảnh lần
-  nữa) — bốn lượt của ca này khớp đúng mẫu ảnh gửi/rỗng/ảnh/rỗng (`[[image.id], [], [image.id], []]`); một job
-  đã gửi ảnh cho phiên cũ rồi bị daemon dừng êm giữa lượt (`sessionAbandoned: 'daemon_stopped'`, job re-queue)
-  chạy lại ở phiên mới mà lượt đó không tải được ảnh (503, `run.images` rỗng, prompt nêu "không tải được") thì
-  `imagesSent` của job bị reset về rỗng và `StateDb.imagesSentInSession(<phiên mới>)` cũng rỗng dù phiên cũ đã
-  gửi ảnh đó (điểm giao giữa reset `sessionChanged` ở bước 4 và cờ ảnh theo phiên); lượt resume phiên mới đó
-  sau khi ảnh tải lại được thì gửi lại đủ ảnh (`imagesSentInSession(<phiên mới>)` khớp ảnh). Nhóm "background
-  tasks (scripted
+  nữa, test chờ job backoff đó `done` rồi mới đọc `imagesSentInSession`) — bốn lượt của ca này khớp đúng mẫu ảnh gửi/rỗng/ảnh/rỗng (`[[image.id], [], [image.id], []]`); một job đã gửi ảnh cho phiên cũ rồi bị daemon dừng êm giữa lượt (`sessionAbandoned: 'daemon_stopped'`,
+  job re-queue) chạy lại ở phiên mới mà lượt đó không tải được ảnh (503, `run.images` rỗng, prompt nêu "không
+  tải được") thì `imagesSent` của job bị reset về rỗng và `StateDb.imagesSentInSession(<phiên mới>)` cũng rỗng
+  dù phiên cũ đã gửi ảnh đó (điểm giao giữa reset `sessionChanged` ở bước 4 và cờ ảnh theo phiên); lượt resume
+  phiên mới đó sau khi ảnh tải lại được thì gửi lại đủ ảnh (`imagesSentInSession(<phiên mới>)` khớp ảnh). Nhóm
+  "background tasks (scripted
   runner)" (daemon thật + `createScriptedRunner()`, trần chờ nhỏ qua `config.backgroundWaitMinutes` của
   `makeDaemon` khi cần): một lệnh `bgBash` sống qua ranh giới lượt rồi kết thúc job đúng lúc, agent được thông
   báo và làm tiếp trong **cùng một job** (một job, không retry); một lệnh không bao giờ xong với trần chờ ~60ms
