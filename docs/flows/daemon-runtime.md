@@ -33,7 +33,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    `settingsCache` = `<home>/settings-cache.json` (bản cài đặt server tốt gần nhất, flow `server-settings`).
    `DaemonConfig` (resources/models/budgets/`disabledMcpServers` mỗi project) từ giờ chỉ còn là **giá trị cục
    bộ**: cấu hình một job thực sự chạy với là `effectiveConfig()` (chồng cài đặt server lên trên, flow
-   `server-settings`), không phải `loadConfig()` trực tiếp.
+   `server-settings`), không phải `loadConfig()` trực tiếp. `DaemonConfig.backgroundWaitMinutes` (số phút,
+   mặc định 30, tối đa 1440) là trần chờ một lượt chạy giữ phiên mở cho tác vụ nền của agent trước khi daemon
+   nhắc agent hoàn tất hay tự dừng tác vụ (flow `agent-runs`, bước 5); khóa cục bộ — `effectiveConfig()` không
+   chồng cài đặt server lên nó, không có cài đặt tương ứng trên server hay web.
 3. `apps/daemon/src/secrets.ts` → `defaultTokenStore()`: Keychain macOS qua `KeychainTokenStore` (ghi bằng
    `security -i` nhận lệnh trên stdin, token không bao giờ nằm trong argv của tiến trình) hoặc
    `FileTokenStore` (file 0600, atomic) khi `CREW_TOKEN_STORE=file` hoặc không phải macOS.
@@ -48,7 +51,11 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    đầu, ghi bởi `JobRunner.execute()`, đọc lại bởi bình luận lỗi/crash và bởi heartbeat), cột `images_sent`
    (JSON, flow `agent-runs`: id các ảnh đính kèm ticket lượt chạy của job đó đã gửi làm khối ảnh, ghi lúc
    `onInit` — `StateDb.imagesSentInSession(sessionId)` gộp cột này của mọi job cùng `session_id`, dùng để một
-   lượt resume không gửi lại ảnh phiên đó đã nhận)),
+   lượt resume không gửi lại ảnh phiên đó đã nhận; một job chạy lại trong phiên khác bị reset về `[]` khi
+   `sessionChanged`, flow `agent-runs`), cột `session_abandoned` (`AbandonReason | null`, flow `agent-runs`:
+   `run_started`/`background_tasks`/`aborted`/`daemon_stopped`/`no_result`/`daemon_restart` — khác `null`
+   nghĩa là lượt chạy để lại phiên bỏ dở, không lượt chạy nào sau còn resume được nó; `null`, kể cả trên một
+   job cũ chưa từng có cột này, là phiên sạch)),
    `pending_wakeups`, `pm_mentions` (khoá chính `event_id`; `pm_task_id`, `source_ticket_id`,
    `source_ticket_key`, `comment_id`, `created_at` — mỗi owner tag `@pm` nhận được, ghi bởi
    `recordPmMention()`/đọc bằng `pmMentions(eventIds)`, dùng bởi flow `daemon-scheduling`/`agent-roles`),
@@ -59,7 +66,27 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
    ngắn (8 ký tự đầu id) về đúng job. `StateDb.migrate()` chạy sau
    `SCHEMA` mỗi lần mở: `pragma table_info(jobs)` rồi `alter table … add column` cho cột nào một state DB được
    ghi bởi daemon cũ còn thiếu (SQLite không có `add column if not exists`), nên nâng cấp tại chỗ không mất
-   job đang chờ.
+   job đang chờ — `session_abandoned` (trên) là một cột như vậy, một state DB cũ thiếu cột này đọc mọi job đã
+   có thành phiên sạch (`sessionAbandoned: null`).
+   `StateDb.abandonedBy(sessionId)` trả job mới nhất (nếu có) đã đánh dấu phiên đó bỏ dở.
+   `StateDb.resumeChoice(ticketId, candidate, next)` là điểm quyết định phiên resume hay mở mới **duy nhất**
+   của daemon (flow `agent-runs`/`agent-roles`/`daemon-scheduling` đều gọi vào đây, không tự suy luận): trả
+   `{ sessionId: candidate, interrupted: null }` (resume) trừ ba trường hợp đều trả `{ sessionId: null,
+   interrupted: <job bị bỏ dở> }` (mở phiên mới kèm lượt cần tóm tắt) — `next.resumeMode` đã đặt (job này bị
+   daemon dừng/crash dẫn tới lượt này), `abandonedBy(candidate)` tìm thấy một job đã đánh dấu bỏ dở trên
+   `candidate`, hoặc `next.trigger === 'ticket.unblocked'`, `candidate` không phải phiên do chính job `next`
+   mở (`isOwnSession(ticketId, candidate, next.id)`: hàng job đó mang đúng `candidate` và không job nào khác
+   của ticket từng chạy trên phiên này — một phiên thừa hưởng từ job trước, ví dụ phiên hỏng của lượt
+   `no_handoff`, không bao giờ tính là phiên của chính job), và job kết thúc gần nhất của ticket (bỏ qua
+   `skipped` và job đang hoạt động) lỗi `no_handoff`/`not_finished` — cách một phiên hỏng từ trước khi có cột
+   này trông như vậy. Một khi job mở chặn đã có phiên sạch của riêng nó (vào `backoff` sau lượt đầu, hay đang
+   `queued`/`backoff` và hấp thụ một sự kiện không đổi trigger), `isOwnSession()` nhận ra ngay nên lần chạy
+   lại resume đúng phiên đó, không kèm tóm tắt — trừ khi chính phiên đó đã bị đánh dấu bỏ dở, rơi vào trường
+   hợp thứ hai ở trên trước khi tới đây. `StateDb.resumableSession(ticketId, kind, trigger)` là bản rút gọn chỉ trả `sessionId`,
+   lấy ứng viên từ `latestSession(ticketId, kind)` rồi đưa qua `resumeChoice()` — dùng ở nơi chưa cần tóm tắt
+   lượt bị bỏ dở (dispatcher ghi `sessionId` ban đầu của job, flow `daemon-scheduling`); việc tóm tắt luôn
+   được tính lại đúng ở `resumeSession()`/`defaultPlanner` (flow `agent-runs`) ngay trước khi job đó chạy, nên
+   cả sáu nơi chọn phiên ra cùng kết quả dù gọi hàm đầy đủ hay hàm rút gọn này.
 5. `apps/daemon/src/api/vps-client.ts` → `VpsClient.request()`: mọi response được validate bằng schema
    `@crew/shared`, lỗi transient (mạng, 502/503/504) được thử lại với backoff nhân đôi, mọi ghi kèm header
    `Idempotency-Key` — ví dụ `requestProjectChange(projectKey, body, idempotencyKey)` (flow `project-claims`;
@@ -119,8 +146,10 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 7. `apps/daemon/src/daemon.ts` → `createDaemon().start()`: `takePidLock()` chặn hai daemon cùng chạy trên một
    home; `ensureTmpRoot(paths.tmp)` (flow `resource-hygiene`) dựng an toàn gốc thư mục tạm ngắn rồi xóa
    `<home>/tmp` cũ (thư mục tạm của bản daemon trước — pid lock vừa lấy coi nó thuộc daemon này để dọn);
-   `reconcileRestart()` dọn rồi re-queue job còn `running` từ lần chạy trước (`resumeMode` =
-   `restart_resume` nếu có `sessionId`, ngược lại `restart_fresh`); `refreshProjects()`; `sweep()`; probe
+   `reconcileRestart()` dọn rồi re-queue job còn `running` từ lần chạy trước — nó chết giữa lượt (kể cả chết
+   trước khi agent chạy), nên luôn ghi `resumeMode: 'restart_fresh'` cộng `sessionAbandoned: 'daemon_restart'`
+   (flow `agent-runs`): job đó chạy lại ở phiên mới kèm tóm tắt lượt bị crash, không bao giờ resume;
+   `refreshProjects()`; `sweep()`; probe
    inventory máy và từng project (mỗi lần probe một project gọi `ProbeWorktreeKeeper.used()`, flow
    `agent-workspace`, để giữ worktree `_probe` của nó thêm một giờ); rồi khởi động stream, heartbeat, scheduler
    và timer sweep mỗi 10 phút. `refreshInventory(projectKey)` gọi `reportBmadProfile()` trước probe: khi máy
@@ -197,7 +226,7 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 | `apps/daemon/src/library.ts` | Điểm export thư viện dùng chung CLI/app desktop (kể cả `ActiveSettings`/`SettingsStore`/`effectiveConfig` của flow `server-settings`) | (re-export) |
 | `apps/daemon/src/config.ts` | Cấu hình `~/.crew/config.yaml` | `DaemonConfig`, `loadConfig`, `saveConfig`, `crewHome`, `homePaths` |
 | `apps/daemon/src/secrets.ts` | Lưu token máy | `TokenStore`, `FileTokenStore`, `KeychainTokenStore`, `defaultTokenStore` |
-| `apps/daemon/src/state-db.ts` | Trạng thái cục bộ SQLite | `StateDb`, `JobRow`, `ACTIVE_JOB_STATUSES`, `PmMention` |
+| `apps/daemon/src/state-db.ts` | Trạng thái cục bộ SQLite | `StateDb`, `JobRow`, `ACTIVE_JOB_STATUSES`, `PmMention`, `AbandonReason`, `ResumeChoice` |
 | `apps/daemon/src/api/vps-client.ts` | Client HTTP typed tới VPS | `VpsClient`, `VpsError`, `ApiFailure` |
 | `apps/daemon/src/service/systemd.ts` | Cài đặt systemd user unit (Linux) | `systemdUnit`, `installService` |
 
@@ -221,7 +250,8 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 - agent-runs: `JobRunner` được tạo trong `createDaemon()` với `workspace`, `contextBlock`, `resourceOps`,
   `standardPath`, `onCleaned` lấy từ các flow khác; `VpsClient.attachment()` (file của flow này) tải ảnh đính
   kèm ticket cho `collectTicketImages()`; cột `jobs.images_sent` (sống trong `state-db.ts` ở đây) và
-  `StateDb.imagesSentInSession()` thuộc flow đó.
+  `StateDb.imagesSentInSession()` thuộc flow đó; `JobRunner.execute()` ghi/chốt cột `session_abandoned` của
+  flow này (`run_started` rồi `abandonReason()`), và `defaultPlanner` gọi `StateDb.resumeChoice()`.
 - agent-roles: `rolePlanner` là `RolePlanner` mặc định của `JobRunner`; cột `jobs` mới (`stage`,
   `failed_attempts`, `capabilities`, `return_to_dev`) thuộc flow đó nhưng sống trong `state-db.ts` ở đây.
 - agent-workspace: `createDaemon()` gọi `ensureWorktree`/`detectSharedPaths`/`probeInventory` để chuẩn bị
@@ -254,7 +284,9 @@ chung: cả lệnh `crewd start` và app desktop (flow `desktop-app`) đều d�
 - `apps/daemon/test/units.test.ts`: `config` điền mặc định và validate, từ chối `models.allow` thiếu `sonnet`,
   từ chối đường dẫn tương đối/trùng key/đường dẫn thoát khỏi repo, lưu atomic mode 0600 và đọc lại đúng; một
   config cũ còn đặt `fable` ở `models.allow`/`complexityMap` đọc thành `opus` và cảnh báo đúng một lần mỗi
-  file;
+  file; `backgroundWaitMinutes` mặc định 30 phút, nhận giá trị hợp lệ (kể cả số lẻ) trong khoảng `(0, 1440]`
+  và từ chối giá trị ngoài khoảng hay không phải số, `effectiveConfig()` giữ nguyên khóa cục bộ này (cài đặt
+  server không đổi nó), lưu rồi đọc lại đúng qua `saveConfig()`/`loadConfig()`;
   `secrets` giữ token trong file 0600 và ghi Keychain qua `security -i` (token không lộ trong argv);
   `onError` của `VpsClient` được gọi đúng một lần cho mỗi request cuối cùng thất bại, sau khi hết lượt thử
   lại, không kèm header/body và không lộ token.

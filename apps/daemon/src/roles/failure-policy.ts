@@ -47,7 +47,8 @@ export function failedJobText(job: Pick<JobRow, 'error' | 'runTrace'>): string {
  * - Reaching `maxBudgetUsd` blocks the ticket at once: retrying would spend past the owner's limit.
  * - Anything else is retried until the job has used `MAX_ATTEMPTS` attempts, then the ticket is blocked for
  *   the owner, who unblocks it to resume. A docs rejection is retried as a new dev job (the dev run fixes the
- *   code, then hands off to a fresh docs job); every other retry repeats the same kind of job.
+ *   code, then hands off to a fresh docs job); every other retry repeats the same kind of job. A retry resumes
+ *   the failed run's session only if that run did not leave it abandoned (`resumable`).
  *
  * Both comments end with the run's diagnosis (turns, duration, cost, the agent's last message and tool
  * calls) when the run left one, so the owner can tell from the web why it stopped.
@@ -59,8 +60,14 @@ export function decideFailure(input: {
   costUsd: number;
   /** Session to resume for a dev retry after a docs rejection (the dev session, not the docs one). */
   devSessionId?: string | null;
+  /**
+   * Whether the retry may resume a session (`StateDb.resumeChoice`): null for one a run left abandoned, so
+   * the retry starts fresh. Default: any session is resumable.
+   */
+  resumable?: (sessionId: string | null) => string | null;
 }): FailureDecision {
   const { job, reason } = input;
+  const resumable = input.resumable ?? ((sessionId: string | null) => sessionId);
   const attempt = job.failedAttempts + 1;
   // The server settings revision (prompts, rules) the run started with: a bad edit shows up here.
   const settings = job.settingsRevision ? `, cài đặt bản ${job.settingsRevision}` : '';
@@ -81,12 +88,13 @@ export function decideFailure(input: {
       kind,
       trigger: `retry:${reason}`,
       failedAttempts: attempt,
-      sessionId:
+      sessionId: resumable(
         reason === 'docs_rejected'
           ? (input.devSessionId ?? null)
           : job.kind === 'docs_update'
             ? null
             : job.sessionId,
+      ),
     },
     comment: `Lần thử ${attempt}/${MAX_ATTEMPTS} không thành: ${REASON_TEXT[reason]} (${cost}). Daemon chạy lại một lần nữa.${diagnosis}`,
   };
