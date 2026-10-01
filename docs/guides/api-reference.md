@@ -183,6 +183,7 @@ mutating (`GET` không cần CSRF, ghi `owner (no CSRF)`); `daemon` = bearer tok
 | POST | `/v1/tickets/:id/attachments` | owner (CSRF, `bodyLimit` riêng lớn hơn mặc định) | Upload ảnh dán clipboard (whitelist mime, tối đa 10MB) | [ticket-lifecycle](../flows/ticket-lifecycle.md) |
 | POST | `/v1/attachments` | owner (CSRF, `bodyLimit` riêng lớn hơn mặc định) | Upload ảnh nháp trước khi ticket tồn tại (`ticket_id` null, gắn khi tạo ticket hoặc dọn sau 24 giờ nếu bỏ quên) | [ticket-lifecycle](../flows/ticket-lifecycle.md) |
 | GET | `/v1/attachments/:id` | owner (no CSRF) | Đọc lại bytes ảnh đã upload | [ticket-lifecycle](../flows/ticket-lifecycle.md) |
+| GET | `/v1/daemon/attachments/:id` | daemon (phạm vi theo ticket, qua `assertTicketReadable`) | Daemon đọc lại bytes ảnh cho agent | [ticket-lifecycle](../flows/ticket-lifecycle.md) |
 
 ### 8. Docs
 

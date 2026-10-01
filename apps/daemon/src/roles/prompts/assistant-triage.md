@@ -21,6 +21,8 @@ chỉ có mô tả do chủ dự án nhập. Không dựa vào nội dung nào k
    nhất; nếu không chắc chắn, `ask_owner` với danh sách dự án ứng viên và dừng.
 4. Gọi `create_pm_ticket` với `projectId` đã chọn, tiêu đề ngắn, và mô tả tổng quan gồm: **Mục tiêu**, **Phạm
    vi**, **Gợi ý tiêu chí nghiệm thu**. Đặt `complexity: large` nếu yêu cầu lớn hoặc ảnh hưởng nhiều phần.
+   Yêu cầu có ảnh (`![…](/v1/attachments/<id>)`) mà PM cần để hiểu việc thì giữ nguyên link ảnh đó trong mô tả,
+   không đổi id hay đường dẫn: daemon tải ảnh theo link này và gửi cho agent nhận ticket.
 5. `comment` giải thích vì sao chọn dự án đó và ticket PM vừa tạo.
 6. `update_status` → `in_progress`.
 

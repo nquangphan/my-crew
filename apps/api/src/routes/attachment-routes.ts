@@ -1,9 +1,11 @@
 import { MAX_ATTACHMENT_BYTES, UploadAttachmentRequest } from '@crew/shared';
 import type { FastifyError, FastifyInstance, FastifyRequest } from 'fastify';
+import { assertTicketReadable, requireMachine } from '../auth/machine-auth.js';
 import { ApiError, sendApiError } from '../errors.js';
 import {
   ATTACHMENT_TOO_LARGE_MESSAGE,
   getAttachmentContent,
+  getAttachmentWithTicket,
   uploadAttachment,
   uploadDraftAttachment,
 } from '../services/attachment-service.js';
@@ -54,6 +56,24 @@ export async function attachmentRoutes(app: FastifyInstance, { db }: RouteDeps):
 
   app.get('/v1/attachments/:id', async (request, reply) => {
     const { mimeType, content } = await getAttachmentContent(db, uuidParam(request.params, 'attachment'));
+    return reply.header('content-type', mimeType).header('cache-control', 'private, no-store').send(content);
+  });
+}
+
+/**
+ * Daemon-only read of a pasted image, gated by machine token instead of an owner session: the daemon fetches
+ * an attachment to hand its bytes to the agent, so this checks the attachment's ticket against the machine's
+ * scope (`assertTicketReadable`, same rule as `GET /v1/daemon/tickets/:id`) before ever streaming bytes or
+ * revealing the mime type — an out-of-scope id gets a bare 403, not a 404 or a leaked mime type.
+ */
+export async function daemonAttachmentRoutes(app: FastifyInstance, { db }: RouteDeps): Promise<void> {
+  app.get('/v1/daemon/attachments/:id', async (request, reply) => {
+    const machine = requireMachine(request);
+    const { mimeType, content, ticket } = await getAttachmentWithTicket(
+      db,
+      uuidParam(request.params, 'attachment'),
+    );
+    await assertTicketReadable(db, machine.machineId, ticket);
     return reply.header('content-type', mimeType).header('cache-control', 'private, no-store').send(content);
   });
 }
