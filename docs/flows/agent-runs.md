@@ -409,14 +409,14 @@ guard chặn ghi ngoài phạm vi, rồi xử lý kết quả (xong, tạm dừn
   thì ticket tự chạy lại (không cần owner mở chặn) trên model theo mức mới. Nhóm "abandoned sessions": một
   lượt còn tác vụ nền lúc đóng (`ask_owner` sau `bgBash`) để lại `sessionAbandoned: 'background_tasks'`; lượt
   trả lời của chủ dự án sau đó chạy ở job mới, phiên mới, prompt trích đúng `run_trace` (tin nhắn cuối) của
-  lượt bị bỏ dở; một phiên sạch (`ask_owner` rồi 4 lần backoff `rate_limit` rồi mở chặn) resume đúng một
-  session suốt 6 lượt, không prompt nào chứa `FRESH_SESSION_TITLE`; runner ném lỗi không có `result` đánh dấu
+  lượt bị bỏ dở; một phiên sạch (`ask_owner`, rồi 4 lần `rate_limit` (3 lần `backoff`, lần thứ 4 bị chặn), rồi mở chặn)
+  resume đúng một session suốt 6 lượt, không prompt nào chứa `FRESH_SESSION_TITLE`; runner ném lỗi không có `result` đánh dấu
   `sessionAbandoned: 'no_result'`, ticket bị chặn rồi mở chặn chạy phiên mới kèm tóm tắt; thử lại `no_handoff`
   trên phiên sạch resume không cảnh báo preflight (đã làm ở lượt trước trong cùng phiên), ticket bị chặn rồi
   mở chặn chạy phiên mới (một `ticket.unblocked`, lỗi gần nhất là `no_handoff`) không preflight riêng nên bị
-  cảnh báo skill/MCP đúng một lần ở lượt thử lại kế tiếp của phiên đó; lượt đầu của job mở chặn sau đó gặp
-  `rate_limit` (phiên sạch, job vào `backoff`) thì lần chạy lại resume đúng phiên job đó tự mở, không prompt
-  nào chứa `FRESH_SESSION_TITLE`, cùng một hàng job, và `ask_owner` thành công. Cùng nhóm đó còn hai ca ảnh:
+  cảnh báo skill/MCP đúng một lần ở lượt thử lại kế tiếp của phiên đó; lượt đầu của job mở chặn sau đó là phiên mới (prompt có `FRESH_SESSION_TITLE`) và gặp
+  `rate_limit` (phiên sạch, job vào `backoff`), thì lần chạy lại sau backoff resume đúng phiên job đó tự mở,
+  prompt không chứa `FRESH_SESSION_TITLE`, vẫn cùng một hàng job, và `ask_owner` thành công. Cùng nhóm đó còn hai ca ảnh:
   một phiên bỏ dở vì còn tác vụ nền (`sessionAbandoned: 'background_tasks'`) khiến lượt tiếp theo mở phiên mới
   và gửi lại đủ ảnh ticket, còn lượt resume phiên sạch sau đó (đã có ảnh) thì không gửi lại
   (`StateDb.imagesSentInSession()` theo đúng phiên mới); một ticket bị `no_handoff` hai lần liên tiếp trên cùng
