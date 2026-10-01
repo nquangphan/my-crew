@@ -88,7 +88,7 @@ describe('QC UI-test gate', () => {
   });
 
   it('tells QC the Playwright server runs headless and not to expect a real browser window', () => {
-    const text = uiTestText({ requiredMcps: ['playwright'] }, true, DEFAULT_GUARD_POLICY);
+    const text = uiTestText({ requiredMcps: ['playwright'], testKinds: null }, true, DEFAULT_GUARD_POLICY);
     expect(text).toContain('headless');
     expect(text).toContain('không chiếm màn hình máy');
     expect(text).not.toContain('mở ứng dụng trong trình duyệt');
@@ -361,7 +361,7 @@ describe('QC run follows the PM test plan of its ticket', () => {
     expect(result.prompt).toContain('`integration` (');
     expect(result.prompt).toContain(`<untrusted-data source="ticket ${qc.key} testReason">\n${reason}`);
     expect(result.prompt).toContain('Skill và MCP bắt buộc của ticket này: không có.');
-    expect(result.prompt).not.toMatch(/playwright|maestro/i);
+    expect(result.prompt).not.toMatch(/`(playwright|maestro)`/i);
     expect(await commentsOf(api.db, qc.id)).toEqual([]);
     expect((await getTicket(api.db, qc.id)).status).toBe('todo');
   });
@@ -388,7 +388,9 @@ describe('QC run follows the PM test plan of its ticket', () => {
     expect(result.prompt).toContain(
       'MCP bắt buộc của ticket (phải gọi công cụ của từng server trước khi đóng',
     );
-    expect(result.prompt).toContain('`playwright` (Playwright): mở ứng dụng trong trình duyệt');
+    expect(result.prompt).toContain(
+      '`playwright` (Playwright): mở ứng dụng và kiểm tra từng tiêu chí nghiệm thu. Server chạy headless/nền',
+    );
   });
 
   it('keeps the older text for a QC ticket created without a plan', async () => {

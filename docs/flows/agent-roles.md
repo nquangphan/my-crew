@@ -62,7 +62,8 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
    đặt rỗng (flow `agent-runs`); cần kiểm thử UI thì `uiTestText()` dựng đoạn hướng dẫn QC dùng từng MCP bắt
    buộc — nhánh Playwright (`/playwright/i.test(server)`) nói rõ server chạy headless/nền (không chiếm màn
    hình máy) nên QC không nên kỳ vọng thấy cửa sổ trình duyệt thật, cứ dựa vào accessibility snapshot/kết quả
-   tool trả về; còn lại gọi `resolveModel()`, dựng biến prompt (`promptVars()`) và
+   tool trả về; không có MCP nào thì câu trả về tuỳ ticket có phương án kiểm thử (`testKinds`) hay không, nên
+   hàm nhận cả `requiredMcps` lẫn `testKinds`; còn lại gọi `resolveModel()`, dựng biến prompt (`promptVars()`) và
    `renderPrompt()`; với
    một ticket `bug`,
    `worktreeBase` được tính từ `baseHeadsFor()` của chuỗi bug. `promptVars()` → `ownerRequest()`: ba bước PM
@@ -289,7 +290,9 @@ thành dữ liệu không tin cậy. `rolePlanner` là `RolePlanner` mặc đị
   `CHANGELOG.md` hay `docs/` là không cần kiểm thử UI, còn đổi bất kỳ file nào ngoài docs (file nguồn, `AGENTS.md`,
   một file `.md` lồng trong `src/`) hay khi không suy ra được (lỗi git, diff rỗng) vẫn cần; guard giữ lượt dev
   ngoài docs (`docs/`, `README.md`, Markdown gốc khác) và tránh `git commit`; `uiTestText()` cho nhánh Playwright
-  nêu đúng từ "headless" và "không chiếm màn hình máy", không còn câu "mở ứng dụng trong trình duyệt" cũ. Nhóm
+  nêu đúng từ "headless" và "không chiếm màn hình máy", không còn câu "mở ứng dụng trong trình duyệt" cũ. Prompt QC
+  không có loại kiểm thử giao diện không nêu tên server MCP UI nào (`` `playwright` ``/`` `maestro` ``) — quy tắc
+  chung ở `_shared-rules.md` có nhắc `playwright-mcp` làm ví dụ, không tính là yêu cầu dùng MCP. Nhóm
   "QC docs-only check looks at
   the ticket's own commits": một commit chỉ đổi `README.md` trên nền commit docs-init chưa merge vào nhánh
   chính vẫn tính là docs-only khi biết `builtOn`, còn tính là cần kiểm thử UI khi không biết head đó; merge

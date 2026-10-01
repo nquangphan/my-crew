@@ -144,7 +144,7 @@ function complexityText(config: DaemonConfig): string {
 export const DOCS_ONLY_QC_NOTE = 'Không có thay đổi giao diện (chỉ docs) nên không chạy test UI.';
 
 export function uiTestText(
-  ticket: Pick<Ticket, 'requiredMcps'>,
+  ticket: Pick<Ticket, 'requiredMcps' | 'testKinds'>,
   uiTest: boolean,
   policy: GuardPolicy,
 ): string {
