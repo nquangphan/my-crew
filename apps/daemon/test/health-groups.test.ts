@@ -301,6 +301,7 @@ describe('mcp and skills groups', () => {
       'npx',
       '-y',
       '@playwright/mcp@latest',
+      '--headless',
     ]);
     // The MCP switch is a server setting: the running daemon saves it (and applies it at once).
     await applyHealthFix(ctx, 'mcp', 'mcp-disable:WEB:figma');
@@ -334,6 +335,90 @@ describe('mcp and skills groups', () => {
     );
     const after = await mcpChecks.run(ctx);
     expect(after.filter((item) => item.status !== 'green')).toEqual([]);
+  });
+
+  it('detects a Playwright already configured with an outdated command (missing --headless) and fixes it by reconfiguring', async () => {
+    const f = await fixture(api);
+    const home = tempDir('crewd-home-');
+    const paths = homePaths(home);
+    const tokenStore = new FileTokenStore(paths.tokenFile);
+    tokenStore.set(f.machine.token);
+    const { repo } = projectRepo();
+    const config = saveConfig(paths.config, {
+      apiUrl: f.server.url,
+      machineName: 'm',
+      projects: [{ key: 'WEB', repoPath: repo }],
+    });
+    const state = openState(home);
+    state.setMeta(
+      'inventory:WEB',
+      JSON.stringify(
+        inventory({
+          mcpServers: [
+            { name: 'playwright', source: 'user', status: 'connected', tools: [{ name: 'browser_click' }] },
+          ],
+        }),
+      ),
+    );
+    const oldGet = [
+      'playwright:',
+      '  Scope: User config (available in all your projects)',
+      '  Status: ✔ Connected',
+      '  Type: stdio',
+      '  Command: npx',
+      '  Args: -y @playwright/mcp@latest',
+      '  Environment:',
+      '',
+    ].join('\n');
+    const newGet = oldGet.replace(
+      'Args: -y @playwright/mcp@latest',
+      'Args: -y @playwright/mcp@latest --headless',
+    );
+    let reconfigured = false;
+    const calls: string[][] = [];
+    const refreshed: (string | null)[] = [];
+    const daemon = { refreshInventory: async (key: string | null) => refreshed.push(key) };
+    const ctx = context({
+      home,
+      config,
+      state,
+      tokenStore,
+      vps: new VpsClient({ apiUrl: f.server.url, token: () => tokenStore.get() }),
+      daemon: daemon as unknown as Daemon,
+      exec: (command, args) => {
+        calls.push([command, ...args]);
+        if (args[0] === 'mcp' && args[1] === 'get') {
+          return { code: 0, stdout: reconfigured ? newGet : oldGet, stderr: '' };
+        }
+        if (args[0] === 'mcp' && args[1] === 'add') reconfigured = true;
+        return { code: 0, stdout: '', stderr: '' };
+      },
+    });
+
+    const before = await mcpChecks.run(ctx);
+    const outdated = byId(before, 'mcp.WEB.qc-playwright');
+    expect(outdated).toMatchObject({ status: 'red', fix: { id: 'mcp-install:WEB:playwright' } });
+    expect(outdated?.detail).toContain('lệnh cũ');
+
+    await applyHealthFix(ctx, 'mcp', 'mcp-install:WEB:playwright');
+    expect(calls).toContainEqual(['claude', 'mcp', 'remove', '--scope', 'user', 'playwright']);
+    expect(calls).toContainEqual([
+      'claude',
+      'mcp',
+      'add',
+      '--scope',
+      'user',
+      'playwright',
+      '--',
+      'npx',
+      '-y',
+      '@playwright/mcp@latest',
+      '--headless',
+    ]);
+    expect(refreshed).toEqual(['WEB']);
+
+    const after = await mcpChecks.run(ctx);
+    expect(byId(after, 'mcp.WEB.qc-playwright')).toMatchObject({ status: 'green' });
   });
 
   it('disables a plugin MCP server whose name has colons, and drops a fragment an older build stored', async () => {

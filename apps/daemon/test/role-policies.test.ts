@@ -5,7 +5,7 @@ import { createSubtask, fileBug } from '../../api/src/services/ticket-service.js
 import { RATED, setStatus } from '../../api/test/helpers/test-db.js';
 import { VpsClient } from '../src/api/vps-client.js';
 import { parseConfig } from '../src/config.js';
-import { diffNeedsUiTest, missingUiServers, rolePlanner } from '../src/roles/role-planner.js';
+import { diffNeedsUiTest, missingUiServers, rolePlanner, uiTestText } from '../src/roles/role-planner.js';
 import { wrapTicketDetail, wrapUntrusted } from '../src/roles/untrusted-wrap.js';
 import { evaluateToolCall } from '../src/runner/guard-hook.js';
 import { BUNDLED_SETTINGS } from '../src/settings/settings-store.js';
@@ -85,6 +85,13 @@ describe('QC UI-test gate', () => {
     expect(
       missingUiServers({ requiredMcps: ['playwright'] }, inventory, { disabledMcpServers: ['playwright'] }),
     ).toEqual([{ server: 'playwright', status: 'đã bị tắt cho dự án' }]);
+  });
+
+  it('tells QC the Playwright server runs headless and not to expect a real browser window', () => {
+    const text = uiTestText({ requiredMcps: ['playwright'] }, true, DEFAULT_GUARD_POLICY);
+    expect(text).toContain('headless');
+    expect(text).toContain('không chiếm màn hình máy');
+    expect(text).not.toContain('mở ứng dụng trong trình duyệt');
   });
 });
 
