@@ -42,7 +42,7 @@ cuối toàn nhánh dùng gpt-6-astra. Không giao worker tự tạo reviewer.
 - `pnpm --dir v2 typecheck`:PASS.
 - Biome check src/test/package/tsconfig:11 files PASS, không error/warning.
 - V2 docs `crew-docs check --all` trong Git mirror tạm:PASS; heading đúng thứ tự.
-- Root `crew-docs check --range 4da329d..HEAD`:PASS trước commit báo cáo.
+- Root `crew-docs check --range 4da329d..HEAD`:PASS (9 commits trước cập nhật cleanup cuối).
 - Test/format/style fixes đã có focused evidence; không chạy suite v1 không liên quan.
 
 ## Rulings của PM
@@ -59,7 +59,7 @@ cuối toàn nhánh dùng gpt-6-astra. Không giao worker tự tạo reviewer.
 ## Cleanup và bàn giao
 
 Fixture docs của worker/PM đã xóa. Scratch SDD, các brief/diff/helper/report trung gian và node_modules
-riêng vừa cài cho v2 sẽ được dọn sau khi lưu báo cáo này. Giữ code/commit/docs/lockfile và worktree có
+riêng vừa cài cho v2 đã được dọn sau khi lưu bằng chứng vào báo cáo này. Giữ code/commit/docs/lockfile và worktree có
 nhánh chờ quyết định tích hợp. Không xóa cache/tooling cũ, backup, tài nguyên của project/run khác.
 
 Muốn typecheck sau cleanup: `pnpm --dir v2 install --ignore-workspace --frozen-lockfile`.
@@ -251,4 +251,3 @@ Các lệnh chạy tại `/Users/phannhatquang/.codex/worktrees/crew-v2-foundati
 ## Bổ sung sau rà soát tài liệu
 
 Đã bỏ đúng bốn dòng trống giữa các hàng trong bảng `Files` của `v2/docs/flows/domain-foundation.md`; các phần khác giữ nguyên. Kiểm tra bằng Python xác nhận 13 dòng bảng liên tục, tất cả bắt đầu bằng `|`. `git diff --check -- v2/docs/flows/domain-foundation.md` đạt (exit 0); diff chỉ gồm bốn dòng trống bị xóa.
-
