@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { events, ticketReports, tickets } from '../../api/src/db/schema.js';
 import { isDocsPath } from '../src/runner/guard-hook.js';
+import { FRESH_SESSION_TITLE } from '../src/runner/run-trace.js';
 import { commentsOf, RATED, useApi } from './helpers/api.js';
 import { waitFor } from './helpers/daemon.js';
 import { git } from './helpers/git.js';
@@ -340,7 +341,26 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     expect(children.map((c) => c.title).sort()).toEqual(['QC: Trang liên hệ', 'Trang liên hệ']);
     const analyze = jobsOf(r, pm.id).filter((j) => j.stage === 'pm_analyze');
     expect(analyze).toHaveLength(1);
-    expect(analyze[0]?.resumeMode).toBe('restart_resume');
+    // The same analyze job ran again after the crash, in a fresh session (never resuming the one the crash
+    // cut short) whose prompt summarizes the interrupted run; it ended clean.
+    const runs = r.runs.filter((run) => run.jobId === analyze[0]?.id);
+    expect(runs).toHaveLength(2);
+    expect(runs[1]?.resumeSessionId).toBeNull();
+    expect(runs[1]?.prompt).toContain(FRESH_SESSION_TITLE);
+    expect(runs[1]?.prompt).toContain('daemon tắt đột ngột giữa lượt chạy');
+    expect(runs[1]?.prompt).toContain('git status');
+    expect(runs[0]?.prompt).not.toContain(FRESH_SESSION_TITLE);
+    expect(analyze[0]).toMatchObject({ status: 'done', resumeMode: null, sessionAbandoned: null });
+    // No duplicate records: each PM comment once, no capability warning (the fresh session redid its
+    // preflight).
+    const bodies = (await commentsOf(api.db, pm.id)).map((c) => c.body);
+    for (const body of [
+      'Yêu cầu chi tiết: mục tiêu, phạm vi, tiêu chí nghiệm thu.',
+      'Requirement confirmed',
+    ]) {
+      expect(bodies.filter((b) => b === body)).toHaveLength(1);
+    }
+    expect(bodies.some((b) => b.includes('Cảnh báo skill/MCP'))).toBe(false);
   },
 
   async 'backoff-resume'(r) {
@@ -712,6 +732,23 @@ const CHECKS: Record<string, (r: LifecycleResult) => Promise<void>> = {
     const withImages = r.runs.filter((run) => run.images.length > 0);
     expect(withImages.length).toBeGreaterThanOrEqual(5);
     await waitFor(() => r.runs.every((run) => !existsSync(run.tmpDir)), 15_000, 'job temp dirs removed');
+  },
+
+  async 'background-task-handoff'(r) {
+    await assertDocsJobCommits(r);
+    const dev = await one(/^Chạy build nền$/, 'dev');
+    // One agent job carried both turns (before and after the background command's notification): no
+    // second agent job, no retry.
+    expect(jobsOf(r, dev.id).map((j) => [j.kind, j.status])).toEqual([
+      ['agent', 'done'],
+      ['docs_update', 'done'],
+    ]);
+    const devReport = await report(dev.id);
+    expect(devReport?.summaryMd).toContain('src/build-feature.js');
+    const bodies = (await commentsOf(api.db, dev.id)).map((c) => c.body);
+    expect(bodies.some((b) => b.includes('không thành'))).toBe(false);
+    const qc = await one(/^QC: Chạy build nền$/);
+    expect(qc.status).toBe('done');
   },
 };
 

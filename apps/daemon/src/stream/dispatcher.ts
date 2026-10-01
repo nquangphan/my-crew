@@ -44,7 +44,8 @@ function roleOf(envelope: EventEnvelope): AgentRole | null {
  *
  * One active job per ticket: an event for a ticket whose job is queued or in backoff is absorbed by that
  * job (it has not read the ticket yet); an event for a running job is kept in `pending_wakeups`, and all
- * of them are folded into a single follow-up run when the job ends.
+ * of them are folded into a single follow-up run when the job ends. A new job resumes the ticket's latest
+ * session only when `StateDb.resumeChoice` allows it (never one a run left abandoned).
  */
 export function dispatchEvent(state: StateDb, envelope: EventEnvelope, now = new Date()): DispatchEffect {
   const { payload } = envelope;
@@ -113,7 +114,8 @@ export function dispatchEvent(state: StateDb, envelope: EventEnvelope, now = new
       kind,
       trigger: payload.type,
       eventIds: [envelope.id],
-      sessionId: payload.type === 'ticket.assigned' ? null : state.latestSession(ticketId, kind),
+      sessionId:
+        payload.type === 'ticket.assigned' ? null : state.resumableSession(ticketId, kind, payload.type),
     },
     now,
   );
@@ -148,7 +150,7 @@ export function foldWakeups(state: StateDb, ended: JobRow, now = new Date()): Jo
       role: ended.role,
       trigger: 'wakeup',
       eventIds,
-      sessionId: state.latestSession(ended.ticketId, 'agent'),
+      sessionId: state.resumableSession(ended.ticketId, 'agent', 'wakeup'),
     },
     now,
   );
@@ -182,7 +184,7 @@ export function wakeTicket(
       role: input.role,
       trigger: input.trigger,
       eventIds: [input.eventId],
-      sessionId: state.latestSession(input.ticketId, 'agent'),
+      sessionId: state.resumableSession(input.ticketId, 'agent', input.trigger),
     },
     now,
   );

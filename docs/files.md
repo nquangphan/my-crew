@@ -151,6 +151,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/roles/untrusted-wrap.ts` | [agent-roles](flows/agent-roles.md) (file) |
 | `apps/daemon/src/roles/workspace-prep.ts` | [agent-roles](flows/agent-roles.md) (file) |
 | `apps/daemon/src/runner/agent-runner.ts` | [agent-runs](flows/agent-runs.md) (file) |
+| `apps/daemon/src/runner/background-session.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/guard-hook.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/runner/job-cleanup.ts` | [resource-hygiene](flows/resource-hygiene.md) (điểm vào) |
 | `apps/daemon/src/runner/job-runner.ts` | [agent-runs](flows/agent-runs.md) (điểm vào) |
@@ -175,6 +176,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `apps/daemon/src/tools/ticket-mcp-server.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/src/tools/tool-scopes.ts` | [agent-runs](flows/agent-runs.md) (file) |
 | `apps/daemon/test/agent-runner.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
+| `apps/daemon/test/background-session.test.ts` | [agent-runs](flows/agent-runs.md) (test) |
 | `apps/daemon/test/bmad-profile.test.ts` | [agent-workspace](flows/agent-workspace.md) (test) |
 | `apps/daemon/test/cli.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |
 | `apps/daemon/test/daemon-extras.test.ts` | [daemon-runtime](flows/daemon-runtime.md) (test) |

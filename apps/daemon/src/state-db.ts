@@ -19,8 +19,48 @@ export type JobStatus =
 /** A ticket has at most one job in these states (partial unique index). */
 export const ACTIVE_JOB_STATUSES: readonly JobStatus[] = ['queued', 'running', 'backoff'];
 
-/** Why a queued job starts the way it does after a daemon restart. */
+/**
+ * A queued job whose last run a daemon stop or crash cut short. It always starts a fresh session with a
+ * summary of that run; `restart_resume` only appears on rows an older daemon wrote.
+ */
 export type ResumeMode = 'restart_resume' | 'restart_fresh';
+
+/**
+ * Why a run left its session abandoned; a later run never resumes that session (the runtime would deliver a
+ * killed background task's `stopped` notification ahead of the prompt and cancel its first tool call).
+ *
+ * - `run_started`: written right before the agent starts and cleared when the run reports back cleanly, so a
+ *   daemon that dies mid-run leaves the mark behind even if it never wrote anything at the end.
+ * - `background_tasks`: the session closed with background tasks still alive (even after `stopTask`).
+ * - `aborted`: the job was cancelled (or its project released) mid-run.
+ * - `daemon_stopped`: a graceful daemon stop aborted the run and re-queued the job.
+ * - `no_result`: the agent process died or the runner threw without a `result` message.
+ * - `daemon_restart`: the job was still `running` when the daemon started again (it died mid-run).
+ */
+export type AbandonReason =
+  | 'run_started'
+  | 'background_tasks'
+  | 'aborted'
+  | 'daemon_stopped'
+  | 'no_result'
+  | 'daemon_restart';
+
+/**
+ * Last errors of a run that ended without finishing its step, on sessions broken before the abandoned mark
+ * existed: an unblock after them starts fresh instead of resuming.
+ */
+const UNFINISHED_ERRORS: ReadonlySet<string> = new Set(['no_handoff', 'not_finished']);
+
+/** What a ticket's next run resumes (see `StateDb.resumeChoice`). */
+export interface ResumeChoice {
+  /** The session to resume, or null for a fresh session. */
+  sessionId: string | null;
+  /**
+   * The earlier run that was cut short, when this run starts fresh because of it: the new session's prompt
+   * summarizes it. Null when nothing was interrupted (a clean resume, or a fresh session by design).
+   */
+  interrupted: JobRow | null;
+}
 
 export interface JobRow {
   id: string;
@@ -76,6 +116,8 @@ export interface JobRow {
   settingsRevision: string | null;
   /** Ids of the ticket images this job's run sent to its session as image blocks (a session gets each once). */
   imagesSent: string[];
+  /** Set when the run left `sessionId` abandoned (never resumed again); null for a clean session. */
+  sessionAbandoned: AbandonReason | null;
 }
 
 /** What a run selected in its capability preflight, each with a one-line reason. */
@@ -172,7 +214,8 @@ create table if not exists jobs (
   wait_detail text,
   run_trace text,
   settings_revision text,
-  images_sent text not null default '[]'
+  images_sent text not null default '[]',
+  session_abandoned text
 );
 create unique index if not exists jobs_one_active_per_ticket
   on jobs (ticket_id) where status in ('queued', 'running', 'backoff');
@@ -224,6 +267,7 @@ const LATER_COLUMNS: readonly (readonly [string, string])[] = [
   ['run_trace', 'text'],
   ['settings_revision', 'text'],
   ['images_sent', "text not null default '[]'"],
+  ['session_abandoned', 'text'],
 ];
 
 type Row = Record<string, unknown>;
@@ -278,6 +322,7 @@ function toJob(row: Row): JobRow {
     runTrace: json<RunTrace | null>(row.run_trace, null),
     settingsRevision: (row.settings_revision as string | null) ?? null,
     imagesSent: json<string[]>(row.images_sent, []),
+    sessionAbandoned: (row.session_abandoned as AbandonReason | null) ?? null,
   };
 }
 
@@ -317,6 +362,7 @@ const JOB_COLUMNS = {
   runTrace: ['run_trace', (v: unknown) => (v === null ? null : JSON.stringify(v))],
   settingsRevision: ['settings_revision', (v: unknown) => v],
   imagesSent: ['images_sent', (v: unknown) => JSON.stringify(v)],
+  sessionAbandoned: ['session_abandoned', (v: unknown) => v],
 } as const satisfies Record<string, readonly [string, (v: unknown) => unknown]>;
 
 export type JobPatch = Partial<Pick<JobRow, keyof typeof JOB_COLUMNS>>;
@@ -503,6 +549,78 @@ export class StateDb {
       .prepare('select images_sent from jobs where session_id = ? order by created_at, rowid')
       .all(sessionId) as Row[];
     return [...new Set(rows.flatMap((row) => json<string[]>(row.images_sent, [])))];
+  }
+
+  /** The newest job whose run left this session abandoned, or null when every run of it ended cleanly. */
+  abandonedBy(sessionId: string): JobRow | null {
+    const row = this.db
+      .prepare(
+        `select * from jobs where session_id = ? and session_abandoned is not null
+         order by created_at desc, rowid desc limit 1`,
+      )
+      .get(sessionId) as Row | undefined;
+    return row ? toJob(row) : null;
+  }
+
+  /**
+   * The one place that decides whether a ticket's next run resumes a session. Every path that picks one — a
+   * new job for an event, a folded or daemon-internal wake-up, a retry, a re-queue after a daemon stop or
+   * crash, and the planner right before the run — asks here, so they all agree. The run starts fresh, with
+   * the interrupted run to summarize, when:
+   *
+   * - the job itself was cut short by a daemon stop or crash (`resumeMode` set);
+   * - a run left `candidate` abandoned (`sessionAbandoned`);
+   * - it answers an unblock (`ticket.unblocked`: the owner's, or the PM's `retry_subtask`), `candidate` is
+   *   not a session this job opened itself, and the ticket's latest finished job failed with `no_handoff` or
+   *   `not_finished` — how a session broken before the mark existed looks. Once the unblock job has a clean
+   *   session of its own (it went to backoff, or absorbed an event, after its first run), that session is
+   *   resumed like any other.
+   *
+   * Otherwise `candidate` is resumed as it is (null: a fresh session by design, nothing to summarize).
+   */
+  resumeChoice(
+    ticketId: string,
+    candidate: string | null,
+    next: { id?: string; trigger: string; resumeMode?: ResumeMode | null },
+  ): ResumeChoice {
+    if (next.resumeMode && next.id) return { sessionId: null, interrupted: this.getJob(next.id) };
+    if (candidate) {
+      const by = this.abandonedBy(candidate);
+      if (by) return { sessionId: null, interrupted: by };
+    }
+    if (next.trigger === 'ticket.unblocked' && !this.isOwnSession(ticketId, candidate, next.id)) {
+      const last = this.jobsForTicket(ticketId)
+        .filter(
+          (job) =>
+            job.id !== next.id && job.status !== 'skipped' && !ACTIVE_JOB_STATUSES.includes(job.status),
+        )
+        .at(-1);
+      if (
+        last &&
+        (last.status === 'failed' || last.status === 'blocked') &&
+        UNFINISHED_ERRORS.has(last.error ?? '')
+      ) {
+        return { sessionId: null, interrupted: last };
+      }
+    }
+    return { sessionId: candidate, interrupted: null };
+  }
+
+  /**
+   * Whether `session` was opened by job `jobId` itself: the job's row carries it and no other job of the
+   * ticket ever ran on it (a session inherited from an earlier job is never the job's own).
+   */
+  private isOwnSession(ticketId: string, session: string | null, jobId: string | undefined): boolean {
+    if (!session || !jobId || this.getJob(jobId)?.sessionId !== session) return false;
+    const other = this.db
+      .prepare('select 1 from jobs where ticket_id = ? and session_id = ? and id != ? limit 1')
+      .get(ticketId, session, jobId);
+    return other === undefined;
+  }
+
+  /** The session a new job of this kind resumes: the ticket's latest, unless `resumeChoice` says fresh. */
+  resumableSession(ticketId: string, kind: JobKind, trigger: string): string | null {
+    return this.resumeChoice(ticketId, this.latestSession(ticketId, kind), { trigger }).sessionId;
   }
 
   updateJob(id: string, patch: JobPatch): JobRow {

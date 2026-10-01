@@ -1,4 +1,7 @@
 import { isAbsolute, relative, resolve } from 'node:path';
+import type { TicketDetailResponse } from '@crew/shared';
+import { wrapUntrusted } from '../roles/untrusted-wrap.js';
+import type { AbandonReason, JobRow } from '../state-db.js';
 import { scrubSecrets } from './secret-scrubber.js';
 
 /** How many of the run's last tool calls a failure comment lists. */
@@ -14,9 +17,9 @@ export interface TraceStep {
 
 /** What a runner records while the run streams, for the diagnosis of a run that ends badly. */
 export interface RunCapture {
-  /** `num_turns` of the final result, or null without one. */
+  /** `num_turns` added up over the run's results (one per turn), or null without one. */
   numTurns: number | null;
-  /** `duration_ms` of the final result, or null without one. */
+  /** `duration_ms` added up over the run's results (the waits between turns are not counted), or null without one. */
   durationMs: number | null;
   /** Context compactions seen (`system/compact_boundary`). */
   compactions: number;
@@ -151,6 +154,89 @@ export function traceMarkdown(trace: RunTrace, stage: string | null): string {
       : ['_(không có lệnh gọi tool nào)_']),
   ];
   return lines.join('\n');
+}
+
+/** The heading of the summary a fresh session gets when the run before it was cut short. */
+export const FRESH_SESSION_TITLE = '## Phiên mới: lượt chạy trước bị dừng giữa chừng';
+
+/** Comments of the ticket the summary quotes (the newest), and characters kept of each. */
+const SUMMARY_COMMENTS = 10;
+const SUMMARY_COMMENT_CHARS = 1_500;
+const SUMMARY_REPORT_CHARS = 1_000;
+
+const INTERRUPTED_TEXT: Record<AbandonReason, string> = {
+  run_started: 'lượt chạy không báo kết quả về daemon (daemon dừng trước khi kịp ghi kết quả)',
+  background_tasks: 'phiên đóng khi agent còn tác vụ nền đang chạy (daemon đã dừng các tác vụ đó)',
+  aborted: 'lượt chạy bị hủy giữa chừng',
+  daemon_stopped: 'daemon dừng giữa lượt chạy',
+  no_result: 'tiến trình agent kết thúc mà không trả kết quả',
+  daemon_restart: 'daemon tắt đột ngột giữa lượt chạy rồi khởi động lại',
+};
+
+/** Why the interrupted run stopped, in words. */
+function interruptedText(job: JobRow): string {
+  if (job.sessionAbandoned) return INTERRUPTED_TEXT[job.sessionAbandoned];
+  if (job.error === 'no_handoff') return 'lượt dev kết thúc mà không gọi `handoff_docs`, ticket bị chặn';
+  if (job.error === 'not_finished') return 'lượt chạy kết thúc khi ticket chưa xong, ticket bị chặn';
+  if (job.resumeMode) return 'daemon dừng giữa lượt chạy';
+  return 'lượt chạy không kết thúc bình thường';
+}
+
+/** Scrubbed first, then cut, so a cut cannot split a credential into a prefix the patterns miss. */
+function clip(text: string, max: number): string {
+  const clean = scrub(text.trim());
+  return clean.length > max ? `${clean.slice(0, max).trimEnd()}…` : clean;
+}
+
+/**
+ * The note that opens a fresh session started because the run before it was cut short (its session is never
+ * resumed): what stopped it, its diagnosis (`traceMarkdown()` of its `run_trace`), the ticket's children,
+ * latest comments (the failure diagnoses among them) and current report, and what to do first. Every text
+ * the owner did not write is wrapped as untrusted data, and everything is scrubbed of credentials.
+ */
+export function freshSessionNote(interrupted: JobRow, detail: TicketDetailResponse): string {
+  const stage = interrupted.stage ? `, giai đoạn \`${interrupted.stage}\`` : '';
+  const trace = interrupted.runTrace
+    ? wrapUntrusted(
+        'run trace of the interrupted run',
+        traceMarkdown(interrupted.runTrace, interrupted.stage),
+      )
+    : '_(không có chẩn đoán: lượt đó dừng trước khi daemon kịp ghi lại)_';
+  const children = detail.children.map(
+    (child) => `- ${child.key} [${child.type}, ${child.status}] ${clip(child.title, 300)}`,
+  );
+  const comments = detail.comments.slice(-SUMMARY_COMMENTS).map((comment) => {
+    const body = clip(comment.body, SUMMARY_COMMENT_CHARS);
+    if (comment.authorKind === 'owner') return `- (chủ dự án) ${body}`;
+    const author = comment.authorRole ? `${comment.authorKind}/${comment.authorRole}` : comment.authorKind;
+    return `- (${author})\n${wrapUntrusted(`comment by ${author}`, body)}`;
+  });
+  return [
+    FRESH_SESSION_TITLE,
+    '',
+    `Đây là một **phiên mới**. Lượt chạy trước của ticket này (job \`${interrupted.id.slice(0, 8)}\`${stage}) bị dừng giữa chừng: ${interruptedText(interrupted)}. Daemon không nối tiếp phiên cũ, nên bạn không có ngữ cảnh của lượt đó ngoài tóm tắt dưới đây.`,
+    '',
+    '1. Trước tiên chạy `git status` và đọc lại ticket (`get_ticket`) để biết việc nào đã xong.',
+    '2. Rồi làm tiếp từ chỗ dừng. Không làm lại việc đã xong; không tạo lại ticket, bình luận hay report đã có.',
+    '',
+    '### Lượt trước',
+    '',
+    trace,
+    '',
+    '### Ticket con hiện có',
+    '',
+    children.length > 0 ? wrapUntrusted('children of the ticket', children.join('\n')) : '- (chưa có)',
+    '',
+    '### Bình luận gần nhất',
+    '',
+    comments.length > 0 ? comments.join('\n') : '- (chưa có)',
+    '',
+    '### Report hiện tại',
+    '',
+    detail.report
+      ? wrapUntrusted('current report', clip(detail.report.summaryMd, SUMMARY_REPORT_CHARS))
+      : '(chưa có)',
+  ].join('\n');
 }
 
 /** One short line for the heartbeat's failed-job entry (the web shows it next to the ticket). */
