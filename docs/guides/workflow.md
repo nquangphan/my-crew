@@ -85,13 +85,16 @@ Chuyển trạng thái hợp lệ theo actor (nguồn: schema workflow trong `pa
   docs) rồi chọn `testKinds` (`static_review`/`unit`/`integration`/`api`/`ui_web`/`ui_mobile`) và viết
   `testReason`; **chỉ `ui_web`/`ui_mobile` mới kéo theo MCP kiểm thử UI** (Playwright/Maestro) — một ticket chỉ
   đổi API hay logic không còn bị ép kiểm thử giao diện. Phương án của một QC chưa đóng chưa hợp thì
-  `plan_qc_test` đổi tại chỗ, không tạo QC thay thế.
+  `plan_qc_test` đổi tại chỗ, không tạo QC thay thế. Chi tiết cách chọn phương án: xem
+  [Chọn phương án kiểm thử cho QC](qc-test-planning.md).
 - **Dev**: viết code và test trên subtask `dev`/`bug` — bị guard chặn ghi `docs/**` hay Markdown ở gốc repo và
   chặn `git commit`; kết thúc lượt chạy bằng bàn giao cho job docs (`handoff_docs`).
 - **QC**: kiểm thử theo tiêu chí nghiệm thu của subtask, làm đúng từng loại kiểm thử trong phương án PM đã
-  chọn (report ghi loại nào đã chạy và kết quả); không đóng được ticket khi một MCP server bắt buộc của lượt
-  chạy chưa từng được gọi công cụ nào (trừ khi thay đổi đang xét chỉ đổi docs). QC `blocked` vì MCP kiểm thử UI
-  chưa kết nối mà thay đổi thật ra không có giao diện: gắn thẻ `@pm` trên ticket QC, PM đổi phương án bằng
+  chọn (report ghi loại nào đã chạy và kết quả); **chỉ khi phương án có loại UI** (`ui_web`/`ui_mobile`, tức
+  ticket mang MCP kiểm thử UI bắt buộc) QC mới không đóng được ticket lúc MCP đó chưa từng được gọi công cụ nào
+  trong lượt chạy (trừ khi thay đổi đang xét chỉ đổi docs) — một QC chỉ có
+  `static_review`/`unit`/`integration`/`api` không bị cổng này chặn. QC `blocked` vì MCP kiểm thử UI chưa kết
+  nối mà thay đổi thật ra không có giao diện: gắn thẻ `@pm` trên ticket QC, PM đổi phương án bằng
   `plan_qc_test` rồi mở lại bằng `retry_subtask`.
 - **Trợ lý**: chỉ định tuyến ticket `request` và tổng hợp lúc đóng, không viết code hay docs.
 
@@ -142,10 +145,11 @@ lý do từng mục), rồi gọi các skill đã chọn bằng công cụ `Skil
 **bắt buộc** của ticket mà không được dùng trong lượt chạy sẽ bị ghi vào report kèm bình luận cảnh báo.
 
 MCP kiểm thử UI (Playwright/Maestro) không còn là MCP mặc định của mọi ticket QC: server chỉ thêm nó vào
-`requiredMcps` khi phương án kiểm thử PM chọn (`testKinds`) có `ui_web`/`ui_mobile`. QC không đóng được ticket
-khi một MCP bắt buộc chưa từng được gọi công cụ nào; QC bị chặn vì MCP kiểm thử UI chưa kết nối trong khi thay
-đổi thực ra không có giao diện thì không tự bỏ qua — gắn thẻ `@pm` để PM đổi phương án bằng `plan_qc_test`
-(server tính lại `requiredMcps`) rồi mở lại bằng `retry_subtask`.
+`requiredMcps` khi phương án kiểm thử PM chọn (`testKinds`) có `ui_web`/`ui_mobile`. Chỉ khi đó QC mới không
+đóng được ticket lúc MCP bắt buộc chưa từng được gọi công cụ nào; QC bị chặn vì MCP kiểm thử UI chưa kết nối
+trong khi thay đổi thực ra không có giao diện thì không tự bỏ qua — gắn thẻ `@pm` để PM đổi phương án bằng
+`plan_qc_test` (server tính lại `requiredMcps`) rồi mở lại bằng `retry_subtask`. Cách PM chọn `testKinds` cho
+từng QC: xem [Chọn phương án kiểm thử cho QC](qc-test-planning.md).
 
 ## Ngân sách, thử lại và khi nào ticket bị chặn chờ chủ dự án
 
