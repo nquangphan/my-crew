@@ -188,6 +188,32 @@ describe.skipIf(!live)('live Agent SDK smoke', () => {
     expect(run.totalCostUsd).toBe(last.message.total_cost_usd);
     expect(run.capture.numTurns).toBe(results.reduce((sum, entry) => sum + entry.message.num_turns, 0));
   }, 240_000);
+
+  it('a background command that ends right after the reminder goes in still gets its notification turn', async () => {
+    const { run, cwd, results, taskSets, notifications } = await backgroundRun(
+      [
+        'Đây là bài kiểm tra tự động. Làm đúng các việc sau, theo thứ tự:',
+        '1. Gọi công cụ Bash với run_in_background: true và command đúng là: while [ ! -f go ]; do sleep 0.05; done; echo a > a.txt',
+        '2. Ngay sau đó kết thúc lượt, chỉ trả lời "đang chờ". Không kiểm tra lệnh, không tạo file go.',
+        '3. Khi được thông báo lệnh nền đã xong, chạy lệnh Bash: cat a.txt > seen.txt rồi trả lời "đã nhận".',
+        '4. Nếu nhận được tin nhắn nhắc từ daemon mà chưa có thông báo lệnh xong: không gọi công cụ nào, chỉ trả lời "vẫn đang chờ".',
+      ],
+      {
+        backgroundWaitMs: 6_000,
+        // The command ends as soon as the reminder goes into the session, before the reminder's turn starts.
+        onInput: (index, dir) => {
+          if (index === 2) writeFileSync(join(dir, 'go'), '');
+        },
+      },
+    );
+    console.info(
+      `[live] reminder crossing a notification: ${describeRun(run, results, taskSets, notifications)}`,
+    );
+    expect(run).toMatchObject({ isError: false, resultSubtype: 'success', aborted: false, reminded: true });
+    expect(readFileSync(join(cwd, 'seen.txt'), 'utf8').trim()).toBe('a');
+    expect(run.backgroundTasksLeft).toEqual([]);
+    expect(run.totalCostUsd).toBe(results.at(-1)?.message.total_cost_usd);
+  }, 240_000);
 });
 
 type ResultMessage = Extract<SDKMessage, { type: 'result' }>;
@@ -207,15 +233,39 @@ interface Notification {
 /**
  * One haiku run of the SDK runner in a temp dir with only Bash allowed, with every message the runner reads
  * recorded together with its arrival time. `done.txt` is the file the prompt's background command writes.
- * `goAfterFirstResultMs` creates the file `go` in the temp dir that long after the first result.
+ * `goAfterFirstResultMs` creates the file `go` in the temp dir that long after the first result. `onInput`
+ * sees each message of the session input (1 is the prompt) as the runtime reads it.
  */
-async function backgroundRun(prompt: string[], options: { goAfterFirstResultMs?: number } = {}) {
+async function backgroundRun(
+  prompt: string[],
+  options: {
+    goAfterFirstResultMs?: number;
+    backgroundWaitMs?: number;
+    onInput?: (index: number, cwd: string) => void;
+  } = {},
+) {
   const cwd = tempDir('crew-live-bg-');
   const marker = join(cwd, 'done.txt');
   const seen: Timed<SDKMessage>[] = [];
   let markerAtFirstResult: boolean | null = null;
   const tapped: typeof sdkQuery = (params) => {
-    const q = sdkQuery(params);
+    const onInput = options.onInput;
+    const input = params.prompt;
+    const q = sdkQuery(
+      onInput && typeof input !== 'string'
+        ? {
+            ...params,
+            prompt: (async function* () {
+              let index = 0;
+              for await (const message of input) {
+                index += 1;
+                onInput(index, cwd);
+                yield message;
+              }
+            })(),
+          }
+        : params,
+    );
     const tap: typeof q = new Proxy(q, {
       get(target, property) {
         if (property === Symbol.asyncIterator) return () => tap;
@@ -256,7 +306,7 @@ async function backgroundRun(prompt: string[], options: { goAfterFirstResultMs?:
     ticketTools: [],
     preToolUse: async () => ({}),
     control: new RunControl(),
-    backgroundWaitMs: 120_000,
+    backgroundWaitMs: options.backgroundWaitMs ?? 120_000,
   });
   const results = seen.filter((entry): entry is Timed<ResultMessage> => entry.message.type === 'result');
   const system = (subtype: string) =>

@@ -87,15 +87,29 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
    lượt thông báo). Một lượt chỉ có thể trả nợ khi nó *bắt đầu* lúc đã có nợ (`payable`, ghi ở cạnh chưa chạy →
    đang chạy của `turnStarted()`); khi lượt đó kết thúc bằng một `result` thật, nó trả tối đa một lượt nợ —
    `result` rỗng (`num_turns: 0`, runtime phát khi hai tác vụ nền xong cùng lúc rồi mới tới lượt mang thông báo
-   thật) không trả lượt nợ nào và không được tính là lượt trả lời lời nhắc. Hết tác vụ nền mà còn nợ (`owed >
-   0`) thì phiên không đóng ngay: nó chờ thêm một khoảng lắng (`settleMs`, tuỳ chọn
-   `SdkRunnerOptions.backgroundSettleMs` truyền xuống, mặc định `DEFAULT_SETTLE_MS` 10 giây) để runtime phát
-   lượt trả nợ; đóng `idle` ngay chỉ khi hết cả tác vụ lẫn nợ, còn nếu khoảng lắng trôi qua mà không có lượt
-   nào thì nợ còn lại bị xoá (`owed = 0`) — hết tác vụ thì đóng `idle` như cũ, còn nếu tác vụ mới xuất hiện
-   trong lúc lắng thì chuyển sang chờ đủ một trần như bình thường. Vì `owed` là cận trên, khi runtime gộp thông
-   báo của nhiều tác vụ vào một lượt, phiên có thể đóng muộn thêm một khoảng lắng sau lượt cuối thay vì đóng
-   ngay — đây là đánh đổi được chấp nhận, model thật đã xác nhận đúng điều này. Mọi đường đóng phiên — hết tác
-   vụ, `result` lỗi, tool yêu cầu kết thúc, hết trần nhắc thêm một lần,
+   thật) không trả lượt nợ nào và không được tính là lượt trả lời lời nhắc. **Khi tập tác vụ về rỗng hoàn toàn**
+   (`liveWork().length === 0`) mà còn nợ (`owed > 0`) thì phiên không đóng ngay: nó chờ thêm một khoảng lắng
+   ngắn (`settleMs`, tuỳ chọn `SdkRunnerOptions.backgroundSettleMs` truyền xuống, mặc định `DEFAULT_SETTLE_MS`
+   10 giây) để runtime phát lượt trả nợ; đóng `idle` ngay chỉ khi hết cả tác vụ lẫn nợ. Hết khoảng lắng đó mà
+   vẫn không có tác vụ nào quay lại thì nợ còn lại bị xoá (`owed = 0`) và phiên đóng `idle`; một tác vụ mới
+   xuất hiện trong lúc lắng cũng xoá nợ, nhưng phiên chỉ đóng `reminded` ngay nếu trước đó đã từng được nhắc
+   (`remindedOnce`) — chưa từng được nhắc thì phiên **không** đóng `reminded`, nó chuyển sang chờ đủ **một
+   trần đầy đủ** như bình thường (rồi mới nhắc như thường nếu hết trần đó mà vẫn còn tác vụ). Vì `owed` là cận
+   trên, khi runtime gộp thông báo của nhiều tác vụ vào một lượt, phiên có thể đóng muộn thêm một khoảng lắng
+   sau lượt cuối thay vì đóng ngay — đây là đánh đổi được chấp nhận, model thật đã xác nhận đúng điều này.
+
+   **Khi vẫn còn tác vụ khác sống** (`liveWork().length > 0`) sau khi đã nhắc — nhánh này chỉ tới được khi
+   `remindedOnce` đã `true` — quyết định khác hẳn và không dùng `owed`: một tác vụ rời tập tác vụ giữa câu trả
+   lời cuối của lượt đang chạy (không qua thông báo, ví dụ bị dừng), hoặc một tác vụ kết thúc sau khi lời nhắc
+   được gửi nhưng trước khi lượt trả lời lời nhắc bắt đầu (`reminderPending`), được ghi nhận bằng cờ
+   `workEnded` (chỉ một lần, không phải bộ đếm). Lượt kết thúc ngay sau đó được cho thêm đúng một khoảng lắng
+   ngắn (`DEFAULT_SETTLE_MS`, 10 giây) nếu `workEnded` đang bật; nếu không, phiên đóng `reminded` ngay, không
+   chờ gì thêm. Hết khoảng lắng đó mà tác vụ còn sống không có lượt thông báo tới, daemon dừng tác vụ đó rồi
+   đóng phiên luôn với lý do `reminded` (không chờ thêm một trần đầy đủ nữa — câu này chỉ đúng ở nhánh đã nhắc
+   này, nhánh chưa nhắc ở trên chờ đủ một trần thay vì đóng `reminded`); còn nếu không có tác vụ sống nào (đã
+   kết thúc hoặc bị dừng) thì đóng với lý do `idle`.
+
+   Mọi đường đóng phiên — hết tác vụ, `result` lỗi, tool yêu cầu kết thúc, hết trần nhắc thêm một lần,
    abort, hay khối `finally` khi tiến trình đi mất — đều gọi `Query.stopTask()` cho từng tác vụ còn sống trước
    khi đóng input (lỗi của `stopTask` hay không trả lời trong 5 giây không chặn việc đóng). Vì phiên chạy nhiều
    lượt trên cùng một tiến trình, `system/init` tới ở đầu **mỗi** lượt (runner chỉ nhận lượt đầu cho
@@ -297,12 +311,15 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   `RunControl.requestEnd()` (`ask_owner`/`handoff_docs`), abort, hay tùy chọn `workDone()` trả `true` đều kết
   thúc ngay và dừng tác vụ còn sống trước khi đóng; `AgentRunResult.backgroundTasksLeft` báo đúng tác vụ còn
   sống lúc đóng (rỗng khi kết thúc sạch) và `reminded` báo daemon đã nhắc hay chưa; một lượt thông báo bắt đầu
-  sau khi phiên đã đóng không chạy tiếp. Hai tác vụ xong cùng lúc như runtime 2.1.283 (`init`, rồi một `result`
-  rỗng `num_turns: 0`, rồi `init` của lượt thông báo thật, dùng `SdkRunnerOptions.backgroundSettleMs` để rút
-  ngắn khoảng lắng của test): `result` rỗng đó không đóng phiên, lượt thông báo vẫn chạy và chi phí/`numTurns`/
-  `durationMs` được gộp đúng cả lượt đó; một lượt thông báo riêng cho tác vụ thứ hai (khi runtime không gộp
-  chung một lượt) vẫn được chạy tiếp trước khi đóng; ngược lại, `result` rỗng mà không có lượt nào theo sau thì
-  phiên vẫn đóng sạch sau khi khoảng lắng trôi qua.
+  sau khi phiên đã đóng không chạy tiếp; một tác vụ kết thúc sau khi lời nhắc được gửi nhưng trước khi lượt
+  trả lời lời nhắc bắt đầu vẫn được cấp đúng lượt thông báo riêng (phiên còn mở qua lượt trả lời lời nhắc rồi
+  mới đóng sau lượt thông báo, lời nhắc chỉ vào input một lần, `reminded: true`, `backgroundTasksLeft: []`).
+  Hai tác vụ xong cùng lúc như runtime 2.1.283 (`init`, rồi một `result` rỗng `num_turns: 0`, rồi `init` của
+  lượt thông báo thật, dùng `SdkRunnerOptions.backgroundSettleMs` để rút ngắn khoảng lắng của test): `result`
+  rỗng đó không đóng phiên, lượt thông báo vẫn chạy và chi phí/`numTurns`/`durationMs` được gộp đúng cả lượt
+  đó; một lượt thông báo riêng cho tác vụ thứ hai (khi runtime không gộp chung một lượt) vẫn được chạy tiếp
+  trước khi đóng; ngược lại, `result` rỗng mà không có lượt nào theo sau thì phiên vẫn đóng sạch sau khi
+  khoảng lắng trôi qua.
 - `apps/daemon/test/background-session.test.ts`: máy trạng thái của `BackgroundSession` độc lập SDK, qua một
   `SessionPort` giả (`send`/`stopTask`/`close`) — tập tác vụ rỗng lúc khởi động và được thay toàn bộ mỗi
   `tasksChanged()`; chờ khi còn tác vụ, đóng khi tập về rỗng sau một lượt; không chờ sau `result` lỗi,
@@ -314,11 +331,18 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   lắng đó; tác vụ `ambient` không bao giờ được chờ nhưng vẫn bị dừng khi đóng; việc đóng vẫn xảy ra khi
   `stopTask` lỗi hay không trả lời; đóng chỉ chạy một lần (gọi lại `turnEnded()`/`shutdown()` sau đó không làm
   gì thêm); một `turnEnded()` đang đọc trạng thái run (`workDone()` chậm) không giữ `shutdown()` lại và không
-  làm phiên mở lại sau khi đã đóng. Mô hình lượt còn nợ (`EndedTurn`, `owed`): một lượt rỗng (`empty: true`,
-  hai tác vụ xong cùng lúc) không trả lượt nợ nào, và mỗi lượt thật chỉ trả tối đa một lượt nợ đã có lúc nó bắt
-  đầu; một lượt nợ không có lượt nào tới trả thì phiên vẫn đóng sạch sau khoảng lắng; lời nhắc tự nó là một
-  lượt nợ riêng, nên một tác vụ xong sau khi đã nhắc vẫn được cấp đúng lượt thông báo của nó; một lượt rỗng
-  không được tính là lượt trả lời lời nhắc (`reminded` vẫn chờ một lượt thật).
+  làm phiên mở lại sau khi đã đóng; một tác vụ kết thúc trong lúc lời nhắc đang chờ lượt trả lời của nó
+  (`reminderPending`) ghi nợ một lượt thông báo riêng: phiên còn mở qua lượt trả lời lời nhắc rồi mới đóng
+  `idle` sau lượt thông báo đó, kể cả khi `result` của lượt trả lời lời nhắc tới mà không có `turnStarted()`
+  trước; lượt thông báo đó không tới thì đóng `idle` sau đúng một khoảng lắng (`settleMs`), không nhắc lần hai
+  và không chờ thêm cả trần; khi sau lời nhắc một tác vụ xong còn tác vụ khác sống, phiên cũng chỉ chờ tối đa
+  khoảng lắng cho lượt còn nợ trước khi dừng tác vụ sống và đóng `reminded` — cả khi lượt thông báo đó tới và
+  khi không tới (đóng trong khoảng lắng, không chờ cả trần); tác vụ xong ngay trong lúc agent đang trả lời lượt
+  nhắc (trước khi có `result`) cũng được cấp khoảng lắng đó. Mô hình lượt còn nợ (`EndedTurn`, `owed`): một
+  lượt rỗng (`empty: true`, hai tác vụ xong cùng lúc) không trả lượt nợ nào, và mỗi lượt thật chỉ trả tối đa
+  một lượt nợ đã có lúc nó bắt đầu; một lượt nợ không có lượt nào tới trả thì phiên vẫn đóng sạch sau khoảng
+  lắng; lời nhắc tự nó là một lượt nợ riêng, nên một tác vụ xong sau khi đã nhắc vẫn được cấp đúng lượt thông
+  báo của nó; một lượt rỗng không được tính là lượt trả lời lời nhắc (`reminded` vẫn chờ một lượt thật).
 - `apps/daemon/test/guard-hook.test.ts`: từ chối ghi ngoài `cwd` và vào `.githooks` dù có file settings được
   cài đặt cho phép; lời gọi được phép không trả quyết định (để `dontAsk`/`allowedTools` vẫn áp dụng); đường
   dẫn được bảo vệ theo từng loại job (job `docs_update` được ghi `docs/` và Markdown gốc như `README.md`,
@@ -354,10 +378,13 @@ dừng chờ retry, chặn, lỗi, hủy) và dọn dẹp.
   phiên) và `capture.numTurns`/`capture.durationMs` (tổng theo từng `result`), `backgroundTasksLeft` rỗng và
   `reminded` là `false` sau một kết thúc sạch; một lệnh nền ngắn hơn (`sleep 3`) có thể đã kết thúc trước khi
   `result` đầu tiên tới (tuỳ tốc độ model viết câu trả lời) vẫn được cấp đúng lượt thông báo ở một lượt sau và
-  phiên vẫn kết thúc sạch. Hai lệnh nền cùng chờ một file `go` (`backgroundRun()` nhận thêm tuỳ chọn
+  phiên vẫn kết thúc sạch; một lệnh nền kết thúc ngay khi lời nhắc vào phiên (harness tạo file đánh dấu qua
+  `onInput` của `backgroundRun()` đúng lúc tin nhắn lời nhắc được runtime đọc, trước khi lượt trả lời lời nhắc
+  bắt đầu) vẫn được cấp đúng lượt thông báo riêng sau lượt trả lời lời nhắc, file đánh dấu được ghi đúng nội
+  dung và `reminded: true`. Hai lệnh nền cùng chờ một file `go` (`backgroundRun()` nhận thêm tuỳ chọn
   `goAfterFirstResultMs`, tạo file đó bằng đúng khoảng thời gian sau `result` đầu tiên để hai lệnh thoát cùng
-  lúc) đều được ghi vào `seen.txt`, phiên kết thúc sạch và `totalCostUsd`/`capture.numTurns` đúng, dù runtime có
-  phát `result` rỗng (`num_turns: 0`) hay không.
+  lúc) đều được ghi vào `seen.txt`, phiên kết thúc sạch và `totalCostUsd`/`capture.numTurns` đúng, dù runtime
+  có phát `result` rỗng (`num_turns: 0`) hay không.
 - `apps/daemon/test/run-trace.test.ts`: `buildRunTrace()` ẩn credential trong tin nhắn cuối và mục tiêu tool
   rồi mới cắt còn 1500 ký tự (không cắt lộ nửa chuỗi credential); giữ đúng 5 lời gọi tool cuối với đường dẫn
   tương đối; hiện rõ khi không có kết quả/tin nhắn/tool nào; `decideFailure()` (flow `agent-roles`) nối đúng

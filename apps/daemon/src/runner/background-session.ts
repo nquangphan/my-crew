@@ -47,7 +47,10 @@ export type CloseReason =
   | 'end_requested'
   /** The run's own work is finished (the ticket left in-progress). */
   | 'work_done'
-  /** The turn answering the reminder ended with background work still alive (or the reminder started no turn). */
+  /**
+   * The turn answering the reminder ended with background work still alive (or the reminder started no turn,
+   * or the turn still owed to work that ended did not come).
+   */
   | 'reminded'
   /** The run was aborted or torn down. */
   | 'shutdown';
@@ -56,7 +59,8 @@ export const DEFAULT_BACKGROUND_WAIT_MS = 30 * 60_000;
 /**
  * How long the session stays open for a turn the runtime still owes. The runtime starts that turn within tens
  * of milliseconds of the previous result, also for a task that ended while the agent was writing the last
- * answer of its turn (the live set is then already empty when the turn's result arrives).
+ * answer of its turn (the live set is then already empty when the turn's result arrives), and after the
+ * reminder's turn for a task that ended while the reminder was waiting for that turn.
  */
 export const DEFAULT_SETTLE_MS = 10_000;
 /** How long closing waits for the runtime to confirm the stops. */
@@ -109,13 +113,22 @@ export class BackgroundSession {
   /** A turn is in flight; the session starts with the turn of the run's prompt. */
   private running = true;
   /**
-   * Turns the runtime may still owe: one for each piece of work that ended, one for the reminder. An upper
-   * bound (one turn can carry several notifications, a stopped task gets none): what is left over is written
-   * off when a settle time passes without a turn.
+   * Turns the runtime may still owe because live work reached zero: one for each piece of work that ended,
+   * one for the reminder. An upper bound (one turn can carry several notifications, a stopped task gets none):
+   * what is left over is written off when a settle time passes without a turn.
    */
   private owed = 0;
   /** A turn was owed when the turn in flight started: only such a turn can be one of the owed ones. */
   private payable = false;
+  /**
+   * The runtime may still owe a turn to background work that ended while other work was still alive: during
+   * the turn in flight, or while the reminder was waiting for its own turn. Unlike `owed`, this is only
+   * consulted once live work is not yet empty, so one flag (not a count) is enough: after the reminder, at
+   * most one settle grace is given before the session gives up and closes `reminded`.
+   */
+  private workEnded = false;
+  /** The reminder was sent and no turn has started since. */
+  private reminderPending = false;
   private closing: Promise<void> | null = null;
   private signalClosing: () => void = () => {};
   private readonly whenClosing = new Promise<void>((resolve) => {
@@ -173,7 +186,12 @@ export class BackgroundSession {
       ambient: task.ambient === true,
     }));
     const work = this.liveWork();
-    this.owed += before.filter((task) => !work.some((live) => live.id === task.id)).length;
+    const endedCount = before.filter((task) => !work.some((live) => live.id === task.id)).length;
+    this.owed += endedCount;
+    // Work that ends during a turn in flight, or while the reminder waits for its own turn, is paid by the
+    // turn that ends that wait. Not while a plain `work` wait for other still-live tasks is going on: those
+    // are expected to end with their own notification turn later.
+    if (endedCount > 0 && (this.wait === null || this.reminderPending)) this.workEnded = true;
     if (this.wait === 'work' && work.length === 0) {
       // A task normally ends with a notification turn. One that leaves without it (it was stopped) must not
       // hold the session open until the ceiling.
@@ -188,6 +206,10 @@ export class BackgroundSession {
     this.running = true;
     this.payable = this.owed > 0;
     this.wait = null;
+    // The turn that ends a wait is the one owed to the work that ended meanwhile. When the reminder was
+    // waiting for a turn too, this turn is only one of the two the runtime owes: the other stays due.
+    if (!this.reminderPending) this.workEnded = false;
+    this.reminderPending = false;
     this.disarm();
   }
 
@@ -203,8 +225,10 @@ export class BackgroundSession {
     // What came to be owed during the turn is not paid by it, and a turn that ran nothing pays for nothing.
     if (this.payable && !turn.empty) this.owed -= 1;
     this.payable = false;
+    const workEnded = this.workEnded;
+    this.workEnded = false;
     // Reading the run's state may take a while (an API call): an abort meanwhile does not wait for it.
-    const decision = await Promise.race([this.afterTurn(turn), this.whenClosing.then(() => null)]);
+    const decision = await Promise.race([this.afterTurn(turn, workEnded), this.whenClosing.then(() => null)]);
     if (this.closed || decision === null) {
       await this.closing;
       return 'closed';
@@ -229,12 +253,13 @@ export class BackgroundSession {
     this.disarm();
   }
 
-  private async afterTurn(turn: EndedTurn): Promise<CloseReason | Wait> {
+  private async afterTurn(turn: EndedTurn, workEnded: boolean): Promise<CloseReason | Wait> {
     if (turn.isError) return 'turn_error';
     if (this.options.endRequested?.()) return 'end_requested';
     if (this.liveWork().length === 0) return this.owed > 0 ? 'settle' : 'idle';
-    // A turn that ran nothing did not answer the reminder.
-    if (this.remindedOnce && !turn.empty) return 'reminded';
+    // After the reminder, live work is never waited for again; a turn still owed to work that ended is given
+    // one more short settle window before the session gives up on the live work and closes.
+    if (this.remindedOnce) return workEnded ? 'settle' : 'reminded';
     try {
       if (this.options.workDone && (await this.options.workDone())) return 'work_done';
     } catch {
@@ -264,6 +289,11 @@ export class BackgroundSession {
       return;
     }
     if (this.wait === 'settle') {
+      if (this.remindedOnce) {
+        // The owed turn did not come, and the agent was already told the live work would be stopped.
+        void this.close('reminded');
+        return;
+      }
       // Work showed up again without a turn: it gets a full wait. No turn came, so none is owed any more.
       this.owed = 0;
       this.wait = 'work';
@@ -278,6 +308,7 @@ export class BackgroundSession {
     // The reminder starts a turn; the turn that answers it never waits again.
     this.remindedOnce = true;
     this.owed += 1;
+    this.reminderPending = true;
     this.options.port.send(reminderText(work, this.waitMs));
     this.arm(this.waitMs);
   }
