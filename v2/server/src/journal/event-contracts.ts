@@ -46,6 +46,12 @@ function exactKeys(data: Record<string, unknown>, keys: readonly string[]): bool
   return actual.length === keys.length && actual.every((key, index) => key === [...keys].sort()[index]);
 }
 
+function inputRevision(value: unknown): boolean {
+  return (
+    typeof value === 'string' && /^[1-9][0-9]{0,18}$/.test(value) && BigInt(value) <= 9223372036854775807n
+  );
+}
+
 export function validateEventInput(input: EventInput): void {
   if (
     !input ||
@@ -61,6 +67,26 @@ export function validateEventInput(input: EventInput): void {
   const data = input.data;
   let valid = false;
   switch (input.type) {
+    case 'assistant.message.created':
+      valid =
+        exactKeys(data, ['messageId', 'inputRevision']) &&
+        typeof data.messageId === 'string' &&
+        uuid.test(data.messageId) &&
+        inputRevision(data.inputRevision) &&
+        input.projectId === null &&
+        input.ticketId === null &&
+        input.audienceMachineId === null;
+      break;
+    case 'attachment.input.changed':
+      valid =
+        exactKeys(data, ['targetKind', 'targetId', 'inputRevision']) &&
+        typeof data.targetId === 'string' &&
+        uuid.test(data.targetId) &&
+        inputRevision(data.inputRevision) &&
+        input.audienceMachineId !== null &&
+        ((data.targetKind === 'ticket' && input.projectId !== null && input.ticketId === data.targetId) ||
+          (data.targetKind === 'message' && input.projectId === null && input.ticketId === null));
+      break;
     case 'attachment.changed':
       valid =
         exactKeys(data, ['attachmentId', 'state', 'extraction']) &&

@@ -32,6 +32,7 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
 | `server/src/journal/event-contracts.ts` | Whitelist event metadata |
 | `server/src/journal/events.ts` | Ghi và đọc event theo actor/scope |
 | `server/src/journal/routes.ts` | Endpoint đọc event và SSE |
+| `server/test/attachments-events.unit.test.ts` | Metadata inbox và input wake, scope/audience và revision bigint |
 | `server/test/journal.test.ts` | Kiểm thử cạnh tranh, rollback, scope và reconnect |
 | `server/test/journal-scope.test.ts` | Kiểm thử rebind commit giữa hai bước đọc scope/event |
 | `server/test/ticket-events.unit.test.ts` | Kiểm thử whitelist metadata ticket và chặn nội dung dư |
@@ -52,3 +53,5 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
 Phase04 model pool thêm `source.desired {revision}` và `source.applied {revision,reportId}`: revision dương, UUID report, project/ticket null và audience máy bắt buộc. `gateway.command.created` thêm literal `sync_models`; supersede phát acknowledged metadata một lần. Event không nhận provider endpoint, catalogue, probe/certificate evidence hoặc secret/envelope bytes. Mutation models reauthorize actual credential trong cùng transaction trước cache; secret owner response chỉ operation/status, ciphertext không ở generic journal response.
 
 Phase05 Task1 đăng ký `attachment.changed` với đúng `{attachmentId,state,extraction}`: UUID hợp lệ, state/extraction thuộc enum và không chấp nhận trường dư, bytes, path hay nội dung. Event chỉ owner-only với project/ticket/audience null cho draft chưa live link, hoặc project và ticket cùng có giá trị khi live link tồn tại; không gửi audience máy. Staging ghi event cùng ready CAS transaction, giữ original/intent khi transaction thất bại. `server/test/attachment-event.test.ts` kiểm metadata hợp lệ và các ca từ chối; flow `server-attachments` quản lý file test mới.
+
+Task05/2b bổ sung `assistant.message.created {messageId,inputRevision}` chỉ scope owner với project/ticket/audience null; revision là chuỗi bigint dương, UUID message hợp lệ. `attachment.input.changed {targetKind,targetId,inputRevision}` bắt buộc audience máy cụ thể: ticket phải khớp targetId và có project, message chưa route dùng project/ticket null. Không chấp nhận text, bytes, path, trường dư hay revision không canonical/vượt bigint. Event chỉ là metadata; caller vẫn phải xác minh quyền hiện hành của Assistant trước khi gửi và không tự tạo audience khi chưa có authority. `server/test/attachments-events.unit.test.ts` kiểm whitelist và scope; các validator ticket/execution/attachment đã nghiệm thu được chạy cùng.

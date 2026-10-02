@@ -56,6 +56,7 @@ flows:
       - server/src/journal/mutation.ts
       - server/migrations/002_journal.sql
     tests:
+      - server/test/attachments-events.unit.test.ts
       - server/test/journal-scope.test.ts
       - server/test/journal.test.ts
   server-identity:
