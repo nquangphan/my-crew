@@ -1,0 +1,21 @@
+{
+  "name": "@crew-v2/desktop",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=24.12"
+  },
+  "main": "dist/src/main/index.js",
+  "scripts": {
+    "start": "pnpm build && electron .",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "pnpm --dir ../gateway build && pnpm build && node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "@types/node": "26.6.3",
+    "electron": "44.5.1"
+  }
+}

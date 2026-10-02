@@ -7,6 +7,31 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 
 | File | Flows |
 |------|-------|
+| `desktop/package.json` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/pnpm-lock.yaml` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/src/main/client.ts` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/src/main/index.ts` | [desktop-shell](flows/desktop-shell.md) (điểm vào) |
+| `desktop/src/main/security.ts` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/src/preload/index.cjs` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/src/preload/index.d.cts` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/src/renderer/index.html` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/src/renderer/index.js` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/src/renderer/style.css` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/test/electron-lifecycle.test.ts` | [desktop-shell](flows/desktop-shell.md) (test) |
+| `desktop/test/shell.test.ts` | [desktop-shell](flows/desktop-shell.md) (test) |
+| `desktop/tsconfig.build.json` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `desktop/tsconfig.json` | [desktop-shell](flows/desktop-shell.md) (file) |
+| `gateway/package.json` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/pnpm-lock.yaml` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/host/gateway-host.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/host/main.ts` | [gateway-host](flows/gateway-host.md) (điểm vào) |
+| `gateway/src/host/status.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/ipc/server.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/test/host-lifecycle.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/support/host.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/support/ui-client.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/tsconfig.build.json` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/tsconfig.json` | [gateway-host](flows/gateway-host.md) (file) |
 | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
 | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
 | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |

@@ -26,7 +26,9 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g�
 <!-- crew-docs:flows:start -->
 | Flow | Id | Điểm vào |
 |------|----|----------|
+| [Giao diện cổng Crew v2 trên macOS](flows/desktop-shell.md) | `desktop-shell` | `desktop/src/main/index.ts` |
 | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
+| [Host cổng macOS Crew v2](flows/gateway-host.md) | `gateway-host` | `gateway/src/host/main.ts` |
 | [Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2](flows/server-docs-import.md) | `server-docs-import` | `server/src/docs/validator.ts` |
 | [Xác thực owner và gắn dự án với máy Crew v2](flows/server-identity.md) | `server-identity` | `server/src/auth/routes.ts`, `server/src/projects/routes.ts` |
 | [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |

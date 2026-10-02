@@ -5,6 +5,8 @@ source:
     - server/src/**
     - server/scripts/**
     - server/migrations/**
+    - gateway/src/**
+    - desktop/src/**
   exclude: []
 flows:
   domain-foundation:
@@ -110,5 +112,42 @@ flows:
       - server/test/support/tickets.ts
       - server/test/ticket-events.unit.test.ts
       - server/test/deploy.test.ts
+  gateway-host:
+    title: Host cổng macOS Crew v2
+    doc: docs/flows/gateway-host.md
+    entrypoints:
+      - gateway/src/host/main.ts
+    files:
+      - gateway/src/host/gateway-host.ts
+      - gateway/src/host/status.ts
+      - gateway/src/ipc/server.ts
+      - gateway/package.json
+      - gateway/pnpm-lock.yaml
+      - gateway/tsconfig.json
+      - gateway/tsconfig.build.json
+    tests:
+      - gateway/test/host-lifecycle.test.ts
+      - gateway/test/support/host.ts
+      - gateway/test/support/ui-client.ts
+  desktop-shell:
+    title: Giao diện cổng Crew v2 trên macOS
+    doc: docs/flows/desktop-shell.md
+    entrypoints:
+      - desktop/src/main/index.ts
+    files:
+      - desktop/src/main/client.ts
+      - desktop/src/main/security.ts
+      - desktop/src/preload/index.cjs
+      - desktop/src/preload/index.d.cts
+      - desktop/src/renderer/index.html
+      - desktop/src/renderer/index.js
+      - desktop/src/renderer/style.css
+      - desktop/package.json
+      - desktop/pnpm-lock.yaml
+      - desktop/tsconfig.json
+      - desktop/tsconfig.build.json
+    tests:
+      - desktop/test/electron-lifecycle.test.ts
+      - desktop/test/shell.test.ts
 shared: {}
 unassigned: []
