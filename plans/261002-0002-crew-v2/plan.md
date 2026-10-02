@@ -1,7 +1,7 @@
 # Crew v2 — Lộ trình triển khai
 
 **Spec đã duyệt:** [/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md](/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md).
-**Trạng thái cập nhật 2026-10-02:** phần 01 đã triển khai, review và merge main; phần 02 đang hoàn tất docs import/API integration, phần 03 đang triển khai journal/telemetry/resource registry. Kế hoạch 02–06 đã được review và duyệt; phần 07 chờ duyệt prototype, 08–09 chưa giao triển khai.
+**Trạng thái cập nhật 2026-10-02:** phần 01 đã triển khai, review và merge main; phần 02 đã xong task 1–6 và đang nghiệm thu API integration (task 7); phần 03 đã xong, review host/app shell và journal/telemetry/resource registry (task 1–2). Kế hoạch 02–06 đã được review và duyệt; phần 07 chờ duyệt prototype, kế hoạch 08 đang sửa theo review, kế hoạch 09 đang soạn. Phần 04–09 chưa có triển khai hay chứng nhận runtime thật.
 
 ## Cách chia việc
 
