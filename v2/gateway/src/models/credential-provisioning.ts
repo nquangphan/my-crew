@@ -12,6 +12,7 @@ import { AtomicRecords, canonicalJson, hash } from '../journal/atomic-records.ts
 import type { HttpOperationJournal } from '../journal/http-operations.ts';
 import type { SecretAck, SecretEnvelope, SourceConfig } from './contracts.ts';
 import type { CredentialBroker } from './credential-broker.ts';
+import { CurrentCredentialResolver } from './current-credential-resolver.ts';
 import type { SecurityBridge } from './security-bridge.ts';
 export class ServerReceiptClock {
   private readonly monotonic: () => number;
@@ -343,6 +344,21 @@ export class CredentialProvisioning {
         // Keep encrypted history for re-entry/replay; it cannot demote a different current stored secret.
         const current = config.apiProviders.find((p) => p.id === row.envelope?.providerId);
         if (current && current.credentialStatus !== 'stored') pending = true;
+      }
+    }
+    if (!pending) {
+      // Desired status cannot distinguish missing current A from irrelevant history A/current B.
+      // Reuse the authenticated sampled binding checks and verify actual local availability.
+      const resolver = new CurrentCredentialResolver(this.machineId, (path) => read(path), this.broker);
+      const signal = AbortSignal.timeout(30000);
+      try {
+        for (const provider of config.apiProviders) {
+          const current = await resolver.resolve(provider, config.revision, signal);
+          await current.assertCurrent();
+        }
+      } catch {
+        // No raw read/broker error, secret rewrite or historical queue deletion on failure.
+        pending = true;
       }
     }
     return { state: pending ? 'pending' : 'stored', nextCursor: batch.nextCursor };
