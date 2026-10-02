@@ -148,12 +148,17 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
+| `server/src/attachments/access.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/grants.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/jobs.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
 | `server/src/attachments/messages.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/receivers.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/references.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/routes.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/routing.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/snapshots.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/staging.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/storage.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/submissions.ts` | [server-attachments](flows/server-attachments.md) (file) |
@@ -218,10 +223,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
 | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-access.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-api.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test), [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-grants.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-messages.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-routing.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-snapshots.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-staging.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-storage.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-submissions.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
@@ -250,6 +259,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
 | `server/test/repair.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+| `server/test/support/attachment-access-authority.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/support/attachment-access-inbox.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/support/attachment-access-publication.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/support/attachment-access.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/support/attachments.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |

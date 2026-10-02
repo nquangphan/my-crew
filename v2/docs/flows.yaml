@@ -316,23 +316,36 @@ flows:
     doc: docs/flows/server-attachments.md
     entrypoints: []
     files:
+      - server/src/attachments/access.ts
       - server/src/attachments/config.ts
       - server/src/attachments/contracts.ts
+      - server/src/attachments/grants.ts
       - server/src/attachments/messages.ts
       - server/src/attachments/receivers.ts
+      - server/src/attachments/references.ts
+      - server/src/attachments/routes.ts
       - server/src/attachments/routing.ts
+      - server/src/attachments/snapshots.ts
       - server/src/attachments/staging.ts
       - server/src/attachments/storage.ts
       - server/src/attachments/submissions.ts
       - server/migrations/009_attachments.sql
     tests:
       - server/test/attachment-event.test.ts
+      - server/test/attachments-access.test.ts
+      - server/test/attachments-api.test.ts
       - server/test/attachments-events.unit.test.ts
+      - server/test/attachments-grants.test.ts
       - server/test/attachments-messages.test.ts
       - server/test/attachments-routing.test.ts
+      - server/test/attachments-snapshots.test.ts
       - server/test/attachments-staging.test.ts
       - server/test/attachments-storage.test.ts
       - server/test/attachments-submissions.test.ts
+      - server/test/support/attachment-access-authority.ts
+      - server/test/support/attachment-access-inbox.ts
+      - server/test/support/attachment-access-publication.ts
+      - server/test/support/attachment-access.ts
       - server/test/support/attachments.ts
   gateway-models:
     title: Inventory, credential broker và probe model trên gateway

@@ -3,7 +3,7 @@ import { constants } from 'node:fs';
 import { chmod, open } from 'node:fs/promises';
 import { join } from 'node:path';
 import { canonicalJson } from '../journal/canonical.ts';
-import type { Db } from '../platform/contracts.ts';
+import type { Db, Tx } from '../platform/contracts.ts';
 import type { AttachmentConfig } from './config.ts';
 import type { BlobStore, Derivative, Extraction } from './contracts.ts';
 import { noSymlinkComponents, readPrivateJson, syncDirectory, writePrivateJson } from './storage.ts';
@@ -23,12 +23,17 @@ export async function processExtraction(
 ): Promise<Extraction> {
   throw workerError('EXTRACTION_CONFIG_REQUIRED');
 }
+export type ExtractionPublication = <T>(
+  input: Readonly<{ original: Extraction['original']; extractionId: string; generation: string }>,
+  work: (tx: Tx) => Promise<T>,
+) => Promise<T>;
 type Options = {
   db: Db;
   runner: ExtractorRunner;
   store: BlobStore;
   config: AttachmentConfig;
   now: () => Date;
+  runPublication?: ExtractionPublication;
 };
 export function createExtractionJobs(options: Options): { process(id: string): Promise<Extraction> } {
   // Capture only trusted operator values. No request roots, ambient env or registry.
@@ -262,21 +267,28 @@ export function createExtractionJobs(options: Options): { process(id: string): P
         manifestSha256: createHash('sha256').update(canonicalJson(body)).digest('hex'),
       };
       const generation = reserved.generation;
-      await db.begin(async (tx) => {
-        const [current] = await tx`select * from attachment_extractions where id=${id} for update`;
-        if (
-          !current ||
-          String(current.generation) !== generation ||
-          current.status !== 'running' ||
-          current.worker_id !== workerId ||
-          current.config_sha256 !== config.policySha256 ||
-          current.original_sha256 !== extraction.original.sha256
-        )
-          throw workerError('STALE_EXTRACTION_GENERATION');
-        for (const derivative of derivatives)
-          await tx`insert into attachment_derivatives(id,extraction_id,attachment_id,blob_key,sha256,byte_length,mime,kind,unit_ids,verification) values(${derivative.id},${id},${derivative.original.attachmentId},${`derivatives/${derivative.original.attachmentId}/${id}/${derivative.id}`},${derivative.sha256},${derivative.byteLength},${derivative.mime},${derivative.kind},${tx.json(derivative.unitIds)},'verified')`;
-        await tx`update attachment_extractions set status=${extraction.status},manifest=${tx.json(JSON.parse(canonicalJson(extraction)))},manifest_sha256=${extraction.manifestSha256},completed_at=${now()},lease_until=null,error_code=null where id=${id} and generation=${generation}`;
-      });
+      // Captured trusted wrapper supplies journal/root/input serialization for
+      // claim-ready input composition. The standalone fallback remains a worker
+      // protocol/diagnostic port and does not certify snapshot-safe admission.
+      const publish = options.runPublication ?? (async (_input, work) => db.begin(work));
+      await publish(
+        Object.freeze({ original: Object.freeze({ ...reserved.original }), extractionId: id, generation }),
+        async (tx) => {
+          const [current] = await tx`select * from attachment_extractions where id=${id} for update`;
+          if (
+            !current ||
+            String(current.generation) !== generation ||
+            current.status !== 'running' ||
+            current.worker_id !== workerId ||
+            current.config_sha256 !== config.policySha256 ||
+            current.original_sha256 !== extraction.original.sha256
+          )
+            throw workerError('STALE_EXTRACTION_GENERATION');
+          for (const derivative of derivatives)
+            await tx`insert into attachment_derivatives(id,extraction_id,attachment_id,blob_key,sha256,byte_length,mime,kind,unit_ids,verification) values(${derivative.id},${id},${derivative.original.attachmentId},${`derivatives/${derivative.original.attachmentId}/${id}/${derivative.id}`},${derivative.sha256},${derivative.byteLength},${derivative.mime},${derivative.kind},${tx.json(derivative.unitIds)},'verified')`;
+          await tx`update attachment_extractions set status=${extraction.status},manifest=${tx.json(JSON.parse(canonicalJson(extraction)))},manifest_sha256=${extraction.manifestSha256},completed_at=${now()},lease_until=null,error_code=null where id=${id} and generation=${generation}`;
+        },
+      );
       publishingClosed = true;
       return extraction;
     } catch (error) {

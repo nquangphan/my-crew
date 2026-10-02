@@ -118,9 +118,11 @@ export function createRoutingServices(
       if (affectedIds.length)
         await tx`select target_id from attachment_input_revisions where target_kind='ticket' and target_id in ${tx(affectedIds)} order by target_id for update`;
       await authorizeTicketMutation(tx, actor, input.ticket);
+      // The initial route has no old root; message precedes input there too,
+      // matching fresh snapshot/decision/publication readers without deadlock.
+      const [message] = await tx`select * from attachment_messages where id=${input.messageId} for update`;
       const [revision] =
         await tx`select revision,route_revision from attachment_input_revisions where target_kind='message' and target_id=${input.messageId} for update`;
-      const [message] = await tx`select * from attachment_messages where id=${input.messageId} for update`;
       if (!message || !revision) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy tin nhắn');
       if (
         String(revision.revision) !== input.expectedInputRevision ||

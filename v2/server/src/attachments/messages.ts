@@ -4,6 +4,7 @@ import { appendEvent } from '../journal/events.ts';
 import type { Actor, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
 import type { AssistantMessage, MessageSubmission } from './contracts.ts';
+import { lockInputTarget } from './references.ts';
 import {
   authorizeSubmission,
   createSelectionServices,
@@ -178,15 +179,13 @@ export function createMessageServices(
       if (actor.kind === 'owner') ownerOnly(actor);
       else if (!decisionAuthority)
         throw new ApiError('INPUT_DECISION_NOT_CONFIGURED', 503, 'Chưa cấu hình quyền quyết định');
-      const [revision] =
-        await tx`select revision from attachment_input_revisions where target_kind='message' and target_id=${input.messageId} for update`;
+      // Current routed root precedes message/input locks, including direct
+      // service callers; publication uses the same root-to-input order.
+      const revision = await lockInputTarget(tx, { kind: 'message', messageId: input.messageId });
       const [message] =
         await tx`select input_revision,route_revision from attachment_messages where id=${input.messageId} for update`;
       if (!message) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy tin nhắn');
-      if (
-        String(message.input_revision) !== input.inputRevision ||
-        String(revision?.revision) !== input.inputRevision
-      )
+      if (String(message.input_revision) !== input.inputRevision || revision.revision !== input.inputRevision)
         throw new ApiError('INPUT_SNAPSHOT_STALE', 409, 'Input đã thay đổi');
       if (
         actor.kind === 'owner' &&
