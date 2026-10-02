@@ -25,8 +25,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/pnpm-lock.yaml` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/host/gateway-host.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/host/main.ts` | [gateway-host](flows/gateway-host.md) (điểm vào) |
+| `gateway/src/host/process-lock.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/host/status.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/ipc/server.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/test/host-failures.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/host-lifecycle.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/host.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/ui-client.ts` | [gateway-host](flows/gateway-host.md) (test) |

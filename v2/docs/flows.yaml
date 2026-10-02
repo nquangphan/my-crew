@@ -119,6 +119,7 @@ flows:
       - gateway/src/host/main.ts
     files:
       - gateway/src/host/gateway-host.ts
+      - gateway/src/host/process-lock.ts
       - gateway/src/host/status.ts
       - gateway/src/ipc/server.ts
       - gateway/package.json
@@ -126,6 +127,7 @@ flows:
       - gateway/tsconfig.json
       - gateway/tsconfig.build.json
     tests:
+      - gateway/test/host-failures.test.ts
       - gateway/test/host-lifecycle.test.ts
       - gateway/test/support/host.ts
       - gateway/test/support/ui-client.ts

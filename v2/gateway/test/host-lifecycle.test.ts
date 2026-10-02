@@ -86,7 +86,11 @@ test('host lifecycle: unauthenticated socket client cannot read status', async (
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   t.after(async () => {
-    host.kill('SIGTERM');
+    if (host.exitCode === null) {
+      const exited = new Promise((resolve) => host.once('exit', resolve));
+      host.kill('SIGTERM');
+      await exited;
+    }
     await rm(root, { recursive: true, force: true });
   });
   const socket = join(root, 'host.sock');
