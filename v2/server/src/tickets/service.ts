@@ -129,7 +129,6 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
   let rootId: Id = id;
   let workflowPin = input.workflowPin;
   let criteria = input.criteria;
-  let rootOwnerDeploy = false;
   if (input.level === 'request') {
     if (input.parentId !== null) throw new ApiError('TICKET_HIERARCHY', 400, 'Yêu cầu không có ticket cha');
     if (input.kind === 'deploy' && actor.kind !== 'owner')
@@ -151,8 +150,6 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
       parentRow.status === 'cancelled'
     )
       throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
-    rootOwnerDeploy =
-      rootRow.level === 'request' && rootRow.kind === 'deploy' && rootRow.created_actor_kind === 'owner';
     const requiredLevel = input.level === 'step' ? 'request' : 'step';
     if (parentRow.level !== requiredLevel)
       throw new ApiError('TICKET_HIERARCHY', 400, 'Chỉ hỗ trợ yêu cầu → bước → công việc');
@@ -178,7 +175,7 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
       )
         throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Duyệt deploy không khớp hành động');
       deployApprovalDecisionId = input.deployApprovalDecisionId;
-    } else if (actor.kind === 'machine' && !rootOwnerDeploy) {
+    } else if (actor.kind === 'machine') {
       throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Cần chủ dự án duyệt deploy');
     }
   }

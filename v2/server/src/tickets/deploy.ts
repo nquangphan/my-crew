@@ -33,11 +33,10 @@ export async function verifyDeployApprovalForCandidate(
 }
 
 export async function readDeployAuthorization(tx: Tx, ticketId: Id): Promise<DeployAuthorization | null> {
-  const [row] = await tx`select t.id,t.kind,t.root_id,t.deploy_definition_hash,t.deploy_approval_decision_id,
-      r.kind as root_kind,r.level as root_level,r.created_actor_kind as root_actor_kind
-    from tickets t join tickets r on r.id=t.root_id where t.id=${ticketId}`;
+  const [row] = await tx`select id,kind,level,root_id,created_actor_kind,
+      deploy_definition_hash,deploy_approval_decision_id from tickets where id=${ticketId}`;
   if (row?.kind !== 'deploy') return null;
-  if (row.root_level === 'request' && row.root_kind === 'deploy' && row.root_actor_kind === 'owner')
+  if (row.level === 'request' && row.id === row.root_id && row.created_actor_kind === 'owner')
     return 'owner_deploy_request';
   if (row.deploy_approval_decision_id) {
     const [approval] = await tx`select id from decisions where id=${row.deploy_approval_decision_id}

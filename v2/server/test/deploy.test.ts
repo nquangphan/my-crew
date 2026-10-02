@@ -39,7 +39,7 @@ test('machine cannot create deploy request or unapproved deploy descendant', asy
     );
   }));
 
-test('owner-created deploy request authorizes only its own deploy lineage', async () =>
+test('owner-created deploy request authorizes only itself; machine child needs exact action approval', async () =>
   withDatabase(async (db) => {
     const f = await ticketFixture(db);
     const machineId = randomUUID();
@@ -48,14 +48,68 @@ test('owner-created deploy request authorizes only its own deploy lineage', asyn
     const root = await f.mutation('owner-deploy-root', (tx) =>
       f.services.createTicket(tx, inputTicket(f.project.id, 'request', null, { kind: 'deploy' }), owner),
     );
-    const child = await f.mutation('machine-deploy-step', (tx) =>
-      f.services.createTicket(tx, inputTicket(f.project.id, 'step', root.id, { kind: 'deploy' }), {
-        kind: 'machine',
-        id: machineId,
-      }),
+    const staging = inputTicket(f.project.id, 'step', root.id, {
+      kind: 'deploy',
+      title: 'Triển khai staging',
+    });
+    const machine = { kind: 'machine' as const, id: machineId };
+    assert.equal(await db.begin((tx) => readDeployAuthorization(tx, root.id)), 'owner_deploy_request');
+    await assert.rejects(
+      () => f.mutation('unapproved-owner-root-child', (tx) => f.services.createTicket(tx, staging, machine)),
+      { code: 'DEPLOY_OWNER_INTENT_REQUIRED' },
     );
-    const permit = await db.begin((tx) => readDeployAuthorization(tx, child.id));
-    assert.equal(permit, 'owner_deploy_request');
+    const approvalId = await f.mutation('approve-staging-under-owner-root', (tx) =>
+      f.services.recordDecision(
+        tx,
+        root.id,
+        {
+          kind: 'approval',
+          content: 'Duyệt staging',
+          rationale: 'Đúng môi trường đã chọn',
+          sources: [],
+          scope: {
+            action: 'deploy',
+            rootTicketId: root.id,
+            ticketDefinitionHash: deployTicketFingerprint(staging, root.id),
+          },
+        },
+        owner,
+      ),
+    );
+    await assert.rejects(
+      () =>
+        f.mutation('changed-target-under-owner-root', (tx) =>
+          f.services.createTicket(
+            tx,
+            { ...staging, title: 'Triển khai production', deployApprovalDecisionId: approvalId },
+            machine,
+          ),
+        ),
+      { code: 'DEPLOY_OWNER_INTENT_REQUIRED' },
+    );
+    await assert.rejects(
+      () =>
+        f.mutation('changed-body-under-owner-root', (tx) =>
+          f.services.createTicket(
+            tx,
+            { ...staging, inputs: { target: 'production' }, deployApprovalDecisionId: approvalId },
+            machine,
+          ),
+        ),
+      { code: 'DEPLOY_OWNER_INTENT_REQUIRED' },
+    );
+    const child = await f.mutation('approved-staging-under-owner-root', (tx) =>
+      f.services.createTicket(tx, { ...staging, deployApprovalDecisionId: approvalId }, machine),
+    );
+    assert.equal(await db.begin((tx) => readDeployAuthorization(tx, child.id)), 'owner_approval');
+    const ownerChild = await f.mutation('owner-child-under-owner-root', (tx) =>
+      f.services.createTicket(
+        tx,
+        inputTicket(f.project.id, 'step', root.id, { kind: 'deploy', title: 'Triển khai khác' }),
+        owner,
+      ),
+    );
+    assert.equal(await db.begin((tx) => readDeployAuthorization(tx, ownerChild.id)), null);
     assert.equal(await db.begin((tx) => readDeployAuthorization(tx, f.request.id)), null);
   }));
 
