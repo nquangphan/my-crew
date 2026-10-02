@@ -6,7 +6,7 @@
 **Architecture:** Gateway tạo candidate commit trước kiểm chứng trên managed target được owner chọn; server011 giữ authorization/evidence/head authority. Git ref CAS + journal phục hồi qua DB, factual merge được ghi trước006 sync; snapshot006 giữ nguyên provenance,011 attestation/reader phân biệt merged docs với ticket-scoped docs-only.
 **Tech Stack:** Node ≥24.12, TypeScript 7.0.2, pnpm 10.32.1, PostgreSQL 18.6/Fastify của02, Git CLI dùng argv/stdin; node:test. Không dependency runtime v1 hoặc custom role prompt.
 **Spec:** `docs/superpowers/specs/2026-10-01-crew-v2-design.md` §6–9,12; roadmap `plan.md`; reviewed02–06; research `plans/reports/research-261002-crew-v2-integration.md`.
-**Status:** phase08-r2 đã qua independent scoped re-review: F1–F4 closed, spec/quality READY YES ở mức kế hoạch (reviewed body SHA2565d486a5c3e975edec99049608809dd85c635c3567472c1667682b22e50aae870). Actual HEAD `832c9a3d015fd750a489f49ff48db36a1501ae62`,005 reviewed `9dca04e`,006 reviewed checksum `8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae`.06-r3 SHA256 `547ce65c865dffd9fec9a7c71f0c38735566d314c007cb74a8f217f5f19795aa`; native descendants chưa chứng minh vẫn UNKNOWN.
+**Status:** phase08-r2 đã qua independent scoped re-review: F1–F4 closed, spec/quality READY YES ở mức kế hoạch (reviewed body SHA2565d486a5c3e975edec99049608809dd85c635c3567472c1667682b22e50aae870). Actual HEAD `832c9a3d015fd750a489f49ff48db36a1501ae62`,005 reviewed `9dca04e`,006 reviewed checksum `8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae`.06-r3 SHA256 `547ce65c865dffd9fec9a7c71f0c38735566d314c007cb74a8f217f5f19795aa`; native descendants chưa chứng minh vẫn UNKNOWN. Approved final08 SHA `54452166e7acab5d139f86b7f4d302d257a5f07c9f002a0bcff12645576a8eec` là lịch sử; sửa hẹp EffectId cùng09 N1 đã qua joint scoped review: N1 CLOSED, spec/quality READY YES; reviewed correction SHA `1aa930e91b11c43d784eb89ffbf9a35d10a0f53e99d0f28a45c33eac1a7beb08`, không mở lại F1–F4.
 
 ## Global Constraints
 
@@ -54,14 +54,14 @@ T1 fixture owns real HTTP server/private DB; T2 fixture owns bare repo + disposa
 
 ## Exact typed ports, canonical identities và trust
 
-T1 exports following types from server contracts; gateway contracts validates matching versioned JSON with contract tests, never imports server runtime. `Id=string(UUID)`, `Sha256=string(hex64)`, `GitOid=string(hex40|hex64)` validated per repo object format; `Tx,Actor,ServerOptions,Ticket,DocsCompletionReader,DocsFile` import exact actual02 exports. Type aliases are transport constraints, not capabilities.
+T1 exports following types from server contracts; gateway contracts validates matching versioned JSON with contract tests, never imports server runtime. `Id=string(UUID)`, `Sha256=string(hex64)`, `EffectId=Sha256` exact04 lowercase hex64 canonical logical-effect digest, `GitOid=string(hex40|hex64)` validated per repo object format; `Tx,Actor,ServerOptions,Ticket,DocsCompletionReader,DocsFile` import exact actual02 exports. Type aliases are transport constraints, not capabilities; operation/run/step/ticket/attempt/candidate/permit/receipt IDs stay UUID, effect parsers accept only lowercase hex64 without coercion to UUID.
 
 ```ts
 type Scope={projectId:Id;ticketId:Id;runId:Id;stepId:Id;attemptId:Id;fence:string;
   processInstanceId:Id;machineId:Id;bindingRevision:number;inputSha256:Sha256};
 type TargetPin={registrationId:Id;generation:string;bindingRevision:number};
 type TargetSetupScope={projectId:Id;machineId:Id;bindingRevision:number;requestId:Id};
-type Candidate={id:Id;scope:Scope;target:TargetPin;effectId:Id;wave:number;targetRef:string;sourceRef:string;targetOid:GitOid;
+type Candidate={id:Id;scope:Scope;target:TargetPin;effectId:EffectId;wave:number;targetRef:string;sourceRef:string;targetOid:GitOid;
   sourceOid:GitOid;mergeOid:GitOid;treeOid:GitOid;parents:GitOid[];sourceManifestSha256:Sha256;
   diffSha256:Sha256;docsSha256:Sha256;policySha256:Sha256;workflowSha256:Sha256;sha256:Sha256};
 type SourceEntry={path:string;mode:'100644'|'100755';blobOid:GitOid;size:number;sha256:Sha256};
@@ -80,9 +80,9 @@ type Observation={version:1;id:Id;challengeId:Id;nonce:string;scope:Scope;observ
   {kind:'source';payload:SourceProof}|{kind:'check';payload:CheckProof}|{kind:'review';payload:ReviewProof}|
   {kind:'merge';payload:MergeReceipt}|{kind:'target';payload:CurrentTargetProof}|{kind:'artifact';payload:ArtifactProof}|
   {kind:'docs_snapshot';payload:DocsOnlyProof}|{kind:'docs_review';payload:DocsOnlyReview});
-type MergePermit={id:Id;candidateId:Id;candidateSha256:Sha256;scope:Scope;effectId:Id;
+type MergePermit={id:Id;candidateId:Id;candidateSha256:Sha256;scope:Scope;effectId:EffectId;
   receiptSetSha256:Sha256;generation:string;expiresAt:string};
-type MergeReceipt={permitId:Id;candidateId:Id;effectId:Id;oldOid:GitOid;newOid:GitOid;
+type MergeReceipt={permitId:Id;candidateId:Id;effectId:EffectId;oldOid:GitOid;newOid:GitOid;
   treeOid:GitOid;parents:GitOid[];targetRef:string;receiptRef:string;journalSha256:Sha256};
 type MergedDocsAttestation={kind:'merged';id:Id;projectId:Id;target:TargetPin;snapshotId:Id;attemptId:Id;mergedCommit:GitOid;
   inputSha256:Sha256;sourceTreeSha256:Sha256;sourceManifestSha256:Sha256;
@@ -102,8 +102,8 @@ interface IntegrationAuthority {
   issue(tx:Tx,actor:Actor,candidateId:Id):Promise<MergePermit>;
   acceptMerge(tx:Tx,actor:Actor,observation:Observation):Promise<Id>;
 }
-interface CandidateBuilder {prepare(scope:Scope,input:{effectId:Id;targetRef:string;sourceRef:string;sourceOid:GitOid}):Promise<Candidate>;}
-interface IntegrationGit {apply(permit:MergePermit):Promise<MergeReceipt>;reconcile(effectId:Id):Promise<MergeReceipt|null>;}
+interface CandidateBuilder {prepare(scope:Scope,input:{effectId:EffectId;targetRef:string;sourceRef:string;sourceOid:GitOid}):Promise<Candidate>;}
+interface IntegrationGit {apply(permit:MergePermit):Promise<MergeReceipt>;reconcile(effectId:EffectId):Promise<MergeReceipt|null>;}
 type DocsResultState={kind:'docs_only';ticketId:Id;snapshotId:Id;sourceCommit:GitOid|null;expectedCommit:GitOid|null;
   storedAuditState:'unverified';verification:'unverified'|'verified';state:'current'|'stale'|'unverified';attestationId:Id|null};
 interface TrustedDocsReader {state(tx:Tx,projectId:Id,snapshotId:Id):Promise<DocsState>;
@@ -120,7 +120,7 @@ Candidate digest hashes canonical fields except id/sha256; policy digest include
 
 ## Persistence011 và wire
 
-All IDs/FKs bind project/ticket/attempt with composite scope checks; append-only evidence rows reject UPDATE/DELETE. T1 owns complete migration, every later table consumer present before freeze.
+All IDs/FKs bind project/ticket/attempt with composite scope checks; append-only evidence rows reject UPDATE/DELETE. Every011 effect_id/effect field in candidate/permit/merge receipt/docs job and canonical JSON is EffectId stored text CHECK `^[0-9a-f]{64}$`, never UUID; ordinary ID/FK columns stay UUID. T1 owns complete migration, every later table consumer present before freeze. This is plan typing only; do not edit frozen SQL001–011.
 
 | Table | Columns/constraints in addition to id/created_at |
 |---|---|
@@ -248,9 +248,10 @@ await assert.rejects(()=>gates.evaluate(candidateWithMissingRequiredCommand),/CH
 
 ## T4 — Fenced local merge và crash reconciliation
 
-**Interfaces:** `createIntegrationGit({git,journal,resources,effects,http}):IntegrationGit`; authority issue/acceptMerge and F1 acceptVerifiedMergeFact above. Local011 journal keyed `(projectId,effectId)` persists candidate/permit/commit OID/apply state/receipt and fsyncs before external effect;04 logical effect ID is stable through fallback.
+**Interfaces:** `createIntegrationGit({git,journal,resources,effects,http}):IntegrationGit`; authority issue/acceptMerge and F1 acceptVerifiedMergeFact above. Local011 journal keyed `(projectId,effectId)` persists candidate/permit/commit OID/apply state/receipt and fsyncs before external effect;04 logical effect ID is stable through fallback. Journal keys, effect locks and `refs/crew/integration/<effectId>` use the exact lowercase hex64 digest, never UUID parsing/truncation/rehashing; target lock semantics unchanged. Server transactionally reads010 assistant_operation_ids by effect_id, matches id=stepOperationId/run/step/action/target/precondition and recomputes unchanged04 canonical digest, checks scope via workflow_steps/assistant_dispatches; local04 EffectLedger owns execution/reconcile, is not a SQL ledger.
 - [ ] RED F1 actual HTTP with tickets.merged_commit initially null: trusted merge result transaction writes fact+verified evidence+same head projections+one job while status/guard/intent unchanged; failing last job insert rolls whole Tx back, retry after restart writes once. Cancel/pause/retry, historic/superseded wave and cached response cannot reset intent or overwrite current fact.
 - [ ] RED target/source/policy advanced after permit, concurrent two permits, same effect other runtime, cancel before apply, lost apply response, wrong machine/stale fence. Crash immediately before/after commit-object creation, before/after target ref, before local/server receipt, before result response; restart real host/API/pool and inspect Git/rows.
+- [ ] RED EffectId conformance: actual04 canonical derive + actual010 operation producer mapping→real HTTP candidate/permit/apply/signed receipt→restart/reconcile preserves the same hex64 in011, journal and receipt ref. UUID-looking effect, changed digest/action/target/precondition or foreign run/ticket mapping deny before effect; no synthetic UUID fixture or parser bypass. Fact writer/reader/onboarding/head tests and authority stay unchanged.
 ```ts
 await fixture.crashAt('after-ref-update'); await fixture.restartHostAndApi();
 await fixture.resumeEffect(effectId);

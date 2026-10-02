@@ -41,3 +41,7 @@ Các tài liệu official đã mở trực tiếp ở lượt planning đầu; k
 ## Kiểm chứng lượt planning
 
 Chỉ static contract/coverage/placeholder/format/hash/diff checks; không application tests/migration/model/live calls/source edits. Exact before snapshots và unified diff cùng fix-report trong `execution-phase02/phase-08-plan-fix*`; self-review ban đầu giữ hash cũ đúng lịch sử.
+
+## Sửa hẹp EffectId cùng Phase09 N1, round2
+
+Đối chiếu04 `phase-04-runtime-models.md:162,168`: logical effect là SHA-256 canonical(runId,stepOperationId,actionKind,targetIdentity,preconditionSha256), khác operation UUID.010 `phase-06-assistant-workflows.md:136` có assistant_operation_ids mapping.08 nay dùng EffectId=Sha256 cho Candidate/MergePermit/MergeReceipt/ports/parser/011 effect text và exact journal-lock/ref key; server kiểm mapping trong Tx, local04 ledger vẫn execution/reconcile. Thêm actual04-derived hex64 qua actual010 mapping và HTTP positive/negative regression. Không đổi04 hashing, SQL001–011, public005/FinalEvidencePort hoặc F1–F4; approved08 SHA `54452166e7acab5d139f86b7f4d302d257a5f07c9f002a0bcff12645576a8eec` giữ làm before lịch sử, correction này đã qua joint scoped review: N1 CLOSED, spec/quality READY YES ở mức kế hoạch. Không có implementation PASS mới.
