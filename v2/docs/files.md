@@ -36,6 +36,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
 | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
 | `server/migrations/004_tickets.sql` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/migrations/005_execution.sql` | [server-execution](flows/server-execution.md) (file) |
 | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
@@ -51,6 +52,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/docs/links.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
 | `server/src/docs/manifest.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
 | `server/src/docs/validator.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
+| `server/src/execution/attempts.ts` | [server-execution](flows/server-execution.md) (file) |
+| `server/src/execution/commands.ts` | [server-execution](flows/server-execution.md) (file) |
+| `server/src/execution/contracts.ts` | [server-execution](flows/server-execution.md) (file) |
+| `server/src/execution/reconcile.ts` | [server-execution](flows/server-execution.md) (file) |
+| `server/src/execution/routes.ts` | [server-execution](flows/server-execution.md) (điểm vào) |
 | `server/src/journal/canonical.ts` | [server-journal](flows/server-journal.md) (file) |
 | `server/src/journal/event-contracts.ts` | [server-journal](flows/server-journal.md) (file) |
 | `server/src/journal/events.ts` | [server-journal](flows/server-journal.md) (file) |
@@ -72,11 +78,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
 | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/test/attempts.test.ts` | [server-execution](flows/server-execution.md) (test) |
 | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
+| `server/test/commands.test.ts` | [server-execution](flows/server-execution.md) (test) |
 | `server/test/completion.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/dependencies.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/deploy.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/docs-validator.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+| `server/test/execution-events.unit.test.ts` | [server-execution](flows/server-execution.md) (test) |
 | `server/test/fixtures/legacy-docs/crlf-unicode.md` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
@@ -85,6 +94,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/repair.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+| `server/test/support/execution.ts` | [server-execution](flows/server-execution.md) (test) |
 | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
 | `server/test/support/tickets.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/ticket-events.unit.test.ts` | [server-tickets](flows/server-tickets.md) (test) |

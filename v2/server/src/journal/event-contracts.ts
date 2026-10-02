@@ -134,6 +134,72 @@ export function validateEventInput(input: EventInput): void {
         input.projectId !== null &&
         input.ticketId !== null;
       break;
+    case 'command.created':
+      valid =
+        exactKeys(data, ['commandId', 'type']) &&
+        typeof data.commandId === 'string' &&
+        uuid.test(data.commandId) &&
+        ['start', 'pause', 'cancel', 'resume', 'reconcile'].includes(String(data.type)) &&
+        input.projectId !== null &&
+        input.ticketId !== null &&
+        input.audienceMachineId !== null;
+      break;
+    case 'command.acknowledged':
+      valid =
+        exactKeys(data, ['commandId', 'phase']) &&
+        typeof data.commandId === 'string' &&
+        uuid.test(data.commandId) &&
+        ['received', 'completed'].includes(String(data.phase)) &&
+        input.projectId !== null &&
+        input.ticketId !== null &&
+        input.audienceMachineId !== null;
+      break;
+    case 'attempt.claimed':
+      valid =
+        exactKeys(data, ['attemptId', 'commandId', 'fence']) &&
+        typeof data.attemptId === 'string' &&
+        uuid.test(data.attemptId) &&
+        typeof data.commandId === 'string' &&
+        uuid.test(data.commandId) &&
+        typeof data.fence === 'string' &&
+        /^[1-9][0-9]*$/.test(data.fence) &&
+        input.projectId !== null &&
+        input.ticketId !== null &&
+        input.audienceMachineId !== null;
+      break;
+    case 'attempt.checkpoint':
+      valid =
+        exactKeys(data, ['attemptId', 'sequence']) &&
+        typeof data.attemptId === 'string' &&
+        uuid.test(data.attemptId) &&
+        typeof data.sequence === 'string' &&
+        /^(0|[1-9][0-9]*)$/.test(data.sequence) &&
+        input.projectId !== null &&
+        input.ticketId !== null &&
+        input.audienceMachineId !== null;
+      break;
+    case 'attempt.stopped':
+      valid =
+        exactKeys(data, ['attemptId', 'reason']) &&
+        typeof data.attemptId === 'string' &&
+        uuid.test(data.attemptId) &&
+        ['pause', 'cancel', 'exit'].includes(String(data.reason)) &&
+        input.projectId !== null &&
+        input.ticketId !== null &&
+        input.audienceMachineId !== null;
+      break;
+    case 'attempt.finalized':
+      valid =
+        exactKeys(data, ['attemptId', 'signal']) &&
+        typeof data.attemptId === 'string' &&
+        uuid.test(data.attemptId) &&
+        ['passed', 'reconciled_stopped', 'wait_owner', 'pause_confirmed', 'cancel_confirmed'].includes(
+          String(data.signal),
+        ) &&
+        input.projectId !== null &&
+        input.ticketId !== null &&
+        input.audienceMachineId !== null;
+      break;
   }
   if (!valid) throw new ApiError('EVENT_INVALID', 422, 'Dữ liệu sự kiện không hợp lệ');
 }

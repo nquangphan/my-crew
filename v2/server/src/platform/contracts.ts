@@ -20,7 +20,13 @@ export type Event = {
   data: Record<string, unknown>;
 };
 export type EventInput = Omit<Event, 'cursor' | 'occurredAt'>;
-export type MutationContext = { actor: Actor; route: string; key: string; body: unknown };
+export type MutationContext = {
+  actor: Actor;
+  route: string;
+  key: string;
+  body: unknown;
+  readonly authorize?: (tx: Tx) => Promise<void>;
+};
 export type DispatchPermit = {
   commandId: Id;
   ticketId: Id;

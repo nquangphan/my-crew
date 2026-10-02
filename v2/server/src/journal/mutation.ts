@@ -29,6 +29,8 @@ export function createMutator(db: Db, codec: ResponseCodec = plainCodec): Mutato
     const scope = canonicalJson([context.actor.kind, context.actor.id, context.route, context.key]);
     return db.begin(async (tx) => {
       await tx`select pg_advisory_xact_lock(hashtextextended(${scope}, 0))`;
+      await tx`select value from event_cursor where singleton = true for update`;
+      await context.authorize?.(tx);
       const [existing] =
         await tx`select body_hash, status, response from idempotency where actor_kind = ${context.actor.kind} and actor_id = ${context.actor.id} and route = ${context.route} and key = ${context.key}`;
       if (existing) {
@@ -36,7 +38,6 @@ export function createMutator(db: Db, codec: ResponseCodec = plainCodec): Mutato
           throw new ApiError('IDEMPOTENCY_CONFLICT', 409, 'Khóa gửi lại có nội dung khác');
         return codec.decode<T>(context, Number(existing.status), existing.response);
       }
-      await tx`select value from event_cursor where singleton = true for update`;
       const result = await work(tx);
       const response = codec.encode(context, result);
       let safeResponse: postgres.JSONValue;

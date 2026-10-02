@@ -45,7 +45,6 @@ export async function recordRepairResult(
     return ticket;
   }
   let repairCycles = ticket.repairCycles;
-  const nextStatus = ticket.status;
   let waitReason = ticket.waitReason;
   let limitCycleId: Id | null = null;
   if (!input.passed && input.classification === 'repair_review') {
@@ -95,7 +94,7 @@ export async function recordRepairResult(
     await tx`insert into repair_links(check_step_id,fix_ticket_id,cycle_id)
       values(${ticket.id},${fix.id},${input.cycleId})`;
   }
-  const [updated] = await tx`update tickets set repair_cycles=${repairCycles},status=${nextStatus},
+  const [updated] = await tx`update tickets set repair_cycles=${repairCycles},
     wait_reason=${waitReason},revision=revision+1,
     repair_limit_cycle_id=coalesce(${limitCycleId}::uuid,repair_limit_cycle_id),
     repair_limit_at=case when ${limitCycleId}::uuid is not null then clock_timestamp() else repair_limit_at end,
