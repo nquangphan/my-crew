@@ -139,3 +139,7 @@ repeated-TERM/completed helper và fork escaped process vẫn giữ ranh giới 
 cho actual integration imports; strict và library checking vẫn bật, build config chỉ compile gateway src.
 
 GatewaySync gọi readonly `WorkflowRegistry.verifySource` trước báo source current, kể cả mọi projection null; healthy cache không fetch lại archive, source bị sửa báo error. Prefix8 coexistence test để sync_models queued/result null trong khi workflow cursor tiến và revision mới vẫn applied.
+
+Task6 bổ sung script `pnpm --dir v2/gateway isolation:probe -- --runtime claude|codex --no-model` gọi fixture cách ly có chọn runtime và kiểm API inventory. Không gửi prompt/turn/auth hay gọi model. Kết quả test/CLI không là chứng nhận native Read/Skill/MCP/child; các bề mặt chưa đo vẫn UNVERIFIED và production disabled. Helper thuộc flow `gateway-workflows`; package script thuộc flow này.
+
+Fixture `retirement-crash.test.ts` sau SIGKILL chờ lấy được khóa OS thật ở hai thư mục journal và workflow, rồi release trước khi mở fixture lại. Chỉ retry lỗi đúng `Host guard unavailable (75)`, deadline1500ms/backoff10–100ms; không xóa lockfile, force unlock hay suy STOP từ deadline/PID. Full cover126/127 còn lưu một lỗi timing baseline; whole file sau sửa3/3 PASS, không gộp thành127 PASS. Production ProcessLock/STOP proof giữ nguyên.

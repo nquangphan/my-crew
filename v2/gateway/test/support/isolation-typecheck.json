@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": [
+    "../../src/isolation/*.ts",
+    "../isolation.test.ts",
+    "../isolation-workspace.test.ts",
+    "./isolation-probe.ts"
+  ]
+}

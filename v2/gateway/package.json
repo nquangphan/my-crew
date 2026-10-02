@@ -10,7 +10,8 @@
     "start": "pnpm build && node dist/src/host/main.js",
     "build": "tsc -p tsconfig.build.json",
     "test": "pnpm build && node --test test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "isolation:probe": "node test/support/isolation-probe.ts"
   },
   "devDependencies": {
     "@types/node": "26.6.3",

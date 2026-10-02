@@ -3,6 +3,7 @@ import { fork } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
+import { AtomicRecords } from '../src/journal/atomic-records.ts';
 import type { FinalizedPinAuthority } from '../src/journal/process-journal.ts';
 import { bridgeRoot, workflowFixture } from './support/bridge-fixture.ts';
 
@@ -33,6 +34,30 @@ for (const stage of ['before-write', 'after-write', 'after-filter'])
       const ended = new Promise<void>((resolve) => child.once('exit', () => resolve()));
       child.kill('SIGKILL');
       await ended;
+      // The worker exit can precede EOF/exit of its independent lockf holders.
+      // Reacquire each exact OS guard, without interpreting a delay as process STOP.
+      for (const directory of ['process-journal', 'workflows']) {
+        const deadline = performance.now() + 1500;
+        let backoff = 10;
+        for (;;) {
+          try {
+            const guard = await AtomicRecords.open(join(owned.root, directory));
+            await guard.close();
+            break;
+          } catch (error) {
+            if (
+              !(error instanceof Error) ||
+              error.message !== 'Host guard unavailable (75)' ||
+              performance.now() >= deadline
+            )
+              throw error;
+            await new Promise((resolve) =>
+              setTimeout(resolve, Math.min(backoff, deadline - performance.now())),
+            );
+            backoff = Math.min(backoff * 2, 100);
+          }
+        }
+      }
       const w = await workflowFixture(owned.root);
       try {
         const [record] = await w.journal.processes();

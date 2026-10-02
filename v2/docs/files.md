@@ -31,6 +31,10 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/src/host/process-lock.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/host/status.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/ipc/server.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/isolation/inventory.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/src/isolation/policy.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/src/isolation/preflight.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/src/isolation/workspace.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
 | `gateway/src/journal/atomic-records.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/journal/gated-helper.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/journal/http-operations.ts` | [gateway-host](flows/gateway-host.md) (file) |
@@ -88,6 +92,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/host-failures.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/host-lifecycle.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/http-operations.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/isolation-workspace.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+| `gateway/test/isolation.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/journal.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/model-probe.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/model-reporter.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
@@ -103,6 +109,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/support/freeze-dependencies.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/freeze-real-projections.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/host.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/support/isolation-probe.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+| `gateway/test/support/isolation-typecheck.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/journal-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/model-fixture.ts` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/support/owned-run.ts` | [gateway-host](flows/gateway-host.md) (test) |
