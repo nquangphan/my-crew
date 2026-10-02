@@ -73,3 +73,10 @@ chỉ khi ref cuối được release mới GC; identity retired không được
 flow gateway-host giữ chứng cứ no-fork, không nới quyền đối với fork hoặc mất witness.
 
 `WorkflowRegistry.verifySource(pin)` chỉ gọi verifier hiện có trên payload, metadata và source tree; không fetch, không đổi current pointer hoặc recipe/hash. Consumer GatewaySync dùng nó để cache bị sửa không thể báo source current khi desired projections đều null; regression có cache lành offline không tải lại.
+
+Task5 FIX1 giữ history sau rebind: bridge dùng `pinRetirement` kiểm receipt bất biến trước scoped005 read;
+receipt chưa có hoặc identity xung đột vẫn giữ reference và lỗi riêng record. Boot mới chỉ ghi nhận
+UNKNOWN có exact scoped attempt/companion thành `retained-unknown`, không bỏ pin/guard. Existing
+admission barrier kiểm snapshot và orphan intent trước lifecycle receipt; observe chạy trước barrier
+vì nó ghi journal, callback dưới barrier không gọi registry queue. Snapshot desired cũ không được
+hoàn tất nhầm command mới; cache nguồn/projection và pending report giữ nguyên qua deferred pass.

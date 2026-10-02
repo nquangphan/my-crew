@@ -114,3 +114,14 @@ claim và companion phải được actual stored command/decision authority ch�
 kiểm lost reply, stale/disabled/missing selection, config update sau claim, pause/cancel native STOP, finalizing
 guard và đúng một terminal event. Test authorizer/final receipt table chỉ sống trong logical DB riêng; không
 thay default dispatch/selection/final verifier production, SQL005/007/008 hay authority model.
+
+Task5 FIX1 consumer: command revision lớn hơn snapshot desired được hoãn qua reconnect;
+503/500/502/504 đã xác nhận được retry hữu hạn mỗi pass với chính idempotency key/body cũ và lịch
+backoff durable, kể cả lỗi quan sát xuất hiện sau actual commit. Journal giữ response đầu và retry
+history riêng. Kiểm thử prefix8 chứng minh boot/heartbeat/ACK/report không tạo mutation trùng.
+Lifecycle boot mới dùng actual bridge reconciliation với prior generation CAS007; exact UNKNOWN
+active/uncertain vẫn giữ guard005 và local pin, không tự cấp STOP. Retired history có immutable receipt
+được skip sau project rebind; history chưa retired 404 fail closed riêng attempt, control ticket khác
+vẫn tiến triển. Không sửa schema hoặc authority005/007/008.
+
+Report pending qua chuyển boot replay key cũ trước; actual committed receipt được trả theo007. Nếu server xác nhận BOOT_RETIRED cho report chưa chấp nhận và consumer đã bind tuple boot mới, pass sau tạo observation/report mới từ verified registry; giữ nguyên lịch sử HTTP cũ và không đổi key cho reply ambiguous/503.

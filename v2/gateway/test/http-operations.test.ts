@@ -182,3 +182,71 @@ test('journal HTTP real socket lost replies replay every mutation with identical
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('transient recovery keeps original response and key, backoff, pending ambiguity and settled retry across reopen', async () => {
+  const { mkdtemp, realpath, lstat, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'crew-task5-http-retry-'))),
+    identity = await lstat(root);
+  console.log(
+    'Task5 owned root',
+    JSON.stringify({ root, device: String(identity.dev), inode: String(identity.ino), uid: identity.uid }),
+  );
+  let now = 0,
+    calls = 0;
+  const requests: unknown[] = [];
+  const transport: import('../src/journal/http-operations.ts').HttpTransport = async (request) => {
+    requests.push(request);
+    calls++;
+    if (calls === 1) return { status: 503, body: { error: { code: 'UNAVAILABLE' } } };
+    if (calls === 2) throw new Error('LOST_RETRY_REPLY');
+    return { status: 200, body: { effect: 'same-server-receipt' } };
+  };
+  let http = await HttpOperationJournal.open(root, transport, { now: () => now });
+  try {
+    await http.prepare({
+      operationId: 'one',
+      method: 'POST',
+      route: '/v2/test',
+      phase: 'test',
+      canonicalBody: { x: 1 },
+    });
+    assert.equal((await http.retryTransient('one')).status, 503);
+    assert.equal((await http.retryTransient('one')).status, 503);
+    assert.equal(calls, 1);
+    now = 1000;
+    await assert.rejects(http.retryTransient('one'), /LOST_RETRY_REPLY/);
+    await http.close();
+    http = await HttpOperationJournal.open(root, transport, { now: () => now });
+    now = 3000;
+    const results = await Promise.all([http.retryTransient('one'), http.retryTransient('one')]);
+    assert.equal(results[0].status, 200);
+    assert.deepEqual(results[0], results[1]);
+    assert.equal(calls, 3);
+    assert.deepEqual(requests[0], requests[1]);
+    assert.deepEqual(requests[1], requests[2]);
+    assert.equal((await http.replay('one')).status, 503);
+    await http.close();
+    http = await HttpOperationJournal.open(root, transport, { now: () => now });
+    assert.equal((await http.retryTransient('one')).status, 200);
+    assert.equal(calls, 3);
+  } finally {
+    await http.close();
+    const current = await lstat(root);
+    assert.equal(current.ino, identity.ino);
+    assert.equal(current.dev, identity.dev);
+    assert.equal(current.uid, identity.uid);
+    await rm(root, { recursive: true });
+    console.log(
+      'Task5 owned cleanup',
+      JSON.stringify({
+        root,
+        device: String(identity.dev),
+        inode: String(identity.ino),
+        uid: identity.uid,
+        deleted: true,
+      }),
+    );
+  }
+});

@@ -33,16 +33,49 @@ function freezeDeep<T>(value: T): Readonly<T> {
   return value;
 }
 type Operation = HttpRequest & { formatVersion: 1; response: HttpResponse | null };
+type RetryHistory = {
+  formatVersion: 1;
+  operationId: string;
+  idempotencyKey: string;
+  bodyHash: string;
+  retryAt: number;
+  attempts: { startedAt: number; response: HttpResponse | null }[];
+};
+const transient = (status: number) => [500, 502, 503, 504].includes(status);
 export class HttpOperationJournal {
   private readonly store: AtomicRecords;
   private readonly transport: HttpTransport;
-  private constructor(store: AtomicRecords, transport: HttpTransport) {
+  private readonly retries: AtomicRecords;
+  private readonly now: () => number;
+  private constructor(
+    store: AtomicRecords,
+    retries: AtomicRecords,
+    transport: HttpTransport,
+    now: () => number,
+  ) {
     this.store = store;
     this.transport = transport;
+    this.retries = retries;
+    this.now = now;
   }
-  static async open(root: string, transport: HttpTransport): Promise<HttpOperationJournal> {
+  static async open(
+    root: string,
+    transport: HttpTransport,
+    options: { now?: () => number } = {},
+  ): Promise<HttpOperationJournal> {
     await privateDirectory(root);
-    return new HttpOperationJournal(await AtomicRecords.open(join(root, 'http-operations')), transport);
+    const store = await AtomicRecords.open(join(root, 'http-operations'));
+    try {
+      return new HttpOperationJournal(
+        store,
+        await AtomicRecords.open(join(root, 'http-retries')),
+        transport,
+        options.now ?? Date.now,
+      );
+    } catch (error) {
+      await store.close();
+      throw error;
+    }
   }
   async prepare(input: {
     operationId: string;
@@ -104,7 +137,53 @@ export class HttpOperationJournal {
     await this.recordResponse(operationId, response.status, response.body);
     return response;
   }
-  close(): Promise<void> {
-    return this.store.close();
+  /** Additive recovery history. replay() still returns the immutable first response. */
+  async retryTransient(operationId: string): Promise<HttpResponse> {
+    return this.retries.transaction(async () => {
+      const original = await this.replay(operationId);
+      if (!transient(original.status)) return original;
+      const operation = await this.store.get<Operation>(operationId);
+      if (!operation) throw new Error('UNKNOWN_OPERATION');
+      let history = await this.retries.get<RetryHistory>(operationId);
+      if (!history) {
+        history = {
+          formatVersion: 1,
+          operationId,
+          idempotencyKey: operation.idempotencyKey,
+          bodyHash: operation.bodyHash,
+          retryAt: this.now() + 1000,
+          attempts: [],
+        };
+        await this.retries.put(operationId, history);
+        return original;
+      }
+      if (
+        history.operationId !== operationId ||
+        history.idempotencyKey !== operation.idempotencyKey ||
+        history.bodyHash !== operation.bodyHash
+      )
+        throw new Error('RETRY_HISTORY_CONFLICT');
+      const last = history.attempts.at(-1);
+      if (last?.response && !transient(last.response.status)) return last.response;
+      const confirmed =
+        last?.response ??
+        [...history.attempts].reverse().find((attempt) => attempt.response)?.response ??
+        original;
+      if (this.now() < history.retryAt) return confirmed;
+      const pending = last && !last.response ? last : { startedAt: this.now(), response: null };
+      if (pending !== last) history.attempts.push(pending);
+      history.retryAt = this.now() + Math.min(60000, 1000 * 2 ** Math.min(history.attempts.length, 6));
+      // Persist before transport. Ambiguity keeps this pending attempt and the original key.
+      await this.retries.put(operationId, history);
+      const { formatVersion: _version, response: _response, ...request } = operation;
+      const response = await this.transport(freezeDeep(request));
+      pending.response = response;
+      await this.retries.put(operationId, history);
+      return response;
+    });
+  }
+  async close(): Promise<void> {
+    await this.retries.close();
+    await this.store.close();
   }
 }

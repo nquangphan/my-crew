@@ -255,3 +255,52 @@ test('execution bridge reconnect resets UUID page anchor and sees later lower UU
     await owned.cleanup();
   }
 });
+
+test('reconnect isolates denied dispatch across pages and reopen so reconcile controls progress', async () => {
+  const owned = await bridgeRoot(),
+    w = await workflowFixture(owned.root),
+    machineId = randomUUID();
+  const denied = {
+    id: randomUUID(),
+    machineId,
+    ticketId: randomUUID(),
+    type: 'start',
+    payload: {},
+    state: 'queued',
+    result: null,
+  };
+  const control = { ...denied, id: randomUUID(), type: 'reconcile' };
+  const sent: import('../src/journal/http-operations.ts').HttpRequest[] = [];
+  const http = await HttpOperationJournal.open(owned.root, async (request) => {
+    sent.push(request);
+    return { status: 200, body: control };
+  });
+  const options = {
+    machineId,
+    journal: w.journal,
+    registry: w.registry,
+    http,
+    read: async (route: string) => {
+      if (route.includes('?'))
+        return route.includes('&after=')
+          ? { items: [control], nextCursor: null }
+          : { items: [denied], nextCursor: denied.id };
+      return route.endsWith(denied.id) ? denied : control;
+    },
+  };
+  let bridge = await TicketCommandBridge.open(owned.root, options);
+  try {
+    await assert.rejects(bridge.reconnect(), /DISPATCH_NOT_CONFIGURED/);
+    assert.equal(sent.filter((request) => request.phase === 'ticket-completed').length, 1);
+    await bridge.close();
+    bridge = await TicketCommandBridge.open(owned.root, options);
+    await assert.rejects(bridge.reconnect(), /DISPATCH_NOT_CONFIGURED/);
+    assert.equal(sent.length, 2);
+    assert.equal((await w.journal.processes()).length, 0);
+  } finally {
+    await bridge.close();
+    await http.close();
+    await w.close();
+    await owned.cleanup();
+  }
+});

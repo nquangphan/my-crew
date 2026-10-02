@@ -7,12 +7,13 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { buildApp } from '../../server/src/app.ts';
 import { ApiError } from '../../server/src/platform/errors.ts';
 import { databaseFixture } from '../../server/test/support/db.ts';
-import { gatewayFixture, selectionAuthorityFixture } from '../../server/test/support/gateway.ts';
+import { gatewayFixture, heartbeat, selectionAuthorityFixture } from '../../server/test/support/gateway.ts';
 import { ticketFixture } from '../../server/test/support/tickets.ts';
 import { toDomainPin } from '../src/commands/contracts.ts';
 import { machineTransport } from '../src/commands/http-client.ts';
 import { TicketCommandBridge } from '../src/execution/ticket-command-bridge.ts';
 import { HttpOperationJournal } from '../src/journal/http-operations.ts';
+import { GatewayConnection } from '../src/sync/connection.ts';
 import { GatewaySync } from '../src/sync/gateway-sync.ts';
 import { bridgeRoot, workflowFixture } from './support/bridge-fixture.ts';
 
@@ -153,6 +154,14 @@ test('execution bridge DB-backed selection, lost result/finalize and genuine ret
       assert.equal(await w.journal.observe(local), 'stopped');
       const stopped = await bridge.reportStopped(command.id);
       assert.equal(stopped.state, 'finalizing');
+      const stoppedConnection = await GatewayConnection.open(owned.root, http, bridge);
+      try {
+        await stoppedConnection.boot(bootId, '0');
+        assert.equal((await stoppedConnection.advanceBoot(randomUUID())).bootGeneration, '2');
+      } finally {
+        await stoppedConnection.close();
+      }
+
       const [guard] =
         await db`select active_attempt_id from execution_guards where ticket_id=${command.ticketId}`;
       assert.equal(guard.active_attempt_id, attempt.id);
@@ -209,6 +218,24 @@ test('execution bridge DB-backed selection, lost result/finalize and genuine ret
       drop = 'finalize';
       await assert.rejects(bridge!.finalize(command.id), /LOST_REPLY/);
       assert.equal((await bridge!.finalize(command.id)).state, 'stopped');
+      // Without retirement the scoped 404 remains a local failure, but independent B still progresses.
+      await db`update projects set binding_revision=3 where id=${tickets.project.id}`;
+      const { createCommand } = await import('../../server/src/execution/commands.ts');
+      const independent = await db.begin(async (tx) =>
+        createCommand(
+          tx,
+          { machineId: initial.machineId, ticketId: tickets.b.id, type: 'reconcile', payload: {} },
+          { kind: 'owner', id: 'owner' },
+        ),
+      );
+      await assert.rejects(bridge.reconnect(), /NOT_FOUND/);
+      assert.equal(
+        ((await machine.read(`/v2/machine/commands/${independent.id}`)) as { state: string }).state,
+        'completed',
+      );
+      assert.equal(await w.journal.pinRetirement(local), null);
+      assert.equal((await w.registry.retained()).filter((r) => r.authority === 'process-journal').length, 1);
+      await db`update projects set binding_revision=2 where id=${tickets.project.id}`;
       const receipt = await bridge!.retire(command.id);
       assert.equal(receipt.authority.attemptId, attempt.id);
       assert.equal((await w.registry.retained()).filter((r) => r.authority === 'process-journal').length, 0);
@@ -229,6 +256,52 @@ test('execution bridge DB-backed selection, lost result/finalize and genuine ret
       assert.equal(events.count, 1);
       const resultRequests = sent.filter((r) => r.phase === 'result');
       assert.deepEqual(resultRequests[0], resultRequests[1]);
+      // Immutable retired history remains local after the actual scoped API stops exposing it.
+      await db`update projects set checkout_path='/tmp/task5-rebound',binding_revision=3 where id=${tickets.project.id}`;
+      await assert.rejects(machine.read(`/v2/machine/commands/${command.id}`), /NOT_FOUND/);
+      const control = await db.begin(async (tx) =>
+        createCommand(
+          tx,
+          { machineId: initial.machineId, ticketId: tickets.b.id, type: 'reconcile', payload: {} },
+          { kind: 'owner', id: 'owner' },
+        ),
+      );
+      await bridge.close();
+      bridge = await TicketCommandBridge.open(owned.root, {
+        machineId: initial.machineId,
+        journal: w.journal,
+        registry: w.registry,
+        http,
+        read: async (route) => machine.read(route),
+      });
+      await bridge.reconnect();
+      assert.equal(
+        ((await machine.read(`/v2/machine/commands/${control.id}`)) as { state: string }).state,
+        'completed',
+      );
+      assert.deepEqual(await w.journal.pinRetirement(local), receipt);
+      let connection = await GatewayConnection.open(owned.root, http, bridge);
+      try {
+        assert.equal((await connection.boot()).bootGeneration, '2');
+        const nextBoot = randomUUID();
+        drop = 'boot';
+        await assert.rejects(connection.advanceBoot(nextBoot), /LOST_REPLY/);
+        await connection.close();
+        connection = await GatewayConnection.open(owned.root, http, bridge);
+        assert.deepEqual(await connection.boot(), { bootId: nextBoot, bootGeneration: '3' });
+        await connection.heartbeat(heartbeat(nextBoot, '3', '999'));
+        const [present] =
+          await db`select sequence,boot_id from gateway_heartbeats where machine_id=${initial.machineId}`;
+        assert.equal(String(present.sequence), '1');
+        assert.equal(present.boot_id, nextBoot);
+        await assert.rejects(connection.advanceBoot(bootId), /BOOT_RETIRED/);
+        assert.equal(
+          ((await http.replay(`boot:${bootId}`)).body as { bootGeneration: string }).bootGeneration,
+          '1',
+        );
+      } finally {
+        await connection.close();
+      }
     } finally {
       await bridge?.close();
       await sync?.close();
@@ -403,6 +476,21 @@ for (const scenario of [
             assert(identity);
             console.log('Task5 owned escaped child', JSON.stringify(identity));
           } else await delay(100);
+          if (scenario === 'pause') {
+            const connection = await GatewayConnection.open(owned.root, http, bridge);
+            try {
+              await connection.boot(bootId, '0');
+              assert.equal((await connection.advanceBoot(randomUUID())).bootGeneration, '2');
+            } finally {
+              await connection.close();
+            }
+          }
+          const blockedId = randomUUID();
+          if (scenario !== 'fork-cancel') {
+            await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state) values(${blockedId},${server.machineId},${tickets.b.id},2,'start','{}','queued')`;
+            // Reconciliation of a durable owned uncertain launch precedes the denied new dispatch.
+            await db`update attempts set state='uncertain' where command_id=${command.id}`;
+          }
           const requested = await server.owner.post('/v2/commands', {
             machineId: server.machineId,
             ticketId: command.ticketId,
@@ -429,12 +517,43 @@ for (const scenario of [
             );
             const ack = (await machine.read(`/v2/machine/commands/${stop.id}`)) as { state: string };
             assert.notEqual(ack.state, 'completed');
+            const connection = await GatewayConnection.open(owned.root, http, bridge);
+            try {
+              await connection.boot(bootId, '0');
+              const nextBoot = randomUUID();
+              assert.equal((await connection.advanceBoot(nextBoot)).bootGeneration, '2');
+              await connection.heartbeat(heartbeat(nextBoot, '2', '99'));
+              const [stillHeld] =
+                await db`select active_attempt_id from execution_guards where ticket_id=${command.ticketId}`;
+              assert.equal(stillHeld.active_attempt_id, guard.active_attempt_id);
+              assert.equal(await w.journal.pinRetirement(local), null);
+              assert.equal(
+                (await w.registry.retained()).filter((r) => r.authority === 'process-journal').length,
+                1,
+              );
+              const replacement = await server.machine.post(`/v2/machine/commands/${command.id}/claim`, {
+                processInstanceId: randomUUID(),
+                permit,
+              });
+              assert.equal(replacement.statusCode, 409);
+            } finally {
+              await connection.close();
+            }
             await delay(800);
           } else {
             dropStopAck = stop.id;
-            await assert.rejects(bridge.handle(stop), /LOST_STOP_ACK/);
-            await bridge.handle(stop);
-            assert.equal(await w.journal.observe(local), 'stopped');
+            await assert.rejects(bridge.reconnect(), /LOST_STOP_ACK/);
+            await assert.rejects(bridge.reconnect(), /SELECTION_MISMATCH/);
+            assert.equal(
+              ((await machine.read(`/v2/machine/commands/${stop.id}`)) as { state: string }).state,
+              'completed',
+            );
+            const [blocked] = await db`select state from commands where id=${blockedId}`;
+            assert.equal(blocked.state, 'queued');
+            assert.equal((await w.journal.processes()).length, 1);
+            const stopReceipt = await w.journal.pinRetirement(local);
+            assert(stopReceipt);
+            assert.equal(stopReceipt.stop.groupEmpty, true);
             retainUnknown = false;
             const [attempt] =
               await db`select state,finalized_at from attempts where command_id=${command.id}`;
@@ -480,3 +599,311 @@ for (const scenario of [
       }
     }));
 }
+
+test('actual prefix8 desired read barrier cannot supersede a newly committed workflow command', () =>
+  withDb(async (db) => {
+    const owned = await bridgeRoot(),
+      w = await workflowFixture(owned.root),
+      authority = await selectionAuthorityFixture(db),
+      server = await gatewayFixture(db, authority);
+    const machine = machineTransport(server.url, server.token);
+    const http = await HttpOperationJournal.open(owned.root, machine.write);
+    let sync: GatewaySync | undefined;
+    try {
+      const bootId = randomUUID();
+      const boot = await server.machine.post('/v2/gateway/boots', { bootId, previousGeneration: '0' });
+      assert.equal(boot.statusCode, 200);
+      const update = async (expectedRevision: number) => {
+        const response = await server.owner.put(`/v2/gateway/machines/${server.machineId}/config`, {
+          expectedRevision,
+          desired: w.desired,
+          maxJobs: expectedRevision + 2,
+          enabled: true,
+        });
+        assert.equal(response.statusCode, 200, response.text);
+      };
+      await update(0);
+      let barrier = true;
+      const options = {
+        machineId: server.machineId,
+        bootId,
+        bootGeneration: boot.json<{ bootGeneration: string }>().bootGeneration,
+        registry: w.registry,
+        http,
+        recipes: w.projections,
+        archive: async (source: import('../src/host/status.ts').SourcePin) =>
+          w.sources.find((item) => item.source.name === source.name)!.stream(),
+        read: async (route: string) => {
+          const result = await machine.read(route);
+          if (route === '/v2/gateway/config' && barrier) {
+            barrier = false;
+            await update(1);
+          }
+          return result;
+        },
+      };
+      sync = await GatewaySync.open(owned.root, options);
+      await sync.reconcile();
+      const [newer] =
+        await db`select id,state from gateway_commands where machine_id=${server.machineId} and payload->>'configRevision'='2'`;
+      assert.notEqual(newer.state, 'completed');
+      await sync.close();
+      sync = await GatewaySync.open(owned.root, options);
+      await sync.reconcile();
+      await sync.reconcile();
+      const [complete] = await db`select state,result from gateway_commands where id=${newer.id}`;
+      assert.equal(complete.state, 'completed');
+      assert.deepEqual(complete.result, { ok: true });
+      const [reports] =
+        await db`select count(*)::int as count from gateway_install_reports where machine_id=${server.machineId} and config_revision=2`;
+      assert.equal(reports.count, 1);
+    } finally {
+      await sync?.close();
+      await http.close();
+      await server.close();
+      await w.close();
+      await owned.cleanup();
+    }
+  }));
+
+test('actual prefix8 503 after committed boot heartbeat ACK and report recovers same server receipts across reopen', () =>
+  withDb(async (db) => {
+    const owned = await bridgeRoot(),
+      w = await workflowFixture(owned.root),
+      authority = await selectionAuthorityFixture(db),
+      server = await gatewayFixture(db, authority);
+    const machine = machineTransport(server.url, server.token),
+      failed = new Set<string>();
+    const sent: import('../src/journal/http-operations.ts').HttpRequest[] = [];
+    let now = 0;
+    const http = await HttpOperationJournal.open(
+      owned.root,
+      async (request) => {
+        sent.push(request);
+        const response = await machine.write(request);
+        assert.equal(response.status, 200, JSON.stringify(response));
+        if (!failed.has(request.phase)) {
+          failed.add(request.phase);
+          return { status: 503, body: { error: { code: 'UPSTREAM_LOST_AFTER_COMMIT' } } };
+        }
+        return response;
+      },
+      { now: () => now },
+    );
+    let connection = await GatewayConnection.open(owned.root, http),
+      sync: GatewaySync | undefined;
+    try {
+      const bootId = randomUUID();
+      await assert.rejects(connection.boot(bootId), /UPSTREAM_LOST/);
+      await connection.close();
+      connection = await GatewayConnection.open(owned.root, http);
+      now += 10000;
+      assert.equal((await connection.boot()).bootGeneration, '1');
+      await assert.rejects(connection.heartbeat(heartbeat(bootId, '1', '1')), /UPSTREAM_LOST/);
+      await connection.close();
+      connection = await GatewayConnection.open(owned.root, http);
+      now += 10000;
+      await connection.heartbeat({ ignored: 'pending original body' });
+      const config = await server.owner.put(`/v2/gateway/machines/${server.machineId}/config`, {
+        expectedRevision: 0,
+        desired: w.desired,
+        maxJobs: 1,
+        enabled: true,
+      });
+      assert.equal(config.statusCode, 200, config.text);
+      const options = {
+        machineId: server.machineId,
+        bootId,
+        bootGeneration: '1',
+        registry: w.registry,
+        http,
+        read: machine.read,
+        recipes: w.projections,
+        archive: async (source: import('../src/host/status.ts').SourcePin) =>
+          w.sources.find((item) => item.source.name === source.name)!.stream(),
+      };
+      sync = await GatewaySync.open(owned.root, options);
+      for (let i = 0; i < 3; i++) {
+        await assert.rejects(sync.reconcile(), /UPSTREAM_LOST/);
+        await sync.close();
+        sync = await GatewaySync.open(owned.root, options);
+        now += 10000;
+      }
+      await sync.reconcile();
+      await sync.reconcile();
+      for (const phase of ['boot', 'heartbeat', 'gateway-received', 'install-report', 'gateway-completed']) {
+        const attempts = sent.filter((request) => request.phase === phase);
+        assert.equal(attempts.length, 2, phase);
+        assert.deepEqual(attempts[0], attempts[1]);
+        assert.equal((await http.replay(attempts[0].operationId)).status, 503);
+      }
+      const [reports] =
+        await db`select count(*)::int as count from gateway_install_reports where machine_id=${server.machineId}`;
+      assert.equal(reports.count, 1);
+      const [present] =
+        await db`select sequence from gateway_heartbeats where machine_id=${server.machineId}`;
+      assert.equal(String(present.sequence), '1');
+    } finally {
+      await sync?.close();
+      await connection.close();
+      await http.close();
+      await server.close();
+      await w.close();
+      await owned.cleanup();
+    }
+  }));
+
+for (const failure of ['server-cas', 'orphan-admission'] as const)
+  test(`actual prefix8 controlled boot rejects ${failure} and preserves history`, () =>
+    withDb(async (db) => {
+      const owned = await bridgeRoot(),
+        w = await workflowFixture(owned.root),
+        server = await gatewayFixture(db);
+      const machine = machineTransport(server.url, server.token),
+        http = await HttpOperationJournal.open(owned.root, machine.write);
+      const bridge = await TicketCommandBridge.open(owned.root, {
+        machineId: server.machineId,
+        journal: w.journal,
+        registry: w.registry,
+        http,
+        read: machine.read,
+      });
+      const connection = await GatewayConnection.open(owned.root, http, bridge);
+      let retained = false;
+      try {
+        const first = await connection.boot(randomUUID());
+        if (failure === 'server-cas') {
+          const rival = await server.machine.post('/v2/gateway/boots', {
+            bootId: randomUUID(),
+            previousGeneration: '1',
+          });
+          assert.equal(rival.statusCode, 200);
+          await assert.rejects(connection.advanceBoot(randomUUID()), /BOOT_GENERATION_CONFLICT/);
+          await assert.rejects(connection.heartbeat(heartbeat(first.bootId, '1', '1')), /BOOT_REQUIRED/);
+        } else {
+          await w.install();
+          const store = Reflect.get(
+            w.journal,
+            'store',
+          ) as import('../src/journal/atomic-records.ts').AtomicRecords;
+          const original = store.put.bind(store);
+          store.put = async (key, value) => {
+            if ((value as { launchId?: string }).launchId) throw new Error('ADMISSION_COMMIT_CRASH');
+            return original(key, value);
+          };
+          try {
+            await assert.rejects(
+              w.journal.reserve({
+                commandId: randomUUID(),
+                ticketId: randomUUID(),
+                processInstanceId: randomUUID(),
+                source: w.sources[0].source,
+                projection: w.projections[0].expected,
+              }),
+              /ADMISSION_COMMIT_CRASH/,
+            );
+          } finally {
+            store.put = original;
+          }
+          retained = true;
+          assert.equal((await w.journal.pendingPinAdmissions()).length, 1);
+          await assert.rejects(connection.advanceBoot(randomUUID()), /BOOT_RECONCILIATION_CHANGED/);
+          assert.equal((await connection.boot()).bootGeneration, '1');
+          assert.equal((await w.journal.pendingPinAdmissions()).length, 1);
+        }
+      } finally {
+        await connection.close();
+        await bridge.close();
+        await http.close();
+        await server.close();
+        await w.close();
+        if (retained) {
+          const st = await lstat(owned.root);
+          console.log(
+            'Task5 retained UNKNOWN root',
+            JSON.stringify({
+              root: owned.root,
+              device: String(st.dev),
+              inode: String(st.ino),
+              uid: st.uid,
+              stage: failure,
+            }),
+          );
+        } else await owned.cleanup();
+      }
+    }));
+
+test('actual prefix8 pending old-boot report resolves old key then resamples under controlled new boot', () =>
+  withDb(async (db) => {
+    const owned = await bridgeRoot(),
+      w = await workflowFixture(owned.root),
+      authority = await selectionAuthorityFixture(db),
+      server = await gatewayFixture(db, authority);
+    const machine = machineTransport(server.url, server.token);
+    let drop = true;
+    const sent: import('../src/journal/http-operations.ts').HttpRequest[] = [];
+    const http = await HttpOperationJournal.open(owned.root, async (request) => {
+      sent.push(request);
+      if (request.phase === 'install-report' && drop) {
+        drop = false;
+        throw new Error('REPORT_LOST_BEFORE_SEND');
+      }
+      return machine.write(request);
+    });
+    const bridge = await TicketCommandBridge.open(owned.root, {
+      machineId: server.machineId,
+      journal: w.journal,
+      registry: w.registry,
+      http,
+      read: machine.read,
+    });
+    const connection = await GatewayConnection.open(owned.root, http, bridge);
+    let sync: GatewaySync | undefined;
+    try {
+      const initial = await connection.boot(randomUUID());
+      const config = await server.owner.put(`/v2/gateway/machines/${server.machineId}/config`, {
+        expectedRevision: 0,
+        desired: w.desired,
+        maxJobs: 1,
+        enabled: true,
+      });
+      assert.equal(config.statusCode, 200);
+      const options = {
+        machineId: server.machineId,
+        ...initial,
+        registry: w.registry,
+        http,
+        read: machine.read,
+        recipes: w.projections,
+        archive: async (source: import('../src/host/status.ts').SourcePin) =>
+          w.sources.find((item) => item.source.name === source.name)!.stream(),
+      };
+      sync = await GatewaySync.open(owned.root, options);
+      await assert.rejects(sync.reconcile(), /REPORT_LOST_BEFORE_SEND/);
+      await sync.close();
+      const next = await connection.advanceBoot(randomUUID());
+      sync = await GatewaySync.open(owned.root, { ...options, ...next });
+      await sync.reconcile();
+      await sync.reconcile();
+      const reports = sent.filter((request) => request.phase === 'install-report');
+      assert.equal(reports.length, 3);
+      assert.deepEqual(reports[0], reports[1]);
+      assert.notEqual(reports[1].idempotencyKey, reports[2].idempotencyKey);
+      assert.equal((await http.replay(reports[0].operationId)).status, 409);
+      const [stored] =
+        await db`select report from gateway_install_reports where machine_id=${server.machineId}`;
+      assert.equal(stored.report.bootId, next.bootId);
+      const [command] =
+        await db`select state,result from gateway_commands where machine_id=${server.machineId}`;
+      assert.equal(command.state, 'completed');
+      assert.deepEqual(command.result, { ok: true });
+    } finally {
+      await sync?.close();
+      await connection.close();
+      await bridge.close();
+      await http.close();
+      await server.close();
+      await w.close();
+      await owned.cleanup();
+    }
+  }));

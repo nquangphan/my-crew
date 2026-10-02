@@ -332,3 +332,60 @@ test('sync verifies cached source bytes even when every desired projection is nu
     await owned.cleanup();
   }
 });
+
+test('sync defers command ahead of desired snapshot, then applies after reopen without false supersession', async () => {
+  const owned = await bridgeRoot(),
+    f = await workflowFixture(owned.root);
+  const command = {
+    id: randomUUID(),
+    machineId: randomUUID(),
+    type: 'sync_workflows',
+    payload: { configRevision: 2 },
+    state: 'queued',
+    result: null,
+    cursor: '2',
+  };
+  let revision = 1;
+  const sent: import('../src/journal/http-operations.ts').HttpRequest[] = [];
+  const http = await HttpOperationJournal.open(owned.root, async (request) => {
+    sent.push(request);
+    return {
+      status: 200,
+      body: request.phase === 'install-report' ? { accepted: true, appliedRevision: 2 } : {},
+    };
+  });
+  const options = {
+    machineId: command.machineId,
+    bootId: randomUUID(),
+    bootGeneration: '1',
+    registry: f.registry,
+    http,
+    recipes: f.projections,
+    read: async (route: string) =>
+      route === '/v2/gateway/config'
+        ? { revision, desired: f.desired, maxJobs: 1, enabled: true }
+        : { items: [command], nextCursor: '2' },
+    archive: async (source: import('../src/host/status.ts').SourcePin) =>
+      f.sources.find((item) => item.source.name === source.name)!.stream(),
+  };
+  let sync = await GatewaySync.open(owned.root, options);
+  try {
+    await sync.reconcile();
+    assert.equal(sent.filter((item) => item.phase === 'gateway-completed').length, 0);
+    await sync.close();
+    revision = 2;
+    sync = await GatewaySync.open(owned.root, options);
+    await sync.reconcile();
+    await sync.reconcile();
+    assert.equal(sent.filter((item) => item.phase === 'install-report').length, 1);
+    assert.deepEqual(sent.find((item) => item.phase === 'gateway-completed')?.canonicalBody, {
+      phase: 'completed',
+      result: { ok: true },
+    });
+  } finally {
+    await sync.close();
+    await http.close();
+    await f.close();
+    await owned.cleanup();
+  }
+});

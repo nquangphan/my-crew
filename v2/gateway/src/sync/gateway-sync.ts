@@ -139,7 +139,12 @@ export class GatewaySync {
       return this.complete(record, { ok: true });
     }
     if (!record.report) {
-      if (!config || config.revision !== record.command.payload.configRevision)
+      const requestedRevision = record.command.payload.configRevision;
+      if (typeof requestedRevision !== 'number' || !Number.isSafeInteger(requestedRevision))
+        throw new Error('INVALID_CONFIG_REVISION');
+      // Separate GETs can expose a command newer than this desired snapshot.
+      if (!config || config.revision < requestedRevision) return;
+      if (config.revision > requestedRevision)
         return this.complete(record, { ok: false, code: 'SUPERSEDED' });
       const results = empty();
       for (const name of names) {
@@ -217,6 +222,18 @@ export class GatewaySync {
     } catch (error) {
       if ((error as Error).message === 'CONFIG_REVISION_CONFLICT')
         return this.complete(record, { ok: false, code: 'SUPERSEDED' });
+      if (
+        (error as Error).message === 'BOOT_RETIRED' &&
+        (report.bootId !== this.options.bootId || report.bootGeneration !== this.options.bootGeneration)
+      ) {
+        // The old operation/body/key remains immutable. Only a confirmed retired-boot response
+        // permits a new logical observation under the newly composed boot on the next pass.
+        record.report = null;
+        record.retryAt = 0;
+        await this.store.put(this.key(record.command.id), record);
+        return;
+      }
+
       throw error;
     }
     // Re-read desired after replay; a historical accepted response cannot complete a newer config.

@@ -14,7 +14,7 @@ export async function mutate<T>(
   body: unknown,
 ): Promise<T> {
   await http.prepare({ operationId, method: 'POST', route, phase, canonicalBody: body });
-  const response = await http.replay(operationId);
+  const response = await http.retryTransient(operationId);
   if (response.status < 200 || response.status >= 300)
     throw new GatewayHttpError(response.status, response.body);
   return response.body as T;

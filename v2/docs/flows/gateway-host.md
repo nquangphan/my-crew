@@ -36,15 +36,34 @@ Các API dưới đây là nền tảng Task 2; `GatewayHost` hiện chưa tự 
 `GatewayConnection` giữ boot CAS và heartbeat body/sequence/key bền vững qua mất reply; boot ID khác
 bắt buộc reconcile. `GatewayEventPump` dùng SSE làm tín hiệu thức dậy, fallback poll `/v2/events` và chỉ
 commit cursor sau reconcile thành công. `GatewaySync` đọc desired trước command, lưu từng command theo
-machine/ID trước cursor; nguồn hoặc projection lỗi giữ received, báo partial và retry backoff tối đa 60 giây.
+machine/ID trước cursor; nguồn hoặc projection lỗi giữ received, báo partial và retry backoff có base tối đa 60 giây và jitter 0,75–1,25 (trần thực 75 giây).
 Mỗi report mới có ID riêng; report mất reply dùng đúng body/key cũ. Revision bị thay thế hoàn tất command cũ
 với SUPERSEDED; revision mới dùng command mới. Namespace sync_models thuộc consumer riêng.
+Config và command là hai GET riêng: command có revision cao hơn snapshot phải chờ pass mới;
+chỉ revision thấp hơn desired hiện hành mới được SUPERSEDED.
+
+`HttpOperationJournal.retryTransient` giữ nguyên `replay` và response đầu bất biến trong
+`http-operations`; `http-retries` chứa từng attempt/response bổ sung. Chỉ 500/502/503/504 được gửi lại,
+mỗi lần gọi tối đa một send, cùng route/body/key gốc; lịch chờ durable tăng tới 60 giây. Attempt mất
+reply giữ nguyên qua reopen; response thành công settle một lần. Lỗi HTTP không chứng minh chưa có tác động;
+actual server receipt dưới cùng key quyết định kết quả. Khi report pending thuộc boot cũ, trước hết replay đúng key; chỉ response BOOT_RETIRED đã xác nhận và tuple boot mới khác mới cho phép pass sau tạo report ID mới từ cache được verify lại. Operation/report cũ vẫn bất biến; reply ambiguous hoặc 503 không đi nhánh thay report. Không tạo mutation key mới để né lỗi.
+
+`GatewayConnection.advanceBoot` chỉ chạy khi bind actual `TicketCommandBridge` cùng host root;
+mặc định từ chối. Lock order là connection → bridge → journal; callback nội bộ chỉ ghi connection đang
+được giữ, không mở lại transaction connection hay gọi registry. Bridge đối chiếu owned records trước,
+observe bên ngoài journal barrier, rồi kiểm lại toàn bộ snapshot/admission và scoped attempt/companion
+bên trong barrier. `retained-unknown` chỉ áp dụng cho exact active/uncertain đã nhận diện: được online
+boot mới nhưng giữ guard/pin, không STOP/claim/finalize/retire hay cho replacement RELEASE.
+Orphan admission, thiếu claim/tuple hoặc snapshot đổi thì từ chối. History/receipt prior boot + generation +
+next boot và pending pointer được fsync trước POST; server007 CAS vẫn quyết định generation. Mất reply
+reopen dùng lại pending boot/body/key; boot cũ không lấy lại quyền, heartbeat boot mới bắt đầu sequence 1.
+
 
 `TicketCommandBridge` chỉ nhận command từ scoped authenticated read. Permit production mặc định từ chối;
 permit fixture được tách riêng. Reserve dùng registry+journal đã bind, READY trước claim, rồi xác nhận
 attempt hiện hành và companion server-stored selection trước RELEASE. Mất reply replay đúng UUID/key/body;
 005 pagination bắt đầu từ null mỗi pass, không dùng UUID làm durable cursor. Reconcile command cũng kiểm
-scope và ACK received/completed bền vững. Result, stopped reconciliation và finalize có operation key riêng;
+scope và ACK received/completed bền vững. Reconnect đối chiếu owned state trước dispatch, ghi failure riêng từng command rồi tiếp tục các page/control độc lập; cuối pass trả aggregate lỗi. Reconcile control chỉ đối chiếu ticket của nó, nên failure ticket khác không chặn ACK. Receipt retirement hợp lệ được kiểm và skip trước live scoped GET; history thiếu/conflict receipt vẫn fail closed riêng record. Result, stopped reconciliation và finalize có operation key riêng;
 finalizing giữ guard; finalize còn pending được kiểm lại bằng operation mới sau response xác nhận.
 
 Pause/cancel kiểm command type/ticket/payload và exact launch trước signal owned PGID; lưu stop reason

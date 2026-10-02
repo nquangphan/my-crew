@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import {
   type Attempt,
   type Command,
@@ -229,7 +229,7 @@ export class TicketCommandBridge {
       )
         throw new Error('COMMAND_CHANGED');
       await this.ackTicket(command.id, 'received');
-      await this.reconcileOwned();
+      await this.reconcileOwned(command.ticketId);
       await this.ackTicket(command.id, 'completed');
       return;
     }
@@ -266,35 +266,152 @@ export class TicketCommandBridge {
       await this.ackTicket(command.id, 'completed');
     });
   }
-  async reconnect(): Promise<void> {
-    // UUID after is a page anchor: reset null on every pass, never persist as event cursor.
-    let after: string | null = null;
-    for (;;) {
-      const page = (await this.options.read(
-        `/v2/machine/commands?limit=50${after ? `&after=${after}` : ''}`,
-      )) as { items: Command[]; nextCursor: string | null };
-      for (const command of page.items) await this.handle(command);
-      if (!page.nextCursor) break;
-      if (page.nextCursor === after) throw new Error('COMMAND_CURSOR_STUCK');
-      after = page.nextCursor;
-    }
-    await this.reconcileOwned();
+  private async recordFailure(id: string, error: unknown) {
+    await this.store.put(`failure:${this.key(id)}`, {
+      formatVersion: 1,
+      commandId: id,
+      message: error instanceof Error ? error.message : 'COMMAND_FAILED',
+      observedAt: new Date().toISOString(),
+    });
   }
-  private async reconcileOwned() {
-    for (const local of await this.store.all<BridgeRecord>()) {
-      if (!local.attemptId) continue;
-      const attempt = await this.current(local),
-        record = await this.options.journal.byInstance(local.input.processInstanceId);
-      if (!record) throw new Error('PROCESS_UNKNOWN');
-      if (await this.options.journal.pinRetirement(record)) continue;
-      const observation = await this.options.journal.observe(record);
-      if (observation === 'running' && attempt.state === 'uncertain')
-        await this.reconcileObservation(local, attempt, 'running', null);
-      if (observation === 'stopped' && attempt.state !== 'stopped')
-        await this.reconcileObservation(local, attempt, 'stopped', local.stopReason ?? 'exit');
-      if (observation === 'stopped' && attempt.state === 'stopped' && attempt.finalizedAt)
-        await this.retire(local.command.id);
+  private failAfterPass(errors: unknown[]) {
+    if (errors.length)
+      throw new AggregateError(
+        errors,
+        errors.map((error) => (error instanceof Error ? error.message : 'COMMAND_FAILED')).join('; '),
+      );
+  }
+  async reconnect(): Promise<void> {
+    const errors: unknown[] = [];
+    // Owned recovery runs independently of new dispatch, including commands on later pages.
+    try {
+      await this.reconcileOwned();
+    } catch (error) {
+      errors.push(error);
     }
+    let after: string | null = null;
+    try {
+      for (;;) {
+        const page = (await this.options.read(
+          `/v2/machine/commands?limit=50${after ? `&after=${after}` : ''}`,
+        )) as { items: Command[]; nextCursor: string | null };
+        for (const command of page.items) {
+          try {
+            await this.handle(command);
+          } catch (error) {
+            await this.recordFailure(command.id, error);
+            errors.push(error);
+          }
+        }
+        if (!page.nextCursor) break;
+        if (page.nextCursor === after) throw new Error('COMMAND_CURSOR_STUCK');
+        after = page.nextCursor;
+      }
+    } catch (error) {
+      errors.push(error);
+    }
+    this.failAfterPass(errors);
+  }
+  private async reconcileOwned(ticketId?: string) {
+    const errors: unknown[] = [];
+    for (const local of await this.store.all<BridgeRecord>()) {
+      if (!local.attemptId || (ticketId && local.command.ticketId !== ticketId)) continue;
+      try {
+        const record = await this.options.journal.byInstance(local.input.processInstanceId);
+        if (!record) throw new Error('PROCESS_UNKNOWN');
+        // A validated immutable receipt already settled this history under its original binding.
+        if (await this.options.journal.pinRetirement(record)) continue;
+        const attempt = await this.current(local);
+        const observation = await this.options.journal.observe(record);
+        if (observation === 'unknown') throw new Error('PROCESS_UNKNOWN');
+        if (observation === 'running' && attempt.state === 'uncertain')
+          await this.reconcileObservation(local, attempt, 'running', null);
+        if (observation === 'stopped' && attempt.state !== 'stopped')
+          await this.reconcileObservation(local, attempt, 'stopped', local.stopReason ?? 'exit');
+        if (observation === 'stopped' && attempt.state === 'stopped' && attempt.finalizedAt)
+          await this.retire(local.command.id);
+      } catch (error) {
+        await this.recordFailure(local.command.id, error);
+        errors.push(error);
+      }
+    }
+    this.failAfterPass(errors);
+  }
+  /** Trusted composition: no caller-supplied proof. Lock order connection -> bridge -> journal.
+   * Observe/reconcile can write the journal, so both finish before its admission barrier. */
+  async withBootReconciliation<T>(
+    transition: { hostRoot: string; priorBootId: string; priorGeneration: string; nextBootId: string },
+    commit: (receipt: unknown) => Promise<T>,
+  ): Promise<T> {
+    if (transition.hostRoot !== dirname(this.store.root)) throw new Error('BOOT_ROOT_MISMATCH');
+    return this.store.transaction(async () => {
+      // Per-record failures are persisted. The complete accounting below decides admissibility.
+      try {
+        await this.reconcileOwned();
+      } catch {
+        /* UNKNOWN may be accounted without a STOP. */
+      }
+      const records = await this.options.journal.processes();
+      const observations = new Map<string, 'running' | 'stopped' | 'unknown'>();
+      for (const record of records) {
+        if (!(await this.options.journal.pinRetirement(record)))
+          observations.set(record.launchId, await this.options.journal.observe(record));
+      }
+      const snapshot = await this.options.journal.processes();
+      if (
+        !same(
+          records.map((record) => record.launchId).sort(),
+          snapshot.map((record) => record.launchId).sort(),
+        )
+      )
+        throw new Error('BOOT_RECONCILIATION_CHANGED');
+      return this.options.journal.withPinAdmissionBarrier(this.options.registry.root, async () => {
+        if (
+          !same(snapshot, await this.options.journal.processes()) ||
+          (await this.options.journal.pendingPinAdmissions()).length
+        )
+          throw new Error('BOOT_RECONCILIATION_CHANGED');
+        const entries: unknown[] = [];
+        for (const record of snapshot) {
+          const retired = await this.options.journal.pinRetirement(record);
+          if (retired) {
+            entries.push({ category: 'retired', receipt: retired });
+            continue;
+          }
+          const local = await this.local(record.commandId);
+          if (
+            !local.attemptId ||
+            local.input.processInstanceId !== record.processInstanceId ||
+            !same(local.input.source, record.source) ||
+            !same(local.input.projection, record.projection)
+          )
+            throw new Error('BOOT_UNACCOUNTED_LAUNCH');
+          const attempt = await this.current(local);
+          if (!record.authorization || !same(record.authorization, this.expectedCompanion(local, attempt)))
+            throw new Error('BOOT_AUTHORIZATION_MISMATCH');
+          const observation = observations.get(record.launchId);
+          const category =
+            observation === 'unknown' && ['active', 'uncertain'].includes(attempt.state)
+              ? 'retained-unknown'
+              : observation === 'running' && attempt.state === 'active'
+                ? 'running'
+                : observation === 'stopped' &&
+                    attempt.stoppedAt &&
+                    ['stopped', 'finalizing'].includes(attempt.state)
+                  ? 'stopped'
+                  : null;
+          if (!category) throw new Error('BOOT_RECONCILIATION_REQUIRED');
+          entries.push({ category, record, attempt });
+        }
+        return commit({
+          formatVersion: 1,
+          machineId: this.options.machineId,
+          ...transition,
+          entries,
+          observedAt: new Date().toISOString(),
+        });
+      });
+    });
   }
   private async ackTicket(id: string, phase: 'received' | 'completed') {
     await mutate(
