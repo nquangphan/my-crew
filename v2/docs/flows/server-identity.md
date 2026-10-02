@@ -21,6 +21,8 @@ Flow này xác thực một owner đã bootstrap, cấp token mới cho máy mac
 6. `server/src/projects/service.ts` → `bindProject`: khóa dòng project, kiểm tra revision và máy còn hiệu lực, gọi guard trong cùng transaction nếu project đã gắn máy, cập nhật một machineId/checkoutPath, xóa commit checkout cũ và tăng bindingRevision; phát `project.bound` chỉ có machineId và bindingRevision. Chữ ký ba tham số mặc định từ chối gắn lại; tham số guard thứ tư tùy chọn cho Task5 kiểm tra attempt `active`, `uncertain`, `finalizing` sau khi các bảng đó có mặt.
 7. `server/src/projects/service.ts` → `projectEventScope`: nhận `Db | Tx` để journal đọc binding và event trong cùng transaction snapshot; máy chỉ đọc sự kiện của project gắn với máy tại snapshot đó, owner đọc toàn bộ. Danh sách project dùng ID cursor, tối đa 100 mục/trang.
 
+8. `server/src/auth/routes.ts` → `authenticateCurrentCredential`: Reader nhận Db|Tx, recheck session expiry/revocation hoặc bearer token hiện hành trong snapshot đọc event. projectEventScope từ chối máy đã thu hồi cả audience targeted. registerProjectRoutes có callback docsState tùy chọn, app nối readProjectDocsState cho GET list/detail; signature cũ và default missing của fixture producer giữ nguyên.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |

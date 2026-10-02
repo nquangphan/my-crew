@@ -141,6 +141,8 @@ export async function projectEventScope(
   actor: Actor,
 ): Promise<{ projectIds: Id[]; allowGlobal: boolean }> {
   if (actor.kind === 'owner') return { projectIds: [], allowGlobal: true };
+  const [machine] = await db`select id from machines where id=${actor.id} and revoked_at is null`;
+  if (!machine) throw new ApiError('UNAUTHENTICATED', 401, 'Cần xác thực máy');
   const rows = await db`select id from projects where machine_id=${actor.id} order by id`;
   return { projectIds: rows.map((row) => row.id as Id), allowGlobal: false };
 }

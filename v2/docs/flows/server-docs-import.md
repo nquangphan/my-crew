@@ -27,6 +27,8 @@ Giữ nguyên byte của tài liệu nhập từ Crew v1, phân biệt tài li�
 10. `server/scripts/docs-import.ts` → `verifyBackupBundle`: băm byte manifest JSON gốc, so inventory commit/path/hash/size/class, kiểm tra source backup và mọi file export dưới `projects/<legacyProjectId>/<doc path>` tính từ thư mục manifest. Từ chối symlink ở mọi thành phần đường dẫn backup. Không đọc v1 DB hoặc credential.
 11. `server/scripts/docs-import.ts` → `runDocsImport`: nhận duy nhất `--bundle`, `--backup-manifest`, `--dry-run`. Dry-run chỉ xuất counts/checksums/số vi phạm, không ghi hoặc gọi mạng. Upload đọc session cookie và CSRF từ env/stdin, gửi Origin chính xác và idempotency key theo bundle SHA; chỉ HTTPS hoặc HTTP loopback, không theo redirect, không in secret hay response body.
 
+8. `server/src/docs/routes.ts` → `registerDocsRoutes`: Assembly bổ sung owner-only POST /v2/docs/imports và machine POST /v2/projects/:id/docs/sync, bodyLimit JSON24MiB. Import validate exact transport trước mutator; sync authorizeDocsSync(tx) trước cả cached replay, giữ receipt immutable/input hash và trạng thái unverified của producer. Tree/search dùng snapshot mới nhất; completion reader riêng không nâng imported/synced audit thành verified.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò | Symbol chính |

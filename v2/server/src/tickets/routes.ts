@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type { Actor, Id, RouteDependencies, ServerOptions } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
+import { authorizeTicketMutation } from './authorization.ts';
 import type {
   CreateTicket,
   DecisionInput,
@@ -181,7 +182,14 @@ export function registerTicketRoutes(
       const actor = await writeActor(request, deps);
       const body = { ...request.body, workflowPin: request.body.workflowPin ?? null };
       const result = await deps.mutator(
-        { actor, route: route('POST', '/v2/tickets'), key: key(request), body },
+        {
+          actor,
+          route: route('POST', '/v2/tickets'),
+          key: key(request),
+          body,
+          authorize: (tx) =>
+            authorizeTicketMutation(tx, actor, { projectId: body.projectId, parentId: body.parentId }),
+        },
         async (tx) => ({ status: 201, body: await services.createTicket(tx, body, actor) }),
       );
       reply.status(result.status);
@@ -254,6 +262,7 @@ export function registerTicketRoutes(
           route: route('POST', `/v2/tickets/${id}/dependencies`),
           key: key(request),
           body: request.body,
+          authorize: (tx) => authorizeTicketMutation(tx, actor, { ticketId: id }),
         },
         async (tx) => {
           await requireTicket(tx, id, actor);
@@ -283,7 +292,13 @@ export function registerTicketRoutes(
     const actor = await writeActor(request, deps);
     const id = request.params.id;
     const result = await deps.mutator(
-      { actor, route: route('POST', `/v2/tickets/${id}/signals`), key: key(request), body: request.body },
+      {
+        actor,
+        route: route('POST', `/v2/tickets/${id}/signals`),
+        key: key(request),
+        body: request.body,
+        authorize: (tx) => authorizeTicketMutation(tx, actor, { ticketId: id }),
+      },
       async (tx) => ({
         status: 200,
         body: await services.signalTicket(
@@ -306,7 +321,13 @@ export function registerTicketRoutes(
       const actor = await writeActor(request, deps);
       const id = request.params.id;
       const result = await deps.mutator(
-        { actor, route: route('POST', `/v2/tickets/${id}/comments`), key: key(request), body: request.body },
+        {
+          actor,
+          route: route('POST', `/v2/tickets/${id}/comments`),
+          key: key(request),
+          body: request.body,
+          authorize: (tx) => authorizeTicketMutation(tx, actor, { ticketId: id }),
+        },
         async (tx) => ({ status: 201, body: await services.appendComment(tx, id, request.body.text, actor) }),
       );
       reply.status(result.status);
@@ -353,7 +374,13 @@ export function registerTicketRoutes(
       const actor = await writeActor(request, deps);
       const id = request.params.id;
       const result = await deps.mutator(
-        { actor, route: route('POST', `/v2/tickets/${id}/decisions`), key: key(request), body: request.body },
+        {
+          actor,
+          route: route('POST', `/v2/tickets/${id}/decisions`),
+          key: key(request),
+          body: request.body,
+          authorize: (tx) => authorizeTicketMutation(tx, actor, { ticketId: id }),
+        },
         async (tx) => ({
           status: 201,
           body: { id: await services.recordDecision(tx, id, request.body, actor) },
@@ -412,6 +439,7 @@ export function registerTicketRoutes(
           route: route('POST', `/v2/tickets/${id}/repair-results`),
           key: key(request),
           body: request.body,
+          authorize: (tx) => authorizeTicketMutation(tx, actor, { ticketId: id }),
         },
         async (tx) => ({
           status: 200,
@@ -429,7 +457,13 @@ export function registerTicketRoutes(
       const actor = await writeActor(request, deps);
       const id = request.params.id;
       const result = await deps.mutator(
-        { actor, route: route('PUT', `/v2/tickets/${id}/docs-links`), key: key(request), body: request.body },
+        {
+          actor,
+          route: route('PUT', `/v2/tickets/${id}/docs-links`),
+          key: key(request),
+          body: request.body,
+          authorize: (tx) => authorizeTicketMutation(tx, actor, { ticketId: id }),
+        },
         async (tx) => ({
           status: 200,
           body: await services.linkDocs(

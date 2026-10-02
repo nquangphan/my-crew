@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { RouteDependencies, ServerOptions } from '../platform/contracts.ts';
+import type { Db, Id, RouteDependencies, ServerOptions } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
 import {
   type Binding,
@@ -40,6 +40,7 @@ export function registerProjectRoutes(
   options: ServerOptions,
   deps: RouteDependencies,
   bindingGuard: BindingGuard,
+  docsState?: (db: Db, projectId: Id) => Promise<import('./service.ts').Project['docsState']>,
 ): void {
   app.get<{ Querystring: { limit?: string; cursor?: string } }>(
     '/v2/projects',
@@ -57,7 +58,9 @@ export function registerProjectRoutes(
       const limit = request.query.limit === undefined ? 50 : Number(request.query.limit);
       if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
         throw new ApiError('LIMIT_INVALID', 400, 'Giới hạn không hợp lệ');
-      return listProjects(options.db, limit, request.query.cursor ?? null);
+      const result = await listProjects(options.db, limit, request.query.cursor ?? null);
+      if (docsState) for (const item of result.items) item.docsState = await docsState(options.db, item.id);
+      return result;
     },
   );
   app.get<{ Params: { id: string } }>(
@@ -69,7 +72,9 @@ export function registerProjectRoutes(
     },
     async (request) => {
       await deps.auth.requireOwner(request, { csrf: false });
-      return getProject(options.db, request.params.id);
+      const result = await getProject(options.db, request.params.id);
+      if (docsState) result.docsState = await docsState(options.db, result.id);
+      return result;
     },
   );
   app.post<{ Body: CreateProject }>(

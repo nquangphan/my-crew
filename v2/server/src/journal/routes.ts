@@ -1,6 +1,6 @@
 import { setTimeout as delay } from 'node:timers/promises';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { RouteDependencies, ServerOptions } from '../platform/contracts.ts';
+import type { Actor, Db, RouteDependencies, ServerOptions, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
 import { type EventScopeReader, parseCursor, readEvents } from './events.ts';
 
@@ -42,9 +42,25 @@ export function registerEventRoutes(
   options: ServerOptions,
   deps: RouteDependencies,
   scope: EventScopeReader,
+  currentCredential?: (db: Db | Tx, request: FastifyRequest) => Promise<Actor>,
 ): void {
+  const requestScope =
+    (request: FastifyRequest, actor: Actor): EventScopeReader =>
+    async (db, expected) => {
+      const current = currentCredential
+        ? await currentCredential(db, request)
+        : await deps.auth.authenticate(request);
+      if (
+        current.kind !== actor.kind ||
+        current.id !== actor.id ||
+        current.kind !== expected.kind ||
+        current.id !== expected.id
+      )
+        throw new ApiError('UNAUTHENTICATED', 401, 'Phiên đã thay đổi');
+      return scope(db, current);
+    };
   const streams = new Set<FastifyRequest['raw']['socket']>();
-  app.addHook('onClose', async () => {
+  app.addHook('preClose', async () => {
     for (const socket of streams) socket.destroy();
     streams.clear();
   });
@@ -54,7 +70,7 @@ export function registerEventRoutes(
     assertAllowedQuery(request, false);
     const after = requestedCursor(request, false);
     const limit = requestedLimit(request);
-    const items = await readEvents(options.db, actor, after, limit, scope);
+    const items = await readEvents(options.db, actor, after, limit, requestScope(request, actor));
     return { items, cursor: items.at(-1)?.cursor ?? after };
   });
 
@@ -89,7 +105,7 @@ export function registerEventRoutes(
     let lastHeartbeat = Date.now();
     try {
       while (!abort.signal.aborted) {
-        const batch = await readEvents(options.db, actor, cursor, 100, scope);
+        const batch = await readEvents(options.db, actor, cursor, 100, requestScope(request, actor));
         for (const event of batch) {
           if (abort.signal.aborted) break;
           const packet = `id: ${event.cursor}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
@@ -104,7 +120,11 @@ export function registerEventRoutes(
         await delay(1000, undefined, { signal: abort.signal });
       }
     } catch (error) {
-      if (!abort.signal.aborted) request.log.error(error, 'event stream stopped');
+      if (!abort.signal.aborted)
+        request.log.info(
+          { code: error instanceof ApiError ? error.code : 'STREAM_STOPPED' },
+          'Luồng sự kiện đã dừng',
+        );
     } finally {
       close();
       if (!reply.raw.destroyed) reply.raw.end();

@@ -21,6 +21,8 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 7. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 lưu cycle đang chờ duyệt và thời điểm, lý do `repair_limit`, gọi authority lưu ý định/command dừng. Nếu host đã xác nhận dừng, authority có thể finalize ngay thành `needs_input`; bản ghi repair chỉ cập nhật counter/reason/revision, không ghi đè status bằng snapshot `running` cũ. `owner_answer` phải cùng cycle, ghi sau thất bại; `resume` tiêu quyết định một lần dưới khóa root/step, giữ counter 5.
 8. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
 
+8. `server/src/tickets/authorization.ts` → `authorizeTicketMutation`: Mọi ticket mutation create/dependencies/signals/comments/decisions/repair-results/docs-links có authorize(tx) trước cached replay; helper khóa root/ticket/project rồi kiểm tra machine hiện hành dưới FOR SHARE. Rebind/thu hồi commit trước guard khiến replay scoped 404. App nối execution authority và docs source/completion readers. HTTP acceptance kiểm tra mọi family, race hai pool và lần repair thứ năm giữ guard đến physical stop.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |
@@ -34,6 +36,7 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 | `server/src/tickets/completion.ts` | Sự thật hoàn tất từ DB/reader |
 | `server/src/tickets/repair.ts` | Kết quả kiểm tra và tối đa năm vòng sửa |
 | `server/src/tickets/docs-links.ts` | Liên kết ticket với snapshot đã xác minh |
+| `server/src/tickets/authorization.ts` | Tx scope/current machine guard trước cached replay |
 | `server/src/tickets/routes.ts` | HTTP validation, scope và idempotency |
 | `server/test/support/tickets.ts` | Fixture dự án/ticket qua service và mutator |
 | `server/test/tickets.test.ts` | Schema, route, quyết định và liên kết docs |

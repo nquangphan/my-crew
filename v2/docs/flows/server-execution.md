@@ -18,6 +18,8 @@ Server lưu lệnh và attempt theo máy đang gắn với dự án. Một ticke
 5. `server/src/execution/attempts.ts` → `finalizeAttempt` chỉ giải phóng guard sau khi có stop proof và terminal intent hợp lệ. Kết quả complete/retry gọi `verifyFinalResult`; mặc định `denyFinalResult` giữ `finalizing`. Complete còn đi qua `readCompletionFacts` và `TicketServices.applyExecutionSignal` để kiểm tra bằng chứng/merge/docs. Pause, cancel, needs input cũng dùng chuyển trạng thái nội bộ của ticket. Event chỉ chứa ID, fence, sequence hoặc tín hiệu, không có checkpoint/result/decision text.
 6. `server/src/execution/commands.ts` → `readCommand`, `ackCommand`, `authorizeCommandMutation`, `authorizeCreateCommandMutation` và `server/src/execution/attempts.ts` → `readAttempt`, `authorizeAttemptMutation` kiểm tra revocation và binding revision hiện tại. Route truyền callback phân quyền vào journal để khóa scope trong cùng transaction trước khi tra idempotency cache; cùng máy đổi checkout/revision không nhận replay cũ. `ackCommand` hoàn thành lệnh không tự xác nhận tiến trình đã dừng.
 
+8. `server/src/app.ts` → `buildApp`: Assembly nối createExecutionAuthority, assertNoActiveProjectExecution và docsCompletionReader vào route factories. Main không cấp authority dispatch/final verification nên mặc định fail closed. HTTP test chạy ACK không chứng minh stop, checkpoint/reconcile/restart/restore, reported evidence giữ finalizing guard đến attestation nghiên cứu do test tin cậy, lần repair5 và old-machine replay.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |

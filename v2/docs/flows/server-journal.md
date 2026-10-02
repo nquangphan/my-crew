@@ -18,6 +18,8 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
 4. `server/src/journal/events.ts` → `readEvents`: đọc scope và event trong cùng transaction `REPEATABLE READ READ ONLY`, tránh lấy binding cũ rồi thấy event mới sau một rebind. Event được trả sau cursor theo thứ tự tăng. Owner đọc toàn bộ; máy chỉ đọc project được `EventScopeReader` cấp và event gửi đích danh máy đó. Event gửi máy khác không lọt qua project scope. Phase 02 giữ journal vô hạn.
 5. `server/src/journal/routes.ts` → `registerEventRoutes`: xác thực trước khi đọc hoặc mở stream. `GET /v2/events` trả `{items,cursor}`; cursor là event cuối trang hoặc cursor đầu vào khi trang rỗng. SSE lấy `Last-Event-ID` khi nối lại, đọc hết backlog theo trang rồi poll mỗi giây; heartbeat 15 giây. Socket chậm vượt 64 KiB bị đóng để client phát lại từ cursor cuối; socket đóng hoặc app shutdown dừng vòng poll.
 
+8. `server/src/journal/routes.ts` → `registerEventRoutes`: Tham số currentCredential tùy chọn cho assembly recheck actual credential trong cùng repeatable-read snapshot với scope/events, mỗi backlog page/poll; stream owner hết hạn/machine thu hồi bị đóng. Hook preClose phá socket SSE trước server shutdown; log stream chỉ code, không ghi raw error. HTTP acceptance chứng minh revocation/expiry không phát event mới, race snapshot và shutdown.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |

@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import type { Actor, Db, RouteDependencies, ServerOptions } from '../platform/contracts.ts';
+import type { Actor, Db, RouteDependencies, ServerOptions, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
 import { provisionMachine } from './machine.ts';
 import { verifyPassword } from './password.ts';
@@ -236,4 +236,28 @@ export function registerAuthRoutes(
       };
     },
   );
+}
+
+/** Recheck the actual request credential inside the same snapshot that reads event scope/data. */
+export async function authenticateCurrentCredential(
+  db: Db | Tx,
+  request: FastifyRequest,
+  now: Date,
+): Promise<Actor> {
+  const [owner] = await db`select 1 from owners where id='owner'`;
+  if (!owner) throw new ApiError('OWNER_NOT_BOOTSTRAPPED', 503, 'Chủ dự án chưa được khởi tạo');
+  if (request.headers.authorization) {
+    const token = sessionRegex.exec(request.headers.authorization)?.[1];
+    if (!token) throw new ApiError('UNAUTHENTICATED', 401, 'Cần xác thực máy');
+    const [machine] =
+      await db`select id from machines where token_hash=${sha256(token)} and revoked_at is null`;
+    if (!machine) throw new ApiError('UNAUTHENTICATED', 401, 'Cần xác thực máy');
+    return { kind: 'machine', id: machine.id as string };
+  }
+  const secret = readSessionCookie(request);
+  if (!secret) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
+  const [session] =
+    await db`select 1 from sessions where id_hash=${sha256(secret)} and revoked_at is null and expires_at>${now}`;
+  if (!session) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
+  return ownerActor;
 }

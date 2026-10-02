@@ -110,6 +110,7 @@ flows:
       - server/src/tickets/repair.ts
       - server/src/tickets/service.ts
       - server/migrations/004_tickets.sql
+      - server/src/tickets/authorization.ts
     tests:
       - server/test/tickets.test.ts
       - server/test/dependencies.test.ts
@@ -189,5 +190,19 @@ flows:
       - server/test/attempts.test.ts
       - server/test/execution-events.unit.test.ts
       - server/test/support/execution.ts
+  server-docs-view:
+    title: Đọc tài liệu và tích hợp HTTP Crew v2
+    doc: docs/flows/server-docs-view.md
+    entrypoints:
+      - server/src/app.ts
+      - server/src/docs/routes.ts
+    files:
+      - server/src/main.ts
+      - server/src/docs/read.ts
+      - server/src/docs/search.ts
+    tests:
+      - server/test/docs-read.test.ts
+      - server/test/api-acceptance.test.ts
+      - server/test/support/http.ts
 shared: {}
 unassigned: []

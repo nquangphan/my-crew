@@ -22,6 +22,8 @@
 5. `server/scripts/test-db.ts` → khởi chạy `postgres:18.6` không volume, publish cổng ngẫu nhiên trên `127.0.0.1`, chờ `pg_isready` tối đa 30 giây, chuyển URL test cho `node:test`. Mặc định runner tự chọn file `test/*.test.ts`; probe có thể truyền `--test-file` với đường dẫn tuyệt đối đến đúng một fixture riêng. Test child chạy trong process group riêng; khi nhận SIGINT/SIGTERM, runner gửi tín hiệu cho group, sau 750 ms cưỡng chế SIGKILL và chờ reap thêm tối đa 750 ms, rồi dừng đúng container đã tạo. Đường test thoát bình thường giữ exit code của `node:test`.
 6. `server/scripts/test-db-signals.mjs` → tạo fixture `.mjs` trong thư mục scratch riêng, không thêm file vào `server/test/`. Fixture ghi container ID chính xác từ `CREW_V2_TEST_CONTAINER_ID` vào readiness file; preload ghi PID direct child. Probe chỉ dọn các PID/ID nhận từ chính lượt này. Một lượt đặt test child vào trạng thái `SIGSTOP` để kiểm tra đường cưỡng chế khi child không thể tự thoát. Probe xác minh process, descendant và container riêng đã dừng trong 4 giây; tài nguyên tạm được dọn trong `finally`.
 
+8. `server/src/main.ts` → `main`: Entrypoint gọi loadConfig với CREW_V2_PORT mặc định8792, bind127.0.0.1, giữ default8788 của config producer ngoài main. buildApp không migrate/listen/pool shutdown; main sở hữu pool và đóng qua signal. HTTP test build trên prefix1 xác nhận schema không tự migrate/listen, DB error trả503 chung và import main không chạy side effect.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |
