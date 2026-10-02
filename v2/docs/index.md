@@ -2,8 +2,9 @@
 
 ## Mục đích
 
-`@crew-v2/domain` là thư viện miền độc lập để kiểm chứng quy tắc ticket, điều kiện chọn model và workflow,
-cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 gọi các hàm thuần trong thư viện này. Package `server/` độc lập đã có migration 001–006 và HTTP cho xác thực, project, ticket, execution journal, import/read/search tài liệu; phần 02 đã qua review. Quyền dispatch và xác nhận kết quả production vẫn chờ producer ở phần 06/08. `gateway/` và `desktop/` là cổng macOS đang được xây theo phần 03; registry nguồn và projection được kiểm riêng với runtime certification.
+`@crew-v2/domain` là thư viện miền độc lập cho ticket, chọn model, workflow và điều kiện hoàn tất docs. `server/` là API/database v2 riêng; phần02 đã review các migration001–006 và xác thực, project, ticket, execution journal, import/read/search docs. Gateway control plane007 và model pool/provisioning008 đã qua review độc lập. Schema/storage attachment009 có candidate, đang sửa hai finding sau full review; chưa nghiệm thu public attachment API hay extraction.
+
+`gateway/` và `desktop/` cung cấp host macOS độc lập cửa sổ UI. Host/journal/resource registry và workflow source/projection registry đã qua review. Bridge đồng bộ/thực thi ở candidate9182e89 đang full review; model inventory/broker/current credential binding đang hoàn tất candidate. Các class chưa được nối đầy đủ vào host composition. Checksum và test protocol không cấp chứng nhận runtime isolation/live/Keychain/signing. Dispatch production và xác nhận kết quả vẫn mặc định từ chối đến producer phần06/08. Web v2 đang chờ duyệt prototype; Assistant, integration và signed updater chưa triển khai. Lộ trình và trạng thái chi tiết ở `plans/261002-0002-crew-v2/plan.md` từ repo root.
 
 ## Stack
 
@@ -18,7 +19,9 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g�
 |---------|---------|
 | `src/` | Bốn policy thuần cho chọn model, workflow, chuyển trạng thái ticket và hoàn tất |
 | `test/` | Kiểm thử hành vi và tính độc lập của workspace |
-| `server/` | Nền tảng DB server độc lập, migration có checksum và fixture PostgreSQL riêng |
+| `server/` | API/DB v2 riêng, migration có checksum; fixtures PostgreSQL riêng, không dùng DB v1 |
+| `gateway/` | Host/journal/workflow registry, bridge và model broker theo các gate review riêng |
+| `desktop/` | Cửa sổ Electron mỏng, kết nối host qua IPC; không sở hữu job |
 | `docs/` | Kiến trúc, manifest flow và bảng tra file |
 
 ## Danh sách flow
