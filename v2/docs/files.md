@@ -38,6 +38,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/src/resources/registry.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/telemetry/capacity.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/telemetry/macos-provider.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/workflows/audit.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/src/workflows/fetch.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/src/workflows/pins.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/src/workflows/registry.ts` | [gateway-workflows](flows/gateway-workflows.md) (điểm vào) |
+| `gateway/src/workflows/stage.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/test/fixtures/workflows/bmad-6.12.0.tgz` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+| `gateway/test/fixtures/workflows/official-audits.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+| `gateway/test/fixtures/workflows/superpowers-6.4.2.tgz` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/host-failures.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/host-lifecycle.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/http-operations.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
@@ -47,7 +55,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/support/journal-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/owned-run.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/ui-client.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/support/workflow-archives.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/telemetry.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/workflow-registry.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/tsconfig.build.json` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/tsconfig.json` | [gateway-host](flows/gateway-host.md) (file) |
 | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |

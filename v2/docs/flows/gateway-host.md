@@ -54,6 +54,8 @@ Native helper development chỉ compile bằng `/usr/bin/clang` đã có vào ca
 
 `GatewayStatus` có `bootId`, `bootGeneration`, `serverConnection`, desired/applied revision, trạng thái source/projection cho BMAD và Superpowers, process đang chạy/chưa chắc chắn, thời điểm telemetry và quyền dịch vụ nền. Lúc này `bootGeneration`, cả hai revision và telemetry là `null`; connection là `unconfigured`, các slot là `missing`. Host không chứa token server, không claim ticket và không gọi model. Token IPC chỉ nằm trong thư mục riêng, không trả cho renderer.
 
+Dependency gateway được ghim `tar-stream@3.1.7` và `@types/tar-stream@3.1.4` trong package/lock riêng. Registry workflow dùng parser streaming này để kiểm archive trước publish; không tự chạy installer hoặc nhập dependency global. Hành vi nguồn/projection và retention được mô tả trong flow `gateway-workflows`.
+
 ## Flow liên quan
 
 `desktop-shell` kết nối IPC; consumer reconnect/workflow/sync phase03 sẽ gắn các journal/capacity/registry vào host và cung cấp dữ liệu thực cho DTO. Bản build development dùng Node của môi trường v2. Bản app ký, private Node đóng gói và đăng ký dịch vụ nền bền vững qua ServiceManagement thuộc phase09; không tự đăng ký nhãn của owner khi build/test.

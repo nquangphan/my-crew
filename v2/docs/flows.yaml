@@ -204,5 +204,21 @@ flows:
       - server/test/docs-read.test.ts
       - server/test/api-acceptance.test.ts
       - server/test/support/http.ts
+  gateway-workflows:
+    title: Registry workflow ghim nguồn và runtime projection
+    doc: docs/flows/gateway-workflows.md
+    entrypoints:
+      - gateway/src/workflows/registry.ts
+    files:
+      - gateway/src/workflows/audit.ts
+      - gateway/src/workflows/fetch.ts
+      - gateway/src/workflows/pins.ts
+      - gateway/src/workflows/stage.ts
+    tests:
+      - gateway/test/workflow-registry.test.ts
+      - gateway/test/support/workflow-archives.ts
+      - gateway/test/fixtures/workflows/bmad-6.12.0.tgz
+      - gateway/test/fixtures/workflows/official-audits.json
+      - gateway/test/fixtures/workflows/superpowers-6.4.2.tgz
 shared: {}
 unassigned: []

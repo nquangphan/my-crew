@@ -1,0 +1,149 @@
+{
+  "bmad": {
+    "source": {
+      "pin": {
+        "name": "bmad",
+        "version": "6.12.0",
+        "sourceRevision": "05bfbd46d00766ec88eb9b42e76be2c575d64d7b",
+        "sourceUrl": "https://registry.npmjs.org/bmad-method/-/bmad-method-6.12.0.tgz",
+        "payloadSha256": "ac05c93f0b3c4256bb4072e6e1ff181eaad6cc0a64a27a63893bfb2b0b64aed2",
+        "packageIntegrity": "sha512-gbbHo32TxCPwo4Yy70kqykFRwN5UdYqfnDKTsKAsF9m5qtLeoiCgEawj/LuzLBHLrYA0WTOyL/XWtXpgyDonMQ==",
+        "sourceManifestSha256": "bf966209b9abf05b2585a1225f6c176d1aaa9f0262248282adc5bad6b78bef68",
+        "sourceTreeSha256": "45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317"
+      },
+      "executables": [
+        "tools/installer/bmad-cli.js",
+        "tools/format-workflow-md.js",
+        "tools/migrate-custom-module-paths.js",
+        "tools/installer/yaml-format.js",
+        "src/scripts/resolve_customization.py",
+        "tools/validate-svg-changes.sh"
+      ]
+    },
+    "projections": {
+      "claude": null,
+      "codex": null,
+      "api": null
+    }
+  },
+  "superpowers": {
+    "source": {
+      "pin": {
+        "name": "superpowers",
+        "version": "6.4.2",
+        "sourceRevision": "8ca22dba9a94f28898bbce59f2537ff4d87c747d",
+        "sourceUrl": "https://codeload.github.com/obra/superpowers/tar.gz/8ca22dba9a94f28898bbce59f2537ff4d87c747d",
+        "payloadSha256": "29714b2c4c727ecc6600f9e5982a0dcbb829860ba79626f1941a0f233e85331a",
+        "packageIntegrity": null,
+        "sourceManifestSha256": "e5cf239cc4fd5757338fb435de881d6246948cd1d902fa21b4498a63d5a10dc2",
+        "sourceTreeSha256": "76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46"
+      },
+      "executables": [
+        "hooks/run-hook.cmd",
+        "hooks/session-start",
+        "scripts/bump-version.sh",
+        "scripts/lint-shell.sh",
+        "scripts/package-codex-plugin.sh",
+        "scripts/sync-to-codex-plugin.sh",
+        "skills/brainstorming/scripts/start-server.sh",
+        "skills/brainstorming/scripts/stop-server.sh",
+        "skills/executing-plans/scripts/task-done",
+        "skills/executing-plans/scripts/task-start",
+        "skills/subagent-driven-development/scripts/review-package",
+        "skills/subagent-driven-development/scripts/sdd-workspace",
+        "skills/subagent-driven-development/scripts/task-brief",
+        "skills/systematic-debugging/find-polluter.sh",
+        "skills/writing-skills/render-graphs.js",
+        "tests/antigravity/run-tests.sh",
+        "tests/antigravity/test-antigravity-tools.sh",
+        "tests/brainstorm-server/stop-server.test.sh",
+        "tests/brainstorm-server/windows-lifecycle.test.sh",
+        "tests/claude-code/analyze-token-usage.py",
+        "tests/claude-code/run-skill-tests.sh",
+        "tests/claude-code/test-executing-plans-scripts.sh",
+        "tests/claude-code/test-helpers.sh",
+        "tests/claude-code/test-sdd-workspace.sh",
+        "tests/claude-code/test-subagent-driven-development-integration.sh",
+        "tests/claude-code/test-subagent-driven-development.sh",
+        "tests/claude-code/test-worktree-native-preference.sh",
+        "tests/claude-code/test-worktree-path-policy.sh",
+        "tests/codex-plugin-sync/test-sync-to-codex-plugin.sh",
+        "tests/codex/test-marketplace-manifest.sh",
+        "tests/codex/test-package-codex-plugin.sh",
+        "tests/devin/test-devin-plugin.sh",
+        "tests/diagnosing-superpowers/test-skill-structure.sh",
+        "tests/explicit-skill-requests/run-all.sh",
+        "tests/explicit-skill-requests/run-extended-multiturn-test.sh",
+        "tests/explicit-skill-requests/run-haiku-test.sh",
+        "tests/explicit-skill-requests/run-multiturn-test.sh",
+        "tests/explicit-skill-requests/run-test.sh",
+        "tests/hooks/test-session-start.sh",
+        "tests/kimi/run-tests.sh",
+        "tests/kimi/test-plugin-manifest.sh",
+        "tests/opencode/run-tests.sh",
+        "tests/opencode/setup.sh",
+        "tests/opencode/test-bootstrap-caching.sh",
+        "tests/opencode/test-plugin-loading.sh",
+        "tests/opencode/test-priority.sh",
+        "tests/opencode/test-session-bootstrap.sh",
+        "tests/opencode/test-skill-registration.sh",
+        "tests/opencode/test-tools.sh",
+        "tests/systematic-debugging/test-find-polluter.sh",
+        "tests/writing-skills/test-render-graphs.sh"
+      ]
+    },
+    "projections": {
+      "claude": {
+        "sourceTreeSha256": "76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46",
+        "runtime": "claude",
+        "recipe": {
+          "tool": "crew-reviewed-official-layout-copy",
+          "version": "1",
+          "options": [
+            "claude-plugin-dir"
+          ],
+          "layoutSchema": "superpowers-claude-plugin-v1",
+          "policySha256": "552a23187fa99ddefb9a4c82fccf2b653e5e9e8f13bfd0a9eecf6913cf8eb4aa",
+          "officialEntrypoints": [
+            ".claude-plugin/plugin.json",
+            "skills/using-superpowers/SKILL.md",
+            "hooks/hooks.json",
+            "hooks/session-start",
+            "hooks/run-hook.cmd"
+          ]
+        },
+        "expected": {
+          "runtime": "claude",
+          "sourceTreeSha256": "76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46",
+          "manifestSha256": "b87eaf7d6404ed4fd92650e98d3f20a3060a18de6a3192781de4f1f2871b0347",
+          "derivation": {
+            "tool": "crew-reviewed-official-layout-copy",
+            "version": "1",
+            "options": [
+              "claude-plugin-dir"
+            ],
+            "layoutSchema": "superpowers-claude-plugin-v1",
+            "policySha256": "552a23187fa99ddefb9a4c82fccf2b653e5e9e8f13bfd0a9eecf6913cf8eb4aa"
+          },
+          "treeSha256": "2cc167b34d987b4c87b8b311434cad0131213d53dbdf5552f4c7d9e3de70d3f4"
+        },
+        "mappings": [
+          {
+            "from": ".claude-plugin/plugin.json",
+            "to": ".claude-plugin/plugin.json"
+          },
+          {
+            "from": "skills",
+            "to": "skills"
+          },
+          {
+            "from": "hooks",
+            "to": "hooks"
+          }
+        ]
+      },
+      "codex": null,
+      "api": null
+    }
+  }
+}

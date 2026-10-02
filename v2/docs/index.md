@@ -3,7 +3,7 @@
 ## Mục đích
 
 `@crew-v2/domain` là thư viện miền độc lập để kiểm chứng quy tắc ticket, điều kiện chọn model và workflow,
-cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 gọi các hàm thuần trong thư viện này. Package `server/` độc lập bổ sung nền tảng PostgreSQL, cấu hình, migration và fixture kiểm thử; các route nghiệp vụ đang được xây theo kế hoạch phần 02.
+cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 gọi các hàm thuần trong thư viện này. Package `server/` độc lập đã có migration 001–006 và HTTP cho xác thực, project, ticket, execution journal, import/read/search tài liệu; phần 02 đã qua review. Quyền dispatch và xác nhận kết quả production vẫn chờ producer ở phần 06/08. `gateway/` và `desktop/` là cổng macOS đang được xây theo phần 03; registry nguồn và projection được kiểm riêng với runtime certification.
 
 ## Stack
 
@@ -29,6 +29,7 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g�
 | [Giao diện cổng Crew v2 trên macOS](flows/desktop-shell.md) | `desktop-shell` | `desktop/src/main/index.ts` |
 | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
 | [Host cổng macOS Crew v2](flows/gateway-host.md) | `gateway-host` | `gateway/src/host/main.ts` |
+| [Registry workflow ghim nguồn và runtime projection](flows/gateway-workflows.md) | `gateway-workflows` | `gateway/src/workflows/registry.ts` |
 | [Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2](flows/server-docs-import.md) | `server-docs-import` | `server/scripts/docs-import.ts`, `server/src/docs/validator.ts` |
 | [Đọc tài liệu và tích hợp HTTP Crew v2](flows/server-docs-view.md) | `server-docs-view` | `server/src/app.ts`, `server/src/docs/routes.ts` |
 | [Command, attempt và quyền thực thi có fencing](flows/server-execution.md) | `server-execution` | `server/src/execution/routes.ts` |
