@@ -57,6 +57,126 @@ const textExt = new Set([
   'xml',
   'log',
 ]);
+function validateDecodedText(text: string): void {
+  for (const char of text)
+    if (char.charCodeAt(0) < 32 && ![9, 10, 13].includes(char.charCodeAt(0)))
+      throw new ApiError('ATTACHMENT_BINARY_TEXT', 415, 'Nội dung tệp không khớp');
+}
+
+// A timeout ends the replay result, not a noncooperative input iterator. Keep its
+// teardown owned across factories using this DB until actual input closure settles.
+type ReplayOperation = { cleanup: Promise<void> | null; state: 'reading' | 'closing' | 'unknown' };
+const readyReplays = new WeakMap<Db, Map<Id, ReplayOperation>>();
+async function verifyReadyReplay(input: {
+  db: Db;
+  id: Id;
+  body: AsyncIterable<Uint8Array>;
+  signal: AbortSignal;
+  maxWallMs: number;
+  original: { key: string; sha256: string; byteLength: number };
+  store: StageFactoryInput['store'];
+}): Promise<void> {
+  let operations = readyReplays.get(input.db);
+  if (!operations) {
+    operations = new Map();
+    readyReplays.set(input.db, operations);
+  }
+  if (operations.has(input.id))
+    throw new ApiError('ATTACHMENT_UPLOAD_BUSY', 409, 'Dữ liệu gửi lại trước chưa kết thúc');
+  const iterator = input.body[Symbol.asyncIterator]();
+  const operation: ReplayOperation = { cleanup: null, state: 'reading' };
+  operations.set(input.id, operation);
+  const deadline = performance.now() + input.maxWallMs;
+  const timeout = new AbortController();
+  const combined = AbortSignal.any([input.signal, timeout.signal]);
+  const wall = setTimeout(() => timeout.abort(), input.maxWallMs);
+  let pending: Promise<unknown> = Promise.resolve();
+  let exhausted = false;
+  function assertActive(): void {
+    if (input.signal.aborted) throw new ApiError('ATTACHMENT_ABORTED', 409, 'Tải tệp bị hủy');
+    if (timeout.signal.aborted || performance.now() >= deadline)
+      throw new ApiError('ATTACHMENT_UPLOAD_TIMEOUT', 409, 'Tải tệp đã quá thời hạn');
+  }
+  async function bounded<T>(work: () => Promise<T>): Promise<T> {
+    assertActive();
+    const current = Promise.resolve().then(work);
+    pending = current;
+    return new Promise<T>((resolve, reject) => {
+      const abort = () => {
+        combined.removeEventListener('abort', abort);
+        try {
+          assertActive();
+        } catch (error) {
+          reject(error);
+        }
+      };
+      combined.addEventListener('abort', abort, { once: true });
+      current.then(
+        (value) => {
+          combined.removeEventListener('abort', abort);
+          resolve(value);
+        },
+        (error) => {
+          combined.removeEventListener('abort', abort);
+          reject(error);
+        },
+      );
+      if (combined.aborted) abort();
+    });
+  }
+  function cleanup(): Promise<void> {
+    if (operation.cleanup) return operation.cleanup;
+    operation.state = 'closing';
+    const current = pending;
+    const closing = Promise.resolve().then(async () => {
+      if (iterator.return) return iterator.return();
+      if (exhausted) return { done: true };
+      throw new Error('REPLAY_INPUT_CLOSURE_UNAVAILABLE');
+    });
+    const owners = operations;
+    operation.cleanup = (async () => {
+      const [closed] = await Promise.allSettled([closing, current]);
+      if (closed.status !== 'fulfilled' || closed.value.done !== true) {
+        operation.state = 'unknown';
+        throw new ApiError('ATTACHMENT_REPLAY_CLEANUP_UNKNOWN', 503, 'Dữ liệu gửi lại chưa đóng');
+      }
+      if (owners?.get(input.id) === operation) owners.delete(input.id);
+    })();
+    // This owned handle remains in the registry on unknown closure. Observe its
+    // rejection even when the request has already timed out; never invent STOP.
+    void operation.cleanup.catch(() => {});
+    return operation.cleanup;
+  }
+  try {
+    const hash = createHash('sha256');
+    let count = 0;
+    while (true) {
+      const next = await bounded(() => iterator.next());
+      assertActive();
+      if (next.done) {
+        exhausted = true;
+        break;
+      }
+      const chunk = next.value;
+      if (!(chunk instanceof Uint8Array))
+        throw new ApiError('ATTACHMENT_CONTENT_INVALID', 400, 'Dữ liệu tải lên không hợp lệ');
+      count += chunk.byteLength;
+      if (count > input.original.byteLength)
+        throw new ApiError('ATTACHMENT_REPLAY_MISMATCH', 409, 'Dữ liệu gửi lại khác');
+      hash.update(chunk);
+    }
+    if (count !== input.original.byteLength || hash.digest('hex') !== input.original.sha256)
+      throw new ApiError('ATTACHMENT_REPLAY_MISMATCH', 409, 'Dữ liệu gửi lại khác');
+    if ((await bounded(() => input.store.verify(input.original))) !== 'present')
+      throw new ApiError('ATTACHMENT_DATA_LOSS', 409, 'Tệp gốc không khả dụng');
+    const closed = cleanup();
+    await bounded(() => closed);
+    assertActive();
+  } finally {
+    clearTimeout(wall);
+    cleanup();
+  }
+}
 function ownerOnly(actor: Actor): void {
   if (actor.kind !== 'owner' || actor.id !== 'owner')
     throw new ApiError('OWNER_REQUIRED', 403, 'Chỉ chủ dự án được thao tác tệp');
@@ -295,29 +415,23 @@ export function createStageServices(input: StageFactoryInput & { fault?: Storage
         sha256: String(row.expected_sha256),
         byteLength: Number(row.expected_bytes),
       };
+      const accepted = row.accepted_config as AttachmentConfig;
       if (!begin.receiver) {
         // Binary retry identity includes the complete bytes, never just the upload UUID.
-        const h = createHash('sha256');
-        let count = 0;
-        for await (const chunk of body) {
-          if (signal.aborted) throw new ApiError('ATTACHMENT_ABORTED', 409, 'Tải tệp bị hủy');
-          if (!(chunk instanceof Uint8Array))
-            throw new ApiError('ATTACHMENT_CONTENT_INVALID', 400, 'Dữ liệu tải lên không hợp lệ');
-          count += chunk.byteLength;
-          if (count > original.byteLength)
-            throw new ApiError('ATTACHMENT_REPLAY_MISMATCH', 409, 'Dữ liệu gửi lại khác');
-          h.update(chunk);
-        }
-        if (signal.aborted || count !== original.byteLength || h.digest('hex') !== original.sha256)
-          throw new ApiError('ATTACHMENT_REPLAY_MISMATCH', 409, 'Dữ liệu gửi lại khác');
-        if ((await store.verify(original)) !== 'present')
-          throw new ApiError('ATTACHMENT_DATA_LOSS', 409, 'Tệp gốc không khả dụng');
+        await verifyReadyReplay({
+          db,
+          id,
+          body,
+          signal,
+          original,
+          store,
+          maxWallMs: accepted.uploadMaxWallMs,
+        });
         return mapAttachment(row);
       }
       const receiver = begin.receiver;
       const abort = new AbortController();
       const combined = AbortSignal.any([signal, abort.signal]);
-      const accepted = row.accepted_config as AttachmentConfig;
       let stopped = false;
       let heartbeat: ReturnType<typeof setTimeout> | undefined;
       let pending: Promise<void> = Promise.resolve();
@@ -395,20 +509,15 @@ export function createStageServices(input: StageFactoryInput & { fault?: Storage
                       const text = decoder.decode(decode.subarray(offset, offset + accepted.chunkBytes), {
                         stream: true,
                       });
-                      if (
-                        [...text].some(
-                          (char) => char.charCodeAt(0) < 32 && ![9, 10, 13].includes(char.charCodeAt(0)),
-                        )
-                      )
-                        throw new ApiError('ATTACHMENT_BINARY_TEXT', 415, 'Nội dung tệp không khớp');
+                      validateDecodedText(text);
                     }
                 }
                 yield chunk;
               }
               if (isText) {
                 if (!decoder) decoder = new TextDecoder('utf-8', { fatal: true });
-                decoder.decode(prefix, { stream: true });
-                decoder.decode();
+                validateDecodedText(decoder.decode(prefix, { stream: true }));
+                validateDecodedText(decoder.decode());
               }
             } catch (error) {
               if (error instanceof TypeError)

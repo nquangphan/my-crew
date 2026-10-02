@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createStageServices } from '../src/attachments/staging.ts';
 import {
   attachmentFixture,
   bufferBody,
@@ -613,4 +614,346 @@ test('attachment staging publication failure preserves original intent and termi
 
 test('attachment migration restores reviewed 008 through 009 and retains attachment checksum against drift', async () => {
   await databaseFixture(8)(verifyAttachmentMigrationRestore);
+});
+
+test('attachment staging review F1 ready replay enforces accepted wall deadline and closes stalled iterator', async () => {
+  await databaseFixture(9)(async (db) => {
+    const f = await attachmentFixture(db, { env: { CREW_V2_ATTACHMENT_UPLOAD_MAX_WALL_MS: '100' } });
+    try {
+      const bytes = Buffer.from('ok');
+      const slot = await composeAndReserve(f, bytes);
+      await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
+      const [before] =
+        await db`select generation,receiver_id,quota_released_at from attachment_uploads where id=${slot.id}`;
+      let returned = 0,
+        active = 0,
+        calls = 0,
+        resolveNext: (value: IteratorResult<Uint8Array>) => void = () => {};
+      const stalled: AsyncIterableIterator<Uint8Array> = {
+        [Symbol.asyncIterator]() {
+          return this;
+        },
+        next() {
+          if (calls++) return Promise.resolve({ done: true, value: undefined });
+          active++;
+          return new Promise((resolve) => {
+            resolveNext = (value) => {
+              active--;
+              resolve(value);
+            };
+          });
+        },
+        async return() {
+          returned++;
+          resolveNext({ done: true, value: undefined });
+          return { done: true, value: undefined };
+        },
+      };
+      const replay = createStageServices({
+        db,
+        store: f.store,
+        receivers: f.receivers,
+        now: f.clock.now,
+        config: { ...f.config, uploadMaxWallMs: 5000 },
+      });
+      assert.equal(
+        (await replay.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
+        'ready',
+      );
+      const started = performance.now();
+      // Test watchdog supplies the old unbounded branch with correct bytes so RED
+      // fails an assertion rather than leaking a never-settled read/timer.
+      const watchdog = setTimeout(() => resolveNext({ done: false, value: bytes }), 250);
+      try {
+        await assert.rejects(replay.receive(slot.id, owner, stalled, new AbortController().signal), {
+          code: 'ATTACHMENT_UPLOAD_TIMEOUT',
+        });
+      } finally {
+        clearTimeout(watchdog);
+        if (active) await stalled.return?.();
+      }
+      assert.ok(performance.now() - started < 240);
+      assert.equal(returned, 1);
+      assert.equal(active, 0);
+      const [after] =
+        await db`select state,generation,receiver_id,quota_released_at,storage_key from attachment_uploads where id=${slot.id}`;
+      assert.equal(after.state, 'ready');
+      assert.equal(after.generation, before.generation);
+      assert.equal(after.receiver_id, before.receiver_id);
+      assert.equal(after.quota_released_at, null);
+      assert.equal(
+        await f.store.verify({
+          key: String(after.storage_key),
+          sha256: sha(bytes),
+          byteLength: bytes.length,
+        }),
+        'present',
+      );
+      assert.equal((await db`select cursor from events where type='attachment.changed'`).length, 1);
+    } finally {
+      await f.close();
+    }
+  });
+});
+
+test('attachment staging review F2 rejects every invalid one-byte text control before original publication', async () => {
+  await databaseFixture(9)(async (db) => {
+    const f = await attachmentFixture(db);
+    try {
+      for (let byte = 0; byte < 32; byte++) {
+        if ([9, 10, 13].includes(byte)) continue;
+        const bytes = Buffer.from([byte]);
+        const slot = await composeAndReserve(f, bytes);
+        await assert.rejects(
+          f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal),
+          { code: 'ATTACHMENT_BINARY_TEXT' },
+          `control ${byte}`,
+        );
+        const [row] =
+          await db`select u.state,u.storage_key,u.quota_released_at,r.state as receiver_state from attachment_uploads u join attachment_receivers r on r.id=u.receiver_id where u.id=${slot.id}`;
+        assert.equal(row.state, 'rejected');
+        assert.equal(row.receiver_state, 'closed');
+        assert.equal(row.quota_released_at, null);
+        assert.equal(
+          await f.store.verify({ key: String(row.storage_key), sha256: sha(bytes), byteLength: 1 }),
+          'missing',
+        );
+      }
+      for (const bytes of [Buffer.from([0xc3]), Buffer.from([0xff, 0xfe, 0x01])]) {
+        const slot = await composeAndReserve(f, bytes);
+        await assert.rejects(
+          f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal),
+          { code: 'ATTACHMENT_BINARY_TEXT' },
+        );
+        const [row] =
+          await db`select u.storage_key,u.quota_released_at,r.state from attachment_uploads u join attachment_receivers r on r.id=u.receiver_id where u.id=${slot.id}`;
+        assert.equal(row.state, 'closed');
+        assert.equal(row.quota_released_at, null);
+        assert.equal(
+          await f.store.verify({
+            key: String(row.storage_key),
+            sha256: sha(bytes),
+            byteLength: bytes.length,
+          }),
+          'missing',
+        );
+      }
+      for (const bytes of [
+        Buffer.alloc(0),
+        Buffer.from('a'),
+        Buffer.from('\t'),
+        Buffer.from('\n'),
+        Buffer.from('\r'),
+      ]) {
+        const slot = await composeAndReserve(f, bytes);
+        assert.equal(
+          (await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
+          'ready',
+        );
+      }
+      assert.equal((await db`select cursor from events where type='attachment.changed'`).length, 5);
+    } finally {
+      await f.close();
+    }
+  });
+});
+
+test('attachment staging review F1 noncooperative replay times out but stays BUSY until actual teardown', async () => {
+  await databaseFixture(9)(async (db) => {
+    const f = await attachmentFixture(db, { env: { CREW_V2_ATTACHMENT_UPLOAD_MAX_WALL_MS: '100' } });
+    let release = () => {},
+      closed = 0;
+    let task: Promise<unknown> | undefined;
+    let producerClosed: Promise<void> | undefined;
+    try {
+      const bytes = Buffer.from('ok');
+      const slot = await composeAndReserve(f, bytes);
+      await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
+      let entered = () => {},
+        finished = () => {};
+      const started = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      const done = new Promise<void>((resolve) => {
+        finished = resolve;
+      });
+      producerClosed = done;
+      const barrier = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      async function* source() {
+        try {
+          entered();
+          await barrier;
+          yield bytes;
+        } finally {
+          closed++;
+          finished();
+        }
+      }
+      task = f.stage.receive(slot.id, owner, source(), new AbortController().signal);
+      const rejected = assert.rejects(task, { code: 'ATTACHMENT_UPLOAD_TIMEOUT' });
+      await started;
+      const since = performance.now();
+      await rejected;
+      assert.ok(performance.now() - since < 240);
+      assert.equal(closed, 0);
+      const replacement = createStageServices({
+        db,
+        store: f.store,
+        receivers: f.receivers,
+        now: f.clock.now,
+        config: f.config,
+      });
+      await assert.rejects(
+        replacement.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal),
+        { code: 'ATTACHMENT_UPLOAD_BUSY' },
+      );
+      const [before] =
+        await db`select state,generation,receiver_id,quota_released_at from attachment_uploads where id=${slot.id}`;
+      assert.equal(before.state, 'ready');
+      assert.equal(before.quota_released_at, null);
+      release();
+      await done;
+      assert.equal(closed, 1);
+      assert.equal(
+        (await replacement.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
+        'ready',
+      );
+      const [after] =
+        await db`select state,generation,receiver_id,quota_released_at from attachment_uploads where id=${slot.id}`;
+      assert.deepEqual(after, before);
+      assert.equal((await db`select cursor from events where type='attachment.changed'`).length, 1);
+    } finally {
+      release();
+      if (task) await task.catch(() => {});
+      if (producerClosed) await producerClosed;
+      await f.close();
+    }
+  });
+});
+
+test('attachment staging review F1 caller abort closes replay input and tracks rejected pending next', async () => {
+  await databaseFixture(9)(async (db) => {
+    const f = await attachmentFixture(db, { env: { CREW_V2_ATTACHMENT_UPLOAD_MAX_WALL_MS: '100' } });
+    try {
+      const bytes = Buffer.from('ok');
+      const slot = await composeAndReserve(f, bytes);
+      await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
+      const abort = new AbortController();
+      let returned = 0;
+      const source: AsyncIterableIterator<Uint8Array> = {
+        [Symbol.asyncIterator]() {
+          return this;
+        },
+        async next() {
+          abort.abort();
+          throw new Error('INPUT_ABORTED');
+        },
+        async return() {
+          returned++;
+          return { done: true, value: undefined };
+        },
+      };
+      await assert.rejects(f.stage.receive(slot.id, owner, source, abort.signal), {
+        code: 'ATTACHMENT_ABORTED',
+      });
+      assert.equal(
+        (await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
+        'ready',
+      );
+      assert.equal(returned, 1);
+      const preAborted = new AbortController();
+      preAborted.abort();
+      let reads = 0;
+      const preSource: AsyncIterableIterator<Uint8Array> = {
+        [Symbol.asyncIterator]() {
+          return this;
+        },
+        async next() {
+          reads++;
+          return { done: false, value: bytes };
+        },
+        async return() {
+          returned++;
+          return { done: true, value: undefined };
+        },
+      };
+      await assert.rejects(f.stage.receive(slot.id, owner, preSource, preAborted.signal), {
+        code: 'ATTACHMENT_ABORTED',
+      });
+      assert.equal(reads, 0);
+      assert.equal(
+        (await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
+        'ready',
+      );
+      assert.equal(returned, 2);
+      const [row] = await db`select state,quota_released_at from attachment_uploads where id=${slot.id}`;
+      assert.equal(row.state, 'ready');
+      assert.equal(row.quota_released_at, null);
+    } finally {
+      await f.close();
+    }
+  });
+});
+
+test('attachment staging review F1 deadline before verified replay success retains tracked verification', async () => {
+  await databaseFixture(9)(async (db) => {
+    const f = await attachmentFixture(db, { env: { CREW_V2_ATTACHMENT_UPLOAD_MAX_WALL_MS: '100' } });
+    let release = () => {};
+    let verifySettled: Promise<void> | undefined;
+    try {
+      const bytes = Buffer.from('ok');
+      const slot = await composeAndReserve(f, bytes);
+      await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
+      let enter = () => {};
+      const started = new Promise<void>((resolve) => {
+        enter = resolve;
+      });
+      const barrier = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let verified = () => {};
+      verifySettled = new Promise<void>((resolve) => {
+        verified = resolve;
+      });
+      const replay = createStageServices({
+        db,
+        receivers: f.receivers,
+        now: f.clock.now,
+        config: f.config,
+        store: {
+          ...f.store,
+          async verify(blob) {
+            enter();
+            await barrier;
+            try {
+              return await f.store.verify(blob);
+            } finally {
+              verified();
+            }
+          },
+        },
+      });
+      const task = replay.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal);
+      const rejected = assert.rejects(task, { code: 'ATTACHMENT_UPLOAD_TIMEOUT' });
+      await started;
+      await rejected;
+      await assert.rejects(f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal), {
+        code: 'ATTACHMENT_UPLOAD_BUSY',
+      });
+      release();
+      // Await the actual owned verify settlement before allowing another replay.
+      await verifySettled;
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(
+        (await f.stage.receive(slot.id, owner, bufferBody(bytes), new AbortController().signal)).state,
+        'ready',
+      );
+    } finally {
+      release();
+      if (verifySettled) await verifySettled;
+      await f.close();
+    }
+  });
 });
