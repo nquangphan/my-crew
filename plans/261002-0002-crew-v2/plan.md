@@ -1,7 +1,7 @@
 # Crew v2 — Lộ trình triển khai
 
 **Spec đã duyệt:** [/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md](/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md).
-**Trạng thái cập nhật 2026-10-02 18:38:** phần01 đã merge main; phần02 task1–7 đã nghiệm thu. Phần03 task1–5 READY; task6 candidatef6ca0a4 đang review độc lập. Phần04 task1–2 READY tại49e2333. Phần05 storage009 và producer/migration010 READY; consumer2b candidate6150254 và worker4 candidateb670d82 đang review độc lập. Metadata inbox/input-wake228f9e4 review cùng consumer2b. Các migration001–010 giữ nguyên. Phần06/08/09 đã duyệt, dùng schema tương lai011/012/013. Phần07 chờ owner xác nhận prototype; backend tiếp tục. Runtime/live/Keychain/signing/parser corpus vẫn UNVERIFIED.
+**Trạng thái cập nhật 2026-10-02 19:00:** phần01 đã merge main; phần02 task1–7 đã nghiệm thu. Phần03 task1–5 READY; isolation6 FIX1ced6bb1 đang review lại. Phần04 task1–2 READY49e2333. Phần05 storage009, comment producer/migration010, submissions/inbox/routing490001c và worker boundaryb670d82 READY theo phạm vi riêng. Task3 access/API và task5 parser/corpus đang chạy độc lập. Metadata inbox/input-wake228f9e4 review cùng consumer đã qua. Migrations001–010 giữ nguyên; phần06/08/09 kế hoạch đã duyệt, schema tương lai011/012/013 chưa triển khai. Phần07 vẫn chờ owner xác nhận prototype. Runtime/live/Keychain/signing/parser production còn UNVERIFIED.
 
 ## Cách chia việc
 
