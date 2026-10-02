@@ -34,6 +34,7 @@ flows:
       - server/src/platform/picomatch.d.ts
       - server/src/platform/thread-stream.d.ts
       - server/src/db/client.ts
+      - server/scripts/test-db-signals.mjs
       - server/scripts/test-db.ts
       - server/migrations/001_platform.sql
       - server/package.json

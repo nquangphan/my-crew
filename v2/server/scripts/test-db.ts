@@ -1,12 +1,27 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readdir } from 'node:fs/promises';
+import { isAbsolute } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 
 const name = `crew-v2-test-${randomUUID()}`;
 let containerId = '';
 let child: ReturnType<typeof spawn> | undefined;
-let interrupted = false;
+let interrupted: 'SIGINT' | 'SIGTERM' | undefined;
+let wakeInterruption: (() => void) | undefined;
+const interruption = new Promise<void>((resolve) => {
+  wakeInterruption = resolve;
+});
+
+function signalOwnTestGroup(signal: NodeJS.Signals): void {
+  if (!child?.pid) return;
+  try {
+    // The detached node --test process owns this group; descendants inherit it.
+    process.kill(process.platform === 'win32' ? child.pid : -child.pid, signal);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+  }
+}
 
 async function docker(...args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -29,8 +44,9 @@ async function docker(...args: string[]): Promise<string> {
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.on(signal, () => {
-    interrupted = true;
-    child?.kill(signal);
+    if (interrupted) return;
+    interrupted = signal;
+    wakeInterruption?.();
   });
 }
 
@@ -65,28 +81,66 @@ try {
       await delay(500);
     }
   }
+  if (interrupted) throw new Error('INTERRUPTED');
   if (!ready) throw new Error('TEST_DB_NOT_READY');
-  const files = (await readdir(new URL('../test/', import.meta.url)))
-    .filter((file) => file.endsWith('.test.ts'))
-    .sort()
-    .map((file) => `test/${file}`);
-  const args = ['--test', ...process.argv.slice(2), ...files];
-  const exitCode = await new Promise<number>((resolve, reject) => {
-    child = spawn(process.execPath, args, {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        CREW_V2_TEST_DATABASE_URL: `postgres://postgres@127.0.0.1:${port}/crew_v2_test`,
-        CREW_V2_TEST_CONTAINER_ID: containerId,
-      },
-    });
-    child.on('error', reject);
-    child.on('close', (code, signal) => resolve(signal ? 128 + (signal === 'SIGINT' ? 2 : 15) : (code ?? 1)));
+  const forwarded = process.argv.slice(2);
+  const explicitIndex = forwarded.indexOf('--test-file');
+  let files: string[];
+  if (explicitIndex >= 0) {
+    const file = forwarded[explicitIndex + 1];
+    if (
+      !file ||
+      !isAbsolute(file) ||
+      !/\.test\.(?:ts|mjs)$/.test(file) ||
+      forwarded.indexOf('--test-file', explicitIndex + 1) >= 0
+    )
+      throw new Error('TEST_FILE_INVALID');
+    files = [file];
+    forwarded.splice(explicitIndex, 2);
+  } else {
+    files = (await readdir(new URL('../test/', import.meta.url)))
+      .filter((file) => file.endsWith('.test.ts'))
+      .sort()
+      .map((file) => `test/${file}`);
+  }
+  const args = ['--test', ...forwarded, ...files];
+  child = spawn(process.execPath, args, {
+    detached: process.platform !== 'win32',
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      CREW_V2_TEST_DATABASE_URL: `postgres://postgres@127.0.0.1:${port}/crew_v2_test`,
+      CREW_V2_TEST_CONTAINER_ID: containerId,
+    },
   });
-  process.exitCode = interrupted ? 130 : exitCode;
+  const testChild = child;
+  const childExit = new Promise<number>((resolve, reject) => {
+    testChild.on('error', reject);
+    testChild.on('close', (code, signal) =>
+      resolve(signal ? 128 + (signal === 'SIGINT' ? 2 : 15) : (code ?? 1)),
+    );
+  });
+  const first = await Promise.race([
+    childExit.then((code) => ({ kind: 'exit' as const, code })),
+    interruption.then(() => ({ kind: 'interrupt' as const })),
+  ]);
+  if (interrupted) {
+    signalOwnTestGroup(interrupted);
+    await delay(750);
+    signalOwnTestGroup('SIGKILL');
+    const reaped = await Promise.race([childExit.then(() => true), delay(750).then(() => false)]);
+    if (!reaped) {
+      console.error('TEST_CHILD_REAP_TIMEOUT');
+      process.exitCode = 1;
+    } else {
+      process.exitCode = interrupted === 'SIGINT' ? 130 : 143;
+    }
+  } else if (first.kind === 'exit') {
+    process.exitCode = first.code;
+  }
 } catch (error) {
   console.error(error);
-  process.exitCode = 1;
+  process.exitCode = interrupted === 'SIGINT' ? 130 : interrupted === 'SIGTERM' ? 143 : 1;
 } finally {
   if (containerId) {
     try {

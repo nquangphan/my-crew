@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node src/main.ts",
     "test": "node scripts/test-db.ts",
+    "test:signals": "node scripts/test-db-signals.mjs SIGTERM && node scripts/test-db-signals.mjs SIGINT && node scripts/test-db-signals.mjs SIGTERM --pause-child",
     "test:unit": "node --test test/*.unit.test.ts",
     "typecheck": "tsc --noEmit",
     "db:migrate": "node src/db/migrate.ts"

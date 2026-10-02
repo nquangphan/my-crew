@@ -9,6 +9,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 |------|-------|
 | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
 | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+| `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/db/client.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
