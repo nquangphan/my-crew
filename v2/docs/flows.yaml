@@ -101,6 +101,7 @@ flows:
     entrypoints:
       - server/src/tickets/routes.ts
     files:
+      - server/src/tickets/authorization.ts
       - server/src/tickets/completion.ts
       - server/src/tickets/contracts.ts
       - server/src/tickets/decisions.ts
@@ -110,7 +111,7 @@ flows:
       - server/src/tickets/repair.ts
       - server/src/tickets/service.ts
       - server/migrations/004_tickets.sql
-      - server/src/tickets/authorization.ts
+      - server/migrations/010_attachment_comment_text.sql
     tests:
       - server/test/tickets.test.ts
       - server/test/dependencies.test.ts
@@ -119,6 +120,7 @@ flows:
       - server/test/support/tickets.ts
       - server/test/ticket-events.unit.test.ts
       - server/test/deploy.test.ts
+      - server/test/attachments-comment-factory.test.ts
   gateway-host:
     title: Host cổng macOS Crew v2
     doc: docs/flows/gateway-host.md

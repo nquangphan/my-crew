@@ -44,6 +44,23 @@ export type DecisionInput = {
   scope: Record<string, unknown>;
 };
 export type Comment = { id: Id; ticketId: Id; actor: Actor; text: string; createdAt: string };
+export type CommentAttachmentInput = {
+  composeSessionId: Id;
+  selectionRevision: number;
+  attachmentIds: Id[];
+};
+// Controller-owned linker verifies the actual ready selection in the caller Tx.
+export type CommentAttachmentLinker = (
+  tx: Tx,
+  input: { commentId: Id; ticketId: Id; attachments: CommentAttachmentInput },
+  actor: Actor,
+) => Promise<void>;
+export type AppendAttachmentComment = (
+  tx: Tx,
+  ticketId: Id,
+  input: { text: string; attachments: CommentAttachmentInput },
+  actor: Actor,
+) => Promise<Comment>;
 export type RepairResultInput = {
   ticketId: Id;
   attemptId: Id;
@@ -67,4 +84,5 @@ export type TicketServiceDependencies = {
   execution?: ExecutionAuthority;
   docsCompletion?: DocsCompletionReader;
   docsSource?: DocsSourceReader;
+  commentAttachments?: CommentAttachmentLinker;
 };

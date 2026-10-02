@@ -6,8 +6,13 @@ import { appendEvent } from '../journal/events.ts';
 import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
 import { readCompletionFacts } from './completion.ts';
-import type { CreateTicket, Ticket, TicketServiceDependencies } from './contracts.ts';
-import { appendComment, recordDecision } from './decisions.ts';
+import type {
+  AppendAttachmentComment,
+  CreateTicket,
+  Ticket,
+  TicketServiceDependencies,
+} from './contracts.ts';
+import { appendAttachmentComment, appendComment, recordDecision } from './decisions.ts';
 import { addDependency, readGraph } from './dependencies.ts';
 import { deployTicketFingerprint, verifyDeployApprovalForCandidate } from './deploy.ts';
 import { linkDocs } from './docs-links.ts';
@@ -308,6 +313,7 @@ export function createTicketServices(deps: TicketServiceDependencies = {}) {
   const immutable: Readonly<TicketServiceDependencies> = Object.freeze({
     docsCompletion: deps.docsCompletion,
     docsSource: deps.docsSource,
+    commentAttachments: deps.commentAttachments,
     execution: deps.execution ? Object.freeze({ ...deps.execution }) : undefined,
   });
   return {
@@ -315,6 +321,12 @@ export function createTicketServices(deps: TicketServiceDependencies = {}) {
     createTicket,
     addDependency,
     appendComment,
+    appendAttachmentComment: (
+      tx: Tx,
+      ticketId: Id,
+      input: Parameters<AppendAttachmentComment>[2],
+      actor: Actor,
+    ) => appendAttachmentComment(tx, ticketId, input, actor, immutable.commentAttachments),
     recordDecision: (tx: Tx, ticketId: Id, input: Parameters<typeof recordDecision>[2], actor: Actor) =>
       recordDecision(tx, ticketId, input, actor, immutable.docsSource),
     recordRepairResult: (tx: Tx, input: Parameters<typeof recordRepairResult>[1], actor: Actor) =>

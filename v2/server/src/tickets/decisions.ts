@@ -2,7 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { appendEvent } from '../journal/events.ts';
 import type { Actor, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
-import type { Comment, DecisionInput, DocsSourceReader, SourceRef } from './contracts.ts';
+import type {
+  AppendAttachmentComment,
+  Comment,
+  CommentAttachmentLinker,
+  DecisionInput,
+  DocsSourceReader,
+  SourceRef,
+} from './contracts.ts';
 import { requireTicket, safeTicketJson } from './service.ts';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -23,6 +30,39 @@ export async function appendComment(tx: Tx, ticketId: Id, text: string, actor: A
     data: { commentId: id },
   });
   return { id, ticketId, actor, text, createdAt: (row.created_at as Date).toISOString() };
+}
+
+export async function appendAttachmentComment(
+  tx: Tx,
+  ticketId: Id,
+  input: Parameters<AppendAttachmentComment>[2],
+  actor: Actor,
+  linker?: CommentAttachmentLinker,
+): Promise<Comment> {
+  if (!linker) throw new ApiError('ATTACHMENT_LINKER_NOT_CONFIGURED', 503, 'Chưa tích hợp liên kết tệp');
+  if (
+    !input ||
+    typeof input.text !== 'string' ||
+    input.text.length > 32768 ||
+    !input.attachments ||
+    !Array.isArray(input.attachments.attachmentIds) ||
+    (!input.text.trim() && input.attachments.attachmentIds.length === 0)
+  )
+    throw new ApiError('VALIDATION', 400, 'Bình luận không hợp lệ');
+  const ticket = await requireTicket(tx, ticketId, actor);
+  const id = randomUUID();
+  const [row] = await tx`insert into comments(id,ticket_id,actor_kind,actor_id,text)
+    values(${id},${ticketId},${actor.kind},${actor.id},${input.text}) returning created_at`;
+  if (!row) throw new Error('COMMENT_INSERT_FAILED');
+  await linker(tx, { commentId: id, ticketId, attachments: input.attachments }, actor);
+  await appendEvent(tx, {
+    type: 'comment.created',
+    projectId: ticket.projectId,
+    ticketId,
+    audienceMachineId: null,
+    data: { commentId: id },
+  });
+  return { id, ticketId, actor, text: input.text, createdAt: (row.created_at as Date).toISOString() };
 }
 
 async function sourceExists(
