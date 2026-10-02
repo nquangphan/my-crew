@@ -73,5 +73,19 @@ flows:
       - server/test/auth.test.ts
       - server/test/projects.test.ts
       - server/test/support/identity-app.ts
+  server-docs-import:
+    title: Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2
+    doc: docs/flows/server-docs-import.md
+    entrypoints:
+      - server/src/docs/validator.ts
+    files:
+      - server/src/docs/checksum.ts
+      - server/src/docs/contracts.ts
+      - server/src/docs/links.ts
+      - server/src/docs/manifest.ts
+    tests:
+      - server/test/docs-validator.unit.test.ts
+      - server/test/support/docs.ts
+      - server/test/fixtures/legacy-docs/crlf-unicode.md
 shared: {}
 unassigned: []
