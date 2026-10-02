@@ -10,10 +10,11 @@ Cập nhật 2026-10-02 11:44 Asia/Ho_Chi_Minh. Đây là checkpoint đang thự
 |02 server/docs|Task1–7 COMPLETE, cuối `c6f9b60`|Server169/domain14/types; sau fix search, targeteddocs5/types. Prod dispatch/final-result vẫn deny tới producer06/08|
 |03 host/app|Task1 COMPLETE `163c37c..a42e0a7`|Gateway/desktop tests và macOS UI đóng/crash/reopen; không phải job runtime production|
 |03 journals/resources|Task2 COMPLETE `d3c7629..859d671`|Gateway39, resources10, types/Biome/native C; exact no-fork stop, fork UNKNOWN|
-|03 server gateway|Task3 REVIEW, candidate `202233e..8347bd6`|191 coveringserver trước sửa wire cuối;22 finalfocused/types/Biome, nested docs all/staged sau buffer correction. Chưa nghiệm thu|
+|03 server gateway|Task3 COMPLETE `202233e..8347bd6`|Independent spec/quality READY;191 coveringserver trước sửa wire cuối,22 finalfocused/types/Biome, nested docs all/staged sau buffer correction|
 |03 workflow registry|Task4 FIX1/5, candidate `4cbf581` chưa đạt|56/56/types/Biome; independent review NO: thiếu actual installer/API producer, stage GC, abort existing-source rewind|
 |03 sync/isolation/acceptance|Task5–7 chưa dispatch|Chờ các producer được review; không suy isolation từ source inventory|
-|04–06|Kế hoạch được independent review duyệt|Chưa actual008–010, runtime/probe/Assistant production|
+|04|Task1 server model pool ACTIVE|Actual008 đang triển khai sau review007; chưa runtime/probe/certification production|
+|05–06|Kế hoạch được independent review duyệt|Chưa actual009–010, Assistant production|
 |07 UI|Prototype đã kiểm, chờ owner duyệt|Desktop/mobile layout và interactions fixture; không upload/inference production|
 |08–09|Kế hoạch approved `30f3902`|Actual011/012, merge observer, signing/notary/update/deploy chưa chạy|
 
@@ -51,10 +52,12 @@ Test services/fixtures dùng owned exact resource IDs; shared PostgreSQL55432/Ki
 
 ## Các gate còn mở
 
--03 Task3 final freeze/independent review; Task4 fix1 và scoped re-review; Task5–7 actual integration/isolation.
+-03 Task4 fix1 và scoped re-review; Task5–7 actual integration/isolation.
 -04–06/08–09 actual source/runtime implementation và từng task independent review; whole-product final review/test/docs thật trước local main merge.
--02 Task7 M2 minor:22 non-null assertion warnings trong fixtures cần triage ở final review, chưa bỏ finding.
+-02 Task7 M2 minor:22 non-null assertion warnings trong fixtures đang sửa ở task riêng, chưa review closure.
 -07 owner prototype approval; signed identity/notary/macOS test permission, bounded live model configuration/budget và exact production deploy action khi tới bước cần. Chưa có câu trả lời thì giữ gate, làm independent offline work tiếp.
 -Token/cost comparison, paid provider entitlement và automation economics chưa được đo trong checkpoint này; không có claim định lượng.
 
 Checkpoint11:49: Task3 independent fullreview được giao với snapshot40%RAMfree/88.23%CPUidle/42GiB/load3.90. Scratch docs helper archive1MiB buffer lỗi khi official fixtures tăng; chuyển gitarchive ghi exacttempfile và rerun nestedall/staged thành công, generatedindex sửa trong8347bd6. Sourcecandidate202233e không được báo acceptance hoặc all-docs PASS trước correction.
+
+Checkpoint11:56:03Task3 independent fullreview READY YES;04Task1 phụ thuộc02+007 được dispatch cùng snapshot40%RAMfree/86.60%CPUidle/42GiB/load2.11. Scope008/servermodels riêng; producer007 frozen và prod certification/defaultdeny giữ nguyên. Chi phí là host/runtime consumer integration vẫn phải review sau03/04 đủ producer.

@@ -1,7 +1,7 @@
 # Crew v2 — Lộ trình triển khai
 
 **Spec đã duyệt:** [/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md](/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md).
-**Trạng thái cập nhật 2026-10-02:** phần 01 đã triển khai, review và merge main; phần 02 đã triển khai và review đầy đủ task 1–7; phần 03 đã xong, review host/app shell và journal/telemetry/resource registry (task 1–2), đang triển khai server gateway (task 3) và registry workflow (task 4). Kế hoạch 02–06 và 08–09 đã được review và duyệt; phần 07 chờ duyệt prototype. Phần 04–09 chưa có triển khai hay chứng nhận runtime thật.
+**Trạng thái cập nhật 2026-10-02:** phần 01 đã triển khai, review và merge main; phần 02 đã triển khai và review đầy đủ task 1–7; phần 03 đã review xong host/app shell, journal/telemetry/resource registry và server gateway (task 1–3), đang sửa registry workflow (task 4). Phần 04 task 1 model pool server đang triển khai độc lập sau review migration 007. Kế hoạch 02–06 và 08–09 đã được review và duyệt; phần 07 chờ duyệt prototype. Phần 05–09 chưa có triển khai; chứng nhận runtime thật vẫn chưa có.
 
 ## Cách chia việc
 
