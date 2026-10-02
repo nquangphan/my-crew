@@ -47,6 +47,14 @@
 
 ## Dữ liệu
 
+Task05/4 thêm đúng bốn dependency pin cho image trích xuất Linux: `pdfjs-dist@6.3.289`,
+`@napi-rs/canvas@1.0.3`, `yauzl@3.4.0`, `saxes@6.0.0`. Lock được sinh riêng trên
+Linux amd64 bằng Node24.14.0/pnpm10.32.1, không chạy install script; 75 package nền
+giữ nguyên, 17 package mới được đối chiếu integrity với registry chính thức. Không
+cài dependency trên máy owner trong bước này. Native canvas PNG đã chạy trong image
+Linux ghim digest; kiểm tra này chưa chứng nhận parser/corpus production. Xem
+`attachment-extraction` cho recipe, giới hạn worker và các gate còn đóng.
+
 Cấu hình mẫu nằm tại `server/.env.example`; giá trị thật cấp từ nơi giữ secret. Migration không chạy khi import module hoặc khởi động app. Người vận hành chọn prefix phát hành bằng `CREW_V2_MIGRATION_THROUGH` rồi chạy `pnpm --dir v2/server db:migrate`. Trước khi migrate DB v2 có dữ liệu phải backup và diễn tập restore. CLI không tự lấy file SQL mới xuất hiện giữa lượt chạy.
 
 Test chỉ dùng container tạm với trust auth trên loopback; URL test lấy từ runner, không dùng `CREW_V2_DATABASE_URL`. Image PostgreSQL đã xác minh khi triển khai: `postgres:18.6`, digest `sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722`.

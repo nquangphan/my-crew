@@ -357,5 +357,20 @@ flows:
       - gateway/test/model-reporter.test.ts
       - gateway/test/support/model-fixture.ts
       - gateway/test/fixtures/models/security-channel.c
+  attachment-extraction:
+    title: Worker trích xuất attachment có giới hạn
+    doc: docs/flows/attachment-extraction.md
+    entrypoints:
+      - server/src/attachments/worker-entry.ts
+    files:
+      - server/src/attachments/jobs.ts
+      - server/src/attachments/worker-diagnostic.ts
+      - server/src/attachments/worker-protocol.ts
+      - server/src/attachments/worker-runner.ts
+      - server/extractor.Dockerfile
+      - server/extractor.dockerignore
+    tests:
+      - server/test/attachments-worker-live.test.ts
+      - server/test/attachments-worker.test.ts
 shared: {}
 unassigned: []

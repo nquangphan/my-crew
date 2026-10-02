@@ -29,6 +29,7 @@
 <!-- crew-docs:flows:start -->
 | Flow | Id | Điểm vào |
 |------|----|----------|
+| [Worker trích xuất attachment có giới hạn](flows/attachment-extraction.md) | `attachment-extraction` | `server/src/attachments/worker-entry.ts` |
 | [Giao diện cổng Crew v2 trên macOS](flows/desktop-shell.md) | `desktop-shell` | `desktop/src/main/index.ts` |
 | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
 | [Host cổng macOS Crew v2](flows/gateway-host.md) | `gateway-host` | `gateway/src/host/main.ts` |

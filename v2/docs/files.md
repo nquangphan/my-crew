@@ -131,6 +131,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/workflow-registry.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/tsconfig.build.json` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/tsconfig.json` | [gateway-host](flows/gateway-host.md) (file) |
+| `server/extractor.Dockerfile` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/extractor.dockerignore` | [attachment-extraction](flows/attachment-extraction.md) (file) |
 | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
 | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
 | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
@@ -148,12 +150,17 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
 | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/jobs.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
 | `server/src/attachments/messages.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/receivers.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/routing.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/staging.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/storage.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/submissions.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/worker-diagnostic.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/worker-entry.ts` | [attachment-extraction](flows/attachment-extraction.md) (điểm vào) |
+| `server/src/attachments/worker-protocol.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+| `server/src/attachments/worker-runner.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
 | `server/src/auth/bootstrap.ts` | [server-identity](flows/server-identity.md) (file) |
 | `server/src/auth/machine.ts` | [server-identity](flows/server-identity.md) (file) |
 | `server/src/auth/password.ts` | [server-identity](flows/server-identity.md) (file) |
@@ -218,6 +225,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/attachments-staging.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-storage.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-submissions.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-worker-live.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+| `server/test/attachments-worker.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
 | `server/test/attempts.test.ts` | [server-execution](flows/server-execution.md) (test) |
 | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
 | `server/test/commands.test.ts` | [server-execution](flows/server-execution.md) (test) |
