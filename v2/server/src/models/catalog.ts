@@ -320,6 +320,8 @@ export async function assertModelDispatch(
     !entry.probe ||
     !choice.required.every((c) => entry.probe?.capabilities.includes(c)) ||
     entry.installReportId !== payload.selection.installReportId ||
+    payload.selection.sourceTreeSha256 !== source.sourceTreeSha256 ||
+    payload.selection.sourceTreeSha256 !== entry.probe.context.sourceTreeSha256 ||
     workflow?.revision !== payload.selection.configRevision ||
     entry.projection?.manifestSha256 !== payload.selection.projectionManifestSha256 ||
     entry.projection?.treeSha256 !== payload.selection.projectionTreeSha256

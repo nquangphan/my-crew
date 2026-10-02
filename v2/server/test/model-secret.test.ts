@@ -14,6 +14,7 @@ import { test } from 'node:test';
 import { promisify } from 'node:util';
 import { canonicalJson } from '../src/journal/canonical.ts';
 import type { SecretEnvelope } from '../src/models/contracts.ts';
+import type { Db } from '../src/platform/contracts.ts';
 import { databaseFixture } from './support/db.ts';
 import { modelFixture } from './support/model-http.ts';
 
@@ -337,6 +338,285 @@ test('production app real HTTP secret rejection and structured logger redact pla
       assert.equal((await db`select count(*)::int as n from api_secret_envelopes`)[0]?.n, 0);
     } finally {
       await f.close();
+    }
+  });
+});
+
+async function provisioningFixture(db: Db) {
+  const acceptedTime = new Date();
+  const f = await modelFixture(db, { now: () => acceptedTime });
+  await db`insert into projects(id,name,key,machine_id,checkout_path) values(${randomUUID()},'fixture','FIX1SECRET',${f.machineId},'/tmp/fix1-secret-fixture')`;
+  const providerId = randomUUID();
+  const configuration = {
+    expectedRevision: 0,
+    enabled: { claude: false, codex: false, api: true },
+    apiProviders: [
+      {
+        id: providerId,
+        endpoint: 'https://example.com/v1',
+        protocol: 'responses',
+        models: [{ id: 'x', declared: ['text'] }],
+        localHttp: null,
+      },
+    ],
+  };
+  assert.equal(
+    (await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, configuration)).statusCode,
+    200,
+  );
+  const activate = async () => {
+    const keys = generateKeyPairSync('x25519'),
+      keyId = randomUUID();
+    const r = await f.machine.post('/v2/machine/credential-keys', {
+      keyId,
+      publicKeyX25519: keys.publicKey.export({ format: 'der', type: 'spki' }).toString('base64'),
+    });
+    assert.equal(r.statusCode, 200, r.text);
+    const ch = r.json<{ challengeId: string; encryptedChallenge: CryptoBox; expiresAt: string }>();
+    const proof = {
+      challengeId: ch.challengeId,
+      challengeSha256: hash(
+        decode(ch.encryptedChallenge, keys.privateKey, {
+          machineId: f.machineId,
+          keyId,
+          challengeId: ch.challengeId,
+          expiresAt: ch.expiresAt,
+        }),
+      ),
+    };
+    assert.equal(
+      (await f.machine.post(`/v2/machine/credential-keys/${keyId}/confirm`, proof)).statusCode,
+      200,
+    );
+    return { keyId, proof };
+  };
+  const provision = async (keyId: string, operationId = randomUUID()) => {
+    const body = { expectedRevision: 1, keyId, operationId, secret: 'fixture-only' };
+    const sent = await f.owner.post(`/v2/machines/${f.machineId}/api-providers/${providerId}/secret`, body);
+    assert.equal(sent.statusCode, 200, sent.text);
+    const envelope = (await f.machine.get('/v2/machine/api-secret-envelopes'))
+      .json<{ items: SecretEnvelope[] }>()
+      .items.find((e) => e.operationId === operationId);
+    assert.ok(envelope);
+    return { envelope, body };
+  };
+  const ack = (e: SecretEnvelope, credentialRef: string) =>
+    f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/ack`, {
+      operationId: e.operationId,
+      keyId: e.keyId,
+      ciphertextSha256: e.ciphertextSha256,
+      credentialRef,
+    });
+  const loss = (e: SecretEnvelope) => f.machine.post(`/v2/machine/api-secret-envelopes/${e.id}/key-lost`, {});
+  const provider = async () =>
+    (
+      await db`select status,credential_ref from api_providers where machine_id=${f.machineId} and id=${providerId}`
+    )[0];
+  return { f, providerId, configuration, activate, provision, ack, loss, provider };
+}
+for (const late of ['ack', 'loss'] as const)
+  test(`FIX1 R2 older pending ${late} cannot rewind newer stored credential`, async () => {
+    await databaseFixture(8)(async (db) => {
+      const s = await provisioningFixture(db);
+      try {
+        const k = await s.activate();
+        const a = await s.provision(k.keyId, 'ffffffff-ffff-4fff-8fff-ffffffffffff'),
+          b = await s.provision(k.keyId, '00000000-0000-4000-8000-000000000001');
+        assert.equal((await s.ack(b.envelope, 'newer-ref')).statusCode, 200);
+        const before = await s.provider();
+        assert.equal(before?.credential_ref, 'newer-ref');
+        assert.equal(
+          (await db`select current_operation_id from api_providers where id=${s.providerId}`)[0]
+            ?.current_operation_id,
+          b.envelope.operationId,
+        );
+        const created = await db`select created_at from api_secret_envelopes order by cursor`;
+        assert.equal(created.length, 2);
+        assert.equal((created[0].created_at as Date).getTime(), (created[1].created_at as Date).getTime());
+        const response = late === 'ack' ? await s.ack(a.envelope, 'older-ref') : await s.loss(a.envelope);
+        assert.equal(response.statusCode, 200, response.text);
+        assert.deepEqual(await s.provider(), before);
+        const replay = late === 'ack' ? await s.ack(a.envelope, 'older-ref') : await s.loss(a.envelope);
+        assert.deepEqual(replay.json(), response.json());
+        assert.deepEqual(await s.provider(), before);
+        assert.equal((await s.ack(b.envelope, 'newer-ref')).statusCode, 200);
+        assert.deepEqual(await s.provider(), before);
+        const retried = await s.f.owner.post(
+          `/v2/machines/${s.f.machineId}/api-providers/${s.providerId}/secret`,
+          a.body,
+        );
+        assert.equal(retried.statusCode, 200);
+        assert.deepEqual(await s.provider(), before);
+        const reopened = await modelFixture(db, { prior: s.f.prior });
+        try {
+          assert.equal(
+            (
+              await reopened.machine.post(`/v2/machine/api-secret-envelopes/${b.envelope.id}/ack`, {
+                operationId: b.envelope.operationId,
+                keyId: b.envelope.keyId,
+                ciphertextSha256: b.envelope.ciphertextSha256,
+                credentialRef: 'newer-ref',
+              })
+            ).statusCode,
+            200,
+          );
+          assert.equal(
+            (await db`select current_operation_id from api_providers where id=${s.providerId}`)[0]
+              ?.current_operation_id,
+            b.envelope.operationId,
+          );
+          assert.deepEqual(await s.provider(), before);
+        } finally {
+          await reopened.close();
+        }
+        await assert.rejects(
+          db.begin(
+            (tx) =>
+              tx`update api_providers set current_operation_id=${randomUUID()} where machine_id=${s.f.machineId} and id=${s.providerId}`,
+          ),
+          (err) => typeof err === 'object' && err !== null && 'code' in err && err.code === '23503',
+        );
+      } finally {
+        await s.f.close();
+      }
+    });
+  });
+test('FIX1 R3 lost active key denies fresh provision and invalidates all pending while preserving ACK history', async () => {
+  await databaseFixture(8)(async (db) => {
+    const s = await provisioningFixture(db);
+    try {
+      const k = await s.activate();
+      const a = await s.provision(k.keyId),
+        b = await s.provision(k.keyId);
+      assert.equal((await s.loss(a.envelope)).statusCode, 200);
+      const path = `/v2/machines/${s.f.machineId}/api-providers/${s.providerId}/secret`;
+      const denied = await s.f.owner.post(path, { ...b.body, operationId: randomUUID() });
+      assert.equal(denied.statusCode, 409, denied.text);
+      assert.equal(
+        (await s.f.machine.get('/v2/machine/api-secret-envelopes')).json<{ items: SecretEnvelope[] }>().items
+          .length,
+        0,
+      );
+      assert.equal((await s.ack(b.envelope, 'lost-key-ref')).statusCode, 409);
+      assert.equal((await s.provider())?.status, 'missing');
+      const lost = await db`select state,ciphertext,tag,ack_hash from api_secret_envelopes`;
+      assert.equal(lost.length, 2);
+      for (const envelope of lost) {
+        assert.equal(envelope.state, 'key_lost');
+        assert.equal(envelope.ciphertext, null);
+        assert.equal(envelope.tag, null);
+        assert.equal(envelope.ack_hash, null);
+      }
+      assert.equal(
+        (await s.f.machine.post(`/v2/machine/credential-keys/${k.keyId}/confirm`, k.proof)).statusCode,
+        200,
+      );
+      assert.equal((await s.f.owner.post(path, { ...b.body, operationId: randomUUID() })).statusCode, 409);
+      const key = await db`select state from credential_keys where key_id=${k.keyId}`;
+      assert.equal(key[0]?.state, 'retired');
+      const current = await s.activate(),
+        c = await s.provision(current.keyId);
+      assert.equal((await s.ack(c.envelope, 'reentered-ref')).statusCode, 200);
+      assert.equal((await s.loss(a.envelope)).statusCode, 200);
+      assert.equal((await s.provider())?.credential_ref, 'reentered-ref');
+      assert.equal(
+        (await db`select state from credential_keys where key_id=${current.keyId}`)[0]?.state,
+        'active',
+      );
+      const reopened = await modelFixture(db, { prior: s.f.prior });
+      try {
+        assert.equal(
+          (await reopened.machine.post(`/v2/machine/api-secret-envelopes/${a.envelope.id}/key-lost`, {}))
+            .statusCode,
+          200,
+        );
+        assert.equal((await s.provider())?.credential_ref, 'reentered-ref');
+      } finally {
+        await reopened.close();
+      }
+    } finally {
+      await s.f.close();
+    }
+  });
+});
+test('FIX1 normal rotation retains old pending ACK authority only for history and old key loss preserves new active key', async () => {
+  await databaseFixture(8)(async (db) => {
+    const s = await provisioningFixture(db);
+    try {
+      const first = await s.activate(),
+        a = await s.provision(first.keyId),
+        pending = await s.provision(first.keyId);
+      const second = await s.activate();
+      assert.equal((await s.ack(a.envelope, 'retained-old-key-ref')).statusCode, 200);
+      const b = await s.provision(second.keyId);
+      assert.equal((await s.loss(pending.envelope)).statusCode, 200);
+      assert.equal((await s.provider())?.status, 'pending');
+      assert.equal(
+        (await db`select state from credential_keys where key_id=${second.keyId}`)[0]?.state,
+        'active',
+      );
+      assert.equal((await s.ack(b.envelope, 'current-new-key-ref')).statusCode, 200);
+      assert.equal((await s.ack(a.envelope, 'retained-old-key-ref')).statusCode, 200);
+      assert.equal((await s.provider())?.credential_ref, 'current-new-key-ref');
+      assert.equal((await s.ack(a.envelope, 'changed-history-ref')).statusCode, 409);
+    } finally {
+      await s.f.close();
+    }
+  });
+});
+
+test('FIX1 revision invalidation detaches current operation and old receipts preserve new credential', async () => {
+  await databaseFixture(8)(async (db) => {
+    const s = await provisioningFixture(db);
+    try {
+      const first = await s.activate(),
+        a = await s.provision(first.keyId),
+        history = await s.provision(first.keyId);
+      assert.equal((await s.ack(history.envelope, 'history-ref')).statusCode, 200);
+      assert.equal(
+        (
+          await s.f.owner.put(`/v2/machines/${s.f.machineId}/model-sources`, {
+            ...s.configuration,
+            expectedRevision: 1,
+            enabled: { claude: true, codex: false, api: true },
+          })
+        ).statusCode,
+        200,
+      );
+      assert.equal(
+        (await db`select current_operation_id from api_providers where id=${s.providerId}`)[0]
+          ?.current_operation_id,
+        null,
+      );
+      assert.equal((await s.provider())?.credential_ref, 'history-ref');
+      assert.equal((await s.ack(a.envelope, 'late-revision-ref')).statusCode, 409);
+      const second = await s.activate();
+      const operationId = randomUUID();
+      assert.equal(
+        (
+          await s.f.owner.post(`/v2/machines/${s.f.machineId}/api-providers/${s.providerId}/secret`, {
+            expectedRevision: 2,
+            keyId: second.keyId,
+            operationId,
+            secret: 'fixture-only-new',
+          })
+        ).statusCode,
+        200,
+      );
+      const b = (await s.f.machine.get('/v2/machine/api-secret-envelopes'))
+        .json<{ items: SecretEnvelope[] }>()
+        .items.find((e) => e.operationId === operationId);
+      assert.ok(b);
+      assert.equal((await s.ack(b, 'current-revision-ref')).statusCode, 200);
+      assert.equal((await s.loss(a.envelope)).statusCode, 200);
+      assert.equal((await s.ack(history.envelope, 'history-ref')).statusCode, 200);
+      assert.equal((await s.provider())?.credential_ref, 'current-revision-ref');
+      assert.equal(
+        (await db`select state from credential_keys where key_id=${second.keyId}`)[0]?.state,
+        'active',
+      );
+    } finally {
+      await s.f.close();
     }
   });
 });

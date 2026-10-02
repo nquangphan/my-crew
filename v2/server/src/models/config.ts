@@ -77,6 +77,9 @@ export async function setSourceConfig(
     return prev;
   const revision = (prev?.revision ?? 0) + 1;
   await tx`insert into model_source_configs(machine_id,revision,enabled,updated_at) values(${machineId},${revision},${tx.json(json(input.enabled))},${now}) on conflict(machine_id) do update set revision=excluded.revision,enabled=excluded.enabled,updated_at=excluded.updated_at`;
+  // A new revision removes old operation write authority without erasing stored secret history.
+  await tx`update api_secret_envelopes set state='expired',ciphertext=null,tag=null where machine_id=${machineId} and state='pending'`;
+  await tx`update api_providers set current_operation_id=null,status=case when status='pending' then 'missing' else status end,credential_ref=case when status='pending' then null else credential_ref end where machine_id=${machineId}`;
   // Desired removal is reversible while FK-backed historical envelope receipts remain intact.
   await tx`update api_providers set declared=false where machine_id=${machineId}`;
   for (const p of input.apiProviders) {

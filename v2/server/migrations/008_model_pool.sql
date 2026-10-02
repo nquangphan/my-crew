@@ -9,8 +9,9 @@ create table api_providers (
  id uuid not null, machine_id uuid not null references machines(id) on delete restrict,
  endpoint text not null, protocol text not null check(protocol in ('responses','chat-completions')),
  model_ids jsonb not null check(jsonb_typeof(model_ids)='array' and jsonb_array_length(model_ids)>0), local_http jsonb null,
- declared boolean not null default true, credential_ref text null, status text not null check(status in ('missing','pending','stored')),
- primary key(machine_id,id)
+ declared boolean not null default true, current_operation_id uuid null, credential_ref text null, status text not null check(status in ('missing','pending','stored')),
+ primary key(machine_id,id), check((status='stored')=(credential_ref is not null)),
+ check(status<>'pending' or current_operation_id is not null)
 );
 create table model_report_receipts (
  id uuid primary key, machine_id uuid not null references machines(id) on delete restrict,
@@ -63,7 +64,8 @@ create table runtime_certification_receipts (
 create index model_cert_pair on runtime_certification_receipts(machine_id,runtime,source_tree_sha256,projection_tree_sha256,binary_hash,received_at desc);
 create table credential_keys (
  machine_id uuid not null references machines(id), key_id uuid not null, public_key_x25519 text not null,
- state text not null check(state in ('pending','active','retired')), created_at timestamptz not null, confirmed_at timestamptz null,
+ state text not null check(state in ('pending','active','retired')), created_at timestamptz not null, confirmed_at timestamptz null, lost_at timestamptz null,
+ check(lost_at is null or state='retired'),
  primary key(machine_id,key_id), check((state='pending')=(confirmed_at is null))
 );
 create unique index credential_keys_one_active on credential_keys(machine_id) where state='active';
@@ -81,10 +83,14 @@ create table api_secret_envelopes (
  ciphertext text null, tag text null, ciphertext_sha256 char(64) not null,
  state text not null check(state in ('pending','acked','expired','key_lost')), created_at timestamptz not null, acked_at timestamptz null,
  request_hash char(64) not null, ack_hash char(64) null,
+ unique(machine_id,provider_id,operation_id),
  foreign key(machine_id,provider_id) references api_providers(machine_id,id),
  foreign key(machine_id,key_id) references credential_keys(machine_id,key_id),
  check((state='acked')=(acked_at is not null)), check(state<>'acked' or (ciphertext is null and tag is null))
 );
+-- Durable current operation identity is assigned under machine/provider locks, never UUID/time sorting.
+alter table api_providers add constraint api_provider_current_operation_fk
+ foreign key(machine_id,id,current_operation_id) references api_secret_envelopes(machine_id,provider_id,operation_id);
 create trigger model_report_immutable before update or delete on model_report_receipts for each row execute function gateway_immutable_record();
 create trigger model_probe_immutable before update or delete on model_probe_receipts for each row execute function gateway_immutable_record();
 create trigger model_cert_immutable before update or delete on runtime_certification_receipts for each row execute function gateway_immutable_record();
@@ -124,7 +130,7 @@ begin
  join gateway_boots gb on gb.machine_id=mr.machine_id and gb.boot_generation=mr.boot_generation and gb.retired_at is null
  join gateway_configs gc on gc.machine_id=pr.machine_id
  join gateway_applied ga on ga.machine_id=gc.machine_id and ga.revision=gc.revision
- join gateway_install_reports ir on ir.id=ga.latest_report_id and ir.machine_id=gc.machine_id
+ join gateway_install_reports ir on ir.id=ga.latest_report_id and ir.machine_id=gc.machine_id and ir.boot_generation=gb.boot_generation
  where pr.id=(cmd.payload->'modelChoice'->>'probeReceiptId')::uuid and pr.machine_id=new.machine_id
  and pr.context=ch.context and pr.context_sha256=cmd.payload->'modelChoice'->>'probeContextSha256'
  and pr.config_revision=mc.revision and mc.revision=(cmd.payload->'modelChoice'->>'modelConfigRevision')::integer

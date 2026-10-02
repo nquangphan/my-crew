@@ -21,6 +21,12 @@ import type {
 } from './contracts.ts';
 import { fail, hash, receiptExpiry } from './helpers.ts';
 
+// Routes already hold this authority lock; direct service callers must share the same ordering.
+async function lockCredentialMachine(tx: Tx, machineId: Id) {
+  const [machine] = await tx`select revoked_at from machines where id=${machineId} for update`;
+  if (!machine || machine.revoked_at) fail('NOT_FOUND', 404);
+}
+
 function publicKey(encoded: string) {
   try {
     const bytes = Buffer.from(encoded, 'base64'),
@@ -64,6 +70,7 @@ export async function registerCredentialKey(
   input: CredentialKeyRegistration,
   now = new Date(),
 ) {
+  await lockCredentialMachine(tx, machineId);
   publicKey(input.publicKeyX25519);
   const [old] =
     await tx`select * from credential_keys where machine_id=${machineId} and key_id=${input.keyId}`;
@@ -98,6 +105,7 @@ export async function confirmCredentialKey(
   input: CredentialKeyConfirmation,
   now = new Date(),
 ) {
+  await lockCredentialMachine(tx, machineId);
   const [ch] =
     await tx`select * from credential_key_challenges where id=${input.challengeId} and machine_id=${machineId} and key_id=${keyId} for update`;
   if (
@@ -107,7 +115,7 @@ export async function confirmCredentialKey(
     fail('KEY_PROOF_INVALID');
   if (ch.consumed_at) return { keyId, status: 'active' };
   if ((ch.expires_at as Date).getTime() <= now.getTime()) fail('KEY_CHALLENGE_EXPIRED');
-  await tx`update credential_keys set state='retired' where machine_id=${machineId} and state='active'`;
+  await tx`update credential_keys set state='retired' where machine_id=${machineId} and state='active' and lost_at is null`;
   await tx`update credential_keys set state='active',confirmed_at=${now} where machine_id=${machineId} and key_id=${keyId}`;
   await tx`update credential_key_challenges set consumed_at=${now} where id=${input.challengeId}`;
   return { keyId, status: 'active' };
@@ -119,6 +127,7 @@ export async function provisionSecret(
   input: SecretInput,
   now = new Date(),
 ) {
+  await lockCredentialMachine(tx, machineId);
   const requestHash = hash({ machineId, providerId, ...input });
   const [old] = await tx`select * from api_secret_envelopes where operation_id=${input.operationId}`;
   if (old) {
@@ -129,13 +138,13 @@ export async function provisionSecret(
   const config = await readSourceConfig(tx, machineId);
   if (!config || config.revision !== input.expectedRevision) fail('CONFIG_REVISION_CONFLICT');
   const [provider] =
-    await tx`select * from api_providers where machine_id=${machineId} and id=${providerId} and declared`;
+    await tx`select * from api_providers where machine_id=${machineId} and id=${providerId} and declared for update`;
   const [binding] = await tx`select 1 from projects where machine_id=${machineId} limit 1`;
   if (!provider) fail('NOT_FOUND', 404);
   // Secret provisioning is machine scoped; binding is required before secret leaves server.
   if (!binding) fail('PROJECT_BINDING_REQUIRED');
   const [key] =
-    await tx`select * from credential_keys where machine_id=${machineId} and key_id=${input.keyId} and state='active'`;
+    await tx`select * from credential_keys where machine_id=${machineId} and key_id=${input.keyId} and state='active' and lost_at is null`;
   if (!key) fail('KEY_NOT_CONFIRMED');
   const expiresAt = receiptExpiry(now).toISOString(),
     aad = {
@@ -150,7 +159,7 @@ export async function provisionSecret(
     id = randomUUID();
   const [cursor] = await tx`update api_secret_cursor set value=value+1 where singleton returning value`;
   await tx`insert into api_secret_envelopes(id,cursor,machine_id,provider_id,key_id,config_revision,operation_id,expires_at,ephemeral_public_key,nonce,ciphertext,tag,ciphertext_sha256,state,created_at,request_hash) values(${id},${cursor?.value},${machineId},${providerId},${input.keyId},${config.revision},${input.operationId},${expiresAt},${box.ephemeralPublicKey},${box.nonce},${box.ciphertext},${box.tag},${box.ciphertextSha256},'pending',${now},${requestHash})`;
-  await tx`update api_providers set status='pending',credential_ref=null where machine_id=${machineId} and id=${providerId} and declared`;
+  await tx`update api_providers set current_operation_id=${input.operationId},status='pending',credential_ref=null where machine_id=${machineId} and id=${providerId} and declared`;
   return { operationId: input.operationId, status: 'pending' };
 }
 export async function readSecretEnvelopes(tx: Tx, machineId: Id, after: string, now = new Date()) {
@@ -177,6 +186,7 @@ export async function readSecretEnvelopes(tx: Tx, machineId: Id, after: string, 
   };
 }
 export async function ackSecret(tx: Tx, machineId: Id, id: Id, input: SecretAck, now = new Date()) {
+  await lockCredentialMachine(tx, machineId);
   const [r] =
     await tx`select * from api_secret_envelopes where id=${id} and machine_id=${machineId} for update`;
   if (!r) fail('NOT_FOUND', 404);
@@ -195,15 +205,19 @@ export async function ackSecret(tx: Tx, machineId: Id, id: Id, input: SecretAck,
   const config = await readSourceConfig(tx, machineId);
   if (config?.revision !== Number(r.config_revision)) fail('CONFIG_REVISION_CONFLICT');
   await tx`update api_secret_envelopes set state='acked',ciphertext=null,tag=null,acked_at=${now},ack_hash=${ackHash} where id=${id}`;
-  await tx`update api_providers set status='stored',credential_ref=${input.credentialRef} where machine_id=${machineId} and id=${r.provider_id}`;
+  await tx`update api_providers set status='stored',credential_ref=${input.credentialRef} where machine_id=${machineId} and id=${r.provider_id} and current_operation_id=${r.operation_id}`;
   return { operationId: input.operationId, status: 'acked' };
 }
 export async function markSecretKeyLost(tx: Tx, machineId: Id, id: Id, now = new Date()) {
+  await lockCredentialMachine(tx, machineId);
   const [r] =
     await tx`select * from api_secret_envelopes where id=${id} and machine_id=${machineId} for update`;
   if (!r) fail('NOT_FOUND', 404);
   if (r.state === 'acked') fail('SECRET_ACK_CONFLICT');
-  await tx`update api_secret_envelopes set state=${(r.expires_at as Date).getTime() <= now.getTime() ? 'expired' : 'key_lost'},ciphertext=null,tag=null where id=${id}`;
-  await tx`update api_providers set status='missing',credential_ref=null where machine_id=${machineId} and id=${r.provider_id}`;
+  // Lost transport key is distinct from normal rotation and from already stored generic secrets.
+  await tx`update credential_keys set state='retired',lost_at=coalesce(lost_at,${now}) where machine_id=${machineId} and key_id=${r.key_id}`;
+  await tx`update api_secret_envelopes set state=case when expires_at<=${now} then 'expired' else 'key_lost' end,ciphertext=null,tag=null where machine_id=${machineId} and key_id=${r.key_id} and state='pending'`;
+  // Only a current pending operation using this lost key may change provider presentation.
+  await tx`update api_providers p set status='missing',credential_ref=null where p.machine_id=${machineId} and p.status='pending' and exists(select 1 from api_secret_envelopes e where e.machine_id=p.machine_id and e.provider_id=p.id and e.operation_id=p.current_operation_id and e.key_id=${r.key_id})`;
   return { operationId: r.operation_id, status: 'pending' };
 }
