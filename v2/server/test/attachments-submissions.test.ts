@@ -430,3 +430,51 @@ test('attachment submission malformed target returns400 before scope SQL or cach
     );
     assert.equal((await db`select * from attachment_submissions`).length, 1);
   }));
+
+test('attachment submission accepts actual closed ACK only; unknown and native gone proofs retain quota', async () =>
+  fixture(async (db, f, s) => {
+    const bytes = Buffer.from('Actual staged original');
+    const selected = await selection(f, 'comment', [bytes]);
+    const beforeUploads = await db`select * from attachment_uploads where id=${selected.attachmentIds[0]}`;
+    const [upload] = beforeUploads;
+    const [receiver] = await db`select * from attachment_receivers where id=${upload.receiver_id}`;
+    const actualProof = receiver.stop_proof;
+    assert.equal(actualProof.kind, 'closed-ack');
+    assert.equal(receiver.state, 'closed');
+    assert.equal(actualProof.proofSha256, receiver.closed_ack_sha256);
+    const revisions = await db`select * from attachment_input_revisions order by target_id`;
+    const body = { text: '', selection: selected };
+    for (const kind of ['process-gone', 'native-process-gone', 'unknown-proof']) {
+      // Negative corruption preserves every real ready/identity/hash/byte gate.
+      // Native process disappearance is not the producer's publication ACK.
+      await db`update attachment_receivers set stop_proof=${db.json({ ...actualProof, kind })} where id=${receiver.id}`;
+      await assert.rejects(
+        f.mutation(randomUUID(), (tx) => s.comment(tx, f.request.id, body, owner)),
+        { code: 'ATTACHMENT_NOT_READY' },
+      );
+      assert.equal((await db`select * from comments`).length, 0);
+      assert.equal((await db`select * from attachment_links`).length, 0);
+      assert.equal((await db`select * from attachment_submissions`).length, 0);
+      assert.equal((await db`select * from attachment_extractions`).length, 0);
+      assert.deepEqual(await db`select * from attachment_input_revisions order by target_id`, revisions);
+      assert.deepEqual(await db`select * from attachment_uploads where id=${upload.id}`, beforeUploads);
+      assert.equal(
+        await f.store.verify({
+          key: String(upload.storage_key),
+          sha256: sha(bytes),
+          byteLength: bytes.length,
+        }),
+        'present',
+      );
+    }
+    // Restore the ACK captured from actual reserve/receive, never synthesize one.
+    await db`update attachment_receivers set stop_proof=${db.json(actualProof)} where id=${receiver.id}`;
+    await f.mutation(randomUUID(), (tx) => s.comment(tx, f.request.id, body, owner));
+    assert.equal((await db`select * from attachment_links where attachment_id=${upload.id}`).length, 1);
+    const [retained] =
+      await db`select linked_at,quota_released_at from attachment_uploads where id=${upload.id}`;
+    assert.ok(retained.linked_at);
+    assert.ok(retained.quota_released_at);
+    const [job] = await db`select status from attachment_extractions where attachment_id=${upload.id}`;
+    assert.equal(job.status, 'pending');
+  }));

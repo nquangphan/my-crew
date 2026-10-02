@@ -159,6 +159,8 @@ export function createSelectionServices(deps: SelectionDependencies) {
         const [receiver] =
           await tx`select state,attachment_id,generation,instance_id,closed_at,closed_ack_sha256,stop_proof from attachment_receivers where id=${upload.receiver_id} for share`;
         const proof = receiver?.stop_proof;
+        // Native disappearance proves stop, not the current producer's closed
+        // publication ACK. Recovery readiness needs a separately reviewed transition.
         if (
           receiver?.state !== 'closed' ||
           !receiver.closed_at ||
@@ -169,8 +171,8 @@ export function createSelectionServices(deps: SelectionDependencies) {
           String(proof.generation) !== String(upload.generation) ||
           !record(proof.identity) ||
           proof.identity.instanceId !== receiver.instance_id ||
-          !['closed-ack', 'process-gone'].includes(String(proof.kind)) ||
-          (proof.kind === 'closed-ack' && proof.proofSha256 !== receiver.closed_ack_sha256)
+          proof.kind !== 'closed-ack' ||
+          proof.proofSha256 !== receiver.closed_ack_sha256
         )
           throw new ApiError('ATTACHMENT_NOT_READY', 422, 'Writer chưa có proof dừng');
         const original = {
