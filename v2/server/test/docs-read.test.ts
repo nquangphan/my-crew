@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
+import { setTimeout as delay } from 'node:timers/promises';
+import postgres from 'postgres';
 import { hashBytes } from '../src/docs/checksum.ts';
+import { searchDocs } from '../src/docs/search.ts';
 import { databaseFixture } from './support/db.ts';
 import { legacyBundle, rehashBundle, validDocs } from './support/docs.ts';
 import { pin } from './support/execution.ts';
@@ -269,6 +272,139 @@ test('docs tree links composite ticket references and verified mixed standard-pa
         auditState: string;
       }>();
       assert.equal(visible.auditState, 'verified');
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('search SQL deadline cancels blocked query and returns reusable single-connection pool', async (t) =>
+  withDatabase(async (db) => {
+    const f = await apiFixture(db);
+    const [database] = await db`select current_database() name`;
+    assert(database && typeof database.name === 'string');
+    assert.match(database.name, /^crew_v2_test_[0-9a-f]{32}$/);
+    const baseUrl = process.env.CREW_V2_TEST_DATABASE_URL;
+    assert(baseUrl);
+    const url = new URL(baseUrl);
+    url.pathname = `/${database.name}`;
+    const searchPool = postgres(url.toString(), { max: 1 });
+    const observer = postgres(url.toString(), { max: 1 });
+    t.diagnostic(
+      JSON.stringify({
+        containerId: process.env.CREW_V2_TEST_CONTAINER_ID,
+        db: database.name,
+        port: url.port,
+      }),
+    );
+    let release = () => {};
+    let blocker: Promise<unknown> | undefined;
+    let pending: Promise<unknown> | undefined;
+    let httpPending: Promise<Awaited<ReturnType<typeof f.ownerGet>>> | undefined;
+    let fuse: NodeJS.Timeout | undefined;
+    try {
+      await f.import(legacyBundle({ 'docs/index.md': Buffer.from('# DeadlineProbe') }));
+      const [backend] =
+        await searchPool`select pg_backend_pid() pid,current_setting('statement_timeout') timeout`;
+      assert(backend);
+      let locked = () => {};
+      const ready = new Promise<void>((resolve) => {
+        locked = resolve;
+      });
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      blocker = db.begin(async (tx) => {
+        await tx`lock table docs_files in access exclusive mode`;
+        locked();
+        await gate;
+      });
+      await ready;
+      pending = searchDocs(searchPool, { q: 'DeadlineProbe', limit: 1 }, { kind: 'owner', id: 'owner' });
+      // Attach the handler immediately; the harness stays finite even against old unbounded code.
+      const failed = pending.then(
+        () => {
+          throw new Error('SEARCH_RETURNED_INSTEAD_OF_DEADLINE');
+        },
+        (error) => {
+          throw error;
+        },
+      );
+      const observedFailure = failed.catch((error) => error);
+      httpPending = f.ownerGet('/v2/docs/search?q=DeadlineProbe');
+      let waiting = false;
+      for (let i = 0; i < 100; i++) {
+        const [row] =
+          await observer`select 1 from pg_stat_activity where pid=${backend.pid as number} and wait_event_type='Lock' and query like '%docs_files%'`;
+        if (row) {
+          waiting = true;
+          break;
+        }
+        await delay(10);
+      }
+      assert(waiting, 'actual search query did not reach conflicting table lock');
+      const watchdog = new Promise<never>((_, reject) => {
+        fuse = setTimeout(() => reject(new Error('SEARCH_DID_NOT_TIMEOUT_WITHIN_FINITE_HARNESS')), 5000);
+      });
+      const error: unknown = await Promise.race([observedFailure, watchdog]);
+      assert(error instanceof Error && 'code' in error && 'status' in error);
+      assert.equal(error.code, 'SEARCH_DEADLINE_EXCEEDED');
+      assert.equal(error.status, 503);
+      const response = await Promise.race([httpPending, watchdog]);
+      assert.equal(response.statusCode, 503);
+      assert.equal(response.json<{ error: { code: string } }>().error.code, 'SEARCH_DEADLINE_EXCEEDED');
+      const [reused] =
+        await searchPool`select pg_backend_pid() pid,current_setting('statement_timeout') timeout,1 ok`;
+      assert(reused);
+      assert.equal(reused.pid, backend.pid);
+      assert.equal(reused.timeout, backend.timeout);
+      assert.equal(reused.ok, 1);
+      t.diagnostic(
+        JSON.stringify({
+          containerId: process.env.CREW_V2_TEST_CONTAINER_ID,
+          db: database.name,
+          port: url.port,
+          backendPid: backend.pid,
+          sameConnectionReused: true,
+        }),
+      );
+    } finally {
+      if (fuse) clearTimeout(fuse);
+      release();
+      await blocker;
+      await Promise.allSettled([pending, httpPending]);
+      await f.close();
+      await searchPool.end();
+      await observer.end();
+    }
+  }));
+
+test('search cursor tuple rejects coerced UUID arrays and unsafe paths with400', async () =>
+  withDatabase(async (db) => {
+    const f = await apiFixture(db);
+    try {
+      await f.import(
+        legacyBundle({
+          'docs/index.md': Buffer.from('# CursorNeedle'),
+          'docs/flows/second.md': Buffer.from('# CursorNeedle'),
+        }),
+      );
+      const first = await f.ownerGet('/v2/docs/search?q=CursorNeedle&limit=1');
+      assert.equal(first.statusCode, 200);
+      const after = first.json<{ nextCursor: string | null }>().nextCursor;
+      assert(after);
+      const cursor = JSON.parse(Buffer.from(after, 'base64url').toString('utf8')) as Record<string, unknown>;
+      for (const changed of [
+        { projectId: [cursor.projectId] },
+        { snapshotId: [cursor.snapshotId] },
+        { path: '../secret' },
+        { path: '' },
+        { path: 'docs/%2e%2e/secret' },
+      ]) {
+        const encoded = Buffer.from(JSON.stringify({ ...cursor, ...changed })).toString('base64url');
+        const response = await f.ownerGet(`/v2/docs/search?q=CursorNeedle&after=${encoded}`);
+        assert.equal(response.statusCode, 400, response.text);
+        assert.equal(response.json<{ error: { code: string } }>().error.code, 'CURSOR_INVALID');
+      }
     } finally {
       await f.close();
     }
