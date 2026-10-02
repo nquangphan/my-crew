@@ -47,7 +47,7 @@ function validFlowSteps(page: string): boolean {
       continue;
     }
     if (!inSteps) continue;
-    const numbered = /^\s*\d+\.\s+(.+)$/.exec(line);
+    const numbered = /^\s*\d+\.(?:[ \t]+(.*))?$/.exec(line);
     if (!numbered) continue;
     count++;
     if (!/^`[^`]+`\s*→\s*`[^`]+`\s*:/.test(numbered[1] ?? '')) return false;

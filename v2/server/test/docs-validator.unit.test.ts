@@ -350,3 +350,49 @@ test('fenced heading examples do not change the required flow heading sequence',
     false,
   );
 });
+
+test('empty numbered marker in Các bước is audited as an invalid step', () => {
+  const input = docsValidationFixture();
+  const flow = file(input.files, 'docs/flows/sample.md').toString();
+  input.files.set(
+    'docs/flows/sample.md',
+    Buffer.from(flow.replace('1. `src/a.ts` → `run`: chạy.', '1. `src/a.ts` → `run`: chạy.\n2. ')),
+  );
+  const result = validateDocs(input);
+  assert.equal(result.valid, false);
+  assert(
+    result.issues.some(
+      (issue) => issue.code === 'FLOW_STEPS_INVALID' && issue.path === 'docs/flows/sample.md',
+    ),
+  );
+});
+
+test('task-list checkboxes do not consume link occurrences or create link warnings', () => {
+  const raw = Buffer.from('- [x] done\r\n- [ ] todo\r\n[real](missing.md#one)\r\n');
+  const input = docsValidationFixture({ 'docs/a.md': raw });
+  const before = Buffer.from(raw);
+  const result = validateDocs(input);
+  const links = result.links.filter((link) => link.fromPath === 'docs/a.md');
+  assert.deepEqual(
+    links.map((link) => link.occurrence),
+    [0],
+  );
+  assert.deepEqual(
+    links.map((link) => link.originalHref),
+    ['missing.md#one'],
+  );
+  assert.deepEqual(
+    links.map((link) => link.fragment),
+    ['one'],
+  );
+  assert.deepEqual(
+    links.map((link) => link.status),
+    ['missing'],
+  );
+  assert.equal(
+    result.issues.filter((issue) => issue.code === 'UNVERIFIED_LINK_SYNTAX' && issue.path === 'docs/a.md')
+      .length,
+    0,
+  );
+  assert(raw.equals(before));
+});

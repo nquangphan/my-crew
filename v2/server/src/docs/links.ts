@@ -66,13 +66,14 @@ function scanText(text: string): { visible: string; references: Map<string, stri
       const before = source.slice(0, offset);
       return before.lastIndexOf('[') > before.lastIndexOf(']') ? 'CODE' : '';
     });
+    const withoutTaskMarker = withoutCode.replace(/^(\s*(?:[-+*]|\d+\.)\s+)\[[ xX]\](?=\s|$)/, '$1');
     if (
-      /\]\([^)]*\([^)]*\)/.test(withoutCode) ||
-      /\[[^\]]*\[[^\]]+\][^\]]*\]\(/.test(withoutCode) ||
-      /<a\s|<img\s/i.test(withoutCode)
+      /\]\([^)]*\([^)]*\)/.test(withoutTaskMarker) ||
+      /\[[^\]]*\[[^\]]+\][^\]]*\]\(/.test(withoutTaskMarker) ||
+      /<a\s|<img\s/i.test(withoutTaskMarker)
     )
       unsupported = true;
-    visible.push(withoutCode);
+    visible.push(withoutTaskMarker);
   }
   return { visible: visible.join('\n'), references, unsupported };
 }

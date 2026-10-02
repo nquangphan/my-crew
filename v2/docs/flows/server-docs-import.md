@@ -14,8 +14,8 @@ Giữ nguyên byte của tài liệu nhập từ Crew v1, phân biệt tài li�
 1. `server/src/docs/checksum.ts` → `hashBytes`: tính SHA-256 trực tiếp trên Buffer, không đổi CRLF, Unicode hay encoding.
 2. `server/src/docs/checksum.ts` → `snapshotHash`: kiểm tra base64 chuẩn, checksum, UTF-8 và file trùng; băm danh sách tuple path/checksum/kích thước/class đã sắp xếp.
 3. `server/src/docs/manifest.ts` → `parseManifest`: đọc YAML có bắt khóa trùng, chặn khóa/prototype nguy hiểm, kiểm tra schema, path, mapping và source glob.
-4. `server/src/docs/validator.ts` → `validateDocs`: áp dụng STANDARD khi snapshot có trang implemented, kiểm tra từng bước đánh số trong đúng phần `Các bước`, heading ngoài fenced code, block sinh tự động, manifest và độ phủ source khi có danh sách source checkout. Snapshot chỉ có workflow artifact được kiểm tra toàn vẹn mà không bị ép có trang STANDARD; bản nhập legacy có manifest phát cảnh báo `SOURCE_TREE_UNVERIFIED`.
-5. `server/src/docs/links.ts` → `auditLinks`: duyệt Markdown inline/reference/shortcut-reference/image, giữ nhãn có inline code, bỏ code độc lập, giải đường dẫn tương đối, kiểm tra fragment và giữ `occurrence` cho từng link. Cú pháp chưa hỗ trợ được đánh dấu unverified.
+4. `server/src/docs/validator.ts` → `validateDocs`: áp dụng STANDARD khi snapshot có trang implemented, kiểm tra mọi marker bước đánh số kể cả dòng rỗng trong đúng phần `Các bước`, heading ngoài fenced code, block sinh tự động, manifest và độ phủ source khi có danh sách source checkout. Snapshot chỉ có workflow artifact được kiểm tra toàn vẹn mà không bị ép có trang STANDARD; bản nhập legacy có manifest phát cảnh báo `SOURCE_TREE_UNVERIFIED`.
+5. `server/src/docs/links.ts` → `auditLinks`: duyệt Markdown inline/reference/shortcut-reference/image, giữ nhãn có inline code, bỏ code độc lập và checkbox task-list khỏi stream link, giải đường dẫn tương đối, kiểm tra fragment và giữ `occurrence` cho từng link thật. Cú pháp chưa hỗ trợ được đánh dấu unverified.
 
 ## Files
 
@@ -40,4 +40,4 @@ Stage A chỉ nhận `Map<string, Buffer>` và metadata do caller cung cấp; kh
 
 ## Tests
 
-`node --test server/test/docs-validator.unit.test.ts` (chạy từ `v2/`) kiểm tra CRLF/Unicode, checksum, YAML trùng khóa, case/path traversal, artifact-only/mixed, source coverage, từng bước flow, generated block và link lặp/fragment/shortcut reference. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng. DB import, chạy lại và rollback batch thuộc Stage B; chưa được xác nhận ở Stage A.
+`node --test server/test/docs-validator.unit.test.ts` (chạy từ `v2/`) kiểm tra CRLF/Unicode, checksum, YAML trùng khóa, case/path traversal, artifact-only/mixed, source coverage, từng bước flow kể cả marker rỗng, generated block và link lặp/fragment/shortcut reference/checkbox. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng. DB import, chạy lại và rollback batch thuộc Stage B; chưa được xác nhận ở Stage A.
