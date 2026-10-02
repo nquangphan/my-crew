@@ -1,7 +1,7 @@
 # Crew v2 — Lộ trình triển khai
 
 **Spec đã duyệt:** [/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md](/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md).
-**Trạng thái cập nhật 2026-10-02:** phần 01 đã triển khai, review và merge main; phần 02 đang hoàn tất docs import/API integration, phần 03 đang triển khai journal/telemetry/resource registry. Kế hoạch 02–05 đã được review và duyệt; kế hoạch 06 đang sửa finding trước khi triển khai; phần 07 chờ duyệt prototype, 08–09 chưa giao triển khai.
+**Trạng thái cập nhật 2026-10-02:** phần 01 đã triển khai, review và merge main; phần 02 đang hoàn tất docs import/API integration, phần 03 đang triển khai journal/telemetry/resource registry. Kế hoạch 02–06 đã được review và duyệt; phần 07 chờ duyệt prototype, 08–09 chưa giao triển khai.
 
 ## Cách chia việc
 
@@ -11,7 +11,8 @@ chạy; khi nghiệm thu, đóng gói/deploy v2 riêng. Không xóa hay migrate 
 
 Đây là lộ trình toàn sản phẩm. Mỗi phần có kế hoạch chi tiết và review riêng, dựa vào hợp đồng phần trước.
 Kế hoạch đã duyệt: [01](phase-01-domain-foundation.md), [02](phase-02-server-docs.md),
-[03](phase-03-macos-workflows.md), [04](phase-04-runtime-models.md) và [05](phase-05-attachments.md).
+[03](phase-03-macos-workflows.md), [04](phase-04-runtime-models.md), [05](phase-05-attachments.md)
+và [06](phase-06-assistant-workflows.md).
 Trạng thái kế hoạch khác với trạng thái code hoặc chứng nhận runtime thật; mỗi phần cần đủ bằng chứng nghiệm thu riêng.
 
 ## Các phần và điều kiện nghiệm thu
