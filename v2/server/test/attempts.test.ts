@@ -4,6 +4,7 @@ import test from 'node:test';
 import Fastify from 'fastify';
 import {
   assertNoActiveProjectExecution,
+  authorizeAttemptMutation,
   claimAttempt,
   createExecutionAuthority,
   readAttempt,
@@ -15,10 +16,11 @@ import {
   submitAttemptResult,
 } from '../src/execution/attempts.ts';
 import { createCommand } from '../src/execution/commands.ts';
+import type { Attempt } from '../src/execution/contracts.ts';
 import { registerExecutionRoutes } from '../src/execution/routes.ts';
 import { createMutator } from '../src/journal/mutation.ts';
-import type { Db } from '../src/platform/contracts.ts';
-import type { ApiError } from '../src/platform/errors.ts';
+import type { Db, ServerOptions } from '../src/platform/contracts.ts';
+import { ApiError } from '../src/platform/errors.ts';
 import { createTicketServices } from '../src/tickets/service.ts';
 import { databaseFixture } from './support/db.ts';
 import { openPeerDb, executionFixture as setup } from './support/execution.ts';
@@ -913,6 +915,200 @@ test('stopped attestation survives pool restart and recheck finalizes without re
         )[0]?.n,
         1,
       );
+    } finally {
+      await reader.end();
+    }
+  }));
+
+test('append-only verifier attestation linked to original reported evidence advances persisted passed result after pool restart', async () =>
+  withDatabase(async (db) => {
+    const x = await setup(db);
+    const a = await db.begin((tx) =>
+      claimAttempt(
+        tx,
+        x.command.id,
+        { processInstanceId: randomUUID(), permit: x.permit },
+        x.actor,
+        x.authorize,
+      ),
+    );
+    const writer = await openPeerDb(db);
+    const reportInput = {
+      fence: a.fence,
+      processInstanceId: a.processInstanceId,
+      locator: 'artifacts/result.json',
+      sha256: 'f'.repeat(64),
+      sourceCommit: 'c'.repeat(40),
+    };
+    const verifyFromDb: ServerOptions['verifyFinalResult'] = async (tx, input) => {
+      if (input.kind !== 'research' || input.outcome !== 'passed' || input.evidenceIds.length !== 1)
+        throw new ApiError('FINAL_VERIFICATION_PENDING', 503, 'Attestation chưa hợp lệ');
+      const [linked] = await tx`select v.id from evidence e join evidence v
+        on v.ticket_id=e.ticket_id and v.attempt_id=e.attempt_id
+        where e.id=${input.evidenceIds[0]} and e.ticket_id=${input.ticketId}
+        and e.attempt_id=${input.attemptId} and e.kind='artifact'
+        and e.data->>'verification'='reported'
+        and v.kind='research_result' and v.data->>'verification'='verified'
+        and v.data->>'originalEvidenceId'=e.id::text
+        and v.data->>'locator'=e.data->>'locator'
+        and v.data->>'sha256'=e.data->>'sha256'
+        and v.data->>'sourceCommit'=e.data->>'sourceCommit' limit 1`;
+      if (!linked) throw new ApiError('FINAL_VERIFICATION_PENDING', 503, 'Attestation chưa liên kết nguồn');
+    };
+    let reportedId: string;
+    let originalReportedData: string;
+    let originalResultData: string;
+    let originalResponse: Attempt;
+    let resultContext: {
+      actor: typeof x.actor;
+      route: string;
+      key: string;
+      body: {
+        fence: string;
+        processInstanceId: string;
+        outcome: 'passed';
+        evidenceIds: string[];
+        reason: null;
+      };
+      authorize: (tx: Parameters<typeof authorizeAttemptMutation>[0]) => Promise<void>;
+    };
+    try {
+      const reported = await writer.begin((tx) => registerArtifactEvidence(tx, a.id, reportInput, x.actor));
+      reportedId = reported.id;
+      const [reportedBefore] = await writer`select data::text as data from evidence where id=${reportedId}`;
+      originalReportedData = reportedBefore?.data as string;
+      const resultInput = {
+        fence: a.fence,
+        processInstanceId: a.processInstanceId,
+        outcome: 'passed' as const,
+        evidenceIds: [reportedId],
+        reason: null,
+      };
+      resultContext = {
+        actor: x.actor,
+        route: `POST:/v2/machine/attempts/${a.id}/result`,
+        key: 'original-passed-result',
+        body: resultInput,
+        authorize: (tx) => authorizeAttemptMutation(tx, a.id, x.actor),
+      };
+      originalResponse = (
+        await createMutator(writer)(resultContext, async (tx) => ({
+          status: 200,
+          body: await submitAttemptResult(tx, a.id, resultInput, x.actor, verifyFromDb),
+        }))
+      ).body;
+      assert.equal(originalResponse.state, 'active');
+      const [resultBefore] =
+        await writer`select terminal_result::text as result from attempts where id=${a.id}`;
+      originalResultData = resultBefore?.result as string;
+      await writer.begin((tx) =>
+        reconcileAttempt(
+          tx,
+          a.id,
+          {
+            fence: a.fence,
+            processInstanceId: a.processInstanceId,
+            observation: 'stopped',
+            artifacts: [reportedId],
+            stopReason: 'exit',
+          },
+          x.actor,
+          verifyFromDb,
+        ),
+      );
+      const pendingWithoutAttestation = await writer.begin((tx) =>
+        recheckFinalization(
+          tx,
+          a.id,
+          { fence: a.fence, processInstanceId: a.processInstanceId },
+          x.actor,
+          verifyFromDb,
+        ),
+      );
+      assert.equal(pendingWithoutAttestation.state, 'finalizing');
+      assert.equal(
+        (await writer`select active_attempt_id from execution_guards where ticket_id=${x.f.a.id}`)[0]
+          ?.active_attempt_id,
+        a.id,
+      );
+      const wrongId = randomUUID();
+      await writer`insert into evidence(id,ticket_id,attempt_id,kind,data) values(${randomUUID()},${x.f.a.id},${a.id},'research_result',${writer.json({ verification: 'verified', originalEvidenceId: wrongId, locator: reportInput.locator, sha256: reportInput.sha256, sourceCommit: reportInput.sourceCommit })})`;
+      const pendingWrongLink = await writer.begin((tx) =>
+        recheckFinalization(
+          tx,
+          a.id,
+          { fence: a.fence, processInstanceId: a.processInstanceId },
+          x.actor,
+          verifyFromDb,
+        ),
+      );
+      assert.equal(pendingWrongLink.state, 'finalizing');
+      assert.equal(
+        (await writer`select active_attempt_id from execution_guards where ticket_id=${x.f.a.id}`)[0]
+          ?.active_attempt_id,
+        a.id,
+      );
+      await writer`insert into evidence(id,ticket_id,attempt_id,kind,data) values(${randomUUID()},${x.f.a.id},${a.id},'research_result',${writer.json({ verification: 'verified', originalEvidenceId: reportedId, locator: reportInput.locator, sha256: reportInput.sha256, sourceCommit: reportInput.sourceCommit })})`;
+      assert.equal(
+        (await writer`select data::text as data from evidence where id=${reportedId}`)[0]?.data,
+        originalReportedData,
+      );
+      assert.equal(
+        (await writer`select terminal_result::text as result from attempts where id=${a.id}`)[0]?.result,
+        originalResultData,
+      );
+    } finally {
+      await writer.end();
+    }
+    const reader = await openPeerDb(db);
+    try {
+      const recheckContext = {
+        actor: x.actor,
+        route: `POST:/v2/machine/attempts/${a.id}/finalize`,
+        key: 'attested-recheck',
+        body: { fence: a.fence, processInstanceId: a.processInstanceId },
+        authorize: (tx: Parameters<typeof authorizeAttemptMutation>[0]) =>
+          authorizeAttemptMutation(tx, a.id, x.actor),
+      };
+      const finalized = (
+        await createMutator(reader)(recheckContext, async (tx) => ({
+          status: 200,
+          body: await recheckFinalization(tx, a.id, recheckContext.body, x.actor, verifyFromDb),
+        }))
+      ).body;
+      assert.equal(finalized.state, 'stopped');
+      assert.equal((await x.f.read(x.f.a.id)).status, 'done');
+      assert.equal(
+        (await reader`select active_attempt_id from execution_guards where ticket_id=${x.f.a.id}`)[0]
+          ?.active_attempt_id,
+        null,
+      );
+      assert.equal(
+        (
+          await reader`select count(*)::int n from events where type='attempt.finalized' and data->>'attemptId'=${a.id}`
+        )[0]?.n,
+        1,
+      );
+      assert.equal(
+        (
+          await reader`select count(*)::int n from reconciliation_observations where attempt_id=${a.id} and observation='stopped'`
+        )[0]?.n,
+        1,
+      );
+      assert.equal(
+        (await reader`select data::text as data from evidence where id=${reportedId}`)[0]?.data,
+        originalReportedData,
+      );
+      const [stored] =
+        await reader`select terminal_result::text as result,fence from attempts where id=${a.id}`;
+      assert.equal(stored?.result, originalResultData);
+      assert.equal(String(stored?.fence), a.fence);
+      const originalReplay = await createMutator(reader)<Attempt>(resultContext, async () => {
+        throw Error('original result work reran');
+      });
+      assert.deepEqual(originalReplay.body, originalResponse);
+      assert.equal(originalReplay.body.state, 'active');
+      assert.equal((await reader`select count(*)::int n from evidence where id=${reportedId}`)[0]?.n, 1);
     } finally {
       await reader.end();
     }
