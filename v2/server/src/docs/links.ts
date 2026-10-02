@@ -61,7 +61,11 @@ function scanText(text: string): { visible: string; references: Map<string, stri
       references.set((def[1] ?? '').toLowerCase().trim(), def[2] ?? '');
       continue;
     }
-    const withoutCode = line.replace(/`[^`]*`/g, '');
+    // Code outside a label is inert; code inside a label still leaves a link token.
+    const withoutCode = line.replace(/`[^`]*`/g, (_span, offset: number, source: string) => {
+      const before = source.slice(0, offset);
+      return before.lastIndexOf('[') > before.lastIndexOf(']') ? 'CODE' : '';
+    });
     if (
       /\]\([^)]*\([^)]*\)/.test(withoutCode) ||
       /\[[^\]]*\[[^\]]+\][^\]]*\]\(/.test(withoutCode) ||
@@ -89,10 +93,11 @@ export function auditLinks(files: Map<string, string>): { links: DocLink[]; issu
           'warning',
         ),
       );
-    const token = /!?\[([^[\]]+)\]\(([^)]+)\)|!?\[([^[\]]+)\]\[([^\]]+)\]/g;
+    const token = /!?\[([^[\]]+)\]\(([^)]+)\)|!?\[([^[\]]+)\]\[([^\]]*)\]|!?\[([^[\]]+)\](?!\(|\[|:)/g;
     let occurrence = 0;
     for (const match of visible.matchAll(token)) {
-      const href = match[2] ?? references.get((match[4] ?? '').toLowerCase().trim());
+      const referenceId = match[3] === undefined ? match[5] : match[4] || match[3];
+      const href = match[2] ?? references.get((referenceId ?? '').toLowerCase().trim());
       const originalHref = href ?? match[0];
       const current = occurrence++;
       if (!href) {
@@ -207,6 +212,11 @@ export function auditLinks(files: Map<string, string>): { links: DocLink[]; issu
       }
       links.push({ fromPath, occurrence: current, originalHref, toPath, fragment, status: 'ok' });
     }
+    const leftover = visible.replace(token, '');
+    if (/\]\s*\(|\]\s*\[/.test(leftover) && !unsupported)
+      issues.push(
+        finding('UNVERIFIED_LINK_SYNTAX', fromPath, 'Cú pháp link chưa được parser hỗ trợ', 'warning'),
+      );
   }
   return { links, issues };
 }

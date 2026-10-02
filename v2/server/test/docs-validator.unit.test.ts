@@ -228,3 +228,125 @@ test('nested Markdown link is flagged as unverified syntax', () => {
     result.issues.some((issue) => issue.code === 'UNVERIFIED_LINK_SYNTAX' && issue.path === 'docs/a.md'),
   );
 });
+
+test('inline-code label and shortcut reference retain broken link occurrences and original hrefs', () => {
+  const raw = Buffer.from('[`Thiết kế`](missing.md#first) [Thiết kế]\r\n[Thiết kế]: missing.md#second\r\n');
+  const input = docsValidationFixture({ 'docs/a.md': raw });
+  const before = Buffer.from(raw);
+  const result = validateDocs(input);
+  const links = result.links.filter((link) => link.fromPath === 'docs/a.md');
+  assert.deepEqual(
+    links.map((link) => link.occurrence),
+    [0, 1],
+  );
+  assert.deepEqual(
+    links.map((link) => link.originalHref),
+    ['missing.md#first', 'missing.md#second'],
+  );
+  assert.deepEqual(
+    links.map((link) => link.fragment),
+    ['first', 'second'],
+  );
+  assert.deepEqual(
+    links.map((link) => link.status),
+    ['missing', 'missing'],
+  );
+  assert.equal(result.valid, false);
+  assert.equal(
+    result.issues.filter((issue) => issue.code === 'LINK_MISSING' && issue.path === 'docs/a.md').length,
+    2,
+  );
+  assert(raw.equals(before));
+});
+
+test('unsupported link-like syntax warns instead of silently claiming full audit', () => {
+  const input = docsValidationFixture({ 'docs/a.md': Buffer.from('[nested [label]](missing.md)') });
+  assert(
+    validateDocs(input).issues.some(
+      (issue) => issue.code === 'UNVERIFIED_LINK_SYNTAX' && issue.path === 'docs/a.md',
+    ),
+  );
+});
+
+test('artifact-only snapshot passes integrity audit without STANDARD pages; mixed subset still requires them', () => {
+  const artifact = 'docs/superpowers/specs/design.md';
+  const only = docsValidationFixture();
+  only.files = new Map([[artifact, Buffer.from('# Dự kiến\r\n')]]);
+  only.contentClasses = new Map([[artifact, 'workflow_artifact']]);
+  const isolated = validateDocs(only);
+  assert.equal(isolated.valid, true, JSON.stringify(isolated.issues));
+  assert.equal(isolated.issues.filter((issue) => issue.code === 'REQUIRED_DOC_MISSING').length, 0);
+
+  const mixed = docsValidationFixture({ [artifact]: Buffer.from('# Dự kiến\r\n') });
+  assert.equal(validateDocs(mixed).valid, true);
+  mixed.files.delete('docs/index.md');
+  const incomplete = validateDocs(mixed);
+  assert.equal(incomplete.valid, false);
+  assert(
+    incomplete.issues.some(
+      (issue) => issue.code === 'REQUIRED_DOC_MISSING' && issue.path === 'docs/index.md',
+    ),
+  );
+  assert.equal(mixed.contentClasses.get(artifact), 'workflow_artifact');
+});
+
+test('every numbered step in actual Các bước section needs file and symbol', () => {
+  const input = docsValidationFixture();
+  const flow = file(input.files, 'docs/flows/sample.md').toString();
+  input.files.set(
+    'docs/flows/sample.md',
+    Buffer.from(
+      flow
+        .replace(
+          '1. `src/a.ts` → `run`: chạy.',
+          '1. `src/a.ts` → `run`: chạy.\n```md\n2. ví dụ trong code\n```\n2. làm gì đó',
+        )
+        .replace('## Dữ liệu\n', '## Dữ liệu\n3. ví dụ ở phần khác\n'),
+    ),
+  );
+  const result = validateDocs(input);
+  assert(
+    result.issues.some(
+      (issue) => issue.code === 'FLOW_STEPS_INVALID' && issue.path === 'docs/flows/sample.md',
+    ),
+  );
+
+  input.files.set(
+    'docs/flows/sample.md',
+    Buffer.from(
+      flow
+        .replace(
+          '1. `src/a.ts` → `run`: chạy.',
+          '1. `src/a.ts` → `run`: chạy.\n```md\n2. ví dụ trong code\n```\n2. `src/b.ts` → `next`: tiếp tục.',
+        )
+        .replace('## Dữ liệu\n', '## Dữ liệu\n3. ví dụ ở phần khác\n'),
+    ),
+  );
+  assert.equal(
+    validateDocs(input).issues.some((issue) => issue.code === 'FLOW_STEPS_INVALID'),
+    false,
+  );
+});
+
+test('fenced heading examples do not change the required flow heading sequence', () => {
+  const input = docsValidationFixture();
+  const flow = file(input.files, 'docs/flows/sample.md').toString();
+  input.files.set(
+    'docs/flows/sample.md',
+    Buffer.from(
+      flow.replace(
+        '1. `src/a.ts` → `run`: chạy.',
+        '1. `src/a.ts` → `run`: chạy.\n```md\n## Ví dụ\n2. thiếu symbol\n```',
+      ),
+    ),
+  );
+  const result = validateDocs(input);
+  assert.equal(
+    result.issues.some((issue) => issue.code === 'FLOW_HEADINGS_INVALID'),
+    false,
+  );
+  assert.equal(
+    result.issues.some((issue) => issue.code === 'FLOW_STEPS_INVALID'),
+    false,
+  );
+});

@@ -21,6 +21,40 @@ const required = [
 ];
 const headings = ['Mục đích', 'Điểm vào', 'Các bước', 'Files', 'Dữ liệu', 'Flow liên quan', 'Tests'];
 
+function outsideFences(page: string): string[] {
+  const visible: string[] = [];
+  let fence: string | null = null;
+  for (const line of page.split(/\r?\n/)) {
+    const marker = /^\s{0,3}(`{3,}|~{3,})/.exec(line)?.[1];
+    if (marker) {
+      if (fence === null) fence = marker;
+      else if (marker[0] === fence[0] && marker.length >= fence.length) fence = null;
+      continue;
+    }
+    if (fence === null) visible.push(line);
+  }
+  return visible;
+}
+
+function validFlowSteps(page: string): boolean {
+  let inSteps = false;
+  let count = 0;
+  for (const line of outsideFences(page)) {
+    const section = /^## (.+?)\s*$/.exec(line);
+    if (section) {
+      if (inSteps) break;
+      inSteps = section[1] === 'Các bước';
+      continue;
+    }
+    if (!inSteps) continue;
+    const numbered = /^\s*\d+\.\s+(.+)$/.exec(line);
+    if (!numbered) continue;
+    count++;
+    if (!/^`[^`]+`\s*→\s*`[^`]+`\s*:/.test(numbered[1] ?? '')) return false;
+  }
+  return count > 0;
+}
+
 export function validateDocs(input: DocsValidationInput): DocsValidationResult {
   const issues: AuditIssue[] = [];
   const texts = new Map<string, string>();
@@ -48,9 +82,13 @@ export function validateDocs(input: DocsValidationInput): DocsValidationResult {
     }
   }
   if (input.files.size > 2000) add('FILE_COUNT_LIMIT', 'docs/', 'Vượt 2000 file trong một snapshot');
-  for (const path of required)
-    if (!texts.has(path) || input.contentClasses.get(path) !== 'implemented')
-      add('REQUIRED_DOC_MISSING', path, 'Thiếu trang chuẩn đã triển khai');
+  const artifactOnly =
+    input.files.size > 0 &&
+    [...input.files.keys()].every((path) => input.contentClasses.get(path) === 'workflow_artifact');
+  if (!artifactOnly)
+    for (const path of required)
+      if (!texts.has(path) || input.contentClasses.get(path) !== 'implemented')
+        add('REQUIRED_DOC_MISSING', path, 'Thiếu trang chuẩn đã triển khai');
   const claude = texts.get('CLAUDE.md');
   if (claude !== undefined && !/^@AGENTS\.md(?:\r?\n)?$/.test(claude))
     add('CLAUDE_REDIRECT_INVALID', 'CLAUDE.md', 'CLAUDE.md phải chỉ chứa @AGENTS.md');
@@ -65,14 +103,15 @@ export function validateDocs(input: DocsValidationInput): DocsValidationResult {
         add('FLOW_DOC_MISSING', flow.doc, `Thiếu trang flow ${id}`);
       else {
         const page = texts.get(flow.doc) ?? '';
-        const actual = [...page.matchAll(/^## (.+?)\s*$/gm)].map((match) => match[1]);
+        const visible = outsideFences(page).join('\n');
+        const actual = [...visible.matchAll(/^## (.+?)\s*$/gm)].map((match) => match[1]);
         if (
-          !/^# [^\n]+/m.test(page) ||
+          !/^# [^\n]+/m.test(visible) ||
           actual.length !== headings.length ||
           actual.some((heading, i) => heading !== headings[i])
         )
           add('FLOW_HEADINGS_INVALID', flow.doc, 'Heading flow phải đúng thứ tự của STANDARD');
-        if (!/^\d+\. `[^`]+`\s*→\s*`[^`]+`/m.test(page))
+        if (!validFlowSteps(page))
           add('FLOW_STEPS_INVALID', flow.doc, 'Các bước cần danh sách đánh số với file → symbol');
       }
       for (const path of [flow.doc, ...flow.entrypoints, ...flow.files, ...flow.tests]) {
