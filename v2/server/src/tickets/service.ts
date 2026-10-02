@@ -267,7 +267,7 @@ async function signalTicketWithDependencies(
         projectId: ticket.projectId,
         ticketId,
         audienceMachineId: null,
-        data: { revision: Number(row?.revision), status: 'running' },
+        data: { revision: Number(row?.revision), status: row?.status as Ticket['status'] },
       });
       return mapTicket(row as Record<string, unknown>);
     }

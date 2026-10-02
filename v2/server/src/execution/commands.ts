@@ -194,15 +194,13 @@ export async function listCommands(
   return db.begin(async (tx) => {
     const [machine] = await tx`select id from machines where id=${actor.id} and revoked_at is null`;
     if (!machine) throw new ApiError('MACHINE_REVOKED', 403, 'Máy không còn quyền');
-    let anchor: { created_at: Date; id: Id } | undefined;
     if (after) {
       const [found] =
-        await tx`select c.created_at,c.id from commands c join tickets t on t.id=c.ticket_id join projects p on p.id=t.project_id where c.id=${after} and c.machine_id=${actor.id} and p.machine_id=${actor.id} and p.binding_revision=c.binding_revision`;
-      anchor = found as { created_at: Date; id: Id } | undefined;
-      if (!anchor) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy con trỏ lệnh');
+        await tx`select c.id from commands c join tickets t on t.id=c.ticket_id join projects p on p.id=t.project_id where c.id=${after} and c.machine_id=${actor.id} and p.machine_id=${actor.id} and p.binding_revision=c.binding_revision`;
+      if (!found) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy con trỏ lệnh');
     }
     const rows =
-      await tx`select c.* from commands c join tickets t on t.id=c.ticket_id join projects p on p.id=t.project_id where c.machine_id=${actor.id} and p.machine_id=${actor.id} and p.binding_revision=c.binding_revision and c.state in ('queued','received') and (${anchor?.created_at ?? null}::timestamptz is null or (c.created_at,c.id)>(${anchor?.created_at ?? null}::timestamptz,${anchor?.id ?? null}::uuid)) order by c.created_at,c.id limit ${limit + 1}`;
+      await tx`select c.* from commands c join tickets t on t.id=c.ticket_id join projects p on p.id=t.project_id where c.machine_id=${actor.id} and p.machine_id=${actor.id} and p.binding_revision=c.binding_revision and c.state in ('queued','received') and (${after}::uuid is null or (c.created_at,c.id)>(select anchor.created_at,anchor.id from commands anchor where anchor.id=${after})) order by c.created_at,c.id limit ${limit + 1}`;
     const items = rows.slice(0, limit).map(mapCommand);
     return { items, nextCursor: rows.length > limit ? (items.at(-1)?.id ?? null) : null };
   });

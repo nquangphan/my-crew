@@ -299,6 +299,8 @@ export async function registerArtifactEvidence(
   if (row.state === 'stopped') throw new ApiError('PROCESS_STOPPED', 409, 'Attempt đã hoàn tất');
   if (row.state === 'uncertain')
     throw new ApiError('RECONCILE_REQUIRED', 409, 'Cần đối chiếu tiến trình trước khi ghi artifact');
+  if (row.state === 'active' && (row.lease_expires_at as Date).getTime() <= Date.now())
+    throw new ApiError('LEASE_EXPIRED', 409, 'Lease đã hết hạn; cần đối chiếu tiến trình');
   const locator = input.locator;
   if (
     typeof input.sha256 !== 'string' ||
@@ -563,7 +565,7 @@ async function setTerminalIntent(
   await tx`update attempts set terminal_intent=${intent},terminal_reason=${reason} where id=${row.id}`;
   const type = intent === 'cancel' ? 'cancel' : 'pause';
   const [existing] =
-    await tx`select * from commands where ticket_id=${ticketId} and type=${type} and state<>'completed' order by created_at desc limit 1`;
+    await tx`select * from commands where ticket_id=${ticketId} and type=${type} and state<>'completed' and machine_id=${row.machine_id as Id} and binding_revision=${row.binding_revision as number} and payload->>'attemptId'=${row.id as Id} order by created_at desc,id desc limit 1`;
   if (existing) {
     const { mapCommand } = await import('./commands.ts');
     return mapCommand(existing);

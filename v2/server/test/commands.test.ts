@@ -8,11 +8,12 @@ import {
   listCommands,
   readCommand,
 } from '../src/execution/commands.ts';
+import type { Command } from '../src/execution/contracts.ts';
 import { registerExecutionRoutes } from '../src/execution/routes.ts';
 import { createMutator } from '../src/journal/mutation.ts';
 import { ApiError } from '../src/platform/errors.ts';
 import { databaseFixture } from './support/db.ts';
-import { executionFixture } from './support/execution.ts';
+import { executionFixture, openPeerDb } from './support/execution.ts';
 
 const withDatabase = databaseFixture(5);
 
@@ -41,6 +42,73 @@ test('completed page anchor works and polling from null sees new commands', asyn
     await assert.rejects(() => listCommands(db, x.actor, '00000000-0000-4000-8000-000000000000', 10), {
       code: 'NOT_FOUND',
     });
+  }));
+
+test('queued microsecond anchor advances without repeating a command', async () =>
+  withDatabase(async (db) => {
+    const x = await executionFixture(db);
+    const second = await db.begin((tx) =>
+      createCommand(
+        tx,
+        { machineId: x.actor.id, ticketId: x.f.a.id, type: 'reconcile', payload: {} },
+        { kind: 'owner', id: 'owner' },
+      ),
+    );
+    await db`update commands set created_at='2026-10-02T00:00:00.123456Z' where id=${x.command.id}`;
+    await db`update commands set created_at='2026-10-02T00:00:00.123457Z' where id=${second.id}`;
+    const firstPage = await listCommands(db, x.actor, null, 1);
+    assert.deepEqual(
+      firstPage.items.map((item) => item.id),
+      [x.command.id],
+    );
+    const secondPage = await listCommands(db, x.actor, firstPage.nextCursor, 1);
+    assert.deepEqual(
+      secondPage.items.map((item) => item.id),
+      [second.id],
+    );
+    assert.equal(secondPage.nextCursor, null);
+    assert.notEqual(firstPage.nextCursor, secondPage.nextCursor);
+  }));
+
+test('ACK response survives closing its writer pool and replays from a new pool', async () =>
+  withDatabase(async (db) => {
+    const x = await executionFixture(db);
+    const context = {
+      actor: x.actor,
+      route: `POST:/v2/machine/commands/${x.command.id}/ack`,
+      key: 'persisted-ack',
+      body: { phase: 'received' },
+      authorize: (tx: Parameters<typeof authorizeCommandMutation>[0]) =>
+        authorizeCommandMutation(tx, x.command.id, x.actor),
+    };
+    const writer = await openPeerDb(db);
+    let first: Awaited<ReturnType<typeof ackCommand>>;
+    try {
+      first = (
+        await createMutator(writer)(context, async (tx) => ({
+          status: 200,
+          body: await ackCommand(tx, x.command.id, { phase: 'received' }, x.actor),
+        }))
+      ).body;
+    } finally {
+      await writer.end();
+    }
+    const reader = await openPeerDb(db);
+    try {
+      const replay = await createMutator(reader)<Command>(context, async () => {
+        throw Error('cached ACK work ran');
+      });
+      assert.equal(replay.body.id, first.id);
+      assert.equal(replay.body.state, 'received');
+      assert.equal(
+        (
+          await db`select count(*)::int n from events where type='command.acknowledged' and data->>'commandId'=${x.command.id}`
+        )[0]?.n,
+        1,
+      );
+    } finally {
+      await reader.end();
+    }
   }));
 
 test('same machine after new binding cannot read or ack old command', async () =>

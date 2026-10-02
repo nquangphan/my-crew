@@ -10,18 +10,33 @@ import {
   recheckFinalization,
   reconcileAttempt,
   registerArtifactEvidence,
+  requestTerminalIntent,
   saveCheckpoint,
   submitAttemptResult,
 } from '../src/execution/attempts.ts';
 import { createCommand } from '../src/execution/commands.ts';
 import { registerExecutionRoutes } from '../src/execution/routes.ts';
 import { createMutator } from '../src/journal/mutation.ts';
+import type { Db } from '../src/platform/contracts.ts';
 import type { ApiError } from '../src/platform/errors.ts';
 import { createTicketServices } from '../src/tickets/service.ts';
 import { databaseFixture } from './support/db.ts';
-import { executionFixture as setup } from './support/execution.ts';
+import { openPeerDb, executionFixture as setup } from './support/execution.ts';
 
 const withDatabase = databaseFixture(5);
+const owner = { kind: 'owner', id: 'owner' } as const;
+
+async function ownerIntervention(db: Db, ticketId: string) {
+  const services = createTicketServices({ execution: createExecutionAuthority() });
+  return db.begin((tx) =>
+    services.recordDecision(
+      tx,
+      ticketId,
+      { kind: 'intervention', content: 'Dừng tiến trình', rationale: 'Kiểm tra', sources: [], scope: {} },
+      owner,
+    ),
+  );
+}
 
 test('concurrent claim fences one durable launch and lost reply replays it', async () =>
   withDatabase(async (db) => {
@@ -55,6 +70,56 @@ test('concurrent claim fences one durable launch and lost reply replays it', asy
     );
     assert.equal(again.id, accepted.value.id);
     assert.equal((await db`select count(*)::int n from attempts`)[0]?.n, 1);
+  }));
+
+test('independent pools racing claim keep one durable attempt and one fence', async () =>
+  withDatabase(async (db) => {
+    const x = await setup(db);
+    const left = await openPeerDb(db);
+    const right = await openPeerDb(db);
+    try {
+      const contenders = [
+        { pool: left, processId: randomUUID() },
+        { pool: right, processId: randomUUID() },
+      ];
+      const results = await Promise.allSettled(
+        contenders.map(({ pool, processId }) =>
+          pool.begin((tx) =>
+            claimAttempt(
+              tx,
+              x.command.id,
+              { processInstanceId: processId, permit: x.permit },
+              x.actor,
+              x.authorize,
+            ),
+          ),
+        ),
+      );
+      assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
+      const winner = results.find((result) => result.status === 'fulfilled');
+      if (winner?.status !== 'fulfilled') throw Error('claim winner missing');
+      assert.equal(
+        (await db`select count(*)::int n from attempts where command_id=${x.command.id}`)[0]?.n,
+        1,
+      );
+      assert.equal(
+        (await db`select fence from execution_guards where ticket_id=${x.f.a.id}`)[0]?.fence,
+        winner.value.fence,
+      );
+      const replay = await right.begin((tx) =>
+        claimAttempt(
+          tx,
+          x.command.id,
+          { processInstanceId: winner.value.processInstanceId, permit: x.permit },
+          x.actor,
+          x.authorize,
+        ),
+      );
+      assert.equal(replay.id, winner.value.id);
+    } finally {
+      await left.end();
+      await right.end();
+    }
   }));
 
 test('stopped observation reserves guard until result and verifier allow finalization', async () =>
@@ -427,6 +492,463 @@ test('artifact route is authenticated idempotent and keeps late finalizing repor
     assert.equal((await request('artifact-1', payload)).statusCode, 404);
     await app.close();
   }));
+
+test('expired active lease rejects new artifact until running reconciliation, but finalizing accepts late report', async () =>
+  withDatabase(async (db) => {
+    const x = await setup(db);
+    const a = await db.begin((tx) =>
+      claimAttempt(
+        tx,
+        x.command.id,
+        { processInstanceId: randomUUID(), permit: x.permit },
+        x.actor,
+        x.authorize,
+      ),
+    );
+    const report = {
+      fence: a.fence,
+      processInstanceId: a.processInstanceId,
+      locator: 'report.md',
+      sha256: 'e'.repeat(64),
+      sourceCommit: null,
+    };
+    await db`update attempts set lease_expires_at=now()-interval '1 second' where id=${a.id}`;
+    await assert.rejects(() => db.begin((tx) => registerArtifactEvidence(tx, a.id, report, x.actor)), {
+      code: 'LEASE_EXPIRED',
+    });
+    assert.equal((await db`select count(*)::int n from evidence where attempt_id=${a.id}`)[0]?.n, 0);
+    assert.equal(
+      (await db`select active_attempt_id from execution_guards where ticket_id=${x.f.a.id}`)[0]
+        ?.active_attempt_id,
+      a.id,
+    );
+    await db.begin((tx) =>
+      reconcileAttempt(
+        tx,
+        a.id,
+        {
+          fence: a.fence,
+          processInstanceId: a.processInstanceId,
+          observation: 'running',
+          artifacts: [],
+          stopReason: null,
+        },
+        x.actor,
+      ),
+    );
+    const accepted = await db.begin((tx) => registerArtifactEvidence(tx, a.id, report, x.actor));
+    assert.equal((await db`select count(*)::int n from evidence where id=${accepted.id}`)[0]?.n, 1);
+    await db.begin((tx) =>
+      reconcileAttempt(
+        tx,
+        a.id,
+        {
+          fence: a.fence,
+          processInstanceId: a.processInstanceId,
+          observation: 'stopped',
+          artifacts: [],
+          stopReason: 'exit',
+        },
+        x.actor,
+      ),
+    );
+    await db`update attempts set lease_expires_at=now()-interval '1 second' where id=${a.id}`;
+    const late = await db.begin((tx) =>
+      registerArtifactEvidence(tx, a.id, { ...report, locator: 'late.md' }, x.actor),
+    );
+    assert.notEqual(late.id, accepted.id);
+  }));
+
+test('pause after replacement targets the new attempt and repeat pause reuses only its command', async () =>
+  withDatabase(async (db) => {
+    const x = await setup(db);
+    const a = await db.begin((tx) =>
+      claimAttempt(
+        tx,
+        x.command.id,
+        { processInstanceId: randomUUID(), permit: x.permit },
+        x.actor,
+        x.authorize,
+      ),
+    );
+    const firstDecision = await ownerIntervention(db, x.f.a.id);
+    const first = await db.begin((tx) =>
+      requestTerminalIntent(
+        tx,
+        x.f.a.id,
+        { intent: 'pause', reason: 'first', decisionId: firstDecision },
+        owner,
+      ),
+    );
+    assert.equal(first?.payload.attemptId, a.id);
+    await db.begin((tx) =>
+      reconcileAttempt(
+        tx,
+        a.id,
+        {
+          fence: a.fence,
+          processInstanceId: a.processInstanceId,
+          observation: 'stopped',
+          artifacts: [],
+          stopReason: 'pause',
+        },
+        x.actor,
+      ),
+    );
+    const services = createTicketServices({ execution: createExecutionAuthority() });
+    let ticket = await x.f.read(x.f.a.id);
+    ticket = await db.begin((tx) =>
+      services.signalTicket(tx, ticket.id, 'resume', ticket.revision, null, owner),
+    );
+    ticket = await db.begin((tx) =>
+      services.signalTicket(tx, ticket.id, 'dependencies_ready', ticket.revision, null, owner),
+    );
+    const resume = await db.begin((tx) =>
+      createCommand(tx, { machineId: x.actor.id, ticketId: ticket.id, type: 'resume', payload: {} }, owner),
+    );
+    const permit = {
+      ...x.permit,
+      commandId: resume.id,
+      ticketRevision: ticket.revision,
+      checkedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 20_000).toISOString(),
+    };
+    const b = await db.begin((tx) =>
+      claimAttempt(tx, resume.id, { processInstanceId: randomUUID(), permit }, x.actor, x.authorize),
+    );
+    await assert.rejects(
+      () =>
+        db.begin((tx) =>
+          saveCheckpoint(
+            tx,
+            a.id,
+            {
+              fence: a.fence,
+              processInstanceId: a.processInstanceId,
+              sequence: '1',
+              step: 'stale',
+              artifactIds: [],
+              commit: null,
+            },
+            x.actor,
+          ),
+        ),
+      { code: 'STALE_FENCE' },
+    );
+    const secondDecision = await ownerIntervention(db, x.f.a.id);
+    const second = await db.begin((tx) =>
+      requestTerminalIntent(
+        tx,
+        ticket.id,
+        { intent: 'pause', reason: 'second', decisionId: secondDecision },
+        owner,
+      ),
+    );
+    assert.notEqual(second?.id, first?.id);
+    assert.equal(second?.payload.attemptId, b.id);
+    const repeat = await db.begin((tx) =>
+      requestTerminalIntent(
+        tx,
+        ticket.id,
+        { intent: 'pause', reason: 'repeat', decisionId: secondDecision },
+        owner,
+      ),
+    );
+    assert.equal(repeat?.id, second?.id);
+    assert.equal(first?.payload.attemptId, a.id);
+    assert.equal(
+      (await db`select count(*)::int n from commands where ticket_id=${ticket.id} and type='pause'`)[0]?.n,
+      2,
+    );
+  }));
+
+test('wait_owner event matches ticket response both before and after stop proof', async () => {
+  for (const stopFirst of [false, true]) {
+    await withDatabase(async (db) => {
+      const x = await setup(db);
+      const a = await db.begin((tx) =>
+        claimAttempt(
+          tx,
+          x.command.id,
+          { processInstanceId: randomUUID(), permit: x.permit },
+          x.actor,
+          x.authorize,
+        ),
+      );
+      if (stopFirst)
+        await db.begin((tx) =>
+          reconcileAttempt(
+            tx,
+            a.id,
+            {
+              fence: a.fence,
+              processInstanceId: a.processInstanceId,
+              observation: 'stopped',
+              artifacts: [],
+              stopReason: 'exit',
+            },
+            x.actor,
+          ),
+        );
+      const services = createTicketServices({ execution: createExecutionAuthority() });
+      const before = await x.f.read(x.f.a.id);
+      const response = await db.begin((tx) =>
+        services.signalTicket(tx, before.id, 'wait_owner', before.revision, null, owner),
+      );
+      const [event] =
+        await db`select data from events where ticket_id=${before.id} and type='ticket.changed' order by cursor desc limit 1`;
+      const current = await x.f.read(before.id);
+      const [guard] = await db`select active_attempt_id from execution_guards where ticket_id=${before.id}`;
+      const [attempt] = await db`select state from attempts where id=${a.id}`;
+      assert.equal(event?.data?.status, response.status);
+      assert.equal(event?.data?.revision, response.revision);
+      assert.equal(response.status, current.status);
+      assert.equal(response.revision, current.revision);
+      assert.equal(response.status, stopFirst ? 'needs_input' : 'running');
+      assert.equal(guard?.active_attempt_id, stopFirst ? null : a.id);
+      assert.equal(attempt?.state, stopFirst ? 'stopped' : 'active');
+    });
+  }
+});
+
+test('concurrent stop and retry result finalize once with one guard release', async () =>
+  withDatabase(async (db) => {
+    const x = await setup(db);
+    const a = await db.begin((tx) =>
+      claimAttempt(
+        tx,
+        x.command.id,
+        { processInstanceId: randomUUID(), permit: x.permit },
+        x.actor,
+        x.authorize,
+      ),
+    );
+    let verified = 0;
+    const verify = async () => {
+      verified += 1;
+    };
+    await Promise.all([
+      db.begin((tx) =>
+        reconcileAttempt(
+          tx,
+          a.id,
+          {
+            fence: a.fence,
+            processInstanceId: a.processInstanceId,
+            observation: 'stopped',
+            artifacts: [],
+            stopReason: 'exit',
+          },
+          x.actor,
+          verify,
+        ),
+      ),
+      db.begin((tx) =>
+        submitAttemptResult(
+          tx,
+          a.id,
+          {
+            fence: a.fence,
+            processInstanceId: a.processInstanceId,
+            outcome: 'retry',
+            evidenceIds: [],
+            reason: 'retry',
+          },
+          x.actor,
+          verify,
+        ),
+      ),
+    ]);
+    assert.equal(verified, 1);
+    assert.equal(
+      (
+        await db`select count(*)::int n from events where type='attempt.finalized' and data->>'attemptId'=${a.id}`
+      )[0]?.n,
+      1,
+    );
+    assert.equal(
+      (await db`select active_attempt_id from execution_guards where ticket_id=${x.f.a.id}`)[0]
+        ?.active_attempt_id,
+      null,
+    );
+    assert.equal((await db`select state from attempts where id=${a.id}`)[0]?.state, 'stopped');
+    assert.equal((await x.f.read(x.f.a.id)).status, 'pending');
+  }));
+
+test('owner pause and cancel intents dominate a previously reported passed result', async () => {
+  for (const intent of ['pause', 'cancel'] as const) {
+    await withDatabase(async (db) => {
+      const x = await setup(db);
+      const a = await db.begin((tx) =>
+        claimAttempt(
+          tx,
+          x.command.id,
+          { processInstanceId: randomUUID(), permit: x.permit },
+          x.actor,
+          x.authorize,
+        ),
+      );
+      await db.begin((tx) =>
+        submitAttemptResult(
+          tx,
+          a.id,
+          {
+            fence: a.fence,
+            processInstanceId: a.processInstanceId,
+            outcome: 'passed',
+            evidenceIds: [],
+            reason: null,
+          },
+          x.actor,
+        ),
+      );
+      const decisionId = await ownerIntervention(db, x.f.a.id);
+      await db.begin((tx) =>
+        requestTerminalIntent(tx, x.f.a.id, { intent, reason: 'owner stop', decisionId }, owner),
+      );
+      let verified = 0;
+      await db.begin((tx) =>
+        reconcileAttempt(
+          tx,
+          a.id,
+          {
+            fence: a.fence,
+            processInstanceId: a.processInstanceId,
+            observation: 'stopped',
+            artifacts: [],
+            stopReason: intent,
+          },
+          x.actor,
+          async () => {
+            verified += 1;
+          },
+        ),
+      );
+      assert.equal(verified, 0);
+      assert.equal((await x.f.read(x.f.a.id)).status, intent === 'pause' ? 'paused' : 'cancelled');
+      assert.equal(
+        (await db`select state,terminal_intent from attempts where id=${a.id}`)[0]?.state,
+        'stopped',
+      );
+      assert.equal(
+        (await db`select terminal_intent from attempts where id=${a.id}`)[0]?.terminal_intent,
+        intent,
+      );
+      assert.equal(
+        (await db`select active_attempt_id from execution_guards where ticket_id=${x.f.a.id}`)[0]
+          ?.active_attempt_id,
+        null,
+      );
+    });
+  }
+});
+
+test('stopped attestation survives pool restart and recheck finalizes without rewriting proof', async () =>
+  withDatabase(async (db) => {
+    const x = await setup(db);
+    const a = await db.begin((tx) =>
+      claimAttempt(
+        tx,
+        x.command.id,
+        { processInstanceId: randomUUID(), permit: x.permit },
+        x.actor,
+        x.authorize,
+      ),
+    );
+    const writer = await openPeerDb(db);
+    try {
+      await writer.begin((tx) =>
+        reconcileAttempt(
+          tx,
+          a.id,
+          {
+            fence: a.fence,
+            processInstanceId: a.processInstanceId,
+            observation: 'stopped',
+            artifacts: [],
+            stopReason: 'exit',
+          },
+          x.actor,
+        ),
+      );
+      const pending = await writer.begin((tx) =>
+        submitAttemptResult(
+          tx,
+          a.id,
+          {
+            fence: a.fence,
+            processInstanceId: a.processInstanceId,
+            outcome: 'retry',
+            evidenceIds: [],
+            reason: 'restart',
+          },
+          x.actor,
+        ),
+      );
+      assert.equal(pending.state, 'finalizing');
+    } finally {
+      await writer.end();
+    }
+    const reader = await openPeerDb(db);
+    try {
+      const [before] =
+        await reader`select count(*)::int n from reconciliation_observations where attempt_id=${a.id}`;
+      assert.equal(before?.n, 1);
+      const finalized = await reader.begin((tx) =>
+        recheckFinalization(
+          tx,
+          a.id,
+          { fence: a.fence, processInstanceId: a.processInstanceId },
+          x.actor,
+          async () => {},
+        ),
+      );
+      assert.equal(finalized.state, 'stopped');
+      const [after] =
+        await reader`select count(*)::int n from reconciliation_observations where attempt_id=${a.id}`;
+      assert.equal(after?.n, 1);
+      assert.equal(
+        (
+          await reader`select count(*)::int n from events where type='attempt.finalized' and data->>'attemptId'=${a.id}`
+        )[0]?.n,
+        1,
+      );
+    } finally {
+      await reader.end();
+    }
+  }));
+
+test('claim rejects unapproved deploy, unfinished predecessor, and expired permit before authority callback', async () => {
+  for (const gate of ['deploy', 'dependency', 'permit'] as const) {
+    await withDatabase(async (db) => {
+      const x = await setup(db);
+      if (gate === 'deploy') await db`update tickets set kind='deploy' where id=${x.f.a.id}`;
+      if (gate === 'dependency')
+        await db`insert into dependencies(ticket_id,predecessor_id) values(${x.f.a.id},${x.f.b.id})`;
+      const permit =
+        gate === 'permit' ? { ...x.permit, expiresAt: new Date(Date.now() - 1000).toISOString() } : x.permit;
+      let callbacks = 0;
+      const code =
+        gate === 'deploy'
+          ? 'DEPLOY_OWNER_INTENT_REQUIRED'
+          : gate === 'dependency'
+            ? 'DEPENDENCIES_NOT_READY'
+            : 'DISPATCH_PERMIT_INVALID';
+      await assert.rejects(
+        () =>
+          db.begin((tx) =>
+            claimAttempt(tx, x.command.id, { processInstanceId: randomUUID(), permit }, x.actor, async () => {
+              callbacks += 1;
+            }),
+          ),
+        { code },
+      );
+      assert.equal(callbacks, 0);
+      assert.equal((await db`select count(*)::int n from attempts where ticket_id=${x.f.a.id}`)[0]?.n, 0);
+      assert.equal((await x.f.read(x.f.a.id)).status, 'ready');
+    });
+  }
+});
 
 test('missing dispatch authority leaves no attempt or running ticket', async () =>
   withDatabase(async (db) => {
