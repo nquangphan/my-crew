@@ -1,0 +1,21 @@
+{
+  "name": "crew-task4-bmad-build-dependencies",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@clack/core": "1.5.1",
+    "@clack/prompts": "1.8.1",
+    "@kayvan/markdown-tree-parser": "1.6.1",
+    "chalk": "4.1.2",
+    "commander": "14.0.3",
+    "csv-parse": "6.2.1",
+    "glob": "11.1.0",
+    "ignore": "7.0.11",
+    "js-yaml": "4.3.2",
+    "picocolors": "1.1.1",
+    "semver": "7.8.5",
+    "xml2js": "0.6.2",
+    "yaml": "2.9.1"
+  },
+  "packageManager": "pnpm@10.32.1"
+}

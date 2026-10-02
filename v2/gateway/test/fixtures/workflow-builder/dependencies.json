@@ -1,0 +1,28 @@
+{
+  "payloadSha256": "ff6e59d25dd89eeaaffe323fbb377cb8546fd70e8b30ceadbdfea3b8cab92e8d",
+  "executables": [
+    "node_modules/.pnpm/sisteransi@1.0.5/node_modules/sisteransi/package.json",
+    "node_modules/.pnpm/sisteransi@1.0.5/node_modules/sisteransi/readme.md",
+    "node_modules/.pnpm/js-yaml@4.3.2/node_modules/js-yaml/bin/js-yaml.js",
+    "node_modules/.pnpm/js-yaml@4.3.2/node_modules/js-yaml/node_modules/.bin/js-yaml",
+    "node_modules/.pnpm/cross-spawn@7.0.6/node_modules/cross-spawn/node_modules/.bin/node-which",
+    "node_modules/.pnpm/semver@7.8.5/node_modules/semver/bin/semver.js",
+    "node_modules/.pnpm/semver@7.8.5/node_modules/semver/node_modules/.bin/semver",
+    "node_modules/.pnpm/@kayvan+markdown-tree-parser@1.6.1/node_modules/@kayvan/markdown-tree-parser/bin/md-tree.js",
+    "node_modules/.pnpm/@kayvan+markdown-tree-parser@1.6.1/node_modules/@kayvan/markdown-tree-parser/node_modules/.bin/md-tree",
+    "node_modules/.pnpm/which@2.0.2/node_modules/which/bin/node-which",
+    "node_modules/.pnpm/which@2.0.2/node_modules/which/node_modules/.bin/node-which",
+    "node_modules/.pnpm/yaml@2.9.1/node_modules/yaml/bin.mjs",
+    "node_modules/.pnpm/yaml@2.9.1/node_modules/yaml/node_modules/.bin/yaml",
+    "node_modules/.pnpm/glob@11.1.0/node_modules/glob/dist/esm/bin.mjs",
+    "node_modules/.pnpm/glob@11.1.0/node_modules/glob/node_modules/.bin/glob",
+    "node_modules/.bin/glob",
+    "node_modules/.bin/js-yaml",
+    "node_modules/.bin/md-tree",
+    "node_modules/.bin/node-which",
+    "node_modules/.bin/semver",
+    "node_modules/.bin/yaml"
+  ],
+  "lockSha256": "ccc762cfa971fff173b6c877ef4fd78e9e30bf9088b381b6f4b33c8ea7ef2ab0",
+  "packageSha256": "5c80b23975e50279019cd6adba298e53e10934556c1f733583d2f83879e871e3"
+}

@@ -1,0 +1,998 @@
+{
+  "registry": "https://registry.npmjs.org",
+  "redirects": "error",
+  "timeoutMs": 10000,
+  "maxArchiveBytes": 33554432,
+  "records": [
+    {
+      "name": "@clack/core",
+      "version": "1.5.1",
+      "metadataUrl": "https://registry.npmjs.org/@clack/core/1.5.1",
+      "tarballUrl": "https://registry.npmjs.org/@clack/core/-/core-1.5.1.tgz",
+      "integrity": "sha512-iHTrHA8MtVuLl2TfZySmcKv1qO2PoyC9Z7pfSDozEuV5vtY3/wcOPKJXlqJ5Oq2Cx5DDGQGAMVx6HZfRRoVEbQ==",
+      "archiveBytes": 15034,
+      "payloadSha256": "256c7ba43e14da5e3bc5e79870f7e95bcbd4eb7831f263fd11f5666b44d020dd",
+      "metadataSha256": "f72d8b702d10c63e2e0c6c690b594a1ad5843900409ea2a085c19ba5e846b5cb"
+    },
+    {
+      "name": "@clack/prompts",
+      "version": "1.8.1",
+      "metadataUrl": "https://registry.npmjs.org/@clack/prompts/1.8.1",
+      "tarballUrl": "https://registry.npmjs.org/@clack/prompts/-/prompts-1.8.1.tgz",
+      "integrity": "sha512-dlT1m5e/0yUL0kRNcQn7yGLVThkgbB0Ga/1AmfDDC/8ik6AIiSf2QLQO2zPYvefsHP0aFgxO93cVLCCfDp7kzQ==",
+      "archiveBytes": 23197,
+      "payloadSha256": "a4e1e70bf4bd35e82a76a3fc1dd7ab0081d0a885dd80b81101310fe31c3e2d0b",
+      "metadataSha256": "daf2a7b2a80b2ac2fe4057763809448e8c27d1064549224dab5b2833ed9483a0"
+    },
+    {
+      "name": "@isaacs/cliui",
+      "version": "9.0.0",
+      "metadataUrl": "https://registry.npmjs.org/@isaacs/cliui/9.0.0",
+      "tarballUrl": "https://registry.npmjs.org/@isaacs/cliui/-/cliui-9.0.0.tgz",
+      "integrity": "sha512-AokJm4tuBHillT+FpMtxQ60n8ObyXBatq7jD2/JA9dxbDDokKQm8KMht5ibGzLVU9IJDIKK4TPKgMHEYMn3lMg==",
+      "archiveBytes": 109508,
+      "payloadSha256": "5b73422eadcd1784bad03303830ee818c22deb64d21b925f767b5161e514ed77",
+      "metadataSha256": "ba478d6c2d3a6b374438fd5e37aade7283fc019fe1a8bd20f2b33481a22da5ec"
+    },
+    {
+      "name": "@kayvan/markdown-tree-parser",
+      "version": "1.6.1",
+      "metadataUrl": "https://registry.npmjs.org/@kayvan/markdown-tree-parser/1.6.1",
+      "tarballUrl": "https://registry.npmjs.org/@kayvan/markdown-tree-parser/-/markdown-tree-parser-1.6.1.tgz",
+      "integrity": "sha512-a5HUxUxQup5fAkL5xqmDBmZBNHZVfBn7FNfAx9SYEaUANuoVHygGAxaaHdkHDTCerntNKB2UzNS4dGIYbfPiiQ==",
+      "archiveBytes": 15736,
+      "payloadSha256": "18e15a71dec91c518db085840aafff42cf4075e632026ac0c166582c33d62668",
+      "metadataSha256": "6b9f67dec5e8442db0dc915ecca16a9b476041fdb902db57ffb574cad23a1e2b"
+    },
+    {
+      "name": "@types/debug",
+      "version": "4.1.13",
+      "metadataUrl": "https://registry.npmjs.org/@types/debug/4.1.13",
+      "tarballUrl": "https://registry.npmjs.org/@types/debug/-/debug-4.1.13.tgz",
+      "integrity": "sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw==",
+      "archiveBytes": 2180,
+      "payloadSha256": "19bb8d72e15e4fd407fb1d416aba3c42dde61fc9d50cdfdd313b85d351e56388",
+      "metadataSha256": "18a516be3eacae0132fdebe8ce2a6c1076273947606bc71088a9dd490e15169d"
+    },
+    {
+      "name": "@types/mdast",
+      "version": "4.0.4",
+      "metadataUrl": "https://registry.npmjs.org/@types/mdast/4.0.4",
+      "tarballUrl": "https://registry.npmjs.org/@types/mdast/-/mdast-4.0.4.tgz",
+      "integrity": "sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==",
+      "archiveBytes": 6109,
+      "payloadSha256": "ca9d3f571a96c57b9412fa9ccc009a356990e5334ce2c56587218a2fa2d57ef3",
+      "metadataSha256": "5993ff6a25c2c1eedc345ed25ad084601d80bb753d734756216524ab50cbd114"
+    },
+    {
+      "name": "@types/ms",
+      "version": "2.1.0",
+      "metadataUrl": "https://registry.npmjs.org/@types/ms/2.1.0",
+      "tarballUrl": "https://registry.npmjs.org/@types/ms/-/ms-2.1.0.tgz",
+      "integrity": "sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==",
+      "archiveBytes": 1951,
+      "payloadSha256": "a07f7b4d84e44bd8c55e44ee084f3529d5b3bbb2f212ef1749aced718bcb6c09",
+      "metadataSha256": "5fc6482100fac50204d0bf2a55ec3220e81c99a460cf55291099e2f10d99a912"
+    },
+    {
+      "name": "@types/unist",
+      "version": "3.0.3",
+      "metadataUrl": "https://registry.npmjs.org/@types/unist/3.0.3",
+      "tarballUrl": "https://registry.npmjs.org/@types/unist/-/unist-3.0.3.tgz",
+      "integrity": "sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==",
+      "archiveBytes": 2597,
+      "payloadSha256": "b50fd32f739207d1e8c96ef0b0c9dd003ef9cb0403c5b4eb71796b87332a2843",
+      "metadataSha256": "fff0c72e3512ecae06bf27c7fbec6ef83ff597029a1f1604a717e45980c70a78"
+    },
+    {
+      "name": "ansi-styles",
+      "version": "4.3.0",
+      "metadataUrl": "https://registry.npmjs.org/ansi-styles/4.3.0",
+      "tarballUrl": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz",
+      "integrity": "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==",
+      "archiveBytes": 5849,
+      "payloadSha256": "2c539a46d85ab6033183997434d2d9a5ca2ceefc12b4db9022f564784cd7987f",
+      "metadataSha256": "d687d8a6dcfdbbf7703f4e029bf800059370788b287ace2cf93074a122141be6"
+    },
+    {
+      "name": "argparse",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/argparse/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/argparse/-/argparse-2.0.1.tgz",
+      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==",
+      "archiveBytes": 39740,
+      "payloadSha256": "27903847fc8215e6fc5a33e81490f7baba66403f8aade33771b988cca097728c",
+      "metadataSha256": "e3da8bcaa628e257bac982670c57088d054beb6dedbabf00612ea8c20f8a6a7b"
+    },
+    {
+      "name": "bail",
+      "version": "2.0.2",
+      "metadataUrl": "https://registry.npmjs.org/bail/2.0.2",
+      "tarballUrl": "https://registry.npmjs.org/bail/-/bail-2.0.2.tgz",
+      "integrity": "sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw==",
+      "archiveBytes": 2935,
+      "payloadSha256": "11719f7e1f7a31432177dd0cd987e7c967a826426d281c39c0025b474056c88b",
+      "metadataSha256": "5cbd24efa0bb229ebfb25daa4c3b1f22a81b44924d112cb32d5c5a8944d5cd8f"
+    },
+    {
+      "name": "balanced-match",
+      "version": "4.0.4",
+      "metadataUrl": "https://registry.npmjs.org/balanced-match/4.0.4",
+      "tarballUrl": "https://registry.npmjs.org/balanced-match/-/balanced-match-4.0.4.tgz",
+      "integrity": "sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==",
+      "archiveBytes": 4199,
+      "payloadSha256": "9025508d9125eee531bbc49ce3ae560183975ad595f058c378bd56af4152fb16",
+      "metadataSha256": "1088a8c15776ff2c39df62fee9e044a559225ec5e933ec4f0e2e4e63aae4f7e4"
+    },
+    {
+      "name": "boolbase",
+      "version": "1.0.0",
+      "metadataUrl": "https://registry.npmjs.org/boolbase/1.0.0",
+      "tarballUrl": "https://registry.npmjs.org/boolbase/-/boolbase-1.0.0.tgz",
+      "integrity": "sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==",
+      "archiveBytes": 851,
+      "payloadSha256": "69628ff8092c5ff940ea4a0f29da98d520615bae138755c9e059033606c6caa8",
+      "metadataSha256": "cdbdd0892df76fdcb117aa6c87cef12aeb99225cb90b8e12f182f3f6f1efce3b"
+    },
+    {
+      "name": "brace-expansion",
+      "version": "5.0.12",
+      "metadataUrl": "https://registry.npmjs.org/brace-expansion/5.0.12",
+      "tarballUrl": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz",
+      "integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+      "archiveBytes": 12620,
+      "payloadSha256": "ef8448ec78f20b692f04fa6d01f39b5ab34c66404bea3429f5a39c6c9e0be8b4",
+      "metadataSha256": "5421e68ea58a0286041e3f11998da4fa44055026b11c527cc14ec74895b58929"
+    },
+    {
+      "name": "chalk",
+      "version": "4.1.2",
+      "metadataUrl": "https://registry.npmjs.org/chalk/4.1.2",
+      "tarballUrl": "https://registry.npmjs.org/chalk/-/chalk-4.1.2.tgz",
+      "integrity": "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==",
+      "archiveBytes": 11577,
+      "payloadSha256": "e84c643aa53e87ace6c3d368b3cddda24a2d1434a06b6dfbdb628ad2107df90a",
+      "metadataSha256": "57e786e1220220901708d3647f631b59e4b2f99266a444b5807b53527f9e592b"
+    },
+    {
+      "name": "character-entities",
+      "version": "2.0.2",
+      "metadataUrl": "https://registry.npmjs.org/character-entities/2.0.2",
+      "tarballUrl": "https://registry.npmjs.org/character-entities/-/character-entities-2.0.2.tgz",
+      "integrity": "sha512-shx7oQ0Awen/BRIdkjkvz54PnEEI/EjwXDSIZp86/KKdbafHh1Df/RYGBhn4hbe2+uKC9FnT5UCEdyPz3ai9hQ==",
+      "archiveBytes": 15047,
+      "payloadSha256": "0805c120e1147a250a87ed8752265b3bce7a76c44e9728dec1d11380e21fbc3d",
+      "metadataSha256": "e53f0047489196f052f956e1f71cf17b2aa7e0b6b3b1a8a8a94fe5baa487b7cb"
+    },
+    {
+      "name": "color-convert",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/color-convert/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz",
+      "integrity": "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==",
+      "archiveBytes": 8996,
+      "payloadSha256": "920fa43538c019a085dbbf04cb6f72cc337624e5f5217519f0e7b2ef784e7ce1",
+      "metadataSha256": "87a8bb66bf16fa8df97e12775f7d5348d361ea904b77e153069777328ca4475a"
+    },
+    {
+      "name": "color-name",
+      "version": "1.1.4",
+      "metadataUrl": "https://registry.npmjs.org/color-name/1.1.4",
+      "tarballUrl": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz",
+      "integrity": "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==",
+      "archiveBytes": 2868,
+      "payloadSha256": "507b7c4461e8eb941355af9a59e9a7e02cd0e7c6176b48d1809766344f3f1708",
+      "metadataSha256": "a5bc9b7c2db4aeeab8081ac61aa8c29b156d57fca7b83d606f8d13fe6232874a"
+    },
+    {
+      "name": "commander",
+      "version": "14.0.3",
+      "metadataUrl": "https://registry.npmjs.org/commander/14.0.3",
+      "tarballUrl": "https://registry.npmjs.org/commander/-/commander-14.0.3.tgz",
+      "integrity": "sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==",
+      "archiveBytes": 53293,
+      "payloadSha256": "5849703c500e0f324eb01340d8bda1f9ec48fc37bb7be9712eb0dd52aad92f6c",
+      "metadataSha256": "193d6ef79dcb32d3b7baa77a29edcd6fa65dfd65d3259f063acb7239678c5c6b"
+    },
+    {
+      "name": "cross-spawn",
+      "version": "7.0.6",
+      "metadataUrl": "https://registry.npmjs.org/cross-spawn/7.0.6",
+      "tarballUrl": "https://registry.npmjs.org/cross-spawn/-/cross-spawn-7.0.6.tgz",
+      "integrity": "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==",
+      "archiveBytes": 6255,
+      "payloadSha256": "188c320cdc413adfec03098fda72af7a9b02152ba13d3a8f87f172d93ced38ea",
+      "metadataSha256": "410b2fff1a9a836d1e1e1c1c4bf2505a389e765400a46d2f13509595fafce78b"
+    },
+    {
+      "name": "css-selector-parser",
+      "version": "3.3.0",
+      "metadataUrl": "https://registry.npmjs.org/css-selector-parser/3.3.0",
+      "tarballUrl": "https://registry.npmjs.org/css-selector-parser/-/css-selector-parser-3.3.0.tgz",
+      "integrity": "sha512-Y2asgMGFqJKF4fq4xHDSlFYIkeVfRsm69lQC1q9kbEsH5XtnINTMrweLkjYMeaUgiXBy/uvKeO/a1JHTNnmB2g==",
+      "archiveBytes": 25472,
+      "payloadSha256": "8667635af204e2cde475510038c0674caa40314cf9c80231e38edb50896a1e48",
+      "metadataSha256": "3cbab313f4d9d4de59d372b67490af7db85cd8fe48ec4107a23756abb1e2c8d2"
+    },
+    {
+      "name": "csv-parse",
+      "version": "6.2.1",
+      "metadataUrl": "https://registry.npmjs.org/csv-parse/6.2.1",
+      "tarballUrl": "https://registry.npmjs.org/csv-parse/-/csv-parse-6.2.1.tgz",
+      "integrity": "sha512-LRLMV+UCyfMokp8Wb411duBf1gaBKJfOfBWU9eHMJ+b+cJYZsNu3AFmjJf3+yPGd59Exz1TsMjaSFyxnYB9+IQ==",
+      "archiveBytes": 273449,
+      "payloadSha256": "a66924cc1926d48cf6cb5fe5d99948a7571c1a6d01ae6d1d93492cb4ee47cabc",
+      "metadataSha256": "3572a7dab8c3ad423f510b84cdc97e726db4c587541c9ea91c5e5753e08d65d0"
+    },
+    {
+      "name": "debug",
+      "version": "4.4.3",
+      "metadataUrl": "https://registry.npmjs.org/debug/4.4.3",
+      "tarballUrl": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
+      "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
+      "archiveBytes": 13449,
+      "payloadSha256": "89c1ac9c946ee8905a875837114528e97eeae35e03be3190584b2216af43e4a7",
+      "metadataSha256": "9dcaa69f6946d12b9f94ad83766fd31029986c18ca9753a15ebdc49031d16dc4"
+    },
+    {
+      "name": "decode-named-character-reference",
+      "version": "1.3.0",
+      "metadataUrl": "https://registry.npmjs.org/decode-named-character-reference/1.3.0",
+      "tarballUrl": "https://registry.npmjs.org/decode-named-character-reference/-/decode-named-character-reference-1.3.0.tgz",
+      "integrity": "sha512-GtpQYB283KrPp6nRw50q3U9/VfOutZOe103qlN7BPP6Ad27xYnOIWv4lPzo8HCAL+mMZofJ9KEy30fq6MfaK6Q==",
+      "archiveBytes": 3813,
+      "payloadSha256": "b4399b50188513b31e4642b25437c9c309776aa34b6acb3eb18a0ee792e16f38",
+      "metadataSha256": "02f3d115b7c6f0cf0266ab0d27bc722102812272d6031e44a5c2d932eafeed0c"
+    },
+    {
+      "name": "dequal",
+      "version": "2.0.3",
+      "metadataUrl": "https://registry.npmjs.org/dequal/2.0.3",
+      "tarballUrl": "https://registry.npmjs.org/dequal/-/dequal-2.0.3.tgz",
+      "integrity": "sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==",
+      "archiveBytes": 4286,
+      "payloadSha256": "941d90d6629878167d10d2a05d8c6df8f8fa13acc826616abb49db63ac6a5c35",
+      "metadataSha256": "168498dec44427d64a11f507ad0566157ac8ba4ffd3eeee76f3716306c8b9125"
+    },
+    {
+      "name": "devlop",
+      "version": "1.1.0",
+      "metadataUrl": "https://registry.npmjs.org/devlop/1.1.0",
+      "tarballUrl": "https://registry.npmjs.org/devlop/-/devlop-1.1.0.tgz",
+      "integrity": "sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==",
+      "archiveBytes": 6714,
+      "payloadSha256": "aed0b5ba97cc3aba851946766b1e4804e92a0d3b2051e047eed4e8bf508ecd5f",
+      "metadataSha256": "d9b38b75aa285261fab764dcddce5934993dffb60cf7dfbf6bdc771f5066c6e4"
+    },
+    {
+      "name": "extend",
+      "version": "3.0.2",
+      "metadataUrl": "https://registry.npmjs.org/extend/3.0.2",
+      "tarballUrl": "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz",
+      "integrity": "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==",
+      "archiveBytes": 7258,
+      "payloadSha256": "1d91d0b0faa50cba223fa937c7b5a4a662968b1d78b3e59dca5c917dd5cf72b2",
+      "metadataSha256": "441e05ec3fde5b22edef183dbb143f517b65f313bac4c760b81a584169747e66"
+    },
+    {
+      "name": "fast-string-truncated-width",
+      "version": "3.0.3",
+      "metadataUrl": "https://registry.npmjs.org/fast-string-truncated-width/3.0.3",
+      "tarballUrl": "https://registry.npmjs.org/fast-string-truncated-width/-/fast-string-truncated-width-3.0.3.tgz",
+      "integrity": "sha512-0jjjIEL6+0jag3l2XWWizO64/aZVtpiGE3t0Zgqxv0DPuxiMjvB3M24fCyhZUO4KomJQPj3LTSUnDP3GpdwC0g==",
+      "archiveBytes": 4390,
+      "payloadSha256": "b5dace35423470b453ed5dba20419052124b8a65cb233833f17e5483523b5eb1",
+      "metadataSha256": "16481de955d84a5bc1817098c8a75d3e7315cfb087b434176248e99156d149be"
+    },
+    {
+      "name": "fast-string-width",
+      "version": "3.0.2",
+      "metadataUrl": "https://registry.npmjs.org/fast-string-width/3.0.2",
+      "tarballUrl": "https://registry.npmjs.org/fast-string-width/-/fast-string-width-3.0.2.tgz",
+      "integrity": "sha512-gX8LrtNEI5hq8DVUfRQMbr5lpaS4nMIWV+7XEbXk2b8kiQIizgnlr12B4dA3ZEx3308ze0O4Q1R+cHts8kyUJg==",
+      "archiveBytes": 1805,
+      "payloadSha256": "72daf113df209b0e55a227ff5f62683ca99da07b59c5da36a2da62920cb3752a",
+      "metadataSha256": "59aa6fc907fb593d9b79e1fbe7bc05e5c06f1d94d90ca50925a4287c741dcf99"
+    },
+    {
+      "name": "fast-wrap-ansi",
+      "version": "0.2.2",
+      "metadataUrl": "https://registry.npmjs.org/fast-wrap-ansi/0.2.2",
+      "tarballUrl": "https://registry.npmjs.org/fast-wrap-ansi/-/fast-wrap-ansi-0.2.2.tgz",
+      "integrity": "sha512-7F2Fl+TjRSenLqlU3UjSH0iyqopqoZIu7eZVpEirP2g1GtWa2G/ecEmBdgz31+Mxr+ELclgg6sokpSFIQiZ02Q==",
+      "archiveBytes": 3549,
+      "payloadSha256": "f6b4a10f346b4405f01a1734be4c29b1aba315977f409ed11ea12ff2d3fae051",
+      "metadataSha256": "4433b8c4dd65fe55fe7420105c70c6f7e93f7fea7f9a60923bc3b0dfb5e7ed4b"
+    },
+    {
+      "name": "foreground-child",
+      "version": "3.3.1",
+      "metadataUrl": "https://registry.npmjs.org/foreground-child/3.3.1",
+      "tarballUrl": "https://registry.npmjs.org/foreground-child/-/foreground-child-3.3.1.tgz",
+      "integrity": "sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==",
+      "archiveBytes": 12526,
+      "payloadSha256": "af9cca5bb050049cadc01bf4a01af51bf0bc09aa209aa6c4458b45cb55c1673e",
+      "metadataSha256": "2c45bea1082f8e69d0c16c7a8846c56a1d6daf0eef5291ef8a22f32db7fbce3d"
+    },
+    {
+      "name": "glob",
+      "version": "11.1.0",
+      "metadataUrl": "https://registry.npmjs.org/glob/11.1.0",
+      "tarballUrl": "https://registry.npmjs.org/glob/-/glob-11.1.0.tgz",
+      "integrity": "sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==",
+      "archiveBytes": 74669,
+      "payloadSha256": "8816e244d245d86a1b8adf9ed0bf61c9665dbb1ee7b00dd6b3283f3ac0393bfb",
+      "metadataSha256": "87198fce59f001ab0f07fa216aba09cf54dd2383984da3758e6a7de5c087d40c"
+    },
+    {
+      "name": "has-flag",
+      "version": "4.0.0",
+      "metadataUrl": "https://registry.npmjs.org/has-flag/4.0.0",
+      "tarballUrl": "https://registry.npmjs.org/has-flag/-/has-flag-4.0.0.tgz",
+      "integrity": "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==",
+      "archiveBytes": 2206,
+      "payloadSha256": "77a7eb1411d927bb8a5ca7069dbe168886d63c88f446f0b81500a2cf23ddb5b1",
+      "metadataSha256": "0a45ddada39d4474160dbf7234843ef3d76afa404b9287dab32d92be0d734345"
+    },
+    {
+      "name": "ignore",
+      "version": "7.0.11",
+      "metadataUrl": "https://registry.npmjs.org/ignore/7.0.11",
+      "tarballUrl": "https://registry.npmjs.org/ignore/-/ignore-7.0.11.tgz",
+      "integrity": "sha512-YChdK5txDjwGUvgR7oCJcLGkwi3LDh8Zx8tS7ndYciLEg/oOCL26VUBSUEtgS7EjiybcBqFxh5j0rAdDX7/bbg==",
+      "archiveBytes": 39309,
+      "payloadSha256": "d00fd35c6f19f1ceea047b0a9da7b76f1ebfa8b7e162b927d3b0af88b868f473",
+      "metadataSha256": "19f9e272de5328b09ed0626c53f40cef68dbbcbcdee8611e9a75820ded85be44"
+    },
+    {
+      "name": "is-plain-obj",
+      "version": "4.1.0",
+      "metadataUrl": "https://registry.npmjs.org/is-plain-obj/4.1.0",
+      "tarballUrl": "https://registry.npmjs.org/is-plain-obj/-/is-plain-obj-4.1.0.tgz",
+      "integrity": "sha512-+Pgi+vMuUNkJyExiMBt5IlFoMyKnr5zhJ4Uspz58WOhBF5QoIZkFyNHIbBAtHwzVAgk5RtndVNsDRN61/mmDqg==",
+      "archiveBytes": 1961,
+      "payloadSha256": "c71d874f7ab7cd560329b080ce790f9768dea503337fe2e2719a18e28be621f7",
+      "metadataSha256": "48af83d91fff6d3d2e5d15b38002841abff3a3fa81440a8aaeed2037620ef120"
+    },
+    {
+      "name": "isexe",
+      "version": "2.0.0",
+      "metadataUrl": "https://registry.npmjs.org/isexe/2.0.0",
+      "tarballUrl": "https://registry.npmjs.org/isexe/-/isexe-2.0.0.tgz",
+      "integrity": "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==",
+      "archiveBytes": 3756,
+      "payloadSha256": "47cfe872e088e28c53b736fef305324b57cc1cfc9f72a9b0f769f92731cb8359",
+      "metadataSha256": "60b2eb066e1d7ab2e046396015057b67d5f47e2555d54445cc4153dc29fd0e22"
+    },
+    {
+      "name": "jackspeak",
+      "version": "4.2.3",
+      "metadataUrl": "https://registry.npmjs.org/jackspeak/4.2.3",
+      "tarballUrl": "https://registry.npmjs.org/jackspeak/-/jackspeak-4.2.3.tgz",
+      "integrity": "sha512-ykkVRwrYvFm1nb2AJfKKYPr0emF6IiXDYUaFx4Zn9ZuIH7MrzEZ3sD5RlqGXNRpHtvUHJyOnCEFxOlNDtGo7wg==",
+      "archiveBytes": 156182,
+      "payloadSha256": "f4154fec0865809b835720573c90bf4f5bdb37e974457eac89acb0f978068c6f",
+      "metadataSha256": "16a15fd903df11f1a3f6373e6c724e28c54e2fd867e5546c6ff4d42108f46cdb"
+    },
+    {
+      "name": "js-yaml",
+      "version": "4.3.2",
+      "metadataUrl": "https://registry.npmjs.org/js-yaml/4.3.2",
+      "tarballUrl": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.2.tgz",
+      "integrity": "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==",
+      "archiveBytes": 227545,
+      "payloadSha256": "c7b241d2224cf9253ff53854aa4cee87da91bd889c4d0fa3a3ffd1041ecee5b1",
+      "metadataSha256": "970a78cb315f1ce5f66885117f37a28e90e43ad7150fe172e826e87a11aca06e"
+    },
+    {
+      "name": "lodash.iteratee",
+      "version": "4.7.0",
+      "metadataUrl": "https://registry.npmjs.org/lodash.iteratee/4.7.0",
+      "tarballUrl": "https://registry.npmjs.org/lodash.iteratee/-/lodash.iteratee-4.7.0.tgz",
+      "integrity": "sha512-yv3cSQZmfpbIKo4Yo45B1taEvxjNvcpF1CEOc0Y6dEyvhPIfEJE3twDwPgWTPQubcSgXyBwBKG6wpQvWMDOf6Q==",
+      "archiveBytes": 17924,
+      "payloadSha256": "cdc4ce5d8b80780e021b2087e305414f1757078b2e7e7722102cd509c443bba6",
+      "metadataSha256": "4e33a19d2eca9985be9e7381c0f63f7915a4c3df08928eef501c117b47608293"
+    },
+    {
+      "name": "longest-streak",
+      "version": "3.1.0",
+      "metadataUrl": "https://registry.npmjs.org/longest-streak/3.1.0",
+      "tarballUrl": "https://registry.npmjs.org/longest-streak/-/longest-streak-3.1.0.tgz",
+      "integrity": "sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==",
+      "archiveBytes": 3199,
+      "payloadSha256": "384446c12b28a0f29cd68b22871cff7c1001fdca5c173930e4eeb4811de210f6",
+      "metadataSha256": "f1e9c1c169ff027459708263b08dae7fa188583c60759745caeb96dbf777bf9a"
+    },
+    {
+      "name": "lru-cache",
+      "version": "11.5.3",
+      "metadataUrl": "https://registry.npmjs.org/lru-cache/11.5.3",
+      "tarballUrl": "https://registry.npmjs.org/lru-cache/-/lru-cache-11.5.3.tgz",
+      "integrity": "sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==",
+      "archiveBytes": 697866,
+      "payloadSha256": "d18739bbd7d0091d30d2cca58e120c8b70ac09a5a21aa4b2b3e9afb2dc4084d8",
+      "metadataSha256": "bb5dc2a3778a8f0aa5da88d7bb130ed1a3ceb7f0f7294835705be1e5ab383323"
+    },
+    {
+      "name": "mdast-util-from-markdown",
+      "version": "2.0.3",
+      "metadataUrl": "https://registry.npmjs.org/mdast-util-from-markdown/2.0.3",
+      "tarballUrl": "https://registry.npmjs.org/mdast-util-from-markdown/-/mdast-util-from-markdown-2.0.3.tgz",
+      "integrity": "sha512-W4mAWTvSlKvf8L6J+VN9yLSqQ9AOAAvHuoDAmPkz4dHf553m5gVj2ejadHJhoJmcmxEnOv6Pa8XJhpxE93kb8Q==",
+      "archiveBytes": 18595,
+      "payloadSha256": "adc7944beb265a36cbc8b3f0ad019bc939f56eb11ab9cefccc964392e0b9597d",
+      "metadataSha256": "99f700a3ca80c0e29bbb1c686ee971cf320248c86638c9e619469f3657bfd4bc"
+    },
+    {
+      "name": "mdast-util-phrasing",
+      "version": "4.1.0",
+      "metadataUrl": "https://registry.npmjs.org/mdast-util-phrasing/4.1.0",
+      "tarballUrl": "https://registry.npmjs.org/mdast-util-phrasing/-/mdast-util-phrasing-4.1.0.tgz",
+      "integrity": "sha512-TqICwyvJJpBwvGAMZjj4J2n0X8QWp21b9l0o7eXyVJ25YNWYbJDVIyD1bZXE6WtV6RmKJVYmQAKWa0zWOABz2w==",
+      "archiveBytes": 4079,
+      "payloadSha256": "001c22ccbb8f66b889e468ba33c86df25aaf9e2cea1ee1d827fb172431f09835",
+      "metadataSha256": "0f4421fb67141230f7ffaea7d5a1799bd4168a6587a6186f44467a48bea38428"
+    },
+    {
+      "name": "mdast-util-to-markdown",
+      "version": "2.1.3",
+      "metadataUrl": "https://registry.npmjs.org/mdast-util-to-markdown/2.1.3",
+      "tarballUrl": "https://registry.npmjs.org/mdast-util-to-markdown/-/mdast-util-to-markdown-2.1.3.tgz",
+      "integrity": "sha512-wgyJtgUkUcdU7zci7uuwc/tzoAhm0TswWhaXuvnWolqug+8jY7bgNkBBL0dYBnHgc/tHL7lCzRdPsdUxUKKBqw==",
+      "archiveBytes": 46520,
+      "payloadSha256": "717de16bb34c206558ac7cceb2906ce714124a678c85e21ed7e2304973f8c606",
+      "metadataSha256": "2f781f5c84bc3c6f44a4a09a6ba0a871ed4eca0fd6727a83c0e333e900fbd802"
+    },
+    {
+      "name": "mdast-util-to-string",
+      "version": "4.0.0",
+      "metadataUrl": "https://registry.npmjs.org/mdast-util-to-string/4.0.0",
+      "tarballUrl": "https://registry.npmjs.org/mdast-util-to-string/-/mdast-util-to-string-4.0.0.tgz",
+      "integrity": "sha512-0H44vDimn51F0YwvxSJSm0eCDOJTRlmN0R1yBh4HLj9wiV1Dn0QoXGbvFAWj2hSItVTlCmBF1hqKlIyUBVFLPg==",
+      "archiveBytes": 4551,
+      "payloadSha256": "bbfe70a5652305df7e8e484f674975c69bddbbad048ced52dc71835e64bba37a",
+      "metadataSha256": "1021e8b9e9c9783908a9d3c77b9b271381e8c543f2d6aefa52d5ce0e11753d44"
+    },
+    {
+      "name": "micromark-core-commonmark",
+      "version": "2.0.4",
+      "metadataUrl": "https://registry.npmjs.org/micromark-core-commonmark/2.0.4",
+      "tarballUrl": "https://registry.npmjs.org/micromark-core-commonmark/-/micromark-core-commonmark-2.0.4.tgz",
+      "integrity": "sha512-wxEeE8v8XVvOrxn1TZj74qYhAtTQsSqufHVS3uNVyT1MupXxhyaHk8/9xDNPh9BmL77QNDgWTkZ3RsYHB2ry7w==",
+      "archiveBytes": 34930,
+      "payloadSha256": "84979e673035ced9448b39f2c6eabc9d6d543b53ec211d1be77fedf72564a5eb",
+      "metadataSha256": "4a50ae2e9754d8a0a0eabaec1756f960a7b6a1dfa7680662e3dd7030b072b359"
+    },
+    {
+      "name": "micromark-factory-destination",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-factory-destination/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-factory-destination/-/micromark-factory-destination-2.0.1.tgz",
+      "integrity": "sha512-Xe6rDdJlkmbFRExpTOmRj9N3MaWmbAgdpSrBQvCFqhezUn4AHqJHbaEnfbVYYiexVSs//tqOdY/DxhjdCiJnIA==",
+      "archiveBytes": 5007,
+      "payloadSha256": "b4acd1721e4756a61f2482c3424344b8b01bdbf79180cf6e411ed491887bd8db",
+      "metadataSha256": "61ff3eb0db4776211e6f607213c1ad2e3447ad68bc8925f6618bfc78e5b1f35b"
+    },
+    {
+      "name": "micromark-factory-label",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-factory-label/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-factory-label/-/micromark-factory-label-2.0.1.tgz",
+      "integrity": "sha512-VFMekyQExqIW7xIChcXn4ok29YE3rnuyveW3wZQWWqF4Nv9Wk5rgJ99KzPvHjkmPXF93FXIbBp6YdW3t71/7Vg==",
+      "archiveBytes": 4844,
+      "payloadSha256": "c65fb436893844fb5be29814dc2528a596236423c4c7e5b1130cd49b5bae8c1d",
+      "metadataSha256": "b5d3019372c78e163ca1b76c9de357a157e71e2dabd799510dbe8406394ad1b6"
+    },
+    {
+      "name": "micromark-factory-space",
+      "version": "2.1.0",
+      "metadataUrl": "https://registry.npmjs.org/micromark-factory-space/2.1.0",
+      "tarballUrl": "https://registry.npmjs.org/micromark-factory-space/-/micromark-factory-space-2.1.0.tgz",
+      "integrity": "sha512-fS8hnLIjnjvdQIj39Geug8wWsR0HrYZ43KShKxNfwT7t2LOHo/LbWZEzEaSOjwtjdCsjoE6syHhonEzW0zv0+Q==",
+      "archiveBytes": 4498,
+      "payloadSha256": "5218d07cfd00f867e94f4197c9aac409fb8ea17c26ab38a124f9dd79ba8b8a3d",
+      "metadataSha256": "5a1ed96a480b21aba314a3c4a78e5db02481d32a25ab23a830c56119f56efc74"
+    },
+    {
+      "name": "micromark-factory-title",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-factory-title/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-factory-title/-/micromark-factory-title-2.0.1.tgz",
+      "integrity": "sha512-5bZ+3CjhAd9eChYTHsjy6TGxpOFSKgKKJPJxr293jTbfry2KDoWkhBb6TcPVB4NmzaPhMs1Frm9AZH7OD4Cjzw==",
+      "archiveBytes": 4589,
+      "payloadSha256": "2e247f3d7ddef39cde036ee828a66ec410059b3963ce3e376160e48011f257b0",
+      "metadataSha256": "e63248f45fa7d29b5b939b22c904211fc04331dbfc1d95351512d7c7eb2c752c"
+    },
+    {
+      "name": "micromark-factory-whitespace",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-factory-whitespace/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-factory-whitespace/-/micromark-factory-whitespace-2.0.1.tgz",
+      "integrity": "sha512-Ob0nuZ3PKt/n0hORHyvoD9uZhr+Za8sFoP+OnMcnWK5lngSzALgQYKMr9RJVOWLqQYuyn6ulqGWSXdwf6F80lQ==",
+      "archiveBytes": 3898,
+      "payloadSha256": "57dc50841f76fac5cf46e093b8325397079e10406febebb6c58a58e1528a4fec",
+      "metadataSha256": "76c626e601bd9d0992bd6b957a87b6298e3fee3cdab79c95669f567506b3c1e4"
+    },
+    {
+      "name": "micromark-util-character",
+      "version": "2.1.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-character/2.1.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-character/-/micromark-util-character-2.1.1.tgz",
+      "integrity": "sha512-wv8tdUTJ3thSFFFJKtpYKOYiGP2+v96Hvk4Tu8KpCAsTMs6yi+nVmGh1syvSCsaxz45J6Jbw+9DD6g97+NV67Q==",
+      "archiveBytes": 6356,
+      "payloadSha256": "bacefea968d21cedf290ec319ec92e2bc20e4f7b02f62cb4ad1e7b07c5a45185",
+      "metadataSha256": "87a5c5e6675c182e4191509baa40da67ab728bf04ea8100951ce0aa7ead86d26"
+    },
+    {
+      "name": "micromark-util-chunked",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-chunked/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-chunked/-/micromark-util-chunked-2.0.1.tgz",
+      "integrity": "sha512-QUNFEOPELfmvv+4xiNg2sRYeS/P84pTW0TCgP5zc9FpXetHY0ab7SxKyAQCNCc1eK0459uoLI1y5oO5Vc1dbhA==",
+      "archiveBytes": 4441,
+      "payloadSha256": "a7b753059876eda10e9e14c024d1cf6eb3a2eb2021c79ef59fb483d72cda754a",
+      "metadataSha256": "19ebaca4f7892d00240c317ddb36bfd77af1955bd3b058999681d7c256f35b15"
+    },
+    {
+      "name": "micromark-util-classify-character",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-classify-character/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-classify-character/-/micromark-util-classify-character-2.0.1.tgz",
+      "integrity": "sha512-K0kHzM6afW/MbeWYWLjoHQv1sgg2Q9EccHEDzSkxiP/EaagNzCm7T/WMKZ3rjMbvIpvBiZgwR3dKMygtA4mG1Q==",
+      "archiveBytes": 3818,
+      "payloadSha256": "ae1040e3100c019e183e474cb7f174eb436d856013169a0c8783a52519bacced",
+      "metadataSha256": "1074f52ca375ad7ad1bfe28efba24ed43ea3fc7bbc0000d91deb3dcf85e385f9"
+    },
+    {
+      "name": "micromark-util-combine-extensions",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-combine-extensions/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-combine-extensions/-/micromark-util-combine-extensions-2.0.1.tgz",
+      "integrity": "sha512-OnAnH8Ujmy59JcyZw8JSbK9cGpdVY44NKgSM7E9Eh7DiLS2E9RNQf0dONaGDzEG9yjEl5hcqeIsj4hfRkLH/Bg==",
+      "archiveBytes": 4225,
+      "payloadSha256": "717cb91921ff540a2c776317f31ad005c3c45ec0ae1c188f1b99de621521b4b5",
+      "metadataSha256": "23f73b98b369e4891416647b60c84723715be13a96201ffab60b55d0990835a1"
+    },
+    {
+      "name": "micromark-util-decode-numeric-character-reference",
+      "version": "2.0.2",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-decode-numeric-character-reference/2.0.2",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-decode-numeric-character-reference/-/micromark-util-decode-numeric-character-reference-2.0.2.tgz",
+      "integrity": "sha512-ccUbYk6CwVdkmCQMyr64dXz42EfHGkPQlBj5p7YVGzq8I7CtjXZJrubAYezf7Rp+bjPseiROqe7G6foFd+lEuw==",
+      "archiveBytes": 3833,
+      "payloadSha256": "cd26a08f068727f3cc892e8f2549b85065362bd920506649386c791fe349db98",
+      "metadataSha256": "b1eb57e6a649e149a4a5f15f1e62917d9f829437287cc58030e0cd74a561e246"
+    },
+    {
+      "name": "micromark-util-decode-string",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-decode-string/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-decode-string/-/micromark-util-decode-string-2.0.1.tgz",
+      "integrity": "sha512-nDV/77Fj6eH1ynwscYTOsbK7rR//Uj0bZXBwJZRfaLEJ1iGBR6kIfNmlNqaqJf649EP0F3NWNdeJi03elllNUQ==",
+      "archiveBytes": 3799,
+      "payloadSha256": "09ab2cda2d2f4fec4e3b829042866fa3d619d4c48c895233495a4ac49f325059",
+      "metadataSha256": "4aa55dbd4b7d016168c71bee29ca50e6158509c15745299459662d8daff401e7"
+    },
+    {
+      "name": "micromark-util-edit-map",
+      "version": "1.0.0",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-edit-map/1.0.0",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-edit-map/-/micromark-util-edit-map-1.0.0.tgz",
+      "integrity": "sha512-Pa2ljlsEL6sVwFaYeyrOLSYbQt73JvGbPOYFq+9AElXiSnfI5Q4465RRZ1sHv7lDjDOnGRDDaqPXqClqWK/q1Q==",
+      "archiveBytes": 5754,
+      "payloadSha256": "da60526f11a9853fdc86c18ceaa8eb7b5058c2537433e66b6ba7cf9d24cac334",
+      "metadataSha256": "75542842a916e79e67cc8427cab0d666eb72cd3334ac4f4d9101e9e50f484a3f"
+    },
+    {
+      "name": "micromark-util-encode",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-encode/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-encode/-/micromark-util-encode-2.0.1.tgz",
+      "integrity": "sha512-c3cVx2y4KqUnwopcO9b/SCdo2O67LwJJ/UyqGfbigahfegL9myoEFoDYZgkT7f36T0bLrM9hZTAaAyH+PCAXjw==",
+      "archiveBytes": 3310,
+      "payloadSha256": "c553824f256f5f99f8f8b172d25caa7b2270ece5a00774cd1dbbc8bf9cd9090a",
+      "metadataSha256": "e4fb496b5d3101c9d374049c2644c3b6ac78d09f6978fa992eadfdd23edbe42f"
+    },
+    {
+      "name": "micromark-util-html-tag-name",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-html-tag-name/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-html-tag-name/-/micromark-util-html-tag-name-2.0.1.tgz",
+      "integrity": "sha512-2cNEiYDhCWKI+Gs9T0Tiysk136SnR13hhO8yW6BGNyhOC4qYFnwF1nKfD3HFAIXA5c45RrIG1ub11GiXeYd1xA==",
+      "archiveBytes": 3717,
+      "payloadSha256": "9d56df2779bb23785d208136430484ccedca4378bd36976c4793ace4c1cae077",
+      "metadataSha256": "36d856a04423a19e9ef8d6efc2894f9078f6601034f1e133fd602997df825121"
+    },
+    {
+      "name": "micromark-util-normalize-identifier",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-normalize-identifier/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-normalize-identifier/-/micromark-util-normalize-identifier-2.0.1.tgz",
+      "integrity": "sha512-sxPqmo70LyARJs0w2UclACPUUEqltCkJ6PhKdMIDuJ3gSf/Q+/GIe3WKl0Ijb/GyH9lOpUkRAO2wp0GVkLvS9Q==",
+      "archiveBytes": 3788,
+      "payloadSha256": "6687cbaaa6a420bad0e5ca2ea0dfaea409ba8dc9e13ca03059291da8b68ceb2d",
+      "metadataSha256": "f088f02e818d93d26d022dc89644c7cecc5b9b110fc2c739795c0972423eb8fc"
+    },
+    {
+      "name": "micromark-util-resolve-all",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-resolve-all/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-resolve-all/-/micromark-util-resolve-all-2.0.1.tgz",
+      "integrity": "sha512-VdQyxFWFT2/FGJgwQnJYbe1jjQoNTS4RjglmSjTUlpUMa95Htx9NHeYW4rGDJzbjvCsl9eLjMQwGeElsqmzcHg==",
+      "archiveBytes": 4026,
+      "payloadSha256": "f7c8f03bdbdb16113879dadabc7091aa4277a1c106f202e05af164a917964555",
+      "metadataSha256": "933f90071431e5b1495f09797d7df63071c9d47ad2f849da34b9e856db363989"
+    },
+    {
+      "name": "micromark-util-sanitize-uri",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-sanitize-uri/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-sanitize-uri/-/micromark-util-sanitize-uri-2.0.1.tgz",
+      "integrity": "sha512-9N9IomZ/YuGGZZmQec1MbgxtlgougxTodVwDzzEouPKo3qFWvymFHWcnDi2vzV1ff6kas9ucW+o3yzJK9YB1AQ==",
+      "archiveBytes": 4866,
+      "payloadSha256": "8fcf4cf2900f807194fc89fb3e4dd5e5b28143cb44e55955a9f31d764264547e",
+      "metadataSha256": "a73d0978ddb92a97c3641ee9695251d2459caf2168aff37a2178e07ad79e7580"
+    },
+    {
+      "name": "micromark-util-subtokenize",
+      "version": "2.1.0",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-subtokenize/2.1.0",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-subtokenize/-/micromark-util-subtokenize-2.1.0.tgz",
+      "integrity": "sha512-XQLu552iSctvnEcgXw6+Sx75GflAPNED1qx7eBJ+wydBb2KCbRZe+NwvIEEMM83uml1+2WSXpBAcp9IUCgCYWA==",
+      "archiveBytes": 9611,
+      "payloadSha256": "10aca3d9ae4d1776f029fa6dbf5d9706291cbafc55ff39ba88141e65b7c59a8b",
+      "metadataSha256": "bc6350df222d08375b2618dca70d9188b3c09c9c74000de84c752ae56c7a3bf8"
+    },
+    {
+      "name": "micromark-util-symbol",
+      "version": "2.0.1",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-symbol/2.0.1",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-symbol/-/micromark-util-symbol-2.0.1.tgz",
+      "integrity": "sha512-vs5t8Apaud9N28kgCrRUdEed4UJ+wWNvicHLPxCa9ENlYuAY31M0ETy5y1vA33YoNPDFTghEbnh6efaE8h4x0Q==",
+      "archiveBytes": 12184,
+      "payloadSha256": "d8d698fae34d4e5bcdc5caf552449dea8aa46709dc76caea815c931cbd61e222",
+      "metadataSha256": "149839a5318bb9b4c8bb60c96624d1107a6915a7916e11ada28da87164b701ee"
+    },
+    {
+      "name": "micromark-util-types",
+      "version": "2.0.3",
+      "metadataUrl": "https://registry.npmjs.org/micromark-util-types/2.0.3",
+      "tarballUrl": "https://registry.npmjs.org/micromark-util-types/-/micromark-util-types-2.0.3.tgz",
+      "integrity": "sha512-oxB2Ik03hI0gv+VNn9tnh1t1YEe9MDPptViAEgfdf3YQHsn0pzGTgCdlSCJXcwhqm8phaEuM7zeEu3QQzVBrPg==",
+      "archiveBytes": 11515,
+      "payloadSha256": "766abb7b986c167f5d00feb235344b491241bb6299a04fe83f027e13239862f9",
+      "metadataSha256": "60690ef0c210b35d41e72639576cedbd0904efe3ad9dd02889cd0d5835d75fc3"
+    },
+    {
+      "name": "micromark",
+      "version": "4.0.3",
+      "metadataUrl": "https://registry.npmjs.org/micromark/4.0.3",
+      "tarballUrl": "https://registry.npmjs.org/micromark/-/micromark-4.0.3.tgz",
+      "integrity": "sha512-oGYfQzHSG5dOMovQcJ3fyTmZlWAWpi0XA0sJwJs+i6OT88o1+Jtw/8z0CmdowSLxGhhFK89rQ/oXph/wN02PNw==",
+      "archiveBytes": 35783,
+      "payloadSha256": "2f3f1e4dfc15279ffd246cb739200dd7ce823d047d9648938c3e3ee50be5ee02",
+      "metadataSha256": "f0837d088dcd19b8068c1b5e13a751afd15f14ef346d2363b0cea84bd26719bd"
+    },
+    {
+      "name": "minimatch",
+      "version": "10.2.6",
+      "metadataUrl": "https://registry.npmjs.org/minimatch/10.2.6",
+      "tarballUrl": "https://registry.npmjs.org/minimatch/-/minimatch-10.2.6.tgz",
+      "integrity": "sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==",
+      "archiveBytes": 117068,
+      "payloadSha256": "5a3d2c8074a28229665727e47b8a1090941856a7962905efe05d20d3760355f8",
+      "metadataSha256": "938adf25bff40260a930f723f448231fc7a03f9e85dd809f2196b50ebd06d88c"
+    },
+    {
+      "name": "minipass",
+      "version": "7.1.3",
+      "metadataUrl": "https://registry.npmjs.org/minipass/7.1.3",
+      "tarballUrl": "https://registry.npmjs.org/minipass/-/minipass-7.1.3.tgz",
+      "integrity": "sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==",
+      "archiveBytes": 83605,
+      "payloadSha256": "52ac61be743755e3fdc98e560086d0d4a1e2c7fd3643387792db38e322d27d12",
+      "metadataSha256": "bf7491b7dc7457525153e9c31eb27e98939785ab6c44297bb99d305f4541aa87"
+    },
+    {
+      "name": "ms",
+      "version": "2.1.3",
+      "metadataUrl": "https://registry.npmjs.org/ms/2.1.3",
+      "tarballUrl": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
+      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
+      "archiveBytes": 2967,
+      "payloadSha256": "f6616e15e530ed552f9daa2d3ce71963947c6bc7c98c9b64fd3e673fd02622c6",
+      "metadataSha256": "9f31c78548e84f877cedb1e0f0652419777d0c036fbb72985da187e2a962b45d"
+    },
+    {
+      "name": "nth-check",
+      "version": "2.1.1",
+      "metadataUrl": "https://registry.npmjs.org/nth-check/2.1.1",
+      "tarballUrl": "https://registry.npmjs.org/nth-check/-/nth-check-2.1.1.tgz",
+      "integrity": "sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==",
+      "archiveBytes": 8576,
+      "payloadSha256": "45dc0a2bc34205656c0fbe8374c725c04b71b40e739b74c9fc763480c8063642",
+      "metadataSha256": "5a806f434d4ea2094760d4dc1d8259f69f44455cdd327ace847eab0b0a3d4314"
+    },
+    {
+      "name": "package-json-from-dist",
+      "version": "1.0.1",
+      "metadataUrl": "https://registry.npmjs.org/package-json-from-dist/1.0.1",
+      "tarballUrl": "https://registry.npmjs.org/package-json-from-dist/-/package-json-from-dist-1.0.1.tgz",
+      "integrity": "sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==",
+      "archiveBytes": 5750,
+      "payloadSha256": "135c483e43689d0e17b1c56dd5e2dfea63a4d4afc749dc7ed6b66b97f7bc4e20",
+      "metadataSha256": "68505c843fd9336d8a230e9f5b9f70e477dab0fabe7ab5ab7b09049ea64ceeb7"
+    },
+    {
+      "name": "path-key",
+      "version": "3.1.1",
+      "metadataUrl": "https://registry.npmjs.org/path-key/3.1.1",
+      "tarballUrl": "https://registry.npmjs.org/path-key/-/path-key-3.1.1.tgz",
+      "integrity": "sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==",
+      "archiveBytes": 2258,
+      "payloadSha256": "4b8999acb914830edcd3c5b8fec632b32c6bc759ac3edc86336f5a9e08ba7b92",
+      "metadataSha256": "50dfac7e1cb79491c33567c4ebac66f2414ef0ec7ea9a8507d9b84df1a25d9b8"
+    },
+    {
+      "name": "path-scurry",
+      "version": "2.0.2",
+      "metadataUrl": "https://registry.npmjs.org/path-scurry/2.0.2",
+      "tarballUrl": "https://registry.npmjs.org/path-scurry/-/path-scurry-2.0.2.tgz",
+      "integrity": "sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==",
+      "archiveBytes": 101468,
+      "payloadSha256": "dea3e3dab1c00c28fcb5871b1133b02050c7e110dde2dbe31e14067922c23ec1",
+      "metadataSha256": "507b4c9543bf3c14c1883a6d3bc876e34d4ed4f5880f54d2ca14feb77a2005b6"
+    },
+    {
+      "name": "picocolors",
+      "version": "1.1.1",
+      "metadataUrl": "https://registry.npmjs.org/picocolors/1.1.1",
+      "tarballUrl": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
+      "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==",
+      "archiveBytes": 2625,
+      "payloadSha256": "d3aedb2807967b7eb37fd11b03b7e3701e725af79c650d0812ff7213f8f882d9",
+      "metadataSha256": "469edbe4663b07f19026f60ec43744bad678caa89a6be7bf6c4692e2967ddf9d"
+    },
+    {
+      "name": "remark-parse",
+      "version": "11.0.0",
+      "metadataUrl": "https://registry.npmjs.org/remark-parse/11.0.0",
+      "tarballUrl": "https://registry.npmjs.org/remark-parse/-/remark-parse-11.0.0.tgz",
+      "integrity": "sha512-FCxlKLNGknS5ba/1lmpYijMUzX2esxW5xQqjWxw2eHFfS2MSdaHVINFmhjo+qN1WhZhNimq0dZATN9pH0IDrpA==",
+      "archiveBytes": 6458,
+      "payloadSha256": "381d16667f0d394ac045dad61cea875d680a49eae0cbe88a87b0259dc4b2dd33",
+      "metadataSha256": "b8329ac6f3891d7a4183a118b1f302f707e4cbf02517d7b4c7772631ad1f2385"
+    },
+    {
+      "name": "remark-stringify",
+      "version": "11.0.0",
+      "metadataUrl": "https://registry.npmjs.org/remark-stringify/11.0.0",
+      "tarballUrl": "https://registry.npmjs.org/remark-stringify/-/remark-stringify-11.0.0.tgz",
+      "integrity": "sha512-1OSmLd3awB/t8qdoEOMazZkNsfVTeY4fTsgzcQFdXNq8ToTN4ZGwrMnlda4K6smTFKD+GRV6O48i6Z4iKgPPpw==",
+      "archiveBytes": 6678,
+      "payloadSha256": "b2190b6baf1b5e6e1b36f23c24c1658f2dab1a4315370435530cd8f78c390175",
+      "metadataSha256": "ddffa9c1fa8b6e168f84afaf10279a6e057950b34eb66096f5277f22acbd9f0b"
+    },
+    {
+      "name": "sax",
+      "version": "1.6.1",
+      "metadataUrl": "https://registry.npmjs.org/sax/1.6.1",
+      "tarballUrl": "https://registry.npmjs.org/sax/-/sax-1.6.1.tgz",
+      "integrity": "sha512-42tBVwLWnaQvW5zc4HbZrTuWccECCZfBi92FDuwtqxasH+JbPB3/FOKb1m222K42R4WxuxzzMsTswfzgtSu64Q==",
+      "archiveBytes": 16800,
+      "payloadSha256": "6e9abf03478608b80894bb8b6421271a0e583504f785f749a700d6bb35be85bd",
+      "metadataSha256": "584461f6e03f980aa1ca98db1230f58886292ea46292137e426dace3e9a7b588"
+    },
+    {
+      "name": "semver",
+      "version": "7.8.5",
+      "metadataUrl": "https://registry.npmjs.org/semver/7.8.5",
+      "tarballUrl": "https://registry.npmjs.org/semver/-/semver-7.8.5.tgz",
+      "integrity": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==",
+      "archiveBytes": 29399,
+      "payloadSha256": "d85045d4300d7d57c891336b95df532e73f34c22ffcd222452b6d08b9d127d5d",
+      "metadataSha256": "595600ec8060055e4582121441e8227bc6ab12ff63b42030686e18ec46226ff2"
+    },
+    {
+      "name": "shebang-command",
+      "version": "2.0.0",
+      "metadataUrl": "https://registry.npmjs.org/shebang-command/2.0.0",
+      "tarballUrl": "https://registry.npmjs.org/shebang-command/-/shebang-command-2.0.0.tgz",
+      "integrity": "sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==",
+      "archiveBytes": 1506,
+      "payloadSha256": "9acba5bd18a51e9cdf5898380e4df63f803e1844def64ae1a46f88cff86d556e",
+      "metadataSha256": "b0181b869517aead3f1d6537e9f5e862895d56d01244806079f7bceac0ade01b"
+    },
+    {
+      "name": "shebang-regex",
+      "version": "3.0.0",
+      "metadataUrl": "https://registry.npmjs.org/shebang-regex/3.0.0",
+      "tarballUrl": "https://registry.npmjs.org/shebang-regex/-/shebang-regex-3.0.0.tgz",
+      "integrity": "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==",
+      "archiveBytes": 1503,
+      "payloadSha256": "fedbabaa6db26c6be0183f82777dfa852d59a62f8885de93bd32ebc28758958f",
+      "metadataSha256": "cb7e026237b62e925eff3417060824dcce2c2553f30c8d41ba6885c81151f21c"
+    },
+    {
+      "name": "signal-exit",
+      "version": "4.1.0",
+      "metadataUrl": "https://registry.npmjs.org/signal-exit/4.1.0",
+      "tarballUrl": "https://registry.npmjs.org/signal-exit/-/signal-exit-4.1.0.tgz",
+      "integrity": "sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==",
+      "archiveBytes": 13369,
+      "payloadSha256": "9d3b58a811ecf6a641537387289274cd14f5bb912a27e4f1f2a74182bca8b795",
+      "metadataSha256": "1b8069549117be9ac5a68ecca3ab87934c283e59157de78eb4ade128423b63b8"
+    },
+    {
+      "name": "sisteransi",
+      "version": "1.0.5",
+      "metadataUrl": "https://registry.npmjs.org/sisteransi/1.0.5",
+      "tarballUrl": "https://registry.npmjs.org/sisteransi/-/sisteransi-1.0.5.tgz",
+      "integrity": "sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==",
+      "archiveBytes": 2600,
+      "payloadSha256": "9e4d29b24315611de5a1767ca1b09716f40bb04534836295fe36d80c643974b3",
+      "metadataSha256": "69601e3e10a257923a3e00a331e1b65e034a4c3132c02e0476a598501bdc9739"
+    },
+    {
+      "name": "supports-color",
+      "version": "7.2.0",
+      "metadataUrl": "https://registry.npmjs.org/supports-color/7.2.0",
+      "tarballUrl": "https://registry.npmjs.org/supports-color/-/supports-color-7.2.0.tgz",
+      "integrity": "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==",
+      "archiveBytes": 3210,
+      "payloadSha256": "f16acafd1634624e60c24a5538004c4e168c82607f10dbe28395e9df3e7d5e4a",
+      "metadataSha256": "5862fbf41f9f44289e93fadc664f673d739c4a7d88918820f58bf8896d442432"
+    },
+    {
+      "name": "trough",
+      "version": "2.2.0",
+      "metadataUrl": "https://registry.npmjs.org/trough/2.2.0",
+      "tarballUrl": "https://registry.npmjs.org/trough/-/trough-2.2.0.tgz",
+      "integrity": "sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==",
+      "archiveBytes": 6776,
+      "payloadSha256": "0a357f8de5e3a6f69fa3672daf31a19a87fc153b21085790c78fa4097263ab58",
+      "metadataSha256": "8939fed075ebbd7315af2fd8a76c789922802c3257ff4cb2cd66c7e3edcdfa62"
+    },
+    {
+      "name": "unified",
+      "version": "11.0.5",
+      "metadataUrl": "https://registry.npmjs.org/unified/11.0.5",
+      "tarballUrl": "https://registry.npmjs.org/unified/-/unified-11.0.5.tgz",
+      "integrity": "sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==",
+      "archiveBytes": 30905,
+      "payloadSha256": "bc6d6d9e336d7d775f3c369f0a29462523ae75254d4a6e4888b95eba44c4aa78",
+      "metadataSha256": "ff1d9f94265143fb19808a414f7cd817ac3a080219c1291db604a05e37669859"
+    },
+    {
+      "name": "unist-util-find",
+      "version": "3.0.0",
+      "metadataUrl": "https://registry.npmjs.org/unist-util-find/3.0.0",
+      "tarballUrl": "https://registry.npmjs.org/unist-util-find/-/unist-util-find-3.0.0.tgz",
+      "integrity": "sha512-T7ZqS7immLjYyC4FCp2hDo3ksZ1v+qcbb+e5+iWxc2jONgHOLXPCpms1L8VV4hVxCXgWTxmBHDztuEZFVwC+Gg==",
+      "archiveBytes": 4335,
+      "payloadSha256": "648e4a11f3009f937a9b2c9d573919803dd88f0902fe6f74fe4cdeced5a87d3b",
+      "metadataSha256": "355336ba09157ac166a11bc0e85dc96468ac6336f1a7880ff88086ae0f592dad"
+    },
+    {
+      "name": "unist-util-is",
+      "version": "6.0.1",
+      "metadataUrl": "https://registry.npmjs.org/unist-util-is/6.0.1",
+      "tarballUrl": "https://registry.npmjs.org/unist-util-is/-/unist-util-is-6.0.1.tgz",
+      "integrity": "sha512-LsiILbtBETkDz8I9p1dQ0uyRUWuaQzd/cuEeS1hoRSyW5E5XGmTzlwY1OrNzzakGowI9Dr/I8HVaw4hTtnxy8g==",
+      "archiveBytes": 7628,
+      "payloadSha256": "6d406238b6e281d38d30c30f77287ce8d70f6d9c4503612f979333865aaafff5",
+      "metadataSha256": "279be46ca33d0aeceb517a5b2490e551bb055674523734b0cec9a0ba359548a6"
+    },
+    {
+      "name": "unist-util-select",
+      "version": "5.1.0",
+      "metadataUrl": "https://registry.npmjs.org/unist-util-select/5.1.0",
+      "tarballUrl": "https://registry.npmjs.org/unist-util-select/-/unist-util-select-5.1.0.tgz",
+      "integrity": "sha512-4A5mfokSHG/rNQ4g7gSbdEs+H586xyd24sdJqF1IWamqrLHvYb+DH48fzxowyOhOfK7YSqX+XlCojAyuuyyT2A==",
+      "archiveBytes": 11880,
+      "payloadSha256": "aa2a4388d6e2351262775eb41912aabb74706606df7e5f7cce1bfb7e6b5bdd41",
+      "metadataSha256": "fe075c6065c8b06a1ae36a895676b9a0303a6a5d384b21b6385f74443afc115f"
+    },
+    {
+      "name": "unist-util-stringify-position",
+      "version": "4.0.0",
+      "metadataUrl": "https://registry.npmjs.org/unist-util-stringify-position/4.0.0",
+      "tarballUrl": "https://registry.npmjs.org/unist-util-stringify-position/-/unist-util-stringify-position-4.0.0.tgz",
+      "integrity": "sha512-0ASV06AAoKCDkS2+xw5RXJywruurpbC4JZSm7nr7MOt1ojAzvyyaO+UxZf18j8FCF6kmzCZKcAgN/yu2gm2XgQ==",
+      "archiveBytes": 4353,
+      "payloadSha256": "8692d2396f091680fe342c344acc4594534a9a811b0a9cbcfae7d71c694168b4",
+      "metadataSha256": "f2c2b085c3ba0fddf028f123d2aaf12b0bd0af60bcb9394825a6f0e20b548fda"
+    },
+    {
+      "name": "unist-util-visit-parents",
+      "version": "6.0.2",
+      "metadataUrl": "https://registry.npmjs.org/unist-util-visit-parents/6.0.2",
+      "tarballUrl": "https://registry.npmjs.org/unist-util-visit-parents/-/unist-util-visit-parents-6.0.2.tgz",
+      "integrity": "sha512-goh1s1TBrqSqukSc8wrjwWhL0hiJxgA8m4kFxGlQ+8FYQ3C/m11FcTs4YYem7V664AhHVvgoQLk890Ssdsr2IQ==",
+      "archiveBytes": 10905,
+      "payloadSha256": "5250902af03c4b335c68cd60ed5eb4f1d9fbd6338e129d7df476690b8a245da5",
+      "metadataSha256": "2e7d99600b73489a35520f9f036133e51dac4ce867cf7b0b4d6925582de7705a"
+    },
+    {
+      "name": "unist-util-visit",
+      "version": "5.1.0",
+      "metadataUrl": "https://registry.npmjs.org/unist-util-visit/5.1.0",
+      "tarballUrl": "https://registry.npmjs.org/unist-util-visit/-/unist-util-visit-5.1.0.tgz",
+      "integrity": "sha512-m+vIdyeCOpdr/QeQCu2EzxX/ohgS8KbnPDgFni4dQsfSCtpz8UqDyY5GjRru8PDKuYn7Fq19j1CQ+nJSsGKOzg==",
+      "archiveBytes": 8762,
+      "payloadSha256": "8d5724e443d279deda20fe03ce18de53a944f8154e94297de0f49c5fb51f72ef",
+      "metadataSha256": "2ad0c3d4804e3c232b66165bc8aef229c8818c5303254fe577268895a6682757"
+    },
+    {
+      "name": "vfile-message",
+      "version": "4.0.3",
+      "metadataUrl": "https://registry.npmjs.org/vfile-message/4.0.3",
+      "tarballUrl": "https://registry.npmjs.org/vfile-message/-/vfile-message-4.0.3.tgz",
+      "integrity": "sha512-QTHzsGd1EhbZs4AsQ20JX1rC3cOlt/IWJruk893DfLRr57lcnOeMaWG4K0JrRta4mIJZKth2Au3mM3u03/JWKw==",
+      "archiveBytes": 6370,
+      "payloadSha256": "9d6d94ee59296ef0516217a79e902ba417fe3d8816ab1d0527ddf353b455c2cb",
+      "metadataSha256": "5b303f1b6e7bca11a3d6356cd777d858536cd5902e91e49ae2805eb61dad6fbf"
+    },
+    {
+      "name": "vfile",
+      "version": "6.0.3",
+      "metadataUrl": "https://registry.npmjs.org/vfile/6.0.3",
+      "tarballUrl": "https://registry.npmjs.org/vfile/-/vfile-6.0.3.tgz",
+      "integrity": "sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==",
+      "archiveBytes": 20729,
+      "payloadSha256": "a0dbad2fd8dcc9ae9f652dee6ba49a1db5db2843a8ec2ceb9190ccdba0e0df0c",
+      "metadataSha256": "1f798a0f402334271bb6254620c2207b5cff993ca5591179e8697a47aa168fcd"
+    },
+    {
+      "name": "which",
+      "version": "2.0.2",
+      "metadataUrl": "https://registry.npmjs.org/which/2.0.2",
+      "tarballUrl": "https://registry.npmjs.org/which/-/which-2.0.2.tgz",
+      "integrity": "sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==",
+      "archiveBytes": 4496,
+      "payloadSha256": "a13adf5fddeb769655edce551e81fbb11904b9c9be76d95e41da8c4c499d4edc",
+      "metadataSha256": "15f42fe3e95da2b7e6f75f18dc3526ec20df8e77e3d9a063773694f7b5184f54"
+    },
+    {
+      "name": "xml2js",
+      "version": "0.6.2",
+      "metadataUrl": "https://registry.npmjs.org/xml2js/0.6.2",
+      "tarballUrl": "https://registry.npmjs.org/xml2js/-/xml2js-0.6.2.tgz",
+      "integrity": "sha512-T4rieHaC1EXcES0Kxxj4JWgaUQHDk+qwHcYOCFHfiwKz7tOVPLq7Hjq9dM1WCMhylqMEfP7hMcOIChvotiZegA==",
+      "archiveBytes": 858415,
+      "payloadSha256": "6386154e63b28c5f4411bf2348596105d262e36600104dd9584e2b7251f56a11",
+      "metadataSha256": "797c2cf7db252721e904275aadf6f858493ba584839043cb7aca1dd6a8b8f646"
+    },
+    {
+      "name": "xmlbuilder",
+      "version": "11.0.1",
+      "metadataUrl": "https://registry.npmjs.org/xmlbuilder/11.0.1",
+      "tarballUrl": "https://registry.npmjs.org/xmlbuilder/-/xmlbuilder-11.0.1.tgz",
+      "integrity": "sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==",
+      "archiveBytes": 28784,
+      "payloadSha256": "8af7744b545bc3c8883589dafd5536b06194edb6ea667d5fd7f2cfee4c121c94",
+      "metadataSha256": "92ae4cd0fce9192f5e44691a992103698abe81c8240ac9da1e7039c995dac67a"
+    },
+    {
+      "name": "yaml",
+      "version": "2.9.1",
+      "metadataUrl": "https://registry.npmjs.org/yaml/2.9.1",
+      "tarballUrl": "https://registry.npmjs.org/yaml/-/yaml-2.9.1.tgz",
+      "integrity": "sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==",
+      "archiveBytes": 112114,
+      "payloadSha256": "4ef6c54cf559b8a207b7b518378230805a1c84af239b14960e8c67c7d59de5d3",
+      "metadataSha256": "3ace3f8ec5fc9a5784603960fd107d9a9f172d1d74d66c32dfd6a739512a7b24"
+    },
+    {
+      "name": "zwitch",
+      "version": "2.0.4",
+      "metadataUrl": "https://registry.npmjs.org/zwitch/2.0.4",
+      "tarballUrl": "https://registry.npmjs.org/zwitch/-/zwitch-2.0.4.tgz",
+      "integrity": "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==",
+      "archiveBytes": 4529,
+      "payloadSha256": "2c162e000f5fb5a816987d6f8ad7aad295203f777a5992d514ae4660778a51a4",
+      "metadataSha256": "aa921528b928a4fccdd1704d840dc8786a8d5e68c92a101b730970ada9d87b09"
+    }
+  ]
+}

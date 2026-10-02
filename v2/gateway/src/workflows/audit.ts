@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { canonicalJson, hash } from '../journal/atomic-records.ts';
+import { apiPolicy } from './api-policy.ts';
+import { type BmadBuild, bmadBuildPolicy, normalizeBmad } from './builder.ts';
 import {
   officialSourceUrl,
   projectionTreeHash,
@@ -8,6 +10,7 @@ import {
   validateSourcePin,
 } from './pins.ts';
 import type { ProjectionAudit, SourceAudit } from './registry.ts';
+import type { TreeFile } from './stage.ts';
 import { manifest, manifestHash, parseArchive, validateFiles } from './stage.ts';
 export type SourceIdentity = Pick<
   SourcePin,
@@ -47,6 +50,89 @@ export async function buildSourceAudit(
       throw new Error('PACKAGE_MANIFEST_MISMATCH');
   }
   return { pin, executables: [...executables] };
+}
+export async function auditSuperpowersApi(
+  source: SourcePin,
+  bytes: Buffer,
+  executables: string[],
+): Promise<ProjectionAudit> {
+  validateSourcePin(source);
+  if (source.name !== 'superpowers' || hash(bytes) !== source.payloadSha256)
+    throw new Error('CHECKSUM_MISMATCH');
+  const files = await parseArchive(bytes, executables);
+  if (manifestHash(manifest(files)) !== source.sourceManifestSha256) throw new Error('CHECKSUM_MISMATCH');
+  const mappings = ['skills'].map((from) => ({ from, to: from }));
+  const output = files.filter((f) => f.path === 'skills' || f.path.startsWith('skills/'));
+  const policy = apiPolicy(source, output);
+  const recipe = {
+    tool: 'crew-reviewed-official-api-transport',
+    version: '1',
+    options: ['exact-official-skills-and-scripts'],
+    layoutSchema: 'superpowers-api-v1',
+    policySha256: hash(policy),
+    officialEntrypoints: ['skills/using-superpowers/SKILL.md'],
+  };
+  output.push({ path: 'adapter-policy.json', type: 'file', mode: 0o644, body: Buffer.from(policy) });
+  const { officialEntrypoints: _e, ...derivation } = recipe;
+  const base = {
+    runtime: 'api' as const,
+    sourceTreeSha256: source.sourceTreeSha256,
+    manifestSha256: manifestHash(manifest(validateFiles(output))),
+    derivation,
+  };
+  return {
+    sourceTreeSha256: source.sourceTreeSha256,
+    runtime: 'api',
+    recipe,
+    mappings,
+    policy,
+    expected: { ...base, treeSha256: projectionTreeHash(base) },
+  };
+}
+export function auditBmadBuild(
+  source: SourcePin,
+  first: TreeFile[],
+  second: TreeFile[],
+  build: BmadBuild,
+  runtime: 'claude' | 'api',
+): ProjectionAudit {
+  validateSourcePin(source);
+  if (source.name !== 'bmad' || source.version !== '6.12.0') throw new Error('PROJECTION_UNAVAILABLE');
+  const a = normalizeBmad(structuredClone(first).map((f) => ({ ...f, body: Buffer.from(f.body) })));
+  const b = normalizeBmad(structuredClone(second).map((f) => ({ ...f, body: Buffer.from(f.body) })));
+  if (manifestHash(manifest(a)) !== manifestHash(manifest(b))) throw new Error('NONDETERMINISTIC_PROJECTION');
+  const buildPolicy = bmadBuildPolicy(build);
+  const policy = runtime === 'api' ? apiPolicy(source, a, buildPolicy) : canonicalJson(buildPolicy);
+  const recipe = {
+    tool: 'bmad-official-package-local-installer',
+    version: source.version,
+    options: ['frozen-dependencies', 'bmm', 'claude-code', 'no-shims', 'generated-metadata-v1'],
+    layoutSchema: runtime === 'api' ? 'bmad-api-v1' : 'bmad-claude-v1',
+    policySha256: hash(policy),
+    officialEntrypoints: ['tools/installer/bmad-cli.js', 'src/scripts/render_skill.py'],
+  };
+  if (
+    !a.some((f) => f.path === '_bmad/scripts/render_skill.py') ||
+    !a.some((f) => f.path === '.claude/skills/bmad-build/SKILL.md')
+  )
+    throw new Error('OFFICIAL_ENTRYPOINT_MISSING');
+  a.push({ path: 'adapter-policy.json', type: 'file', mode: 0o644, body: Buffer.from(policy) });
+  const { officialEntrypoints: _e, ...derivation } = recipe;
+  const base = {
+    runtime,
+    sourceTreeSha256: source.sourceTreeSha256,
+    manifestSha256: manifestHash(manifest(a)),
+    derivation,
+  };
+  return {
+    sourceTreeSha256: source.sourceTreeSha256,
+    runtime,
+    recipe,
+    expected: { ...base, treeSha256: projectionTreeHash(base) },
+    mappings: [],
+    policy,
+    build,
+  };
 }
 export async function auditSuperpowersClaude(
   source: SourcePin,

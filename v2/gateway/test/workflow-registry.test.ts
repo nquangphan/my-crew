@@ -188,7 +188,7 @@ test('workflow registry detects truncated extraction and wrong npm integrity', a
     const stages = await r.stagingInventory();
     assert.equal(stages.length, 1);
     assert.equal(stages[0]?.state, 'failed');
-    assert.equal(stages[0]?.deletionEligible, false);
+    assert.equal(stages[0]?.deletionEligible, true);
     assert.equal(stages[0]?.payloadBytes, bytes.length);
   } finally {
     await r.close();
@@ -502,7 +502,7 @@ test('workflow registry cancellation before publish preserves previous active so
     abort.abort();
     await assert.rejects(() => r.installSource(next.source, next.stream()), { name: 'AbortError' });
     assert.deepEqual(await r.current('bmad'), old.source);
-    assert.equal((await r.stagingInventory()).filter((s) => s.state === 'failed').length, 1);
+    assert.equal((await r.stagingInventory()).filter((s) => s.state === 'failed').length, 0);
   } finally {
     await r.close();
     await rm(root, { recursive: true, force: true });

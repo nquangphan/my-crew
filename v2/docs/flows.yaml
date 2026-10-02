@@ -210,16 +210,42 @@ flows:
     entrypoints:
       - gateway/src/workflows/registry.ts
     files:
+      - gateway/src/workflows/api-policy.ts
       - gateway/src/workflows/audit.ts
+      - gateway/src/workflows/builder.ts
       - gateway/src/workflows/fetch.ts
+      - gateway/src/workflows/native-projection.ts
+      - gateway/src/workflows/operation-native.c
+      - gateway/src/workflows/operations.ts
       - gateway/src/workflows/pins.ts
+      - gateway/src/workflows/retention.ts
       - gateway/src/workflows/stage.ts
     tests:
+      - gateway/test/workflow-build.test.ts
+      - gateway/test/workflow-fix.test.ts
+      - gateway/test/workflow-native-projection.test.ts
+      - gateway/test/workflow-operations.test.ts
       - gateway/test/workflow-registry.test.ts
       - gateway/test/support/workflow-archives.ts
+      - gateway/test/support/audit-dependency-content.ts
+      - gateway/test/support/audit-dependency-provenance.ts
+      - gateway/test/support/compare-real-builds.py
+      - gateway/test/support/freeze-dependencies.py
+      - gateway/test/support/freeze-real-projections.ts
+      - gateway/test/support/probe-bmad-build.ts
+      - gateway/test/support/reclaim-proven-build-probes.ts
+      - gateway/test/support/workflow-crash-worker.ts
       - gateway/test/fixtures/workflows/bmad-6.12.0.tgz
       - gateway/test/fixtures/workflows/official-audits.json
       - gateway/test/fixtures/workflows/superpowers-6.4.2.tgz
+      - gateway/test/fixtures/workflow-builder/dependencies.json
+      - gateway/test/fixtures/workflow-builder/dependencies.tgz
+      - gateway/test/fixtures/workflow-builder/independent-builds.json
+      - gateway/test/fixtures/workflow-builder/package.json
+      - gateway/test/fixtures/workflow-builder/pnpm-lock.yaml
+      - gateway/test/fixtures/workflow-builder/provenance.json
+      - gateway/test/fixtures/workflow-builder/real-projections.json
+      - gateway/test/fixtures/workflow-builder/verified-content.json
   server-gateway:
     title: Control plane gateway và boot/config/report
     doc: docs/flows/server-gateway.md

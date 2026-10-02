@@ -1,0 +1,698 @@
+{
+  "dependencyPayloadSha256": "ff6e59d25dd89eeaaffe323fbb377cb8546fd70e8b30ceadbdfea3b8cab92e8d",
+  "records": [
+    {
+      "name": "@clack/core",
+      "version": "1.5.1",
+      "integrity": "sha512-iHTrHA8MtVuLl2TfZySmcKv1qO2PoyC9Z7pfSDozEuV5vtY3/wcOPKJXlqJ5Oq2Cx5DDGQGAMVx6HZfRRoVEbQ==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/@clack+core@1.5.1/node_modules/@clack/core"
+    },
+    {
+      "name": "@clack/prompts",
+      "version": "1.8.1",
+      "integrity": "sha512-dlT1m5e/0yUL0kRNcQn7yGLVThkgbB0Ga/1AmfDDC/8ik6AIiSf2QLQO2zPYvefsHP0aFgxO93cVLCCfDp7kzQ==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/@clack+prompts@1.8.1/node_modules/@clack/prompts"
+    },
+    {
+      "name": "@isaacs/cliui",
+      "version": "9.0.0",
+      "integrity": "sha512-AokJm4tuBHillT+FpMtxQ60n8ObyXBatq7jD2/JA9dxbDDokKQm8KMht5ibGzLVU9IJDIKK4TPKgMHEYMn3lMg==",
+      "verifiedFiles": 73,
+      "packageRoot": "node_modules/.pnpm/@isaacs+cliui@9.0.0/node_modules/@isaacs/cliui"
+    },
+    {
+      "name": "@kayvan/markdown-tree-parser",
+      "version": "1.6.1",
+      "integrity": "sha512-a5HUxUxQup5fAkL5xqmDBmZBNHZVfBn7FNfAx9SYEaUANuoVHygGAxaaHdkHDTCerntNKB2UzNS4dGIYbfPiiQ==",
+      "verifiedFiles": 6,
+      "packageRoot": "node_modules/.pnpm/@kayvan+markdown-tree-parser@1.6.1/node_modules/@kayvan/markdown-tree-parser"
+    },
+    {
+      "name": "@types/debug",
+      "version": "4.1.13",
+      "integrity": "sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw==",
+      "verifiedFiles": 4,
+      "packageRoot": "node_modules/.pnpm/@types+debug@4.1.13/node_modules/@types/debug"
+    },
+    {
+      "name": "@types/mdast",
+      "version": "4.0.4",
+      "integrity": "sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==",
+      "verifiedFiles": 4,
+      "packageRoot": "node_modules/.pnpm/@types+mdast@4.0.4/node_modules/@types/mdast"
+    },
+    {
+      "name": "@types/ms",
+      "version": "2.1.0",
+      "integrity": "sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==",
+      "verifiedFiles": 4,
+      "packageRoot": "node_modules/.pnpm/@types+ms@2.1.0/node_modules/@types/ms"
+    },
+    {
+      "name": "@types/unist",
+      "version": "3.0.3",
+      "integrity": "sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==",
+      "verifiedFiles": 4,
+      "packageRoot": "node_modules/.pnpm/@types+unist@3.0.3/node_modules/@types/unist"
+    },
+    {
+      "name": "ansi-styles",
+      "version": "4.3.0",
+      "integrity": "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/ansi-styles@4.3.0/node_modules/ansi-styles"
+    },
+    {
+      "name": "argparse",
+      "version": "2.0.1",
+      "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/argparse@2.0.1/node_modules/argparse"
+    },
+    {
+      "name": "bail",
+      "version": "2.0.2",
+      "integrity": "sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/bail@2.0.2/node_modules/bail"
+    },
+    {
+      "name": "balanced-match",
+      "version": "4.0.4",
+      "integrity": "sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==",
+      "verifiedFiles": 13,
+      "packageRoot": "node_modules/.pnpm/balanced-match@4.0.4/node_modules/balanced-match"
+    },
+    {
+      "name": "boolbase",
+      "version": "1.0.0",
+      "integrity": "sha512-JZOSA7Mo9sNGB8+UjSgzdLtokWAky1zbztM3WRLCbZ70/3cTANmQmOdR7y2g+J0e2WXywy1yS468tY+IruqEww==",
+      "verifiedFiles": 3,
+      "packageRoot": "node_modules/.pnpm/boolbase@1.0.0/node_modules/boolbase"
+    },
+    {
+      "name": "brace-expansion",
+      "version": "5.0.12",
+      "integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+      "verifiedFiles": 13,
+      "packageRoot": "node_modules/.pnpm/brace-expansion@5.0.12/node_modules/brace-expansion"
+    },
+    {
+      "name": "chalk",
+      "version": "4.1.2",
+      "integrity": "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/chalk@4.1.2/node_modules/chalk"
+    },
+    {
+      "name": "character-entities",
+      "version": "2.0.2",
+      "integrity": "sha512-shx7oQ0Awen/BRIdkjkvz54PnEEI/EjwXDSIZp86/KKdbafHh1Df/RYGBhn4hbe2+uKC9FnT5UCEdyPz3ai9hQ==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/character-entities@2.0.2/node_modules/character-entities"
+    },
+    {
+      "name": "color-convert",
+      "version": "2.0.1",
+      "integrity": "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/color-convert@2.0.1/node_modules/color-convert"
+    },
+    {
+      "name": "color-name",
+      "version": "1.1.4",
+      "integrity": "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==",
+      "verifiedFiles": 4,
+      "packageRoot": "node_modules/.pnpm/color-name@1.1.4/node_modules/color-name"
+    },
+    {
+      "name": "commander",
+      "version": "14.0.3",
+      "integrity": "sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==",
+      "verifiedFiles": 14,
+      "packageRoot": "node_modules/.pnpm/commander@14.0.3/node_modules/commander"
+    },
+    {
+      "name": "cross-spawn",
+      "version": "7.0.6",
+      "integrity": "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/cross-spawn@7.0.6/node_modules/cross-spawn"
+    },
+    {
+      "name": "css-selector-parser",
+      "version": "3.3.0",
+      "integrity": "sha512-Y2asgMGFqJKF4fq4xHDSlFYIkeVfRsm69lQC1q9kbEsH5XtnINTMrweLkjYMeaUgiXBy/uvKeO/a1JHTNnmB2g==",
+      "verifiedFiles": 41,
+      "packageRoot": "node_modules/.pnpm/css-selector-parser@3.3.0/node_modules/css-selector-parser"
+    },
+    {
+      "name": "csv-parse",
+      "version": "6.2.1",
+      "integrity": "sha512-LRLMV+UCyfMokp8Wb411duBf1gaBKJfOfBWU9eHMJ+b+cJYZsNu3AFmjJf3+yPGd59Exz1TsMjaSFyxnYB9+IQ==",
+      "verifiedFiles": 30,
+      "packageRoot": "node_modules/.pnpm/csv-parse@6.2.1/node_modules/csv-parse"
+    },
+    {
+      "name": "debug",
+      "version": "4.4.3",
+      "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/debug@4.4.3/node_modules/debug"
+    },
+    {
+      "name": "decode-named-character-reference",
+      "version": "1.3.0",
+      "integrity": "sha512-GtpQYB283KrPp6nRw50q3U9/VfOutZOe103qlN7BPP6Ad27xYnOIWv4lPzo8HCAL+mMZofJ9KEy30fq6MfaK6Q==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/decode-named-character-reference@1.3.0/node_modules/decode-named-character-reference"
+    },
+    {
+      "name": "dequal",
+      "version": "2.0.3",
+      "integrity": "sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==",
+      "verifiedFiles": 11,
+      "packageRoot": "node_modules/.pnpm/dequal@2.0.3/node_modules/dequal"
+    },
+    {
+      "name": "devlop",
+      "version": "1.1.0",
+      "integrity": "sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==",
+      "verifiedFiles": 6,
+      "packageRoot": "node_modules/.pnpm/devlop@1.1.0/node_modules/devlop"
+    },
+    {
+      "name": "extend",
+      "version": "3.0.2",
+      "integrity": "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==",
+      "verifiedFiles": 10,
+      "packageRoot": "node_modules/.pnpm/extend@3.0.2/node_modules/extend"
+    },
+    {
+      "name": "fast-string-truncated-width",
+      "version": "3.0.3",
+      "integrity": "sha512-0jjjIEL6+0jag3l2XWWizO64/aZVtpiGE3t0Zgqxv0DPuxiMjvB3M24fCyhZUO4KomJQPj3LTSUnDP3GpdwC0g==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/fast-string-truncated-width@3.0.3/node_modules/fast-string-truncated-width"
+    },
+    {
+      "name": "fast-string-width",
+      "version": "3.0.2",
+      "integrity": "sha512-gX8LrtNEI5hq8DVUfRQMbr5lpaS4nMIWV+7XEbXk2b8kiQIizgnlr12B4dA3ZEx3308ze0O4Q1R+cHts8kyUJg==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/fast-string-width@3.0.2/node_modules/fast-string-width"
+    },
+    {
+      "name": "fast-wrap-ansi",
+      "version": "0.2.2",
+      "integrity": "sha512-7F2Fl+TjRSenLqlU3UjSH0iyqopqoZIu7eZVpEirP2g1GtWa2G/ecEmBdgz31+Mxr+ELclgg6sokpSFIQiZ02Q==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/fast-wrap-ansi@0.2.2/node_modules/fast-wrap-ansi"
+    },
+    {
+      "name": "foreground-child",
+      "version": "3.3.1",
+      "integrity": "sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==",
+      "verifiedFiles": 37,
+      "packageRoot": "node_modules/.pnpm/foreground-child@3.3.1/node_modules/foreground-child"
+    },
+    {
+      "name": "glob",
+      "version": "11.1.0",
+      "integrity": "sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw==",
+      "verifiedFiles": 65,
+      "packageRoot": "node_modules/.pnpm/glob@11.1.0/node_modules/glob"
+    },
+    {
+      "name": "has-flag",
+      "version": "4.0.0",
+      "integrity": "sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/has-flag@4.0.0/node_modules/has-flag"
+    },
+    {
+      "name": "ignore",
+      "version": "7.0.11",
+      "integrity": "sha512-YChdK5txDjwGUvgR7oCJcLGkwi3LDh8Zx8tS7ndYciLEg/oOCL26VUBSUEtgS7EjiybcBqFxh5j0rAdDX7/bbg==",
+      "verifiedFiles": 6,
+      "packageRoot": "node_modules/.pnpm/ignore@7.0.11/node_modules/ignore"
+    },
+    {
+      "name": "is-plain-obj",
+      "version": "4.1.0",
+      "integrity": "sha512-+Pgi+vMuUNkJyExiMBt5IlFoMyKnr5zhJ4Uspz58WOhBF5QoIZkFyNHIbBAtHwzVAgk5RtndVNsDRN61/mmDqg==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/is-plain-obj@4.1.0/node_modules/is-plain-obj"
+    },
+    {
+      "name": "isexe",
+      "version": "2.0.0",
+      "integrity": "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==",
+      "verifiedFiles": 8,
+      "packageRoot": "node_modules/.pnpm/isexe@2.0.0/node_modules/isexe"
+    },
+    {
+      "name": "jackspeak",
+      "version": "4.2.3",
+      "integrity": "sha512-ykkVRwrYvFm1nb2AJfKKYPr0emF6IiXDYUaFx4Zn9ZuIH7MrzEZ3sD5RlqGXNRpHtvUHJyOnCEFxOlNDtGo7wg==",
+      "verifiedFiles": 17,
+      "packageRoot": "node_modules/.pnpm/jackspeak@4.2.3/node_modules/jackspeak"
+    },
+    {
+      "name": "js-yaml",
+      "version": "4.3.2",
+      "integrity": "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==",
+      "verifiedFiles": 36,
+      "packageRoot": "node_modules/.pnpm/js-yaml@4.3.2/node_modules/js-yaml"
+    },
+    {
+      "name": "lodash.iteratee",
+      "version": "4.7.0",
+      "integrity": "sha512-yv3cSQZmfpbIKo4Yo45B1taEvxjNvcpF1CEOc0Y6dEyvhPIfEJE3twDwPgWTPQubcSgXyBwBKG6wpQvWMDOf6Q==",
+      "verifiedFiles": 4,
+      "packageRoot": "node_modules/.pnpm/lodash.iteratee@4.7.0/node_modules/lodash.iteratee"
+    },
+    {
+      "name": "longest-streak",
+      "version": "3.1.0",
+      "integrity": "sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/longest-streak@3.1.0/node_modules/longest-streak"
+    },
+    {
+      "name": "lru-cache",
+      "version": "11.5.3",
+      "integrity": "sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==",
+      "verifiedFiles": 113,
+      "packageRoot": "node_modules/.pnpm/lru-cache@11.5.3/node_modules/lru-cache"
+    },
+    {
+      "name": "mdast-util-from-markdown",
+      "version": "2.0.3",
+      "integrity": "sha512-W4mAWTvSlKvf8L6J+VN9yLSqQ9AOAAvHuoDAmPkz4dHf553m5gVj2ejadHJhoJmcmxEnOv6Pa8XJhpxE93kb8Q==",
+      "verifiedFiles": 17,
+      "packageRoot": "node_modules/.pnpm/mdast-util-from-markdown@2.0.3/node_modules/mdast-util-from-markdown"
+    },
+    {
+      "name": "mdast-util-phrasing",
+      "version": "4.1.0",
+      "integrity": "sha512-TqICwyvJJpBwvGAMZjj4J2n0X8QWp21b9l0o7eXyVJ25YNWYbJDVIyD1bZXE6WtV6RmKJVYmQAKWa0zWOABz2w==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/mdast-util-phrasing@4.1.0/node_modules/mdast-util-phrasing"
+    },
+    {
+      "name": "mdast-util-to-markdown",
+      "version": "2.1.3",
+      "integrity": "sha512-wgyJtgUkUcdU7zci7uuwc/tzoAhm0TswWhaXuvnWolqug+8jY7bgNkBBL0dYBnHgc/tHL7lCzRdPsdUxUKKBqw==",
+      "verifiedFiles": 154,
+      "packageRoot": "node_modules/.pnpm/mdast-util-to-markdown@2.1.3/node_modules/mdast-util-to-markdown"
+    },
+    {
+      "name": "mdast-util-to-string",
+      "version": "4.0.0",
+      "integrity": "sha512-0H44vDimn51F0YwvxSJSm0eCDOJTRlmN0R1yBh4HLj9wiV1Dn0QoXGbvFAWj2hSItVTlCmBF1hqKlIyUBVFLPg==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/mdast-util-to-string@4.0.0/node_modules/mdast-util-to-string"
+    },
+    {
+      "name": "micromark-core-commonmark",
+      "version": "2.0.4",
+      "integrity": "sha512-wxEeE8v8XVvOrxn1TZj74qYhAtTQsSqufHVS3uNVyT1MupXxhyaHk8/9xDNPh9BmL77QNDgWTkZ3RsYHB2ry7w==",
+      "verifiedFiles": 147,
+      "packageRoot": "node_modules/.pnpm/micromark-core-commonmark@2.0.4/node_modules/micromark-core-commonmark"
+    },
+    {
+      "name": "micromark-factory-destination",
+      "version": "2.0.1",
+      "integrity": "sha512-Xe6rDdJlkmbFRExpTOmRj9N3MaWmbAgdpSrBQvCFqhezUn4AHqJHbaEnfbVYYiexVSs//tqOdY/DxhjdCiJnIA==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-factory-destination@2.0.1/node_modules/micromark-factory-destination"
+    },
+    {
+      "name": "micromark-factory-label",
+      "version": "2.0.1",
+      "integrity": "sha512-VFMekyQExqIW7xIChcXn4ok29YE3rnuyveW3wZQWWqF4Nv9Wk5rgJ99KzPvHjkmPXF93FXIbBp6YdW3t71/7Vg==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-factory-label@2.0.1/node_modules/micromark-factory-label"
+    },
+    {
+      "name": "micromark-factory-space",
+      "version": "2.1.0",
+      "integrity": "sha512-fS8hnLIjnjvdQIj39Geug8wWsR0HrYZ43KShKxNfwT7t2LOHo/LbWZEzEaSOjwtjdCsjoE6syHhonEzW0zv0+Q==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-factory-space@2.1.0/node_modules/micromark-factory-space"
+    },
+    {
+      "name": "micromark-factory-title",
+      "version": "2.0.1",
+      "integrity": "sha512-5bZ+3CjhAd9eChYTHsjy6TGxpOFSKgKKJPJxr293jTbfry2KDoWkhBb6TcPVB4NmzaPhMs1Frm9AZH7OD4Cjzw==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-factory-title@2.0.1/node_modules/micromark-factory-title"
+    },
+    {
+      "name": "micromark-factory-whitespace",
+      "version": "2.0.1",
+      "integrity": "sha512-Ob0nuZ3PKt/n0hORHyvoD9uZhr+Za8sFoP+OnMcnWK5lngSzALgQYKMr9RJVOWLqQYuyn6ulqGWSXdwf6F80lQ==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-factory-whitespace@2.0.1/node_modules/micromark-factory-whitespace"
+    },
+    {
+      "name": "micromark-util-character",
+      "version": "2.1.1",
+      "integrity": "sha512-wv8tdUTJ3thSFFFJKtpYKOYiGP2+v96Hvk4Tu8KpCAsTMs6yi+nVmGh1syvSCsaxz45J6Jbw+9DD6g97+NV67Q==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-util-character@2.1.1/node_modules/micromark-util-character"
+    },
+    {
+      "name": "micromark-util-chunked",
+      "version": "2.0.1",
+      "integrity": "sha512-QUNFEOPELfmvv+4xiNg2sRYeS/P84pTW0TCgP5zc9FpXetHY0ab7SxKyAQCNCc1eK0459uoLI1y5oO5Vc1dbhA==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-util-chunked@2.0.1/node_modules/micromark-util-chunked"
+    },
+    {
+      "name": "micromark-util-classify-character",
+      "version": "2.0.1",
+      "integrity": "sha512-K0kHzM6afW/MbeWYWLjoHQv1sgg2Q9EccHEDzSkxiP/EaagNzCm7T/WMKZ3rjMbvIpvBiZgwR3dKMygtA4mG1Q==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-util-classify-character@2.0.1/node_modules/micromark-util-classify-character"
+    },
+    {
+      "name": "micromark-util-combine-extensions",
+      "version": "2.0.1",
+      "integrity": "sha512-OnAnH8Ujmy59JcyZw8JSbK9cGpdVY44NKgSM7E9Eh7DiLS2E9RNQf0dONaGDzEG9yjEl5hcqeIsj4hfRkLH/Bg==",
+      "verifiedFiles": 6,
+      "packageRoot": "node_modules/.pnpm/micromark-util-combine-extensions@2.0.1/node_modules/micromark-util-combine-extensions"
+    },
+    {
+      "name": "micromark-util-decode-numeric-character-reference",
+      "version": "2.0.2",
+      "integrity": "sha512-ccUbYk6CwVdkmCQMyr64dXz42EfHGkPQlBj5p7YVGzq8I7CtjXZJrubAYezf7Rp+bjPseiROqe7G6foFd+lEuw==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-util-decode-numeric-character-reference@2.0.2/node_modules/micromark-util-decode-numeric-character-reference"
+    },
+    {
+      "name": "micromark-util-decode-string",
+      "version": "2.0.1",
+      "integrity": "sha512-nDV/77Fj6eH1ynwscYTOsbK7rR//Uj0bZXBwJZRfaLEJ1iGBR6kIfNmlNqaqJf649EP0F3NWNdeJi03elllNUQ==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-util-decode-string@2.0.1/node_modules/micromark-util-decode-string"
+    },
+    {
+      "name": "micromark-util-edit-map",
+      "version": "1.0.0",
+      "integrity": "sha512-Pa2ljlsEL6sVwFaYeyrOLSYbQt73JvGbPOYFq+9AElXiSnfI5Q4465RRZ1sHv7lDjDOnGRDDaqPXqClqWK/q1Q==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-util-edit-map@1.0.0/node_modules/micromark-util-edit-map"
+    },
+    {
+      "name": "micromark-util-encode",
+      "version": "2.0.1",
+      "integrity": "sha512-c3cVx2y4KqUnwopcO9b/SCdo2O67LwJJ/UyqGfbigahfegL9myoEFoDYZgkT7f36T0bLrM9hZTAaAyH+PCAXjw==",
+      "verifiedFiles": 6,
+      "packageRoot": "node_modules/.pnpm/micromark-util-encode@2.0.1/node_modules/micromark-util-encode"
+    },
+    {
+      "name": "micromark-util-html-tag-name",
+      "version": "2.0.1",
+      "integrity": "sha512-2cNEiYDhCWKI+Gs9T0Tiysk136SnR13hhO8yW6BGNyhOC4qYFnwF1nKfD3HFAIXA5c45RrIG1ub11GiXeYd1xA==",
+      "verifiedFiles": 6,
+      "packageRoot": "node_modules/.pnpm/micromark-util-html-tag-name@2.0.1/node_modules/micromark-util-html-tag-name"
+    },
+    {
+      "name": "micromark-util-normalize-identifier",
+      "version": "2.0.1",
+      "integrity": "sha512-sxPqmo70LyARJs0w2UclACPUUEqltCkJ6PhKdMIDuJ3gSf/Q+/GIe3WKl0Ijb/GyH9lOpUkRAO2wp0GVkLvS9Q==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-util-normalize-identifier@2.0.1/node_modules/micromark-util-normalize-identifier"
+    },
+    {
+      "name": "micromark-util-resolve-all",
+      "version": "2.0.1",
+      "integrity": "sha512-VdQyxFWFT2/FGJgwQnJYbe1jjQoNTS4RjglmSjTUlpUMa95Htx9NHeYW4rGDJzbjvCsl9eLjMQwGeElsqmzcHg==",
+      "verifiedFiles": 6,
+      "packageRoot": "node_modules/.pnpm/micromark-util-resolve-all@2.0.1/node_modules/micromark-util-resolve-all"
+    },
+    {
+      "name": "micromark-util-sanitize-uri",
+      "version": "2.0.1",
+      "integrity": "sha512-9N9IomZ/YuGGZZmQec1MbgxtlgougxTodVwDzzEouPKo3qFWvymFHWcnDi2vzV1ff6kas9ucW+o3yzJK9YB1AQ==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/micromark-util-sanitize-uri@2.0.1/node_modules/micromark-util-sanitize-uri"
+    },
+    {
+      "name": "micromark-util-subtokenize",
+      "version": "2.1.0",
+      "integrity": "sha512-XQLu552iSctvnEcgXw6+Sx75GflAPNED1qx7eBJ+wydBb2KCbRZe+NwvIEEMM83uml1+2WSXpBAcp9IUCgCYWA==",
+      "verifiedFiles": 15,
+      "packageRoot": "node_modules/.pnpm/micromark-util-subtokenize@2.1.0/node_modules/micromark-util-subtokenize"
+    },
+    {
+      "name": "micromark-util-symbol",
+      "version": "2.0.1",
+      "integrity": "sha512-vs5t8Apaud9N28kgCrRUdEed4UJ+wWNvicHLPxCa9ENlYuAY31M0ETy5y1vA33YoNPDFTghEbnh6efaE8h4x0Q==",
+      "verifiedFiles": 18,
+      "packageRoot": "node_modules/.pnpm/micromark-util-symbol@2.0.1/node_modules/micromark-util-symbol"
+    },
+    {
+      "name": "micromark-util-types",
+      "version": "2.0.3",
+      "integrity": "sha512-oxB2Ik03hI0gv+VNn9tnh1t1YEe9MDPptViAEgfdf3YQHsn0pzGTgCdlSCJXcwhqm8phaEuM7zeEu3QQzVBrPg==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/micromark-util-types@2.0.3/node_modules/micromark-util-types"
+    },
+    {
+      "name": "micromark",
+      "version": "4.0.3",
+      "integrity": "sha512-oGYfQzHSG5dOMovQcJ3fyTmZlWAWpi0XA0sJwJs+i6OT88o1+Jtw/8z0CmdowSLxGhhFK89rQ/oXph/wN02PNw==",
+      "verifiedFiles": 75,
+      "packageRoot": "node_modules/.pnpm/micromark@4.0.3/node_modules/micromark"
+    },
+    {
+      "name": "minimatch",
+      "version": "10.2.6",
+      "integrity": "sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==",
+      "verifiedFiles": 53,
+      "packageRoot": "node_modules/.pnpm/minimatch@10.2.6/node_modules/minimatch"
+    },
+    {
+      "name": "minipass",
+      "version": "7.1.3",
+      "integrity": "sha512-tEBHqDnIoM/1rXME1zgka9g6Q2lcoCkxHLuc7ODJ5BxbP5d4c2Z5cGgtXAku59200Cx7diuHTOYfSBD8n6mm8A==",
+      "verifiedFiles": 13,
+      "packageRoot": "node_modules/.pnpm/minipass@7.1.3/node_modules/minipass"
+    },
+    {
+      "name": "ms",
+      "version": "2.1.3",
+      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
+      "verifiedFiles": 4,
+      "packageRoot": "node_modules/.pnpm/ms@2.1.3/node_modules/ms"
+    },
+    {
+      "name": "nth-check",
+      "version": "2.1.1",
+      "integrity": "sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==",
+      "verifiedFiles": 28,
+      "packageRoot": "node_modules/.pnpm/nth-check@2.1.1/node_modules/nth-check"
+    },
+    {
+      "name": "package-json-from-dist",
+      "version": "1.0.1",
+      "integrity": "sha512-UEZIS3/by4OC8vL3P2dTXRETpebLI2NiI5vIrjaD/5UtrkFX/tNbwjTSRAGC/+7CAo2pIcBaRgWmcBBHcsaCIw==",
+      "verifiedFiles": 13,
+      "packageRoot": "node_modules/.pnpm/package-json-from-dist@1.0.1/node_modules/package-json-from-dist"
+    },
+    {
+      "name": "path-key",
+      "version": "3.1.1",
+      "integrity": "sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/path-key@3.1.1/node_modules/path-key"
+    },
+    {
+      "name": "path-scurry",
+      "version": "2.0.2",
+      "integrity": "sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==",
+      "verifiedFiles": 13,
+      "packageRoot": "node_modules/.pnpm/path-scurry@2.0.2/node_modules/path-scurry"
+    },
+    {
+      "name": "picocolors",
+      "version": "1.1.1",
+      "integrity": "sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/picocolors@1.1.1/node_modules/picocolors"
+    },
+    {
+      "name": "remark-parse",
+      "version": "11.0.0",
+      "integrity": "sha512-FCxlKLNGknS5ba/1lmpYijMUzX2esxW5xQqjWxw2eHFfS2MSdaHVINFmhjo+qN1WhZhNimq0dZATN9pH0IDrpA==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/remark-parse@11.0.0/node_modules/remark-parse"
+    },
+    {
+      "name": "remark-stringify",
+      "version": "11.0.0",
+      "integrity": "sha512-1OSmLd3awB/t8qdoEOMazZkNsfVTeY4fTsgzcQFdXNq8ToTN4ZGwrMnlda4K6smTFKD+GRV6O48i6Z4iKgPPpw==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/remark-stringify@11.0.0/node_modules/remark-stringify"
+    },
+    {
+      "name": "sax",
+      "version": "1.6.1",
+      "integrity": "sha512-42tBVwLWnaQvW5zc4HbZrTuWccECCZfBi92FDuwtqxasH+JbPB3/FOKb1m222K42R4WxuxzzMsTswfzgtSu64Q==",
+      "verifiedFiles": 4,
+      "packageRoot": "node_modules/.pnpm/sax@1.6.1/node_modules/sax"
+    },
+    {
+      "name": "semver",
+      "version": "7.8.5",
+      "integrity": "sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==",
+      "verifiedFiles": 53,
+      "packageRoot": "node_modules/.pnpm/semver@7.8.5/node_modules/semver"
+    },
+    {
+      "name": "shebang-command",
+      "version": "2.0.0",
+      "integrity": "sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==",
+      "verifiedFiles": 4,
+      "packageRoot": "node_modules/.pnpm/shebang-command@2.0.0/node_modules/shebang-command"
+    },
+    {
+      "name": "shebang-regex",
+      "version": "3.0.0",
+      "integrity": "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/shebang-regex@3.0.0/node_modules/shebang-regex"
+    },
+    {
+      "name": "signal-exit",
+      "version": "4.1.0",
+      "integrity": "sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==",
+      "verifiedFiles": 29,
+      "packageRoot": "node_modules/.pnpm/signal-exit@4.1.0/node_modules/signal-exit"
+    },
+    {
+      "name": "sisteransi",
+      "version": "1.0.5",
+      "integrity": "sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/sisteransi@1.0.5/node_modules/sisteransi"
+    },
+    {
+      "name": "supports-color",
+      "version": "7.2.0",
+      "integrity": "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/supports-color@7.2.0/node_modules/supports-color"
+    },
+    {
+      "name": "trough",
+      "version": "2.2.0",
+      "integrity": "sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/trough@2.2.0/node_modules/trough"
+    },
+    {
+      "name": "unified",
+      "version": "11.0.5",
+      "integrity": "sha512-xKvGhPWw3k84Qjh8bI3ZeJjqnyadK+GEFtazSfZv/rKeTkTjOJho6mFqh2SM96iIcZokxiOpg78GazTSg8+KHA==",
+      "verifiedFiles": 11,
+      "packageRoot": "node_modules/.pnpm/unified@11.0.5/node_modules/unified"
+    },
+    {
+      "name": "unist-util-find",
+      "version": "3.0.0",
+      "integrity": "sha512-T7ZqS7immLjYyC4FCp2hDo3ksZ1v+qcbb+e5+iWxc2jONgHOLXPCpms1L8VV4hVxCXgWTxmBHDztuEZFVwC+Gg==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/unist-util-find@3.0.0/node_modules/unist-util-find"
+    },
+    {
+      "name": "unist-util-is",
+      "version": "6.0.1",
+      "integrity": "sha512-LsiILbtBETkDz8I9p1dQ0uyRUWuaQzd/cuEeS1hoRSyW5E5XGmTzlwY1OrNzzakGowI9Dr/I8HVaw4hTtnxy8g==",
+      "verifiedFiles": 9,
+      "packageRoot": "node_modules/.pnpm/unist-util-is@6.0.1/node_modules/unist-util-is"
+    },
+    {
+      "name": "unist-util-select",
+      "version": "5.1.0",
+      "integrity": "sha512-4A5mfokSHG/rNQ4g7gSbdEs+H586xyd24sdJqF1IWamqrLHvYb+DH48fzxowyOhOfK7YSqX+XlCojAyuuyyT2A==",
+      "verifiedFiles": 19,
+      "packageRoot": "node_modules/.pnpm/unist-util-select@5.1.0/node_modules/unist-util-select"
+    },
+    {
+      "name": "unist-util-stringify-position",
+      "version": "4.0.0",
+      "integrity": "sha512-0ASV06AAoKCDkS2+xw5RXJywruurpbC4JZSm7nr7MOt1ojAzvyyaO+UxZf18j8FCF6kmzCZKcAgN/yu2gm2XgQ==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/unist-util-stringify-position@4.0.0/node_modules/unist-util-stringify-position"
+    },
+    {
+      "name": "unist-util-visit-parents",
+      "version": "6.0.2",
+      "integrity": "sha512-goh1s1TBrqSqukSc8wrjwWhL0hiJxgA8m4kFxGlQ+8FYQ3C/m11FcTs4YYem7V664AhHVvgoQLk890Ssdsr2IQ==",
+      "verifiedFiles": 14,
+      "packageRoot": "node_modules/.pnpm/unist-util-visit-parents@6.0.2/node_modules/unist-util-visit-parents"
+    },
+    {
+      "name": "unist-util-visit",
+      "version": "5.1.0",
+      "integrity": "sha512-m+vIdyeCOpdr/QeQCu2EzxX/ohgS8KbnPDgFni4dQsfSCtpz8UqDyY5GjRru8PDKuYn7Fq19j1CQ+nJSsGKOzg==",
+      "verifiedFiles": 8,
+      "packageRoot": "node_modules/.pnpm/unist-util-visit@5.1.0/node_modules/unist-util-visit"
+    },
+    {
+      "name": "vfile-message",
+      "version": "4.0.3",
+      "integrity": "sha512-QTHzsGd1EhbZs4AsQ20JX1rC3cOlt/IWJruk893DfLRr57lcnOeMaWG4K0JrRta4mIJZKth2Au3mM3u03/JWKw==",
+      "verifiedFiles": 7,
+      "packageRoot": "node_modules/.pnpm/vfile-message@4.0.3/node_modules/vfile-message"
+    },
+    {
+      "name": "vfile",
+      "version": "6.0.3",
+      "integrity": "sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==",
+      "verifiedFiles": 29,
+      "packageRoot": "node_modules/.pnpm/vfile@6.0.3/node_modules/vfile"
+    },
+    {
+      "name": "which",
+      "version": "2.0.2",
+      "integrity": "sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==",
+      "verifiedFiles": 6,
+      "packageRoot": "node_modules/.pnpm/which@2.0.2/node_modules/which"
+    },
+    {
+      "name": "xml2js",
+      "version": "0.6.2",
+      "integrity": "sha512-T4rieHaC1EXcES0Kxxj4JWgaUQHDk+qwHcYOCFHfiwKz7tOVPLq7Hjq9dM1WCMhylqMEfP7hMcOIChvotiZegA==",
+      "verifiedFiles": 10,
+      "packageRoot": "node_modules/.pnpm/xml2js@0.6.2/node_modules/xml2js"
+    },
+    {
+      "name": "xmlbuilder",
+      "version": "11.0.1",
+      "integrity": "sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==",
+      "verifiedFiles": 45,
+      "packageRoot": "node_modules/.pnpm/xmlbuilder@11.0.1/node_modules/xmlbuilder"
+    },
+    {
+      "name": "yaml",
+      "version": "2.9.1",
+      "integrity": "sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==",
+      "verifiedFiles": 233,
+      "packageRoot": "node_modules/.pnpm/yaml@2.9.1/node_modules/yaml"
+    },
+    {
+      "name": "zwitch",
+      "version": "2.0.4",
+      "integrity": "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==",
+      "verifiedFiles": 5,
+      "packageRoot": "node_modules/.pnpm/zwitch@2.0.4/node_modules/zwitch"
+    }
+  ]
+}
