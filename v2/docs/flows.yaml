@@ -128,6 +128,16 @@ flows:
       - gateway/src/host/process-lock.ts
       - gateway/src/host/status.ts
       - gateway/src/ipc/server.ts
+      - gateway/src/journal/atomic-records.ts
+      - gateway/src/journal/gated-helper.ts
+      - gateway/src/journal/http-operations.ts
+      - gateway/src/journal/native-identity.c
+      - gateway/src/journal/native.ts
+      - gateway/src/journal/process-journal.ts
+      - gateway/src/resources/native-resources.c
+      - gateway/src/resources/registry.ts
+      - gateway/src/telemetry/capacity.ts
+      - gateway/src/telemetry/macos-provider.ts
       - gateway/package.json
       - gateway/pnpm-lock.yaml
       - gateway/tsconfig.json
@@ -135,8 +145,14 @@ flows:
     tests:
       - gateway/test/host-failures.test.ts
       - gateway/test/host-lifecycle.test.ts
+      - gateway/test/http-operations.test.ts
+      - gateway/test/journal.test.ts
+      - gateway/test/resources.test.ts
       - gateway/test/support/host.ts
+      - gateway/test/support/journal-fixture.ts
+      - gateway/test/support/owned-run.ts
       - gateway/test/support/ui-client.ts
+      - gateway/test/telemetry.test.ts
   desktop-shell:
     title: Giao diện cổng Crew v2 trên macOS
     doc: docs/flows/desktop-shell.md
