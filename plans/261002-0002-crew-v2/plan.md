@@ -1,7 +1,7 @@
 # Crew v2 — Lộ trình triển khai
 
 **Spec đã duyệt:** [/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md](/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md).
-**Trạng thái cập nhật 2026-10-02:** phần 01 đã triển khai, review và merge main; phần 02 đã triển khai và review đầy đủ task 1–7; phần 03 đã review xong host/app shell, journal/telemetry/resource registry và server gateway (task 1–3), registry workflow (task 4) đã được review SPEC/QUALITY READY sau fix vòng 2, covering 77 tests; task 5 có thể triển khai. Phần 04 task 1 model pool server đã có candidate FIX1 d249a82, đã được review SPEC/QUALITY READY, đóng bốn finding sau covering 215 tests; task 2 có thể triển khai. Kế hoạch 02–06 và 08–09 đã được review và duyệt; phần 07 chờ duyệt prototype. Phần 05 task 1 storage/upload đang làm các unit độc lập, giữ cổng review actual008 trước migration/integration. Phần 06–09 chưa triển khai; chứng nhận runtime thật vẫn chưa có.
+**Trạng thái cập nhật 2026-10-02 15:35:** phần 01 đã triển khai, review và merge main; phần 02 đã review đầy đủ task1–7. Phần03 task1–4 đã review READY; task5 đang hoàn tất bridge/recovery và chuẩn bị full review. Phần04 task1 đã review FIX1 READY; task2 bổ sung metadata credential hiện hành rồi đóng băng candidate để review. Phần05 task1 candidate f58f27d đã full review NOTREADY hai P2, FIX1 đang sửa;009 chưa được nghiệm thu. Kế hoạch02–06 và08–09 đã duyệt; phần07 chờ owner xác nhận prototype. Phần06–09 chưa triển khai; chứng nhận runtime/live/signing vẫn UNVERIFIED.
 
 ## Cách chia việc
 
