@@ -20,6 +20,7 @@ export type IdentityTestFixture = {
   ownerPut: (path: string, body: unknown, key: string) => Promise<LightMyRequestResponse>;
   ownerGet: (path: string) => Promise<LightMyRequestResponse>;
   machineGet: (path: string, token: string) => Promise<LightMyRequestResponse>;
+  armLoginBarrier: (target: number) => void;
   close: () => Promise<void>;
 };
 
@@ -27,6 +28,7 @@ export async function buildIdentityTestApp(
   db: Db,
   prior?: IdentityTestFixture,
   bootstrap = true,
+  now: () => Date = () => new Date(),
 ): Promise<IdentityTestFixture> {
   const password = prior?.password ?? randomBytes(24).toString('hex');
   if (!prior && bootstrap) await bootstrapOwner(db, password);
@@ -35,7 +37,7 @@ export async function buildIdentityTestApp(
     publicOrigin: 'http://localhost:5182',
     secureCookies: false,
     sessionEncryptionKey: prior?.sessionEncryptionKey ?? randomBytes(32),
-    now: () => new Date(),
+    now,
     authorizeDispatch: async () => {
       throw new Error('DISPATCH_NOT_CONFIGURED');
     },
@@ -44,6 +46,17 @@ export async function buildIdentityTestApp(
     },
   };
   const app = Fastify({ logger: false, ajv: { customOptions: { removeAdditional: false } } });
+  let loginBarrier: { remaining: number; promise: Promise<void>; release: () => void } | null = null;
+  app.addHook('preHandler', async (request) => {
+    if (!loginBarrier || request.method !== 'POST' || request.url !== '/v2/auth/session') return;
+    const barrier = loginBarrier;
+    barrier.remaining--;
+    if (barrier.remaining === 0) {
+      loginBarrier = null;
+      barrier.release();
+    }
+    await barrier.promise;
+  });
   app.setErrorHandler((error, _request, reply) => {
     if (error instanceof ApiError) {
       reply.status(error.status).send({ error: { code: error.code, message: error.message } });
@@ -108,6 +121,14 @@ export async function buildIdentityTestApp(
     ownerGet: (path) => app.inject({ method: 'GET', url: path, headers: { cookie } }),
     machineGet: (path, token) =>
       app.inject({ method: 'GET', url: path, headers: { authorization: `Bearer ${token}` } }),
+    armLoginBarrier: (target) => {
+      if (!Number.isSafeInteger(target) || target < 2) throw new Error('LOGIN_BARRIER_INVALID');
+      let release = () => {};
+      const promise = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      loginBarrier = { remaining: target, promise, release };
+    },
     close: () => app.close(),
   };
 }

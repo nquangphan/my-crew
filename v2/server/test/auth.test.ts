@@ -106,6 +106,136 @@ test('auth login khóa sau năm lần sai trong năm phút', async () =>
     }
   }));
 
+test('auth login đồng thời chỉ cho tối đa năm lượt sai đi tới xác minh mật khẩu', async () =>
+  withDatabase(async (db) => {
+    const fixture = await buildIdentityTestApp(db);
+    try {
+      fixture.armLoginBarrier(12);
+      const attempts = Array.from({ length: 12 }, (_, index) =>
+        fixture.app.inject({
+          method: 'POST',
+          url: '/v2/auth/session',
+          payload: { password: `wrong-parallel-${index}` },
+          headers: { origin: 'http://localhost:5182' },
+        }),
+      );
+      const results = await Promise.all(attempts);
+      assert.equal(results.filter((result) => result.statusCode === 401).length, 5);
+      assert.equal(results.filter((result) => result.statusCode === 429).length, 7);
+      const next = await fixture.app.inject({
+        method: 'POST',
+        url: '/v2/auth/session',
+        payload: { password: fixture.password },
+        headers: { origin: 'http://localhost:5182' },
+      });
+      assert.equal(next.statusCode, 429);
+    } finally {
+      await fixture.close();
+    }
+  }));
+
+test('machine list phân trang ID ổn định, chặn query lạ và không lộ token', async () =>
+  withDatabase(async (db) => {
+    const fixture = await buildIdentityTestApp(db);
+    try {
+      const tokens: string[] = [];
+      for (let index = 0; index < 3; index++) {
+        const response = await fixture.ownerPost('/v2/machines', { name: `Mac ${index}` }, `list-${index}`);
+        tokens.push(response.json().token);
+      }
+      const first = (await fixture.ownerGet('/v2/machines?limit=1')).json();
+      assert.equal(first.items.length, 1);
+      assert.equal(first.nextCursor, first.items[0].id);
+      const second = (await fixture.ownerGet(`/v2/machines?limit=1&cursor=${first.nextCursor}`)).json();
+      assert.equal(second.items.length, 1);
+      assert.notEqual(second.items[0].id, first.items[0].id);
+      const last = (await fixture.ownerGet(`/v2/machines?limit=1&cursor=${second.nextCursor}`)).json();
+      assert.equal(last.items.length, 1);
+      assert.equal(last.nextCursor, null);
+      const serialized = JSON.stringify([first, second, last]);
+      for (const token of tokens) assert.equal(serialized.includes(token), false);
+      assert.equal(serialized.includes('tokenHash'), false);
+      await db`insert into machines (id, name, token_hash)
+        select gen_random_uuid(), 'Mac ' || i, md5(i::text) || md5(i::text) from generate_series(1, 51) as i`;
+      const defaultPage = (await fixture.ownerGet('/v2/machines')).json();
+      assert.equal(defaultPage.items.length, 50);
+      assert.equal(typeof defaultPage.nextCursor, 'string');
+      assert.equal((await fixture.ownerGet('/v2/machines?limit=101')).statusCode, 400);
+      assert.equal((await fixture.ownerGet('/v2/machines?cursor=bad')).statusCode, 400);
+      assert.equal((await fixture.ownerGet('/v2/machines?unexpected=true')).statusCode, 400);
+    } finally {
+      await fixture.close();
+    }
+  }));
+
+test('auth login hết cửa sổ năm phút thì cho phép thử lại', async () =>
+  withDatabase(async (db) => {
+    let clock = Date.now();
+    const fixture = await buildIdentityTestApp(db, undefined, true, () => new Date(clock));
+    try {
+      for (let index = 0; index < 5; index++) {
+        const response = await fixture.app.inject({
+          method: 'POST',
+          url: '/v2/auth/session',
+          payload: { password: `wrong-window-${index}` },
+          headers: { origin: 'http://localhost:5182' },
+        });
+        assert.equal(response.statusCode, 401);
+      }
+      clock += 5 * 60_000 + 1;
+      const reopened = await fixture.app.inject({
+        method: 'POST',
+        url: '/v2/auth/session',
+        payload: { password: 'wrong-after-window' },
+        headers: { origin: 'http://localhost:5182' },
+      });
+      assert.equal(reopened.statusCode, 401);
+    } finally {
+      await fixture.close();
+    }
+  }));
+
+test('auth login đúng xóa số lần sai đã hoàn tất trong cửa sổ', async () =>
+  withDatabase(async (db) => {
+    const fixture = await buildIdentityTestApp(db);
+    try {
+      for (let index = 0; index < 4; index++) {
+        const wrong = await fixture.app.inject({
+          method: 'POST',
+          url: '/v2/auth/session',
+          payload: { password: `wrong-before-success-${index}` },
+          headers: { origin: 'http://localhost:5182' },
+        });
+        assert.equal(wrong.statusCode, 401);
+      }
+      const success = await fixture.app.inject({
+        method: 'POST',
+        url: '/v2/auth/session',
+        payload: { password: fixture.password },
+        headers: { origin: 'http://localhost:5182' },
+      });
+      assert.equal(success.statusCode, 200);
+      for (let index = 0; index < 5; index++) {
+        const wrong = await fixture.app.inject({
+          method: 'POST',
+          url: '/v2/auth/session',
+          payload: { password: `wrong-after-success-${index}` },
+          headers: { origin: 'http://localhost:5182' },
+        });
+        assert.equal(wrong.statusCode, 401);
+      }
+      const throttled = await fixture.app.inject({
+        method: 'POST',
+        url: '/v2/auth/session',
+        payload: { password: 'wrong-throttled' },
+        headers: { origin: 'http://localhost:5182' },
+      });
+      assert.equal(throttled.statusCode, 429);
+    } finally {
+      await fixture.close();
+    }
+  }));
+
 test('auth forbidden input bị từ chối thay vì xóa thầm', async () =>
   withDatabase(async (db) => {
     const fixture = await buildIdentityTestApp(db);

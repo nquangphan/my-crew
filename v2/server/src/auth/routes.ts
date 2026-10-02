@@ -19,6 +19,8 @@ const ownerActor: Actor = { kind: 'owner', id: 'owner' };
 const sessionRegex = /^Bearer ([0-9a-f]{64})$/;
 const machineIdSchema = { type: 'string', format: 'uuid' } as const;
 const nameSchema = { type: 'string', minLength: 1, maxLength: 200 } as const;
+const loginWindowMs = 5 * 60_000;
+const maxTrackedIps = 10_000;
 
 function sameSecret(a: string, b: string): boolean {
   if (!/^[0-9a-f]{64}$/.test(a) || !/^[0-9a-f]{64}$/.test(b)) return false;
@@ -74,7 +76,14 @@ export function registerAuthRoutes(
   if (!options.secureCookies && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(options.publicOrigin)) {
     throw new Error('INSECURE_COOKIES_NONLOCAL');
   }
-  const failed = new Map<string, number[]>();
+  const attempts = new Map<string, { failures: number[]; pending: number }>();
+  let loginCalls = 0;
+  const sweepAttempts = (now: number): void => {
+    for (const [ipHash, bucket] of attempts) {
+      bucket.failures = bucket.failures.filter((time) => time > now - loginWindowMs);
+      if (!bucket.failures.length && bucket.pending === 0) attempts.delete(ipHash);
+    }
+  };
   const checkOrigin = (request: FastifyRequest): void => {
     if (request.headers.origin !== options.publicOrigin)
       throw new ApiError('ORIGIN_INVALID', 403, 'Nguồn yêu cầu không hợp lệ');
@@ -95,25 +104,38 @@ export function registerAuthRoutes(
       checkOrigin(request);
       const ipHash = createHash('sha256').update(request.ip).digest('hex');
       const now = options.now();
-      const recent = (failed.get(ipHash) ?? []).filter((time) => time > now.getTime() - 5 * 60_000);
-      if (recent.length >= 5) throw new ApiError('LOGIN_THROTTLED', 429, 'Thử lại sau');
-      const [owner] = await options.db`select password_salt, password_hash from owners where id='owner'`;
-      if (!owner) throw new ApiError('OWNER_NOT_BOOTSTRAPPED', 503, 'Chủ dự án chưa được khởi tạo');
-      if (
-        !(await verifyPassword(
-          request.body.password,
-          owner.password_salt as string,
-          owner.password_hash as string,
-        ))
-      ) {
-        recent.push(now.getTime());
-        failed.set(ipHash, recent);
-        throw new ApiError('INVALID_CREDENTIALS', 401, 'Thông tin đăng nhập không hợp lệ');
+      if (++loginCalls % 64 === 0 || attempts.size >= maxTrackedIps) sweepAttempts(now.getTime());
+      let bucket = attempts.get(ipHash);
+      if (!bucket) {
+        if (attempts.size >= maxTrackedIps) throw new ApiError('LOGIN_THROTTLED', 429, 'Thử lại sau');
+        bucket = { failures: [], pending: 0 };
+        attempts.set(ipHash, bucket);
       }
-      failed.delete(ipHash);
-      const session = await createSession(options.db, options.sessionEncryptionKey, now);
-      reply.header('set-cookie', makeSessionCookie(session.secret, options.secureCookies));
-      return { owner: { id: 'owner' }, csrfToken: session.csrfToken };
+      bucket.failures = bucket.failures.filter((time) => time > now.getTime() - loginWindowMs);
+      if (bucket.failures.length + bucket.pending >= 5)
+        throw new ApiError('LOGIN_THROTTLED', 429, 'Thử lại sau');
+      bucket.pending++;
+      try {
+        const [owner] = await options.db`select password_salt, password_hash from owners where id='owner'`;
+        if (!owner) throw new ApiError('OWNER_NOT_BOOTSTRAPPED', 503, 'Chủ dự án chưa được khởi tạo');
+        if (
+          !(await verifyPassword(
+            request.body.password,
+            owner.password_salt as string,
+            owner.password_hash as string,
+          ))
+        ) {
+          bucket.failures.push(options.now().getTime());
+          throw new ApiError('INVALID_CREDENTIALS', 401, 'Thông tin đăng nhập không hợp lệ');
+        }
+        const session = await createSession(options.db, options.sessionEncryptionKey, now);
+        bucket.failures = [];
+        reply.header('set-cookie', makeSessionCookie(session.secret, options.secureCookies));
+        return { owner: { id: 'owner' }, csrfToken: session.csrfToken };
+      } finally {
+        bucket.pending--;
+        if (!bucket.failures.length && bucket.pending === 0) attempts.delete(ipHash);
+      }
     },
   );
   app.get('/v2/auth/session', async (request) => {
@@ -154,17 +176,36 @@ export function registerAuthRoutes(
       return result.body;
     },
   );
-  app.get('/v2/machines', async (request) => {
-    await deps.auth.requireOwner(request, { csrf: false });
-    const rows = await options.db`select id, name, revoked_at from machines order by created_at, id`;
-    return {
-      items: rows.map((row) => ({
-        id: row.id,
+  app.get<{ Querystring: { limit?: string; cursor?: string } }>(
+    '/v2/machines',
+    {
+      schema: {
+        querystring: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' },
+            cursor: machineIdSchema,
+          },
+        },
+      },
+    },
+    async (request) => {
+      await deps.auth.requireOwner(request, { csrf: false });
+      const limit = request.query.limit === undefined ? 50 : Number(request.query.limit);
+      if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
+        throw new ApiError('LIMIT_INVALID', 400, 'Giới hạn không hợp lệ');
+      const rows = request.query.cursor
+        ? await options.db`select id, name, revoked_at from machines where id > ${request.query.cursor} order by id limit ${limit + 1}`
+        : await options.db`select id, name, revoked_at from machines order by id limit ${limit + 1}`;
+      const items = rows.slice(0, limit).map((row) => ({
+        id: row.id as string,
         name: row.name,
         revokedAt: row.revoked_at ? (row.revoked_at as Date).toISOString() : null,
-      })),
-    };
-  });
+      }));
+      return { items, nextCursor: rows.length > limit ? (items[items.length - 1]?.id ?? null) : null };
+    },
+  );
   app.get('/v2/machines/self', async (request) => {
     if (readSessionCookie(request) && !request.headers.authorization)
       throw new ApiError('MACHINE_REQUIRED', 401, 'Cần xác thực máy');
