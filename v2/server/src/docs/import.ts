@@ -103,7 +103,27 @@ function checkedFiles(files: unknown): {
     size,
   };
 }
-function audit(
+const indexedPrefixCharacters = 8192;
+const storageProjection = {
+  version: 1,
+  nulEncoding: 'literal-backslash-u0000',
+  rawByteColumn: 'docs_files.bytes',
+  indexedPrefixCharacters,
+  fullSearchText: true,
+} as const;
+
+/** Only for PostgreSQL text/jsonb projections; raw bytes and validation remain authoritative. */
+export function projectStorageText(value: string): string {
+  return value.replaceAll('\u0000', '\\u0000');
+}
+
+function beyondIndexedPrefix(value: string): boolean {
+  let count = 0;
+  for (const _character of value) if (++count > indexedPrefixCharacters) return true;
+  return false;
+}
+
+export function auditDocsForStorage(
   files: DocsFile[],
   buffers: Map<string, Buffer>,
   mode: 'legacy_import' | 'checkout_sync',
@@ -119,7 +139,46 @@ function audit(
     (issue) => issue.code === 'LINK_PATH_ESCAPE' || issue.code === 'PATH_INVALID',
   );
   if (security) fail(security.code);
-  return result;
+  const issues = result.issues.map((issue) => ({
+    ...issue,
+    path: projectStorageText(issue.path),
+    message: projectStorageText(issue.message),
+  }));
+  for (const file of files) {
+    const bytes = buffers.get(file.path);
+    if (!bytes) throw new Error('DOCS_BYTES_MISSING');
+    const page = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    const derivedNul =
+      result.links.some(
+        (link) =>
+          link.fromPath === file.path &&
+          [link.originalHref, link.toPath, link.fragment].some((value) => value?.includes('\u0000')),
+      ) || result.issues.some((issue) => issue.path === file.path && issue.message.includes('\u0000'));
+    if (page.includes('\u0000') || derivedNul)
+      issues.push({
+        code: 'STORAGE_NUL_PROJECTION',
+        path: file.path,
+        severity: 'warning',
+        message:
+          'Byte gốc giữ nguyên; U+0000 trong text/link/audit được biểu diễn bằng chuỗi literal \\u0000, không phải nội dung gốc.',
+      });
+    if (beyondIndexedPrefix(projectStorageText(page)))
+      issues.push({
+        code: 'FTS_PREFIX_ONLY',
+        path: file.path,
+        severity: 'warning',
+        message:
+          'FTS chỉ lập chỉ mục 8192 ký tự đầu của projection; search_text đầy đủ cần fallback tìm literal có giới hạn để tìm phần còn lại.',
+      });
+  }
+  const links = result.links.map((link) => ({
+    ...link,
+    fromPath: projectStorageText(link.fromPath),
+    originalHref: projectStorageText(link.originalHref),
+    toPath: projectStorageText(link.toPath),
+    fragment: link.fragment === null ? null : projectStorageText(link.fragment),
+  }));
+  return { ...result, issues, links };
 }
 
 /** Validates all transport/integrity fields before any database mutation. Structural legacy errors remain auditable. */
@@ -169,7 +228,7 @@ export function validateDocsImport(input: unknown): asserts input is DocsImport 
     total += checked.size;
     if (total > 16 * 1024 * 1024) fail('IMPORT_TOO_LARGE', 413);
     if (snapshotHash(checked.files) !== item.snapshotSha256) fail('SNAPSHOT_CHECKSUM_MISMATCH');
-    audit(checked.files, checked.buffers, 'legacy_import');
+    auditDocsForStorage(checked.files, checked.buffers, 'legacy_import');
   }
   const { bundleSha256, ...body } = input;
   if (bundleHash(body as Omit<DocsImport, 'bundleSha256'>) !== bundleSha256) fail('BUNDLE_CHECKSUM_MISMATCH');
@@ -191,13 +250,14 @@ async function storeSnapshot(
   },
 ): Promise<void> {
   const checked = checkedFiles(input.files);
-  await tx`insert into docs_snapshots(id,project_id,import_id,source_commit,snapshot_sha,source_kind,audit_state,audit_report,content_class) values(${input.id},${input.projectId},${input.importId},${input.sourceCommit},${input.snapshotSha},${input.sourceKind},${input.auditState},${tx.json({ issues: input.result.issues, ...input.proof })},${checked.contentClass})`;
+  await tx`insert into docs_snapshots(id,project_id,import_id,source_commit,snapshot_sha,source_kind,audit_state,audit_report,content_class) values(${input.id},${input.projectId},${input.importId},${input.sourceCommit},${input.snapshotSha},${input.sourceKind},${input.auditState},${tx.json({ issues: input.result.issues, storageProjection, ...input.proof })},${checked.contentClass})`;
   for (const file of input.files) {
     const bytes = checked.buffers.get(file.path);
     if (!bytes) throw new Error('DOCS_BYTES_MISSING');
     const page = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
-    const title = /^# (.+)$/m.exec(page)?.[1]?.replace(/\r$/, '') ?? file.path;
-    await tx`insert into docs_files(snapshot_id,path,content_class,bytes,sha,title,search_text) values(${input.id},${file.path},${file.contentClass},${bytes},${file.sha256},${title},${page})`;
+    const title = projectStorageText(/^# (.+)$/m.exec(page)?.[1]?.replace(/\r$/, '') ?? file.path);
+    const searchText = projectStorageText(page);
+    await tx`insert into docs_files(snapshot_id,path,content_class,bytes,sha,title,search_text) values(${input.id},${file.path},${file.contentClass},${bytes},${file.sha256},${title},${searchText})`;
   }
   for (const link of input.result.links)
     await tx`insert into docs_links(snapshot_id,from_path,occurrence,original_href,to_path,fragment,status) values(${input.id},${link.fromPath},${link.occurrence},${link.originalHref},${link.toPath},${link.fragment},${link.status})`;
@@ -232,7 +292,7 @@ export async function importDocs(tx: Tx, input: DocsImport, actor: Actor): Promi
       await tx`insert into legacy_projects(source_system,legacy_id,project_id) values(${input.sourceSystem},${item.legacyProjectId},${projectId})`;
     }
     const checked = checkedFiles(item.files);
-    const validation = audit(item.files, checked.buffers, 'legacy_import');
+    const validation = auditDocsForStorage(item.files, checked.buffers, 'legacy_import');
     const [snapshot] =
       await tx`select id,audit_state,audit_report from docs_snapshots where project_id=${projectId} and source_kind='legacy_import' and snapshot_sha=${item.snapshotSha256} and content_class=${checked.contentClass} and coalesce(source_commit,'')=${item.sourceCommit ?? ''}`;
     const snapshotId = (snapshot?.id as Id) ?? randomUUID();
@@ -364,7 +424,12 @@ export async function authorizeDocsSync(tx: Tx, projectId: Id, input: DocsSync, 
 export async function syncDocs(tx: Tx, projectId: Id, input: DocsSync, actor: Actor): Promise<Id> {
   const checked = checkedSync(input);
   await authorizeDocsSync(tx, projectId, input, actor);
-  const validation = audit(input.files, checked.buffers, 'checkout_sync', input.trackedSourcePaths);
+  const validation = auditDocsForStorage(
+    input.files,
+    checked.buffers,
+    'checkout_sync',
+    input.trackedSourcePaths,
+  );
   if (!validation.valid) fail('DOCS_INVALID');
   const inputSha256 = hashBytes(Buffer.from(canonicalJson(input)));
   const [receipt] =

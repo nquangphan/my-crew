@@ -32,7 +32,7 @@ create table docs_files (
   sha char(64) not null check (sha ~ '^[0-9a-f]{64}$'),
   title text not null,
   search_text text not null,
-  search_vector tsvector generated always as (to_tsvector('simple',search_text)) stored,
+  search_vector tsvector generated always as (to_tsvector('simple',left(search_text,8192))) stored,
   primary key(snapshot_id,path)
 );
 create index docs_files_search on docs_files using gin(search_vector);

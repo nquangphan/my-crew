@@ -25,10 +25,10 @@ async function fixture(work: (dir: string) => Promise<void>) {
     await rm(dir, { recursive: true, force: true });
   }
 }
-async function exported(dir: string) {
+async function exported(dir: string, artifactBytes = Buffer.from('# Thiết kế\r\nMáy Mac 😀\r\n')) {
   const input = legacyBundle({
     ...validDocs(),
-    'docs/superpowers/specs/design.md': Buffer.from('# Thiết kế\r\nMáy Mac 😀\r\n'),
+    'docs/superpowers/specs/design.md': artifactBytes,
   });
   const sourceBackup = Buffer.from('fixture backup, no v1 connection\r\n');
   await writeFile(join(dir, 'source.backup'), sourceBackup);
@@ -259,5 +259,26 @@ test('CLI never forwards owner credentials through a redirect or logs failed res
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
       );
+    }
+  }));
+
+test('CLI dry-run reports NUL projection and bounded FTS while keeping complete export bytes', async () =>
+  fixture(async (dir) => {
+    const raws = [
+      Buffer.from('# Artifact\u0000 heading\nbody\u0000 tail'),
+      Buffer.from(Array.from({ length: 120000 }, (_, i) => `w${i.toString(36)}`).join(' ')),
+    ];
+    for (const raw of raws) {
+      const { input } = await exported(dir, raw);
+      const path = join(dir, 'projects', 'legacy-1', 'docs', 'superpowers', 'specs', 'design.md');
+      const before = await readFile(path);
+      const { stdout, stderr } = await run(dir, ['--dry-run']);
+      assert.equal(stderr, '');
+      const summary = JSON.parse(stdout);
+      assert.equal(summary.violations, 0);
+      assert.equal(summary.warnings, 2);
+      assert.equal(summary.bundleSha256, input.bundleSha256);
+      assert(before.equals(raw));
+      assert((await readFile(path)).equals(before));
     }
   }));

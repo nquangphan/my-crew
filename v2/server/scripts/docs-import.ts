@@ -5,9 +5,8 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { decodeFileBytes, hashBytes } from '../src/docs/checksum.ts';
 import type { ContentClass, DocsImport } from '../src/docs/contracts.ts';
-import { validateDocsImport } from '../src/docs/import.ts';
+import { auditDocsForStorage, validateDocsImport } from '../src/docs/import.ts';
 import { validPath } from '../src/docs/manifest.ts';
-import { validateDocs } from '../src/docs/validator.ts';
 import { ApiError } from '../src/platform/errors.ts';
 
 type BackupManifest = {
@@ -220,12 +219,11 @@ export async function runDocsImport(
   if (!bundlePath || !manifestPath) fail('CLI_ARGUMENT_INVALID');
   const input = await verifyBackupBundle(bundlePath, manifestPath);
   const audits = input.inventory.map((project) =>
-    validateDocs({
-      files: new Map(project.files.map((file) => [file.path, decodeFileBytes(file)])),
-      contentClasses: new Map(project.files.map((file) => [file.path, file.contentClass])),
-      trackedSourcePaths: [],
-      mode: 'legacy_import',
-    }),
+    auditDocsForStorage(
+      project.files,
+      new Map(project.files.map((file) => [file.path, decodeFileBytes(file)])),
+      'legacy_import',
+    ),
   );
   const summary = {
     projects: input.inventory.length,

@@ -649,3 +649,154 @@ test('machine revocation racing cached sync waits for identity lock and denies r
       await peer.end();
     }
   }));
+
+test('legacy NUL body/heading/link/fragment/audit metadata preserve raw bytes in mixed batch and replay', async () =>
+  withDatabase(async (db) => {
+    const raw = Buffer.from(
+      '# Heading\u0000tail\nvalid UTF-8\u0000tail\n[External](https://example.invalid/a\u0000b) [Fragment](#heading%00tail) [Custom](probe:\u0000tail)\n',
+    );
+    const input = legacyBundle(validDocs());
+    const artifact = legacyBundle({ 'docs/superpowers/specs/probe.md': raw });
+    input.inventory.push({ ...present(artifact.inventory[0]), legacyProjectId: 'nul-project', key: 'NUL' });
+    const encodedRaw = Buffer.from('# Normal\n[Missing](#absent%00tail)');
+    const encoded = legacyBundle({ 'docs/superpowers/specs/probe.md': encodedRaw });
+    input.inventory.push({
+      ...present(encoded.inventory[0]),
+      legacyProjectId: 'encoded-project',
+      key: 'ENCODED',
+    });
+    rehashBundle(input);
+    const first = await importWithKey(db, input, 'nul-a');
+    const cursor = (await db`select value from event_cursor`)[0]?.value;
+    const second = await importWithKey(db, input, 'nul-b');
+    assert.deepEqual(first, second);
+    const [saved] =
+      await db`select bytes,sha,title,search_text from docs_files where snapshot_id=${present(first.projects[1]).snapshotId} and path='docs/superpowers/specs/probe.md'`;
+    assert(Buffer.from(saved?.bytes).equals(raw));
+    assert.equal(saved?.sha, hashBytes(raw));
+    assert.equal(saved?.title, 'Heading\\u0000tail');
+    assert.equal(saved?.search_text, raw.toString().replaceAll('\u0000', '\\u0000'));
+    const [snapshot] =
+      await db`select audit_report from docs_snapshots where id=${present(first.projects[1]).snapshotId}`;
+    assert(
+      snapshot?.audit_report.issues.some(
+        (issue: { code: string }) => issue.code === 'STORAGE_NUL_PROJECTION',
+      ),
+    );
+    assert.equal(snapshot?.audit_report.storageProjection.nulEncoding, 'literal-backslash-u0000');
+    const links =
+      await db`select original_href,to_path,fragment,status from docs_links where snapshot_id=${present(first.projects[1]).snapshotId} order by occurrence`;
+    assert.equal(links.length, 3);
+    assert.equal(links[0]?.original_href, 'https://example.invalid/a\\u0000b');
+    assert.equal(links[0]?.to_path, 'https://example.invalid/a\\u0000b');
+    assert.equal(links[1]?.fragment, 'heading\\u0000tail');
+    assert(
+      snapshot?.audit_report.issues.some((issue: { message: string }) =>
+        issue.message.includes('probe:\\u0000tail'),
+      ),
+    );
+    const safeJson = (value: unknown): boolean =>
+      typeof value === 'string'
+        ? !value.includes('\u0000')
+        : value !== null && typeof value === 'object'
+          ? Object.values(value).every(safeJson)
+          : true;
+    assert(safeJson(snapshot?.audit_report));
+    assert.equal(present(first.projects[2]).auditState, 'invalid');
+    assert(present(first.projects[2]).issues.some((issue) => issue.code === 'STORAGE_NUL_PROJECTION'));
+    const [encodedSaved] =
+      await db`select bytes from docs_files where snapshot_id=${present(first.projects[2]).snapshotId}`;
+    assert(Buffer.from(encodedSaved?.bytes).equals(encodedRaw));
+    const [encodedLink] =
+      await db`select fragment from docs_links where snapshot_id=${present(first.projects[2]).snapshotId}`;
+    assert.equal(encodedLink?.fragment, 'absent\\u0000tail');
+    assert.equal((await db`select count(*)::int n from projects`)[0]?.n, 3);
+    assert.equal((await db`select value from event_cursor`)[0]?.value, cursor);
+  }));
+
+test('high-lexeme 672011-byte artifact imports within 1MiB with prefix FTS and full literal fallback', async () =>
+  withDatabase(async (db) => {
+    const raw = Buffer.from(Array.from({ length: 120000 }, (_, i) => `w${i.toString(36)}`).join(' '));
+    assert.equal(raw.length, 672011);
+    const input = legacyBundle(validDocs());
+    const artifact = legacyBundle({ 'docs/superpowers/specs/probe.md': raw });
+    input.inventory.push({
+      ...present(artifact.inventory[0]),
+      legacyProjectId: 'large-project',
+      key: 'LARGE',
+    });
+    rehashBundle(input);
+    const first = await importWithKey(db, input, 'fts-a');
+    const second = await importWithKey(db, input, 'fts-b');
+    assert.deepEqual(first, second);
+    const [saved] =
+      await db`select bytes,sha,search_text,pg_column_size(search_vector) vector_size from docs_files where path='docs/superpowers/specs/probe.md'`;
+    assert(Buffer.from(saved?.bytes).equals(raw));
+    assert.equal(saved?.sha, hashBytes(raw));
+    assert.equal(saved?.search_text, raw.toString());
+    assert(Number(saved?.vector_size) < 1048575);
+    assert.equal(
+      (
+        await db`select count(*)::int n from docs_files where path='docs/superpowers/specs/probe.md' and search_vector @@ plainto_tsquery('simple','w1')`
+      )[0]?.n,
+      1,
+    );
+    assert.equal(
+      (
+        await db`select count(*)::int n from docs_files where path='docs/superpowers/specs/probe.md' and search_vector @@ plainto_tsquery('simple','w2klb')`
+      )[0]?.n,
+      0,
+    );
+    const rows =
+      await db`select path from docs_files where snapshot_id=${present(first.projects[1]).snapshotId} and (search_vector @@ plainto_tsquery('simple','w2klb') or strpos(lower(search_text),lower('w2klb'))>0) order by path limit 1`;
+    assert.equal(rows[0]?.path, 'docs/superpowers/specs/probe.md');
+    await db.begin(async (tx) => {
+      await tx`set local enable_seqscan=off`;
+      const [plan] =
+        await tx`explain (format json) select path from docs_files where search_vector @@ plainto_tsquery('simple','w1')`;
+      assert(JSON.stringify(plan).includes('docs_files_search'));
+      const indexed =
+        await tx`select path from docs_files where search_vector @@ plainto_tsquery('simple','w1')`;
+      assert.equal(indexed[0]?.path, 'docs/superpowers/specs/probe.md');
+    });
+    assert(present(first.projects[1]).issues.some((issue) => issue.code === 'FTS_PREFIX_ONLY'));
+    assert.equal((await db`select count(*)::int n from projects`)[0]?.n, 2);
+  }));
+
+test('checkout NUL representation does not upgrade structural validity or verification and keeps raw identity', async () =>
+  withDatabase(async (db) => {
+    const { x, input, sync } = await syncSetup(db);
+    const raw = Buffer.from('# Artifact\u0000 title\nbody\u0000 tail\n');
+    const bundle = legacyBundle({ ...validDocs(), 'docs/superpowers/specs/probe.md': raw });
+    const project = present(bundle.inventory[0]);
+    const id = (
+      await sync('nul-sync', { ...input, files: project.files, snapshotSha256: project.snapshotSha256 })
+    ).body;
+    const [saved] =
+      await db`select bytes,sha from docs_files where snapshot_id=${id} and path='docs/superpowers/specs/probe.md'`;
+    assert(Buffer.from(saved?.bytes).equals(raw));
+    assert.equal(saved?.sha, hashBytes(raw));
+    const [state] = await db`select snapshot_sha,audit_state,audit_report from docs_snapshots where id=${id}`;
+    assert.equal(state?.snapshot_sha, project.snapshotSha256);
+    assert.equal(state?.audit_state, 'unverified');
+    assert(
+      state?.audit_report.issues.some((issue: { code: string }) => issue.code === 'STORAGE_NUL_PROJECTION'),
+    );
+    assert.equal(
+      (await db`select latest_verified_snapshot_id from projects where id=${x.f.project.id}`)[0]
+        ?.latest_verified_snapshot_id,
+      null,
+    );
+    const broken = legacyBundle({ ...validDocs(), 'docs/flows/sample.md': Buffer.from('# Bad\u0000\n') });
+    const brokenProject = present(broken.inventory[0]);
+    await assert.rejects(
+      () =>
+        sync('nul-broken', {
+          ...input,
+          sourceCommit: input.sourceCommit,
+          files: brokenProject.files,
+          snapshotSha256: brokenProject.snapshotSha256,
+        }),
+      { code: 'DOCS_INVALID' },
+    );
+  }));
