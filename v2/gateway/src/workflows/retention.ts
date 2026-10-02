@@ -18,11 +18,14 @@ export type ProcessReferenceReleaseRequirement = {
 };
 export type RetentionInventory = {
   runId: string;
-  authority: 'registry' | 'process-journal';
+  authority: 'registry' | 'process-journal' | 'pin-admission';
   source: SourcePin;
   projection: ProjectionPin;
   sourceBytes: number | null;
   projectionBytes: number | null;
-  reason: 'durable-run-reference' | 'accepted-finalization-producer-unavailable';
+  reason:
+    | 'durable-run-reference'
+    | 'accepted-finalization-producer-unavailable'
+    | 'durable-pin-admission-intent';
   releaseRequirement: ProcessReferenceReleaseRequirement | null;
 };

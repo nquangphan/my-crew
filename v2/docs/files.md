@@ -76,9 +76,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/support/probe-bmad-build.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/reclaim-proven-build-probes.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/ui-client.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/support/workflow-admission-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/workflow-archives.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/workflow-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/telemetry.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/workflow-admission.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-build.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-fix.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-native-projection.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |

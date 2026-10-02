@@ -1,7 +1,7 @@
 import { type ChildProcess, fork } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { access } from 'node:fs/promises';
-import { join } from 'node:path';
+import { access, readdir } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ProjectionPin, SourcePin } from '../host/status.ts';
 import {
@@ -21,6 +21,14 @@ export type LaunchInput = {
   source: SourcePin;
   projection: ProjectionPin;
 };
+export type PinAdmissionAuthority = {
+  registryRoot: string;
+  verify: (input: LaunchInput) => Promise<void>;
+};
+export type PinAdmissionIntent = LaunchInput & { formatVersion: 1; registryRoot: string };
+type PinAdmissionBinding = { formatVersion: 1; registryRoot: string };
+export const pinAdmissionMarkerPath = (hostRoot: string): string =>
+  join(hostRoot, 'workflows', 'pin-authority.json');
 export type AttemptProjectionPin = {
   attemptId: string;
   fence: string;
@@ -69,6 +77,7 @@ export class ProcessJournal {
   readonly root: string;
   readonly identity: ProcessIdentity;
   private readonly store: AtomicRecords;
+  private pinAuthority: PinAdmissionAuthority | null = null;
   private constructor(root: string, store: AtomicRecords, identity: ProcessIdentity) {
     this.root = root;
     this.store = store;
@@ -80,12 +89,75 @@ export class ProcessJournal {
     const store = await AtomicRecords.open(path);
     try {
       await privateDirectory(join(path, 'proofs'));
+      await privateDirectory(join(path, 'admissions'));
       const identity = await ProcessIdentity.open(path, await nativeSource());
       return new ProcessJournal(path, store, identity);
     } catch (error) {
       await store.close();
       throw error;
     }
+  }
+  async bindPinAdmission(authority: PinAdmissionAuthority): Promise<void> {
+    await this.store.transaction(async () => {
+      const marker = await readRecord<PinAdmissionBinding>(pinAdmissionMarkerPath(dirname(this.root)));
+      const path = join(this.root, 'pin-admission.json');
+      const binding = await readRecord<PinAdmissionBinding>(path);
+      if (
+        authority.registryRoot !== join(dirname(this.root), 'workflows') ||
+        marker?.registryRoot !== authority.registryRoot ||
+        (binding && binding.registryRoot !== authority.registryRoot)
+      )
+        throw new Error('PIN_ADMISSION_BINDING_CONFLICT');
+      if (!binding)
+        await writeExclusiveRecord(path, { formatVersion: 1, registryRoot: authority.registryRoot });
+      this.pinAuthority = authority;
+    });
+  }
+  private async admissionAuthority(): Promise<PinAdmissionAuthority | null> {
+    const binding = await readRecord<PinAdmissionBinding>(join(this.root, 'pin-admission.json'));
+    const marker = await readRecord<PinAdmissionBinding>(pinAdmissionMarkerPath(dirname(this.root)));
+    if (binding || marker) {
+      if (
+        !binding ||
+        !this.pinAuthority ||
+        binding.registryRoot !== this.pinAuthority.registryRoot ||
+        marker?.registryRoot !== binding.registryRoot
+      )
+        throw new Error('PIN_ADMISSION_NOT_BOUND');
+      return this.pinAuthority;
+    }
+    return null; // Legacy standalone Task2 journal; no managed registry exists.
+  }
+  async withPinAdmissionBarrier<T>(registryRoot: string, action: () => Promise<T>): Promise<T> {
+    return this.store.transaction(async () => {
+      if ((await this.admissionAuthority())?.registryRoot !== registryRoot)
+        throw new Error('PIN_ADMISSION_NOT_BOUND');
+      return action();
+    });
+  }
+  async pendingPinAdmissions(): Promise<PinAdmissionIntent[]> {
+    const intents: PinAdmissionIntent[] = [];
+    for (const name of await readdir(join(this.root, 'admissions'))) {
+      if (!/^[a-f0-9]{64}\.json$/.test(name)) continue;
+      const intent = await readRecord<PinAdmissionIntent>(join(this.root, 'admissions', name));
+      if (!intent) continue;
+      const committed = await this.store.get<LaunchRecord>(intent.commandId);
+      if (
+        !committed ||
+        canonicalJson(this.launchInput(committed)) !== canonicalJson(this.launchInput(intent))
+      )
+        intents.push(intent);
+    }
+    return intents;
+  }
+  private launchInput(record: LaunchInput): LaunchInput {
+    return {
+      commandId: record.commandId,
+      ticketId: record.ticketId,
+      processInstanceId: record.processInstanceId,
+      source: record.source,
+      projection: record.projection,
+    };
   }
   async reserve(input: LaunchInput): Promise<LaunchRecord> {
     const canonical = canonicalJson(input);
@@ -97,6 +169,7 @@ export class ProcessJournal {
     )
       throw new Error('INVALID_LAUNCH');
     return this.store.transaction(async () => {
+      const authority = await this.admissionAuthority();
       const old = await this.store.get<LaunchRecord>(input.commandId);
       if (old) {
         const {
@@ -109,11 +182,25 @@ export class ProcessJournal {
           ...previous
         } = old;
         if (canonicalJson(previous) !== canonical) throw new Error('LAUNCH_CONFLICT');
+        await authority?.verify(JSON.parse(canonical));
         return old;
       }
       const records = await this.store.all<LaunchRecord>();
       if (records.some((record) => record.processInstanceId === input.processInstanceId))
         throw new Error('PROCESS_INSTANCE_CONFLICT');
+      if (authority) {
+        await authority.verify(JSON.parse(canonical));
+        const path = join(this.root, 'admissions', `${hash(input.commandId)}.json`);
+        const intent: PinAdmissionIntent = {
+          ...JSON.parse(canonical),
+          formatVersion: 1,
+          registryRoot: authority.registryRoot,
+        };
+        const existing = await readRecord<PinAdmissionIntent>(path);
+        if (existing && canonicalJson(existing) !== canonicalJson(intent))
+          throw new Error('PIN_ADMISSION_CONFLICT');
+        if (!existing) await writeExclusiveRecord(path, intent);
+      }
       const record: LaunchRecord = {
         ...JSON.parse(canonical),
         formatVersion: 1,

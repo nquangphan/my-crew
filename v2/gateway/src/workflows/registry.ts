@@ -12,7 +12,7 @@ import {
   syncDirectory,
   writeExclusiveRecord,
 } from '../journal/atomic-records.ts';
-import type { ProcessJournal } from '../journal/process-journal.ts';
+import { type ProcessJournal, pinAdmissionMarkerPath } from '../journal/process-journal.ts';
 import { type BmadBuild, bmadBuildPolicy, runBmadInstaller } from './builder.ts';
 import { suppliedArchive, verifyPayload } from './fetch.ts';
 import { nativeFiles, verifyNativeGeometry } from './native-projection.ts';
@@ -83,7 +83,7 @@ type Reference = {
   runId: string;
   source: SourcePin;
   projection: ProjectionPin;
-  authority: 'registry' | 'process-journal';
+  authority: 'registry' | 'process-journal' | 'pin-admission';
 };
 async function present(path: string): Promise<boolean> {
   try {
@@ -100,6 +100,7 @@ export class WorkflowRegistry {
   private readonly store: AtomicRecords;
   private readonly options: RegistryOptions;
   private operations!: OwnedOperations;
+  private closed = false;
   private constructor(root: string, store: AtomicRecords, options: RegistryOptions) {
     this.root = root;
     this.store = store;
@@ -117,13 +118,45 @@ export class WorkflowRegistry {
         validateSourcePin(audit.pin);
       }
       const registry = new WorkflowRegistry(path, store, options);
+      const markerPath = pinAdmissionMarkerPath(root);
+      const marker = await readRecord<{ formatVersion: 1; registryRoot: string }>(markerPath);
+      if (marker && marker.registryRoot !== path) throw new Error('PIN_ADMISSION_BINDING_CONFLICT');
+      if (!marker) await writeExclusiveRecord(markerPath, { formatVersion: 1, registryRoot: path });
       registry.operations = await OwnedOperations.open(path, store);
       await registry.reconcile();
+      if (options.processJournal) {
+        await store.put('pin-admission-journal', {
+          formatVersion: 1,
+          journalRoot: options.processJournal.root,
+        });
+        await options.processJournal.bindPinAdmission({
+          registryRoot: path,
+          verify: async (input) => {
+            if (registry.closed) throw new Error('PIN_ADMISSION_NOT_BOUND');
+            await registry.resolve(input.source, input.projection);
+          },
+        });
+      }
       return registry;
     } catch (error) {
       await store.close();
       throw error;
     }
+  }
+  private async missingJournalAuthority(): Promise<boolean> {
+    return (
+      !this.options.processJournal &&
+      !!(
+        (await this.store.get('pin-admission-journal')) ||
+        (await present(join(dirname(this.root), 'process-journal')))
+      )
+    );
+  }
+  private async referenceBarrier<T>(action: () => Promise<T>, published: boolean): Promise<T> {
+    if (this.options.processJournal)
+      return this.options.processJournal.withPinAdmissionBarrier(this.root, action);
+    if (published && (await this.missingJournalAuthority())) throw new Error('PIN_ADMISSION_NOT_BOUND');
+    return action();
   }
   private projectionPath(source: SourcePin, pin: ProjectionPin) {
     return join(
@@ -316,6 +349,7 @@ export class WorkflowRegistry {
   }
   private async recoveredReferenceProtects(record: StageRecord): Promise<boolean> {
     if (!record.publication) return false;
+    if (await this.missingJournalAuthority()) return true;
     const metadata = await readRecord<{ formatVersion: 1; pin: SourcePin | ProjectionPin }>(
       join(this.root, 'quarantine', record.quarantineName ?? record.publication.name, 'pin.json'),
     );
@@ -336,40 +370,42 @@ export class WorkflowRegistry {
     return false;
   }
   async reclaim(): Promise<{ deleted: string[]; retained: string[]; failed: string[] }> {
-    return this.store.transaction(async () => {
-      await this.reconcile();
-      const out = { deleted: [] as string[], retained: [] as string[], failed: [] as string[] };
-      for (const record of await this.stagingInventory()) {
-        if (record.state === 'deleted' || record.state === 'published') continue;
-        if (!record.complete || !record.deletionEligible || !record.identity) {
-          out.retained.push(record.id);
-          continue;
-        }
-        try {
-          if (record.state === 'quarantined' && (await this.recoveredReferenceProtects(record))) {
+    return this.store.transaction(() =>
+      this.referenceBarrier(async () => {
+        await this.reconcile();
+        const out = { deleted: [] as string[], retained: [] as string[], failed: [] as string[] };
+        for (const record of await this.stagingInventory()) {
+          if (record.state === 'deleted' || record.state === 'published') continue;
+          if (!record.complete || !record.deletionEligible || !record.identity) {
             out.retained.push(record.id);
             continue;
           }
-          if (record.state === 'quarantined')
-            await this.operations.deleteQuarantined(record.quarantineName ?? record.id, record.identity);
-          else
-            await this.operations.remove('stages', record.id, record.identity, async () => {
-              await this.store.put(`stage-${record.id}`, { ...record, state: 'quarantined' });
+          try {
+            if (record.state === 'quarantined' && (await this.recoveredReferenceProtects(record))) {
+              out.retained.push(record.id);
+              continue;
+            }
+            if (record.state === 'quarantined')
+              await this.operations.deleteQuarantined(record.quarantineName ?? record.id, record.identity);
+            else
+              await this.operations.remove('stages', record.id, record.identity, async () => {
+                await this.store.put(`stage-${record.id}`, { ...record, state: 'quarantined' });
+              });
+            await this.store.put(`stage-${record.id}`, {
+              ...record,
+              state: 'deleted',
+              bytes: 0,
+              location: '',
+              reason: 'OWNED_OPERATION_RECLAIMED',
             });
-          await this.store.put(`stage-${record.id}`, {
-            ...record,
-            state: 'deleted',
-            bytes: 0,
-            location: '',
-            reason: 'OWNED_OPERATION_RECLAIMED',
-          });
-          out.deleted.push(record.id);
-        } catch {
-          out.failed.push(record.id);
+            out.deleted.push(record.id);
+          } catch {
+            out.failed.push(record.id);
+          }
         }
-      }
-      return out;
-    });
+        return out;
+      }, false),
+    );
   }
   private async sourceVerified(pin: SourcePin): Promise<void> {
     this.audit(pin);
@@ -669,7 +705,7 @@ export class WorkflowRegistry {
       runId: string;
       source: SourcePin;
       projection: ProjectionPin;
-      authority: 'registry' | 'process-journal';
+      authority: 'registry' | 'process-journal' | 'pin-admission';
     }[]
   > {
     const rows = await this.store.all<{
@@ -691,7 +727,7 @@ export class WorkflowRegistry {
       validateSourcePin(r.source);
       validateProjectionPin(r.projection);
     }
-    if (this.options.processJournal)
+    if (this.options.processJournal) {
       for (const process of await this.options.processJournal.processes())
         refs.push({
           runId: process.authorization?.attemptId ?? process.launchId,
@@ -699,6 +735,17 @@ export class WorkflowRegistry {
           projection: process.projection,
           authority: 'process-journal',
         });
+      for (const intent of await this.options.processJournal.pendingPinAdmissions()) {
+        validateSourcePin(intent.source);
+        validateProjectionPin(intent.projection);
+        refs.push({
+          runId: `admission:${intent.commandId}:${intent.processInstanceId}`,
+          source: intent.source,
+          projection: intent.projection,
+          authority: 'pin-admission',
+        });
+      }
+    }
     return refs;
   }
   async retentionInventory(): Promise<RetentionInventory[]> {
@@ -729,7 +776,9 @@ export class WorkflowRegistry {
           reason:
             ref.authority === 'process-journal'
               ? 'accepted-finalization-producer-unavailable'
-              : 'durable-run-reference',
+              : ref.authority === 'pin-admission'
+                ? 'durable-pin-admission-intent'
+                : 'durable-run-reference',
           releaseRequirement: process
             ? {
                 launchId: process.launchId,
@@ -749,71 +798,73 @@ export class WorkflowRegistry {
     );
   }
   async collectPublished(): Promise<{ deleted: string[]; retained: string[]; failed: string[] }> {
-    return this.store.transaction(async () => {
-      const result = { deleted: [] as string[], retained: [] as string[], failed: [] as string[] };
-      const refs = await this.retained();
-      const records = (await this.stagingInventory())
-        .filter((r) => r.state === 'published')
-        .sort((a, b) =>
-          a.operationKind === b.operationKind ? 0 : a.operationKind === 'projection' ? -1 : 1,
-        );
-      const remainingProjections = new Set<string>();
-      for (const record of records.filter((r) => r.operationKind === 'projection')) {
-        const metadata = await readRecord<{ formatVersion: 1; pin: ProjectionPin }>(
-          join(record.location, 'pin.json'),
-        );
-        if (metadata) remainingProjections.add(`${metadata.pin.sourceTreeSha256}:${record.id}`);
-      }
-      for (const record of records) {
-        try {
-          if (!record.identity || !record.publication || !record.complete)
-            throw new Error('PUBLICATION_AUTHORITY_UNKNOWN');
-          const metadata = await readRecord<{ formatVersion: 1; pin: SourcePin | ProjectionPin }>(
+    return this.store.transaction(() =>
+      this.referenceBarrier(async () => {
+        const result = { deleted: [] as string[], retained: [] as string[], failed: [] as string[] };
+        const refs = await this.retained();
+        const records = (await this.stagingInventory())
+          .filter((r) => r.state === 'published')
+          .sort((a, b) =>
+            a.operationKind === b.operationKind ? 0 : a.operationKind === 'projection' ? -1 : 1,
+          );
+        const remainingProjections = new Set<string>();
+        for (const record of records.filter((r) => r.operationKind === 'projection')) {
+          const metadata = await readRecord<{ formatVersion: 1; pin: ProjectionPin }>(
             join(record.location, 'pin.json'),
           );
-          if (!metadata) throw new Error('PUBLICATION_AUTHORITY_UNKNOWN');
-          let protectedReference = false;
-          if (record.operationKind === 'source') {
-            const pin = metadata.pin as SourcePin;
-            validateSourcePin(pin);
-            protectedReference =
-              same(await this.current(pin.name), pin) ||
-              refs.some((r) => same(r.source, pin)) ||
-              [...remainingProjections].some((key) => key.startsWith(`${pin.sourceTreeSha256}:`));
-          } else {
-            const pin = metadata.pin as ProjectionPin;
-            validateProjectionPin(pin);
-            protectedReference = refs.some((r) => same(r.projection, pin));
-          }
-          if (protectedReference) {
-            result.retained.push(record.id);
-            continue;
-          }
-          const location = record.publication;
-          await this.operations.remove(location.parent, location.name, record.identity, async () => {
+          if (metadata) remainingProjections.add(`${metadata.pin.sourceTreeSha256}:${record.id}`);
+        }
+        for (const record of records) {
+          try {
+            if (!record.identity || !record.publication || !record.complete)
+              throw new Error('PUBLICATION_AUTHORITY_UNKNOWN');
+            const metadata = await readRecord<{ formatVersion: 1; pin: SourcePin | ProjectionPin }>(
+              join(record.location, 'pin.json'),
+            );
+            if (!metadata) throw new Error('PUBLICATION_AUTHORITY_UNKNOWN');
+            let protectedReference = false;
+            if (record.operationKind === 'source') {
+              const pin = metadata.pin as SourcePin;
+              validateSourcePin(pin);
+              protectedReference =
+                same(await this.current(pin.name), pin) ||
+                refs.some((r) => same(r.source, pin)) ||
+                [...remainingProjections].some((key) => key.startsWith(`${pin.sourceTreeSha256}:`));
+            } else {
+              const pin = metadata.pin as ProjectionPin;
+              validateProjectionPin(pin);
+              protectedReference = refs.some((r) => same(r.projection, pin));
+            }
+            if (protectedReference) {
+              result.retained.push(record.id);
+              continue;
+            }
+            const location = record.publication;
+            await this.operations.remove(location.parent, location.name, record.identity, async () => {
+              await this.store.put(`stage-${record.id}`, {
+                ...record,
+                state: 'quarantined',
+                quarantineName: location.name,
+                deletionEligible: true,
+              });
+            });
             await this.store.put(`stage-${record.id}`, {
               ...record,
-              state: 'quarantined',
-              quarantineName: location.name,
-              deletionEligible: true,
+              state: 'deleted',
+              bytes: 0,
+              location: '',
+              reason: 'NO_RECOVERED_REFERENCES',
             });
-          });
-          await this.store.put(`stage-${record.id}`, {
-            ...record,
-            state: 'deleted',
-            bytes: 0,
-            location: '',
-            reason: 'NO_RECOVERED_REFERENCES',
-          });
-          if (record.operationKind === 'projection')
-            remainingProjections.delete(`${(metadata.pin as ProjectionPin).sourceTreeSha256}:${record.id}`);
-          result.deleted.push(record.id);
-        } catch {
-          result.failed.push(record.id);
+            if (record.operationKind === 'projection')
+              remainingProjections.delete(`${(metadata.pin as ProjectionPin).sourceTreeSha256}:${record.id}`);
+            result.deleted.push(record.id);
+          } catch {
+            result.failed.push(record.id);
+          }
         }
-      }
-      return result;
-    });
+        return result;
+      }, true),
+    );
   }
   async exists(source: SourcePin, projection: ProjectionPin): Promise<boolean> {
     try {
@@ -830,6 +881,7 @@ export class WorkflowRegistry {
     }
   }
   async close(): Promise<void> {
+    this.closed = true;
     await this.store.close();
   }
 }

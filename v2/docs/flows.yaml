@@ -221,6 +221,7 @@ flows:
       - gateway/src/workflows/retention.ts
       - gateway/src/workflows/stage.ts
     tests:
+      - gateway/test/workflow-admission.test.ts
       - gateway/test/workflow-build.test.ts
       - gateway/test/workflow-fix.test.ts
       - gateway/test/workflow-native-projection.test.ts
@@ -234,6 +235,7 @@ flows:
       - gateway/test/support/freeze-real-projections.ts
       - gateway/test/support/probe-bmad-build.ts
       - gateway/test/support/reclaim-proven-build-probes.ts
+      - gateway/test/support/workflow-admission-crash-worker.ts
       - gateway/test/support/workflow-crash-worker.ts
       - gateway/test/fixtures/workflows/bmad-6.12.0.tgz
       - gateway/test/fixtures/workflows/official-audits.json
