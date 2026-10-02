@@ -37,7 +37,7 @@ export class ServerReceiptClock {
       elapsed < 0 ||
       elapsed > 300000 ||
       expires <= this.anchor.server + elapsed ||
-      expires > this.anchor.server + 300000
+      expires > this.anchor.server + elapsed + 300000
     )
       throw new Error('SECRET_EXPIRED');
   }
@@ -208,15 +208,16 @@ export class CredentialProvisioning {
     currentRevision: number,
     allowedProviders: readonly string[],
   ): Promise<string> {
-    if (envelope.machineId !== this.machineId || !allowedProviders.includes(envelope.providerId))
-      throw new Error('ENVELOPE_SCOPE_INVALID');
-    if (envelope.configRevision !== currentRevision) throw new Error('CONFIG_REVISION_CONFLICT');
-    this.clock.assertFresh(envelope.expiresAt);
+    if (envelope.machineId !== this.machineId) throw new Error('ENVELOPE_SCOPE_INVALID');
     const digest = hash(canonicalJson(envelope));
     return this.store.transaction(async () => {
       const old = await this.store.get<AckIntent>(envelope.id);
       if (old && old.envelopeHash !== digest) throw new Error('ENVELOPE_INVALID');
       if (old) return this.replayAck(envelope.id);
+      // Historical ACK intent is immutable recovery, not fresh provisioning authority.
+      if (!allowedProviders.includes(envelope.providerId)) throw new Error('ENVELOPE_SCOPE_INVALID');
+      if (envelope.configRevision !== currentRevision) throw new Error('CONFIG_REVISION_CONFLICT');
+      this.clock.assertFresh(envelope.expiresAt);
       const privateBytes = await this.bridge.read(this.service(), envelope.keyId);
       if (!privateBytes) {
         const operationId = `credential-key-lost:${envelope.id}`;
@@ -325,11 +326,12 @@ export class CredentialProvisioning {
       // Cursor advances only after every encrypted envelope is durable; failed ACKs remain queued.
       await this.store.put('envelope-cursor', { formatVersion: 1, cursor: batch.nextCursor });
     });
-    let pending = false;
+    // Only a fresh desired read may confirm current provider storage, never a historical ACK.
+    let pending = config.apiProviders.some((p) => p.credentialStatus !== 'stored');
     try {
       await this.registerKey();
     } catch {
-      pending = true;
+      pending = config.apiProviders.some((p) => p.credentialStatus !== 'stored');
     }
     const providers = config.apiProviders.map((p) => p.id);
     for (const row of await this.store.all<{ formatVersion: 1; envelope?: SecretEnvelope | null }>()) {
@@ -338,7 +340,9 @@ export class CredentialProvisioning {
         await this.accept(row.envelope, config.revision, providers);
         await this.store.put(`pending-envelope:${row.envelope.id}`, { formatVersion: 1, envelope: null });
       } catch {
-        pending = true;
+        // Keep encrypted history for re-entry/replay; it cannot demote a different current stored secret.
+        const current = config.apiProviders.find((p) => p.id === row.envelope?.providerId);
+        if (current && current.credentialStatus !== 'stored') pending = true;
       }
     }
     return { state: pending ? 'pending' : 'stored', nextCursor: batch.nextCursor };

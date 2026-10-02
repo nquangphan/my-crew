@@ -314,12 +314,238 @@ export async function executableContext(
     await fd?.close();
   }
 }
+type StreamPart = { text: string; textDone: boolean; closed: boolean; annotations: Map<number, unknown> };
+type StreamItem = {
+  initial: Record<string, unknown>;
+  arguments: string;
+  argumentsDone: boolean;
+  parts: Map<number, StreamPart>;
+  closed: boolean;
+};
+/** Bounded Responses text/function subset. Unsupported modalities never count as a valid probe. */
+class ResponseStream {
+  private readonly modelId: string;
+  private responseId: string | null = null;
+  private sequence = -1;
+  private events = 0;
+  private readonly lifecycle = new Set<string>();
+  private readonly items = new Map<number, StreamItem>();
+  private readonly ids = new Set<string>();
+  private readonly callIds = new Set<string>();
+  constructor(modelId: string) {
+    this.modelId = modelId;
+  }
+  private index(value: unknown): number {
+    if (!Number.isSafeInteger(value) || Number(value) < 0 || Number(value) >= 64)
+      throw new Error('STREAM_PROTOCOL');
+    return Number(value);
+  }
+  private id(value: unknown): string {
+    if (typeof value !== 'string' || !value || value.length > 1024) throw new Error('STREAM_PROTOCOL');
+    return value;
+  }
+  private matchResponse(value: unknown, terminal: boolean): Record<string, unknown> {
+    const response = object(value);
+    if (response.model !== this.modelId) throw new Error('MODEL_MISMATCH');
+    if (this.responseId !== null && response.id !== this.responseId) throw new Error('STREAM_PROTOCOL');
+    if (!terminal) {
+      const id = this.id(response.id);
+      this.responseId = id;
+      if (
+        !['queued', 'in_progress'].includes(String(response.status)) ||
+        !Array.isArray(response.output) ||
+        response.output.length
+      )
+        throw new Error('STREAM_PROTOCOL');
+    }
+    return response;
+  }
+  private item(event: Record<string, unknown>): StreamItem {
+    const item = this.items.get(this.index(event.output_index));
+    if (!item || item.closed || event.item_id !== item.initial.id) throw new Error('STREAM_PROTOCOL');
+    return item;
+  }
+  private part(event: Record<string, unknown>, item: StreamItem): StreamPart {
+    const part = item.parts.get(this.index(event.content_index));
+    if (item.initial.type !== 'message' || !part || part.closed) throw new Error('STREAM_PROTOCOL');
+    return part;
+  }
+  private matchPart(value: unknown, part: StreamPart): void {
+    const content = object(value);
+    if (content.type !== 'output_text' || content.text !== part.text || !part.textDone)
+      throw new Error('STREAM_PROTOCOL');
+    if (
+      part.annotations.size &&
+      canonicalJson(content.annotations) !== canonicalJson([...part.annotations.values()])
+    )
+      throw new Error('STREAM_PROTOCOL');
+  }
+  private matchItem(value: unknown, item: StreamItem): void {
+    const output = object(value);
+    if (
+      output.id !== item.initial.id ||
+      output.type !== item.initial.type ||
+      (output.status !== 'completed' && !(output.type === 'function_call' && output.status === undefined))
+    )
+      throw new Error('STREAM_PROTOCOL');
+    if (output.type === 'function_call') {
+      if (
+        output.call_id !== item.initial.call_id ||
+        output.name !== item.initial.name ||
+        output.arguments !== item.arguments ||
+        !item.argumentsDone
+      )
+        throw new Error('TOOL_PROTOCOL');
+    } else {
+      if (
+        output.role !== 'assistant' ||
+        !Array.isArray(output.content) ||
+        output.content.length !== item.parts.size
+      )
+        throw new Error('STREAM_PROTOCOL');
+      for (const [index, part] of item.parts) {
+        if (!part.closed) throw new Error('STREAM_PROTOCOL');
+        this.matchPart(output.content[index], part);
+      }
+    }
+  }
+  accept(event: Record<string, unknown>): unknown {
+    if (++this.events > 4096) throw new Error('STREAM_PROTOCOL');
+    if (event.sequence_number !== undefined) {
+      if (!Number.isSafeInteger(event.sequence_number) || Number(event.sequence_number) <= this.sequence)
+        throw new Error('STREAM_PROTOCOL');
+      this.sequence = Number(event.sequence_number);
+    }
+    if (event.response_id !== undefined) {
+      if (this.responseId === null && event.type === 'response.output_item.added')
+        this.responseId = this.id(event.response_id);
+      if (event.response_id !== this.responseId) throw new Error('STREAM_PROTOCOL');
+    }
+    if (event.model !== undefined && event.model !== this.modelId) throw new Error('MODEL_MISMATCH');
+    const type = event.type;
+    if (type === 'error' || type === 'response.failed' || type === 'response.incomplete')
+      throw new Error('STREAM_PROTOCOL');
+    if (type === 'response.created' || type === 'response.queued' || type === 'response.in_progress') {
+      if (this.lifecycle.has(type) || this.items.size) throw new Error('STREAM_PROTOCOL');
+      const response = this.matchResponse(event.response, false);
+      if (type !== 'response.created' && response.status !== type.slice('response.'.length))
+        throw new Error('STREAM_PROTOCOL');
+      this.lifecycle.add(type);
+      return;
+    }
+    if (type === 'response.completed') {
+      const response = this.matchResponse(event.response, true);
+      if (this.responseId !== null || this.items.size) {
+        if (!Array.isArray(response.output) || response.output.length !== this.items.size)
+          throw new Error('STREAM_PROTOCOL');
+        for (const [index, item] of this.items) {
+          if (!item.closed) throw new Error('STREAM_PROTOCOL');
+          this.matchItem(response.output[index], item);
+        }
+      }
+      parseProtocol('responses', response, this.modelId);
+      return response;
+    }
+    if (this.responseId === null) throw new Error('STREAM_PROTOCOL');
+    if (type === 'response.output_item.added') {
+      const index = this.index(event.output_index),
+        item = object(event.item),
+        id = this.id(item.id);
+      if (
+        index !== this.items.size ||
+        this.ids.has(id) ||
+        (item.status !== 'in_progress' && !(item.type === 'function_call' && item.status === undefined))
+      )
+        throw new Error('STREAM_PROTOCOL');
+      if (item.type === 'function_call') {
+        const callId = this.id(item.call_id);
+        if (this.callIds.has(callId) || typeof item.name !== 'string' || typeof item.arguments !== 'string')
+          throw new Error('TOOL_PROTOCOL');
+        this.callIds.add(callId);
+      } else if (
+        item.type !== 'message' ||
+        item.role !== 'assistant' ||
+        !Array.isArray(item.content) ||
+        item.content.length
+      )
+        throw new Error('STREAM_PROTOCOL');
+      this.ids.add(id);
+      this.items.set(index, {
+        initial: item,
+        arguments: item.type === 'function_call' ? String(item.arguments) : '',
+        argumentsDone: false,
+        parts: new Map(),
+        closed: false,
+      });
+      return;
+    }
+    if (type === 'response.output_item.done') {
+      const item = this.items.get(this.index(event.output_index));
+      if (!item || item.closed) throw new Error('STREAM_PROTOCOL');
+      this.matchItem(event.item, item);
+      item.closed = true;
+      return;
+    }
+    const item = this.item(event);
+    if (
+      type === 'response.function_call_arguments.delta' ||
+      type === 'response.function_call_arguments.done'
+    ) {
+      if (
+        item.initial.type !== 'function_call' ||
+        item.argumentsDone ||
+        (event.name !== undefined && event.name !== item.initial.name)
+      )
+        throw new Error('TOOL_PROTOCOL');
+      if (type.endsWith('.delta')) {
+        if (typeof event.delta !== 'string') throw new Error('TOOL_PROTOCOL');
+        item.arguments += event.delta;
+      } else {
+        if (event.arguments !== item.arguments) throw new Error('TOOL_PROTOCOL');
+        item.argumentsDone = true;
+      }
+      return;
+    }
+    if (type === 'response.content_part.added') {
+      const index = this.index(event.content_index),
+        content = object(event.part);
+      if (
+        item.initial.type !== 'message' ||
+        index !== item.parts.size ||
+        content.type !== 'output_text' ||
+        content.text !== ''
+      )
+        throw new Error('STREAM_PROTOCOL');
+      item.parts.set(index, { text: '', textDone: false, closed: false, annotations: new Map() });
+      return;
+    }
+    const part = this.part(event, item);
+    if (type === 'response.output_text.delta') {
+      if (part.textDone || typeof event.delta !== 'string') throw new Error('STREAM_PROTOCOL');
+      part.text += event.delta;
+    } else if (type === 'response.output_text.done') {
+      if (part.textDone || event.text !== part.text) throw new Error('STREAM_PROTOCOL');
+      part.textDone = true;
+    } else if (type === 'response.content_part.done') {
+      this.matchPart(event.part, part);
+      part.closed = true;
+    } else if (type === 'response.output_text.annotation.added') {
+      const index = this.index(event.annotation_index);
+      if (index !== part.annotations.size) throw new Error('STREAM_PROTOCOL');
+      part.annotations.set(index, event.annotation === null ? null : object(event.annotation));
+    } else throw new Error('STREAM_PROTOCOL');
+  }
+}
+
 export function parseStream(
   protocol: 'responses' | 'chat-completions',
   text: string,
   modelId: string,
 ): unknown {
-  if (Buffer.byteLength(text) > 1048576 || !text.endsWith('\n\n')) throw new Error('STREAM_PROTOCOL');
+  if (Buffer.byteLength(text) > 1048576) throw new Error('STREAM_PROTOCOL');
+  text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+  if (!text.endsWith('\n\n')) throw new Error('STREAM_PROTOCOL');
+  const responses = new ResponseStream(modelId);
   let completed: unknown;
   let done = false,
     model: string | undefined,
@@ -333,7 +559,7 @@ export function parseStream(
     const data = frame
       .split('\n')
       .filter((line) => line.startsWith('data:'))
-      .map((line) => line.slice(5).trimStart())
+      .map((line) => line.slice(5).replace(/^ /, ''))
       .join('\n');
     if (!data) continue;
     if (done) throw new Error('STREAM_PROTOCOL');
@@ -348,12 +574,18 @@ export function parseStream(
       throw new Error('STREAM_PROTOCOL');
     }
     if (protocol === 'responses') {
-      if (o.type === 'response.completed') {
-        if (completed) throw new Error('STREAM_PROTOCOL');
-        completed = o.response;
+      const label = frame
+        .split('\n')
+        .filter((line) => line.startsWith('event:'))
+        .at(-1)
+        ?.slice(6)
+        .replace(/^ /, '');
+      if (label && label !== o.type) throw new Error('STREAM_PROTOCOL');
+      const result = responses.accept(o);
+      if (result !== undefined) {
+        completed = result;
         done = true;
-      } else if (typeof o.type !== 'string' || !o.type.startsWith('response.'))
-        throw new Error('STREAM_PROTOCOL');
+      }
     } else {
       if (o.model !== modelId || (model && model !== o.model)) throw new Error('MODEL_MISMATCH');
       model = String(o.model);

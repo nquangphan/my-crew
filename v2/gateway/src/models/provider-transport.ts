@@ -7,6 +7,22 @@ import type { ApiProviderConfig } from './contracts.ts';
 import type { CredentialBroker, SecretTransport } from './credential-broker.ts';
 import type { CurrentCredentialResolver } from './current-credential-resolver.ts';
 import { type ProbeResponse, parseProtocol, parseStream, validateEndpoint } from './probe.ts';
+
+const safeTransportCodes = [
+  'TOOL_PROTOCOL',
+  'MODEL_MISMATCH',
+  'PROTOCOL',
+  'STREAM_PROTOCOL',
+  'RESPONSE_TOO_LARGE',
+  'SSRF_DENIED',
+  'TRANSIENT',
+] as const;
+type TransportCode = (typeof safeTransportCodes)[number];
+function transportCode(error: unknown): TransportCode {
+  return error instanceof Error && safeTransportCodes.some((code) => code === error.message)
+    ? (error.message as TransportCode)
+    : 'TRANSIENT';
+}
 export function assertPublicAddress(address: string): void {
   if (isIP(address) === 4) {
     const [a, b, c] = address.split('.').map(Number);
@@ -164,6 +180,7 @@ export class PinnedProviderTransport {
     body: unknown;
     signal: AbortSignal;
     response: ProbeResponse | null;
+    failure: TransportCode | null;
     assertCurrent?: () => Promise<void>;
   } | null = null;
   readonly deliver: SecretTransport;
@@ -194,6 +211,9 @@ export class PinnedProviderTransport {
             operation.signal,
             operation.assertCurrent,
           );
+        } catch (error) {
+          // Only this controlled send boundary can retain a closed code. Broker still redacts all callbacks.
+          operation.failure = transportCode(error);
         } finally {
           bytes.fill(0);
         }
@@ -227,12 +247,14 @@ export class PinnedProviderTransport {
       signal,
       assertCurrent,
       response: null as ProbeResponse | null,
+      failure: null as TransportCode | null,
     };
     this.pending = operation;
     try {
       await broker.withSecret(credentialRef, this.deliver);
       await assertCurrent?.();
       signal.throwIfAborted();
+      if (operation.failure) throw new Error(operation.failure);
       if (!operation.response) throw new Error('TRANSIENT');
       return operation.response;
     } finally {

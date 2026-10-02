@@ -14,6 +14,7 @@ export type ReporterPorts = {
   getDesired: () => Promise<SourceConfig | null>;
   currentBoot: () => { bootId: string; bootGeneration: string } | null;
 };
+type Snapshot = { config: SourceConfig; boot: { bootId: string; bootGeneration: string } };
 type Report = {
   formatVersion: 1;
   kind: 'inventory' | 'applied';
@@ -36,16 +37,26 @@ export class ModelReporter {
     workflows: Record<Workflow, WorkflowStatus>,
     collect: (config: SourceConfig, workflows: Record<Workflow, WorkflowStatus>) => Promise<ProbeResult[]>,
   ): Promise<string> {
-    this.desired = await this.ports.getDesired();
-    if (!this.desired) throw new Error('MODEL_CONFIG_NOT_CONFIGURED');
-    const snapshot = structuredClone(this.desired);
-    const entries = await collect(snapshot, workflows);
-    // A subsequent desired GET is required on the next reconnect; no owner-session revision.
-    return this.sendInventory({ entries });
+    const desired = await this.ports.getDesired();
+    if (!desired) throw new Error('MODEL_CONFIG_NOT_CONFIGURED');
+    this.desired = structuredClone(desired);
+    const snapshot = this.snapshot();
+    const entries = await collect(structuredClone(snapshot.config), structuredClone(workflows));
+    // Collection keeps its original revision and boot even if another reconnect wins meanwhile.
+    return this.inventory({ entries }, snapshot);
   }
   async sendInventory(body: ModelInventoryBody): Promise<string> {
-    const config = this.desired;
+    return this.inventory(body, this.snapshot());
+  }
+  private snapshot(): Snapshot {
+    const config = this.desired,
+      boot = this.ports.currentBoot();
     if (!config) throw new Error('MODEL_CONFIG_NOT_CONFIGURED');
+    if (!boot || !/^[1-9][0-9]*$/.test(boot.bootGeneration)) throw new Error('BOOT_NOT_CONFIGURED');
+    return structuredClone({ config, boot });
+  }
+  private inventory(body: ModelInventoryBody, snapshot: Snapshot): Promise<string> {
+    const config = snapshot.config;
     for (const entry of body.entries) {
       if (!config.enabled[entry.key.runtime]) throw new Error('SOURCE_DISABLED');
       if (
@@ -56,33 +67,40 @@ export class ModelReporter {
       )
         throw new Error('MODEL_NOT_CONFIGURED');
     }
-    return this.send('inventory', body);
+    return this.send('inventory', body, snapshot);
   }
   async sendApplied(body: ModelAppliedBody): Promise<string> {
-    const inventory = await this.store.get<Report>(body.inventoryReportId),
-      boot = this.ports.currentBoot();
+    const snapshot = this.snapshot(),
+      { config, boot } = snapshot;
+    body = structuredClone(body);
+    const inventory = await this.store.get<Report>(body.inventoryReportId);
     if (
       inventory?.kind !== 'inventory' ||
-      inventory.envelope.configRevision !== this.desired?.revision ||
-      inventory.envelope.bootId !== boot?.bootId ||
+      inventory.envelope.configRevision !== config.revision ||
+      inventory.envelope.bootId !== boot.bootId ||
       inventory.envelope.bootGeneration !== boot.bootGeneration ||
       hash(canonicalJson(inventory.envelope.body)) !== body.observationDigest
     )
       throw new Error('INVENTORY_MISMATCH');
     for (const runtime of ['claude', 'codex', 'api'] as const) {
-      if (!this.desired.enabled[runtime] && body.sourceStatus[runtime].state !== 'disabled')
+      if (!config.enabled[runtime] && body.sourceStatus[runtime].state !== 'disabled')
         throw new Error('SOURCE_DISABLED');
-      if (this.desired.enabled[runtime] && body.sourceStatus[runtime].state === 'disabled')
+      if (config.enabled[runtime] && body.sourceStatus[runtime].state === 'disabled')
         throw new Error('APPLIED_MISMATCH');
     }
     // Caller supplies measured source observation; this reporter never synthesizes ready.
-    return this.send('applied', body);
+    return this.send('applied', body, snapshot);
   }
-  private async send(kind: Report['kind'], body: ModelInventoryBody | ModelAppliedBody): Promise<string> {
-    const boot = this.ports.currentBoot(),
-      revision = this.desired?.revision;
-    if (!boot || !/^[1-9][0-9]*$/.test(boot.bootGeneration) || !revision)
-      throw new Error('BOOT_NOT_CONFIGURED');
+  private async send(
+    kind: Report['kind'],
+    body: ModelInventoryBody | ModelAppliedBody,
+    snapshot: Snapshot,
+  ): Promise<string> {
+    const {
+      boot,
+      config: { revision },
+    } = snapshot;
+    const capturedBody = JSON.parse(canonicalJson(body));
     const id = await this.store.transaction(async () => {
       const counterId = `sequence:${boot.bootId}:${boot.bootGeneration}`;
       const old = await this.store.get<{ formatVersion: 1; sequence: string }>(counterId);
@@ -95,7 +113,7 @@ export class ModelReporter {
           ...boot,
           sequence,
           configRevision: revision,
-          body: JSON.parse(canonicalJson(body)),
+          body: capturedBody,
         };
       await this.store.put(reportId, { formatVersion: 1, kind, envelope });
       return reportId;

@@ -437,3 +437,333 @@ test('model probe pinned DNS socket lookup honors Node all-address contract with
     assert.equal(family, 4);
   });
 });
+
+function responseStreamEvents(): Record<string, unknown>[] {
+  const fn = {
+    id: 'fc-fixture',
+    type: 'function_call',
+    call_id: 'call-fixture',
+    name: 'crew_probe_echo',
+    arguments: '{"value":"fixture"}',
+    status: 'completed',
+  };
+  const part = { type: 'output_text', text: 'fixture', annotations: [], logprobs: [] };
+  const msg = { id: 'msg-fixture', type: 'message', role: 'assistant', status: 'completed', content: [part] };
+  const response = { id: 'resp-fixture', model: 'chosen', status: 'in_progress', output: [] };
+  return [
+    { type: 'response.created', response },
+    { type: 'response.in_progress', response },
+    {
+      type: 'response.output_item.added',
+      output_index: 0,
+      item: { ...fn, arguments: '', status: 'in_progress' },
+    },
+    { type: 'response.function_call_arguments.delta', item_id: fn.id, output_index: 0, delta: '{"value":' },
+    { type: 'response.function_call_arguments.delta', item_id: fn.id, output_index: 0, delta: '"fixture"}' },
+    {
+      type: 'response.function_call_arguments.done',
+      item_id: fn.id,
+      output_index: 0,
+      arguments: fn.arguments,
+    },
+    { type: 'response.output_item.done', output_index: 0, item: fn },
+    {
+      type: 'response.output_item.added',
+      output_index: 1,
+      item: { ...msg, status: 'in_progress', content: [] },
+    },
+    {
+      type: 'response.content_part.added',
+      item_id: msg.id,
+      output_index: 1,
+      content_index: 0,
+      part: { ...part, text: '' },
+    },
+    {
+      type: 'response.output_text.delta',
+      item_id: msg.id,
+      output_index: 1,
+      content_index: 0,
+      delta: 'fix',
+      logprobs: [],
+    },
+    {
+      type: 'response.output_text.delta',
+      item_id: msg.id,
+      output_index: 1,
+      content_index: 0,
+      delta: 'ture',
+      logprobs: [],
+    },
+    {
+      type: 'response.output_text.done',
+      item_id: msg.id,
+      output_index: 1,
+      content_index: 0,
+      text: 'fixture',
+      logprobs: [],
+    },
+    { type: 'response.content_part.done', item_id: msg.id, output_index: 1, content_index: 0, part },
+    { type: 'response.output_item.done', output_index: 1, item: msg },
+    {
+      type: 'response.completed',
+      response: { ...response, status: 'completed', output: [fn, msg], usage: { total_tokens: 5 } },
+    },
+  ];
+}
+function responseWire(events: Record<string, unknown>[]): string {
+  return events
+    .map(
+      (event, sequence_number) =>
+        `event: ${event.type}\ndata: ${JSON.stringify({ sequence_number, ...event })}\n\n`,
+    )
+    .join('');
+}
+test('FIX1 R4 SSE accepts LF CRLF CR mixed endings and BOM but retains raw bound and final blank frame', () => {
+  const responses = `data: ${JSON.stringify({ type: 'response.completed', response: reply })}\n\n`;
+  const chat = `data: ${JSON.stringify({ model: 'chosen', choices: [{ index: 0, delta: { content: 'fixture' }, finish_reason: 'stop' }] })}\n\ndata: [DONE]\n\n`;
+  for (const [protocol, wire] of [
+    ['responses', responses],
+    ['chat-completions', chat],
+  ] as const) {
+    for (const ending of ['\n', '\r\n', '\r'])
+      assert.doesNotThrow(() => parseStream(protocol, wire.replaceAll('\n', ending), 'chosen'));
+    assert.doesNotThrow(() => parseStream(protocol, `\ufeff${wire.replace('\n', '\r\n')}`, 'chosen'));
+    assert.throws(() => parseStream(protocol, wire.slice(0, -1), 'chosen'), /STREAM_PROTOCOL/);
+    assert.throws(
+      () => parseStream(protocol, `:${'x'.repeat(1048576)}\r\n\r\n${wire}`, 'chosen'),
+      /STREAM_PROTOCOL/,
+    );
+  }
+});
+test('FIX1 R5 Responses correlates multi-fragment tool and text with lifecycle metadata and terminal body', () => {
+  const events = responseStreamEvents(),
+    completed = events.at(-1)?.response;
+  assert.deepEqual(parseStream('responses', responseWire(events), 'chosen'), completed);
+  assert.deepEqual(parseProtocol('responses', completed, 'chosen'), ['tools', 'text']);
+});
+test('FIX1 R5 nullable annotation metadata is correlated with final text', () => {
+  const events = responseStreamEvents();
+  for (const e of events) {
+    const part = e.part as Record<string, unknown> | undefined;
+    if (part) part.annotations = [null];
+  }
+  const msg = events[13]?.item as Record<string, unknown>;
+  const content = (msg.content as Record<string, unknown>[])[0];
+  assert.ok(content);
+  content.annotations = [null];
+  events.splice(11, 0, {
+    type: 'response.output_text.annotation.added',
+    item_id: msg.id,
+    output_index: 1,
+    content_index: 0,
+    annotation_index: 0,
+    annotation: null,
+  });
+  assert.doesNotThrow(() => parseStream('responses', responseWire(events), 'chosen'));
+});
+test('FIX1 R5 Responses rejects orphan duplicate conflicting and terminal-failure sequences', () => {
+  const mutations: ((events: Record<string, unknown>[]) => void)[] = [
+    (e) => {
+      e.splice(3, 0, {
+        type: 'response.function_call_arguments.delta',
+        item_id: 'orphan',
+        output_index: 99,
+        delta: 'bad',
+      });
+    },
+    (e) => {
+      e.splice(3, 0, structuredClone(e[2] ?? {}));
+    },
+    (e) => {
+      const r = e[1]?.response as Record<string, unknown>;
+      r.id = 'other-response';
+    },
+    (e) => {
+      const r = e[1]?.response as Record<string, unknown>;
+      r.model = 'wrong';
+    },
+    (e) => {
+      e[3] = { ...e[3], item_id: 'other-item' };
+    },
+    (e) => {
+      e[4] = { ...e[4], delta: '"different"}' };
+    },
+    (e) => {
+      e[5] = { ...e[5], arguments: '{"value":"different"}' };
+    },
+    (e) => {
+      const item = e[6]?.item as Record<string, unknown>;
+      item.call_id = 'other-call';
+    },
+    (e) => {
+      e[10] = { ...e[10], delta: 'different' };
+    },
+    (e) => {
+      const r = e.at(-1)?.response as Record<string, unknown>;
+      r.id = 'other-response';
+    },
+    (e) => {
+      e.splice(2, 0, {
+        type: 'response.failed',
+        response: { id: 'resp-fixture', model: 'chosen', status: 'failed' },
+      });
+    },
+    (e) => {
+      e.splice(2, 0, {
+        type: 'response.incomplete',
+        response: { id: 'resp-fixture', model: 'chosen', status: 'incomplete' },
+      });
+    },
+    (e) => {
+      e.splice(2, 0, { type: 'error', code: 'fixture-failed', message: 'fixture-sensitive' });
+    },
+    (e) => {
+      e[4] = { ...e[4], sequence_number: 2 };
+    },
+    (e) => {
+      e.splice(5, 1);
+    },
+    (e) => {
+      e[3] = { ...e[3], response_id: 'other-response' };
+    },
+    (e) => {
+      const r = e.at(-1)?.response as Record<string, unknown>;
+      r.output = [];
+    },
+  ];
+  for (const [index, mutate] of mutations.entries()) {
+    const events = structuredClone(responseStreamEvents());
+    mutate(events);
+    assert.throws(
+      () => parseStream('responses', responseWire(events), 'chosen'),
+      /STREAM_PROTOCOL|TOOL_PROTOCOL|MODEL_MISMATCH|PROTOCOL/,
+      `mutation ${index}`,
+    );
+  }
+});
+
+test('FIX1 R6 broker transport prober preserves closed protocol/size/SSRF outcomes and redacts unknown errors', async () => {
+  let mode = 'tool',
+    hits = 0;
+  const server = createServer((req, res) => {
+    hits++;
+    if (mode === 'network') {
+      req.socket.destroy();
+      return;
+    }
+    if (mode === '401' || mode === '429' || mode === '503') {
+      res.statusCode = Number(mode);
+      res.end('fixture-sensitive-response');
+      return;
+    }
+    res.setHeader('content-type', 'application/json');
+    const body =
+      mode === 'tool'
+        ? {
+            ...reply,
+            output: [
+              {
+                type: 'function_call',
+                name: 'crew_probe_echo',
+                call_id: 'x',
+                arguments: 'fixture-sensitive-invalid-json',
+              },
+            ],
+          }
+        : mode === 'model'
+          ? { ...reply, model: 'wrong' }
+          : mode === 'size'
+            ? { ...reply, padding: 'x'.repeat(1048576) }
+            : reply;
+    res.end(JSON.stringify(body));
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== 'string');
+  const origin = `http://127.0.0.1:${address.port}`,
+    p = {
+      ...provider,
+      endpoint: `${origin}/v1/`,
+      localHttp: { enabled: true as const, allowedOrigin: origin },
+    };
+  const local = new PinnedProviderTransport(p),
+    denied = new PinnedProviderTransport({ ...provider, endpoint: 'https://localhost./v1/' });
+  const values = new Map<string, Buffer>(),
+    readBuffers: Buffer[] = [];
+  const unsafe = async () => {
+    throw new Error('fixture-sensitive-callback');
+  };
+  const broker = new CredentialBroker(
+    randomUUID(),
+    {
+      read: async (s, a) => {
+        const v = values.get(s + a);
+        if (!v) return null;
+        const b = Buffer.from(v);
+        readBuffers.push(b);
+        return b;
+      },
+      put: async (s, a, b) => {
+        values.set(s + a, Buffer.from(b));
+      },
+      remove: async (s, a) => {
+        values.delete(s + a);
+      },
+    },
+    [local.deliver, denied.deliver, unsafe],
+  );
+  try {
+    const ref = await broker.put(randomUUID(), Buffer.from('fixture-sensitive-secret'));
+    for (const [kind, expected] of [
+      ['tool', 'TOOL_PROTOCOL'],
+      ['model', 'MODEL_MISMATCH'],
+      ['size', 'RESPONSE_TOO_LARGE'],
+      ['401', 'AUTH'],
+      ['429', 'QUOTA'],
+      ['503', 'TRANSIENT'],
+      ['network', 'TRANSIENT'],
+    ] as const) {
+      mode = kind;
+      const before = hits;
+      const prober = new ModelProber({
+        ...ports,
+        provider: () => p,
+        offline: (_key, signal) => local.call('chosen', broker, ref, signal),
+        deadlineMs: 2000,
+      });
+      const result = await prober.probeModel(key, { source, projection }, 'offline');
+      assert.equal(result.errorCode, expected, kind);
+      assert.equal(hits, before + 1);
+      assert.equal(JSON.stringify(result).includes('fixture-sensitive'), false);
+      assert.ok(readBuffers.every((b) => b.every((n) => n === 0)));
+    }
+    const prober = new ModelProber({
+      ...ports,
+      provider: () => ({ ...provider, endpoint: 'https://localhost./v1/' }),
+      offline: (_key, signal) => denied.call('chosen', broker, ref, signal),
+      deadlineMs: 2000,
+    });
+    assert.equal((await prober.probeModel(key, { source, projection }, 'offline')).errorCode, 'SSRF_DENIED');
+    await assert.rejects(broker.withSecret(ref, unsafe), /^Error: CREDENTIAL_TRANSPORT_FAILED$/);
+    assert.ok(readBuffers.every((b) => b.every((n) => n === 0)));
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});
+
+test('FIX1 R5 documented response_id and optional function status remain correlated', () => {
+  const events = structuredClone(responseStreamEvents()).slice(2);
+  for (const event of events) {
+    event.response_id = 'resp-fixture';
+    const item = event.item as Record<string, unknown> | undefined;
+    if (item?.type === 'function_call') delete item.status;
+  }
+  const response = events.at(-1)?.response as Record<string, unknown>;
+  for (const item of response.output as Record<string, unknown>[])
+    if (item.type === 'function_call') delete item.status;
+  assert.doesNotThrow(() => parseStream('responses', responseWire(events), 'chosen'));
+  events[1] = { ...events[1], response_id: 'foreign' };
+  assert.throws(() => parseStream('responses', responseWire(events), 'chosen'), /STREAM_PROTOCOL/);
+});
