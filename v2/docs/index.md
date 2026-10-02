@@ -30,6 +30,7 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g�
 | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
 | [Host cổng macOS Crew v2](flows/gateway-host.md) | `gateway-host` | `gateway/src/host/main.ts` |
 | [Registry workflow ghim nguồn và runtime projection](flows/gateway-workflows.md) | `gateway-workflows` | `gateway/src/workflows/registry.ts` |
+| [Storage và staging attachment Crew v2](flows/server-attachments.md) | `server-attachments` | — |
 | [Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2](flows/server-docs-import.md) | `server-docs-import` | `server/scripts/docs-import.ts`, `server/src/docs/validator.ts` |
 | [Đọc tài liệu và tích hợp HTTP Crew v2](flows/server-docs-view.md) | `server-docs-view` | `server/src/app.ts`, `server/src/docs/routes.ts` |
 | [Command, attempt và quyền thực thi có fencing](flows/server-execution.md) | `server-execution` | `server/src/execution/routes.ts` |

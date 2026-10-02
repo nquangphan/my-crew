@@ -281,5 +281,21 @@ flows:
       - server/test/support/model-certification.ts
       - server/test/support/model-http.ts
       - server/test/support/model-observer.ts
+  server-attachments:
+    title: Storage và staging attachment Crew v2
+    doc: docs/flows/server-attachments.md
+    entrypoints: []
+    files:
+      - server/src/attachments/config.ts
+      - server/src/attachments/contracts.ts
+      - server/src/attachments/receivers.ts
+      - server/src/attachments/staging.ts
+      - server/src/attachments/storage.ts
+      - server/migrations/009_attachments.sql
+    tests:
+      - server/test/attachment-event.test.ts
+      - server/test/attachments-staging.test.ts
+      - server/test/attachments-storage.test.ts
+      - server/test/support/attachments.ts
 shared: {}
 unassigned: []

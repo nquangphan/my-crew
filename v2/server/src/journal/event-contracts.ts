@@ -61,6 +61,38 @@ export function validateEventInput(input: EventInput): void {
   const data = input.data;
   let valid = false;
   switch (input.type) {
+    case 'attachment.changed':
+      valid =
+        exactKeys(data, ['attachmentId', 'state', 'extraction']) &&
+        typeof data.attachmentId === 'string' &&
+        uuid.test(data.attachmentId) &&
+        typeof data.state === 'string' &&
+        [
+          'reserved',
+          'receiving',
+          'ready',
+          'rejected',
+          'abandoned',
+          'deleting',
+          'deleted',
+          'missing',
+        ].includes(String(data.state)) &&
+        typeof data.extraction === 'string' &&
+        [
+          'pending',
+          'running',
+          'complete',
+          'partial',
+          'encrypted',
+          'corrupt',
+          'unsupported',
+          'blocked',
+          'failed',
+        ].includes(String(data.extraction)) &&
+        input.audienceMachineId === null &&
+        ((input.projectId === null && input.ticketId === null) ||
+          (input.projectId !== null && input.ticketId !== null));
+      break;
     case 'source.desired':
     case 'source.applied':
       valid =

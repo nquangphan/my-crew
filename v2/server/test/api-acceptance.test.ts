@@ -809,9 +809,12 @@ test('HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real
       const importedProject = result.projects[0];
       assert(importedProject, 'Large bundle import must return a project');
       assert.equal(importedProject.auditState, 'invalid');
-      assert.equal((await f.ownerPost('/v2/tickets', { blob: 'x'.repeat(1024 * 1024) })).statusCode, 413);
       assert.equal(
-        (await f.ownerPost('/v2/docs/imports', { blob: 'x'.repeat(24 * 1024 * 1024) })).statusCode,
+        (await f.ownerOversizedPost('/v2/tickets', { blob: 'x'.repeat(1024 * 1024) })).statusCode,
+        413,
+      );
+      assert.equal(
+        (await f.ownerOversizedPost('/v2/docs/imports', { blob: 'x'.repeat(24 * 1024 * 1024) })).statusCode,
         413,
       );
       const cursor = checked<{ cursor: string }>(await f.ownerGet('/v2/events?limit=100'), 200).cursor;
