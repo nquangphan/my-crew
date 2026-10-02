@@ -55,5 +55,22 @@ flows:
       - server/migrations/002_journal.sql
     tests:
       - server/test/journal.test.ts
+  server-identity:
+    title: Xác thực owner và gắn dự án với máy Crew v2
+    doc: docs/flows/server-identity.md
+    entrypoints:
+      - server/src/auth/routes.ts
+      - server/src/projects/routes.ts
+    files:
+      - server/src/auth/bootstrap.ts
+      - server/src/auth/machine.ts
+      - server/src/auth/password.ts
+      - server/src/auth/session.ts
+      - server/src/projects/service.ts
+      - server/migrations/003_identity.sql
+    tests:
+      - server/test/auth.test.ts
+      - server/test/projects.test.ts
+      - server/test/support/identity-app.ts
 shared: {}
 unassigned: []

@@ -7,8 +7,8 @@
 
 ## Ranh giới xử lý
 
-Thư viện trả về quyết định dựa trên dữ liệu đầu vào. Package `server/` có nền tảng cấu hình, pool PostgreSQL riêng và migration tường minh. Các task còn lại phần 02 xây xác thực request,
-giao dịch cơ sở dữ liệu, lease, lưu trạng thái và điều phối công việc. Thư viện không mô phỏng các trách nhiệm đó
+Thư viện trả về quyết định dựa trên dữ liệu đầu vào. Package `server/` có nền tảng cấu hình, pool PostgreSQL riêng và migration tường minh. Journal đã triển khai mutation idempotent, event cursor theo thứ tự commit và SSE replay; factory route nhận bộ xác thực cùng scope reader được tiêm vào. Các task còn lại phần 02 xây xác thực request,
+lease, lưu trạng thái ticket và điều phối công việc. Thư viện không mô phỏng các trách nhiệm đó
 bằng trạng thái trong bộ nhớ.
 
 ## Dữ liệu và dịch vụ ngoài
@@ -22,3 +22,5 @@ Từ gốc repo, chạy `pnpm --dir v2 test` và `pnpm --dir v2 typecheck`. Lock
 workspace này.
 
 Kiểm tra nền tảng server bằng `pnpm --dir v2/server test` (cần Docker) và `pnpm --dir v2/server typecheck`. Runner dùng container PostgreSQL tạm trên cổng loopback ngẫu nhiên; không đụng DB đang chạy ở cổng 5432/55432.
+
+Flow `server-journal` mô tả khóa idempotency theo actor/route, transaction dùng global cursor lock trước khóa nghiệp vụ và event metadata có schema riêng. API đọc event trả `{items,cursor}`; SSE xác thực trước khi mở stream, đọc backlog trước khi poll và dừng timer khi socket đóng. Chưa có entrypoint server tổng hợp cho người dùng ở giai đoạn này.

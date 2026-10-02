@@ -9,9 +9,15 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 |------|-------|
 | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
 | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
+| `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
 | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+| `server/src/auth/bootstrap.ts` | [server-identity](flows/server-identity.md) (file) |
+| `server/src/auth/machine.ts` | [server-identity](flows/server-identity.md) (file) |
+| `server/src/auth/password.ts` | [server-identity](flows/server-identity.md) (file) |
+| `server/src/auth/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+| `server/src/auth/session.ts` | [server-identity](flows/server-identity.md) (file) |
 | `server/src/db/client.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
 | `server/src/journal/canonical.ts` | [server-journal](flows/server-journal.md) (file) |
@@ -24,9 +30,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/platform/picomatch.d.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
+| `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
+| `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
+| `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
 | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
+| `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
 | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
+| `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
 | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
 | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
 | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
