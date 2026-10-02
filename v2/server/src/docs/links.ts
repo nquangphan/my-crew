@@ -66,7 +66,10 @@ function scanText(text: string): { visible: string; references: Map<string, stri
       const before = source.slice(0, offset);
       return before.lastIndexOf('[') > before.lastIndexOf(']') ? 'CODE' : '';
     });
-    const withoutTaskMarker = withoutCode.replace(/^(\s*(?:[-+*]|\d+\.)\s+)\[[ xX]\](?=\s|$)/, '$1');
+    const withoutTaskMarker = withoutCode.replace(
+      /^([ \t]*(?:>[ \t]*)*(?:(?:[-+*]|\d+[.)])[ \t]+)+)\[[ xX]\](?=[ \t]|$)/,
+      '$1',
+    );
     if (
       /\]\([^)]*\([^)]*\)/.test(withoutTaskMarker) ||
       /\[[^\]]*\[[^\]]+\][^\]]*\]\(/.test(withoutTaskMarker) ||

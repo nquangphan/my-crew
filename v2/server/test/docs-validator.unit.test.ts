@@ -396,3 +396,53 @@ test('task-list checkboxes do not consume link occurrences or create link warnin
   );
   assert(raw.equals(before));
 });
+
+test('task-list marker variants preserve real link and shortcut occurrences', () => {
+  for (const marker of [
+    '- [x]',
+    '+ [ ]',
+    '* [X]',
+    '1. [x]',
+    '1) [x]',
+    '> - [x]',
+    '> 2) [ ]',
+    '> > * [X]',
+    '  - [x]',
+    '- 1) [x]',
+  ]) {
+    const raw = Buffer.from(
+      `${marker} done\r\n[real](missing.md#one) [shortcut] [\`Code\`](missing.md#three)\r\n[shortcut]: missing.md#two\r\n`,
+    );
+    const input = docsValidationFixture({ 'docs/a.md': raw });
+    const before = Buffer.from(raw);
+    const result = validateDocs(input);
+    const links = result.links.filter((link) => link.fromPath === 'docs/a.md');
+    assert.deepEqual(
+      links.map((link) => link.occurrence),
+      [0, 1, 2],
+      marker,
+    );
+    assert.deepEqual(
+      links.map((link) => link.originalHref),
+      ['missing.md#one', 'missing.md#two', 'missing.md#three'],
+      marker,
+    );
+    assert.deepEqual(
+      links.map((link) => link.fragment),
+      ['one', 'two', 'three'],
+      marker,
+    );
+    assert.deepEqual(
+      links.map((link) => link.status),
+      ['missing', 'missing', 'missing'],
+      marker,
+    );
+    assert.equal(
+      result.issues.filter((issue) => issue.code === 'UNVERIFIED_LINK_SYNTAX' && issue.path === 'docs/a.md')
+        .length,
+      0,
+      marker,
+    );
+    assert(raw.equals(before), marker);
+  }
+});

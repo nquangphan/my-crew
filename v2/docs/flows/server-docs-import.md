@@ -15,7 +15,7 @@ Giữ nguyên byte của tài liệu nhập từ Crew v1, phân biệt tài li�
 2. `server/src/docs/checksum.ts` → `snapshotHash`: kiểm tra base64 chuẩn, checksum, UTF-8 và file trùng; băm danh sách tuple path/checksum/kích thước/class đã sắp xếp.
 3. `server/src/docs/manifest.ts` → `parseManifest`: đọc YAML có bắt khóa trùng, chặn khóa/prototype nguy hiểm, kiểm tra schema, path, mapping và source glob.
 4. `server/src/docs/validator.ts` → `validateDocs`: áp dụng STANDARD khi snapshot có trang implemented, kiểm tra mọi marker bước đánh số kể cả dòng rỗng trong đúng phần `Các bước`, heading ngoài fenced code, block sinh tự động, manifest và độ phủ source khi có danh sách source checkout. Snapshot chỉ có workflow artifact được kiểm tra toàn vẹn mà không bị ép có trang STANDARD; bản nhập legacy có manifest phát cảnh báo `SOURCE_TREE_UNVERIFIED`.
-5. `server/src/docs/links.ts` → `auditLinks`: duyệt Markdown inline/reference/shortcut-reference/image, giữ nhãn có inline code, bỏ code độc lập và checkbox task-list khỏi stream link, giải đường dẫn tương đối, kiểm tra fragment và giữ `occurrence` cho từng link thật. Cú pháp chưa hỗ trợ được đánh dấu unverified.
+5. `server/src/docs/links.ts` → `auditLinks`: duyệt Markdown inline/reference/shortcut-reference/image, giữ nhãn có inline code, bỏ code độc lập và marker checkbox của list dạng dấu, số `.`/`)`, kể cả trong blockquote/list lồng, khỏi stream link; giải đường dẫn tương đối, kiểm tra fragment và giữ `occurrence` cho từng link thật. Cú pháp chưa hỗ trợ được đánh dấu unverified.
 
 ## Files
 
