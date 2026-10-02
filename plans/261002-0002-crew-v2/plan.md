@@ -1,7 +1,7 @@
 # Crew v2 — Lộ trình triển khai
 
 **Spec đã duyệt:** [/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md](/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md).
-**Trạng thái cập nhật 2026-10-02:** phần 01 đã triển khai, review và merge main; phần 02 đã xong task 1–6 và đang nghiệm thu API integration (task 7); phần 03 đã xong, review host/app shell và journal/telemetry/resource registry (task 1–2). Kế hoạch 02–06 đã được review và duyệt; phần 07 chờ duyệt prototype, kế hoạch 08 đang sửa theo review, kế hoạch 09 đang soạn. Phần 04–09 chưa có triển khai hay chứng nhận runtime thật.
+**Trạng thái cập nhật 2026-10-02:** phần 01 đã triển khai, review và merge main; phần 02 đã xong task 1–6 và đang nghiệm thu API integration (task 7); phần 03 đã xong, review host/app shell và journal/telemetry/resource registry (task 1–2). Kế hoạch 02–06 đã được review và duyệt; phần 07 chờ duyệt prototype, kế hoạch 08 đã qua review, kế hoạch 09 đang được review. Phần 04–09 chưa có triển khai hay chứng nhận runtime thật.
 
 ## Cách chia việc
 
@@ -12,7 +12,7 @@ chạy; khi nghiệm thu, đóng gói/deploy v2 riêng. Không xóa hay migrate 
 Đây là lộ trình toàn sản phẩm. Mỗi phần có kế hoạch chi tiết và review riêng, dựa vào hợp đồng phần trước.
 Kế hoạch đã duyệt: [01](phase-01-domain-foundation.md), [02](phase-02-server-docs.md),
 [03](phase-03-macos-workflows.md), [04](phase-04-runtime-models.md), [05](phase-05-attachments.md)
-và [06](phase-06-assistant-workflows.md).
+[06](phase-06-assistant-workflows.md) và [08](phase-08-integration-docs-gates.md).
 Trạng thái kế hoạch khác với trạng thái code hoặc chứng nhận runtime thật; mỗi phần cần đủ bằng chứng nghiệm thu riêng.
 
 ## Các phần và điều kiện nghiệm thu
