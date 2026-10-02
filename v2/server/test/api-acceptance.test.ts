@@ -128,13 +128,16 @@ async function digest(db: Db) {
   return { counts, files: [...files], results: [...results] };
 }
 async function backupRestore(db: Db) {
-  const containerId = process.env.CREW_V2_TEST_CONTAINER_ID!;
+  const containerId = process.env.CREW_V2_TEST_CONTAINER_ID;
+  assert(containerId, 'Private test container ID is required');
   assert.match(containerId, /^[0-9a-f]{64}$/);
-  const base = process.env.CREW_V2_TEST_DATABASE_URL!;
+  const base = process.env.CREW_V2_TEST_DATABASE_URL;
+  assert(base, 'Private test database URL is required');
   const [name] = await db`select current_database() name`;
+  assert(name && typeof name.name === 'string', 'Database must return its current name');
   const dump = spawnSync(
     'docker',
-    ['exec', containerId, 'pg_dump', '-U', 'postgres', '-Fc', '-d', name!.name as string],
+    ['exec', containerId, 'pg_dump', '-U', 'postgres', '-Fc', '-d', name.name],
     { maxBuffer: 24 * 1024 * 1024 },
   );
   assert.equal(dump.status, 0, dump.stderr.toString());
@@ -198,13 +201,16 @@ test('HTTP persistence graph commands events docs reconnect restart and backup r
       const first = await f.import(imported, 'import');
       const replay = await f.import(imported, 'import');
       assert.deepEqual(replay, first);
+      const importedProject = first.projects[0];
+      assert(importedProject, 'Import must return a project');
       assert.equal(
-        (await f.ownerGet(`/v2/projects/${first.projects[0]!.projectId}`)).json().docsState,
+        (await f.ownerGet(`/v2/projects/${importedProject.projectId}`)).json().docsState,
         'unverified',
       );
       const priorCursor = checked<{ cursor: string }>(await f.ownerGet('/v2/events?limit=100'), 200).cursor;
       const launch = await start(f, x);
-      const attempt = launch.attempt!;
+      const attempt = launch.attempt;
+      assert(attempt, 'Successful claim must return an attempt');
       assert.equal((await f.machineGet(`/v2/machine/attempts/${attempt.id}`, x.b.token)).statusCode, 404);
       const checkpoint = {
         fence: attempt.fence,
@@ -275,7 +281,7 @@ test('HTTP persistence graph commands events docs reconnect restart and backup r
       assert.equal(new Set(events.map((event) => event.cursor)).size, events.length);
       assert.equal(events.filter((event) => event.type === 'comment.created').length, 1);
       const page = checked<{ sourceCommit: string | null }>(
-        await f.ownerGet(`/v2/projects/${first.projects[0]!.projectId}/docs/page?path=docs/index.md`),
+        await f.ownerGet(`/v2/projects/${importedProject.projectId}/docs/page?path=docs/index.md`),
         200,
       );
       assert.equal(page.sourceCommit, null);
@@ -385,7 +391,9 @@ test('HTTP ticket cached replay cannot race current binding or machine revocatio
 async function stream(f: Api, headers: Record<string, string>) {
   const response = await fetch(`${f.url}/v2/events/stream`, { headers, signal: AbortSignal.timeout(6000) });
   assert.equal(response.status, 200);
-  const reader = response.body!.getReader();
+  const body = response.body;
+  assert(body, 'Successful SSE response must provide a body');
+  const reader = body.getReader();
   let content = '';
   const finished = (async () => {
     while (true) {
@@ -543,7 +551,8 @@ test('HTTP all machine ticket mutation families reject cached replay after rebin
     const f = await apiFixture(db, { authority: { authorizeDispatch: trustedDispatch } });
     try {
       const { a, b } = await machines(f);
-      const p = (await f.import(legacyBundle(validDocs()))).projects[0]!;
+      const p = (await f.import(legacyBundle(validDocs()))).projects[0];
+      assert(p, 'Import must return a project');
       checked(
         await f.ownerPut(`/v2/projects/${p.projectId}/binding`, {
           machineId: a.machineId,
@@ -634,7 +643,8 @@ test('HTTP fifth repair result remains fenced until confirmed physical stop', as
     try {
       const x = await setup(f);
       const launch = await start(f, x, x.step);
-      const attempt = launch.attempt!;
+      const attempt = launch.attempt;
+      assert(attempt, 'Successful claim must return an attempt');
       await db`update tickets set repair_cycles=4 where id=${x.step.id}`;
       const body = {
         attemptId: attempt.id,
@@ -796,7 +806,9 @@ test('HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real
       });
       assert(JSON.stringify(bundle).length > 1024 * 1024);
       const result = await f.import(bundle);
-      assert.equal(result.projects[0]!.auditState, 'invalid');
+      const importedProject = result.projects[0];
+      assert(importedProject, 'Large bundle import must return a project');
+      assert.equal(importedProject.auditState, 'invalid');
       assert.equal((await f.ownerPost('/v2/tickets', { blob: 'x'.repeat(1024 * 1024) })).statusCode, 413);
       assert.equal(
         (await f.ownerPost('/v2/docs/imports', { blob: 'x'.repeat(24 * 1024 * 1024) })).statusCode,

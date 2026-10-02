@@ -23,7 +23,8 @@ test('docs tìm kiếm Unicode original bytes audit labels and actor permissions
           'docs/superpowers/plans/sample.md': Buffer.from('# Kết nối artifact'),
         }),
       );
-      const p = imported.projects[0]!;
+      const p = imported.projects[0];
+      assert(p, 'Import must return a project');
       const search = await f.ownerGet(
         `/v2/docs/search?q=${encodeURIComponent('Kết nối')}&projectId=${p.projectId}`,
       );
@@ -77,7 +78,8 @@ test('search full literal fallback beyond GIN prefix, escaped wildcard and scope
         'docs/flows/tied.md': Buffer.from(`${'z '.repeat(5000)}\nTailNeedle tied zero rank`),
       };
       const bundle = legacyBundle(files);
-      const p = (await f.import(bundle)).projects[0]!;
+      const p = (await f.import(bundle)).projects[0];
+      assert(p, 'Import must return a project');
       assert.equal(
         (await f.ownerGet('/v2/docs/search?q=TailNeedle')).json<{ items: unknown[] }>().items.length,
         3,
@@ -96,13 +98,19 @@ test('search full literal fallback beyond GIN prefix, escaped wildcard and scope
         await f.ownerGet(`/v2/docs/search?q=TailNeedle&limit=1&after=${first.nextCursor}`)
       ).json<{ items: { path: string }[]; nextCursor: string | null }>();
       assert.equal(second.items.length, 1);
-      assert.notEqual(first.items[0]!.path, second.items[0]!.path);
+      const firstItem = first.items[0];
+      const secondItem = second.items[0];
+      assert(firstItem, 'First search page must contain an item');
+      assert(secondItem, 'Second search page must contain an item');
+      assert.notEqual(firstItem.path, secondItem.path);
       assert(second.nextCursor);
       const third = (
         await f.ownerGet(`/v2/docs/search?q=TailNeedle&limit=1&after=${second.nextCursor}`)
       ).json<{ items: { path: string }[]; nextCursor: string | null }>();
       assert.equal(third.items.length, 1);
-      assert.equal(new Set([first.items[0]!.path, second.items[0]!.path, third.items[0]!.path]).size, 3);
+      const thirdItem = third.items[0];
+      assert(thirdItem, 'Third search page must contain an item');
+      assert.equal(new Set([firstItem.path, secondItem.path, thirdItem.path]).size, 3);
       assert.equal(third.nextCursor, null);
       assert.equal((await f.ownerGet(`/v2/docs/search?q=other&after=${first.nextCursor}`)).statusCode, 400);
       assert.equal(
@@ -111,7 +119,9 @@ test('search full literal fallback beyond GIN prefix, escaped wildcard and scope
         400,
       );
       const next = legacyBundle({ 'docs/index.md': Buffer.from('# New snapshot') });
-      next.inventory[0]!.legacyProjectId = 'legacy-1';
+      const nextProject = next.inventory[0];
+      assert(nextProject, 'Bundle must contain a project');
+      nextProject.legacyProjectId = 'legacy-1';
       await f.import(rehashBundle(next));
       assert.equal(
         (await f.ownerGet('/v2/docs/search?q=TailNeedle')).json<{ items: unknown[] }>().items.length,
@@ -140,7 +150,8 @@ test('docs tree links composite ticket references and verified mixed standard-pa
           'docs/superpowers/plans/design.md': Buffer.from('# Thiết kế\n[Index](../../index.md)'),
         }),
       );
-      const p = imported.projects[0]!;
+      const p = imported.projects[0];
+      assert(p, 'Import must return a project');
       const response = await f.ownerPost('/v2/tickets', {
         projectId: p.projectId,
         parentId: null,
@@ -183,9 +194,12 @@ test('docs tree links composite ticket references and verified mixed standard-pa
       );
       assert.equal(tree.links.length > 0, true);
       const second = legacyBundle(validDocs());
-      second.inventory[0]!.legacyProjectId = 'legacy-2';
-      second.inventory[0]!.key = 'OTHER';
-      const foreign = (await f.import(rehashBundle(second))).projects[0]!;
+      const secondProject = second.inventory[0];
+      assert(secondProject, 'Bundle must contain a project');
+      secondProject.legacyProjectId = 'legacy-2';
+      secondProject.key = 'OTHER';
+      const foreign = (await f.import(rehashBundle(second))).projects[0];
+      assert(foreign, 'Import must return a foreign project');
       assert.equal(
         (await f.ownerGet(`/v2/projects/${p.projectId}/docs/tree?snapshotId=${foreign.snapshotId}`))
           .statusCode,
