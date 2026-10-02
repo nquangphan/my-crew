@@ -131,7 +131,9 @@ int main(int argc,char **argv){
     return 6;
   }
   struct stat s;
-  if(fstat(child,&s)||s.st_nlink!=(nlink_t)strtoul(argv[11],NULL,10)||tree(child,s.st_dev,0)){
+  /* argv[11] remains an observational directory link-count snapshot for ABI compatibility.
+     Runtime contents and partial deletion change it; regular-file aliases still fail in tree(). */
+  if(fstat(child,&s)||tree(child,s.st_dev,0)){
     close(child);
     close(parent);
     close(root);

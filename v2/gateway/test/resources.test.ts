@@ -270,3 +270,156 @@ test('resources abort after durable quarantine retains owned bytes and retry rem
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('resources runtime output changes directory link count after attest and still cleans up after exact stop', async () => {
+  const { ownedRun } = await import('./support/owned-run.ts');
+  const { Launcher } = await import('../src/journal/process-journal.ts');
+  const { lstat } = await import('node:fs/promises');
+  const root = await mkdtemp(join(await realpath(tmpdir()), 'crew-resource-runtime-links-'));
+  const fixture = await ownedRun(root);
+  let launcher: InstanceType<typeof Launcher> | null = null;
+  try {
+    const resource = await fixture.registry.reserveOwnedPath({ runId: 'run', kind: 'scratch' });
+    const attested = await fixture.registry.createAndAttest(resource.resourceId, async (path) => {
+      await writeFile(join(path, 'before'), 'initial output');
+      await mkdir(join(path, 'initial-directory'));
+      await writeFile(join(path, 'initial-directory', 'removed'), 'initial nested output');
+    });
+    const original = (await fixture.journal.processes())[0];
+    assert.ok(original);
+    const record = await fixture.journal.reserve({
+      commandId: 'runtime-output',
+      ticketId: original.ticketId,
+      processInstanceId: 'runtime-output-instance',
+      source: original.source,
+      projection: original.projection,
+    });
+    const script = `const fs=require('node:fs');const path=${JSON.stringify(resource.path)};fs.mkdirSync(path+'/runtime-output');fs.writeFileSync(path+'/runtime-output/bytes','runtime output');fs.mkdirSync(path+'/runtime-more');fs.writeFileSync(path+'/runtime-more/bytes','more output');fs.writeFileSync(path+'/after','completed output');fs.unlinkSync(path+'/before');fs.rmSync(path+'/initial-directory',{recursive:true});fs.mkdirSync(path+'/runtime-output/transient');fs.writeFileSync(path+'/runtime-output/transient/bytes','transient');fs.rmSync(path+'/runtime-output/transient',{recursive:true});`;
+    launcher = new Launcher(fixture.journal, {
+      command: [process.execPath, '-e', script],
+      recheckCapacity: async () => true,
+      verifyProjection: async (launch, fence, attemptId) => ({
+        attemptId,
+        fence,
+        processInstanceId: launch.processInstanceId,
+        sourceTreeSha256: launch.source.sourceTreeSha256,
+        runtime: launch.projection.runtime,
+        projectionManifestSha256: launch.projection.manifestSha256,
+        projectionTreeSha256: launch.projection.treeSha256,
+        installReportId: 'report',
+      }),
+    });
+    const ready = await launcher.spawnGated(record);
+    await fixture.registry.registerProcess('run', record.processInstanceId, ready.startIdentity);
+    await launcher.release(record, '2', 'runtime-output-attempt');
+    await launcher.wait(record);
+    assert.equal(await fixture.journal.observe(record), 'stopped');
+    const current = await lstat(resource.path);
+    assert.equal(String(current.dev), attested.device);
+    assert.equal(String(current.ino), attested.inode);
+    assert.equal(current.uid, attested.ownerUid);
+    assert.notEqual(
+      current.nlink,
+      attested.linkCount,
+      'APFS directory link count changes with runtime contents',
+    );
+    assert.equal(await readFile(join(resource.path, 'runtime-output', 'bytes'), 'utf8'), 'runtime output');
+    await assert.rejects(readFile(join(resource.path, 'before')));
+    await assert.rejects(readFile(join(resource.path, 'initial-directory', 'removed')));
+    assert.deepEqual(await fixture.registry.cleanup('run'), {
+      deleted: [resource.resourceId],
+      retained: [],
+      failed: [],
+    });
+    await assert.rejects(lstat(resource.path));
+    assert.deepEqual(await fixture.registry.cleanup('run'), {
+      deleted: [resource.resourceId],
+      retained: [],
+      failed: [],
+    });
+  } finally {
+    await launcher?.close();
+    await fixture.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('resources actual partial native deletion retains quarantine and retries after its owned immutable flag clears', async () => {
+  const { ownedRun } = await import('./support/owned-run.ts');
+  const { execFile } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  const { lstat } = await import('node:fs/promises');
+  const { hash, readRecord } = await import('../src/journal/atomic-records.ts');
+  const execute = promisify(execFile);
+  const root = await mkdtemp(join(await realpath(tmpdir()), 'crew-resource-partial-delete-'));
+  const fixture = await ownedRun(root);
+  await fixture.registry.close();
+  let quarantineBlocked: string | undefined;
+  let blockOnce = true;
+  let registry = await ResourceRegistry.open(root, {
+    processJournal: fixture.journal,
+    onDurableCleanup: async () => {
+      assert.ok(quarantineBlocked);
+      if (blockOnce) {
+        blockOnce = false;
+        await execute('/usr/bin/chflags', ['uchg', quarantineBlocked]);
+      }
+    },
+  });
+  try {
+    const resource = await registry.reserveOwnedPath({ runId: 'run', kind: 'scratch' });
+    const attested = await registry.createAndAttest(resource.resourceId, async (path) => {
+      await mkdir(join(path, 'blocked-directory', 'nested'), { recursive: true, mode: 0o700 });
+      await writeFile(join(path, 'blocked-directory', 'nested', 'bytes'), 'owned output');
+    });
+    const quarantineRoot = join(root, 'resources', 'quarantine', resource.resourceId);
+    quarantineBlocked = join(quarantineRoot, 'blocked-directory');
+    assert.deepEqual(await registry.cleanup('run'), {
+      deleted: [],
+      retained: [resource.resourceId],
+      failed: [resource.resourceId],
+    });
+    // The native walker removed the nested regular file, then unlinkat of its directory failed
+    // because that directory's parent is immutable. No production fault hook is needed.
+    await assert.rejects(lstat(join(quarantineBlocked, 'nested', 'bytes')));
+    assert.ok((await lstat(join(quarantineBlocked, 'nested'))).isDirectory());
+    const quarantined = await lstat(quarantineRoot);
+    assert.equal(String(quarantined.dev), attested.device);
+    assert.equal(String(quarantined.ino), attested.inode);
+    assert.equal(quarantined.uid, attested.ownerUid);
+    const receiptPath = join(root, 'resources', `${hash(resource.resourceId)}.json`);
+    const failedReceipt = await readRecord<{ state: string; lastError: string | null }>(receiptPath);
+    assert.equal(failedReceipt?.state, 'quarantined');
+    assert.equal(failedReceipt?.lastError, 'CLEANUP_IDENTITY_OR_IO_FAILURE');
+    await execute('/usr/bin/chflags', ['nouchg', quarantineBlocked]);
+    await registry.close();
+    registry = await ResourceRegistry.open(root, { processJournal: fixture.journal });
+    assert.deepEqual(await readRecord(receiptPath), failedReceipt);
+    assert.deepEqual(await registry.cleanup('run'), {
+      deleted: [resource.resourceId],
+      retained: [],
+      failed: [],
+    });
+    await assert.rejects(lstat(quarantineRoot));
+    assert.deepEqual(await registry.cleanup('run'), {
+      deleted: [resource.resourceId],
+      retained: [],
+      failed: [],
+    });
+  } finally {
+    try {
+      if (
+        quarantineBlocked &&
+        (await lstat(quarantineBlocked).then(
+          () => true,
+          () => false,
+        ))
+      )
+        await execute('/usr/bin/chflags', ['nouchg', quarantineBlocked]);
+    } finally {
+      await registry.close();
+      await fixture.close();
+    }
+    await rm(root, { recursive: true, force: true });
+  }
+});
