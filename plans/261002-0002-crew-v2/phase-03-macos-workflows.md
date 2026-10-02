@@ -251,3 +251,11 @@ assert.equal(await db.activeGuard(ticketId),null);
 - [ ] Resource reserve/create/attest/quarantine retains any identity mismatch or unproven process stop.
 - [ ] Isolation evidence distinguishes inventory/sandbox Bash from native Read, child, MCP and actual paid attempt; unknown = fail closed.
 - [ ] Phase04/06/09 contracts explicit; no phase03 completion claim implies agent execution, updater signing or production deployment.
+
+## PM protocol addendum — 2026-10-02, reconnect reads
+
+Task 5 keeps `listCommands(..., after:Id|null, ...)` as pagination over outstanding commands, ordered by immutable `(created_at,id)` with the anchor looked up among all commands belonging to the actor (including completed anchors). `after` is a page anchor, not a durable event cursor: host starts each polling/reconnect pass at null and deduplicates through its durable command journal. New commands with lower random UUIDs must still appear on the next pass. The response is `{items,nextCursor}`; cursor is last returned ID only when another outstanding page exists. Missing/foreign anchor rejects without leaking its existence. Limits 1–100, default 50, strict query fields.
+
+Add authenticated read-only `GET /v2/machine/commands/:id` and `GET /v2/machine/attempts/:id`, target machine only, returning current Command/Attempt. They recheck current machine revocation and project binding; foreign/old binding records return scoped 404. These reads let the gateway recover current state after a response is lost without relying on an earlier mutation's cached response or creating another attempt. Production reads cannot manufacture permits or stop proof. Export `readCommand(db,id,actor)` and `readAttempt(db,id,actor)` with the same scope, add negative tests and close/reopen-pool replay tests.
+
+The separate Phase03 `/v2/gateway/commands` journal cursor remains an ordered durable cursor for workflow-sync commands; it is not interchangeable with the Phase02 page anchor. The Phase03 bridge consumes the two read endpoints above to reconcile ambiguous claim/result/ack replies, while every mutation still replays its exact stored idempotency key/body.
