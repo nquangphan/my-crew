@@ -232,5 +232,26 @@ flows:
     tests:
       - server/test/gateway.test.ts
       - server/test/support/gateway.ts
+  server-models:
+    title: Nguồn model, catalogue và provisioning credential Crew v2
+    doc: docs/flows/server-models.md
+    entrypoints:
+      - server/src/models/routes.ts
+    files:
+      - server/src/models/catalog.ts
+      - server/src/models/certification.ts
+      - server/src/models/commands.ts
+      - server/src/models/config.ts
+      - server/src/models/contracts.ts
+      - server/src/models/helpers.ts
+      - server/src/models/secret-envelopes.ts
+      - server/migrations/008_model_pool.sql
+    tests:
+      - server/test/model-certification.test.ts
+      - server/test/model-pool.test.ts
+      - server/test/model-secret.test.ts
+      - server/test/support/model-certification.ts
+      - server/test/support/model-http.ts
+      - server/test/support/model-observer.ts
 shared: {}
 unassigned: []

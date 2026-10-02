@@ -14,6 +14,8 @@ import type { GatewayProjectionPolicy } from './gateway/contracts.ts';
 import { registerGatewayRoutes } from './gateway/routes.ts';
 import { createMutator } from './journal/mutation.ts';
 import { registerEventRoutes } from './journal/routes.ts';
+import type { ModelRouteOptions } from './models/contracts.ts';
+import { registerModelRoutes } from './models/routes.ts';
 import type { ServerOptions } from './platform/contracts.ts';
 import { ApiError } from './platform/errors.ts';
 import { registerProjectRoutes } from './projects/routes.ts';
@@ -22,6 +24,7 @@ import { registerTicketRoutes } from './tickets/routes.ts';
 export type AppOptions = Omit<ServerOptions, 'authorizeDispatch' | 'verifyFinalResult'> &
   Partial<Pick<ServerOptions, 'authorizeDispatch' | 'verifyFinalResult'>> & {
     gatewayProjectionPolicy?: GatewayProjectionPolicy;
+    modelVerifiers?: ModelRouteOptions;
   };
 /** Compose routes only. Caller owns database migration, listener and pool shutdown. */
 export async function buildApp(input: AppOptions): Promise<FastifyInstance> {
@@ -39,6 +42,7 @@ export async function buildApp(input: AppOptions): Promise<FastifyInstance> {
         'req.headers.cookie',
         'req.headers.x-csrf-token',
         'req.body.password',
+        'req.body.secret',
         'res.headers.set-cookie',
       ],
     },
@@ -75,6 +79,7 @@ export async function buildApp(input: AppOptions): Promise<FastifyInstance> {
   registerExecutionRoutes(app, options, deps, { docsCompletion: docsCompletionReader });
   registerDocsRoutes(app, options, deps);
   registerGatewayRoutes(app, options, deps, input.gatewayProjectionPolicy);
+  registerModelRoutes(app, options, deps, input.modelVerifiers);
   registerEventRoutes(app, options, deps, projectEventScope, (db, request) =>
     authenticateCurrentCredential(db, request, options.now()),
   );

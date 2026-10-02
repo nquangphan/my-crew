@@ -58,3 +58,5 @@ Test chỉ dùng container tạm với trust auth trên loopback; URL test lấy
 ## Tests
 
 `pnpm --dir v2/server test` cần Docker. Test chạy migration lặp lại, từ chối DB lạ/cổng dùng chung, checksum drift, rollback SQL lỗi và prefix đã chụp không đổi khi file sửa. `pg_dump`/`pg_restore` chạy qua `docker exec` trong đúng container test để xác nhận marker và dữ liệu được giữ. `pnpm --dir v2/server test:signals` thực hiện SIGTERM, SIGINT cùng trường hợp child bị `SIGSTOP`; có thể chạy đồng thời với suite thường vì fixture nằm ngoài thư mục test chung và mỗi runner dùng container riêng. `pnpm --dir v2/server typecheck` kiểm tra mã TypeScript; `pnpm --dir v2 test` kiểm tra policy miền.
+
+Phase04 `app.ts` đăng ký `registerModelRoutes` trước ready, nhận optional internal `modelVerifiers` để nối independent measured observer sau này. Defaults vẫn UNVERIFIED, dispatch/final verification giữ deny 005 và gateway selection giữ deny 007. Không production test route/env flag. Logger giữ disableRequestLogging/code-only errors và thêm redact `req.body.secret`. Migration prefix8 vẫn do caller chọn, không migrate khi build app.

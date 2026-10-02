@@ -36,6 +36,7 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g�
 | [Control plane gateway và boot/config/report](flows/server-gateway.md) | `server-gateway` | `server/src/gateway/routes.ts` |
 | [Xác thực owner và gắn dự án với máy Crew v2](flows/server-identity.md) | `server-identity` | `server/src/auth/routes.ts`, `server/src/projects/routes.ts` |
 | [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
+| [Nguồn model, catalogue và provisioning credential Crew v2](flows/server-models.md) | `server-models` | `server/src/models/routes.ts` |
 | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
 | [Cây ticket, phụ thuộc và bằng chứng hoàn tất](flows/server-tickets.md) | `server-tickets` | `server/src/tickets/routes.ts` |
 <!-- crew-docs:flows:end -->

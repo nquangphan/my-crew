@@ -61,6 +61,18 @@ export function validateEventInput(input: EventInput): void {
   const data = input.data;
   let valid = false;
   switch (input.type) {
+    case 'source.desired':
+    case 'source.applied':
+      valid =
+        exactKeys(data, input.type === 'source.desired' ? ['revision'] : ['revision', 'reportId']) &&
+        Number.isSafeInteger(data.revision) &&
+        Number(data.revision) > 0 &&
+        (input.type === 'source.desired' ||
+          (typeof data.reportId === 'string' && uuid.test(data.reportId))) &&
+        input.projectId === null &&
+        input.ticketId === null &&
+        input.audienceMachineId !== null;
+      break;
     case 'gateway.config.changed':
       valid =
         exactKeys(data, ['revision']) &&
@@ -103,7 +115,7 @@ export function validateEventInput(input: EventInput): void {
         typeof data.commandId === 'string' &&
         uuid.test(data.commandId) &&
         (input.type === 'gateway.command.created'
-          ? ['sync_workflows', 'probe', 'reconcile_host'].includes(String(data.type))
+          ? ['sync_workflows', 'probe', 'reconcile_host', 'sync_models'].includes(String(data.type))
           : ['received', 'completed'].includes(String(data.phase))) &&
         input.projectId === null &&
         input.ticketId === null &&

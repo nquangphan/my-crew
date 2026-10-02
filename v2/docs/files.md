@@ -67,6 +67,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/migrations/005_execution.sql` | [server-execution](flows/server-execution.md) (file) |
 | `server/migrations/006_docs.sql` | [server-docs-import](flows/server-docs-import.md) (file) |
 | `server/migrations/007_gateway.sql` | [server-gateway](flows/server-gateway.md) (file) |
+| `server/migrations/008_model_pool.sql` | [server-models](flows/server-models.md) (file) |
 | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/docs-import.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
 | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
@@ -102,6 +103,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/journal/mutation.ts` | [server-journal](flows/server-journal.md) (file) |
 | `server/src/journal/routes.ts` | [server-journal](flows/server-journal.md) (điểm vào) |
 | `server/src/main.ts` | [server-docs-view](flows/server-docs-view.md) (file) |
+| `server/src/models/catalog.ts` | [server-models](flows/server-models.md) (file) |
+| `server/src/models/certification.ts` | [server-models](flows/server-models.md) (file) |
+| `server/src/models/commands.ts` | [server-models](flows/server-models.md) (file) |
+| `server/src/models/config.ts` | [server-models](flows/server-models.md) (file) |
+| `server/src/models/contracts.ts` | [server-models](flows/server-models.md) (file) |
+| `server/src/models/helpers.ts` | [server-models](flows/server-models.md) (file) |
+| `server/src/models/routes.ts` | [server-models](flows/server-models.md) (điểm vào) |
+| `server/src/models/secret-envelopes.ts` | [server-models](flows/server-models.md) (file) |
 | `server/src/platform/config.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/platform/contracts.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
@@ -136,6 +145,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/gateway.test.ts` | [server-gateway](flows/server-gateway.md) (test) |
 | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
+| `server/test/model-certification.test.ts` | [server-models](flows/server-models.md) (test) |
+| `server/test/model-pool.test.ts` | [server-models](flows/server-models.md) (test) |
+| `server/test/model-secret.test.ts` | [server-models](flows/server-models.md) (test) |
 | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
 | `server/test/repair.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
@@ -145,6 +157,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/support/gateway.ts` | [server-gateway](flows/server-gateway.md) (test) |
 | `server/test/support/http.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
 | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
+| `server/test/support/model-certification.ts` | [server-models](flows/server-models.md) (test) |
+| `server/test/support/model-http.ts` | [server-models](flows/server-models.md) (test) |
+| `server/test/support/model-observer.ts` | [server-models](flows/server-models.md) (test) |
 | `server/test/support/tickets.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/ticket-events.unit.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/tickets.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
