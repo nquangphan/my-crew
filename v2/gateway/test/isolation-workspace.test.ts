@@ -5,8 +5,10 @@ import {
   lstat,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   realpath,
+  rmdir,
   symlink,
   unlink,
   writeFile,
@@ -137,6 +139,48 @@ test('actual exact clone preserves product docs, quarantines discovery and reval
     );
     const foreign = join(root, 'foreign-canary');
     await writeFile(foreign, 'foreign workflow');
+    const removeOwned = async (path: string, identity: Awaited<ReturnType<typeof lstat>>) => {
+      const current = await lstat(path);
+      assert.equal(current.dev, identity.dev);
+      assert.equal(current.ino, identity.ino);
+      assert.equal(current.uid, identity.uid);
+      if (identity.isDirectory()) await rmdir(path);
+      else await unlink(path);
+    };
+    const denyHomeMetadata = async (label: string) => {
+      const denied = await missingRuntime.preflightSourceIsolation(input);
+      console.log('Task6 FIX1 HOME metadata gate', JSON.stringify({ label, result: denied }));
+      assert.equal(denied.status, 'FAIL');
+      assert(denied.blockers.includes('CROSS_WORKFLOW_SOURCE'));
+      assert.equal(denied.evidence.commands.length, 0);
+    };
+    const homeGit = join(workspace.attemptHome, '.git');
+    await mkdir(homeGit, { mode: 0o700 });
+    const homeGitIdentity = await lstat(homeGit);
+    const homeHardlink = join(homeGit, 'foreign-skill');
+    await link(foreign, homeHardlink);
+    const homeHardlinkIdentity = await lstat(homeHardlink);
+    try {
+      await denyHomeMetadata('HOME/.git/foreign-skill hardlink');
+    } finally {
+      await removeOwned(homeHardlink, homeHardlinkIdentity);
+      await removeOwned(homeGit, homeGitIdentity);
+    }
+    await symlink(foreign, homeGit);
+    const homeSymlinkIdentity = await lstat(homeGit);
+    try {
+      await denyHomeMetadata('HOME/.git symlink');
+    } finally {
+      await removeOwned(homeGit, homeSymlinkIdentity);
+    }
+    const nestedGit = join(workspace.attemptHome, 'cache/.git');
+    await symlink(foreign, nestedGit);
+    const nestedGitIdentity = await lstat(nestedGit);
+    try {
+      await denyHomeMetadata('HOME/cache/.git nested symlink');
+    } finally {
+      await removeOwned(nestedGit, nestedGitIdentity);
+    }
     for (const [name, create] of [
       ['hardlink', link],
       ['symlink', symlink],
@@ -166,6 +210,35 @@ test('actual exact clone preserves product docs, quarantines discovery and reval
     await writeFile(gitConfig, '[core]\nworktree = /foreign\n');
     assert((await missingRuntime.preflightSourceIsolation(input)).blockers.includes('GIT_METADATA_CHANGED'));
     await writeFile(gitConfig, gitBytes);
+    const metadataGit = join(workspace.workspace, '.git/.git');
+    await symlink(foreign, metadataGit);
+    const metadataIdentity = await lstat(metadataGit);
+    try {
+      const denied = await missingRuntime.preflightSourceIsolation(input);
+      assert(denied.blockers.includes('GIT_METADATA_CHANGED'));
+      assert.equal(denied.evidence.commands.length, 0);
+    } finally {
+      await removeOwned(metadataGit, metadataIdentity);
+    }
+    const packDirectory = join(workspace.workspace, '.git/objects/pack');
+    const packName = (await readdir(packDirectory)).find((name) => name.endsWith('.pack'));
+    assert(packName);
+    const packPath = join(packDirectory, packName),
+      packBytes = await readFile(packPath);
+    await writeFile(packPath, 'tampered object database');
+    try {
+      const denied = await missingRuntime.preflightSourceIsolation(input);
+      assert(denied.blockers.includes('GIT_METADATA_CHANGED'));
+      assert.equal(denied.evidence.commands.length, 0);
+    } finally {
+      await writeFile(packPath, packBytes);
+    }
+    const restored = await missingRuntime.preflightSourceIsolation(input);
+    assert.equal(restored.status, 'UNVERIFIED');
+    assert.equal(
+      restored.evidence.surfaces.find((surface) => surface.surface === 'shell-git-objectdb-denial')?.status,
+      'PASS',
+    );
     assert.equal(
       (
         await missingRuntime.preflightSourceIsolation({
@@ -191,12 +264,16 @@ test('actual exact clone preserves product docs, quarantines discovery and reval
       },
     });
     bound = live;
-    if (process.env.CREW_ISOLATION_PROBE_RUNTIME !== 'claude') {
+    if (
+      process.env.CREW_ISOLATION_SKIP_DISCOVERY !== '1' &&
+      process.env.CREW_ISOLATION_PROBE_RUNTIME !== 'claude'
+    ) {
       const codex = await live.preflightSourceIsolation(input);
       console.log('Task6 Codex no-model evidence', JSON.stringify(codex));
       assert.equal(codex.status, 'UNVERIFIED');
     }
     for (const runtime of ['claude', 'api'] as const) {
+      if (process.env.CREW_ISOLATION_SKIP_DISCOVERY === '1') continue;
       if (runtime === 'claude' && process.env.CREW_ISOLATION_PROBE_RUNTIME === 'codex') continue;
       const a = runtime === 'api' ? real.api : original.projections.claude;
       const pin = await registry.deriveProjection(sourceAudit.pin, runtime, a.recipe);

@@ -145,8 +145,11 @@ export async function auditWorkspace(
   root: string,
   selectedMount?: { path: string; target: string },
   executableTargets: readonly string[] = [],
+  separatelyAuditedGitRoot?: string,
 ): Promise<{ entries: InventoryEntry[]; blockers: string[] }> {
   if ((await realpath(root)) !== root) throw new Error('WORKSPACE_ALIAS');
+  if (separatelyAuditedGitRoot !== undefined && separatelyAuditedGitRoot !== join(root, '.git'))
+    throw new Error('INVALID_GIT_AUDIT_BOUNDARY');
   const entries: InventoryEntry[] = [],
     blockers: string[] = [];
   let total = 0;
@@ -155,7 +158,8 @@ export async function auditWorkspace(
     for (const name of (await readdir(dir)).sort()) {
       const full = join(dir, name),
         rel = relative(root, full).split(sep).join('/');
-      if (rel === '.git') continue; // independently verified by Git's common-dir/config commands
+      // Only the exact execution workspace has a separate immutable Git inventory.
+      if (full === separatelyAuditedGitRoot) continue;
       if (name === '.git') {
         blockers.push(`GIT_DISCOVERY:${rel}`);
         continue;

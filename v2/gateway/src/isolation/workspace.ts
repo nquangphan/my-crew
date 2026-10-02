@@ -490,7 +490,7 @@ export class IsolationWorkspace {
           throw new Error('CLONE_TREE_MISMATCH');
         if (await git(['-C', workspace, 'status', '--porcelain', '--untracked-files=all'], []))
           throw new Error('CLONE_NOT_CLEAN');
-        const before = await auditWorkspace(workspace);
+        const before = await auditWorkspace(workspace, undefined, [], join(workspace, '.git'));
         if (before.blockers.length) throw new Error(before.blockers.join(';'));
         record.exclusions = before.entries.filter((e) => e.classification === 'discovery');
         const excludedRoots: string[] = [];
@@ -512,6 +512,8 @@ export class IsolationWorkspace {
           projection.runtime === 'codex'
             ? { path: '.agents/skills', target: join(selected.projectionRoot, '.agents/skills') }
             : undefined,
+          [],
+          join(workspace, '.git'),
         );
         if (after.blockers.length) throw new Error(after.blockers.join(';'));
         record.entries = after.entries;
@@ -573,6 +575,8 @@ export class IsolationWorkspace {
       projection.runtime === 'codex'
         ? { path: '.agents/skills', target: join(selected.projectionRoot, '.agents/skills') }
         : undefined,
+      [],
+      join(workspace, '.git'),
     );
     if (audit.blockers.length) throw new Error('CROSS_WORKFLOW_SOURCE');
     if (canonicalJson(audit.entries) !== canonicalJson(record.entries))
