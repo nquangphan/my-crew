@@ -1,0 +1,83 @@
+import type { ProjectionPin, Runtime, SourcePin, Workflow, WorkflowStatus } from '../host/status.ts';
+export type DomainPin = { workflow: Workflow; version: string; revision: string; checksum: string };
+export const toDomainPin = (source: SourcePin): DomainPin => ({
+  workflow: source.name,
+  version: source.version,
+  revision: source.sourceRevision,
+  checksum: source.sourceTreeSha256,
+});
+export type GatewayConfig = {
+  revision: number;
+  desired: Record<Workflow, { source: SourcePin; projections: Record<Runtime, ProjectionPin | null> }>;
+  maxJobs: number;
+  enabled: boolean;
+};
+export type Inventory = Record<Workflow, WorkflowStatus>;
+export type InstallReport = {
+  reportId: string;
+  bootId: string;
+  bootGeneration: string;
+  configRevision: number;
+  reportedAt: string;
+  results: Inventory;
+};
+export type GatewayCommand = {
+  id: string;
+  machineId: string;
+  type: string;
+  payload: Record<string, unknown>;
+  state: string;
+  result: unknown;
+  cursor: string;
+};
+export type Selection = {
+  runtime: Runtime;
+  sourceTreeSha256: string;
+  projectionManifestSha256: string;
+  projectionTreeSha256: string;
+  installReportId: string;
+  configRevision: number;
+  decisionId: string;
+};
+export type Command = {
+  id: string;
+  machineId: string;
+  ticketId: string;
+  type: string;
+  payload: Record<string, unknown>;
+  state: string;
+  result: unknown;
+};
+export type Permit = {
+  commandId: string;
+  ticketId: string;
+  machineId: string;
+  bindingRevision: number;
+  ticketRevision: number;
+  workflow: DomainPin;
+  checkedAt: string;
+  expiresAt: string;
+  telemetryId: string;
+  decisionId: string;
+};
+export type ResultInput = {
+  fence: string;
+  processInstanceId: string;
+  outcome: 'passed' | 'retry' | 'needs_input';
+  evidenceIds: string[];
+  reason: string | null;
+};
+export type Attempt = {
+  id: string;
+  commandId: string;
+  machineId: string;
+  ticketId: string;
+  fence: string;
+  processInstanceId: string;
+  state: 'active' | 'uncertain' | 'finalizing' | 'stopped';
+  workflowPin: DomainPin;
+  finalizedAt: string | null;
+  stoppedAt: string | null;
+  terminalResult: ResultInput | null;
+};
+export type ReadTransport = (route: string) => Promise<unknown>;

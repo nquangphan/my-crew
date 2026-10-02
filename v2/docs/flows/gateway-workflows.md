@@ -64,3 +64,12 @@ BMAD Codex còn null/unavailable tới audit recipe riêng; upstream có hỗ tr
 ## Tests
 
 `pnpm --dir v2/gateway test` build và chạy gateway suite gồm actual two-build BMAD Claude/API, Superpowers API/native, cached cancellation, recovered references, actual crash checkpoints và fork/timeout receipts; FIX2 kiểm GC/reserve tại snapshot/quarantine/delete và SIGKILL/restart admission/committed/quarantine, cùng unbound/bindtransition/writer exclusion. Focused node command phải đặt `--test-name-pattern` trước file. Logs/pins/inventory ở `plans/261002-0002-crew-v2/execution-phase03/task-4-evidence`. Các fixture fork UNKNOWN được inventory và giữ nguyên; tests không fake completion để xóa chúng. Independent supply-chain/native/code review vẫn bắt buộc trước acceptance. No-model tree/discovery checks không chứng nhận actual native runtime hoặc API tool loop.
+
+Task 5 bổ sung `ProcessJournal.activePinReferences()` dưới admission barrier: chỉ receipt retirement fsync
+sau authenticated scoped005 finalized exact tuple + actual native STOP mới lọc committed process ref.
+Lịch sử LaunchRecord/admission vẫn nguyên; unknown intent, registry ref khác, current source và dependency
+projection vẫn bảo vệ bytes. Tests retirement/GC chứng minh independent ref còn giữ projection sau retirement,
+chỉ khi ref cuối được release mới GC; identity retired không được reserve/spawn lại. Native TERM observer của
+flow gateway-host giữ chứng cứ no-fork, không nới quyền đối với fork hoặc mất witness.
+
+`WorkflowRegistry.verifySource(pin)` chỉ gọi verifier hiện có trên payload, metadata và source tree; không fetch, không đổi current pointer hoặc recipe/hash. Consumer GatewaySync dùng nó để cache bị sửa không thể báo source current khi desired projections đều null; regression có cache lành offline không tải lại.

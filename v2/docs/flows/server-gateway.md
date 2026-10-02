@@ -106,3 +106,11 @@ machine family. Close/reopen pool và pg_dump/pg_restore xác nhận durable rec
 prefix6, restore6, migrate7, restore7 giữ receipt và checksum; fixture drop đúng logical DB trong finally,
 runner dừng đúng container đã tạo, không dùng 5432/55432 hoặc shared DB. Covering server suite,
 server typecheck và Biome kiểm tra sau batch cuối.
+
+Consumer Task 5 ở gateway dùng machineTransport và HttpOperationJournal cho boot/heartbeat/ACK/report/
+companion. GatewaySync persist command/cursor/report trước network, retry partial trên cùng command với report
+mới và xử lý SUPERSEDED bất biến. TicketCommandBridge dùng scoped005 read trước RELEASE/retirement; fresh
+claim và companion phải được actual stored command/decision authority chấp thuận. Actual DB prefix8 tests
+kiểm lost reply, stale/disabled/missing selection, config update sau claim, pause/cancel native STOP, finalizing
+guard và đúng một terminal event. Test authorizer/final receipt table chỉ sống trong logical DB riêng; không
+thay default dispatch/selection/final verifier production, SQL005/007/008 hay authority model.

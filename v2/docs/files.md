@@ -23,6 +23,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `desktop/tsconfig.json` | [desktop-shell](flows/desktop-shell.md) (file) |
 | `gateway/package.json` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/pnpm-lock.yaml` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/commands/contracts.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/commands/http-client.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/execution/ticket-command-bridge.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/host/gateway-host.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/host/main.ts` | [gateway-host](flows/gateway-host.md) (điểm vào) |
 | `gateway/src/host/process-lock.ts` | [gateway-host](flows/gateway-host.md) (file) |
@@ -36,6 +39,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/src/journal/process-journal.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/resources/native-resources.c` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/resources/registry.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/sync/connection.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/sync/event-pump.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/sync/gateway-sync.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/telemetry/capacity.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/telemetry/macos-provider.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/workflows/api-policy.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
@@ -49,6 +55,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/src/workflows/registry.ts` | [gateway-workflows](flows/gateway-workflows.md) (điểm vào) |
 | `gateway/src/workflows/retention.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
 | `gateway/src/workflows/stage.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/test/connection.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/event-pump.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/execution-bridge-db.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/execution-bridge.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/execution-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/fixtures/workflow-builder/dependencies.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/fixtures/workflow-builder/dependencies.tgz` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/fixtures/workflow-builder/independent-builds.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
@@ -64,21 +75,28 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/host-lifecycle.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/http-operations.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/journal.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/pin-retirement.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/resources.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/retirement-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/stop-control.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/audit-dependency-content.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/audit-dependency-provenance.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+| `gateway/test/support/bridge-crash-worker.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/support/bridge-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/compare-real-builds.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/freeze-dependencies.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/freeze-real-projections.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/host.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/journal-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/owned-run.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/support/pin-retirement-crash-worker.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/probe-bmad-build.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/reclaim-proven-build-probes.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/ui-client.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/workflow-admission-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/workflow-archives.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/workflow-crash-worker.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+| `gateway/test/sync.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/telemetry.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/workflow-admission.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-build.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |

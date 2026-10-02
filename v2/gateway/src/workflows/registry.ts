@@ -429,6 +429,10 @@ export class WorkflowRegistry {
     if (manifestHash(await scanTree(join(path, 'tree'))) !== pin.sourceManifestSha256)
       throw new Error('CHECKSUM_MISMATCH');
   }
+  /** Verify cached immutable source bytes without fetching or changing current pointers. */
+  async verifySource(pin: SourcePin): Promise<void> {
+    await this.sourceVerified(structuredClone(pin));
+  }
   async installSource(input: SourcePin, archive: Readable): Promise<SourcePin> {
     this.options.signal?.throwIfAborted();
     const pin = structuredClone(input);
@@ -728,7 +732,7 @@ export class WorkflowRegistry {
       validateProjectionPin(r.projection);
     }
     if (this.options.processJournal) {
-      for (const process of await this.options.processJournal.processes())
+      for (const process of await this.options.processJournal.activePinReferences())
         refs.push({
           runId: process.authorization?.attemptId ?? process.launchId,
           source: process.source,
@@ -750,7 +754,9 @@ export class WorkflowRegistry {
   }
   async retentionInventory(): Promise<RetentionInventory[]> {
     const records = await this.stagingInventory();
-    const processes = this.options.processJournal ? await this.options.processJournal.processes() : [];
+    const processes = this.options.processJournal
+      ? await this.options.processJournal.activePinReferences()
+      : [];
     const bytes = async (path: string): Promise<number | null> => {
       const record = records.find((r) => r.state === 'published' && r.location === path);
       if (!record?.identity || !record.publication) return null;

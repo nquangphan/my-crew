@@ -125,6 +125,11 @@ flows:
     entrypoints:
       - gateway/src/host/main.ts
     files:
+      - gateway/package.json
+      - gateway/pnpm-lock.yaml
+      - gateway/src/commands/contracts.ts
+      - gateway/src/commands/http-client.ts
+      - gateway/src/execution/ticket-command-bridge.ts
       - gateway/src/host/gateway-host.ts
       - gateway/src/host/process-lock.ts
       - gateway/src/host/status.ts
@@ -137,22 +142,35 @@ flows:
       - gateway/src/journal/process-journal.ts
       - gateway/src/resources/native-resources.c
       - gateway/src/resources/registry.ts
+      - gateway/src/sync/connection.ts
+      - gateway/src/sync/event-pump.ts
+      - gateway/src/sync/gateway-sync.ts
       - gateway/src/telemetry/capacity.ts
       - gateway/src/telemetry/macos-provider.ts
-      - gateway/package.json
-      - gateway/pnpm-lock.yaml
-      - gateway/tsconfig.json
       - gateway/tsconfig.build.json
+      - gateway/tsconfig.json
     tests:
+      - gateway/test/connection.test.ts
+      - gateway/test/event-pump.test.ts
+      - gateway/test/execution-bridge-db.test.ts
+      - gateway/test/execution-bridge.test.ts
+      - gateway/test/execution-crash.test.ts
       - gateway/test/host-failures.test.ts
       - gateway/test/host-lifecycle.test.ts
       - gateway/test/http-operations.test.ts
       - gateway/test/journal.test.ts
+      - gateway/test/pin-retirement.test.ts
       - gateway/test/resources.test.ts
+      - gateway/test/retirement-crash.test.ts
+      - gateway/test/stop-control.test.ts
+      - gateway/test/support/bridge-crash-worker.ts
+      - gateway/test/support/bridge-fixture.ts
       - gateway/test/support/host.ts
       - gateway/test/support/journal-fixture.ts
       - gateway/test/support/owned-run.ts
+      - gateway/test/support/pin-retirement-crash-worker.ts
       - gateway/test/support/ui-client.ts
+      - gateway/test/sync.test.ts
       - gateway/test/telemetry.test.ts
   desktop-shell:
     title: Giao diện cổng Crew v2 trên macOS

@@ -9,10 +9,37 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <signal.h>
+
+static volatile sig_atomic_t supervised_child=0;
+static void request_stop(int signo){
+  (void)signo;
+  int saved_errno=errno;
+  pid_t child=(pid_t)supervised_child;
+  if(child>0)kill(child,SIGTERM);
+  errno=saved_errno;
+}
+/* Block and disarm before waitpid can make this PID reusable. */
+static pid_t reap_child(pid_t child,int *status,const sigset_t *mask){
+  if(sigprocmask(SIG_BLOCK,mask,NULL)<0)return -1;
+  supervised_child=0;
+  pid_t waited;
+  do{waited=waitpid(child,status,0);}while(waited<0&&errno==EINTR);
+  return waited;
+}
 /* macOS NOTE_TRACK is unsupported: any fork makes full-tree proof unknown.
    The initial child blocks on a pipe until NOTE_FORK|NOTE_EXIT is armed. */
 static int supervise(int argc,char **argv){
   if(argc<3)return 2;
+  sigset_t term_mask,prior_mask;
+  sigemptyset(&term_mask);
+  sigaddset(&term_mask,SIGTERM);
+  if(sigprocmask(SIG_BLOCK,&term_mask,&prior_mask)<0)return 3;
+  struct sigaction action;
+  memset(&action,0,sizeof(action));
+  action.sa_handler=request_stop;
+  sigemptyset(&action.sa_mask);
+  if(sigaction(SIGTERM,&action,NULL)<0)return 3;
   int gate[2];
   if(pipe(gate))return 3;
   int queue=kqueue();
@@ -20,6 +47,8 @@ static int supervise(int argc,char **argv){
   pid_t child=fork();
   if(child<0)return 3;
   if(child==0){
+    action.sa_handler=SIG_DFL;
+    if(sigaction(SIGTERM,&action,NULL)<0)_exit(126);
     close(gate[1]);
     close(queue);
     char byte;
@@ -31,22 +60,30 @@ static int supervise(int argc,char **argv){
     dup2(null,STDOUT_FILENO);
     dup2(null,STDERR_FILENO);
     if(null>2)close(null);
+    if(sigprocmask(SIG_SETMASK,&prior_mask,NULL)<0)_exit(126);
     execvp(argv[2],&argv[2]);
     _exit(127);
   }
+  supervised_child=(sig_atomic_t)child;
   close(gate[0]);
   struct kevent change;
   EV_SET(&change,child,EVFILT_PROC,EV_ADD|EV_CLEAR,NOTE_FORK|NOTE_EXIT,0,NULL);
   if(kevent(queue,&change,1,NULL,0,NULL)<0){
     close(gate[1]);
-    waitpid(child,NULL,0);
+    reap_child(child,NULL,&term_mask);
+    close(queue);
+    return 4;
+  }
+  if(sigprocmask(SIG_SETMASK,&prior_mask,NULL)<0){
+    close(gate[1]);
+    reap_child(child,NULL,&term_mask);
     close(queue);
     return 4;
   }
   char byte=1;
   if(write(gate[1],&byte,1)!=1){
     close(gate[1]);
-    waitpid(child,NULL,0);
+    reap_child(child,NULL,&term_mask);
     close(queue);
     return 4;
   }
@@ -58,18 +95,14 @@ static int supervise(int argc,char **argv){
     if(count<0&&errno==EINTR)continue;
     if(count!=1||(event.flags&EV_ERROR)){
       close(queue);
-      waitpid(child,NULL,0);
+      reap_child(child,NULL,&term_mask);
       return 5;
     }
     if(event.fflags&NOTE_FORK)forked=1;
     if(event.fflags&NOTE_EXIT)exited=1;
   }
   int status=0;
-  pid_t waited;
-  do{
-    waited=waitpid(child,&status,0);
-  }
-  while(waited<0&&errno==EINTR);
+  pid_t waited=reap_child(child,&status,&term_mask);
   close(queue);
   if(waited!=child)return 5;
   int code=WIFEXITED(status)?WEXITSTATUS(status):128+(WIFSIGNALED(status)?WTERMSIG(status):0);

@@ -1,3 +1,4 @@
+import type { ChildProcess } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,7 +15,9 @@ let released = false;
 let releaseRequested = false;
 let initializing = false;
 let gateClosed = false;
-process.on('disconnect', async () => {
+let stopRequested = false;
+let supervisor: ChildProcess | null = null;
+const closeUnreleasedGate = async () => {
   gateClosed = true;
   if (!released) {
     try {
@@ -30,6 +33,12 @@ process.on('disconnect', async () => {
       process.exit(0);
     }
   }
+};
+process.on('disconnect', closeUnreleasedGate);
+process.on('SIGTERM', () => {
+  stopRequested = true;
+  if (!released) void closeUnreleasedGate();
+  else if (supervisor?.exitCode === null && supervisor.signalCode === null) supervisor.kill('SIGTERM');
 });
 process.on(
   'message',
@@ -88,6 +97,7 @@ process.on(
         const releasedReady = ready;
         released = true;
         const child = await identity.supervise(command);
+        supervisor = child;
         let output = '';
         child.stdout?.on('data', (chunk) => {
           output += chunk;
@@ -95,6 +105,7 @@ process.on(
         });
         child.once('error', () => process.exit(1));
         child.once('close', async (code) => {
+          supervisor = null;
           try {
             if (code !== 0) throw new Error('TREE_UNKNOWN');
             const proof = JSON.parse(output);
@@ -112,6 +123,7 @@ process.on(
             process.exit(1);
           }
         });
+        if (stopRequested && child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
       }
     } catch {
       process.exit(1);

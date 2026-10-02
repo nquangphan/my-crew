@@ -39,6 +39,25 @@ export type AttemptProjectionPin = {
   projectionTreeSha256: string;
   installReportId: string;
 };
+export type FinalizedPinAuthority = {
+  attemptId: string;
+  commandId: string;
+  ticketId: string;
+  fence: string;
+  processInstanceId: string;
+  workflowPin: { workflow: SourcePin['name']; version: string; revision: string; checksum: string };
+  state: 'stopped';
+  finalizedAt: string;
+  projection: AttemptProjectionPin;
+};
+export type PinRetirementReceipt = {
+  formatVersion: 1;
+  launchId: string;
+  input: LaunchInput;
+  authority: FinalizedPinAuthority;
+  stop: StopRecord;
+};
+export type PinRetirementAuthority = (record: Readonly<LaunchRecord>) => Promise<FinalizedPinAuthority>;
 export type LaunchRecord = LaunchInput & {
   formatVersion: 1;
   launchId: string;
@@ -78,6 +97,7 @@ export class ProcessJournal {
   readonly identity: ProcessIdentity;
   private readonly store: AtomicRecords;
   private pinAuthority: PinAdmissionAuthority | null = null;
+  private retirementAuthority: PinRetirementAuthority | null = null;
   private constructor(root: string, store: AtomicRecords, identity: ProcessIdentity) {
     this.root = root;
     this.store = store;
@@ -90,6 +110,7 @@ export class ProcessJournal {
     try {
       await privateDirectory(join(path, 'proofs'));
       await privateDirectory(join(path, 'admissions'));
+      await privateDirectory(join(path, 'retirements'));
       const identity = await ProcessIdentity.open(path, await nativeSource());
       return new ProcessJournal(path, store, identity);
     } catch (error) {
@@ -172,6 +193,7 @@ export class ProcessJournal {
       const authority = await this.admissionAuthority();
       const old = await this.store.get<LaunchRecord>(input.commandId);
       if (old) {
+        if (await this.pinRetirement(old)) throw new Error('PIN_REFERENCE_RETIRED');
         const {
           formatVersion: _v,
           launchId: _id,
@@ -222,6 +244,7 @@ export class ProcessJournal {
       stored.processInstanceId !== record.processInstanceId
     )
       throw new Error('UNKNOWN_LAUNCH');
+    if (await this.pinRetirement(stored)) throw new Error('PIN_REFERENCE_RETIRED');
     const immutable = (r: LaunchRecord) => ({
       commandId: r.commandId,
       ticketId: r.ticketId,
@@ -305,6 +328,104 @@ export class ProcessJournal {
   }
   async markStopped(record: LaunchRecord): Promise<void> {
     if ((await this.observe(record)) !== 'stopped') throw new Error('EXACT_EXIT_PROOF_REQUIRED');
+  }
+  /** Trusted host composition only. The verifier must perform current scoped authenticated
+   * 005 reads and verify the stored companion; no cached heartbeat or caller boolean. */
+  async bindPinRetirementAuthority(authority: PinRetirementAuthority): Promise<void> {
+    await this.store.transaction(async () => {
+      this.retirementAuthority = authority;
+    });
+  }
+  async pinRetirement(record: LaunchRecord): Promise<PinRetirementReceipt | null> {
+    const receipt = await readRecord<PinRetirementReceipt>(
+      join(this.root, 'retirements', `${hash(record.launchId)}.json`),
+    );
+    if (!receipt) return null;
+    const stored = await this.store.get<LaunchRecord>(record.commandId);
+    if (
+      !stored ||
+      receipt.launchId !== stored.launchId ||
+      receipt.launchId !== record.launchId ||
+      canonicalJson(receipt.input) !== canonicalJson(this.launchInput(record)) ||
+      !stored.authorization ||
+      canonicalJson(receipt.authority.projection) !== canonicalJson(stored.authorization)
+    )
+      throw new Error('PIN_RETIREMENT_CONFLICT');
+    return receipt;
+  }
+  /** Read only under the registry -> journal barrier for GC; historical processes() is unchanged. */
+  async activePinReferences(): Promise<LaunchRecord[]> {
+    const records = await this.processes(),
+      active: LaunchRecord[] = [];
+    for (const record of records) if (!(await this.pinRetirement(record))) active.push(record);
+    return active;
+  }
+  async retirePinReference(record: LaunchRecord): Promise<PinRetirementReceipt> {
+    if (!this.retirementAuthority) throw new Error('PIN_RETIREMENT_NOT_CONFIGURED');
+    const prior = await this.pinRetirement(record);
+    if (!prior && (await this.observe(record)) !== 'stopped') throw new Error('EXACT_EXIT_PROOF_REQUIRED');
+    return this.store.transaction(async () => {
+      await this.admissionAuthority();
+      const stored = await this.store.get<LaunchRecord>(record.commandId);
+      if (
+        !stored ||
+        stored.launchId !== record.launchId ||
+        canonicalJson(this.launchInput(stored)) !== canonicalJson(this.launchInput(record))
+      )
+        throw new Error('UNKNOWN_LAUNCH');
+      const ready = await readRecord<ReadyRecord>(this.proofPath(stored, 'ready'));
+      const stop = await readRecord<StopRecord>(this.proofPath(stored, 'stopped'));
+      if (
+        !ready ||
+        !stop ||
+        stop.launchId !== stored.launchId ||
+        stop.processInstanceId !== stored.processInstanceId ||
+        stop.startIdentity !== ready.startIdentity ||
+        stop.processGroupId !== ready.processGroupId ||
+        stop.groupEmpty !== true
+      )
+        throw new Error('EXACT_EXIT_PROOF_REQUIRED');
+      const authority = await this.retirementAuthority!(structuredClone(stored));
+      const pin = stored.authorization,
+        source = stored.source;
+      const expectedWorkflow = {
+        workflow: source.name,
+        version: source.version,
+        revision: source.sourceRevision,
+        checksum: source.sourceTreeSha256,
+      };
+      if (
+        !pin ||
+        !authority ||
+        authority.state !== 'stopped' ||
+        typeof authority.finalizedAt !== 'string' ||
+        !Number.isFinite(Date.parse(authority.finalizedAt)) ||
+        authority.attemptId !== pin.attemptId ||
+        authority.commandId !== stored.commandId ||
+        authority.ticketId !== stored.ticketId ||
+        authority.fence !== pin.fence ||
+        authority.processInstanceId !== stored.processInstanceId ||
+        canonicalJson(authority.workflowPin) !== canonicalJson(expectedWorkflow) ||
+        canonicalJson(authority.projection) !== canonicalJson(pin)
+      )
+        throw new Error('FINALIZATION_MISMATCH');
+      const receipt: PinRetirementReceipt = {
+        formatVersion: 1,
+        launchId: stored.launchId,
+        input: this.launchInput(stored),
+        authority: structuredClone(authority),
+        stop,
+      };
+      const old = await this.pinRetirement(stored);
+      if (old) {
+        if (canonicalJson(old) !== canonicalJson(receipt)) throw new Error('PIN_RETIREMENT_CONFLICT');
+        return old;
+      }
+      // Exclusive file + directory fsync precedes any reference filtering. Intents and
+      // LaunchRecord remain durable history; unknown intents never acquire this receipt.
+      await writeExclusiveRecord(join(this.root, 'retirements', `${hash(stored.launchId)}.json`), receipt);
+      return receipt;
+    });
   }
   async processes(): Promise<LaunchRecord[]> {
     return this.store.all<LaunchRecord>();

@@ -9,5 +9,10 @@
     "verbatimModuleSyntax": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "../server/src/platform/thread-stream.d.ts",
+    "../server/src/platform/picomatch.d.ts"
+  ]
 }

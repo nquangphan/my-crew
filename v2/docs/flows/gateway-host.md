@@ -31,6 +31,40 @@ Các API dưới đây là nền tảng Task 2; `GatewayHost` hiện chưa tự 
 6. `gateway/src/resources/registry.ts`, `gateway/src/resources/native-resources.c` → `ResourceRegistry.reserveOwnedPath`, `createAndAttest`, `registerProcess`, `cleanup`: reserve UUID trước tạo directory exclusive bằng `mkdirat`/directory FD, callback chỉ xây dữ liệu trong path do host sở hữu, sau đó kiểm device/inode/UID/type và fsync identity; `linkCount` của directory chỉ là snapshot quan sát, vì output runtime hoặc partial delete có thể đổi số này. Regular file vẫn bắt buộc `st_nlink === 1` ở scan và ngay trước unlink để chặn hardlink alias. Crash trước attest giữ reservation chưa được quyền xóa. Layout lưu identity root/objects/quarantine qua restart; process ownership riêng gắn exact launch/start identity. Cleanup cần mọi process của run có stopped proof, không retention/other-run reference và không abort. Native reopen FD `O_NOFOLLOW`, so identity và scan không theo symlink/foreign mount/hardlink, `renameatx_np(RENAME_EXCL)` sang quarantine, so lại identity rồi mới `unlinkat` qua FD. Parent/symlink/hardlink/mismatch hoặc lỗi native giữ resource với lỗi sanitized. Restart sau rename trước record update chỉ nhận lại cùng inode trong quarantine khi path objects thiếu và parent identity khớp; abort sau quarantine giữ bytes để retry. Crash sau delete trước durable receipt giữ lỗi/missing proof để xử lý thủ công, không bịa ownership từ path đã biến mất.
 7. `gateway/src/telemetry/capacity.ts`, `gateway/src/telemetry/macos-provider.ts` → `DispatchCapacity.sampleAndDecide`, `MacOsTelemetryProvider.sample`: sample mới cho mỗi implement/review/fix; `os.loadavg`, `availableParallelism`, `vm_stat`, `sysctl kern.memorystatus_vm_pressure_level`, `statfs` và process registry. Tuổi monotonic/wall quá 15 giây, thiếu sample, pressure warn/critical, RAM <2 GiB, disk <5 GiB, load/CPU >1, vượt min(configured/request max jobs) hoặc ownership key trùng đều chờ. Capacity chỉ là advisory để phase06 lưu rationale/decision, không tự claim.
 
+### Đồng bộ, command bridge và retirement (Task 5)
+
+`GatewayConnection` giữ boot CAS và heartbeat body/sequence/key bền vững qua mất reply; boot ID khác
+bắt buộc reconcile. `GatewayEventPump` dùng SSE làm tín hiệu thức dậy, fallback poll `/v2/events` và chỉ
+commit cursor sau reconcile thành công. `GatewaySync` đọc desired trước command, lưu từng command theo
+machine/ID trước cursor; nguồn hoặc projection lỗi giữ received, báo partial và retry backoff tối đa 60 giây.
+Mỗi report mới có ID riêng; report mất reply dùng đúng body/key cũ. Revision bị thay thế hoàn tất command cũ
+với SUPERSEDED; revision mới dùng command mới. Namespace sync_models thuộc consumer riêng.
+
+`TicketCommandBridge` chỉ nhận command từ scoped authenticated read. Permit production mặc định từ chối;
+permit fixture được tách riêng. Reserve dùng registry+journal đã bind, READY trước claim, rồi xác nhận
+attempt hiện hành và companion server-stored selection trước RELEASE. Mất reply replay đúng UUID/key/body;
+005 pagination bắt đầu từ null mỗi pass, không dùng UUID làm durable cursor. Reconcile command cũng kiểm
+scope và ACK received/completed bền vững. Result, stopped reconciliation và finalize có operation key riêng;
+finalizing giữ guard; finalize còn pending được kiểm lại bằng operation mới sau response xác nhận.
+
+Pause/cancel kiểm command type/ticket/payload và exact launch trước signal owned PGID; lưu stop reason
+trước tác động, ACK completed chỉ sau exact STOP. Retry ACK sau khi process đã dừng dùng lại chứng cứ và
+operation cũ. Helper xử lý TERM: gate chưa mở dùng gate-closed receipt; đã release thì giữ observer sống và
+forward TERM đến ChildProcess supervisor riêng, kể cả pending startup. Native supervisor block TERM qua
+fork/arm kqueue, child phục hồi default handler/mask trước exec; handler chỉ signal PID con dương còn thuộc
+observer. Trước waitpid có thể tái sử dụng PID, supervisor block TERM và xóa target. Proof vẫn cần kernel
+NOTE_EXIT, wait đúng child, không fork, rồi host wait đúng helper và group empty. Startup thiếu witness,
+SIGKILL/restart hoặc bất kỳ fork nào vẫn UNKNOWN; không suy STOP từ group empty.
+
+Retirement là receipt bất biến riêng `process-journal/retirements/<launch-hash>.json`, không xóa LaunchRecord
+hay admission intent. `bindPinRetirementAuthority` mặc định chưa cấu hình; bridge bind current scoped 005
+read và so exact command/attempt/fence/process/source/companion, state stopped và finalizedAt. Sau native
+STOP, `retirePinReference` giữ journal barrier, kiểm lại tuple và fsync exclusive receipt trước khi GC lọc
+process ref. Exact replay giữ receipt cũ; mismatch bị từ chối. `processes()` vẫn trả lịch sử, unknown intent
+vẫn giữ pin; reserve/spawn/authorize của identity đã retired bị chặn. Registry ref/current/dependency khác
+vẫn bảo vệ bytes độc lập. Production final verifier còn chờ phase08; private DB fixture không cấp authority
+production. Các class này là producer/consumer API, chưa tự wired vào entrypoint GatewayHost.
+
 Native helper development chỉ compile bằng `/usr/bin/clang` đã có vào cache riêng của fixture/host. Source snapshot riêng và binary SHA-256, device/inode/UID/mode `0700` cùng identity cache được attested; helper thiếu/hỏng thì fail closed, không dùng `ps lstart` có độ phân giải giây làm proof. Phase09 phải đóng gói helper ký sẵn và private Node, không yêu cầu người dùng cuối có compiler. Phase04 cần supervisor/spawn broker hoặc confinement kiểm chứng được toàn cây trước khi cho runtime có fork chuyển sang stopped/cleanup.
 
 ## Files
@@ -50,6 +84,12 @@ Native helper development chỉ compile bằng `/usr/bin/clang` đã có vào ca
 | `gateway/test/journal.test.ts`, `gateway/test/http-operations.test.ts`, `gateway/test/resources.test.ts`, `gateway/test/telemetry.test.ts` | Crash/replay/identity/ownership/telemetry regression |
 | `gateway/test/support/journal-fixture.ts`, `gateway/test/support/owned-run.ts` | Fixture host crash và run có exact stopped proof |
 | `gateway/test/support/host.ts`, `gateway/test/support/ui-client.ts` | Fixture RPC, client mới, LaunchAgent thử nghiệm và cleanup |
+| `gateway/src/sync/connection.ts`, `gateway/src/sync/event-pump.ts`, `gateway/src/sync/gateway-sync.ts` | Boot/heartbeat, SSE/poll và workflow sync bền vững |
+| `gateway/src/commands/contracts.ts`, `gateway/src/commands/http-client.ts` | DTO consumer, authenticated transport và exact mutation replay |
+| `gateway/src/execution/ticket-command-bridge.ts` | Fenced claim, companion, reconnect, stop, finalize và terminal receipt |
+| `gateway/test/connection.test.ts`, `gateway/test/event-pump.test.ts`, `gateway/test/sync.test.ts` | Lost reply/cursor/partial/superseded sync |
+| `gateway/test/execution-bridge.test.ts`, `gateway/test/execution-bridge-db.test.ts`, `gateway/test/execution-crash.test.ts`, `gateway/test/stop-control.test.ts`, `gateway/test/pin-retirement.test.ts`, `gateway/test/retirement-crash.test.ts` | Actual 005/007, SIGKILL, native TERM và retirement/GC |
+| `gateway/test/support/bridge-fixture.ts`, `gateway/test/support/bridge-crash-worker.ts`, `gateway/test/support/pin-retirement-crash-worker.ts` | Private root identity, synthetic audited recipes và owned crash worker |
 
 ## Dữ liệu
 
@@ -70,3 +110,13 @@ Dependency gateway được ghim `tar-stream@3.1.7` và `@types/tar-stream@3.1.4
 Task 2 kiểm tra thêm HTTP lost reply qua socket thật cho claim/checkpoint/reconcile/result/finalize/ACK/install report, restart replay exact key/body/route, command reserve/concurrent writer, hai launcher có barrier không spawn child thứ hai, SIGKILL fixture host tại reserve/spawn/READY/claim request/reply/auth/gate, birth mismatch, capacity block, helper tamper và entrypoint đã build. Resource tests dùng process thật đã stopped để kiểm nested scratch delete/idempotence, symlink/parent swap/hardlink/dirty/reference/unattested/owner checkout giữ bytes, recover quarantine qua restart và abort sau quarantine rồi retry. Regression cho child READY-gated thật thêm/xóa file và subdirectory sau attest, nhận exact stopped proof rồi cleanup/idempotence dù directory link count đổi; fixture `uchg` trên directory riêng sau quarantine gây partial native deletion thật, giữ lỗi/identity qua restart và retry sau khi gỡ flag. Test escaped descendant giữ `PROCESS_TREE_UNKNOWN` qua restart. Telemetry kiểm hai sample độc lập đổi pressure và sample macOS thật. Lệnh focused đúng vị trí flag: `pnpm --dir v2/gateway exec node --test --test-name-pattern='journal|telemetry|resources' test/journal.test.ts test/http-operations.test.ts test/resources.test.ts test/telemetry.test.ts`; full suite vẫn dùng `pnpm --dir v2/gateway test`.
 
 FIX2 kiểm actual reservation cùng GC tại snapshot/quarantine/delete, reserve-first intent trước journal commit, unbound/reopen/bind transition và writer exclusion; SIGKILL tại admission/commit/native quarantine rồi restart xác nhận retained intent hoặc reserve deny, kể cả reclaim quarantine đang delete. `gateway/test/workflow-admission.test.ts` và support `workflow-admission-crash-worker.ts` sở hữu fixture roots; không Launcher/model call hay sửa native stop proof.
+
+Task 5 kiểm thêm ma trận actual PostgreSQL prefix8: selection/decision/report sai hoặc runtime bị tắt không
+RELEASE, companion vẫn giữ selection claim sau config update, lost result/finalize với terminal event duy nhất,
+production final pending và native pause/cancel/ACK replay. SIGKILL thật tại reserve/spawn/READY/claim/companion/
+authorize/release không tạo launch thứ hai; root UNKNOWN được giữ cùng device/inode/UID. Gated/pending-startup/
+repeated-TERM/completed helper và fork escaped process vẫn giữ ranh giới STOP. Gateway tsconfig include thêm
+đúng hai ambient declaration đã review của server (`platform/thread-stream.d.ts`, `platform/picomatch.d.ts`)
+cho actual integration imports; strict và library checking vẫn bật, build config chỉ compile gateway src.
+
+GatewaySync gọi readonly `WorkflowRegistry.verifySource` trước báo source current, kể cả mọi projection null; healthy cache không fetch lại archive, source bị sửa báo error. Prefix8 coexistence test để sync_models queued/result null trong khi workflow cursor tiến và revision mới vẫn applied.
