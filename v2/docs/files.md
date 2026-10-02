@@ -8,16 +8,23 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | File | Flows |
 |------|-------|
 | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
+| `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
 | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/db/client.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
+| `server/src/journal/canonical.ts` | [server-journal](flows/server-journal.md) (file) |
+| `server/src/journal/event-contracts.ts` | [server-journal](flows/server-journal.md) (file) |
+| `server/src/journal/events.ts` | [server-journal](flows/server-journal.md) (file) |
+| `server/src/journal/mutation.ts` | [server-journal](flows/server-journal.md) (file) |
+| `server/src/journal/routes.ts` | [server-journal](flows/server-journal.md) (điểm vào) |
 | `server/src/platform/config.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/platform/contracts.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/platform/errors.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/platform/picomatch.d.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
+| `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |

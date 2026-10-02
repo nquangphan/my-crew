@@ -1,0 +1,43 @@
+# Nhật ký sự kiện và mutation bền vững
+
+## Mục đích
+
+Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL. Khóa gửi lại giúp một request thành công chỉ chạy một lần; cursor sự kiện theo thứ tự commit để client đọc tiếp sau khi mất kết nối. Dữ liệu event chỉ chứa metadata đã khai báo, không chứa credential.
+
+## Điểm vào
+
+- `server/src/journal/mutation.ts` → `createMutator`, `mutate`: ghi idempotency và chạy công việc trong transaction.
+- `server/src/journal/events.ts` → `appendEvent`, `readEvents`, `ownerOnlyEventScope`: phát cursor và đọc theo quyền.
+- `server/src/journal/routes.ts` → `registerEventRoutes`: HTTP đọc event và SSE.
+
+## Các bước
+
+1. `server/src/journal/canonical.ts` → `canonicalJson` sắp xếp key JSON, từ chối giá trị không thể biểu diễn an toàn. `server/src/journal/mutation.ts` → `createMutator` băm body SHA-256, kiểm tra khóa ASCII in được, rồi khóa phạm vi `(actor, route, key)` bằng advisory lock trong transaction.
+2. `server/src/journal/mutation.ts` → `createMutator` đọc bản ghi idempotency: cùng hash trả response đã lưu qua `ResponseCodec`; khác hash trả 409. Request mới khóa hàng `event_cursor` trước business rows, chạy `work`, ghi response, rồi commit. Lỗi rollback cả công việc, event và response.
+3. `server/src/journal/event-contracts.ts` → `validateEventInput` từ chối key nhạy cảm lồng sâu, type và payload chưa khai báo. Các hợp đồng đầu tiên là `machine.provisioned`, `project.created`, `project.bound`; `probe` chỉ phục vụ test nội bộ. `server/src/journal/events.ts` → `appendEvent` tăng `event_cursor` và chèn event trong transaction của caller.
+4. `server/src/journal/events.ts` → `readEvents` trả event sau cursor theo thứ tự tăng. Owner đọc toàn bộ; máy chỉ đọc project được `EventScopeReader` cấp và event gửi đích danh máy đó. Event gửi máy khác không lọt qua project scope. Phase 02 giữ journal vô hạn.
+5. `server/src/journal/routes.ts` → `registerEventRoutes` xác thực trước khi đọc hoặc mở stream. `GET /v2/events` trả `{items,cursor}`; cursor là event cuối trang hoặc cursor đầu vào khi trang rỗng. SSE lấy `Last-Event-ID` khi nối lại, đọc hết backlog theo trang rồi poll mỗi giây; heartbeat 15 giây. Socket chậm vượt 64 KiB bị đóng để client phát lại từ cursor cuối; socket đóng hoặc app shutdown dừng vòng poll.
+
+## Files
+
+| Đường dẫn từ `v2/` | Vai trò |
+|---|---|
+| `server/migrations/002_journal.sql` | Bảng cursor, event và idempotency; index cho project và máy |
+| `server/src/journal/canonical.ts` | JSON canonical cho hash và kiểm tra payload |
+| `server/src/journal/mutation.ts` | Transaction, khóa gửi lại và response codec |
+| `server/src/journal/event-contracts.ts` | Whitelist event metadata |
+| `server/src/journal/events.ts` | Ghi và đọc event theo actor/scope |
+| `server/src/journal/routes.ts` | Endpoint đọc event và SSE |
+| `server/test/journal.test.ts` | Kiểm thử cạnh tranh, rollback, scope và reconnect |
+
+## Dữ liệu
+
+`event_cursor` có một hàng `singleton=true`, bắt đầu ở 0. `events.cursor` là bigint tăng trong transaction, không dùng sequence cấp trước commit. `idempotency` có khóa chính `(actor_kind, actor_id, route, key)` và giữ response thành công vô hạn trong giai đoạn này. Response credential do `ResponseCodec` của module auth mã hóa trước khi lưu; journal không giải mã hoặc ghi token vào event. Cursor API là chuỗi thập phân không âm.
+
+## Flow liên quan
+
+`server-platform` cấp migration, fixture, hợp đồng `Actor`, `Tx`, `ResponseCodec`. Flow identity cung cấp authenticator, codec mã hóa credential và project scope; các flow ticket, execution và docs sau đó dùng mutation/event journal.
+
+## Tests
+
+`pnpm --dir v2/server test --test-file <đường dẫn tuyệt đối đến server/test/journal.test.ts>` dùng PostgreSQL container riêng. Test kiểm tra replay đồng thời, payload khác trả 409, rollback không tiêu cursor, hai kết nối commit theo cursor, máy không thấy global/project lạ, event nhạy cảm bị chặn và SSE xác thực/nối lại sau restart. `pnpm --dir v2/server typecheck` cùng Biome kiểm tra kiểu và định dạng.

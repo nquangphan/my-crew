@@ -42,5 +42,18 @@ flows:
     tests:
       - server/test/platform.test.ts
       - server/test/support/db.ts
+  server-journal:
+    title: Mutation và event journal bền vững Crew v2
+    doc: docs/flows/server-journal.md
+    entrypoints:
+      - server/src/journal/routes.ts
+    files:
+      - server/src/journal/canonical.ts
+      - server/src/journal/event-contracts.ts
+      - server/src/journal/events.ts
+      - server/src/journal/mutation.ts
+      - server/migrations/002_journal.sql
+    tests:
+      - server/test/journal.test.ts
 shared: {}
 unassigned: []

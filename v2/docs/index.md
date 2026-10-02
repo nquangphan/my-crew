@@ -27,6 +27,7 @@ cùng điều kiện hoàn tất tài liệu. Các phần khác của Crew v2 g�
 | Flow | Id | Điểm vào |
 |------|----|----------|
 | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
+| [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
 | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
 <!-- crew-docs:flows:end -->
 
