@@ -19,7 +19,7 @@ Flow này xác thực một owner đã bootstrap, cấp token mới cho máy mac
 4. `server/src/auth/machine.ts` → `provisionMachine`: tạo UUID và token 32 byte ngẫu nhiên, lưu hash, phát `machine.provisioned` chỉ có machineId. Route máy chỉ trả metadata khi đọc danh sách; máy đã bị thu hồi không xác thực được.
 5. `server/src/projects/service.ts` → `createProject`: kiểm tra key, tên, URL HTTPS/SSH không có userinfo; tạo project chưa gắn máy và phát `project.created` chỉ có revision.
 6. `server/src/projects/service.ts` → `bindProject`: khóa dòng project, kiểm tra revision và máy còn hiệu lực, gọi guard trong cùng transaction nếu project đã gắn máy, cập nhật một machineId/checkoutPath, xóa commit checkout cũ và tăng bindingRevision; phát `project.bound` chỉ có machineId và bindingRevision. Chữ ký ba tham số mặc định từ chối gắn lại; tham số guard thứ tư tùy chọn cho Task5 kiểm tra attempt `active`, `uncertain`, `finalizing` sau khi các bảng đó có mặt.
-7. `server/src/projects/service.ts` → `projectEventScope`: máy chỉ đọc sự kiện của project hiện gắn với máy đó; owner đọc toàn bộ. Danh sách project dùng ID cursor, tối đa 100 mục/trang.
+7. `server/src/projects/service.ts` → `projectEventScope`: nhận `Db | Tx` để journal đọc binding và event trong cùng transaction snapshot; máy chỉ đọc sự kiện của project gắn với máy tại snapshot đó, owner đọc toàn bộ. Danh sách project dùng ID cursor, tối đa 100 mục/trang.
 
 ## Files
 

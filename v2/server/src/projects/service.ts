@@ -137,7 +137,7 @@ export async function listProjects(
 }
 
 export async function projectEventScope(
-  db: Db,
+  db: Db | Tx,
   actor: Actor,
 ): Promise<{ projectIds: Id[]; allowGlobal: boolean }> {
   if (actor.kind === 'owner') return { projectIds: [], allowGlobal: true };

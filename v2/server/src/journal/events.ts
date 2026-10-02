@@ -3,7 +3,10 @@ import { ApiError } from '../platform/errors.ts';
 import { canonicalJson } from './canonical.ts';
 import { validateEventInput } from './event-contracts.ts';
 
-export type EventScopeReader = (db: Db, actor: Actor) => Promise<{ projectIds: Id[]; allowGlobal: boolean }>;
+export type EventScopeReader = (
+  db: Db | Tx,
+  actor: Actor,
+) => Promise<{ projectIds: Id[]; allowGlobal: boolean }>;
 
 export const ownerOnlyEventScope: EventScopeReader = async (_db, actor) => ({
   projectIds: [],
@@ -52,14 +55,16 @@ export async function readEvents(
   const cursor = parseCursor(after);
   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
     throw new ApiError('LIMIT_INVALID', 400, 'Giới hạn sự kiện không hợp lệ');
-  const access = await scope(db, actor);
-  if (actor.kind === 'owner') {
+  return db.begin('isolation level repeatable read read only', async (tx) => {
+    const access = await scope(tx, actor);
+    if (actor.kind === 'owner') {
+      const rows =
+        await tx`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} order by cursor limit ${limit}`;
+      return rows.map(mapEvent);
+    }
+    const ids = access.projectIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
     const rows =
-      await db`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} order by cursor limit ${limit}`;
+      await tx`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} and (audience_machine_id = ${actor.id} or (audience_machine_id is null and project_id = any(${tx.array(ids)}::uuid[]))) order by cursor limit ${limit}`;
     return rows.map(mapEvent);
-  }
-  const ids = access.projectIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
-  const rows =
-    await db`select cursor, type, project_id, ticket_id, audience_machine_id, data, occurred_at from events where cursor > ${cursor} and (audience_machine_id = ${actor.id} or (audience_machine_id is null and project_id = any(${db.array(ids)}::uuid[]))) order by cursor limit ${limit}`;
-  return rows.map(mapEvent);
+  });
 }

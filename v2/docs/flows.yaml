@@ -54,6 +54,7 @@ flows:
       - server/src/journal/mutation.ts
       - server/migrations/002_journal.sql
     tests:
+      - server/test/journal-scope.test.ts
       - server/test/journal.test.ts
   server-identity:
     title: Xác thực owner và gắn dự án với máy Crew v2

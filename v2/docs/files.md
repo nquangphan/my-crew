@@ -33,6 +33,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
 | `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
 | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
+| `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
