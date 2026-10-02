@@ -37,6 +37,16 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/src/journal/native-identity.c` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/journal/native.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/journal/process-journal.ts` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/models/contracts.ts` | [gateway-models](flows/gateway-models.md) (file) |
+| `gateway/src/models/credential-broker.ts` | [gateway-models](flows/gateway-models.md) (file) |
+| `gateway/src/models/credential-provisioning.ts` | [gateway-models](flows/gateway-models.md) (file) |
+| `gateway/src/models/current-credential-resolver.ts` | [gateway-models](flows/gateway-models.md) (file) |
+| `gateway/src/models/inventory.ts` | [gateway-models](flows/gateway-models.md) (file) |
+| `gateway/src/models/model-reporter.ts` | [gateway-models](flows/gateway-models.md) (file) |
+| `gateway/src/models/probe.ts` | [gateway-models](flows/gateway-models.md) (file) |
+| `gateway/src/models/provider-transport.ts` | [gateway-models](flows/gateway-models.md) (file) |
+| `gateway/src/models/security-bridge.ts` | [gateway-models](flows/gateway-models.md) (file) |
+| `gateway/src/models/security-keychain.m` | [gateway-models](flows/gateway-models.md) (file) |
 | `gateway/src/resources/native-resources.c` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/resources/registry.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/sync/connection.ts` | [gateway-host](flows/gateway-host.md) (file) |
@@ -56,10 +66,14 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/src/workflows/retention.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
 | `gateway/src/workflows/stage.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
 | `gateway/test/connection.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/credential-broker.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+| `gateway/test/credential-provisioning.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+| `gateway/test/current-credential-resolver.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/event-pump.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/execution-bridge-db.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/execution-bridge.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/execution-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/fixtures/models/security-channel.c` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/fixtures/workflow-builder/dependencies.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/fixtures/workflow-builder/dependencies.tgz` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/fixtures/workflow-builder/independent-builds.json` | [gateway-workflows](flows/gateway-workflows.md) (test) |
@@ -75,6 +89,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/host-lifecycle.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/http-operations.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/journal.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/model-probe.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+| `gateway/test/model-reporter.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/pin-retirement.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/resources.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/retirement-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
@@ -88,6 +104,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/support/freeze-real-projections.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/host.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/journal-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/support/model-fixture.ts` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/support/owned-run.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/pin-retirement-crash-worker.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/probe-bmad-build.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
@@ -201,6 +218,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/model-certification.test.ts` | [server-models](flows/server-models.md) (test) |
+| `server/test/model-current-credentials.test.ts` | [server-models](flows/server-models.md) (test) |
 | `server/test/model-pool.test.ts` | [server-models](flows/server-models.md) (test) |
 | `server/test/model-secret.test.ts` | [server-models](flows/server-models.md) (test) |
 | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |

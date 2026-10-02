@@ -294,6 +294,7 @@ flows:
       - server/migrations/008_model_pool.sql
     tests:
       - server/test/model-certification.test.ts
+      - server/test/model-current-credentials.test.ts
       - server/test/model-pool.test.ts
       - server/test/model-secret.test.ts
       - server/test/support/model-certification.ts
@@ -315,5 +316,28 @@ flows:
       - server/test/attachments-staging.test.ts
       - server/test/attachments-storage.test.ts
       - server/test/support/attachments.ts
+  gateway-models:
+    title: Inventory, credential broker và probe model trên gateway
+    doc: docs/flows/gateway-models.md
+    entrypoints: []
+    files:
+      - gateway/src/models/contracts.ts
+      - gateway/src/models/credential-broker.ts
+      - gateway/src/models/credential-provisioning.ts
+      - gateway/src/models/current-credential-resolver.ts
+      - gateway/src/models/inventory.ts
+      - gateway/src/models/model-reporter.ts
+      - gateway/src/models/probe.ts
+      - gateway/src/models/provider-transport.ts
+      - gateway/src/models/security-bridge.ts
+      - gateway/src/models/security-keychain.m
+    tests:
+      - gateway/test/credential-broker.test.ts
+      - gateway/test/credential-provisioning.test.ts
+      - gateway/test/current-credential-resolver.test.ts
+      - gateway/test/model-probe.test.ts
+      - gateway/test/model-reporter.test.ts
+      - gateway/test/support/model-fixture.ts
+      - gateway/test/fixtures/models/security-channel.c
 shared: {}
 unassigned: []

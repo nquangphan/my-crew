@@ -36,6 +36,7 @@ import {
   confirmCredentialKey,
   markSecretKeyLost,
   provisionSecret,
+  readApiCredentialBindings,
   readSecretEnvelopes,
   registerCredentialKey,
 } from './secret-envelopes.ts';
@@ -77,6 +78,14 @@ export function registerModelRoutes(
       if (current.kind !== actor.kind || current.id !== actor.id) fail('UNAUTHENTICATED', 401);
       return work(tx);
     });
+  app.get(
+    '/v2/machine/api-credential-bindings',
+    { schema: { querystring: objectSchema({}) } },
+    async (request) => {
+      const actor = await machine(request);
+      return read(request, actor, (tx) => readApiCredentialBindings(tx, actor.id));
+    },
+  );
   app.post<{ Body: CredentialKeyRegistration }>(
     '/v2/machine/credential-keys',
     { schema: { body: registrationSchema } },

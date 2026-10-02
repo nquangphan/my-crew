@@ -13,6 +13,7 @@ import { canonicalJson } from '../journal/canonical.ts';
 import type { Id, Tx } from '../platform/contracts.ts';
 import { readSourceConfig } from './config.ts';
 import type {
+  ApiCredentialBindings,
   CredentialKeyConfirmation,
   CredentialKeyRegistration,
   SecretAck,
@@ -220,4 +221,24 @@ export async function markSecretKeyLost(tx: Tx, machineId: Id, id: Id, now = new
   // Only a current pending operation using this lost key may change provider presentation.
   await tx`update api_providers p set status='missing',credential_ref=null where p.machine_id=${machineId} and p.status='pending' and exists(select 1 from api_secret_envelopes e where e.machine_id=p.machine_id and e.provider_id=p.id and e.operation_id=p.current_operation_id and e.key_id=${r.key_id})`;
   return { operationId: r.operation_id, status: 'pending' };
+}
+
+/** Current metadata only. Caller supplies the authenticated repeatable-read snapshot. */
+export async function readApiCredentialBindings(tx: Tx, machineId: Id): Promise<ApiCredentialBindings> {
+  const [config] = await tx`select revision,enabled from model_source_configs where machine_id=${machineId}`;
+  const providers =
+    await tx`select id,endpoint,protocol,status,credential_ref,current_operation_id from api_providers where machine_id=${machineId} and declared order by id`;
+  return {
+    machineId,
+    configRevision: config ? Number(config.revision) : null,
+    apiEnabled: config ? (config.enabled as { api: boolean }).api : false,
+    providers: providers.map((p) => ({
+      providerId: String(p.id),
+      endpoint: String(p.endpoint),
+      protocol: p.protocol as ApiCredentialBindings['providers'][number]['protocol'],
+      status: p.status as ApiCredentialBindings['providers'][number]['status'],
+      credentialRef: p.credential_ref === null ? null : String(p.credential_ref),
+      currentOperationId: p.current_operation_id === null ? null : String(p.current_operation_id),
+    })),
+  };
 }

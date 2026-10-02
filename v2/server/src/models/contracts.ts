@@ -82,6 +82,19 @@ export type ApiProviderConfig = {
   credentialStatus: 'missing' | 'pending' | 'stored';
   localHttp: { enabled: true; allowedOrigin: string } | null;
 };
+export type ApiCredentialBindings = {
+  machineId: string;
+  configRevision: number | null;
+  apiEnabled: boolean;
+  providers: {
+    providerId: string;
+    endpoint: string;
+    protocol: ApiProviderConfig['protocol'];
+    status: ApiProviderConfig['credentialStatus'];
+    credentialRef: string | null;
+    currentOperationId: string | null;
+  }[];
+};
 export type SourceConfig = {
   revision: number;
   enabled: Record<Source, boolean>;
