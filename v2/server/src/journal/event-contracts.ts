@@ -61,6 +61,54 @@ export function validateEventInput(input: EventInput): void {
   const data = input.data;
   let valid = false;
   switch (input.type) {
+    case 'gateway.config.changed':
+      valid =
+        exactKeys(data, ['revision']) &&
+        Number.isSafeInteger(data.revision) &&
+        Number(data.revision) > 0 &&
+        input.projectId === null &&
+        input.ticketId === null &&
+        input.audienceMachineId !== null;
+      break;
+    case 'gateway.booted':
+      valid =
+        exactKeys(data, ['bootId', 'bootGeneration']) &&
+        typeof data.bootId === 'string' &&
+        uuid.test(data.bootId) &&
+        typeof data.bootGeneration === 'string' &&
+        /^[1-9][0-9]*$/.test(data.bootGeneration) &&
+        input.projectId === null &&
+        input.ticketId === null &&
+        input.audienceMachineId !== null;
+      break;
+    case 'gateway.install.reported':
+      valid =
+        exactKeys(data, ['reportId', 'revision', 'accepted']) &&
+        typeof data.reportId === 'string' &&
+        uuid.test(data.reportId) &&
+        Number.isSafeInteger(data.revision) &&
+        Number(data.revision) > 0 &&
+        typeof data.accepted === 'boolean' &&
+        input.projectId === null &&
+        input.ticketId === null &&
+        input.audienceMachineId !== null;
+      break;
+    case 'gateway.command.created':
+    case 'gateway.command.acknowledged':
+      valid =
+        exactKeys(
+          data,
+          input.type === 'gateway.command.created' ? ['commandId', 'type'] : ['commandId', 'phase'],
+        ) &&
+        typeof data.commandId === 'string' &&
+        uuid.test(data.commandId) &&
+        (input.type === 'gateway.command.created'
+          ? ['sync_workflows', 'probe', 'reconcile_host'].includes(String(data.type))
+          : ['received', 'completed'].includes(String(data.phase))) &&
+        input.projectId === null &&
+        input.ticketId === null &&
+        input.audienceMachineId !== null;
+      break;
     case 'docs.imported':
       valid =
         exactKeys(data, ['importId', 'projectCount']) &&

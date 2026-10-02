@@ -220,5 +220,17 @@ flows:
       - gateway/test/fixtures/workflows/bmad-6.12.0.tgz
       - gateway/test/fixtures/workflows/official-audits.json
       - gateway/test/fixtures/workflows/superpowers-6.4.2.tgz
+  server-gateway:
+    title: Control plane gateway và boot/config/report
+    doc: docs/flows/server-gateway.md
+    entrypoints:
+      - server/src/gateway/routes.ts
+    files:
+      - server/src/gateway/contracts.ts
+      - server/src/gateway/service.ts
+      - server/migrations/007_gateway.sql
+    tests:
+      - server/test/gateway.test.ts
+      - server/test/support/gateway.ts
 shared: {}
 unassigned: []

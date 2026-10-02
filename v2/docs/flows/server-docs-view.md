@@ -20,6 +20,8 @@ Cung cấp cây tài liệu, trang nguyên trạng, tìm kiếm Unicode và API 
 6. `server/src/app.ts` → `buildApp`: nối `createExecutionAuthority`, guard rebind `assertNoActiveProjectExecution`, source/completion readers, project docs state và current credential reader vào route factory. Ticket mutation giữ thứ tự root/ticket/project/machine và recheck trước replay. SSE recheck credential cùng scope/event trong mỗi transaction snapshot; session hết hạn hoặc token thu hồi đóng stream. `preClose` đóng socket SSE trước Fastify chờ shutdown.
 7. `server/src/main.ts` → `main`: chỉ chạy khi file được gọi trực tiếp; `CREW_V2_PORT` mặc định entrypoint là 8792, bind `127.0.0.1`. Không auto-migrate/start host agent; config producer độc lập giữ mặc định 8788 nếu được gọi trực tiếp ngoài main. Signal đóng listener/SSE và pool. Import module không tạo side effect.
 
+8. `server/src/app.ts` → `buildApp`: ghép `registerGatewayRoutes` cho namespace007; AppOptions nhận optional GatewayProjectionPolicy do composition phase06 cấp, mặc định SELECTION_NOT_CONFIGURED. ServerOptions/DispatchPermit và hai default deny execution/final giữ nguyên; không auto-migrate007. Gateway mutation recheck actual credential dưới khóa machine/entity trước cache. Flow `server-gateway` mô tả boot/config/report/command/projection.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |

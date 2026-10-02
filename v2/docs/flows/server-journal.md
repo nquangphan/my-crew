@@ -20,6 +20,8 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
 
 8. `server/src/journal/routes.ts` → `registerEventRoutes`: Tham số currentCredential tùy chọn cho assembly recheck actual credential trong cùng repeatable-read snapshot với scope/events, mỗi backlog page/poll; stream owner hết hạn/machine thu hồi bị đóng. Hook preClose phá socket SSE trước server shutdown; log stream chỉ code, không ghi raw error. HTTP acceptance chứng minh revocation/expiry không phát event mới, race snapshot và shutdown.
 
+9. `server/src/journal/event-contracts.ts` whitelist thêm gateway.config.changed, gateway.booted, gateway.install.reported, gateway.command.created và gateway.command.acknowledged. Event chỉ chứa revision/UUID/generation/type/phase/accepted, audience đích danh máy, project/ticket null; từ chối raw inventory, URL, result, error hay secret. Gateway service append cùng transaction CAS/ACK/report; heartbeat receipt không phát event và không thay attempt. Authorization recheck actual credential chạy trước cached replay, máy chưa gắn project chỉ đọc event dành riêng mình theo scope hiện hành.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |

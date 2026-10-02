@@ -24,6 +24,8 @@
 
 8. `server/src/main.ts` → `main`: Entrypoint gọi loadConfig với CREW_V2_PORT mặc định8792, bind127.0.0.1, giữ default8788 của config producer ngoài main. buildApp không migrate/listen/pool shutdown; main sở hữu pool và đóng qua signal. HTTP test build trên prefix1 xác nhận schema không tự migrate/listen, DB error trả503 chung và import main không chạy side effect.
 
+9. `server/src/app.ts` → `buildApp`: đăng ký gateway routes additive nhưng không tạo bảng007 lúc build/start. Migration prefix explicit7 chỉ do caller/CLI chọn; fixture gateway dùng databaseFixture(7), các fixture phase02 giữ prefix cũ. Namespace007 có pointer latest_report_id và immutable receipt/report/companion, diễn tập backup6→restore6→migrate7→restore7 bằng container test riêng. Xem flow `server-gateway`.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |
