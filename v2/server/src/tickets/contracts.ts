@@ -17,6 +17,7 @@ export type CreateTicket = {
   outputs: Record<string, unknown>;
   skill: string | null;
   workflowPin: Pin | null;
+  deployApprovalDecisionId?: Id | null;
 };
 export type Ticket = CreateTicket & {
   id: Id;

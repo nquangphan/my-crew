@@ -9,6 +9,13 @@ create table tickets (
   description text not null,
   status text not null check (status in ('pending','ready','running','needs_input','paused','done','cancelled')),
   wait_reason text null,
+  created_actor_kind text not null check (created_actor_kind in ('owner','machine')),
+  created_actor_id text not null,
+  deploy_definition_hash char(64) null check (deploy_definition_hash ~ '^[0-9a-f]{64}$'),
+  deploy_approval_decision_id uuid null unique,
+  repair_limit_cycle_id uuid null,
+  repair_limit_at timestamptz null,
+  repair_limit_consumed_decision_id uuid null,
   revision integer not null default 1 check (revision > 0),
   mandatory boolean not null default true,
   criteria jsonb not null default '{}'::jsonb,
@@ -22,7 +29,9 @@ create table tickets (
   created_at timestamptz not null default now(),
   unique (id, project_id),
   constraint tickets_root_fk foreign key (root_id) references tickets(id) on delete restrict deferrable initially deferred,
-  check ((level='request' and parent_id is null and root_id=id) or (level<>'request' and parent_id is not null and root_id<>id))
+  check ((level='request' and parent_id is null and root_id=id) or (level<>'request' and parent_id is not null and root_id<>id)),
+  check ((repair_limit_cycle_id is null) = (repair_limit_at is null)),
+  check (deploy_approval_decision_id is null or deploy_definition_hash is not null)
 );
 create index tickets_project_status_id on tickets(project_id,status,id);
 create index tickets_root_id on tickets(root_id,id);
@@ -62,6 +71,10 @@ create table decisions (
   created_at timestamptz not null default now()
 );
 create index decisions_ticket_id on decisions(ticket_id,id);
+alter table tickets add constraint tickets_deploy_approval_fk foreign key(deploy_approval_decision_id)
+  references decisions(id) on delete restrict;
+alter table tickets add constraint tickets_repair_limit_consumed_fk foreign key(repair_limit_consumed_decision_id)
+  references decisions(id) on delete restrict;
 create table evidence (
   id uuid primary key,
   ticket_id uuid not null references tickets(id) on delete restrict,
@@ -80,6 +93,8 @@ create table repair_results (
   evidence_id uuid not null references evidence(id) on delete restrict,
   primary key(check_step_id,cycle_id)
 );
+alter table tickets add constraint tickets_repair_limit_cycle_fk
+  foreign key(id,repair_limit_cycle_id) references repair_results(check_step_id,cycle_id) on delete restrict;
 create table ticket_docs (
   ticket_id uuid not null references tickets(id) on delete restrict,
   snapshot_id uuid not null,

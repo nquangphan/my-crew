@@ -1,6 +1,7 @@
 import { canComplete, canDeploy } from '../../../src/completion-policy.ts';
 import type { Tx } from '../platform/contracts.ts';
 import type { DocsCompletionReader, Ticket } from './contracts.ts';
+import { readDeployAuthorization } from './deploy.ts';
 
 const noDocs: DocsCompletionReader = async () => null;
 
@@ -52,15 +53,17 @@ export async function readCompletionFacts(
   const mergedCommit = merge ? (merge.data.commit as string) : null;
   const docsCommit = ticket.level === 'request' ? await docsReader(tx, ticket.projectId, mergedCommit) : null;
   let ready = false;
-  if (ticket.level !== 'request') {
-    ready = mandatoryStepsPassed && evidenceReady;
-  } else if (ticket.kind === 'deploy') {
-    const [approved] = await tx`select id from decisions where ticket_id=${ticket.id} and kind='approval'
-      and actor_kind='owner' and scope @> ${tx.json({ action: 'deploy' })}::jsonb limit 1`;
+  if (ticket.kind === 'deploy') {
+    const authorization = await readDeployAuthorization(tx, ticket.id);
     ready =
       mandatoryStepsPassed &&
       evidenceReady &&
-      canDeploy({ hasDeployTicket: ticket.level === 'request', ownerApproved: !!approved });
+      canDeploy({
+        hasDeployTicket: authorization === 'owner_deploy_request',
+        ownerApproved: authorization === 'owner_approval',
+      });
+  } else if (ticket.level !== 'request') {
+    ready = mandatoryStepsPassed && evidenceReady;
   } else {
     ready = canComplete({ kind: ticket.kind, mandatoryStepsPassed, evidenceReady, mergedCommit, docsCommit });
   }

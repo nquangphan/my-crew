@@ -97,6 +97,7 @@ flows:
       - server/src/tickets/contracts.ts
       - server/src/tickets/decisions.ts
       - server/src/tickets/dependencies.ts
+      - server/src/tickets/deploy.ts
       - server/src/tickets/docs-links.ts
       - server/src/tickets/repair.ts
       - server/src/tickets/service.ts
@@ -108,5 +109,6 @@ flows:
       - server/test/repair.test.ts
       - server/test/support/tickets.ts
       - server/test/ticket-events.unit.test.ts
+      - server/test/deploy.test.ts
 shared: {}
 unassigned: []

@@ -42,6 +42,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/tickets/contracts.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/decisions.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/dependencies.ts` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/src/tickets/deploy.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/docs-links.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
@@ -49,6 +50,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
 | `server/test/completion.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/dependencies.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+| `server/test/deploy.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/docs-validator.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/fixtures/legacy-docs/crlf-unicode.md` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |

@@ -12,13 +12,14 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 
 ## Các bước
 
-1. `server/src/tickets/service.ts` → `createTicket` kiểm tra quyền dự án, ba cấp cha con, workflow pin của cha rồi chèn ticket. Request tự trỏ `root_id` và mặc định chọn Superpowers trong criteria nếu chưa chọn. Event `ticket.created` chỉ mang revision/trạng thái.
-2. `server/src/tickets/dependencies.ts` → `addDependency` khóa hàng root trước khi kiểm tra hai đầu cạnh và duyệt CTE đệ quy theo predecessor. Hai transaction thêm cạnh ngược chiều không thể cùng commit; ticket được tăng revision bằng optimistic check.
+1. `server/src/tickets/service.ts` → `createTicket` kiểm tra quyền dự án, ba cấp cha con, workflow pin của cha rồi chèn ticket. Sau khi khóa root, service đọc lại root/cha và từ chối tạo con nếu một trong hai đã hoàn tất hoặc hủy. Request tự trỏ `root_id` và mặc định chọn Superpowers trong criteria nếu chưa chọn. Event `ticket.created` chỉ mang revision/trạng thái.
+2. `server/src/tickets/dependencies.ts` → `addDependency` khóa root trước khi kiểm tra hai đầu cạnh và duyệt CTE đệ quy theo predecessor. Hai transaction thêm cạnh ngược chiều không thể cùng commit. Không sửa dependency của ticket đã `ready`, `running` hoặc kết thúc; Task 5 còn kiểm tra lại predecessor khi claim.
 3. `server/src/tickets/decisions.ts` → `appendComment`, `recordDecision` lưu nội dung trong bảng riêng và phát event chỉ chứa ID metadata. Nguồn quyết định phải là ticket/owner decision/artifact đã ghi nhận trong cùng gốc, hoặc trang docs được reader xác minh. Máy không thể ghi owner answer hoặc approval.
-4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction và vẫn giữ `running`; chỉ `applyExecutionSignal` nội bộ sau xác nhận tiến trình mới chuyển trạng thái. `passed` gọi cổng hoàn tất.
-5. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; bước/công việc đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge; bản ghi tự báo không đủ điều kiện.
-6. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 ghi số vòng, lý do `repair_limit`, gọi authority để lưu ý định/command dừng tại execution, và giữ ticket `running` tới khi Task 5 xác minh dừng và finalize nguyên tử. Muốn tiếp tục cần `owner_answer` có scope cho bước đó; bộ đếm vẫn là 5.
-7. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
+4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction và vẫn giữ `running`; chỉ `applyExecutionSignal` nội bộ sau xác nhận tiến trình mới chuyển trạng thái. Root lock nối tuần tự completion với việc thêm con. Khi finalize vòng sửa thứ năm, lý do `repair_limit` được giữ nguyên.
+5. `server/src/tickets/deploy.ts` → `deployTicketFingerprint`, `readDeployAuthorization` chứng minh provenance của deploy. Máy không tạo request deploy gốc. Máy chỉ tạo hậu duệ deploy khi root là yêu cầu deploy do owner tạo, hoặc khi có quyết định owner duyệt chính xác định nghĩa ticket bằng SHA-256 canonical gồm root, hành động và toàn bộ input có ý nghĩa. Quyết định được gắn vào ticket và chỉ cấp cho một ticket. Gate thực thi Task 5 phải đọc cùng hàm này trước khi chạy deploy.
+6. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; deploy ở mọi cấp cần owner-created request hoặc approval đúng ticket. Bước/công việc khác đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge.
+7. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 lưu cycle đang chờ duyệt và thời điểm, lý do `repair_limit`, gọi authority lưu ý định/command dừng, và giữ ticket `running` tới Task 5 finalize. `owner_answer` phải cùng cycle, ghi sau thất bại; `resume` tiêu quyết định một lần dưới khóa root/step, giữ counter 5.
+8. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
 
 ## Files
 
@@ -28,6 +29,7 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 | `server/src/tickets/contracts.ts` | Hợp đồng ticket và callback authority/reader |
 | `server/src/tickets/service.ts` | Tạo ticket, scope, tín hiệu và factory |
 | `server/src/tickets/dependencies.ts` | Cạnh phụ thuộc và sơ đồ |
+| `server/src/tickets/deploy.ts` | Chứng minh owner intent và fingerprint deploy |
 | `server/src/tickets/decisions.ts` | Bình luận, quyết định và kiểm tra nguồn |
 | `server/src/tickets/completion.ts` | Sự thật hoàn tất từ DB/reader |
 | `server/src/tickets/repair.ts` | Kết quả kiểm tra và tối đa năm vòng sửa |
@@ -36,13 +38,14 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 | `server/test/support/tickets.ts` | Fixture dự án/ticket qua service và mutator |
 | `server/test/tickets.test.ts` | Schema, route, quyết định và liên kết docs |
 | `server/test/dependencies.test.ts` | Cây và cạnh đồng thời |
+| `server/test/deploy.test.ts` | Quyền deploy của root và approval đúng định nghĩa |
 | `server/test/completion.test.ts` | Cổng bằng chứng và commit docs |
 | `server/test/repair.test.ts` | Bộ đếm, ý định dừng và fence |
 | `server/test/ticket-events.unit.test.ts` | Payload event metadata hợp lệ |
 
 ## Dữ liệu
 
-`tickets.root_id` của request bằng ID chính nó; khóa ngoại root được trì hoãn đến commit. `dependencies` giữ cặp ticket–predecessor, `repair_links` nối bước kiểm tra với công việc sửa theo cycle. `evidence.data.verification='reported'` chỉ là lời báo; cổng hoàn tất chỉ nhận `verified` do authority nội bộ tạo. `repair_cycles` nằm trên chính bước kiểm tra và không reset khi đổi model hay thêm ticket sửa. Event journal không chứa nội dung comment/quyết định/evidence.
+`tickets.root_id` của request bằng ID chính nó; khóa ngoại root được trì hoãn đến commit. `created_actor_kind/id`, `deploy_definition_hash` và `deploy_approval_decision_id` là provenance bền vững cho cổng deploy. `dependencies` giữ cặp ticket–predecessor, `repair_links` nối bước kiểm tra với công việc sửa theo cycle. `repair_limit_cycle_id`/`repair_limit_at` chỉ cycle mới nhất đang chờ; `repair_limit_consumed_decision_id` ghi quyết định đã dùng. `evidence.data.verification='reported'` chỉ là lời báo; cổng hoàn tất chỉ nhận `verified` do authority nội bộ tạo. `repair_cycles` nằm trên chính bước kiểm tra và không reset khi đổi model hay thêm ticket sửa. Event journal không chứa nội dung comment/quyết định/evidence.
 
 ## Flow liên quan
 
@@ -50,4 +53,4 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 
 ## Tests
 
-`pnpm --dir v2/server test` chạy PostgreSQL container riêng với DB prefix `crew_v2_test_`. Các bài test kiểm tra cây ba cấp, cạnh đối nghịch đồng thời, bằng chứng code/research/docs, owner answer, 5 vòng repair, stale fence, schema event và route từ chối field dư. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng.
+`pnpm --dir v2/server test` chạy PostgreSQL container riêng với DB prefix `crew_v2_test_`. Các bài test kiểm tra cây ba cấp, cạnh đối nghịch đồng thời, completion tranh chấp với tạo con, trạng thái dependency sau khi ready, provenance deploy, bằng chứng code/research/docs, owner answer theo cycle, 5 vòng repair, stale fence, schema event và route từ chối field dư. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng.

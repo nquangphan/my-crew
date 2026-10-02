@@ -63,6 +63,7 @@ const createBody = {
         },
       ],
     },
+    deployApprovalDecisionId: { anyOf: [uuid, { type: 'null' }] },
   },
 } as const;
 const dependencyBody = {

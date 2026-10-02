@@ -67,7 +67,12 @@ export async function recordDecision(
   actor: Actor,
   docsSource?: DocsSourceReader,
 ): Promise<Id> {
-  const ticket = await requireTicket(tx, ticketId, actor);
+  if (input.kind === 'owner_answer') {
+    const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
+    if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+    await tx`select id from tickets where id=${scope.root_id} for update`;
+  }
+  const ticket = await requireTicket(tx, ticketId, actor, input.kind === 'owner_answer');
   if (
     !['assessment', 'delegated', 'owner_answer', 'approval', 'intervention', 'dispatch'].includes(
       input.kind,
@@ -91,16 +96,27 @@ export async function recordDecision(
     throw new ApiError('OWNER_APPROVAL_REQUIRED', 403, 'Chỉ chủ dự án được duyệt');
   if (input.kind === 'owner_answer' && actor.kind !== 'owner')
     throw new ApiError('OWNER_DECISION_REQUIRED', 403, 'Chỉ chủ dự án được trả lời');
-  if (input.kind === 'approval' && input.scope.action === 'deploy' && ticket.kind !== 'deploy')
-    throw new ApiError('VALIDATION', 400, 'Duyệt deploy cần ticket deploy');
+  if (input.kind === 'approval' && input.scope.action === 'deploy') {
+    const hash = input.scope.ticketDefinitionHash;
+    if (typeof hash !== 'string' || !/^[0-9a-f]{64}$/.test(hash))
+      throw new ApiError('VALIDATION', 400, 'Thiếu định danh hành động deploy');
+    const preapproval = ticket.level === 'request' && input.scope.rootTicketId === ticket.id;
+    const direct = ticket.kind === 'deploy' && input.scope.targetTicketId === ticket.id;
+    if (!preapproval && !direct) throw new ApiError('VALIDATION', 400, 'Duyệt deploy không đúng ticket');
+    if (direct) {
+      const [target] = await tx`select deploy_definition_hash from tickets where id=${ticket.id}`;
+      if (target?.deploy_definition_hash !== hash)
+        throw new ApiError('VALIDATION', 400, 'Duyệt deploy không khớp ticket');
+    }
+  }
   for (const source of input.sources) {
     if (!(await sourceExists(tx, ticket.projectId, ticket.rootId, source, docsSource)))
       throw new ApiError('SOURCE_UNVERIFIED', 422, 'Nguồn quyết định chưa được ghi nhận');
   }
   const id = randomUUID();
-  await tx`insert into decisions(id,ticket_id,actor_kind,actor_id,kind,content,rationale,sources,scope)
+  await tx`insert into decisions(id,ticket_id,actor_kind,actor_id,kind,content,rationale,sources,scope,created_at)
     values(${id},${ticketId},${actor.kind},${actor.id},${input.kind},${input.content},${input.rationale},
-      ${tx.json(input.sources)},${tx.json(input.scope as never)})`;
+      ${tx.json(input.sources)},${tx.json(input.scope as never)},clock_timestamp())`;
   await appendEvent(tx, {
     type: 'decision.created',
     projectId: ticket.projectId,

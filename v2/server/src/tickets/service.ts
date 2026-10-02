@@ -9,6 +9,7 @@ import { readCompletionFacts } from './completion.ts';
 import type { CreateTicket, Ticket, TicketServiceDependencies } from './contracts.ts';
 import { appendComment, recordDecision } from './decisions.ts';
 import { addDependency, readGraph } from './dependencies.ts';
+import { deployTicketFingerprint, verifyDeployApprovalForCandidate } from './deploy.ts';
 import { linkDocs } from './docs-links.ts';
 import { recordRepairResult } from './repair.ts';
 
@@ -98,6 +99,8 @@ function validPin(pin: CreateTicket['workflowPin']): boolean {
   );
 }
 
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): Promise<Ticket> {
   if (
     !['request', 'step', 'task'].includes(input.level) ||
@@ -114,7 +117,11 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
     !safeTicketJson(input.inputs) ||
     !safeTicketJson(input.outputs) ||
     (input.skill !== null && (typeof input.skill !== 'string' || input.skill.length > 200)) ||
-    !validPin(input.workflowPin)
+    !validPin(input.workflowPin) ||
+    (input.deployApprovalDecisionId !== undefined &&
+      input.deployApprovalDecisionId !== null &&
+      (typeof input.deployApprovalDecisionId !== 'string' || !uuid.test(input.deployApprovalDecisionId))) ||
+    (input.kind !== 'deploy' && input.deployApprovalDecisionId != null)
   )
     throw new ApiError('VALIDATION', 400, 'Ticket không hợp lệ');
   await requireProjectScope(tx, input.projectId, actor);
@@ -122,17 +129,30 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
   let rootId: Id = id;
   let workflowPin = input.workflowPin;
   let criteria = input.criteria;
+  let rootOwnerDeploy = false;
   if (input.level === 'request') {
     if (input.parentId !== null) throw new ApiError('TICKET_HIERARCHY', 400, 'Yêu cầu không có ticket cha');
+    if (input.kind === 'deploy' && actor.kind !== 'owner')
+      throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Cần yêu cầu deploy của chủ dự án');
     criteria = { workflowChoice: 'superpowers', ...criteria };
   } else {
     if (!input.parentId) throw new ApiError('TICKET_HIERARCHY', 400, 'Thiếu ticket cha');
-    const [parentRow] = await tx`select * from tickets where id=${input.parentId}`;
-    if (!parentRow) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket cha');
-    if (parentRow.project_id !== input.projectId)
-      throw new ApiError('TICKET_HIERARCHY', 409, 'Ticket cha thuộc dự án khác');
-    rootId = parentRow.root_id as Id;
-    await tx`select id from tickets where id=${rootId} for update`;
+    const [initialParent] = await tx`select root_id from tickets where id=${input.parentId}`;
+    if (!initialParent) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket cha');
+    rootId = initialParent.root_id as Id;
+    const [rootRow] = await tx`select * from tickets where id=${rootId} for update`;
+    const [parentRow] = await tx`select * from tickets where id=${input.parentId} for update`;
+    if (!rootRow || !parentRow || parentRow.root_id !== rootId || parentRow.project_id !== input.projectId)
+      throw new ApiError('TICKET_HIERARCHY', 409, 'Ticket cha thuộc cây khác');
+    if (
+      rootRow.status === 'done' ||
+      rootRow.status === 'cancelled' ||
+      parentRow.status === 'done' ||
+      parentRow.status === 'cancelled'
+    )
+      throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
+    rootOwnerDeploy =
+      rootRow.level === 'request' && rootRow.kind === 'deploy' && rootRow.created_actor_kind === 'owner';
     const requiredLevel = input.level === 'step' ? 'request' : 'step';
     if (parentRow.level !== requiredLevel)
       throw new ApiError('TICKET_HIERARCHY', 400, 'Chỉ hỗ trợ yêu cầu → bước → công việc');
@@ -143,11 +163,32 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
       throw new ApiError('WORKFLOW_PIN_MISMATCH', 409, 'Ticket cha chưa ghim workflow');
     workflowPin = parentPin;
   }
+  let deployDefinitionHash: string | null = null;
+  let deployApprovalDecisionId: Id | null = null;
+  if (input.kind === 'deploy') {
+    deployDefinitionHash = deployTicketFingerprint({ ...input, workflowPin }, rootId);
+    if (input.deployApprovalDecisionId) {
+      if (
+        !(await verifyDeployApprovalForCandidate(
+          tx,
+          rootId,
+          input.deployApprovalDecisionId,
+          deployDefinitionHash,
+        ))
+      )
+        throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Duyệt deploy không khớp hành động');
+      deployApprovalDecisionId = input.deployApprovalDecisionId;
+    } else if (actor.kind === 'machine' && !rootOwnerDeploy) {
+      throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Cần chủ dự án duyệt deploy');
+    }
+  }
   const [row] = await tx`insert into tickets
-    (id,project_id,parent_id,root_id,level,kind,title,description,status,mandatory,criteria,inputs,outputs,skill,workflow_pin)
+    (id,project_id,parent_id,root_id,level,kind,title,description,status,mandatory,criteria,inputs,outputs,skill,workflow_pin,
+      created_actor_kind,created_actor_id,deploy_definition_hash,deploy_approval_decision_id)
     values (${id},${input.projectId},${input.parentId},${rootId},${input.level},${input.kind},${input.title},
       ${input.description},'pending',${input.mandatory},${tx.json(criteria as never)},${tx.json(input.inputs as never)},
-      ${tx.json(input.outputs as never)},${input.skill},${workflowPin ? tx.json(workflowPin) : null}) returning *`;
+      ${tx.json(input.outputs as never)},${input.skill},${workflowPin ? tx.json(workflowPin) : null},
+      ${actor.kind},${actor.id},${deployDefinitionHash},${deployApprovalDecisionId}) returning *`;
   if (!row) throw new Error('TICKET_INSERT_FAILED');
   await appendEvent(tx, {
     type: 'ticket.created',
@@ -171,6 +212,9 @@ async function signalTicketWithDependencies(
 ): Promise<Ticket> {
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
     throw new ApiError('VALIDATION', 400, 'Revision không hợp lệ');
+  const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
+  if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+  await tx`select id from tickets where id=${scope.root_id} for update`;
   const ticket = await requireTicket(tx, ticketId, actor, true);
   if (ticket.revision !== expectedRevision)
     throw new ApiError('REVISION_CONFLICT', 409, 'Ticket đã thay đổi');
@@ -191,10 +235,25 @@ async function signalTicketWithDependencies(
       where d.ticket_id=${ticketId} and p.status<>'done' limit 1`;
     if (pending) throw new ApiError('DEPENDENCIES_NOT_READY', 409, 'Phụ thuộc chưa hoàn thành');
   }
+  let continuationDecisionId: Id | null = null;
   if (signal === 'resume' && ticket.repairCycles === 5) {
-    const [approval] = await tx`select id from decisions where ticket_id=${ticketId} and kind='owner_answer'
-      and scope @> ${tx.json({ repairStepId: ticketId, continueAfterFive: true })}::jsonb limit 1`;
-    if (!approval) throw new ApiError('REPAIR_OWNER_DECISION_REQUIRED', 409, 'Cần quyết định của chủ dự án');
+    const [limit] = await tx`select repair_limit_cycle_id,repair_limit_at,repair_limit_consumed_decision_id
+      from tickets where id=${ticketId}`;
+    if (limit?.repair_limit_cycle_id) {
+      if (limit.repair_limit_consumed_decision_id)
+        throw new ApiError('REPAIR_OWNER_DECISION_REQUIRED', 409, 'Quyết định đã được sử dụng');
+      const [approval] = await tx`select id from decisions where ticket_id=${ticketId}
+        and kind='owner_answer' and actor_kind='owner' and created_at>${limit.repair_limit_at}
+        and scope @> ${tx.json({
+          repairStepId: ticketId,
+          cycleId: limit.repair_limit_cycle_id,
+          continueAfterFive: true,
+        })}::jsonb
+        order by created_at,id limit 1`;
+      if (!approval)
+        throw new ApiError('REPAIR_OWNER_DECISION_REQUIRED', 409, 'Cần quyết định của chủ dự án');
+      continuationDecisionId = approval.id as Id;
+    }
   }
   if (signal === 'wait_owner' && ticket.status === 'running') {
     if (!deps.execution)
@@ -202,8 +261,9 @@ async function signalTicketWithDependencies(
     if (internal) {
       await deps.execution.verifySignal(tx, ticketId, signal, evidenceId);
     } else {
-      await deps.execution.requestTerminalIntent(tx, ticketId, 'needs_input', 'owner_input');
-      const [row] = await tx`update tickets set wait_reason='owner_input',revision=revision+1
+      const reason = ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input';
+      await deps.execution.requestTerminalIntent(tx, ticketId, 'needs_input', reason);
+      const [row] = await tx`update tickets set wait_reason=${reason},revision=revision+1
       where id=${ticketId} returning *`;
       await appendEvent(tx, {
         type: 'ticket.changed',
@@ -229,8 +289,13 @@ async function signalTicketWithDependencies(
   }
   if (signal === 'cancel_confirmed' && !internal)
     throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận dừng tiến trình');
+  const nextWaitReason =
+    next === 'needs_input' ? (ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input') : null;
   const [row] = await tx`update tickets set status=${next}, revision=revision+1,merged_commit=${mergedCommit},
-    wait_reason=${next === 'needs_input' ? 'owner_input' : null}
+    wait_reason=${nextWaitReason},
+    repair_limit_cycle_id=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_cycle_id end,
+    repair_limit_at=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_at end,
+    repair_limit_consumed_decision_id=coalesce(${continuationDecisionId}::uuid,repair_limit_consumed_decision_id)
     where id=${ticketId} returning *`;
   await appendEvent(tx, {
     type: 'ticket.changed',

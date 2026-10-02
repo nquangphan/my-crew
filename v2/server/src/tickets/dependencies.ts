@@ -20,12 +20,14 @@ export async function addDependency(
   if (a.root_id !== b.root_id || a.project_id !== b.project_id)
     throw new ApiError('DEPENDENCY_SCOPE', 409, 'Phụ thuộc phải cùng yêu cầu');
   // Every graph mutation acquires its root row first, serializing opposite edges on independent transactions.
-  await tx`select id from tickets where id=${a.root_id} for update`;
+  const [root] = await tx`select id,status from tickets where id=${a.root_id} for update`;
+  if (!root || root.status === 'done' || root.status === 'cancelled')
+    throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
   const [ticket] = await tx`select id,revision,status from tickets where id=${ticketId} for update`;
   if (Number(ticket?.revision) !== expectedRevision)
     throw new ApiError('REVISION_CONFLICT', 409, 'Ticket đã thay đổi');
-  if (ticket?.status === 'done' || ticket?.status === 'cancelled')
-    throw new ApiError('INVALID_TICKET_TRANSITION', 409, 'Ticket đã kết thúc');
+  if (!['pending', 'needs_input', 'paused'].includes(ticket?.status as string))
+    throw new ApiError('DEPENDENCY_EDIT_NOT_ALLOWED', 409, 'Ticket đã sẵn sàng hoặc đang chạy');
   const [cycle] = await tx`with recursive predecessors(id) as (
     select ${predecessorId}::uuid
     union

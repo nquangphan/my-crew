@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { recordRepairFailure } from '../../../src/ticket-policy.ts';
 import { appendEvent } from '../journal/events.ts';
-import type { Actor, Tx } from '../platform/contracts.ts';
+import type { Actor, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
 import type { ExecutionAuthority, RepairResultInput, Ticket } from './contracts.ts';
 import { createTicket, mapTicket, requireTicket, safeTicketJson } from './service.ts';
@@ -47,11 +47,13 @@ export async function recordRepairResult(
   let repairCycles = ticket.repairCycles;
   const nextStatus = ticket.status;
   let waitReason = ticket.waitReason;
+  let limitCycleId: Id | null = null;
   if (!input.passed && input.classification === 'repair_review') {
     const failure = recordRepairFailure(repairCycles);
     repairCycles = failure.cycles;
     if (failure.action === 'ask_owner') {
       waitReason = 'repair_limit';
+      limitCycleId = input.cycleId;
       await execution.requestTerminalIntent(tx, ticket.id, 'needs_input', 'repair_limit');
     }
   }
@@ -94,7 +96,12 @@ export async function recordRepairResult(
       values(${ticket.id},${fix.id},${input.cycleId})`;
   }
   const [updated] = await tx`update tickets set repair_cycles=${repairCycles},status=${nextStatus},
-    wait_reason=${waitReason},revision=revision+1 where id=${ticket.id} returning *`;
+    wait_reason=${waitReason},revision=revision+1,
+    repair_limit_cycle_id=coalesce(${limitCycleId}::uuid,repair_limit_cycle_id),
+    repair_limit_at=case when ${limitCycleId}::uuid is not null then clock_timestamp() else repair_limit_at end,
+    repair_limit_consumed_decision_id=case when ${limitCycleId}::uuid is not null then null
+      else repair_limit_consumed_decision_id end
+    where id=${ticket.id} returning *`;
   await appendEvent(tx, {
     type: 'repair.recorded',
     projectId: ticket.projectId,
