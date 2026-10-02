@@ -3,6 +3,16 @@ import { ApiError } from '../platform/errors.ts';
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const sensitive = /token|password|credential|secret/i;
+const ticketStatuses = new Set(['pending', 'ready', 'running', 'needs_input', 'paused', 'done', 'cancelled']);
+const decisionKinds = new Set([
+  'assessment',
+  'delegated',
+  'owner_answer',
+  'approval',
+  'intervention',
+  'dispatch',
+]);
+const repairClassifications = new Set(['initial_review', 'repair_review', 'infrastructure', 'model']);
 
 function safeData(value: unknown, seen = new Set<object>()): void {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
@@ -73,6 +83,56 @@ export function validateEventInput(input: EventInput): void {
         Number.isSafeInteger(data.bindingRevision) &&
         Number(data.bindingRevision) >= 1 &&
         input.projectId !== null;
+      break;
+    case 'ticket.created':
+    case 'ticket.changed':
+      valid =
+        (exactKeys(data, ['revision']) || exactKeys(data, ['revision', 'status'])) &&
+        Number.isSafeInteger(data.revision) &&
+        Number(data.revision) >= 1 &&
+        (!('status' in data) || ticketStatuses.has(data.status as string)) &&
+        input.projectId !== null &&
+        input.ticketId !== null;
+      break;
+    case 'dependency.added':
+      valid =
+        exactKeys(data, ['predecessorId', 'revision']) &&
+        typeof data.predecessorId === 'string' &&
+        uuid.test(data.predecessorId) &&
+        Number.isSafeInteger(data.revision) &&
+        Number(data.revision) >= 1 &&
+        input.projectId !== null &&
+        input.ticketId !== null;
+      break;
+    case 'comment.created':
+      valid =
+        exactKeys(data, ['commentId']) &&
+        typeof data.commentId === 'string' &&
+        uuid.test(data.commentId) &&
+        input.projectId !== null &&
+        input.ticketId !== null;
+      break;
+    case 'decision.created':
+      valid =
+        exactKeys(data, ['decisionId', 'kind']) &&
+        typeof data.decisionId === 'string' &&
+        uuid.test(data.decisionId) &&
+        decisionKinds.has(data.kind as string) &&
+        input.projectId !== null &&
+        input.ticketId !== null;
+      break;
+    case 'repair.recorded':
+      valid =
+        exactKeys(data, ['cycleId', 'classification', 'passed', 'repairCycles']) &&
+        typeof data.cycleId === 'string' &&
+        uuid.test(data.cycleId) &&
+        repairClassifications.has(data.classification as string) &&
+        typeof data.passed === 'boolean' &&
+        Number.isSafeInteger(data.repairCycles) &&
+        Number(data.repairCycles) >= 0 &&
+        Number(data.repairCycles) <= 5 &&
+        input.projectId !== null &&
+        input.ticketId !== null;
       break;
   }
   if (!valid) throw new ApiError('EVENT_INVALID', 422, 'Dữ liệu sự kiện không hợp lệ');

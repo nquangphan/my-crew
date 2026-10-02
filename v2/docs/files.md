@@ -10,6 +10,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/migrations/001_platform.sql` | [server-platform](flows/server-platform.md) (file) |
 | `server/migrations/002_journal.sql` | [server-journal](flows/server-journal.md) (file) |
 | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
+| `server/migrations/004_tickets.sql` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
@@ -37,16 +38,30 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/platform/thread-stream.d.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/projects/routes.ts` | [server-identity](flows/server-identity.md) (điểm vào) |
 | `server/src/projects/service.ts` | [server-identity](flows/server-identity.md) (file) |
+| `server/src/tickets/completion.ts` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/src/tickets/contracts.ts` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/src/tickets/decisions.ts` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/src/tickets/dependencies.ts` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/src/tickets/docs-links.ts` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
+| `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
+| `server/test/completion.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+| `server/test/dependencies.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/docs-validator.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/fixtures/legacy-docs/crlf-unicode.md` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/platform.test.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/test/projects.test.ts` | [server-identity](flows/server-identity.md) (test) |
+| `server/test/repair.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
+| `server/test/support/tickets.ts` | [server-tickets](flows/server-tickets.md) (test) |
+| `server/test/ticket-events.unit.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+| `server/test/tickets.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
 | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
 | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |

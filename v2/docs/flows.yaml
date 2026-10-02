@@ -87,5 +87,26 @@ flows:
       - server/test/docs-validator.unit.test.ts
       - server/test/support/docs.ts
       - server/test/fixtures/legacy-docs/crlf-unicode.md
+  server-tickets:
+    title: Cây ticket, phụ thuộc và bằng chứng hoàn tất
+    doc: docs/flows/server-tickets.md
+    entrypoints:
+      - server/src/tickets/routes.ts
+    files:
+      - server/src/tickets/completion.ts
+      - server/src/tickets/contracts.ts
+      - server/src/tickets/decisions.ts
+      - server/src/tickets/dependencies.ts
+      - server/src/tickets/docs-links.ts
+      - server/src/tickets/repair.ts
+      - server/src/tickets/service.ts
+      - server/migrations/004_tickets.sql
+    tests:
+      - server/test/tickets.test.ts
+      - server/test/dependencies.test.ts
+      - server/test/completion.test.ts
+      - server/test/repair.test.ts
+      - server/test/support/tickets.ts
+      - server/test/ticket-events.unit.test.ts
 shared: {}
 unassigned: []
