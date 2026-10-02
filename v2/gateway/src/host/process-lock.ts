@@ -36,7 +36,7 @@ export class ProcessLock {
     const command = process.platform === 'darwin' ? '/usr/bin/lockf' : '/usr/bin/flock';
     const args =
       process.platform === 'darwin'
-        ? ['-t', '0', this.path, process.execPath, '-e', LOCK_HOLDER]
+        ? ['-k', '-n', '-t', '0', this.path, process.execPath, '-e', LOCK_HOLDER]
         : ['-n', this.path, process.execPath, '-e', LOCK_HOLDER];
     const child = spawn(command, args, { stdio: ['pipe', 'pipe', 'pipe'] });
     this.child = child;

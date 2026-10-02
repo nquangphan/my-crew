@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { type ChildProcess, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { lstat, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdtemp, open, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { connect } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test, { type TestContext } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
+import { ProcessLock } from '../src/host/process-lock.ts';
 import { initialStatus } from '../src/host/status.ts';
 import { GatewayRpcServer } from '../src/ipc/server.ts';
 import { rpc } from './support/host.ts';
@@ -120,12 +121,19 @@ test('crash residue in recovery and empty init lock does not wedge reboot', asyn
   const f = await fixture(t);
   const first = f.spawnHost();
   const boot = await f.waitForHost(first);
+  const guardBeforeCrash = await lstat(join(f.root, 'host.guard'));
   const exited = new Promise((resolve) => first.once('exit', resolve));
   first.kill('SIGKILL');
   await exited;
+  const guardAfterCrash = await lstat(join(f.root, 'host.guard'));
+  assert.equal(guardAfterCrash.dev, guardBeforeCrash.dev);
+  assert.equal(guardAfterCrash.ino, guardBeforeCrash.ino);
   await writeFile(join(f.root, 'host-recovery.lock'), '', { mode: 0o600 });
   const second = f.spawnHost();
   assert.notEqual((await f.waitForHost(second)).bootId, boot.bootId);
+  const guardAfterReboot = await lstat(join(f.root, 'host.guard'));
+  assert.equal(guardAfterReboot.dev, guardBeforeCrash.dev);
+  assert.equal(guardAfterReboot.ino, guardBeforeCrash.ino);
 });
 
 test('empty host lock from interrupted initialization is recoverable', async (t) => {
@@ -184,4 +192,67 @@ test('stop drains a stalled dispatch only until its bounded deadline', async (t)
   assert.ok(performance.now() - started < 700);
   assert.equal(existsSync(server.socketPath), false);
   assert.equal(existsSync(server.tokenPath), false);
+});
+
+test('macOS guard retains one inode across release and old-fd contender ordering', {
+  skip: process.platform !== 'darwin' ? 'macOS lockf semantics' : false,
+}, async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'crew-v2-lockf-inode-'));
+  const first = new ProcessLock(root, () => {});
+  const next = new ProcessLock(root, () => {});
+  let holder: ChildProcess | undefined;
+  await first.acquire();
+  const oldFd = await open(first.path, 'r');
+  t.after(async () => {
+    await first.release();
+    await next.release();
+    if (holder && holder.exitCode === null && holder.signalCode === null) {
+      const exited = new Promise((resolve) => holder?.once('exit', resolve));
+      holder.stdin?.end();
+      await within(exited, 1000);
+    }
+    await oldFd.close();
+    await rm(root, { recursive: true, force: true });
+  });
+  const original = await lstat(first.path);
+  assert.equal((await oldFd.stat()).ino, original.ino);
+  await first.release();
+  const afterRelease = await lstat(first.path);
+  assert.equal(afterRelease.dev, original.dev);
+  assert.equal(afterRelease.ino, original.ino);
+
+  holder = spawn(
+    '/usr/bin/lockf',
+    [
+      '-t',
+      '0',
+      '/dev/fd/3',
+      process.execPath,
+      '-e',
+      'process.stdout.write("READY\\n");process.stdin.resume();process.stdin.on("end",()=>process.exit(0));',
+    ],
+    { stdio: ['pipe', 'pipe', 'pipe', oldFd.fd] },
+  );
+  await within(
+    new Promise<void>((resolve, reject) => {
+      holder?.once('error', reject);
+      holder?.once('exit', (code) => reject(new Error(`old-fd holder exited ${code}`)));
+      holder?.stdout?.once('data', (data: Buffer) => {
+        if (data.toString().includes('READY\n')) resolve();
+        else reject(new Error('old-fd holder did not signal READY'));
+      });
+    }),
+    1000,
+  );
+
+  await assert.rejects(within(next.acquire(), 1000), /Host guard unavailable/);
+  assert.equal(holder.exitCode, null);
+  assert.equal((await lstat(first.path)).ino, original.ino);
+  const holderExited = new Promise((resolve) => holder?.once('exit', resolve));
+  holder.stdin?.end();
+  await within(holderExited, 1000);
+  await next.acquire();
+  const afterReacquire = await lstat(first.path);
+  assert.equal(afterReacquire.dev, original.dev);
+  assert.equal(afterReacquire.ino, original.ino);
 });
