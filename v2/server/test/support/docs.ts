@@ -1,4 +1,10 @@
-import type { DocsFile, DocsValidationInput } from '../../src/docs/contracts.ts';
+import { bundleHash, hashBytes, snapshotHash } from '../../src/docs/checksum.ts';
+import type { DocsFile, DocsImport, DocsValidationInput, ImportResult } from '../../src/docs/contracts.ts';
+import { importDocs } from '../../src/docs/import.ts';
+import { requiredClass } from '../../src/docs/manifest.ts';
+import { mutate } from '../../src/journal/mutation.ts';
+import type { Db } from '../../src/platform/contracts.ts';
+import { owner } from './tickets.ts';
 
 const flow =
   '# Luồng mẫu\n\n## Mục đích\nMô tả.\n\n## Điểm vào\nLệnh.\n\n## Các bước\n1. `src/a.ts` → `run`: chạy.\n\n## Files\n| File | Vai trò | Symbol chính |\n|---|---|---|\n| `src/a.ts` | nguồn | `run` |\n\n## Dữ liệu\nKhông.\n\n## Flow liên quan\nKhông.\n\n## Tests\nKhông.\n';
@@ -37,4 +43,47 @@ export function docsValidationFixture(
     );
   }
   return { files, contentClasses, trackedSourcePaths: ['src/a.ts'], mode };
+}
+
+export function legacyBundle(
+  files: Record<string, Buffer>,
+  classes: Record<string, DocsFile['contentClass']> = {},
+): DocsImport {
+  const entries = Object.entries(files).map(([path, bytes]) => {
+    const contentClass = classes[path] ?? requiredClass(path);
+    if (contentClass === null || contentClass === undefined) throw new Error('FIXTURE_CLASS_REQUIRED');
+    return { path, bytesBase64: bytes.toString('base64'), sha256: hashBytes(bytes), contentClass };
+  });
+  const input = {
+    sourceSystem: 'crew-v1' as const,
+    backupManifestSha256: 'b'.repeat(64),
+    inventory: [
+      {
+        legacyProjectId: 'legacy-1',
+        key: 'LEGACY',
+        name: 'Dự án cũ',
+        repositoryUrl: null,
+        sourceCommit: null,
+        snapshotSha256: snapshotHash(entries),
+        files: entries,
+      },
+    ],
+  };
+  return { ...input, bundleSha256: bundleHash(input) };
+}
+
+export function rehashBundle(input: DocsImport): DocsImport {
+  for (const project of input.inventory) project.snapshotSha256 = snapshotHash(project.files);
+  const { bundleSha256: _, ...body } = input;
+  input.bundleSha256 = bundleHash(body);
+  return input;
+}
+
+export async function importWithKey(db: Db, input: DocsImport, key: string): Promise<ImportResult> {
+  return (
+    await mutate(db, { actor: owner, route: '/v2/docs/imports', key, body: input }, async (tx) => ({
+      status: 201,
+      body: await importDocs(tx, input, owner),
+    }))
+  ).body;
 }

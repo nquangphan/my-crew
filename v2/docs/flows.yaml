@@ -79,13 +79,19 @@ flows:
     title: Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2
     doc: docs/flows/server-docs-import.md
     entrypoints:
+      - server/scripts/docs-import.ts
       - server/src/docs/validator.ts
     files:
       - server/src/docs/checksum.ts
       - server/src/docs/contracts.ts
+      - server/src/docs/import.ts
       - server/src/docs/links.ts
       - server/src/docs/manifest.ts
+      - server/migrations/006_docs.sql
     tests:
+      - server/test/docs-events.unit.test.ts
+      - server/test/docs-import-cli.unit.test.ts
+      - server/test/docs-import.test.ts
       - server/test/docs-validator.unit.test.ts
       - server/test/support/docs.ts
       - server/test/fixtures/legacy-docs/crlf-unicode.md

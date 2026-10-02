@@ -61,6 +61,30 @@ export function validateEventInput(input: EventInput): void {
   const data = input.data;
   let valid = false;
   switch (input.type) {
+    case 'docs.imported':
+      valid =
+        exactKeys(data, ['importId', 'projectCount']) &&
+        typeof data.importId === 'string' &&
+        uuid.test(data.importId) &&
+        Number.isSafeInteger(data.projectCount) &&
+        Number(data.projectCount) >= 1 &&
+        Number(data.projectCount) <= 100 &&
+        input.projectId === null &&
+        input.ticketId === null &&
+        input.audienceMachineId === null;
+      break;
+    case 'docs.synced':
+      valid =
+        exactKeys(data, ['snapshotId', 'sourceCommit', 'auditState']) &&
+        typeof data.snapshotId === 'string' &&
+        uuid.test(data.snapshotId) &&
+        typeof data.sourceCommit === 'string' &&
+        /^[0-9a-f]{40}([0-9a-f]{24})?$/.test(data.sourceCommit) &&
+        ['unverified', 'verified'].includes(String(data.auditState)) &&
+        input.projectId !== null &&
+        input.ticketId === null &&
+        input.audienceMachineId === null;
+      break;
     case 'probe':
       valid = (exactKeys(data, []) || exactKeys(data, ['ok'])) && (!('ok' in data) || data.ok === true);
       break;

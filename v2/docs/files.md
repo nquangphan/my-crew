@@ -39,7 +39,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/migrations/003_identity.sql` | [server-identity](flows/server-identity.md) (file) |
 | `server/migrations/004_tickets.sql` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/migrations/005_execution.sql` | [server-execution](flows/server-execution.md) (file) |
+| `server/migrations/006_docs.sql` | [server-docs-import](flows/server-docs-import.md) (file) |
 | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+| `server/scripts/docs-import.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
 | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
 | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
 | `server/src/auth/bootstrap.ts` | [server-identity](flows/server-identity.md) (file) |
@@ -51,6 +53,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/db/migrate.ts` | [server-platform](flows/server-platform.md) (điểm vào) |
 | `server/src/docs/checksum.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
 | `server/src/docs/contracts.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
+| `server/src/docs/import.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
 | `server/src/docs/links.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
 | `server/src/docs/manifest.ts` | [server-docs-import](flows/server-docs-import.md) (file) |
 | `server/src/docs/validator.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
@@ -86,6 +89,9 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/completion.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/dependencies.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/deploy.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+| `server/test/docs-events.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+| `server/test/docs-import-cli.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+| `server/test/docs-import.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/docs-validator.unit.test.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
 | `server/test/execution-events.unit.test.ts` | [server-execution](flows/server-execution.md) (test) |
 | `server/test/fixtures/legacy-docs/crlf-unicode.md` | [server-docs-import](flows/server-docs-import.md) (test) |
