@@ -54,10 +54,12 @@ Test services/fixtures dùng owned exact resource IDs; shared PostgreSQL55432/Ki
 
 -03 Task4 fix1 và scoped re-review; Task5–7 actual integration/isolation.
 -04–06/08–09 actual source/runtime implementation và từng task independent review; whole-product final review/test/docs thật trước local main merge.
--02 Task7 M2 minor:22 non-null assertion warnings trong fixtures đang sửa ở task riêng, chưa review closure.
+-02 Task7 M2 CLOSED: candidate29d626d scoped spec/quality READY;22 fail-fast assertions, types/Biome0warnings, docs5/API9 và exact2container cleanup. Không còn deferred finding Task7.
 -07 owner prototype approval; signed identity/notary/macOS test permission, bounded live model configuration/budget và exact production deploy action khi tới bước cần. Chưa có câu trả lời thì giữ gate, làm independent offline work tiếp.
 -Token/cost comparison, paid provider entitlement và automation economics chưa được đo trong checkpoint này; không có claim định lượng.
 
 Checkpoint11:49: Task3 independent fullreview được giao với snapshot40%RAMfree/88.23%CPUidle/42GiB/load3.90. Scratch docs helper archive1MiB buffer lỗi khi official fixtures tăng; chuyển gitarchive ghi exacttempfile và rerun nestedall/staged thành công, generatedindex sửa trong8347bd6. Sourcecandidate202233e không được báo acceptance hoặc all-docs PASS trước correction.
 
 Checkpoint11:56:03Task3 independent fullreview READY YES;04Task1 phụ thuộc02+007 được dispatch cùng snapshot40%RAMfree/86.60%CPUidle/42GiB/load2.11. Scope008/servermodels riêng; producer007 frozen và prod certification/defaultdeny giữ nguyên. Chi phí là host/runtime consumer integration vẫn phải review sau03/04 đủ producer.
+
+Checkpoint12:03: M2 được original reviewer đóng, không finding mới; model pool Task1 đã thấy RED thực missing model table/HTTP404, additive008 migration đầu đã green. Narrow model event/app registration giao thêm cho active implementer, default production dispatch/final-result và test certification separation giữ nguyên; toàn diff sẽ qua full Task1 review.
