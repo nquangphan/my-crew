@@ -10,7 +10,9 @@ import { promisify } from 'node:util';
 import postgres from 'postgres';
 import { loadAttachmentConfig } from '../../src/attachments/config.ts';
 import type {
+  ComposeTarget,
   ReceiverRegistration,
+  Selection,
   ServerWriterIdentity,
   WriterStopProof,
 } from '../../src/attachments/contracts.ts';
@@ -27,11 +29,12 @@ import {
   type StorageFault,
   writePrivateJson,
 } from '../../src/attachments/storage.ts';
+import { authorizeSubmission } from '../../src/attachments/submissions.ts';
 import { connectDb } from '../../src/db/client.ts';
 import { captureMigrations, migrate } from '../../src/db/migrate.ts';
 import { canonicalJson } from '../../src/journal/canonical.ts';
 import { mutate } from '../../src/journal/mutation.ts';
-import type { Db, Tx } from '../../src/platform/contracts.ts';
+import type { Actor, Db, Tx } from '../../src/platform/contracts.ts';
 import { owner, ticketFixture } from './tickets.ts';
 export const sha = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 export async function* bufferBody(bytes: Uint8Array): AsyncIterable<Uint8Array> {
@@ -151,6 +154,9 @@ export async function attachmentFixture(
     `attachment DB container ${process.env.CREW_V2_TEST_CONTAINER_ID ?? 'native-worker'} root ${root}`,
   );
   console.info(`attachment DB scratch created ${root} nonceSha256=${sha(Buffer.from(nonce))}`);
+  console.info(
+    `attachment DB scratch identity dev=${rootIdentity.dev} ino=${rootIdentity.ino} uid=${rootIdentity.uid} pid=${process.pid}`,
+  );
   let current = Date.now();
   const clock = {
     now: () => new Date(current),
@@ -192,6 +198,55 @@ export async function attachmentFixture(
     store,
     stage,
     receivers,
+    async readyCompose(target: ComposeTarget, files: Uint8Array[]): Promise<Selection> {
+      const compose = await ticket.mutation(randomUUID(), (tx) => stage.createCompose(tx, target, owner));
+      let revision = compose.revision;
+      const ids: string[] = [];
+      for (const [index, bytes] of files.entries()) {
+        const reserved = await ticket.mutation(randomUUID(), (tx) =>
+          stage.reserve(
+            tx,
+            {
+              composeSessionId: compose.id,
+              expectedRevision: revision,
+              fileName: `input-${index}.txt`,
+              declaredMime: 'text/plain',
+              byteLength: bytes.length,
+              sha256: sha(bytes),
+            },
+            owner,
+          ),
+        );
+        revision = reserved.selectionRevision;
+        const ready = await stage.receive(
+          reserved.attachment.attachmentId,
+          owner,
+          bufferBody(bytes),
+          new AbortController().signal,
+        );
+        assert.equal(ready.state, 'ready');
+        ids.push(ready.attachmentId);
+      }
+      return { composeSessionId: compose.id, selectionRevision: revision, attachmentIds: ids };
+    },
+    mutationAs: <T>(
+      key: string,
+      body: unknown,
+      actor: Actor,
+      target: Parameters<typeof authorizeSubmission>[2],
+      work: (tx: Tx) => Promise<T>,
+    ) =>
+      mutate(
+        db,
+        {
+          actor,
+          route: 'fixture:submission',
+          key,
+          body,
+          authorize: (tx) => authorizeSubmission(tx, actor, target),
+        },
+        async (tx) => ({ status: 200, body: await work(tx) }),
+      ).then((result) => result.body),
     mutationWith: <T>(key: string, body: unknown, work: (tx: Tx) => Promise<T>) =>
       mutate(db, { actor: owner, route: 'fixture:attachment', key, body }, async (tx) => ({
         status: 200,
@@ -205,7 +260,8 @@ export async function attachmentFixture(
         found.nonce !== nonce ||
         actual.isSymbolicLink() ||
         actual.dev !== rootIdentity.dev ||
-        actual.ino !== rootIdentity.ino
+        actual.ino !== rootIdentity.ino ||
+        actual.uid !== rootIdentity.uid
       )
         throw new Error('FIXTURE_OWNERSHIP_MISMATCH');
       await rm(root, { recursive: true, force: true });

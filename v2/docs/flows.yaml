@@ -310,14 +310,21 @@ flows:
     files:
       - server/src/attachments/config.ts
       - server/src/attachments/contracts.ts
+      - server/src/attachments/messages.ts
       - server/src/attachments/receivers.ts
+      - server/src/attachments/routing.ts
       - server/src/attachments/staging.ts
       - server/src/attachments/storage.ts
+      - server/src/attachments/submissions.ts
       - server/migrations/009_attachments.sql
     tests:
       - server/test/attachment-event.test.ts
+      - server/test/attachments-events.unit.test.ts
+      - server/test/attachments-messages.test.ts
+      - server/test/attachments-routing.test.ts
       - server/test/attachments-staging.test.ts
       - server/test/attachments-storage.test.ts
+      - server/test/attachments-submissions.test.ts
       - server/test/support/attachments.ts
   gateway-models:
     title: Inventory, credential broker và probe model trên gateway

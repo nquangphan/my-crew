@@ -140,9 +140,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
 | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/messages.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/receivers.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/routing.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/staging.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/storage.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/submissions.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/auth/bootstrap.ts` | [server-identity](flows/server-identity.md) (file) |
 | `server/src/auth/machine.ts` | [server-identity](flows/server-identity.md) (file) |
 | `server/src/auth/password.ts` | [server-identity](flows/server-identity.md) (file) |
@@ -201,9 +204,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
 | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
-| `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test) |
+| `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test), [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-messages.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-routing.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-staging.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-storage.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachments-submissions.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attempts.test.ts` | [server-execution](flows/server-execution.md) (test) |
 | `server/test/auth.test.ts` | [server-identity](flows/server-identity.md) (test) |
 | `server/test/commands.test.ts` | [server-execution](flows/server-execution.md) (test) |
