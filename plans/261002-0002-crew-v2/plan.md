@@ -1,7 +1,7 @@
 # Crew v2 — Lộ trình triển khai
 
 **Spec đã duyệt:** [/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md](/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md).
-**Trạng thái cập nhật 2026-10-02 19:19:** phần01 đã merge main; phần02 task1–7 đã nghiệm thu. Phần03 task1–6 READY; isolation6 ced6bb1 đã qua full review và FIX1 review. Runtime boundary phần04/task3 đang triển khai. Phần04 task1–2 READY49e2333. Phần05 storage009, comment producer/migration010, submissions/inbox/routing490001c và worker boundaryb670d82 READY theo phạm vi riêng. Task3 access/API và task5 parser/corpus đang chạy độc lập. Metadata inbox/input-wake228f9e4 review cùng consumer đã qua. Migrations001–010 giữ nguyên; phần06/08/09 kế hoạch đã duyệt, schema tương lai011/012/013 chưa triển khai. Phần07 vẫn chờ owner xác nhận prototype. Runtime/live/Keychain/signing/parser production còn UNVERIFIED.
+**Trạng thái cập nhật 2026-10-03 17:21:** phần01 merge main; phần02 task1–7 và phần03 task1–6 READY theo phạm vi. Phần04 task1–3 READY sau full/FIX1 review4db2d9e; task4 chuẩn bị protocol/fixture tĩnh. Phần05 task1/2a/2b/3/4 READYcf68a68; task5 parser source frozen/unit76, image whitelist8f2eec2f đã qua import/native probes nhưng actual boundary/corpus còn pending. Phần06 task1 actual prefix010 RED đã thấy,011/store/inbox đang triển khai, chưa kiểm chứng hoặc freeze checksum;001–010 immutable. Phần07 chờ xác nhận prototype. Native/live/Keychain/signing/production parser và whole-product chưa nghiệm thu.
 
 ## Cách chia việc
 

@@ -1,0 +1,15 @@
+# SDD ledger — plan: plans/261002-0002-crew-v2/phase-06-assistant-workflows.md
+
+Task1: active STATIC assistant_schema Astra/high; actualDB RED and production source authorization pending sole heavy slot. Task2–7 pending schema and producer gates.
+
+PM rulings2026-10-03 16:48–16:49, fresh pressure2/idle77.43%/available~4.61GiB/disk34GiB:
+
+- Deterministic enqueue/ingest/reconcile uses persisted event_cursor/monitor transaction authority; offline inbox does not require inference TurnFence or mint a turn. Claim/ACK requires exact current persisted TurnFence/designation/process/generation/state.
+- Additive reconcileWork scans actual009 scoped target revisions; input_revision nonnull solely input wake, partial UNIQUE(target_kind,target_id,input_revision) across cursor/reconcile/ACK. Preserve immutable original logicalkey/sourcecursor and claimed/acked receipt. Lifecycle work uses null revision and separate cursor logicalkey, not suppressed by same inputrevision.
+- Shared normal/calibration monotonic generation allocator uses assistant_monitor.generation under same guard/turn locks, atomic UPDATE RETURNING in reserve/admission Tx only. No separate commit/reset/overflow or allocator granting admission. T1 owns persistence allocator, T2 admission orchestration.
+- T1 fixture real DB/accepted009 +test-only persisted fence SQL. No invented futureT2–7 HTTP clients/routes/certification authority. Actual001–010 immutable, whole011R1–R4beforefreeze.
+- Static tests/fixture skeleton only until meaningful actual missing-schema/service RED and explicit heavy slot. One bounded job with fresh pressure1or2/available>=4GiB/idle>=50%/disk>=8GiB; critical denies. Nodeheap384 is not full-tree RSS cap. No live/provider/certificate claims.
+
+17:00 actual schema RED observed1run/0pass/1expectedFAIL42P01 from accepted0c838d2prefix010. Rawlogc23e305f6fcf2a7314f4541da3c73ff4f570c31b239d9214deab359af7349de2 rootverified; Node91934exit1, exactPGclosed/Pid0/removed and scratchidentity64397675nonce34cd2e6f removed. T1 implementation authorized17:01:43; no code preceded actualRED. SolePG slot17:13:39 freshpressure2/available~4.80GiB/idle77.14%/disk33GiB; all011R1–R4/constraint/fencedstore/backuprestore gates pending. Parser harness/review static only while active. No source011 checksum frozen or schema acceptance yet.
+
+17:30 checkpoint — first011 actual cover closed20tests:19PASS/1FAIL immutable routing_capability_receipt mutation accepted. Worker diagnosis: no-argument trigger TG_ARGV NULL makes JSONB subtraction hide differences; coalesce empty text array regression/fix underway. Original failure retained; worker reports exact Node42064/container/root closed and removed, root review of raw receipts still pending. Separate R3 RED1run/0pass/1FAIL for derived consent expiry beyond parent, worker reports Node50488 and exact PG/scratch cleanup. Whole011 constraints, R1–R4 and backup/restore tests remain under implementation; not GREEN or checksum frozen. Same schema soleheavy slot and fresh per-creation gate persist.
