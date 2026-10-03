@@ -7,6 +7,7 @@ import { notFound } from './access.ts';
 import type {
   AssistantInputAuthority,
   AttachmentRef,
+  Derivative,
   DispatchInputPin,
   Extraction,
   InputSnapshot,
@@ -122,26 +123,52 @@ export async function readInputSnapshot(
     );
     required.push({ original, unitIds: units.map((u) => u.id).sort() });
     const derivatives =
-      await tx`select id,sha256,byte_length,mime,kind,unit_ids,verification from attachment_derivatives where extraction_id=${extraction.id} and attachment_id=${original.attachmentId}`;
+      await tx`select id,extraction_id,attachment_id,sha256,byte_length,mime,kind,unit_ids,verification from attachment_derivatives where extraction_id=${extraction.id} and attachment_id=${original.attachmentId}`;
+    // Each persisted unit-array hash is computed once. Index only candidates
+    // whose exact provenance and bytes match this immutable extraction.
+    const persisted = new Map(
+      derivatives.map(
+        (row) =>
+          [
+            String(row.id),
+            {
+              row,
+              unitsSha256: digest(row.unit_ids),
+            },
+          ] as const,
+      ),
+    );
+    const candidates = { text: new Map<string, Derivative>(), vision: new Map<string, Derivative>() };
+    for (const derivative of extraction.derivatives) {
+      const stored = persisted.get(derivative.id);
+      if (!stored) continue;
+      const row = stored.row;
+      if (
+        derivative.verification !== 'verified' ||
+        derivative.original?.attachmentId !== original.attachmentId ||
+        derivative.original.sha256 !== original.sha256 ||
+        derivative.original.ownerId !== original.ownerId ||
+        derivative.extractionId !== extraction.id ||
+        derivative.extractorVersion !== extraction.extractorVersion ||
+        derivative.configSha256 !== extraction.configSha256 ||
+        row.extraction_id !== extraction.id ||
+        row.attachment_id !== original.attachmentId ||
+        row.sha256 !== derivative.sha256 ||
+        Number(row.byte_length) !== derivative.byteLength ||
+        row.mime !== derivative.mime ||
+        row.kind !== derivative.kind ||
+        row.verification !== 'verified' ||
+        stored.unitsSha256 !== digest(derivative.unitIds)
+      )
+        continue;
+      const index = derivative.kind === 'image' ? candidates.vision : candidates.text;
+      for (const unitId of derivative.unitIds) {
+        // Keep the first valid candidate in manifest order, as before.
+        if (!index.has(unitId)) index.set(unitId, derivative);
+      }
+    }
     for (const unit of units) {
-      const candidates = extraction.derivatives.filter(
-        (d) =>
-          d.unitIds.includes(unit.id) &&
-          d.verification === 'verified' &&
-          (unit.needs === 'vision' ? d.kind === 'image' : d.kind === 'text'),
-      );
-      const match = candidates.find((d) =>
-        derivatives.some(
-          (r) =>
-            r.id === d.id &&
-            r.sha256 === d.sha256 &&
-            Number(r.byte_length) === d.byteLength &&
-            r.mime === d.mime &&
-            r.kind === d.kind &&
-            r.verification === 'verified' &&
-            digest(r.unit_ids) === digest(d.unitIds),
-        ),
-      );
+      const match = candidates[unit.needs].get(unit.id);
       if (unit.state !== 'available' || !match) {
         problems.push(problem('MISSING_REPRESENTATION', [unit.id]));
         continue;

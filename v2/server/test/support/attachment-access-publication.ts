@@ -19,11 +19,18 @@ export async function publishKnownRepresentation(
   original: AttachmentRef,
   mode: 'image' | 'text' = 'image',
   beforeCommit?: () => Promise<void>,
+  groupedTextUnits = 1,
 ) {
   const [job] =
     await f.db`select id from attachment_extractions where attachment_id=${original.attachmentId} and status='pending' order by created_at desc limit 1`;
   assert.ok(job);
-  const bytes = mode === 'image' ? fixturePng : Buffer.from('known text');
+  assert.ok(Number.isSafeInteger(groupedTextUnits) && groupedTextUnits >= 1 && groupedTextUnits <= 2048);
+  assert.ok(mode === 'text' || groupedTextUnits === 1);
+  const unitIds = Array.from({ length: groupedTextUnits }, (_, index) => `u${index + 1}`);
+  const bytes =
+    mode === 'image'
+      ? fixturePng
+      : Buffer.from(groupedTextUnits > 1 ? 'known text\n'.repeat(groupedTextUnits) : 'known text');
   let input: WorkerInput | undefined;
   let closed = false;
   const runner: ExtractorRunner = {
@@ -49,18 +56,22 @@ export async function publishKnownRepresentation(
         extractorVersion: input.extractorVersion,
         configSha256: input.config.policySha256,
         status: 'complete',
-        units: [
-          {
-            id: 'u1',
-            locator:
-              mode === 'image'
-                ? { kind: 'image', width: 1, height: 1, box: [0, 0, 1, 1] }
-                : { kind: 'text', byteStart: 0, byteEnd: bytes.length, lineStart: 1, lineEnd: 1 },
-            needs: mode === 'image' ? 'vision' : 'text',
-            state: 'available',
-            reason: null,
-          },
-        ],
+        units: unitIds.map((id, index) => ({
+          id,
+          locator:
+            mode === 'image'
+              ? { kind: 'image' as const, width: 1, height: 1, box: [0, 0, 1, 1] }
+              : {
+                  kind: 'text' as const,
+                  byteStart: groupedTextUnits > 1 ? index * 11 : 0,
+                  byteEnd: groupedTextUnits > 1 ? (index + 1) * 11 : bytes.length,
+                  lineStart: index + 1,
+                  lineEnd: index + 1,
+                },
+          needs: mode === 'image' ? ('vision' as const) : ('text' as const),
+          state: 'available' as const,
+          reason: null,
+        })),
         files: [
           {
             relativeName: mode === 'image' ? 'page-1.png' : 'text-1.txt',
@@ -68,7 +79,7 @@ export async function publishKnownRepresentation(
             mime: mode === 'image' ? 'image/png' : 'text/plain',
             sha256: sha(bytes),
             byteLength: bytes.length,
-            unitIds: ['u1'],
+            unitIds,
           },
         ],
         problems: [],

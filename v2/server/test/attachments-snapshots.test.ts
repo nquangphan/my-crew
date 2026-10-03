@@ -647,3 +647,126 @@ test('initial owner route and fresh snapshot serialize on message before input a
       }
     });
 });
+
+test('grouped derivative coverage validates persisted hash arrays in bounded work under snapshot locks', async (t) => {
+  const { publishKnownRepresentation } = await import('./support/attachment-access-publication.ts');
+  const { observePersistedDerivativeWork } = await import('./support/attachment-snapshot-work.ts');
+  await databaseFixture(10)(async (db) => {
+    const f = await attachmentAccessFixture(db);
+    try {
+      const count = 2048,
+        original = await f.linkFile('A', Buffer.from('known text\n'.repeat(count)));
+      const extraction = await publishKnownRepresentation(f, original, 'text', undefined, count),
+        derivative = extraction.derivatives[0];
+      assert.ok(derivative);
+      const target = { kind: 'ticket' as const, ticketId: f.tickets.A.id, projectId: f.projects.A.id };
+      const result = await db.begin(async (tx) => {
+        const observed = observePersistedDerivativeWork(tx);
+        const snapshot = await readInputSnapshot(
+          observed.tx,
+          owner,
+          { target, access: { kind: 'owner' }, expectedInputRevision: null, scopeDecisionId: null },
+          denyPreclaimSelection,
+        );
+        return { snapshot, work: observed.work };
+      });
+      assert.equal(result.snapshot.state, 'ready');
+      assert.deepEqual(result.snapshot.requiredCapabilities, ['text']);
+      assert.deepEqual(result.snapshot.selectedDerivativeIds, [derivative.id]);
+      assert.equal(result.snapshot.required.length, 1);
+      assert.equal(result.snapshot.required[0]?.unitIds.length, count);
+      assert.equal(result.snapshot.required[0]?.original.attachmentId, original.attachmentId);
+      const selected = new Set(result.snapshot.required[0]?.unitIds);
+      assert.equal(selected.size, count);
+      assert.ok(selected.has('u1') && selected.has('u2048'));
+      assert.equal(result.work.queries, 1);
+      assert.equal(result.work.rows, 1);
+      t.diagnostic(
+        JSON.stringify({
+          groupedUnits: count,
+          ...result.work,
+          pid: process.pid,
+          argv: process.argv,
+          nodeOptions: process.env.NODE_OPTIONS,
+        }),
+      );
+      // Require real provenance validation and at least one complete array compare,
+      // while forbidding the per-unit rehash that made the previous work quadratic.
+      assert.ok(
+        result.work.validationReads >= 1 && result.work.validationReads <= 2,
+        JSON.stringify(result.work),
+      );
+      assert.ok(
+        result.work.unitElementReads >= count && result.work.unitElementReads <= 2 * count,
+        JSON.stringify(result.work),
+      );
+    } finally {
+      await f.close();
+    }
+  });
+});
+
+test('indexed snapshot candidates reject persisted derivative identity and coverage tampering', async () => {
+  const { publishKnownRepresentation } = await import('./support/attachment-access-publication.ts');
+  await databaseFixture(10)(async (db) => {
+    const f = await attachmentAccessFixture(db);
+    try {
+      const a = await f.linkFile('A', Buffer.from('known text')),
+        b = await f.linkFile('B', Buffer.from('other text'));
+      const extraction = await publishKnownRepresentation(f, a, 'text'),
+        other = await publishKnownRepresentation(f, b, 'text'),
+        derivative = extraction.derivatives[0];
+      assert.ok(derivative);
+      const target = { kind: 'ticket' as const, ticketId: f.tickets.A.id, projectId: f.projects.A.id };
+      const read = () =>
+        db.begin((tx) =>
+          readInputSnapshot(
+            tx,
+            owner,
+            { target, access: { kind: 'owner' }, expectedInputRevision: null, scopeDecisionId: null },
+            denyPreclaimSelection,
+          ),
+        );
+      const good = await read();
+      assert.equal(good.state, 'ready');
+      assert.deepEqual(good.selectedDerivativeIds, [derivative.id]);
+      const [saved] = await db`select * from attachment_derivatives where id=${derivative.id}`;
+      for (const fault of [
+        'hash',
+        'bytes',
+        'mime',
+        'kind',
+        'verification',
+        'units',
+        'original',
+        'extraction',
+      ] as const) {
+        if (fault === 'hash')
+          await db`update attachment_derivatives set sha256=${'0'.repeat(64)} where id=${derivative.id}`;
+        if (fault === 'bytes')
+          await db`update attachment_derivatives set byte_length=byte_length+1 where id=${derivative.id}`;
+        if (fault === 'mime')
+          await db`update attachment_derivatives set mime='image/png' where id=${derivative.id}`;
+        if (fault === 'kind')
+          await db`update attachment_derivatives set kind='image' where id=${derivative.id}`;
+        if (fault === 'verification')
+          await db`update attachment_derivatives set verification='failed' where id=${derivative.id}`;
+        if (fault === 'units')
+          await db`update attachment_derivatives set unit_ids=${db.json(['unknown'])} where id=${derivative.id}`;
+        if (fault === 'original')
+          await db`update attachment_derivatives set attachment_id=${b.attachmentId} where id=${derivative.id}`;
+        if (fault === 'extraction')
+          await db`update attachment_derivatives set extraction_id=${other.id} where id=${derivative.id}`;
+        const invalid = await read();
+        assert.equal(invalid.state, 'waiting', fault);
+        assert.deepEqual(invalid.selectedDerivativeIds, [], fault);
+        assert.deepEqual(invalid.requiredCapabilities, [], fault);
+        assert.equal(invalid.problems[0]?.code, 'MISSING_REPRESENTATION', fault);
+        await db`update attachment_derivatives set sha256=${saved.sha256},byte_length=${saved.byte_length},mime=${saved.mime},kind=${saved.kind},verification=${saved.verification},unit_ids=${db.json(saved.unit_ids)},attachment_id=${saved.attachment_id},extraction_id=${saved.extraction_id} where id=${derivative.id}`;
+      }
+      assert.deepEqual(await read(), good);
+    } finally {
+      await f.close();
+    }
+  });
+});
