@@ -279,6 +279,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/support/attachment-access-publication.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/support/attachment-access.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/support/attachment-snapshot-work.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/support/attachment-subset-work.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/support/attachments.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/support/db.ts` | [server-platform](flows/server-platform.md) (test) |
 | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |

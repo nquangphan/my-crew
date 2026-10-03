@@ -347,6 +347,7 @@ flows:
       - server/test/support/attachment-access-publication.ts
       - server/test/support/attachment-access.ts
       - server/test/support/attachment-snapshot-work.ts
+      - server/test/support/attachment-subset-work.ts
       - server/test/support/attachments.ts
   gateway-models:
     title: Inventory, credential broker và probe model trên gateway
