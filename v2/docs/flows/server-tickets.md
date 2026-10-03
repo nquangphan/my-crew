@@ -23,6 +23,8 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 
 8. `server/src/tickets/authorization.ts` → `authorizeTicketMutation`: Mọi ticket mutation create/dependencies/signals/comments/decisions/repair-results/docs-links có authorize(tx) trước cached replay; helper khóa root/ticket/project rồi kiểm tra machine hiện hành dưới FOR SHARE. Rebind/thu hồi commit trước guard khiến replay scoped 404. App nối execution authority và docs source/completion readers. HTTP acceptance kiểm tra mọi family, race hai pool và lần repair thứ năm giữ guard đến physical stop.
 
+9. `server/src/tickets/service.ts` → `assistantCreateTicket(tx,actor,proof,input)` là entry riêng dành cho machine Trợ lý, dùng optional authority bất biến tại factory. Generic ACL giữ nguyên. Entry chụp input/actor/proof trước await, kiểm descriptor/prototype của cả object và array mà không chạy getter/iterator, rồi SHA-256 canonical tuple `['crew-v2:orchestration-target:1','create_ticket',exactSubmittedCreateTicket]` trước default và pin kế thừa. UUID identity được canonicalize riêng; payload/hash giữ spelling gốc. Khóa root → parent → project trước verify; token runtime private, cùng Tx/actor/action/hash/root/project và chỉ tiêu một lần. Shared create core giữ hierarchy/pin/closed/deploy và audit actorA. Thiếu authority trả503; owner không dùng entry này. Production resolver vẫn deny, chưa nối current input/fence/routing decision; thành công test qua trust port riêng không chứng nhận production admission.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |
@@ -42,6 +44,7 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 | `server/test/support/tickets.ts` | Fixture dự án/ticket qua service và mutator |
 | `server/test/tickets.test.ts` | Schema, route, quyết định và liên kết docs |
 | `server/test/dependencies.test.ts` | Cây và cạnh đồng thời |
+| `server/test/assistant-orchestration.test.ts` | Scoped create: hash/snapshot/private token, actual machine audit, prefix locks, UUID case và array descriptor boundary |
 | `server/test/deploy.test.ts` | Quyền deploy của root và approval đúng định nghĩa |
 | `server/test/completion.test.ts` | Cổng bằng chứng và commit docs |
 | `server/test/repair.test.ts` | Bộ đếm, ý định dừng và fence |
@@ -61,3 +64,5 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 `pnpm --dir v2/server test` chạy PostgreSQL container riêng với DB prefix `crew_v2_test_`. Các bài test kiểm tra cây ba cấp, cạnh đối nghịch đồng thời, completion tranh chấp với tạo con, trạng thái dependency sau khi ready, deploy child dưới owner root vẫn cần approval đúng title/body, bằng chứng code/research/docs, owner answer theo cycle, 5 vòng repair, stale fence, schema event và route từ chối field dư. `server/test/attempts.test.ts` còn kiểm tra lần sửa thứ năm đến sau stop proof: ticket giữ `needs_input`, `repair_limit` và revision tăng. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng.
 
 Task05/2a chỉ cung cấp producer, chưa consumer selection/submission. Actual PostgreSQL10 regression dùng StageServices tạo original ready thật và test-owned linker; linker này không là implementation Task2b. Trigger009 là writer input revision duy nhất, producer không tăng lần hai. Baseline004 comments_text_check yêu cầu text dài ít nhất1; actual prefix9 đã bắt23514 ở empty INSERT trước linker. Theo ruling PM, migration010 chỉ thay constraint bằng text0..32768, giữ NOT NULL/maximum/trigger009 và bytes001–009. Forward9→10, prefix checksum, existing comments, backup/restore và drift phải được kiểm trước producer review. Legacy API vẫn reject empty; không suy requested IDs thành ready originals hoặc thay empty bằng whitespace. Source kiểm thử ghim f58:v2 + ba FIX1 file được review tại ec02ac0 và own producer/010, không import source model/gateway đang sửa. Consumer Task2b chỉ được chạy sau independent review cả producer và010.
+
+B1 có semantic RED39 (12 pass/27 fail), FIX1 targeted RED8 (1 pass/7 fail) rồi một final actual run63/63 (47 scoped B1 +16 existing create/deploy/dependencies), không cộng các lượt. Scoped strict/import closure dùng external skipLibCheck và Biome exit0; không suy full-server typecheck đạt. Independent full review và scoped FIX1 re-review khép UUID case/array accessor findings. B2–B5, HTTP assistant actions và positive persisted authority vẫn pending.

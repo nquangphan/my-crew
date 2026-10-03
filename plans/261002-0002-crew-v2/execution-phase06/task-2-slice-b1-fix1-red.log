@@ -1,0 +1,258 @@
+✖ B1 FIX1 uppercase project identity creates step under exact submitted hash (274.773791ms)
+✖ B1 FIX1 lowercase hash allowance cannot authorize uppercase step payload (209.78475ms)
+✖ B1 FIX1 uppercase project identity creates task under exact submitted hash (227.76425ms)
+✖ B1 FIX1 lowercase hash allowance cannot authorize uppercase task payload (209.494292ms)
+✖ B1 FIX1 array index-getter is rejected without executing user code or changing identity (230.506375ms)
+✖ B1 FIX1 array custom-iterator is rejected without executing user code or changing identity (182.129834ms)
+✖ B1 FIX1 array custom-prototype is rejected without executing user code or changing identity (178.147833ms)
+✔ B1 FIX1 ordinary nested JSON arrays remain supported with their exact submitted hash (176.112583ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 1
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1775.430458
+
+✖ failing tests:
+
+test at v2/server/test/assistant-orchestration.test.ts:567:3
+✖ B1 FIX1 uppercase project identity creates step under exact submitted hash (274.773791ms)
+  Error [ApiError]: Ticket cha thuộc cây khác
+      at prepareTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:165:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Object.assistantCreateTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:311:22)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:170:37
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:138:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:572:31
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9 {
+    code: 'TICKET_HIERARCHY',
+    status: 409,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:584:3
+✖ B1 FIX1 lowercase hash allowance cannot authorize uppercase step payload (209.78475ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'TICKET_HIERARCHY',
+  +   status: 409
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:589:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Ticket cha thuộc cây khác
+        at prepareTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:165:13)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Object.assistantCreateTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:311:22)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:170:37
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:138:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:567:3
+✖ B1 FIX1 uppercase project identity creates task under exact submitted hash (227.76425ms)
+  Error [ApiError]: Ticket cha thuộc cây khác
+      at prepareTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:165:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Object.assistantCreateTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:311:22)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:170:37
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:138:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:572:31
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9 {
+    code: 'TICKET_HIERARCHY',
+    status: 409,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:584:3
+✖ B1 FIX1 lowercase hash allowance cannot authorize uppercase task payload (209.494292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'TICKET_HIERARCHY',
+  +   status: 409
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:589:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Ticket cha thuộc cây khác
+        at prepareTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:165:13)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Object.assistantCreateTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:311:22)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:170:37
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:138:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:600:3
+✖ B1 FIX1 array index-getter is rejected without executing user code or changing identity (230.506375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+      actor: {
+  +     id: '3894c286-65ee-4a51-a636-83012c5f655b',
+  -     id: 'f1448a8d-df2d-4cf8-b77e-2d3ffcaea068',
+        kind: 'machine'
+      },
+  +   code: 'TEST_BOUNDARY_REACHED',
+  +   executions: 1,
+  -   code: 'VALIDATION',
+  -   executions: 0,
+      proof: {
+        fence: {
+          designationId: 'ac5830d0-3a6e-4819-9fb0-39ea838f2113',
+          designationRevision: 1,
+          generation: '1',
+  ...
+        },
+  +     operationId: '950f8997-ae2e-4ae8-a076-877d6c46c6d6',
+  -     operationId: '8dd84d1a-46ac-4b94-b25c-8a8ede5df398',
+        scopeId: 'a301754f-82ec-4a1a-9b26-130bfcc0fe87'
+      },
+  +   status: 403,
+  +   verifications: 1,
+  -   status: 400,
+  -   verifications: 0,
+      writes: 0
+    }
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:641:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { code: 'TEST_BOUNDARY_REACHED', status: 403, executions: 1, verifications: 1, actor: { id: '3894c286-65ee-4a51-a636-83012c5f655b', kind: 'machine' }, proof: { fence: [Object], operationId: '950f8997-ae2e-4ae8-a076-877d6c46c6d6', scopeId: 'a301754f-82ec-4a1a-9b26-130bfcc0fe87' }, writes: 0 },
+    expected: { code: 'VALIDATION', status: 400, executions: 0, verifications: 0, actor: { id: 'f1448a8d-df2d-4cf8-b77e-2d3ffcaea068', kind: 'machine' }, proof: { fence: [Object], operationId: '8dd84d1a-46ac-4b94-b25c-8a8ede5df398', scopeId: 'a301754f-82ec-4a1a-9b26-130bfcc0fe87' }, writes: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:600:3
+✖ B1 FIX1 array custom-iterator is rejected without executing user code or changing identity (182.129834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+      actor: {
+  +     id: '65079875-1c97-43a7-94e0-7ebcff778762',
+  -     id: '05be2a08-9659-4f65-9a3c-bb705c08de19',
+        kind: 'machine'
+      },
+  +   code: 'TEST_BOUNDARY_REACHED',
+  +   executions: 1,
+  -   code: 'VALIDATION',
+  -   executions: 0,
+      proof: {
+        fence: {
+          designationId: 'f2142ec7-b66e-4eb1-98a0-1e028f3a94e6',
+          designationRevision: 1,
+          generation: '1',
+  ...
+        },
+  +     operationId: '39dd185f-3e07-4328-9b72-7526ee601d90',
+  -     operationId: 'd5e3ed52-cdef-4be6-a4d5-6422a89941c6',
+        scopeId: '7d5a7c03-8fb2-4339-95c0-6771668201ac'
+      },
+  +   status: 403,
+  +   verifications: 1,
+  -   status: 400,
+  -   verifications: 0,
+      writes: 0
+    }
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:641:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { code: 'TEST_BOUNDARY_REACHED', status: 403, executions: 1, verifications: 1, actor: { id: '65079875-1c97-43a7-94e0-7ebcff778762', kind: 'machine' }, proof: { fence: [Object], operationId: '39dd185f-3e07-4328-9b72-7526ee601d90', scopeId: '7d5a7c03-8fb2-4339-95c0-6771668201ac' }, writes: 0 },
+    expected: { code: 'VALIDATION', status: 400, executions: 0, verifications: 0, actor: { id: '05be2a08-9659-4f65-9a3c-bb705c08de19', kind: 'machine' }, proof: { fence: [Object], operationId: 'd5e3ed52-cdef-4be6-a4d5-6422a89941c6', scopeId: '7d5a7c03-8fb2-4339-95c0-6771668201ac' }, writes: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:600:3
+✖ B1 FIX1 array custom-prototype is rejected without executing user code or changing identity (178.147833ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+      actor: {
+        id: '1ab5fa7d-5569-4eb5-bea4-64b6869cd054',
+        kind: 'machine'
+      },
+  +   code: 'TEST_BOUNDARY_REACHED',
+  -   code: 'VALIDATION',
+      executions: 0,
+      proof: {
+        fence: {
+          designationId: '31591d38-7cbe-4f79-b8bc-f2f701f0d5d2',
+          designationRevision: 1,
+  ...
+      },
+  +   status: 403,
+  +   verifications: 1,
+  -   status: 400,
+  -   verifications: 0,
+      writes: 0
+    }
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:641:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { code: 'TEST_BOUNDARY_REACHED', status: 403, executions: 0, verifications: 1, actor: { id: '1ab5fa7d-5569-4eb5-bea4-64b6869cd054', kind: 'machine' }, proof: { fence: [Object], operationId: 'fe0bb180-6ee0-4c13-9205-dfbdf5d1ea9a', scopeId: '9c4f1b5a-b28b-41a3-a2a7-87fa1d8ce4ee' }, writes: 0 },
+    expected: { code: 'VALIDATION', status: 400, executions: 0, verifications: 0, actor: { id: '1ab5fa7d-5569-4eb5-bea4-64b6869cd054', kind: 'machine' }, proof: { fence: [Object], operationId: 'fe0bb180-6ee0-4c13-9205-dfbdf5d1ea9a', scopeId: '9c4f1b5a-b28b-41a3-a2a7-87fa1d8ce4ee' }, writes: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,785 @@
+✖ B1 trust fixture creates A→B child with actual A audit and unchanged raw journal hash (255.688458ms)
+✔ B1 generic A→B create remains 404 despite JSON-shaped forged capability (174.12975ms)
+✖ B1 missing captured authority denies 503 even for machine bound to target project (182.233666ms)
+✖ B1 owner cannot enter machine-only scoped creator (186.513667ms)
+✖ B1 test-only allowlist rejects exact actor mismatch (188.666291ms)
+✖ B1 test-only allowlist rejects exact operation mismatch (171.210333ms)
+✖ B1 test-only allowlist rejects exact fence mismatch (164.842625ms)
+✖ B1 test-only allowlist rejects exact hash mismatch (162.403083ms)
+✖ B1 test-only allowlist rejects exact action mismatch (179.399083ms)
+✖ B1 test-only allowlist rejects exact root mismatch (174.700625ms)
+✖ B1 test-only allowlist rejects exact project mismatch (175.632333ms)
+✖ B1 test-only allowlist rejects exact tx mismatch (175.666416ms)
+✖ B1 authority called anew per Tx; prior successful proof is not a reusable capability (182.183333ms)
+✖ B1 captures authority method at factory construction and does not follow later replacement (186.876125ms)
+✖ B1 snapshots input before deferred verify and uses original identity throughout (178.169125ms)
+✖ B1 snapshots actor before deferred verify and uses original identity throughout (183.763042ms)
+✖ B1 snapshots proof before deferred verify and uses original identity throughout (193.89875ms)
+✖ B1 root, parent and project prefix locks are held before authority verify (180.75225ms)
+✖ B1 snapshots input, actor and proof synchronously before the first authority-prefix await (180.81775ms)
+✖ B1 request target hashes exact submitted payload before defaults; omitted differs from null (182.628084ms)
+✖ B1 scoped create inherits parent pin and preserves submitted hash (175.864375ms)
+✖ B1 shared create invariant rejects parent-project (177.530042ms)
+✖ B1 shared create invariant rejects parent-level (185.831875ms)
+✔ B1 shared create invariant rejects missing-parent (182.022ms)
+✖ B1 shared create invariant rejects closed-root (189.026042ms)
+✖ B1 shared create invariant rejects closed-parent (201.67775ms)
+✖ B1 shared create invariant rejects pin (166.7625ms)
+✔ B1 shared validation rejects missing-pin without writes (168.536792ms)
+✔ B1 shared validation rejects bad-pin without writes (171.692459ms)
+✔ B1 shared validation rejects empty-title without writes (178.223417ms)
+✔ B1 shared validation rejects bad-level without writes (176.166125ms)
+✔ B1 shared validation rejects bad-kind without writes (164.324583ms)
+✔ B1 shared validation rejects bad-json without writes (162.438916ms)
+✔ B1 shared validation rejects cycle without writes (162.29075ms)
+✔ B1 shared validation rejects accessor without writes (164.493209ms)
+✔ B1 shared validation rejects prototype without writes (161.446917ms)
+✔ B1 shared validation rejects undefined without writes (165.176334ms)
+✖ B1 deploy request and unapproved child never gain owner intent from scoped authority (187.393584ms)
+✖ B1 deploy child requires exact persisted approval and rejects changed target (181.789125ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 12
+ℹ fail 27
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7074.357833
+
+✖ failing tests:
+
+test at v2/server/test/assistant-orchestration.test.ts:134:1
+✖ B1 trust fixture creates A→B child with actual A audit and unchanged raw journal hash (255.688458ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:138:29
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:161:1
+✖ B1 missing captured authority denies 503 even for machine bound to target project (182.233666ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:164:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ORCHESTRATION_UNAVAILABLE', status: 503 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:169:1
+✖ B1 owner cannot enter machine-only scoped creator (186.513667ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:172:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ORCHESTRATION_MACHINE_REQUIRED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:178:3
+✖ B1 test-only allowlist rejects exact actor mismatch (188.666291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:181:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:178:3
+✖ B1 test-only allowlist rejects exact operation mismatch (171.210333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:181:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:178:3
+✖ B1 test-only allowlist rejects exact fence mismatch (164.842625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:181:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:178:3
+✖ B1 test-only allowlist rejects exact hash mismatch (162.403083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:181:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:178:3
+✖ B1 test-only allowlist rejects exact action mismatch (179.399083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:181:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:178:3
+✖ B1 test-only allowlist rejects exact root mismatch (174.700625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:181:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:178:3
+✖ B1 test-only allowlist rejects exact project mismatch (175.632333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:181:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:178:3
+✖ B1 test-only allowlist rejects exact tx mismatch (175.666416ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'TEST_TRUST_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:181:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TEST_TRUST_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:196:1
+✖ B1 authority called anew per Tx; prior successful proof is not a reusable capability (182.183333ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:199:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:206:1
+✖ B1 captures authority method at factory construction and does not follow later replacement (186.876125ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:210:5
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:220:3
+✖ B1 snapshots input before deferred verify and uses original identity throughout (178.169125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'settled'
+  - 'entered'
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:235:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'settled',
+    expected: 'entered',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:220:3
+✖ B1 snapshots actor before deferred verify and uses original identity throughout (183.763042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'settled'
+  - 'entered'
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:235:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'settled',
+    expected: 'entered',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:220:3
+✖ B1 snapshots proof before deferred verify and uses original identity throughout (193.89875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'settled'
+  - 'entered'
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:235:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'settled',
+    expected: 'entered',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:260:1
+✖ B1 root, parent and project prefix locks are held before authority verify (180.75225ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:273:24
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:277:1
+✖ B1 snapshots input, actor and proof synchronously before the first authority-prefix await (180.81775ms)
+  Error [ApiError]: Chỉ hỗ trợ yêu cầu → bước → công việc
+      at createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:161:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:283:24
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7) {
+    code: 'TICKET_HIERARCHY',
+    status: 400,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:297:1
+✖ B1 request target hashes exact submitted payload before defaults; omitted differs from null (182.628084ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:302:19
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:315:1
+✖ B1 scoped create inherits parent pin and preserves submitted hash (175.864375ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:321:24
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:328:3
+✖ B1 shared create invariant rejects parent-project (177.530042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TICKET_HIERARCHY'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:349:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TICKET_HIERARCHY' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:328:3
+✖ B1 shared create invariant rejects parent-level (185.831875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TICKET_HIERARCHY'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:349:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TICKET_HIERARCHY' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:328:3
+✖ B1 shared create invariant rejects closed-root (189.026042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TICKET_CLOSED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:349:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TICKET_CLOSED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:328:3
+✖ B1 shared create invariant rejects closed-parent (201.67775ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TICKET_CLOSED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:349:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'TICKET_CLOSED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:328:3
+✖ B1 shared create invariant rejects pin (166.7625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'WORKFLOW_PIN_MISMATCH'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:349:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'WORKFLOW_PIN_MISMATCH' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:378:1
+✖ B1 deploy request and unapproved child never gain owner intent from scoped authority (187.393584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'DEPLOY_OWNER_INTENT_REQUIRED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:382:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'DEPLOY_OWNER_INTENT_REQUIRED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration.test.ts:386:1
+✖ B1 deploy child requires exact persisted approval and rejects changed target (181.789125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'DEPLOY_OWNER_INTENT_REQUIRED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:395:7
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:49:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async createTicket (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/tickets/service.ts:133:3)
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:127:35
+        at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-orchestration.test.ts:113:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'DEPLOY_OWNER_INTENT_REQUIRED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }

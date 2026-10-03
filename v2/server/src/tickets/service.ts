@@ -1,7 +1,10 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { types as utilTypes } from 'node:util';
 import type { Signal } from '../../../src/ticket-policy.ts';
 import { transition } from '../../../src/ticket-policy.ts';
 import { samePin } from '../../../src/workflow-policy.ts';
+import type { OrchestrationProof } from '../assistant/contracts.ts';
+import { canonicalJson } from '../journal/canonical.ts';
 import { appendEvent } from '../journal/events.ts';
 import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
@@ -106,7 +109,7 @@ function validPin(pin: CreateTicket['workflowPin']): boolean {
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): Promise<Ticket> {
+function validateCreateTicket(input: CreateTicket): void {
   if (
     !['request', 'step', 'task'].includes(input.level) ||
     !['code', 'research', 'docs', 'deploy'].includes(input.kind) ||
@@ -129,7 +132,20 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
     (input.kind !== 'deploy' && input.deployApprovalDecisionId != null)
   )
     throw new ApiError('VALIDATION', 400, 'Ticket không hợp lệ');
-  await requireProjectScope(tx, input.projectId, actor);
+}
+
+type PreparedTicket = {
+  id: Id;
+  rootId: Id;
+  workflowPin: CreateTicket['workflowPin'];
+  criteria: CreateTicket['criteria'];
+  deployDefinitionHash: string | null;
+  deployApprovalDecisionId: Id | null;
+};
+
+// Shared hierarchy, pin and deploy invariants. Scoped callers finish these locks
+// before entering their authority; the insert core never acquires a late fence.
+async function prepareTicket(tx: Tx, input: CreateTicket, actor: Actor): Promise<PreparedTicket> {
   const id = randomUUID();
   let rootId: Id = id;
   let workflowPin = input.workflowPin;
@@ -146,7 +162,12 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
     rootId = initialParent.root_id as Id;
     const [rootRow] = await tx`select * from tickets where id=${rootId} for update`;
     const [parentRow] = await tx`select * from tickets where id=${input.parentId} for update`;
-    if (!rootRow || !parentRow || parentRow.root_id !== rootId || parentRow.project_id !== input.projectId)
+    if (
+      !rootRow ||
+      !parentRow ||
+      parentRow.root_id !== rootId ||
+      parentRow.project_id !== input.projectId.toLowerCase()
+    )
       throw new ApiError('TICKET_HIERARCHY', 409, 'Ticket cha thuộc cây khác');
     if (
       rootRow.status === 'done' ||
@@ -184,6 +205,106 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
       throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Cần chủ dự án duyệt deploy');
     }
   }
+  return { id, rootId, workflowPin, criteria, deployDefinitionHash, deployApprovalDecisionId };
+}
+
+type ScopedCreatePermission = {
+  tx: Tx;
+  actor: Actor;
+  proof: OrchestrationProof;
+  input: CreateTicket;
+  action: 'create_ticket';
+  targetSha256: string;
+  projectId: Id;
+  rootId: Id;
+  prepared: PreparedTicket;
+};
+
+// Runtime identity is module-private: a JSON object or TypeScript cast cannot
+// manufacture an entry, and each entry is consumed by one insertion attempt.
+const scopedCreatePermissions = new WeakMap<object, ScopedCreatePermission>();
+function createTargetHash(input: CreateTicket): string {
+  return createHash('sha256')
+    .update(canonicalJson(['crew-v2:orchestration-target:1', 'create_ticket', input]))
+    .digest('hex');
+}
+
+// Validate source descriptors before canonicalJson can iterate an array. Never
+// read caller array elements, iterators or accessors while capturing authority.
+function assertSnapshotData(value: unknown, ancestors = new Set<object>()): void {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
+  if (typeof value === 'number' && Number.isFinite(value)) return;
+  if (typeof value !== 'object' || utilTypes.isProxy(value) || ancestors.has(value))
+    throw new Error('SNAPSHOT_JSON_INVALID');
+  const array = Array.isArray(value);
+  const prototype: unknown = Object.getPrototypeOf(value);
+  if (
+    (array ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) ||
+    Object.getOwnPropertySymbols(value).length !== 0
+  )
+    throw new Error('SNAPSHOT_JSON_INVALID');
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const length = array ? (descriptors.length?.value as number) : 0;
+  if (array && Object.keys(descriptors).length !== length + 1) throw new Error('SNAPSHOT_JSON_INVALID');
+  ancestors.add(value);
+  try {
+    for (const [key, descriptor] of Object.entries(descriptors)) {
+      if (!('value' in descriptor)) throw new Error('SNAPSHOT_JSON_INVALID');
+      if (array && key === 'length') continue;
+      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= length))
+        throw new Error('SNAPSHOT_JSON_INVALID');
+      assertSnapshotData(descriptor.value, ancestors);
+    }
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
+function immutableSnapshot<T>(value: T): T {
+  const freeze = (item: unknown): void => {
+    if (item && typeof item === 'object') {
+      for (const child of Object.values(item)) freeze(child);
+      Object.freeze(item);
+    }
+  };
+  try {
+    assertSnapshotData(value);
+    const result = JSON.parse(canonicalJson(value)) as T;
+    freeze(result);
+    return result;
+  } catch {
+    throw new ApiError('VALIDATION', 400, 'Dữ liệu điều phối không hợp lệ');
+  }
+}
+
+async function createTicketCore(
+  tx: Tx,
+  input: CreateTicket,
+  actor: Actor,
+  permission?: object,
+): Promise<Ticket> {
+  validateCreateTicket(input);
+  let prepared: PreparedTicket;
+  if (permission) {
+    const scope = scopedCreatePermissions.get(permission);
+    scopedCreatePermissions.delete(permission);
+    if (
+      !scope ||
+      scope.tx !== tx ||
+      scope.actor !== actor ||
+      scope.input !== input ||
+      scope.action !== 'create_ticket' ||
+      scope.targetSha256 !== createTargetHash(input) ||
+      scope.projectId !== input.projectId.toLowerCase() ||
+      scope.rootId !== scope.prepared.rootId
+    )
+      throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
+    prepared = scope.prepared;
+  } else {
+    await requireProjectScope(tx, input.projectId, actor);
+    prepared = await prepareTicket(tx, input, actor);
+  }
+  const { id, rootId, workflowPin, criteria, deployDefinitionHash, deployApprovalDecisionId } = prepared;
   const [row] = await tx`insert into tickets
     (id,project_id,parent_id,root_id,level,kind,title,description,status,mandatory,criteria,inputs,outputs,skill,workflow_pin,
       created_actor_kind,created_actor_id,deploy_definition_hash,deploy_approval_decision_id)
@@ -200,6 +321,49 @@ export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): P
     data: { revision: 1, status: 'pending' },
   });
   return mapTicket(row);
+}
+
+export async function createTicket(tx: Tx, input: CreateTicket, actor: Actor): Promise<Ticket> {
+  return createTicketCore(tx, input, actor);
+}
+
+function scopedTicketCreator(verify: TicketServiceDependencies['assistant']) {
+  const verifyCaptured = verify?.verify.bind(verify);
+  return async (tx: Tx, actor: Actor, proof: OrchestrationProof, input: CreateTicket): Promise<Ticket> => {
+    // All caller-owned data is captured synchronously, before any DB or producer wait.
+    const capturedInput = immutableSnapshot(input);
+    const capturedActor = immutableSnapshot(actor);
+    const capturedProof = immutableSnapshot(proof);
+    validateCreateTicket(capturedInput);
+    if (capturedActor.kind !== 'machine')
+      throw new ApiError('ORCHESTRATION_MACHINE_REQUIRED', 403, 'Chỉ máy trợ lý được điều phối');
+    if (
+      !uuid.test(capturedActor.id) ||
+      !uuid.test(capturedInput.projectId) ||
+      (capturedInput.parentId !== null && !uuid.test(capturedInput.parentId))
+    )
+      throw new ApiError('VALIDATION', 400, 'Định danh điều phối không hợp lệ');
+    if (!verifyCaptured)
+      throw new ApiError('ORCHESTRATION_UNAVAILABLE', 503, 'Chưa có nguồn xác minh điều phối');
+    const targetSha256 = createTargetHash(capturedInput);
+    const prepared = await prepareTicket(tx, capturedInput, capturedActor);
+    const [project] = await tx`select id from projects where id=${capturedInput.projectId} for update`;
+    if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
+    await verifyCaptured(tx, capturedActor, capturedProof, 'create_ticket', targetSha256);
+    const permission = Object.freeze({});
+    scopedCreatePermissions.set(permission, {
+      tx,
+      actor: capturedActor,
+      proof: capturedProof,
+      input: capturedInput,
+      action: 'create_ticket',
+      targetSha256,
+      projectId: project.id as Id,
+      rootId: prepared.rootId,
+      prepared,
+    });
+    return createTicketCore(tx, capturedInput, capturedActor, permission);
+  };
 }
 
 async function signalTicketWithDependencies(
@@ -319,6 +483,7 @@ export function createTicketServices(deps: TicketServiceDependencies = {}) {
   return {
     mapTicket,
     createTicket,
+    assistantCreateTicket: scopedTicketCreator(deps.assistant),
     addDependency,
     appendComment,
     appendAttachmentComment: (

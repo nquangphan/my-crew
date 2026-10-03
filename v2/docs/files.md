@@ -246,6 +246,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
 | `server/test/assistant-authority.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+| `server/test/assistant-orchestration.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
 | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-access.test.ts` | [server-attachments](flows/server-attachments.md) (test) |

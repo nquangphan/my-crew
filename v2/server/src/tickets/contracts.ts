@@ -1,5 +1,6 @@
 import type { Signal, Status } from '../../../src/ticket-policy.ts';
 import type { Pin } from '../../../src/workflow-policy.ts';
+import type { ProjectOrchestrationAuthority } from '../assistant/contracts.ts';
 import type { Actor, Id, Tx } from '../platform/contracts.ts';
 
 export type TicketLevel = 'request' | 'step' | 'task';
@@ -81,6 +82,7 @@ export type ExecutionAuthority = {
 export type DocsCompletionReader = (tx: Tx, projectId: Id, commit: string | null) => Promise<string | null>;
 export type DocsSourceReader = (tx: Tx, projectId: Id, snapshotId: Id, path: string) => Promise<boolean>;
 export type TicketServiceDependencies = {
+  assistant?: ProjectOrchestrationAuthority;
   execution?: ExecutionAuthority;
   docsCompletion?: DocsCompletionReader;
   docsSource?: DocsSourceReader;

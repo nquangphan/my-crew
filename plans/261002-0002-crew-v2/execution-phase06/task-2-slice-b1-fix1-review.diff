@@ -1,0 +1,394 @@
+B1 FIX1 scoped delta: reviewed frozen baseline to final candidate, original F1/F2 only.
+--- v2/server/src/tickets/service.ts
++++ v2/server/src/tickets/service.ts
+@@ -1,26 +1,27 @@
+ import { createHash, randomUUID } from 'node:crypto';
++import { types as utilTypes } from 'node:util';
+ import type { Signal } from '../../../src/ticket-policy.ts';
+ import { transition } from '../../../src/ticket-policy.ts';
+ import { samePin } from '../../../src/workflow-policy.ts';
+ import type { OrchestrationProof } from '../assistant/contracts.ts';
+ import { canonicalJson } from '../journal/canonical.ts';
+ import { appendEvent } from '../journal/events.ts';
+ import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import { readCompletionFacts } from './completion.ts';
+ import type {
+   AppendAttachmentComment,
+   CreateTicket,
+   Ticket,
+   TicketServiceDependencies,
+ } from './contracts.ts';
+ import { appendAttachmentComment, appendComment, recordDecision } from './decisions.ts';
+ import { addDependency, readGraph } from './dependencies.ts';
+ import { deployTicketFingerprint, verifyDeployApprovalForCandidate } from './deploy.ts';
+ import { linkDocs } from './docs-links.ts';
+ import { recordRepairResult } from './repair.ts';
+ 
+ export function mapTicket(row: Record<string, unknown>): Ticket {
+   return {
+     id: row.id as Id,
+     projectId: row.project_id as Id,
+@@ -139,51 +140,56 @@
+   workflowPin: CreateTicket['workflowPin'];
+   criteria: CreateTicket['criteria'];
+   deployDefinitionHash: string | null;
+   deployApprovalDecisionId: Id | null;
+ };
+ 
+ // Shared hierarchy, pin and deploy invariants. Scoped callers finish these locks
+ // before entering their authority; the insert core never acquires a late fence.
+ async function prepareTicket(tx: Tx, input: CreateTicket, actor: Actor): Promise<PreparedTicket> {
+   const id = randomUUID();
+   let rootId: Id = id;
+   let workflowPin = input.workflowPin;
+   let criteria = input.criteria;
+   if (input.level === 'request') {
+     if (input.parentId !== null) throw new ApiError('TICKET_HIERARCHY', 400, 'Yêu cầu không có ticket cha');
+     if (input.kind === 'deploy' && actor.kind !== 'owner')
+       throw new ApiError('DEPLOY_OWNER_INTENT_REQUIRED', 403, 'Cần yêu cầu deploy của chủ dự án');
+     criteria = { workflowChoice: 'superpowers', ...criteria };
+   } else {
+     if (!input.parentId) throw new ApiError('TICKET_HIERARCHY', 400, 'Thiếu ticket cha');
+     const [initialParent] = await tx`select root_id from tickets where id=${input.parentId}`;
+     if (!initialParent) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket cha');
+     rootId = initialParent.root_id as Id;
+     const [rootRow] = await tx`select * from tickets where id=${rootId} for update`;
+     const [parentRow] = await tx`select * from tickets where id=${input.parentId} for update`;
+-    if (!rootRow || !parentRow || parentRow.root_id !== rootId || parentRow.project_id !== input.projectId)
++    if (
++      !rootRow ||
++      !parentRow ||
++      parentRow.root_id !== rootId ||
++      parentRow.project_id !== input.projectId.toLowerCase()
++    )
+       throw new ApiError('TICKET_HIERARCHY', 409, 'Ticket cha thuộc cây khác');
+     if (
+       rootRow.status === 'done' ||
+       rootRow.status === 'cancelled' ||
+       parentRow.status === 'done' ||
+       parentRow.status === 'cancelled'
+     )
+       throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
+     const requiredLevel = input.level === 'step' ? 'request' : 'step';
+     if (parentRow.level !== requiredLevel)
+       throw new ApiError('TICKET_HIERARCHY', 400, 'Chỉ hỗ trợ yêu cầu → bước → công việc');
+     const parentPin = parentRow.workflow_pin as CreateTicket['workflowPin'];
+     if (parentPin && workflowPin && !samePin(parentPin, workflowPin))
+       throw new ApiError('WORKFLOW_PIN_MISMATCH', 409, 'Workflow khác ticket cha');
+     if (!parentPin && workflowPin)
+       throw new ApiError('WORKFLOW_PIN_MISMATCH', 409, 'Ticket cha chưa ghim workflow');
+     workflowPin = parentPin;
+   }
+   let deployDefinitionHash: string | null = null;
+   let deployApprovalDecisionId: Id | null = null;
+   if (input.kind === 'deploy') {
+     deployDefinitionHash = deployTicketFingerprint({ ...input, workflowPin }, rootId);
+     if (input.deployApprovalDecisionId) {
+       if (
+         !(await verifyDeployApprovalForCandidate(
+@@ -201,58 +207,90 @@
+   }
+   return { id, rootId, workflowPin, criteria, deployDefinitionHash, deployApprovalDecisionId };
+ }
+ 
+ type ScopedCreatePermission = {
+   tx: Tx;
+   actor: Actor;
+   proof: OrchestrationProof;
+   input: CreateTicket;
+   action: 'create_ticket';
+   targetSha256: string;
+   projectId: Id;
+   rootId: Id;
+   prepared: PreparedTicket;
+ };
+ 
+ // Runtime identity is module-private: a JSON object or TypeScript cast cannot
+ // manufacture an entry, and each entry is consumed by one insertion attempt.
+ const scopedCreatePermissions = new WeakMap<object, ScopedCreatePermission>();
+ function createTargetHash(input: CreateTicket): string {
+   return createHash('sha256')
+     .update(canonicalJson(['crew-v2:orchestration-target:1', 'create_ticket', input]))
+     .digest('hex');
+ }
+ 
++// Validate source descriptors before canonicalJson can iterate an array. Never
++// read caller array elements, iterators or accessors while capturing authority.
++function assertSnapshotData(value: unknown, ancestors = new Set<object>()): void {
++  if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
++  if (typeof value === 'number' && Number.isFinite(value)) return;
++  if (typeof value !== 'object' || utilTypes.isProxy(value) || ancestors.has(value))
++    throw new Error('SNAPSHOT_JSON_INVALID');
++  const array = Array.isArray(value);
++  const prototype: unknown = Object.getPrototypeOf(value);
++  if (
++    (array ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null) ||
++    Object.getOwnPropertySymbols(value).length !== 0
++  )
++    throw new Error('SNAPSHOT_JSON_INVALID');
++  const descriptors = Object.getOwnPropertyDescriptors(value);
++  const length = array ? (descriptors.length?.value as number) : 0;
++  if (array && Object.keys(descriptors).length !== length + 1) throw new Error('SNAPSHOT_JSON_INVALID');
++  ancestors.add(value);
++  try {
++    for (const [key, descriptor] of Object.entries(descriptors)) {
++      if (!('value' in descriptor)) throw new Error('SNAPSHOT_JSON_INVALID');
++      if (array && key === 'length') continue;
++      if (array && (!/^(0|[1-9][0-9]*)$/.test(key) || Number(key) >= length))
++        throw new Error('SNAPSHOT_JSON_INVALID');
++      assertSnapshotData(descriptor.value, ancestors);
++    }
++  } finally {
++    ancestors.delete(value);
++  }
++}
++
+ function immutableSnapshot<T>(value: T): T {
+   const freeze = (item: unknown): void => {
+     if (item && typeof item === 'object') {
+       for (const child of Object.values(item)) freeze(child);
+       Object.freeze(item);
+     }
+   };
+   try {
++    assertSnapshotData(value);
+     const result = JSON.parse(canonicalJson(value)) as T;
+     freeze(result);
+     return result;
+   } catch {
+     throw new ApiError('VALIDATION', 400, 'Dữ liệu điều phối không hợp lệ');
+   }
+ }
+ 
+ async function createTicketCore(
+   tx: Tx,
+   input: CreateTicket,
+   actor: Actor,
+   permission?: object,
+ ): Promise<Ticket> {
+   validateCreateTicket(input);
+   let prepared: PreparedTicket;
+   if (permission) {
+     const scope = scopedCreatePermissions.get(permission);
+     scopedCreatePermissions.delete(permission);
+     if (
+       !scope ||
+       scope.tx !== tx ||
+       scope.actor !== actor ||
+       scope.input !== input ||
+       scope.action !== 'create_ticket' ||
+--- v2/server/test/assistant-orchestration.test.ts
++++ v2/server/test/assistant-orchestration.test.ts
+@@ -132,51 +132,51 @@
+       afterStart?: () => void;
+     } = {},
+   ) => {
+     const submittedActor = options.actor ?? actor;
+     const submittedProof = options.proof ?? proof;
+     const key = randomUUID();
+     const result = await mutate(
+       db,
+       {
+         actor: clone(submittedActor),
+         route: 'test-only:assistant-create',
+         key,
+         body: options.body ?? input,
+       },
+       async (tx) => {
+         const [parent] = input.parentId
+           ? await tx`select root_id from tickets where id=${input.parentId}`
+           : [];
+         const entry: Allowance = {
+           tx,
+           actor: clone(submittedActor),
+           proof: clone(submittedProof),
+           action: 'create_ticket',
+           target: targetHash(input),
+           input: clone(input),
+-          projectId: input.projectId,
++          projectId: input.projectId.toLowerCase(),
+           rootId: (parent?.root_id as string | undefined) ?? null,
+           bindingMachineId: machines.b.id,
+         };
+         options.change?.(entry);
+         trust.allowed.set(tx, entry);
+         const pending = (options.services ?? services).assistantCreateTicket(
+           tx,
+           submittedActor,
+           submittedProof,
+           input,
+         );
+         options.afterStart?.();
+         return { status: 201, body: await pending };
+       },
+     );
+     return { ticket: result.body, key };
+   };
+   return { ...f, actor, proof, trust, services, candidate, run, machines };
+ }
+ 
+ test('B1 trust fixture creates A→B child with actual A audit and unchanged raw journal hash', async () =>
+   withDatabase(async (db) => {
+     const f = await fixture(db);
+     const input = f.candidate({ inputs: { target: 'B' } });
+     const { ticket, key } = await f.run(input);
+@@ -540,25 +540,158 @@
+           rationale: 'Test owner intent',
+           sources: [],
+           scope: {
+             action: 'deploy',
+             rootTicketId: f.request.id,
+             ticketDefinitionHash: deployTicketFingerprint(input, f.request.id),
+           },
+         },
+         owner,
+       ),
+     );
+     for (const changes of [{ title: 'Production' }, { inputs: { environment: 'production' } }]) {
+       await assert.rejects(() => f.run({ ...input, ...changes, deployApprovalDecisionId: approvalId }), {
+         code: 'DEPLOY_OWNER_INTENT_REQUIRED',
+         status: 403,
+       });
+     }
+     const { ticket } = await f.run({ ...input, deployApprovalDecisionId: approvalId });
+     assert.equal(await db.begin((tx) => readDeployAuthorization(tx, ticket.id)), 'owner_approval');
+     assert.equal(Object.hasOwn(ticket, 'deployApprovalDecisionId'), false);
+     const [row] =
+       await db`select created_actor_id,deploy_approval_decision_id from tickets where id=${ticket.id}`;
+     assert.equal(row?.created_actor_id, f.actor.id);
+     assert.equal(row?.deploy_approval_decision_id, approvalId);
+   }));
++
++for (const level of ['step', 'task'] as const) {
++  test(`B1 FIX1 uppercase project identity creates ${level} under exact submitted hash`, async () =>
++    withDatabase(async (db) => {
++      const f = await fixture(db);
++      const parentId = level === 'step' ? f.request.id : f.a.id;
++      const input = inputTicket(f.project.id.toUpperCase(), level, parentId.toUpperCase());
++      const { ticket, key } = await f.run(input);
++      assert.equal(ticket.projectId, f.project.id);
++      assert.equal(ticket.parentId, parentId);
++      assert.equal(ticket.rootId, f.request.id);
++      assert.equal(f.trust.observed[0]?.projectId, f.project.id);
++      assert.equal(f.trust.observed[0]?.target, targetHash(input));
++      assert.notEqual(targetHash(input), targetHash({ ...input, projectId: f.project.id }));
++      const [journal] = await db`select body_hash,actor_id from idempotency where key=${key}`;
++      assert.equal(journal?.body_hash, hash(input));
++      assert.equal(journal?.actor_id, f.actor.id);
++    }));
++
++  test(`B1 FIX1 lowercase hash allowance cannot authorize uppercase ${level} payload`, async () =>
++    withDatabase(async (db) => {
++      const f = await fixture(db);
++      const input = inputTicket(f.project.id.toUpperCase(), level, level === 'step' ? f.request.id : f.a.id);
++      const [before] = await db`select count(*)::int as count from tickets`;
++      await assert.rejects(
++        () =>
++          f.run(input, {
++            change(entry) {
++              entry.input.projectId = f.project.id;
++              entry.target = targetHash(entry.input);
++            },
++          }),
++        { code: 'TEST_TRUST_DENIED', status: 403 },
++      );
++      const [after] = await db`select count(*)::int as count from tickets`;
++      assert.equal(after?.count, before?.count);
++      assert.equal(f.trust.observed.length, 0);
++    }));
++}
++
++for (const hostile of ['index-getter', 'custom-iterator', 'custom-prototype'] as const) {
++  test(`B1 FIX1 array ${hostile} is rejected without executing user code or changing identity`, async () =>
++    withDatabase(async (db) => {
++      const f = await fixture(db);
++      const actor = clone(f.actor);
++      const proof = clone(f.proof);
++      const originalActor = clone(actor);
++      const originalProof = clone(proof);
++      let executions = 0;
++      let verifications = 0;
++      const payload = ['ordinary'];
++      const mutateIdentity = () => {
++        executions += 1;
++        actor.id = f.machines.b.id;
++        proof.operationId = randomUUID();
++      };
++      if (hostile === 'index-getter') {
++        Object.defineProperty(payload, '0', {
++          enumerable: true,
++          configurable: true,
++          get() {
++            mutateIdentity();
++            return 'getter-returned-safe-string';
++          },
++        });
++      } else if (hostile === 'custom-iterator') {
++        Object.defineProperty(payload, Symbol.iterator, {
++          value: function* () {
++            mutateIdentity();
++            yield 'iterator-returned-safe-string';
++          },
++        });
++      } else {
++        Object.setPrototypeOf(payload, Object.create(Array.prototype));
++      }
++      const input = f.candidate({ inputs: { nested: { payload } } });
++      // Reject-only observer: no blanket trust grant and no hostile data passed
++      // through the journal's canonicalizer before reaching the B1 boundary.
++      const services = createTicketServices({
++        assistant: {
++          async verify() {
++            verifications += 1;
++            throw new ApiError('TEST_BOUNDARY_REACHED', 403, 'Unexpected authority call');
++          },
++        },
++      });
++      const [before] = await db`select count(*)::int as count from tickets`;
++      let failure: unknown;
++      try {
++        await f.mutation(`hostile-${hostile}`, (tx) =>
++          services.assistantCreateTicket(tx, actor, proof, input),
++        );
++      } catch (error) {
++        failure = error;
++      }
++      const [after] = await db`select count(*)::int as count from tickets`;
++      assert.deepEqual(
++        {
++          code: failure instanceof ApiError ? failure.code : null,
++          status: failure instanceof ApiError ? failure.status : null,
++          executions,
++          verifications,
++          actor,
++          proof,
++          writes: Number(after?.count) - Number(before?.count),
++        },
++        {
++          code: 'VALIDATION',
++          status: 400,
++          executions: 0,
++          verifications: 0,
++          actor: originalActor,
++          proof: originalProof,
++          writes: 0,
++        },
++      );
++    }));
++}
++
++test('B1 FIX1 ordinary nested JSON arrays remain supported with their exact submitted hash', async () =>
++  withDatabase(async (db) => {
++    const f = await fixture(db);
++    const input = f.candidate({
++      criteria: { checks: ['first', { nested: [true, false] }] },
++      inputs: { values: [null, 0, 1.5, 'text', [], { children: [1, 2] }] },
++      outputs: { values: [] },
++    });
++    const { ticket } = await f.run(input);
++    assert.deepEqual(ticket.criteria, input.criteria);
++    assert.deepEqual(ticket.inputs, input.inputs);
++    assert.deepEqual(ticket.outputs, input.outputs);
++    assert.equal(f.trust.observed[0]?.target, targetHash(input));
++  }));
