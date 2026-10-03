@@ -8,6 +8,8 @@ Phase06/T1 lưu inbox, lượt Trợ lý và các chứng từ điều phối tr
 
 `assistant/inbox.ts` cung cấp `enqueueWork`, `ingestEvents`, `reconcileWork`, `claimWork`, `ackWork`. `assistant/store.ts` kiểm fence và cấp generation trong transaction. `assistant/contracts.ts` khai báo DTO và runtime schema strict cho toàn bộ DTO serializable, kể cả dữ liệu lồng trong routing tool/event/result, workflow, assessment, capacity và chứng từ R1–R4. Function port không có JSON schema. T1 chưa đăng ký route, driver, admission hoặc lời gọi model.
 
+Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant/config`, strict policy và `preferred:null`. Factory chưa được ghép vào app production. `createPersistedAssistantActorResolver` kiểm scope/fence nhưng luôn từ chối admission hiện hành bằng503; không biến receipt UNVERIFIED thành Actor.
+
 ## Các bước
 
 1. Ingestion khóa `event_cursor` rồi monitor, đọc event đã commit theo trang 200, chèn work và tiến cursor trong cùng transaction. Rollback giữ cả work và cursor ở trạng thái trước đó. Event duplicate vẫn cho cursor tiến; work đã claim/ACK không bị ghi đè.
@@ -17,6 +19,8 @@ Phase06/T1 lưu inbox, lượt Trợ lý và các chứng từ điều phối tr
 5. `allocateAssistantGeneration(tx)` khóa guard chung và tăng bigint monitor bằng UPDATE RETURNING, không reset hoặc wrap. Caller admission T2 phải bind giá trị với đúng normal turn hoặc calibration launch trong cùng transaction thành công; đọc/cấp generation tự nó không cấp quyền.
 6. SQL011 bảo vệ liên kết conversation/message, một turn sống, chứng từ bất biến, scope cụ thể, hex64 effect và ordinal hành động persist trong target identity. R1 tách challenge/certification và measured routing receipt khỏi certificate workflow008. R2 giữ thứ tự tool call và kết quả terminal. R3 chỉ nối derived authorization đúng route với parent còn hiệu lực, không tăng expiry/allowOriginal hoặc mở rộng reference original.
 7. R4 hook trên INSERT attempt kiểm launch đúng command/machine/process, chưa hết hạn hoặc retired, rồi bind attempt và active reservation nguyên tử. Release attempt cần stopped và finalized. Unclaimed release cần retirement cùng proof never-authorized hoặc launch đóng với exact identity và stop/journal chứng từ. Guard release kiểm cả INSERT và UPDATE bằng constraint deferred: terminal row có proof hợp lệ vẫn được insert/restore, row thiếu proof bị rollback. UUID artifact không chứng minh đã dừng.
+8. Owner chọn machine còn hiệu lực bằng cookie, Origin, CSRF và Idempotency-Key. PUT dùng machine UUID chuẩn chữ thường cho identity nội bộ, giữ nguyên request body để journal hash/replay. Thứ tự khóa: journal/event cursor → calibration guard → machines theo thứ tự → config → designation → live turns khi đổi máy → exact owner session FOR SHARE. Sau mọi lần chờ, statement riêng kiểm revoke/expiry bằng `clock_timestamp()`, trước cached reply hoặc mutation. Session lock giữ tới commit để serialize revocation.
+9. Mutation mới kiểm config CAS; replay không tạo designation mới. Policy update cùng machine giữ designation và live turn. Đổi máy khi idle retire identity cũ; turn chưa stopped hoặc calibration active trả409 và không retire một phần. Metadata không tạo grant, turn, command hoặc quyền inference. Positive admission, direct input/doc reads, G1/G2 và retirement runtime vẫn chờ producer tiếp theo.
 
 ## Files
 
@@ -26,7 +30,10 @@ Phase06/T1 lưu inbox, lượt Trợ lý và các chứng từ điều phối tr
 | `server/src/assistant/contracts.ts` | Hợp đồng typed nhập từ producer đã có |
 | `server/src/assistant/store.ts` | Fence và generation persistence |
 | `server/src/assistant/inbox.ts` | Cursor, reconciliation, claim và ACK |
+| `server/src/assistant/authority.ts` | Designation/CAS và resolver mặc định từ chối |
+| `server/src/assistant/routes.ts` | Owner config routes và credential lock |
 | `server/test/assistant-store.test.ts` | PostgreSQL constraints, durable inbox và backup/restore |
+| `server/test/assistant-authority.test.ts` | Actual HTTP auth, config CAS, lock races và UUID casing |
 | `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử |
 
 ## Dữ liệu
@@ -50,3 +57,5 @@ Schema reject trường ngoài DTO, discriminator lạ, hash/UUID lỗi, số re
 FIX1 bổ sung regression S1–S5: cross-message trước replay, root scope đúng route/monitor và hết hạn, selection mượn model/machine, assessment/dispatch ghép khác ticket, receipt/reservation sai request/ownership, released INSERT thiếu proof; positive terminal-proof row được backup/restore và đối chiếu toàn bộ dữ liệu. Không sửa guard005 hoặc migrations đã chốt.
 
 FIX2 kiểm scope expiry bằng `clock_timestamp()` tại lần kiểm sau khóa và trước replay; không dùng `now()` cố định ở đầu transaction. Bốn regression thực tạo transaction trước deadline, chờ chính deadline PostgreSQL qua `pg_sleep_until`, ghi witness `now()<expires_at` và `clock_timestamp()>=expires_at`, rồi kiểm claim mới/claim replay/ACK/ACK replay đều bị từ chối và toàn bộ work row (state, attempts, claim, ACK) giữ nguyên. Cover ảnh hưởng chỉ chạy các test fence/scope/expiry; evidence S2–S5 và restore của FIX1 được giữ riêng, không cộng dồn thành lượt full suite mới.
+
+Slice A T2 được review và scoped FIX1 re-review đóng A1/A2. Final affected `assistant-authority.test.ts`:19/19 PASS trên Fastify và PostgreSQL riêng, gồm6 test ban đầu và13 regression credential revoke/expiry trong guard/machine/turn lock waits, credential lock giữ qua fresh/replay, uppercase designation/same-machine policy và raw-body idempotency. Scoped strict typecheck dùng `skipLibCheck` cho external declaration theo PM ruling và Biome đạt. Full-server typecheck còn giới hạn dependency extractor ngoài slice; không suy ra full T2/E2E/native PASS. Report/re-review cùng raw SHA và docker/PID/scratch cleanup nằm tại `plans/261002-0002-crew-v2/execution-phase06/` của repo chính.

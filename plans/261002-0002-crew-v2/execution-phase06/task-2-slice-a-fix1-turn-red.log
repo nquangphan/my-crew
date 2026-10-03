@@ -1,0 +1,36 @@
+attachment DB container 0fbf2ab286eeeb0591a4a7fa74c470fe9464bc92c346abe8dd6ad536ec443f7e root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ECx3P5
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ECx3P5 nonceSha256=1b6e543623a38b6df69bb76302bb6e6ce28d3797661e942181ad7fb335a63e67
+attachment DB scratch identity dev=16777229 ino=64563361 uid=501 pid=27495
+A1 lock witness waiting=90 blocker=89 query=assistant_turns
+A1 turn expiry witness expired=true transaction_predates_expiry=true
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-ECx3P5
+✖ assistant authority A1 turn/expired sau mọi authority lock bị từ chối (1562.697084ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1706.341084
+
+✖ failing tests:
+
+test at v2/server/test/assistant-authority.test.ts:481:1
+✖ assistant authority A1 turn/expired sau mọi authority lock bị từ chối (1562.697084ms)
+  AssertionError [ERR_ASSERTION]: {"designation":{"id":"1832755b-b59b-4bf9-b7f7-da49b50a9eb5","ownerId":"owner","machineId":"7d4cbcd6-8b91-434f-918c-8467c2d7c08f","revision":2},"revision":2,"preferred":null,"policy":{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}}
+  
+  200 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:527:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

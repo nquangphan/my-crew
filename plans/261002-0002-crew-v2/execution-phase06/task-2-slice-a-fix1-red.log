@@ -1,0 +1,264 @@
+A1 lock witness waiting=90 blocker=89 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for fresh
+✖ assistant authority A1 fresh/guard/revoked trong lock wait bị từ chối (545.323167ms)
+A1 lock witness waiting=94 blocker=93 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/guard
+✖ assistant authority A1 fresh/guard/expired trong lock wait bị từ chối (431.625ms)
+A1 lock witness waiting=98 blocker=97 query=machines
+A1 revoke committed before releasing machine for fresh
+✖ assistant authority A1 fresh/machine/revoked trong lock wait bị từ chối (288.941833ms)
+A1 lock witness waiting=102 blocker=101 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/machine
+✖ assistant authority A1 fresh/machine/expired trong lock wait bị từ chối (395.152417ms)
+A1 lock witness waiting=106 blocker=105 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for replay
+✖ assistant authority A1 replay/guard/revoked trong lock wait bị từ chối (284.740375ms)
+A1 lock witness waiting=110 blocker=109 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true replay/guard
+✖ assistant authority A1 replay/guard/expired trong lock wait bị từ chối (398.27575ms)
+A1 lock witness waiting=114 blocker=113 query=machines
+A1 revoke committed before releasing machine for replay
+✖ assistant authority A1 replay/machine/revoked trong lock wait bị từ chối (357.872667ms)
+A1 lock witness waiting=118 blocker=117 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true replay/machine
+✖ assistant authority A1 replay/machine/expired trong lock wait bị từ chối (517.974791ms)
+✖ assistant authority A1 fresh giữ credential lock đến mutation commit (5433.064792ms)
+✖ assistant authority A1 replay giữ credential lock đến mutation commit (5316.071083ms)
+✖ assistant authority A2 uppercase designation và revoked target dùng cùng identity (277.014208ms)
+attachment DB container 446a1e9ac3899e7be4981d50be3f3f3ce6bf411fe4aa69c011d35afad519f088 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BdWnRd
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BdWnRd nonceSha256=a054be768a80cbfa98110151bd8f5a6b7a24b9ef0fc8b8b43d19f21a2d02931a
+attachment DB scratch identity dev=16777229 ino=64548977 uid=501 pid=99707
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BdWnRd
+✖ assistant authority A2 đổi casing cùng máy không retire designation hoặc live turn (335.281417ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 0
+ℹ fail 12
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14749.985958
+
+✖ failing tests:
+
+test at v2/server/test/assistant-authority.test.ts:398:7
+✖ assistant authority A1 fresh/guard/revoked trong lock wait bị từ chối (545.323167ms)
+  AssertionError [ERR_ASSERTION]: {"designation":{"id":"e7ba965f-2289-44f0-8838-08513e859b1e","ownerId":"owner","machineId":"5691efa4-1677-4500-9157-d615aac10716","revision":1},"revision":2,"preferred":null,"policy":{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}}
+  
+  200 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:448:20
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:398:7
+✖ assistant authority A1 fresh/guard/expired trong lock wait bị từ chối (431.625ms)
+  AssertionError [ERR_ASSERTION]: {"designation":{"id":"88a2bec5-73e1-43c4-b827-86b1892c5031","ownerId":"owner","machineId":"354bfd14-53c0-47c5-b13e-5f3c16544eb0","revision":1},"revision":2,"preferred":null,"policy":{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}}
+  
+  200 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:448:20
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:398:7
+✖ assistant authority A1 fresh/machine/revoked trong lock wait bị từ chối (288.941833ms)
+  AssertionError [ERR_ASSERTION]: {"designation":{"id":"87eb30ac-56fe-47c5-a803-9933283f31bd","ownerId":"owner","machineId":"a30046f1-f0a0-4114-8541-e019b83e7721","revision":1},"revision":2,"preferred":null,"policy":{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}}
+  
+  200 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:448:20
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:398:7
+✖ assistant authority A1 fresh/machine/expired trong lock wait bị từ chối (395.152417ms)
+  AssertionError [ERR_ASSERTION]: {"designation":{"id":"70619b84-e877-4a8c-8dd8-ddcf0a3bbae9","ownerId":"owner","machineId":"0af061a6-5b29-4866-ae65-90affc91d657","revision":1},"revision":2,"preferred":null,"policy":{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}}
+  
+  200 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:448:20
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:398:7
+✖ assistant authority A1 replay/guard/revoked trong lock wait bị từ chối (284.740375ms)
+  AssertionError [ERR_ASSERTION]: {"designation":{"id":"0feeb276-1e3a-4687-9d53-0d2ee7081fd3","ownerId":"owner","machineId":"727ad580-479e-4d8b-9457-ee25e187e31e","revision":1},"revision":2,"preferred":null,"policy":{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}}
+  
+  200 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:448:20
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:398:7
+✖ assistant authority A1 replay/guard/expired trong lock wait bị từ chối (398.27575ms)
+  AssertionError [ERR_ASSERTION]: {"designation":{"id":"70ceba6e-8774-4446-a25c-69a8e9f41a1e","ownerId":"owner","machineId":"8c868948-b644-41ed-a4ef-d5c7ee501274","revision":1},"revision":2,"preferred":null,"policy":{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}}
+  
+  200 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:448:20
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:398:7
+✖ assistant authority A1 replay/machine/revoked trong lock wait bị từ chối (357.872667ms)
+  AssertionError [ERR_ASSERTION]: {"designation":{"id":"287f6222-4adb-4d92-92d6-35af76b0f320","ownerId":"owner","machineId":"5a721c34-269c-4ebc-b21d-03e6e361edd1","revision":1},"revision":2,"preferred":null,"policy":{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}}
+  
+  200 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:448:20
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:398:7
+✖ assistant authority A1 replay/machine/expired trong lock wait bị từ chối (517.974791ms)
+  AssertionError [ERR_ASSERTION]: {"designation":{"id":"5d17c322-ee06-43ba-b276-5154517b4595","ownerId":"owner","machineId":"039d21f9-7c52-45eb-8d5e-5535bfe859e1","revision":1},"revision":2,"preferred":null,"policy":{"maxJobs":1,"telemetryMaxAgeMs":15000,"maxLoadPerCpu":1,"minMemoryBytes":"4294967296","minDiskBytes":"8589934592","maxTurnsPerRun":1,"maxToolsPerTurn":1,"maxCostUsdPerRun":0,"maxTurnMs":60000,"maxRecoveryAttempts":0,"parallelApprovalId":null}}
+  
+  200 !== 401
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:448:20
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:462:3
+✖ assistant authority A1 fresh giữ credential lock đến mutation commit (5433.064792ms)
+  AssertionError [ERR_ASSERTION]: Không quan sát được PostgreSQL lock wait 122 -> 121 (update sessions)
+      at observedLockWait (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:150:10)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:489:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'fail',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:462:3
+✖ assistant authority A1 replay giữ credential lock đến mutation commit (5316.071083ms)
+  AssertionError [ERR_ASSERTION]: Không quan sát được PostgreSQL lock wait 126 -> 125 (update sessions)
+      at observedLockWait (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:150:10)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:489:9
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: undefined,
+    operator: 'fail',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:507:1
+✖ assistant authority A2 uppercase designation và revoked target dùng cùng identity (277.014208ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"NOT_FOUND"}}
+  
+  404 !== 200
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:517:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:530:1
+✖ assistant authority A2 đổi casing cùng máy không retire designation hoặc live turn (335.281417ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"NOT_FOUND"}}
+  
+  404 !== 200
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/assistant-authority.test.ts:541:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

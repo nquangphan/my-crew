@@ -1,0 +1,72 @@
+Sat Oct  3 13:23:30 UTC 2026
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    11876.
+Pages active:                                 446364.
+Pages inactive:                               452426.
+Pages speculative:                              1681.
+Pages throttled:                                   0.
+Pages wired down:                             370562.
+Pages purgeable:                                1827.
+Processes: 994 total, 2 running, 992 sleeping, 8695 threads 
+2026/10/03 20:23:31
+Load Avg: 2.49, 2.46, 3.09 
+CPU usage: 2.30% user, 8.53% sys, 89.15% idle 
+SharedLibs: 380M resident, 92M data, 82M linkedit.
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 399086768  27115428    94% 4636331 271154280    2%   /System/Volumes/Data
+Biome exit=0
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    12578.
+Pages active:                                 460333.
+Pages inactive:                               458440.
+Pages speculative:                              1445.
+Pages throttled:                                   0.
+Pages wired down:                             352571.
+Pages purgeable:                               13842.
+Processes: 994 total, 2 running, 992 sleeping, 8660 threads 
+2026/10/03 20:23:52
+Load Avg: 2.59, 2.49, 3.09 
+CPU usage: 5.4% user, 10.22% sys, 84.72% idle 
+SharedLibs: 380M resident, 92M data, 82M linkedit.
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 399086948  27115248    94% 4636332 271152480    2%   /System/Volumes/Data
+GREEN intent: crew-v2-test-cb8aed28-921e-4f93-b166-b7395a8121aa memory256MiB CPU1 pids64 random loopback local postgres18.6; Nodeheap384 concurrency1 affected19
+fbb31be9ff9ccfe94085add6337f344c3f42cac2ebcdc5f147eba308bc78c536 /crew-v2-test-cb8aed28-921e-4f93-b166-b7395a8121aa memory=268435456 nanoCPUs=1000000000 pids=64
+127.0.0.1:50601
+1
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    11457.
+Pages active:                                 453860.
+Pages inactive:                               445863.
+Pages speculative:                              7712.
+Pages throttled:                                   0.
+Pages wired down:                             360502.
+Pages purgeable:                                8458.
+Processes: 989 total, 2 running, 987 sleeping, 8660 threads 
+2026/10/03 20:24:27
+Load Avg: 2.11, 2.38, 3.03 
+CPU usage: 2.29% user, 8.63% sys, 89.6% idle 
+SharedLibs: 380M resident, 92M data, 82M linkedit.
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 399136080  27066116    94% 4636332 270661160    2%   /System/Volumes/Data
+GREEN exit=0
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    10296.
+Pages active:                                 463148.
+Pages inactive:                               461607.
+Pages speculative:                              1244.
+Pages throttled:                                   0.
+Pages wired down:                             352670.
+Pages purgeable:                               20231.
+Processes: 989 total, 3 running, 986 sleeping, 8682 threads 
+2026/10/03 20:25:05
+Load Avg: 2.07, 2.33, 2.98 
+CPU usage: 14.84% user, 9.18% sys, 75.97% idle 
+SharedLibs: 380M resident, 92M data, 82M linkedit.
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 399154076  27048120    94% 4636332 270481200    2%   /System/Volumes/Data
+Scoped strict tsc exit=0

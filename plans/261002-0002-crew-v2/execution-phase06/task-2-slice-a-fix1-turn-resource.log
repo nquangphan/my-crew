@@ -1,0 +1,41 @@
+Sat Oct  3 13:20:01 UTC 2026
+71ff48e99e9725c26dacc49c1be74ddd3615079554a01872213449d2f5b58621  v2/server/src/assistant/authority.ts
+7ee13c26003aaf83cdaf18a887a96e8580012a7925a7135b35d61cf25e292df1  v2/server/src/assistant/routes.ts
+5ba4234fe97ae913a0649a3af50c595a1813ff3177579f804633587daa5ef832  v2/server/test/assistant-authority.test.ts
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    10116.
+Pages active:                                 451531.
+Pages inactive:                               449952.
+Pages speculative:                              1020.
+Pages throttled:                                   0.
+Pages wired down:                             369070.
+Pages purgeable:                                8054.
+Processes: 991 total, 7 running, 1 stuck, 983 sleeping, 8792 threads 
+2026/10/03 20:20:02
+Load Avg: 2.70, 2.44, 3.26 
+CPU usage: 11.31% user, 14.60% sys, 74.7% idle 
+SharedLibs: 381M resident, 91M data, 83M linkedit.
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 399089072  27113124    94% 4636327 271131240    2%   /System/Volumes/Data
+TURN RED intent: crew-v2-test-f8bd3ac2-468f-42d6-b3c8-ec26e3b7d4a7 memory256MiB CPU1 pids64 random loopback local postgres18.6
+0fbf2ab286eeeb0591a4a7fa74c470fe9464bc92c346abe8dd6ad536ec443f7e /crew-v2-test-f8bd3ac2-468f-42d6-b3c8-ec26e3b7d4a7 memory=268435456 nanoCPUs=1000000000 pids=64
+127.0.0.1:49398
+1
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    28402.
+Pages active:                                 433535.
+Pages inactive:                               425705.
+Pages speculative:                             12171.
+Pages throttled:                                   0.
+Pages wired down:                             360731.
+Pages purgeable:                                6827.
+Processes: 997 total, 4 running, 993 sleeping, 8754 threads 
+2026/10/03 20:20:32
+Load Avg: 3.35, 2.65, 3.31 
+CPU usage: 6.40% user, 9.67% sys, 83.91% idle 
+SharedLibs: 378M resident, 91M data, 82M linkedit.
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 399133624  27068572    94% 4636328 270685720    2%   /System/Volumes/Data
+Turn RED exit=1

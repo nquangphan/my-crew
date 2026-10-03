@@ -1,0 +1,438 @@
+--- a/v2/server/src/assistant/authority.ts
++++ b/v2/server/src/assistant/authority.ts
+@@ -51,7 +51,7 @@
+   if (!guard) throw new ApiError('ASSISTANT_STORE_MISSING', 503, 'Chưa khởi tạo kho Trợ lý');
+   if (guard.challenge_id !== null)
+     throw new ApiError('ASSISTANT_CALIBRATION_ACTIVE', 409, 'Đang đối chiếu runtime Trợ lý');
+-  const [current] = await tx`select d.machine_id from assistant_config c
++  const [current] = await tx`select d.machine_id,d.retired_at from assistant_config c
+     join assistant_designations d on d.id=c.designation_id where c.singleton=true`;
+   const ids = [...new Set([machineId, ...(current ? [String(current.machine_id)] : [])])].sort();
+   const machines = await tx`select id,revoked_at from machines where id in ${tx(ids)} order by id for update`;
+@@ -61,6 +61,10 @@
+   if (!config) throw new ApiError('ASSISTANT_STORE_MISSING', 503, 'Chưa khởi tạo kho Trợ lý');
+   if (config.designation_id !== null)
+     await tx`select id from assistant_designations where id=${config.designation_id} for update`;
++  // Prelock every reassignment authority row before the route's final credential check.
++  // Work repeats this query with these locks held and keeps its existing validation order.
++  if (!current || current.retired_at !== null || current.machine_id !== machineId)
++    await tx`select id from assistant_turns where state<>'stopped' for update`;
+ }
+ 
+ /** Called only with the strict config route body in the caller's mutation transaction. */
+--- a/v2/server/src/assistant/routes.ts
++++ b/v2/server/src/assistant/routes.ts
+@@ -1,6 +1,7 @@
+-import type { FastifyInstance } from 'fastify';
++import type { FastifyInstance, FastifyRequest } from 'fastify';
+ import { authenticateCurrentCredential } from '../auth/routes.ts';
+-import type { RouteDependencies, ServerOptions } from '../platform/contracts.ts';
++import { readSessionCookie, sha256 } from '../auth/session.ts';
++import type { RouteDependencies, ServerOptions, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import {
+   type AssistantConfigChange,
+@@ -22,6 +23,20 @@
+     policy: assistantPolicySchema,
+   },
+ };
++
++/** Last authority lock: retain this exact owner credential through replay or mutation commit. */
++async function lockCurrentOwnerCredential(tx: Tx, request: FastifyRequest): Promise<void> {
++  const secret = readSessionCookie(request);
++  if (!secret) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
++  const idHash = sha256(secret);
++  const [locked] = await tx`select id_hash from sessions
++    where id_hash=${idHash} and owner_id='owner' for share`;
++  if (!locked) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
++  // A separate statement checks wall time after any credential-row lock wait.
++  const [current] = await tx`select 1 from sessions where id_hash=${idHash}
++    and owner_id='owner' and revoked_at is null and expires_at>clock_timestamp()`;
++  if (!current) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
++}
+ 
+ export function registerAssistantRoutes(
+   app: FastifyInstance,
+@@ -48,6 +63,7 @@
+     },
+     async (request, reply) => {
+       const actor = await deps.auth.requireOwner(request, { csrf: true });
++      const input = { ...request.body, machineId: request.body.machineId.toLowerCase() };
+       const result = await deps.mutator(
+         {
+           actor,
+@@ -58,10 +74,11 @@
+             const current = await authenticateCurrentCredential(tx, request, options.now());
+             if (current.kind !== actor.kind || current.id !== actor.id)
+               throw new ApiError('OWNER_REQUIRED', 403, 'Cần quyền chủ dự án hiện hành');
+-            await authorizeAssistantConfigChange(tx, current, request.body.machineId);
++            await authorizeAssistantConfigChange(tx, current, input.machineId);
++            await lockCurrentOwnerCredential(tx, request);
+           },
+         },
+-        async (tx) => ({ status: 200, body: await setAssistantConfig(tx, actor, request.body) }),
++        async (tx) => ({ status: 200, body: await setAssistantConfig(tx, actor, input) }),
+       );
+       reply.status(result.status);
+       return result.body;
+--- a/v2/server/test/assistant-authority.test.ts
++++ b/v2/server/test/assistant-authority.test.ts
+@@ -1,15 +1,16 @@
+ import assert from 'node:assert/strict';
+ import { randomBytes, randomUUID } from 'node:crypto';
+ import test from 'node:test';
++import { setTimeout as delay } from 'node:timers/promises';
+ import Fastify from 'fastify';
+ import { createPersistedAssistantActorResolver } from '../src/assistant/authority.ts';
+ import type { AssistantPolicy } from '../src/assistant/contracts.ts';
+ import { registerAssistantRoutes } from '../src/assistant/routes.ts';
+ import { bootstrapOwner } from '../src/auth/bootstrap.ts';
+ import { createAuthenticator, registerAuthRoutes } from '../src/auth/routes.ts';
+-import { credentialResponseCodec } from '../src/auth/session.ts';
++import { credentialResponseCodec, sha256 } from '../src/auth/session.ts';
+ import { createMutator } from '../src/journal/mutation.ts';
+-import type { Db, ServerOptions } from '../src/platform/contracts.ts';
++import type { Db, RouteDependencies, ServerOptions, Tx } from '../src/platform/contracts.ts';
+ import { ApiError } from '../src/platform/errors.ts';
+ import { assistantFixture } from './support/assistant.ts';
+ import { databaseFixture } from './support/db.ts';
+@@ -63,7 +64,10 @@
+   });
+   const auth = createAuthenticator(db, options);
+   let revokeAfterAuthentication = false;
+-  const deps = {
++  let beforeAuthorization: ((tx: Tx) => Promise<void>) | undefined;
++  let afterAuthorization: ((tx: Tx) => Promise<void>) | undefined;
++  const mutator = createMutator(db, credentialResponseCodec(options.sessionEncryptionKey));
++  const deps: RouteDependencies = {
+     auth: {
+       ...auth,
+       requireOwner: async (...args: Parameters<typeof auth.requireOwner>) => {
+@@ -72,7 +76,18 @@
+         return actor;
+       },
+     },
+-    mutator: createMutator(db, credentialResponseCodec(options.sessionEncryptionKey)),
++    mutator: (context, work) =>
++      mutator(
++        {
++          ...context,
++          authorize: async (tx) => {
++            await beforeAuthorization?.(tx);
++            await context.authorize?.(tx);
++            await afterAuthorization?.(tx);
++          },
++        },
++        work,
++      ),
+   };
+   registerAuthRoutes(app, options, deps);
+   registerAssistantRoutes(app, options, deps);
+@@ -114,6 +129,68 @@
+     revokeBeforeTransaction: () => {
+       revokeAfterAuthentication = true;
+     },
++    observeAuthorization: (before?: (tx: Tx) => Promise<void>, after?: (tx: Tx) => Promise<void>) => {
++      beforeAuthorization = before;
++      afterAuthorization = after;
++    },
++  };
++}
++
++function handshake<T>() {
++  let resolve!: (value: T) => void;
++  const promise = new Promise<T>((complete) => {
++    resolve = complete;
++  });
++  return { promise, resolve };
++}
++
++async function observedLockWait(db: Db, waitingPid: number, blockingPid: number, queryPart: string) {
++  const deadline = performance.now() + 5000;
++  do {
++    const [row] = await db`select wait_event_type,query,pg_blocking_pids(pid) as blockers
++      from pg_stat_activity where pid=${waitingPid}`;
++    if (
++      row?.wait_event_type === 'Lock' &&
++      (row.blockers as number[]).includes(blockingPid) &&
++      String(row.query).includes(queryPart)
++    ) {
++      console.info(`A1 lock witness waiting=${waitingPid} blocker=${blockingPid} query=${queryPart}`);
++      return;
++    }
++    await delay(10);
++  } while (performance.now() < deadline);
++  assert.fail(`Không quan sát được PostgreSQL lock wait ${waitingPid} -> ${blockingPid} (${queryPart})`);
++}
++
++async function observedCredentialOrder(db: Db, waitingPid: number, blockingPid: number, sessionHash: string) {
++  const deadline = performance.now() + 5000;
++  do {
++    const [activity] = await db`select wait_event_type,query,pg_blocking_pids(pid) as blockers
++      from pg_stat_activity where pid=${waitingPid}`;
++    if (
++      activity?.wait_event_type === 'Lock' &&
++      (activity.blockers as number[]).includes(blockingPid) &&
++      String(activity.query).includes('update sessions')
++    ) {
++      console.info(`A1 credential lock witness waiting=${waitingPid} blocker=${blockingPid}`);
++      return 'blocked';
++    }
++    const [session] =
++      await db`select revoked_at is not null as revoked from sessions where id_hash=${sessionHash}`;
++    if (session?.revoked) {
++      console.info(`A1 credential order witness revoked=true while authorized request=${blockingPid} paused`);
++      return 'revoked';
++    }
++    await delay(10);
++  } while (performance.now() < deadline);
++  assert.fail('Không quan sát được thứ tự credential lock hoặc revocation commit');
++}
++
++async function configState(db: Db) {
++  return {
++    config: await db`select * from assistant_config`,
++    designation: await db`select * from assistant_designations order by id`,
++    journal: await db`select * from idempotency where route='PUT:/v2/assistant/config' order by key`,
+   };
+ }
+ 
+@@ -349,3 +426,238 @@
+       await sql.close();
+     }
+   }));
++
++// A1: catches a credential snapshot taken before an observed authority lock wait.
++for (const mode of ['fresh', 'replay'] as const) {
++  for (const lock of ['guard', 'machine'] as const) {
++    for (const invalidation of ['revoked', 'expired'] as const) {
++      test(`assistant authority A1 ${mode}/${lock}/${invalidation} trong lock wait bị từ chối`, async () =>
++        withDatabase(async (db) => {
++          const f = await fixture(db);
++          const release = handshake<void>();
++          let blocker: Promise<unknown> | undefined;
++          let pending: Promise<unknown> | undefined;
++          try {
++            const machine = await f.machine();
++            const input = { expectedRevision: 1, machineId: machine.machineId, preferred: null, policy };
++            const key = randomUUID();
++            if (mode === 'replay') assert.equal((await f.put(input, key)).statusCode, 200);
++            const before = await configState(db);
++            const blocked = handshake<number>(),
++              requestPid = handshake<number>();
++            blocker = db.begin(async (tx) => {
++              const [pid] = await tx`select pg_backend_pid() as pid`;
++              if (lock === 'guard') await tx`select singleton from assistant_calibration_guard for update`;
++              else await tx`select id from machines where id=${machine.machineId} for update`;
++              blocked.resolve(Number(pid.pid));
++              await release.promise;
++            });
++            const blockerPid = await blocked.promise;
++            f.observeAuthorization(async (tx) => {
++              const [pid] = await tx`select pg_backend_pid() as pid`;
++              requestPid.resolve(Number(pid.pid));
++            });
++            const response = f.put(input, key).then((value) => value);
++            pending = response;
++            const pid = await requestPid.promise;
++            await observedLockWait(
++              db,
++              pid,
++              blockerPid,
++              lock === 'guard' ? 'assistant_calibration_guard' : 'machines',
++            );
++            const secret = f.headers.cookie.split('=')[1];
++            assert.ok(secret);
++            const sessionHash = sha256(secret);
++            if (invalidation === 'revoked') {
++              await db`update sessions set revoked_at=clock_timestamp() where id_hash=${sessionHash}`;
++              const [witness] =
++                await db`select revoked_at is not null as revoked from sessions where id_hash=${sessionHash}`;
++              assert.equal(witness.revoked, true);
++              console.info(`A1 revoke committed before releasing ${lock} for ${mode}`);
++            } else {
++              await db`update sessions set expires_at=clock_timestamp()+interval '100 milliseconds' where id_hash=${sessionHash}`;
++              await db`select pg_sleep_until(expires_at) from sessions where id_hash=${sessionHash}`;
++              const [witness] = await db`select s.expires_at<=clock_timestamp() as expired,
++                a.xact_start<s.expires_at as transaction_predates_expiry from sessions s
++                cross join pg_stat_activity a where s.id_hash=${sessionHash} and a.pid=${pid}`;
++              assert.equal(witness.expired, true);
++              assert.equal(witness.transaction_predates_expiry, true);
++              console.info(`A1 expiry witness expired=true transaction_predates_expiry=true ${mode}/${lock}`);
++            }
++            release.resolve();
++            await blocker;
++            const result = await response;
++            assert.equal(result.statusCode, 401, result.body);
++            assert.deepEqual(await configState(db), before);
++          } finally {
++            release.resolve();
++            await Promise.allSettled([blocker, pending]);
++            await f.app.close();
++          }
++        }));
++    }
++  }
++}
++
++// A1: fixture-only stopped state permits reassignment after the observed final turn lock wait.
++test('assistant authority A1 turn/expired sau mọi authority lock bị từ chối', async () =>
++  withDatabase(async (db) => {
++    const sql = await assistantFixture(db);
++    const f = await fixture(db);
++    const release = handshake<void>();
++    let blocker: Promise<unknown> | undefined;
++    let pending: Promise<unknown> | undefined;
++    try {
++      const message = await sql.submitMessage();
++      const fence = await sql.seedTurn(message.conversation.id, message.message.id);
++      const machine = await f.machine();
++      const before = await configState(db);
++      const blocked = handshake<number>(),
++        requestPid = handshake<number>();
++      blocker = db.begin(async (tx) => {
++        const [pid] = await tx`select pg_backend_pid() as pid`;
++        await tx`select id from assistant_turns where id=${fence.turnId} for update`;
++        // Relational fixture only: this is not production process-stop evidence.
++        await tx`update assistant_turns set state='stopped',stop_evidence_id=${randomUUID()},
++            finalized_at=clock_timestamp() where id=${fence.turnId}`;
++        blocked.resolve(Number(pid.pid));
++        await release.promise;
++      });
++      const blockerPid = await blocked.promise;
++      f.observeAuthorization(async (tx) => {
++        const [pid] = await tx`select pg_backend_pid() as pid`;
++        requestPid.resolve(Number(pid.pid));
++      });
++      const secret = f.headers.cookie.split('=')[1];
++      assert.ok(secret);
++      const hash = sha256(secret);
++      await db`update sessions set expires_at=clock_timestamp()+interval '1 second' where id_hash=${hash}`;
++      const response = f
++        .put({ expectedRevision: 1, machineId: machine.machineId, preferred: null, policy })
++        .then((value) => value);
++      pending = response;
++      const pid = await requestPid.promise;
++      await observedLockWait(db, pid, blockerPid, 'assistant_turns');
++      await db`select pg_sleep_until(expires_at) from sessions where id_hash=${hash}`;
++      const [witness] = await db`select s.expires_at<=clock_timestamp() as expired,
++            a.xact_start<s.expires_at as transaction_predates_expiry from sessions s
++            cross join pg_stat_activity a where s.id_hash=${hash} and a.pid=${pid}`;
++      assert.equal(witness.expired, true);
++      assert.equal(witness.transaction_predates_expiry, true);
++      console.info('A1 turn expiry witness expired=true transaction_predates_expiry=true');
++      release.resolve();
++      await blocker;
++      const result = await response;
++      assert.equal(result.statusCode, 401, result.body);
++      assert.deepEqual(await configState(db), before);
++    } finally {
++      release.resolve();
++      await Promise.allSettled([blocker, pending]);
++      await f.app.close();
++      await sql.close();
++    }
++  }));
++
++// A1: catches a final recheck that still releases the credential row before commit/cache delivery.
++for (const mode of ['fresh', 'replay'] as const) {
++  test(`assistant authority A1 ${mode} giữ credential lock đến mutation commit`, async () =>
++    withDatabase(async (db) => {
++      const f = await fixture(db);
++      const release = handshake<void>();
++      let response: ReturnType<typeof f.put> | undefined;
++      let revocation: Promise<unknown> | undefined;
++      try {
++        const machine = await f.machine();
++        const input = { expectedRevision: 1, machineId: machine.machineId, preferred: null, policy };
++        const key = randomUUID();
++        if (mode === 'replay') assert.equal((await f.put(input, key)).statusCode, 200);
++        const authorized = handshake<number>(),
++          revoker = handshake<number>();
++        f.observeAuthorization(undefined, async (tx) => {
++          const [pid] = await tx`select pg_backend_pid() as pid`;
++          authorized.resolve(Number(pid.pid));
++          await release.promise;
++        });
++        response = f.put(input, key).then((value) => value);
++        const requestPid = await authorized.promise;
++        const secret = f.headers.cookie.split('=')[1];
++        assert.ok(secret);
++        revocation = db.begin(async (tx) => {
++          const [pid] = await tx`select pg_backend_pid() as pid`;
++          revoker.resolve(Number(pid.pid));
++          await tx`update sessions set revoked_at=clock_timestamp() where id_hash=${sha256(secret)}`;
++        });
++        const revokerPid = await revoker.promise;
++        assert.equal(await observedCredentialOrder(db, revokerPid, requestPid, sha256(secret)), 'blocked');
++        release.resolve();
++        assert.equal((await response).statusCode, 200);
++        await revocation;
++        const [row] =
++          await db`select revoked_at is not null as revoked from sessions where id_hash=${sha256(secret)}`;
++        assert.equal(row.revoked, true);
++        assert.equal((await f.put(input, key)).statusCode, 401);
++        assert.equal((await db`select id from assistant_designations`).length, 1);
++        assert.equal((await db`select revision from assistant_config`)[0].revision, '2');
++      } finally {
++        release.resolve();
++        await Promise.allSettled([response, revocation]);
++        await f.app.close();
++      }
++    }));
++}
++
++// A2: catches comparing the PostgreSQL canonical UUID with the raw request casing.
++test('assistant authority A2 uppercase designation và revoked target dùng cùng identity', async () =>
++  withDatabase(async (db) => {
++    const f = await fixture(db);
++    try {
++      const machine = await f.machine();
++      const upper = machine.machineId.toUpperCase();
++      assert.notEqual(upper, machine.machineId);
++      const input = { expectedRevision: 1, machineId: upper, preferred: null, policy };
++      const key = randomUUID();
++      const first = await f.put(input, key);
++      assert.equal(first.statusCode, 200, first.body);
++      assert.equal(first.json().designation.machineId, machine.machineId);
++      const replay = await f.put(input, key);
++      assert.deepEqual(replay.json(), first.json());
++      // Raw wire payload remains the idempotency identity, even for one logical machine.
++      assert.equal((await f.put({ ...input, machineId: machine.machineId }, key)).statusCode, 409);
++      await db`update machines set revoked_at=clock_timestamp() where id=${machine.machineId}`;
++      assert.equal((await f.put(input, key)).statusCode, 404);
++      assert.equal((await f.put({ ...input, machineId: machine.machineId })).statusCode, 404);
++      assert.equal((await db`select id from assistant_designations`).length, 1);
++    } finally {
++      await f.app.close();
++    }
++  }));
++
++test('assistant authority A2 đổi casing cùng máy không retire designation hoặc live turn', async () =>
++  withDatabase(async (db) => {
++    const sql = await assistantFixture(db);
++    const f = await fixture(db);
++    try {
++      const m = await sql.submitMessage();
++      const fence = await sql.seedTurn(m.conversation.id, m.message.id);
++      const before = (await f.get()).json();
++      const response = await f.put({
++        expectedRevision: before.revision,
++        machineId: before.designation.machineId.toUpperCase(),
++        preferred: null,
++        policy: { ...policy, maxToolsPerTurn: 2 },
++      });
++      assert.equal(response.statusCode, 200, response.body);
++      assert.deepEqual(response.json().designation, before.designation);
++      assert.equal(response.json().revision, before.revision + 1);
++      assert.equal((await db`select id from assistant_designations`).length, 1);
++      const [turn] =
++        await db`select state,designation_id,designation_revision from assistant_turns where id=${fence.turnId}`;
++      assert.equal(turn.state, 'running');
++      assert.equal(turn.designation_id, before.designation.id);
++      assert.equal(Number(turn.designation_revision), before.designation.revision);
++    } finally {
++      await f.app.close();
++      await sql.close();
++    }
++  }));

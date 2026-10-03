@@ -1,0 +1,56 @@
+Sat Oct  3 13:03:36 UTC 2026
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    16948.
+Pages active:                                 429548.
+Pages inactive:                               416205.
+Pages speculative:                             15705.
+Pages throttled:                                   0.
+Pages wired down:                             377436.
+Pages purgeable:                                6686.
+Processes: 978 total, 4 running, 974 sleeping, 9015 threads 
+2026/10/03 20:03:37
+Load Avg: 3.03, 5.32, 5.36 
+CPU usage: 25.0% user, 13.22% sys, 61.77% idle 
+SharedLibs: 314M resident, 72M data, 70M linkedit.
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 399224636  26977564    94% 4645919 269775640    2%   /System/Volumes/Data
+FIX1 RED intent: own container crew-v2-test-a1fe16e8-2e83-4525-b8dc-9ac95719882c; PostgreSQL18.6 local image; memory256MiB CPU1 pids64; random loopback port; Nodeheap384 concurrency1; only A1/A2 regression names.
+446a1e9ac3899e7be4981d50be3f3f3ce6bf411fe4aa69c011d35afad519f088 /crew-v2-test-a1fe16e8-2e83-4525-b8dc-9ac95719882c image=sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722 memory=268435456 nanoCPUs=1000000000 pids=64
+127.0.0.1:60288
+1
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                     6751.
+Pages active:                                 447866.
+Pages inactive:                               440234.
+Pages speculative:                              6614.
+Pages throttled:                                   0.
+Pages wired down:                             365347.
+Pages purgeable:                               23013.
+Processes: 975 total, 2 running, 973 sleeping, 8923 threads 
+2026/10/03 20:04:07
+Load Avg: 2.62, 5.00, 5.24 
+CPU usage: 8.15% user, 11.27% sys, 80.57% idle 
+SharedLibs: 308M resident, 72M data, 69M linkedit.
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 399281648  26920552    94% 4647312 269205520    2%   /System/Volumes/Data
+RED exit=1
+Sat Oct  3 13:08:23 UTC 2026
+kern.memorystatus_vm_pressure_level: 1
+Mach Virtual Memory Statistics: (page size of 16384 bytes)
+Pages free:                                    90905.
+Pages active:                                 409607.
+Pages inactive:                               406898.
+Pages speculative:                              6481.
+Pages throttled:                                   0.
+Pages wired down:                             369631.
+Pages purgeable:                                1429.
+Processes: 961 total, 2 running, 959 sleeping, 8647 threads 
+2026/10/03 20:08:24
+Load Avg: 2.15, 3.47, 4.51 
+CPU usage: 5.64% user, 11.93% sys, 82.41% idle 
+SharedLibs: 312M resident, 72M data, 73M linkedit.
+Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on
+/dev/disk3s5   482797652 399311504  26890696    94% 4645174 268906960    2%   /System/Volumes/Data
+Credential RED exit=1

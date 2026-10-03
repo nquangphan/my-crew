@@ -413,11 +413,14 @@ flows:
     doc: docs/flows/server-assistant.md
     entrypoints: []
     files:
+      - server/src/assistant/authority.ts
       - server/src/assistant/contracts.ts
       - server/src/assistant/inbox.ts
+      - server/src/assistant/routes.ts
       - server/src/assistant/store.ts
       - server/migrations/011_assistant.sql
     tests:
+      - server/test/assistant-authority.test.ts
       - server/test/assistant-store.test.ts
       - server/test/support/assistant.ts
 shared: {}

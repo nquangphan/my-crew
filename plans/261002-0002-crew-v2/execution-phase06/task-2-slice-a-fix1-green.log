@@ -1,0 +1,63 @@
+✔ assistant authority owner chỉ định một máy, CAS và replay không tạo designation trùng (403.571334ms)
+✔ assistant authority từ chối máy tự chỉ định, target sai và body ngoài slice (260.516834ms)
+✔ assistant authority kiểm session hiện hành trước cached reply (271.340167ms)
+attachment DB container fbb31be9ff9ccfe94085add6337f344c3f42cac2ebcdc5f147eba308bc78c536 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rDWfL4
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rDWfL4 nonceSha256=b001024ba1e9479a920b610a1ee861b1d182dca8be53125f4a330a7e7aec8be3
+attachment DB scratch identity dev=16777229 ino=64563752 uid=501 pid=32326
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-rDWfL4
+✔ assistant authority resolver không cấp Actor từ receipt UNVERIFIED hoặc scope hết hạn (232.486708ms)
+✔ assistant authority concurrent CAS, idle reassignment và live turn giữ nguyên authority (308.328917ms)
+attachment DB container fbb31be9ff9ccfe94085add6337f344c3f42cac2ebcdc5f147eba308bc78c536 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-5wNbj3
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-5wNbj3 nonceSha256=d3a9a7421413f574796454b54535ad20cffb0986d53b0427f809fe82429239c4
+attachment DB scratch identity dev=16777229 ino=64563759 uid=501 pid=32326
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-5wNbj3
+✔ assistant authority live turn chặn reassignment và không thả guard bằng config (337.77975ms)
+A1 lock witness waiting=103 blocker=102 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for fresh
+✔ assistant authority A1 fresh/guard/revoked trong lock wait bị từ chối (264.929125ms)
+A1 lock witness waiting=107 blocker=106 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/guard
+✔ assistant authority A1 fresh/guard/expired trong lock wait bị từ chối (388.295083ms)
+A1 lock witness waiting=111 blocker=110 query=machines
+A1 revoke committed before releasing machine for fresh
+✔ assistant authority A1 fresh/machine/revoked trong lock wait bị từ chối (266.91ms)
+A1 lock witness waiting=115 blocker=114 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/machine
+✔ assistant authority A1 fresh/machine/expired trong lock wait bị từ chối (380.923916ms)
+A1 lock witness waiting=119 blocker=118 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for replay
+✔ assistant authority A1 replay/guard/revoked trong lock wait bị từ chối (288.216458ms)
+A1 lock witness waiting=123 blocker=122 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true replay/guard
+✔ assistant authority A1 replay/guard/expired trong lock wait bị từ chối (388.547416ms)
+A1 lock witness waiting=127 blocker=126 query=machines
+A1 revoke committed before releasing machine for replay
+✔ assistant authority A1 replay/machine/revoked trong lock wait bị từ chối (306.295666ms)
+A1 lock witness waiting=131 blocker=130 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true replay/machine
+✔ assistant authority A1 replay/machine/expired trong lock wait bị từ chối (396.455541ms)
+attachment DB container fbb31be9ff9ccfe94085add6337f344c3f42cac2ebcdc5f147eba308bc78c536 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BSwqPO
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BSwqPO nonceSha256=e46f782699f96c8df198f302bd99900a1f0ce3200e15ad22c4d17f7ddf26974a
+attachment DB scratch identity dev=16777229 ino=64563769 uid=501 pid=32326
+A1 lock witness waiting=135 blocker=134 query=assistant_turns
+A1 turn expiry witness expired=true transaction_predates_expiry=true
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-BSwqPO
+✔ assistant authority A1 turn/expired sau mọi authority lock bị từ chối (1389.691791ms)
+A1 credential lock witness waiting=139 blocker=138
+✔ assistant authority A1 fresh giữ credential lock đến mutation commit (313.295583ms)
+A1 credential lock witness waiting=143 blocker=142
+✔ assistant authority A1 replay giữ credential lock đến mutation commit (274.499084ms)
+✔ assistant authority A2 uppercase designation và revoked target dùng cùng identity (279.925958ms)
+attachment DB container fbb31be9ff9ccfe94085add6337f344c3f42cac2ebcdc5f147eba308bc78c536 root /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lFgORp
+attachment DB scratch created /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lFgORp nonceSha256=07fb1c351417c13510d530adcad887f515720f3beae81ee9502f99f17a098d99
+attachment DB scratch identity dev=16777229 ino=64563777 uid=501 pid=32326
+attachment DB scratch removed /private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-v2-attachments-lFgORp
+✔ assistant authority A2 đổi casing cùng máy không retire designation hoặc live turn (327.385792ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7213.031917
