@@ -120,9 +120,19 @@ export class RuntimeIsolation {
         this.matchWorkspace(record, pin, observed);
         if (record.operationId !== expected.operationId || !same(record.identity, expected.identity))
           throw new Error('WORKSPACE_IDENTITY_MISMATCH');
-        return action(structuredClone(record));
+        this.assertFresh(pin, observed);
+        const result = await action(structuredClone(record));
+        // A durable companion may now exist. Expiry denies release without deleting or renewing it.
+        this.assertFresh(pin, observed);
+        return result;
       },
     );
+  }
+  private assertFresh(pin: RuntimePin, observed: IsolationObservation): void {
+    const certified = pin.admission.kind === 'certified',
+      expiresAt = certified ? observed.certificate?.expiresAt : observed.admission?.expiresAt;
+    if (!expiresAt || !fresh(expiresAt))
+      throw new Error(certified ? 'CERTIFICATE_EXPIRED' : 'ADMISSION_EXPIRED');
   }
   private matchWorkspace(
     record: IsolatedWorkspace | null,

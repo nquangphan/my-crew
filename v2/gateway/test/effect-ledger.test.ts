@@ -97,7 +97,7 @@ test('effect ledger rejects transport or logical metadata conflict and unverifie
     await owned.cleanup();
   }
 });
-test('effect ledger crash window pending never executes again without target proof', async () => {
+test('effect ledger orderly reopen keeps pending effects waiting without target proof', async () => {
   const owned = await runtimeRoot();
   let ledger = await DurableEffectLedger.open(owned.root, ports);
   const e = effect(),
