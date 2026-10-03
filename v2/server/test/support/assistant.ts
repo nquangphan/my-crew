@@ -503,7 +503,7 @@ export async function assistantFixture(db: Db) {
     ...attachments,
     messages,
     seedWorkflowRows,
-    async seedDispatchRows() {
+    async seedDispatchRows(options: { reservation?: boolean } = {}) {
       // This seeds relational hook preconditions, not a permitted production run.
       const { runId, stepId } = await seedWorkflowRows();
       const machineId = randomUUID(),
@@ -599,7 +599,8 @@ export async function assistantFixture(db: Db) {
       await db`insert into assistant_capacity_receipts(id,request_id,machine_id,boot_generation,ticket_id,kind,ownership_keys,telemetry,received_at,expires_at,allowed,reason,receipt_sha256)
         values(${receipt.id},${requestId},${machineId},${receipt.bootGeneration},${receipt.ticketId},${receipt.kind},${db.json(receipt.ownershipKeys)},${db.json(receipt.telemetry)},${receipt.receivedAt},${receipt.expiresAt},${receipt.allowed},${receipt.reason},${receiptHash})`;
       await db`update assistant_capacity_requests set receipt_id=${receiptId} where id=${requestId}`;
-      await db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
+      if (options.reservation !== false)
+        await db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
         values(${reservationId},${command.id},${receiptId},${machineId},'["fixture.txt"]','reserved')`;
       return {
         runId,
@@ -607,6 +608,9 @@ export async function assistantFixture(db: Db) {
         command,
         machineId,
         reservationId,
+        snapshotId,
+        assessmentId,
+        decisionId,
         request,
         receipt,
         async launch() {
@@ -624,7 +628,11 @@ export async function assistantFixture(db: Db) {
         },
       };
     },
-    async seedTurn(conversationId: Id, messageId: Id): Promise<TurnFence> {
+    async seedTurn(
+      conversationId: Id,
+      messageId: Id | null,
+      options: { selectionModelId?: string; receiptMachineId?: Id } = {},
+    ): Promise<TurnFence> {
       // Explicit test-only persisted rows. UNVERIFIED routing receipts never
       // demonstrate admission or a production certification implementation.
       const { allocateAssistantGeneration } = await import('../../src/assistant/store.ts');
@@ -638,10 +646,15 @@ export async function assistantFixture(db: Db) {
           probeId = randomUUID();
         const processInstanceId = randomUUID();
         const [config] = await tx`select deployment_id from assistant_config where singleton=true`;
-        const key = { machineId, runtime: 'api', providerId: 'fixture', modelId: 'no-inference' };
+        const key = {
+          machineId: options.receiptMachineId ?? machineId,
+          runtime: 'api',
+          providerId: 'fixture',
+          modelId: 'no-inference',
+        };
         const context = {
           deploymentId: String(config?.deployment_id),
-          machineId,
+          machineId: key.machineId,
           key,
           binarySha256: 'a'.repeat(64),
           policySha256: 'b'.repeat(64),
@@ -657,7 +670,7 @@ export async function assistantFixture(db: Db) {
           ${tx.json({ maxTurns: 1, maxTools: 1, maxCostUsd: 0, maxMs: 1000 })},${'e'.repeat(64)},'failed')`;
         await tx`insert into assistant_policy_receipts(id,deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,
           binary_sha256,policy_sha256,probe_context_sha256,status,evidence_ids,expires_at)
-          values(${receiptId},${config?.deployment_id},${challengeId},${'f'.repeat(64)},${machineId},${tx.json(key)},'fixture-only',
+          values(${receiptId},${config?.deployment_id},${challengeId},${'f'.repeat(64)},${key.machineId},${tx.json(key)},'fixture-only',
           ${context.binarySha256},${context.policySha256},${contextHash},'UNVERIFIED','[]',now()+interval '5 minutes')`;
         await tx`insert into routing_capability_receipts(id,certification_receipt_id,model_key,context_sha256,capabilities,received_at,expires_at)
           values(${probeId},${receiptId},${tx.json(key)},${contextHash},'[]',now(),now()+interval '4 minutes')`;
@@ -665,7 +678,7 @@ export async function assistantFixture(db: Db) {
         await tx`insert into assistant_turns(id,conversation_id,message_id,designation_id,designation_revision,generation,process_instance_id,model_selection_id,state)
           values(${turnId},${conversationId},${messageId},${designationId},1,${generation},${processInstanceId},${selectionId},'running')`;
         await tx`insert into assistant_model_selections(id,turn_id,model_key,model_config_revision,probe_receipt_id,policy_receipt_id,required,rationale)
-          values(${selectionId},${turnId},${tx.json(key)},1,${probeId},${receiptId},'[]','Fixture SQL không cấp authority production')`;
+          values(${selectionId},${turnId},${tx.json({ ...key, modelId: options.selectionModelId ?? key.modelId })},1,${probeId},${receiptId},'[]','Fixture SQL không cấp authority production')`;
         return { turnId, designationId, designationRevision: 1, generation, processInstanceId };
       });
     },

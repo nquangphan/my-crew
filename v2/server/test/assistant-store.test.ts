@@ -975,3 +975,286 @@ test('assistant store restores prefix010 before upgrade and prefix011 with ident
     const [eleventh] = await db`select checksum from schema_migrations where version=11`;
     assert.equal(eleventh?.checksum, prefix11.files[10]?.sha256);
   }));
+
+test('assistant FIX1 S1 binds message work and persisted scopes to the turn target before replay', async () =>
+  databaseFixture(11)(async (db) => {
+    const { ingestEvents, claimWork, ackWork, reconcileWork } = await import('../src/assistant/inbox.ts');
+    const f = await assistantFixture(db);
+    try {
+      const a = await f.submitMessage('A'),
+        b = await f.submitMessage('B');
+      const fence = await f.seedTurn(a.conversation.id, a.message.id);
+      await db.begin((tx) => ingestEvents(tx, b.cursor));
+      const [work] =
+        await db`select id,state from assistant_work_inbox where target_kind='message' and target_id=${b.message.id}`;
+      assert.ok(work);
+      await assert.rejects(
+        db.begin((tx) => claimWork(tx, String(work.id), fence)),
+        { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
+      );
+      assert.equal(
+        (await db`select state from assistant_work_inbox where id=${work.id}`)[0]?.state,
+        'pending',
+      );
+      for (const operation of [claimWork, ackWork])
+        await assert.rejects(
+          db.begin(async (tx) => {
+            await tx`update assistant_work_inbox set state='claimed',turn_id=${fence.turnId},claim_generation=${fence.generation} where id=${work.id}`;
+            await operation(tx, String(work.id), fence);
+          }),
+          { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
+        );
+      const scope = async (targetId: string, kind: 'message' | 'ticket', projectId: string | null) =>
+        db.begin(async (tx) => {
+          const snapshotId = randomUUID();
+          await tx`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+        values(${snapshotId},${kind},${targetId},1,0,'{}',${'a'.repeat(64)})`;
+          return tx`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
+        values(${randomUUID()},${fence.turnId},${kind === 'ticket' ? targetId : null},${kind === 'message' ? targetId : null},${projectId},'[]','[]',${snapshotId},${'a'.repeat(64)},${randomUUID()},now()+interval '1 hour')`;
+        });
+      await assert.rejects(scope(b.message.id, 'message', null), /ASSISTANT_SCOPE_TURN_MISMATCH/);
+      await scope(a.message.id, 'message', null);
+      await db.begin((tx) => reconcileWork(tx));
+      const [ticketWork] =
+        await db`select id from assistant_work_inbox where target_kind='ticket' and target_id=${f.a.id} and input_revision is not null`;
+      assert.ok(ticketWork);
+      await assert.rejects(
+        db.begin((tx) => claimWork(tx, String(ticketWork.id), fence)),
+        { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
+      );
+      await assert.rejects(scope(f.request.id, 'ticket', f.project.id), /ASSISTANT_SCOPE_TURN_MISMATCH/);
+      const decisionId = randomUUID();
+      await db`insert into attachment_message_decisions(id,message_id,input_revision,actor_kind,actor_id,kind,body,sha256)
+      values(${decisionId},${a.message.id},1,'owner','owner','routing','{}',${'a'.repeat(64)})`;
+      await db`insert into attachment_message_routes(id,message_id,revision,project_id,ticket_id,decision_id)
+      values(${randomUUID()},${a.message.id},1,${f.project.id},${f.request.id},${decisionId})`;
+      await scope(f.request.id, 'ticket', f.project.id);
+      await db.begin((tx) => claimWork(tx, String(ticketWork.id), fence));
+      await db.begin((tx) => ackWork(tx, String(ticketWork.id), fence));
+      const outsider = await f.mutation(randomUUID(), (tx) =>
+        f.services.createTicket(tx, inputTicket(f.project.id, 'request'), owner),
+      );
+      await db.begin((tx) => reconcileWork(tx));
+      const [outsideWork] =
+        await db`select id from assistant_work_inbox where target_kind='ticket' and target_id=${outsider.id} and input_revision is not null`;
+      await assert.rejects(
+        db.begin((tx) => claimWork(tx, String(outsideWork?.id), fence)),
+        { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
+      );
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant FIX1 S2 binds selection to exact receipt model and designation machine', async () =>
+  databaseFixture(11)(async (db) => {
+    const f = await assistantFixture(db);
+    try {
+      const m = await f.submitMessage();
+      await assert.rejects(
+        f.seedTurn(m.conversation.id, m.message.id, { selectionModelId: 'borrowed-model' }),
+        /ASSISTANT_SELECTION_CONTEXT_MISMATCH/,
+      );
+      const machineId = randomUUID();
+      await db`insert into machines(id,name,token_hash) values(${machineId},'receipt-only',${'e'.repeat(64)})`;
+      await assert.rejects(
+        f.seedTurn(m.conversation.id, m.message.id, { receiptMachineId: machineId }),
+        /ASSISTANT_SELECTION_CONTEXT_MISMATCH/,
+      );
+      const fence = await f.seedTurn(m.conversation.id, m.message.id);
+      assert.ok(fence.turnId);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant FIX1 S1 monitor turn needs an unexpired explicit root scope for ticket work', async () =>
+  databaseFixture(11)(async (db) => {
+    const { reconcileWork, claimWork, ackWork } = await import('../src/assistant/inbox.ts');
+    const f = await assistantFixture(db);
+    try {
+      const m = await f.submitMessage();
+      const fence = await f.seedTurn(m.conversation.id, null);
+      await db.begin((tx) => reconcileWork(tx));
+      const [work] =
+        await db`select id from assistant_work_inbox where target_kind='ticket' and target_id=${f.a.id} and input_revision is not null`;
+      assert.ok(work);
+      const snapshot = randomUUID();
+      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+      values(${snapshot},'ticket',${f.request.id},1,0,'{}',${'a'.repeat(64)})`;
+      const scope = (
+        seconds: number,
+      ) => db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
+      values(${randomUUID()},${fence.turnId},${f.request.id},null,${f.project.id},'[]','[]',${snapshot},${'a'.repeat(64)},${randomUUID()},now()+${seconds}*interval '1 second')`;
+      await scope(-60);
+      await assert.rejects(
+        db.begin((tx) => claimWork(tx, String(work.id), fence)),
+        { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
+      );
+      await scope(3600);
+      await db.begin((tx) => claimWork(tx, String(work.id), fence));
+      await db.begin((tx) => ackWork(tx, String(work.id), fence));
+      await db.begin((tx) => ackWork(tx, String(work.id), fence));
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant FIX1 S3 binds assessment snapshot and dispatch command step decision to one ticket', async () =>
+  databaseFixture(11)(async (db) => {
+    const f = await assistantFixture(db);
+    try {
+      const d = await f.seedDispatchRows();
+      const snapshotB = randomUUID(),
+        assessmentB = randomUUID(),
+        stepB = randomUUID();
+      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+      values(${snapshotB},'ticket',${f.b.id},1,0,'{}',${'a'.repeat(64)})`;
+      await assert.rejects(
+        db`insert into assistant_assessments(id,ticket_id,input_snapshot_id,body,hash)
+      values(${randomUUID()},${f.a.id},${snapshotB},'{}',${'a'.repeat(64)})`,
+        /ASSISTANT_ASSESSMENT_TARGET_MISMATCH/,
+      );
+      await db`insert into assistant_assessments(id,ticket_id,input_snapshot_id,body,hash)
+      values(${assessmentB},${f.b.id},${snapshotB},'{}',${'a'.repeat(64)})`;
+      await db`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,acceptance,output_kinds,gate_ids,ownership_keys,role)
+      values(${stepB},${d.runId},${f.b.id},'fixture','SKILL.md',${'a'.repeat(64)},'[]','[]','[]','[]','[]','implement')`;
+      const decisionB = await f.mutation(randomUUID(), (tx) =>
+        f.services.recordDecision(
+          tx,
+          f.b.id,
+          { kind: 'dispatch', content: 'Fixture', rationale: 'Fixture', sources: [], scope: {} },
+          owner,
+        ),
+      );
+      for (const values of [
+        { step: d.stepId, assessment: assessmentB, decision: d.decisionId },
+        { step: stepB, assessment: d.assessmentId, decision: d.decisionId },
+        { step: d.stepId, assessment: d.assessmentId, decision: decisionB },
+      ]) {
+        const command = randomUUID();
+        await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state) select ${command},machine_id,ticket_id,binding_revision,type,payload,'queued' from commands where id=${d.command.id}`;
+        await assert.rejects(
+          db`insert into assistant_dispatches(command_id,decision_id,run_id,step_id,assessment_id,permit)
+        values(${command},${values.decision},${d.runId},${values.step},${values.assessment},'{}')`,
+          /ASSISTANT_DISPATCH_TARGET_MISMATCH/,
+        );
+      }
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant FIX1 S4 binds receipt and reservation to exact request command and ownership array', async () =>
+  databaseFixture(11)(async (db) => {
+    const f = await assistantFixture(db);
+    try {
+      const d = await f.seedDispatchRows({ reservation: false });
+      for (const changed of [
+        { ticketId: f.b.id, kind: 'implement', boot: '1', keys: ['fixture.txt'] },
+        { ticketId: f.a.id, kind: 'review', boot: '1', keys: ['fixture.txt'] },
+        { ticketId: f.a.id, kind: 'implement', boot: '2', keys: ['fixture.txt'] },
+        { ticketId: f.a.id, kind: 'implement', boot: '1', keys: ['other.txt'] },
+      ]) {
+        const request = randomUUID();
+        await db`insert into assistant_capacity_requests(id,machine_id,ticket_id,kind,ownership_keys,boot_generation,requested_at,expires_at,request_sha256)
+        values(${request},${d.machineId},${f.a.id},'implement','["fixture.txt"]','1',now(),now()+interval '15 seconds',${'a'.repeat(64)})`;
+        await assert.rejects(
+          db`insert into assistant_capacity_receipts(id,request_id,machine_id,boot_generation,ticket_id,kind,ownership_keys,telemetry,received_at,expires_at,allowed,reason,receipt_sha256)
+        values(${randomUUID()},${request},${d.machineId},${changed.boot},${changed.ticketId},${changed.kind},${db.json(changed.keys)},'{}',now(),now()+interval '10 seconds',true,'Fixture',${'b'.repeat(64)})`,
+          /ASSISTANT_CAPACITY_CONTEXT_MISMATCH/,
+        );
+      }
+      await assert.rejects(
+        db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
+      values(${randomUUID()},${d.command.id},${d.receipt.id},${d.machineId},'["other.txt"]','reserved')`,
+        /ASSISTANT_RESERVATION_CONTEXT_MISMATCH/,
+      );
+      const commandB = randomUUID();
+      await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state) select ${commandB},machine_id,${f.b.id},binding_revision,type,payload,'queued' from commands where id=${d.command.id}`;
+      await assert.rejects(
+        db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
+      values(${randomUUID()},${commandB},${d.receipt.id},${d.machineId},'["fixture.txt"]','reserved')`,
+        /ASSISTANT_RESERVATION_CONTEXT_MISMATCH/,
+      );
+      await db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
+      values(${randomUUID()},${d.command.id},${d.receipt.id},${d.machineId},'["fixture.txt"]','reserved')`;
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant FIX1 S5 checks inserted released reservations and restores valid terminal proof rows', async () =>
+  databaseFixture(11)(async (db) => {
+    const { verifyBackupRestore } = await import('./support/assistant.ts');
+    const f = await assistantFixture(db);
+    try {
+      const d = await f.seedDispatchRows({ reservation: false });
+      const insert =
+        () => db`insert into assistant_reservations(id,command_id,receipt_id,machine_id,ownership_keys,state)
+      values(${randomUUID()},${d.command.id},${d.receipt.id},${d.machineId},'["fixture.txt"]','released')`;
+      await assert.rejects(insert(), /ASSISTANT_RETIREMENT_PROOF_REQUIRED/);
+      const retirementId = randomUUID();
+      await db`insert into assistant_dispatch_retirements(command_id,retirement_id,reason,retired_at,proof,released_at)
+      values(${d.command.id},${retirementId},'expired',now(),${db.json({ kind: 'never-authorized', commandId: d.command.id, retirementId })},now())`;
+      await insert();
+      await verifyBackupRestore(db, 11);
+    } finally {
+      await f.close();
+    }
+  }));
+
+for (const [state, operation] of [
+  ['pending', 'claim'],
+  ['claimed', 'claim'],
+  ['claimed', 'ack'],
+  ['acked', 'ack'],
+] as const) {
+  test(`assistant FIX2 expired scope rejects ${operation} from ${state} after DB wall-clock deadline`, async () =>
+    databaseFixture(11)(async (db) => {
+      const { reconcileWork, claimWork, ackWork } = await import('../src/assistant/inbox.ts');
+      const f = await assistantFixture(db);
+      try {
+        const m = await f.submitMessage();
+        const fence = await f.seedTurn(m.conversation.id, null);
+        await db.begin((tx) => reconcileWork(tx));
+        const [work] =
+          await db`select id from assistant_work_inbox where target_kind='ticket' and target_id=${f.a.id} and input_revision is not null`;
+        assert.ok(work);
+        if (state !== 'pending')
+          await db`update assistant_work_inbox set state='claimed',turn_id=${fence.turnId},claim_generation=${fence.generation},attempts=1 where id=${work.id}`;
+        if (state === 'acked')
+          await db`update assistant_work_inbox set state='acked',acked_at=clock_timestamp() where id=${work.id}`;
+        const [before] = await db`select * from assistant_work_inbox where id=${work.id}`;
+        const snapshot = randomUUID();
+        await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+        values(${snapshot},'ticket',${f.request.id},1,0,'{}',${'a'.repeat(64)})`;
+        await assert.rejects(
+          db.begin(async (tx) => {
+            // now() is fixed at this transaction's start. The fixture grants a short
+            // scope after that start, then waits for the actual DB deadline itself.
+            const scopeId = randomUUID();
+            await tx`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
+          values(${scopeId},${fence.turnId},${f.request.id},null,${f.project.id},'[]','[]',${snapshot},${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '100 milliseconds')`;
+            await tx`select pg_sleep_until(expires_at) from assistant_scopes where id=${scopeId}`;
+            const [witness] =
+              await tx`select now() as transaction_started_at,expires_at,clock_timestamp() as checked_at,
+          now()<expires_at as started_before_expiry,clock_timestamp()>=expires_at as wall_clock_expired
+          from assistant_scopes where id=${scopeId}`;
+            assert.equal(witness?.started_before_expiry, true);
+            assert.equal(witness?.wall_clock_expired, true);
+            console.info(
+              'assistant FIX2 DB expiry witness',
+              JSON.stringify({ state, operation, ...witness }),
+            );
+            await (operation === 'claim' ? claimWork : ackWork)(tx, String(work.id), fence);
+          }),
+          { code: 'ASSISTANT_WORK_SCOPE_MISMATCH' },
+        );
+        const [after] = await db`select * from assistant_work_inbox where id=${work.id}`;
+        assert.deepEqual(after, before, 'rejected operation preserves every persisted work field');
+      } finally {
+        await f.close();
+      }
+    }));
+}

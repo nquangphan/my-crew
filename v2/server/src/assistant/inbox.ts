@@ -141,9 +141,29 @@ async function lockWorkRoot(tx: Tx, workId: Id): Promise<void> {
   }
 }
 
+async function assertWorkScope(tx: Tx, workId: Id, fence: TurnFence): Promise<void> {
+  // Caller has locked the ticket root (when applicable), then current authority.
+  // These immutable identity reads never add a root lock on the message path.
+  const [allowed] = await tx`select w.id from assistant_work_inbox w
+    join assistant_turns t on t.id=${fence.turnId}
+    where w.id=${workId} and (
+      (w.target_kind='message' and w.target_id=t.message_id and exists(
+        select 1 from attachment_messages m where m.id=w.target_id and m.conversation_id=t.conversation_id))
+      or (w.target_kind='ticket' and exists(
+        select 1 from tickets ticket join assistant_scopes s on s.root_ticket_id=ticket.root_id
+        and s.project_id=ticket.project_id and s.turn_id=t.id
+        where ticket.id=w.target_id and s.expires_at>clock_timestamp() and
+          (t.message_id is null or exists(select 1 from attachment_message_routes r
+            join tickets routed on routed.id=r.ticket_id where r.message_id=t.message_id
+            and r.revoked_at is null and r.project_id=s.project_id and routed.root_id=s.root_ticket_id)))))`;
+  if (!allowed)
+    throw new ApiError('ASSISTANT_WORK_SCOPE_MISMATCH', 409, 'Công việc không thuộc phạm vi của lượt Trợ lý');
+}
+
 export async function claimWork(tx: Tx, workId: Id, fence: TurnFence): Promise<void> {
   await lockWorkRoot(tx, workId);
   await assertCurrentTurnFence(tx, fence, 'claim');
+  await assertWorkScope(tx, workId, fence);
   const [work] =
     await tx`select state,turn_id,claim_generation,next_due_at from assistant_work_inbox where id=${workId} for update`;
   if (
@@ -162,6 +182,7 @@ export async function claimWork(tx: Tx, workId: Id, fence: TurnFence): Promise<v
 export async function ackWork(tx: Tx, workId: Id, fence: TurnFence): Promise<void> {
   await lockWorkRoot(tx, workId);
   await assertCurrentTurnFence(tx, fence, 'ack');
+  await assertWorkScope(tx, workId, fence);
   const [work] =
     await tx`select state,turn_id,claim_generation from assistant_work_inbox where id=${workId} for update`;
   if (

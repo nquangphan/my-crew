@@ -374,16 +374,27 @@ end $$;
 create trigger assistant_capability_context before insert on routing_capability_receipts for each row execute function assistant_check_capability_context();
 
 create function assistant_check_scope_target() returns trigger language plpgsql as $$
-declare snapshot attachment_input_snapshots%rowtype;
+declare snapshot attachment_input_snapshots%rowtype; turn assistant_turns%rowtype;
 begin
+ select * into turn from assistant_turns where id=NEW.turn_id;
+ if not found then raise exception 'ASSISTANT_SCOPE_TURN_MISMATCH'; end if;
  select * into snapshot from attachment_input_snapshots where id=NEW.input_snapshot_id;
  if not found then raise exception 'ASSISTANT_SCOPE_SNAPSHOT_MISSING'; end if;
  if NEW.root_ticket_id is not null then
+  if turn.message_id is not null and not exists(select 1 from attachment_message_routes r
+    join tickets t on t.id=r.ticket_id where r.message_id=turn.message_id and r.revoked_at is null
+    and r.project_id=NEW.project_id and t.root_id=NEW.root_ticket_id) then
+   raise exception 'ASSISTANT_SCOPE_TURN_MISMATCH';
+  end if;
   if snapshot.target_kind<>'ticket' or snapshot.target_id<>NEW.root_ticket_id or
     not exists(select 1 from tickets where id=NEW.root_ticket_id and root_id=NEW.root_ticket_id and project_id=NEW.project_id) then
    raise exception 'ASSISTANT_SCOPE_TARGET_MISMATCH';
   end if;
  else
+  if turn.message_id is distinct from NEW.message_id or not exists(select 1 from attachment_messages
+      where id=NEW.message_id and conversation_id=turn.conversation_id) then
+   raise exception 'ASSISTANT_SCOPE_TURN_MISMATCH';
+  end if;
   if snapshot.target_kind<>'message' or snapshot.target_id<>NEW.message_id then raise exception 'ASSISTANT_SCOPE_TARGET_MISMATCH'; end if;
   if NEW.project_id is not null and not exists(select 1 from attachment_message_routes where message_id=NEW.message_id and project_id=NEW.project_id and revoked_at is null) then
    raise exception 'ASSISTANT_SCOPE_PROJECT_MISMATCH';
@@ -435,8 +446,8 @@ create trigger assistant_budget_guard before insert or update on assistant_budge
 create function assistant_check_reservation_release() returns trigger language plpgsql as $$
 declare attempt attempts%rowtype; retirement assistant_dispatch_retirements%rowtype; launch assistant_launch_authorizations%rowtype;
 begin
- if OLD.state='released' and NEW.state<>'released' then raise exception 'ASSISTANT_RESERVATION_RELEASED'; end if;
- if NEW.state<>'released' or OLD.state='released' then return NEW; end if;
+ if TG_OP='UPDATE' and OLD.state='released' and NEW.state<>'released' then raise exception 'ASSISTANT_RESERVATION_RELEASED'; end if;
+ if NEW.state<>'released' or (TG_OP='UPDATE' and OLD.state='released') then return NEW; end if;
  select * into attempt from attempts where command_id=NEW.command_id;
  if found then
   if attempt.state<>'stopped' or attempt.stopped_at is null or attempt.finalized_at is null then raise exception 'ASSISTANT_FINALIZATION_REQUIRED'; end if;
@@ -462,7 +473,8 @@ begin
  end if;
  return NEW;
 end $$;
-create trigger assistant_reservation_release before update on assistant_reservations for each row execute function assistant_check_reservation_release();
+create constraint trigger assistant_reservation_release after insert or update on assistant_reservations
+ deferrable initially deferred for each row execute function assistant_check_reservation_release();
 
 create function assistant_check_route_consent() returns trigger language plpgsql as $$
 declare parent attachment_submission_authorizations%rowtype; derived attachment_submission_authorizations%rowtype; route attachment_message_routes%rowtype;
@@ -487,3 +499,73 @@ begin
  return NEW;
 end $$;
 create trigger assistant_route_consent before insert on assistant_route_authorizations for each row execute function assistant_check_route_consent();
+
+-- Relational identity checks run at commit so circular turn/selection inserts and
+-- restoring valid terminal rows with their durable proofs remain possible.
+create function assistant_check_selection_identity() returns trigger language plpgsql as $$
+begin
+ if not exists(select 1 from assistant_turns t
+   join assistant_designations d on d.id=t.designation_id
+   join assistant_policy_receipts p on p.id=NEW.policy_receipt_id
+   join routing_capability_receipts c on c.id=NEW.probe_receipt_id and c.certification_receipt_id=p.id
+   where t.id=NEW.turn_id and t.model_selection_id=NEW.id
+   and NEW.model_key=p.model_key and NEW.model_key=c.model_key
+   and NEW.model_key->>'machineId'=d.machine_id::text and p.machine_id=d.machine_id) then
+  raise exception 'ASSISTANT_SELECTION_CONTEXT_MISMATCH';
+ end if;
+ return NEW;
+end $$;
+create constraint trigger assistant_selection_context after insert on assistant_model_selections
+ deferrable initially deferred for each row execute function assistant_check_selection_identity();
+
+create function assistant_check_assessment_identity() returns trigger language plpgsql as $$
+begin
+ if not exists(select 1 from attachment_input_snapshots where id=NEW.input_snapshot_id
+   and target_kind='ticket' and target_id=NEW.ticket_id) then
+  raise exception 'ASSISTANT_ASSESSMENT_TARGET_MISMATCH';
+ end if;
+ return NEW;
+end $$;
+create constraint trigger assistant_assessment_target after insert on assistant_assessments
+ deferrable initially deferred for each row execute function assistant_check_assessment_identity();
+
+create function assistant_check_dispatch_identity() returns trigger language plpgsql as $$
+begin
+ if not exists(select 1 from commands c
+   join tickets t on t.id=c.ticket_id
+   join workflow_steps s on s.id=NEW.step_id and s.run_id=NEW.run_id and s.ticket_id=t.id
+   join workflow_runs r on r.id=s.run_id and r.root_ticket_id=t.root_id
+   join assistant_assessments a on a.id=NEW.assessment_id and a.ticket_id=t.id
+   join attachment_input_snapshots i on i.id=a.input_snapshot_id and i.target_kind='ticket' and i.target_id=t.id
+   join decisions d on d.id=NEW.decision_id and d.ticket_id=t.id
+   where c.id=NEW.command_id) then
+  raise exception 'ASSISTANT_DISPATCH_TARGET_MISMATCH';
+ end if;
+ return NEW;
+end $$;
+create constraint trigger assistant_dispatch_target after insert on assistant_dispatches
+ deferrable initially deferred for each row execute function assistant_check_dispatch_identity();
+
+create function assistant_check_capacity_identity() returns trigger language plpgsql as $$
+begin
+ if not exists(select 1 from assistant_capacity_requests q where q.id=NEW.request_id
+   and q.machine_id=NEW.machine_id and q.ticket_id=NEW.ticket_id and q.kind=NEW.kind
+   and q.boot_generation=NEW.boot_generation and q.ownership_keys=NEW.ownership_keys) then
+  raise exception 'ASSISTANT_CAPACITY_CONTEXT_MISMATCH';
+ end if;
+ return NEW;
+end $$;
+create constraint trigger assistant_capacity_context after insert on assistant_capacity_receipts
+ deferrable initially deferred for each row execute function assistant_check_capacity_identity();
+
+create function assistant_check_reservation_identity() returns trigger language plpgsql as $$
+begin
+ if not exists(select 1 from commands c join assistant_capacity_receipts r on r.id=NEW.receipt_id
+   where c.id=NEW.command_id and c.machine_id=NEW.machine_id and r.machine_id=NEW.machine_id
+   and c.ticket_id=r.ticket_id and NEW.ownership_keys=r.ownership_keys) then
+  raise exception 'ASSISTANT_RESERVATION_CONTEXT_MISMATCH';
+ end if;
+ return NEW;
+end $$;
+create constraint trigger assistant_reservation_context after insert on assistant_reservations
+ deferrable initially deferred for each row execute function assistant_check_reservation_identity();
