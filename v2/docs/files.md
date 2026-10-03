@@ -23,6 +23,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `desktop/tsconfig.json` | [desktop-shell](flows/desktop-shell.md) (file) |
 | `gateway/package.json` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/pnpm-lock.yaml` | [gateway-host](flows/gateway-host.md) (file) |
+| `gateway/src/assistant/workflow-manifest.ts` | [assistant-workflows](flows/assistant-workflows.md) (điểm vào) |
 | `gateway/src/commands/contracts.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/commands/http-client.ts` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/execution/ticket-command-bridge.ts` | [gateway-host](flows/gateway-host.md) (file) |
@@ -141,6 +142,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/workflow-admission.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-build.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-fix.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+| `gateway/test/workflow-manifest.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
 | `gateway/test/workflow-native-projection.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-operations.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-registry.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |

@@ -1,0 +1,91 @@
+✔ workflow manifest binds Superpowers skills to official source and selected projection bytes (1504.12425ms)
+✔ workflow manifest rejects a projected skill hash that differs from its pinned source (1484.391792ms)
+✔ workflow manifest re-reads exact skill bytes instead of trusting manifest hash claims (1537.712875ms)
+✔ workflow manifest rejects a projection bound to another source tree (1497.720833ms)
+✔ workflow manifest denies BMAD when no trusted renderer artifact reader is bound (0.742708ms)
+✖ workflow manifest keeps one validated snapshot across a deferred registry resolve (1596.405791ms)
+✖ workflow manifest rejects a FIFO skill drift within a bounded reader deadline (4485.392042ms)
+ℹ fifo scratch root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-workflow-manifest-CtQO3w
+ℹ mkfifo pid=40762 status=0 signal=none
+ℹ fifo child pid=40763 pgid=40763 reaped=close code=null signal=SIGKILL timedOut=true
+ℹ tests 7
+ℹ suites 0
+ℹ pass 5
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12184.92025
+
+✖ failing tests:
+
+test at test/workflow-manifest.test.ts:150:1
+✖ workflow manifest keeps one validated snapshot across a deferred registry resolve (1596.405791ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   sha256: 'ebe7d6c97939263ab3efa21cbfe9b9d37bc949f118c15aa2f1df910a6c3d3f27',
+  -   sha256: 'd90c764c8c6177eaba7f2b823f44c4c5bea08e88d6b12d6e82e364cac3cd667b',
+      skills: [
+        {
+          path: 'skills/brainstorming/SKILL.md',
+          sha256: 'a32d2255354775aa124855aa7100cf276bea096fff4ebb3a0edf57be216e6c72'
+        },
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:173:12
+      at async withOfficialSuperpowers (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:61:5)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:151:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: {
+      sha256: 'ebe7d6c97939263ab3efa21cbfe9b9d37bc949f118c15aa2f1df910a6c3d3f27',
+      skills: [
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object]
+      ]
+    },
+    expected: {
+      sha256: 'd90c764c8c6177eaba7f2b823f44c4c5bea08e88d6b12d6e82e364cac3cd667b',
+      skills: [
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object], [Object],
+        [Object]
+      ]
+    },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/workflow-manifest.test.ts:177:1
+✖ workflow manifest rejects a FIFO skill drift within a bounded reader deadline (4485.392042ms)
+  AssertionError [ERR_ASSERTION]: reader blocked on FIFO; child reaped by watchdog (SIGKILL)
+  
+  true !== false
+  
+      at file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:227:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async withOfficialSuperpowers (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:61:5)
+      at async TestContext.<anonymous> (file:///Users/phannhatquang/.codex/worktrees/crew-v2-server/crew/v2/gateway/test/workflow-manifest.test.ts:178:3)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

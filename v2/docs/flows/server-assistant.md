@@ -33,7 +33,7 @@ Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant
 | `server/src/assistant/authority.ts` | Designation/CAS và resolver mặc định từ chối |
 | `server/src/assistant/routes.ts` | Owner config routes và credential lock |
 | `server/test/assistant-store.test.ts` | PostgreSQL constraints, durable inbox và backup/restore |
-| `server/test/assistant-authority.test.ts` | Actual HTTP auth, config CAS, lock races và UUID casing |
+| `server/test/assistant-authority.test.ts` | Fastify inject/auth thật, config CAS, lock races và UUID casing |
 | `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử |
 
 ## Dữ liệu

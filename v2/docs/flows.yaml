@@ -423,5 +423,13 @@ flows:
       - server/test/assistant-authority.test.ts
       - server/test/assistant-store.test.ts
       - server/test/support/assistant.ts
+  assistant-workflows:
+    title: Định nghĩa workflow chính thức và pin bất biến
+    doc: docs/flows/assistant-workflows.md
+    entrypoints:
+      - gateway/src/assistant/workflow-manifest.ts
+    files: []
+    tests:
+      - gateway/test/workflow-manifest.test.ts
 shared: {}
 unassigned: []

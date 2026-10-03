@@ -1,0 +1,60 @@
+# Phase06/T3 — gateway manifest slice report
+
+Status: bounded gateway manifest slice implemented and locally verified. Full T3 server run/gate graph, trusted BMAD render producer, and production acceptance remain pending. PM owns review, integration, docs manifest and commit.
+
+## Scope and result
+
+- Owned source: `v2/gateway/src/assistant/workflow-manifest.ts`, SHA-256 `23ee289d54a527cbc265f60c7752ec2b1bb23dab02e329c2776dd92619604e00`.
+- Owned tests: `v2/gateway/test/workflow-manifest.test.ts`, SHA-256 `68898d04fd10691146011c63a189da5e59c27a00aef77d563b6fddbfb1762ea3`. They use official pinned Superpowers archive and audited Claude projection through a **unit-only resolver**; no native helper or registry producer was claimed.
+- Flow documentation draft: `v2/docs/flows/assistant-workflows.md`. PM must add the source/test paths to `v2/docs/flows.yaml` under its ownership before source commit and run docs generation/checks; this worker did not edit the docs manifest.
+- Superpowers definition derives from validated source/projection pins, registry-resolved full manifests, and re-read exact bytes for every selected source/projection `SKILL.md`. A mismatched source tree, manifest entry, file type or actual bytes denies.
+- BMAD remains `RENDER_ARTIFACT_REQUIRED`. There is no production trusted render artifact reader to bind current project root/config/customization/generation; no fake PASS or guessed workflow chain was added.
+
+## RED→GREEN evidence
+
+Meaningful RED ran on a deny-only scaffold before feature code. Exact command from `v2/gateway`: `NODE_OPTIONS=--max-old-space-size=384 node --test --test-name-pattern='workflow manifest' test/workflow-manifest.test.ts`. Exit 1; five behavioral assertions failed because the definition was unavailable, after archive parse and audited projection setup succeeded. Raw log `plans/reports/worker-261003-1911-assistant-workflows-red.log`, SHA-256 `fa13c2f7237fd3b5b6072f8a1c55356e855fcda474d1ae1789608ca66b156655`. The RED preflight used `memory_pressure -Q` percentage, which does **not** prove the later strict `vm_stat` available-memory formula; no retroactive gate claim is made.
+
+After implementation and final formatting, the same focused command exited 0 with 5/5 pass. Raw log `plans/reports/worker-261003-1911-assistant-workflows-green.log`, SHA-256 `7e6543d3d9ac7d933e1fee03dc660fd9b80a74d67d214c5c5a39a880ada1f093`. `NODE_OPTIONS=--max-old-space-size=384 pnpm exec tsc --noEmit -p tsconfig.json` exited 0; empty log SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`. `NODE_OPTIONS=--max-old-space-size=384 pnpm exec biome check src/assistant/workflow-manifest.ts test/workflow-manifest.test.ts` exited 0; log SHA-256 `2da747d3f669e92026c1ee66c469df054276c8f3e4ccb6be41e3f5334b5db9df`. These are targeted gateway checks, not full phase06 acceptance.
+
+Before every GREEN Node/pnpm launch, page size was read with `sysctl -n hw.pagesize` (`16384`) and available memory was computed as `(Pages free + Pages inactive + Pages speculative) × page size` from `vm_stat`; observed values stayed above 4 GiB. CPU idle was at least 52.28%, disk available at least 25 GiB. PM's slot witness reported pressure level 2; per-launch pressure ordinal was not independently captured. I tried the wrong key `vm.pressure_level`; the host's correct key is `kern.memorystatus_vm_pressure_level`, which must be used before any future launch. `memory_pressure -Q` was recorded but is only a free percentage. Exact page counts and resource observations are transcribed in `plans/reports/worker-261003-1911-assistant-workflows-resource-witness.md`. No test `crew-workflow-manifest-*` temporary root or focused Node/Biome/tsc process remained after runs. The sole heavy slot was released immediately to PM.
+
+## Producer handoff and blockers
+
+The proposed internal `DefinitionRenderArtifactReader` is described in `plans/reports/worker-261003-1911-assistant-workflows-static.md`. It must be captured by the trusted host with immutable expected project root and source/projection pins. Caller pins and returned render manifest/root/current resolved values must be compared against that captured scope and actual pinned source/projection/rendered bytes. A return value's hash or path cannot authorize itself. This is a proposal, not an implemented or certified producer.
+
+Server `createRun`/`answerGate` source is not in this release. They must use T2's persisted Actor A resolver and real orchestration port, lock root/project before fence checks, and deny without actual persisted authority. Gate UUIDs may be reserved, but SQL011's non-null immutable artifact hash means a gate row/question FK must be created only after an actual verified artifact exists. T1 fixture rows remain relational unit setup only. Full official Superpowers and BMAD graph/gates, sequential/parallel semantics, and actual renderer invocation still require a separate PM source release, behavioral RED and independent review.
+
+No Git index, commit, package/lock file, native helper, renderer, model, DB or network call was made by this worker.
+
+## FIX1 review response — RED authored, execution pending
+
+Scoped review `task-3-slice-review.md` SHA-256 `a23c8340466c1e2a6c400dd6424779c14fb079855e5ca6f85e633ddcbb3118c5` identifies two manifest defects: caller-owned pin objects can change while `resolve` awaits and alter the returned definition digest; a selected SKILL replaced by FIFO can block at `open` before `fstat` rejects its type. Both findings match the current source path and are in the gateway slice.
+
+Two tests were appended to `v2/gateway/test/workflow-manifest.test.ts`, currently SHA-256 `1aa7d65c4b24ab48e71e47dbfb98b80346c8de69414d930918f1f1274b9a9f55`. One deferred unit resolver captures the same inputs a real Registry would snapshot, then the caller mutates `source.name`, `projection.runtime` and nested `projection.derivation.options` before resolution; the expected definition is the pristine baseline. The other replaces an owned scratch SKILL with `/usr/bin/mkfifo` (3-second spawn deadline), then starts exactly one child Node (heap 128 MiB, 3-second watchdog, detached process group) to call the actual adapter; its `RESOLVED` marker distinguishes a blocked reader from fixture/import failure. The watchdog kills the child process group and waits for `close`, and the fixture removes the scratch root in `finally`. PID/group, scratch root and reap result are emitted as test diagnostics.
+
+No FIX1 test, FIFO command or child process had run when this section was written; web retained the sole heavy slot. Feature source remains at SHA-256 `23ee289d54a527cbc265f60c7752ec2b1bb23dab02e329c2776dd92619604e00`. After PM's RED grant, preflight must use `sysctl -n kern.memorystatus_vm_pressure_level`, `sysctl -n hw.pagesize`, `vm_stat` free+inactive+speculative, CPU idle and disk, then run the focused suite. Only meaningful behavioral RED plus complete child/temp cleanup permits the source fix.
+
+### FIX1 RED observed and source repair awaiting GREEN
+
+PM granted the sole heavy slot at 20:31:59 VN. Immediately before the launch, `kern.memorystatus_vm_pressure_level=1`; page size `16384`; free/inactive/speculative pages `17336/458755/811`, so available memory was `(17336+458755+811)×16384 = 7.277 GiB`; CPU idle `84.34%`; disk available `25 GiB`. Baseline source/test SHA-256 were `23ee289d54a527cbc265f60c7752ec2b1bb23dab02e329c2776dd92619604e00` / `1aa7d65c4b24ab48e71e47dbfb98b80346c8de69414d930918f1f1274b9a9f55`. The existing five tests passed; both new tests failed behaviorally. The async-pin case returned digest `ebe7d6c97939263ab3efa21cbfe9b9d37bc949f118c15aa2f1df910a6c3d3f27` instead of pristine `d90c764c8c6177eaba7f2b823f44c4c5bea08e88d6b12d6e82e364cac3cd667b`. The FIFO case passed its preceding `RESOLVED` marker assertion, then failed on `timedOut=true` after the reader hung at `open`. Raw log: `plans/reports/worker-261003-1911-assistant-workflows-fix1-red.log`, SHA-256 `10c6329499e956905a088b7f41d56ca84d47da7f2b4e2fccf21a1ab274fb826e`.
+
+FIFO scratch root `/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-workflow-manifest-CtQO3w` was removed by fixture `finally`; prefix inventory was empty after run. `/usr/bin/mkfifo` PID `40762` exited 0. Child Node PID/PGID `40763` was reaped with `SIGKILL` after its 3-second deadline; `ps -p 40762,40763` returned no processes. The heavy slot was released immediately after that cleanup.
+
+Node-free source repair now captures deep `structuredClone` snapshots of both pins at entry and uses them for validation, `registry.resolve`, manifest comparisons and final definition digest. Skill opens add `O_NONBLOCK` to `O_RDONLY | O_NOFOLLOW`, then existing `fstat` rejects non-regular files before read and `finally` closes the FD. Current unverified repair source SHA-256 `358de2402a9ba55d1f105a63a4c9adfafd2312bdf1d462587979f995a0a600e0`; test source has an added explicit boundary diagnostic after RED, current SHA-256 `03a6f7bfeab4292d12d08cc5c9a89945d6eb7a45ed89606343e58c003affb592`. No GREEN launch has occurred for FIX1 yet. Next: PM grants another sole-heavy slot, then focused seven-test suite, scoped strict TypeScript and Biome; update hashes and freeze for re-review.
+
+### FIX1 final frozen candidate for scoped P1/P2 re-review
+
+PM granted the next sole heavy slot at 20:35:24 VN. Before each of the four launches, `kern.memorystatus_vm_pressure_level=1`, page size `16384`, disk at least `25 GiB`, CPU idle at least `72.84%`, and exact `vm_stat` free+inactive+speculative available memory exceeded 4 GiB:
+
+| Launch | Free/inactive/speculative pages | Available GiB | CPU idle |
+|---|---|---:|---:|
+| Scoped Biome formatting | 11094/417085/511 | 6.541 | 72.84% |
+| Seven-test focused suite | 19708/411970/950 | 6.601 | 88.71% |
+| Full gateway strict typecheck | 15837/417275/1733 | 6.635 | 88.42% |
+| Final scoped Biome check | 35097/402256/1199 | 6.692 | 89.59% |
+
+`NODE_OPTIONS=--max-old-space-size=384 pnpm exec biome check --write src/assistant/workflow-manifest.ts test/workflow-manifest.test.ts` exited 0 and formatted the test file only; raw log SHA-256 `c1d9a5de1d94d938776b1eda6040a4e6c93cd162993e40117700cb4691f82ee4`. Final exact focused `node --test --test-name-pattern='workflow manifest' test/workflow-manifest.test.ts` exited 0 with 7/7 passed, 0 skipped/cancelled; raw log SHA-256 `fc8409cb82f434c7c588e36bf542b100384deb3833de14f8b608dd389fc3deb5`. Full gateway `pnpm exec tsc --noEmit -p tsconfig.json` exited 0; empty log SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`. Final scoped `pnpm exec biome check src/assistant/workflow-manifest.ts test/workflow-manifest.test.ts` exited 0, no fixes, log SHA-256 `4a92263598e249585b1641897db38d357d4f8ada18fd595f21e9174273bda84f`. All four log files share prefix `plans/reports/worker-261003-1911-assistant-workflows-fix1-`.
+
+GREEN FIFO fixture scratch root `/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-workflow-manifest-5jEGBi` was removed. `/usr/bin/mkfifo` PID `50222` exited 0; child Node PID/PGID `50223` emitted `RESOLVED`, returned `WORKFLOW_SKILL_MISMATCH`, and was reaped with exit 0 before the 3-second deadline (`timedOut=false`). `ps`, `pgrep` and temporary-prefix inventory found no remaining child/test/typecheck/Biome process or scratch root. Heavy slot was released before these docs/report edits.
+
+Frozen candidate source SHA-256 `358de2402a9ba55d1f105a63a4c9adfafd2312bdf1d462587979f995a0a600e0`; test SHA-256 `682ab64112b38513d75e438779fbf90c27a8e33fedd991a848032b023f6c7550`; flow draft `v2/docs/flows/assistant-workflows.md` SHA-256 `0e142e0d5adcb99bdc67a2d3296dc102cc2bf81e6a4aee2642b25d0de23ad926`. Flow draft now has exactly seven required headings in order. Scope for reviewer: P1/P2 only, original gateway slice. No actual BMAD renderer, server run/gate graph, production host binding, native runtime/admission or E2E certification was introduced. PM still owns flow-manifest integration, independent review and commit.

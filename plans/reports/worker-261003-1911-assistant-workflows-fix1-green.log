@@ -1,0 +1,19 @@
+✔ workflow manifest binds Superpowers skills to official source and selected projection bytes (1455.129209ms)
+✔ workflow manifest rejects a projected skill hash that differs from its pinned source (1492.559375ms)
+✔ workflow manifest re-reads exact skill bytes instead of trusting manifest hash claims (1522.217625ms)
+✔ workflow manifest rejects a projection bound to another source tree (1465.314625ms)
+✔ workflow manifest denies BMAD when no trusted renderer artifact reader is bound (0.866292ms)
+✔ workflow manifest keeps one validated snapshot across a deferred registry resolve (1457.173959ms)
+✔ workflow manifest rejects a FIFO skill drift within a bounded reader deadline (1484.841416ms)
+ℹ fifo scratch root=/private/var/folders/6r/7l8l6ytd2fgf91ccj55m73wm0000gn/T/crew-workflow-manifest-5jEGBi
+ℹ mkfifo pid=50222 status=0 signal=none
+ℹ fifo child pid=50223 pgid=50223 reaped=close code=0 signal=none timedOut=false
+ℹ fifo child boundary=RESOLVED
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8955.590791
