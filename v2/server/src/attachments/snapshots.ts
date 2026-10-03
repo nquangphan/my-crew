@@ -118,9 +118,8 @@ export async function readInputSnapshot(
     }
     extractions.push(extraction);
     if (subset !== null && !subset.has(original.attachmentId)) continue;
-    const units = extraction.units.filter(
-      (u) => subset === null || subset.get(original.attachmentId)?.includes(u.id),
-    );
+    const selectedUnitIds = subset === null ? null : new Set(subset.get(original.attachmentId));
+    const units = extraction.units.filter((u) => selectedUnitIds === null || selectedUnitIds.has(u.id));
     required.push({ original, unitIds: units.map((u) => u.id).sort() });
     const derivatives =
       await tx`select id,extraction_id,attachment_id,sha256,byte_length,mime,kind,unit_ids,verification from attachment_derivatives where extraction_id=${extraction.id} and attachment_id=${original.attachmentId}`;
@@ -367,8 +366,13 @@ async function resolveInputSelection(
     const { manifestSha256, ...body } = extraction;
     if (row.manifest_sha256 !== manifestSha256 || digest(body) !== manifestSha256) return invalid();
     const unitIds = [...(input.unitIds as string[])].sort();
+    const currentUnits = new Map<string, Extraction['units'][number]>();
+    for (const unit of extraction.units) {
+      // Preserve the prior first-match behavior of Array.find.
+      if (!currentUnits.has(unit.id)) currentUnits.set(unit.id, unit);
+    }
     for (const id of unitIds) {
-      const unit = extraction.units.find((u) => u.id === id);
+      const unit = currentUnits.get(id);
       if (unit?.state !== 'available') return invalid();
       projection.push({
         original,
@@ -381,8 +385,12 @@ async function resolveInputSelection(
     }
     selected.set(original.attachmentId, unitIds);
   }
-  projection.sort((a, b) => digest(a).localeCompare(digest(b)));
-  if (digest(projection) !== value.unitsSha256) return invalid();
+  // Same stable canonical order; hash each full projection only once for sorting.
+  const orderedProjection = projection
+    .map((value) => ({ value, sha256: digest(value) }))
+    .sort((a, b) => a.sha256.localeCompare(b.sha256))
+    .map((entry) => entry.value);
+  if (digest(orderedProjection) !== value.unitsSha256) return invalid();
   await authority(tx, actor, { target, requestedUnitIds: [...selected.values()].flat(), scopeDecisionId });
   return selected;
 }

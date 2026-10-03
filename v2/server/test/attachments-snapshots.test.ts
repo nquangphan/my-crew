@@ -205,6 +205,8 @@ test('attachment subset selection binds exact original identity when unit IDs re
         { inputRevision: '1' },
         { target: { ...target, ticketId: f.tickets.B.id } },
         { required: [{ original: a, unitIds: ['unknown'] }] },
+        { required: [{ original: a, unitIds: ['u1', 'u1'] }] },
+        { routeRevision: all.routeRevision + 1 },
         { required: [{ original: { ...a, sha256: b.sha256 }, unitIds: ['u1'] }] },
       ]) {
         const id = await f.mutation((tx) =>
@@ -766,6 +768,136 @@ test('indexed snapshot candidates reject persisted derivative identity and cover
       }
       assert.deepEqual(await read(), good);
     } finally {
+      await f.close();
+    }
+  });
+});
+
+test('large approved subset uses bounded native membership and current unit lookup work', async (t) => {
+  const { publishKnownRepresentation } = await import('./support/attachment-access-publication.ts');
+  const { observeSubsetSelectionWork } = await import('./support/attachment-subset-work.ts');
+  const { digest } = await import('../src/attachments/submissions.ts');
+  const { recordDecision } = await import('../src/tickets/decisions.ts');
+  await databaseFixture(10)(async (db) => {
+    const f = await attachmentAccessFixture(db);
+    const nativeIncludes = Array.prototype.includes,
+      nativeHas = Set.prototype.has;
+    try {
+      const count = 2048,
+        original = await f.linkFile('A', Buffer.from('known text\n'.repeat(count))),
+        extraction = await publishKnownRepresentation(f, original, 'text', undefined, count),
+        derivative = extraction.derivatives[0];
+      assert.ok(derivative);
+      const target = { kind: 'ticket' as const, ticketId: f.tickets.A.id, projectId: f.projects.A.id },
+        all = await db.begin((tx) =>
+          readInputSnapshot(
+            tx,
+            owner,
+            { target, access: { kind: 'owner' }, expectedInputRevision: null, scopeDecisionId: null },
+            denyPreclaimSelection,
+          ),
+        );
+      assert.equal(all.state, 'ready');
+      const selected = extraction.units.filter((_, index) => index % 2 === 1),
+        unitIds = selected.map((unit) => unit.id).sort(),
+        projection = selected.map((unit) => ({
+          original,
+          extractionId: extraction.id,
+          manifestSha256: extraction.manifestSha256,
+          unitId: unit.id,
+          locator: unit.locator,
+          needs: unit.needs,
+        }));
+      // Independently pin the previously accepted canonical projection ordering.
+      projection.sort((a, b) => digest(a).localeCompare(digest(b)));
+      const inputSelection = {
+        target,
+        inputRevision: all.inputRevision,
+        routeRevision: all.routeRevision,
+        required: [{ original, unitIds }],
+        unitsSha256: digest(projection),
+        rationale: 'Chỉ đánh giá các unit chẵn đã được publish và duyệt.',
+      };
+      const decision = await f.mutation((tx) =>
+        recordDecision(
+          tx,
+          target.ticketId,
+          {
+            kind: 'assessment',
+            content: 'Large scoped input',
+            rationale: 'Controlled protocol fixture',
+            sources: [],
+            scope: { inputSelection },
+          },
+          owner,
+        ),
+      );
+      let authorityCalls = 0;
+      const approved: import('../src/attachments/contracts.ts').PreclaimSelectionAuthority = async (
+        tx,
+        actor,
+        input,
+      ) => {
+        assert.deepEqual(actor, owner);
+        assert.equal(input.scopeDecisionId, decision);
+        assert.deepEqual(input.target, target);
+        const [row] = await tx`select scope from decisions where id=${input.scopeDecisionId}`;
+        assert.deepEqual(row.scope.inputSelection, inputSelection);
+        assert.deepEqual(input.requestedUnitIds, unitIds);
+        authorityCalls++;
+      };
+      const observed = await db.begin((tx) =>
+        observeSubsetSelectionWork(tx, unitIds, (measured) =>
+          readInputSnapshot(
+            measured,
+            owner,
+            {
+              target,
+              access: { kind: 'owner' },
+              expectedInputRevision: all.inputRevision,
+              scopeDecisionId: decision,
+            },
+            approved,
+          ),
+        ),
+      );
+      const snapshot = observed.result;
+      assert.equal(snapshot.state, 'ready');
+      assert.equal(snapshot.inputRevision, all.inputRevision);
+      assert.equal(snapshot.routeRevision, all.routeRevision);
+      assert.deepEqual(snapshot.required, [{ original, unitIds }]);
+      assert.deepEqual(snapshot.requiredCapabilities, ['text']);
+      assert.deepEqual(snapshot.selectedDerivativeIds, [derivative.id]);
+      assert.equal(new Set(snapshot.required[0]?.unitIds).size, count / 2);
+      assert.equal(authorityCalls, 1);
+      assert.equal(Array.prototype.includes, nativeIncludes);
+      assert.equal(Set.prototype.has, nativeHas);
+      t.diagnostic(JSON.stringify({ totalUnits: count, selectedUnits: unitIds.length, ...observed.work }));
+      assert.equal(observed.work.extractionQueries, 2);
+      assert.equal(observed.work.membershipCalls + observed.work.setMembershipCalls, count);
+      assert.ok(observed.work.membershipElementReads <= 2 * count, JSON.stringify(observed.work));
+      assert.ok(
+        observed.work.unitElementReads >= count && observed.work.unitElementReads <= 16 * count,
+        JSON.stringify(observed.work),
+      );
+      assert.ok(
+        observed.work.projectionKindReads >= count && observed.work.projectionKindReads <= 16 * count,
+        JSON.stringify(observed.work),
+      );
+      assert.ok(observed.work.classificationElementReads <= 2 * count, JSON.stringify(observed.work));
+      await assert.rejects(
+        db.begin((tx) =>
+          observeSubsetSelectionWork(tx, unitIds, async () => {
+            throw new Error('Controlled observation failure');
+          }),
+        ),
+        /Controlled observation failure/,
+      );
+      assert.equal(Array.prototype.includes, nativeIncludes);
+      assert.equal(Set.prototype.has, nativeHas);
+    } finally {
+      assert.equal(Array.prototype.includes, nativeIncludes);
+      assert.equal(Set.prototype.has, nativeHas);
       await f.close();
     }
   });
