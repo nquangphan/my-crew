@@ -5,6 +5,12 @@
 
 ## Cách chia việc
 
+**Giới hạn quota owner ngày 2026-10-03:** kiểm tra quota tuần trước mỗi lượt giao task/agent mới và định kỳ
+khi chạy. Khi quota tuần còn **25% hoặc ít hơn** (đã dùng ít nhất75%), dừng giao task mới; chỉ khép lại
+các task đã giao đang thực hiện, giữ checkpoint/bằng chứng và dọn tài nguyên của chúng, rồi báo owner.
+Không tự bắt đầu phần tiếp theo hoặc chạy công việc để tiêu hết quota. Nếu không đọc được quota, giữ
+dispatch mới để bảo toàn phần dành cho công việc khác. Owner đã duyệt UI; không hỏi lại cổng UI này.
+
 V2 xây độc lập trong `v2/` ở giai đoạn phát triển, có package, cấu hình và docs riêng. Không import app,
 scheduler, role prompt, schema nghiệp vụ hoặc database v1. Thư mục tạm này giúp tránh làm hỏng v1 đang
 chạy; khi nghiệm thu, đóng gói/deploy v2 riêng. Không xóa hay migrate prod trong task bootstrap.
