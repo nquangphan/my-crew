@@ -34,6 +34,7 @@
 | [Hợp đồng miền Crew v2](flows/domain-foundation.md) | `domain-foundation` | — |
 | [Host cổng macOS Crew v2](flows/gateway-host.md) | `gateway-host` | `gateway/src/host/main.ts` |
 | [Inventory, credential broker và probe model trên gateway](flows/gateway-models.md) | `gateway-models` | — |
+| [Boundary runtime và receipt logical effect Crew v2](flows/gateway-runtime.md) | `gateway-runtime` | — |
 | [Registry workflow ghim nguồn và runtime projection](flows/gateway-workflows.md) | `gateway-workflows` | `gateway/src/workflows/registry.ts` |
 | [Storage và staging attachment Crew v2](flows/server-attachments.md) | `server-attachments` | — |
 | [Kiểm tra snapshot tài liệu và nhập nguyên trạng Crew v2](flows/server-docs-import.md) | `server-docs-import` | `server/scripts/docs-import.ts`, `server/src/docs/validator.ts` |

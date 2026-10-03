@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": [
+    "../../src/runtime/contracts.ts",
+    "../../src/runtime/launch.ts",
+    "../../src/runtime/effect-ledger.ts",
+    "../../src/runtime/tool-policy.ts",
+    "../../src/runtime/isolation.ts",
+    "../../src/execution/ticket-command-bridge.ts",
+    "../runtime-boundary.test.ts",
+    "../effect-ledger.test.ts",
+    "../isolation-runtime.test.ts",
+    "./runtime-fixture.ts",
+    "./runtime-pins.ts",
+    "../runtime-crash.test.ts",
+    "./runtime-crash-worker.ts",
+    "../runtime-workspace.test.ts",
+    "./runtime-workspace.ts"
+  ]
+}

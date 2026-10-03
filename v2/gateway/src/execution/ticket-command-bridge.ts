@@ -35,6 +35,19 @@ type BridgeRecord = {
   runningOp?: string | null;
   stopReason?: 'exit' | 'pause' | 'cancel';
 };
+export type BeforeReleaseContext = Readonly<{
+  record: Readonly<LaunchRecord>;
+  attempt: Readonly<Attempt>;
+  companion: Readonly<AttemptProjectionPin>;
+  command: Readonly<Command>;
+}>;
+function immutable<T>(value: T): T {
+  if (value && typeof value === 'object') {
+    for (const child of Object.values(value)) immutable(child);
+    Object.freeze(value);
+  }
+  return value;
+}
 export type BridgeOptions = {
   machineId: string;
   journal: ProcessJournal;
@@ -45,14 +58,17 @@ export type BridgeOptions = {
   command?: string[];
   recheckCapacity?: () => Promise<boolean>;
   onDurableStage?: LauncherOptions['onDurableStage'];
+  beforeRelease?: (context: BeforeReleaseContext) => Promise<void>;
 };
 export class TicketCommandBridge {
   private readonly store: AtomicRecords;
   private readonly options: BridgeOptions;
   private readonly launcher: Launcher;
+  private readonly beforeRelease: BridgeOptions['beforeRelease'];
   private constructor(store: AtomicRecords, options: BridgeOptions) {
     this.store = store;
     this.options = options;
+    this.beforeRelease = options.beforeRelease;
     this.launcher = new Launcher(options.journal, {
       command: options.command,
       recheckCapacity: options.recheckCapacity,
@@ -259,7 +275,15 @@ export class TicketCommandBridge {
       await this.store.put(this.key(command.id), local);
       const attempt = await this.current(local);
       if (attempt.state !== 'active') throw new Error('ATTEMPT_NOT_ACTIVE');
-      await this.companion(local, attempt);
+      const companion = await this.companion(local, attempt);
+      if (this.beforeRelease) {
+        const command = await this.storedCommand(local.command.id);
+        if (!same(command.payload.selection, local.selection)) throw new Error('SELECTION_MISMATCH');
+        const result = await this.beforeRelease(
+          immutable(structuredClone({ record, attempt, companion, command })),
+        );
+        if (result !== undefined) throw new Error('RUNTIME_RELEASE_DENIED');
+      }
       await this.launcher.release(record, attempt.fence, attempt.id);
       local.released = true;
       await this.store.put(this.key(command.id), local);

@@ -143,3 +143,14 @@ GatewaySync gọi readonly `WorkflowRegistry.verifySource` trước báo source 
 Task6 bổ sung script `pnpm --dir v2/gateway isolation:probe -- --runtime claude|codex --no-model` gọi fixture cách ly có chọn runtime và kiểm API inventory. Không gửi prompt/turn/auth hay gọi model. Kết quả test/CLI không là chứng nhận native Read/Skill/MCP/child; các bề mặt chưa đo vẫn UNVERIFIED và production disabled. Helper thuộc flow `gateway-workflows`; package script thuộc flow này.
 
 Fixture `retirement-crash.test.ts` sau SIGKILL chờ lấy được khóa OS thật ở hai thư mục journal và workflow, rồi release trước khi mở fixture lại. Chỉ retry lỗi đúng `Host guard unavailable (75)`, deadline1500ms/backoff10–100ms; không xóa lockfile, force unlock hay suy STOP từ deadline/PID. Full cover126/127 còn lưu một lỗi timing baseline; whole file sau sửa3/3 PASS, không gộp thành127 PASS. Production ProcessLock/STOP proof giữ nguyên.
+
+### Phase04 runtime companion trước RELEASE
+
+`BridgeOptions.beforeRelease` là callback additive được capture lúc mở bridge; bridge truyền actual
+LaunchRecord, current active Attempt, accepted immutable companion007 và fresh scoped Command dưới
+clone deep-frozen. Callback hoàn tất sau companion và trước launcher.release hiện hữu. Throw hoặc
+non-void result chặn RELEASE; không thay process identity, không thả guard/pin. Runtime consumer ghi
+exclusive RuntimePin/input/entrypoint companion và fsync trước trả; launcher vẫn dùng check current
+companion/capacity cũ. Callback không được re-enter bridge hoặc journal transaction. Generic bridge
+không hook giữ producer protocol cũ; runtime production bắt buộc binding mới, mặc định fail closed.
+Chi tiết authority, threat model và chứng cứ chưa đo ở `gateway-runtime`.

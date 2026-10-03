@@ -386,5 +386,26 @@ flows:
     tests:
       - server/test/attachments-worker-live.test.ts
       - server/test/attachments-worker.test.ts
+  gateway-runtime:
+    title: Boundary runtime và receipt logical effect Crew v2
+    doc: docs/flows/gateway-runtime.md
+    entrypoints: []
+    files:
+      - gateway/src/runtime/contracts.ts
+      - gateway/src/runtime/effect-ledger.ts
+      - gateway/src/runtime/isolation.ts
+      - gateway/src/runtime/launch.ts
+      - gateway/src/runtime/tool-policy.ts
+    tests:
+      - gateway/test/effect-ledger.test.ts
+      - gateway/test/isolation-runtime.test.ts
+      - gateway/test/runtime-boundary.test.ts
+      - gateway/test/runtime-crash.test.ts
+      - gateway/test/runtime-workspace.test.ts
+      - gateway/test/support/runtime-crash-worker.ts
+      - gateway/test/support/runtime-fixture.ts
+      - gateway/test/support/runtime-pins.ts
+      - gateway/test/support/runtime-typecheck.json
+      - gateway/test/support/runtime-workspace.ts
 shared: {}
 unassigned: []
