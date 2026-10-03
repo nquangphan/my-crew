@@ -257,6 +257,14 @@ Web cung cấp hội thoại với Trợ lý, chọn dự án/workflow, xem docs
 Trang yêu cầu thể hiện các bước, phụ thuộc, bước hiện tại, các nhánh sửa và ticket con. Timeline ghi
 quyết định, can thiệp, review, fallback và artifact, không chỉ transcript agent.
 
+Bổ sung owner ngày 2026-10-03: có trang **Sơ đồ ticket** theo hình tham khảo owner gửi. Ticket yêu cầu
+là node gốc, nối các ticket bước và ticket công việc theo phân cấp; cạnh phụ thuộc thể hiện ticket nào
+phải hoàn thành trước khi ticket khác được chạy. Phân biệt trực quan cạnh cha–con và cạnh phụ thuộc,
+không suy phụ thuộc từ vị trí node hoặc ép các nhánh song song thành chuỗi. Mỗi node hiển thị đúng
+ticket và trạng thái hiện hành từ cùng nguồn với board/list. Bấm node mở chi tiết ticket trong dialog;
+đóng dialog giữ vị trí đang xem trên sơ đồ. Đây là sơ đồ ticket/run thực tế, không phải bản định nghĩa
+workflow hoặc sơ đồ các prompt role riêng.
+
 Ticket hiển thị workflow/version, skill hiện tại, độ khó và lý do, máy/model, trạng thái/lý do chờ,
 số vòng sửa, kết quả kiểm chứng, commit và trạng thái docs. Trang máy hiển thị kết nối, dự án,
 pool model, hai bộ workflow và app version, cùng nút cài/update. Có lựa chọn máy/model Trợ lý và
@@ -351,6 +359,9 @@ Các tình huống bắt buộc nghiệm thu:
 - Nhập docs cũ giữ nội dung; không nhập ticket, credential hoặc đăng ký máy v1.
 - Board, danh sách và flow chart phản ánh cùng trạng thái; sơ đồ hiển thị phụ thuộc, ticket con và vòng sửa,
   mở đúng ticket khi chọn node; không nhầm sơ đồ workflow định nghĩa với lịch sử run thực tế.
+- Trang Sơ đồ ticket bắt đầu từ ticket yêu cầu, phân biệt cạnh phân cấp với cạnh phụ thuộc; bấm node mở
+  đúng ticket trong dialog, đóng dialog không mất vị trí sơ đồ. Comment/attachment trong dialog dùng
+  cùng API và quyền truy cập với chi tiết ticket; trạng thái thay đổi phải phản ánh trên node và board/list.
 - Docs có cây trang, tìm kiếm và liên kết ticket theo dự án; trạng thái cập nhật và commit nguồn nhìn thấy được.
 - Paste ảnh và thêm nhiều attachment ngay lúc tạo ticket; preview, gỡ, retry upload, gửi lại không trùng,
   dọn file tạm; ảnh/file còn truy cập được sau resume và fallback.

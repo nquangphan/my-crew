@@ -1,7 +1,7 @@
 # Crew v2 — Lộ trình triển khai
 
 **Spec đã duyệt:** [/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md](/Users/phannhatquang/Documents/projects/crew/docs/superpowers/specs/2026-10-01-crew-v2-design.md).
-**Trạng thái cập nhật 2026-10-03 17:21:** phần01 merge main; phần02 task1–7 và phần03 task1–6 READY theo phạm vi. Phần04 task1–3 READY sau full/FIX1 review4db2d9e; task4 chuẩn bị protocol/fixture tĩnh. Phần05 task1/2a/2b/3/4 READYcf68a68; task5 parser source frozen/unit76, image whitelist8f2eec2f đã qua import/native probes nhưng actual boundary/corpus còn pending. Phần06 task1 actual prefix010 RED đã thấy,011/store/inbox đang triển khai, chưa kiểm chứng hoặc freeze checksum;001–010 immutable. Phần07 chờ xác nhận prototype. Native/live/Keychain/signing/production parser và whole-product chưa nghiệm thu.
+**Trạng thái cập nhật 2026-10-03 17:34:** phần01 merge main; phần02 task1–7 và phần03 task1–6 READY theo phạm vi. Phần04 task1–3 READY sau full/FIX1 review4db2d9e; task4 chuẩn bị protocol/fixture tĩnh. Phần05 task1/2a/2b/3/4 READYcf68a68; task5 parser source frozen/unit76, image whitelist8f2eec2f đã qua import/native probes nhưng actual boundary/corpus còn pending. Phần06 task1 actual prefix010 RED đã thấy,011/store/inbox đang triển khai và kiểm thử constraint, chưa freeze checksum;001–010 immutable. Owner đã duyệt UI qua tin nhắn “duyệt UI ok”; phần07 được mở chuẩn bị kế hoạch chi tiết, chưa có code web hoặc E2E acceptance. Native/live/Keychain/signing/production parser và whole-product chưa nghiệm thu.
 
 ## Cách chia việc
 
