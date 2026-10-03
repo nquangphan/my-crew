@@ -408,5 +408,17 @@ flows:
       - gateway/test/support/runtime-pins.ts
       - gateway/test/support/runtime-typecheck.json
       - gateway/test/support/runtime-workspace.ts
+  server-assistant:
+    title: Trợ lý, workflow và work inbox bền vững Crew v2
+    doc: docs/flows/server-assistant.md
+    entrypoints: []
+    files:
+      - server/src/assistant/contracts.ts
+      - server/src/assistant/inbox.ts
+      - server/src/assistant/store.ts
+      - server/migrations/011_assistant.sql
+    tests:
+      - server/test/assistant-store.test.ts
+      - server/test/support/assistant.ts
 shared: {}
 unassigned: []
