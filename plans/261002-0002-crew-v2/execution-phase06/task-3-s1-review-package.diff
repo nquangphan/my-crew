@@ -1,0 +1,2850 @@
+0d4f984 feat(v2): dựng run workflow từ definition đã ghim qua graph authorization
+ v2/docs/files.md                                   |   3 +
+ v2/docs/flows.yaml                                 |   3 +
+ v2/docs/flows/assistant-workflows.md               |  38 +-
+ v2/docs/flows/server-assistant.md                  |   5 +-
+ v2/server/src/assistant/orchestration.ts           | 334 ++++++++-
+ v2/server/src/assistant/runs.ts                    | 475 ++++++++++++
+ v2/server/src/assistant/workflows.ts               | 504 +++++++++++++
+ .../test/assistant-orchestration-port.test.ts      | 262 ++++++-
+ v2/server/test/assistant-workflows.test.ts         | 803 +++++++++++++++++++++
+ 9 files changed, 2414 insertions(+), 13 deletions(-)
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index e8cefe0..ecc783e 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -166,21 +166,23 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/docs-import.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
+ | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
+ | `server/src/assistant/authority.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/contracts.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/inbox.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/orchestration.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/routes.ts` | [server-assistant](flows/server-assistant.md) (file) |
++| `server/src/assistant/runs.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
+ | `server/src/assistant/store.ts` | [server-assistant](flows/server-assistant.md) (file) |
++| `server/src/assistant/workflows.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
+ | `server/src/attachments/access.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/comment-refs.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/extract/csv.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/docx.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/formats.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/image.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/index.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/pdf.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+@@ -261,20 +263,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/tickets/history.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
+ | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/assistant-authority.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-mutations.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/assistant-orchestration-port.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-orchestration.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
++| `server/test/assistant-workflows.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
+ | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachment-mount.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-access.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-api.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test), [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-formats.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+ | `server/test/attachments-grants.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-messages.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-ooxml.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 5aac682..76364d3 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -467,23 +467,26 @@ flows:
+       - server/test/assistant-orchestration-port.test.ts
+       - server/test/assistant-store.test.ts
+       - server/test/support/assistant.ts
+   assistant-workflows:
+     title: Định nghĩa workflow chính thức và pin bất biến
+     doc: docs/flows/assistant-workflows.md
+     entrypoints:
+       - gateway/src/assistant/workflow-manifest.ts
+     files:
+       - gateway/src/assistant/render-artifacts.ts
++      - server/src/assistant/runs.ts
++      - server/src/assistant/workflows.ts
+     tests:
+       - gateway/test/workflow-manifest.test.ts
+       - gateway/test/render-artifacts.test.ts
++      - server/test/assistant-workflows.test.ts
+   web-shell:
+     title: Khung web và fixture cô lập Crew v2
+     doc: docs/flows/web-shell.md
+     entrypoints:
+       - web/src/main.tsx
+     files:
+       - web/src/app-runtime.ts
+       - web/src/router.tsx
+       - web/src/shell.tsx
+       - web/src/styles.css
+diff --git a/v2/docs/flows/assistant-workflows.md b/v2/docs/flows/assistant-workflows.md
+index 0150234..d75f476 100644
+--- a/v2/docs/flows/assistant-workflows.md
++++ b/v2/docs/flows/assistant-workflows.md
+@@ -1,44 +1,72 @@
+-# Workflow chính thức của Trợ lý — bản nháp phase06/T3
++# Workflow chính thức của Trợ lý và run graph phase06/T3
+ 
+ ## Mục đích
+ 
+-Gắn định nghĩa workflow với đúng source và projection bất biến trước khi tạo run. Gateway trả định nghĩa cho Superpowers và BMAD cùng một digest customization chung, và có bộ kiểm tra byte artifact BMAD. BMAD là định nghĩa hai tầng: tầng định nghĩa đến từ registry, render receipt được latch sau ở server. Run graph, gate, renderer và receipt BMAD ở server/host chưa có producer được chứng thực.
++Gắn định nghĩa workflow với đúng source và projection bất biến trước khi tạo run. Gateway trả định nghĩa cho Superpowers và BMAD cùng một digest customization chung, và có bộ kiểm tra byte artifact BMAD. BMAD là định nghĩa hai tầng: tầng định nghĩa đến từ registry, render receipt được latch sau ở server. Server dựng run graph từ definition mà máy dự án đã báo trong install report, qua port điều phối thật. Gate, renderer và producer receipt BMAD ở host chưa có; production chưa inject port nên mọi lời gọi vẫn bị từ chối.
+ 
+ ## Điểm vào
+ 
+ - `gateway/src/assistant/workflow-manifest.ts` → `createWorkflowManifest(registry).loadDefinition(source, projection)` trả `WorkflowDefinition = {sha256, skills, customizationSha256, render?}`; `customizationContext(source, projection, layers)` là hàm thuần tính digest customization dùng chung.
+ - `gateway/src/workflows/registry.ts` → `WorkflowRegistry.resolve` kiểm cached source/projection và trả root cùng manifest.
+ - `gateway/src/assistant/render-artifacts.ts` → factory chụp expectation và kiểm artifact byte được cung cấp, trả loại `artifact-inspection` không có authority.
+ - `gateway/test/workflow-manifest.test.ts` → kiểm bytes nguồn/projection, pin, mismatch, digest customization và định nghĩa BMAD hai tầng.
++- `server/src/assistant/runs.ts` → `createWorkflowRuns({port, resolver, lookup?})` trả `createRun(tx, proof, {rootTicketId, path, definitionSha256})` và `latchRenderedArtifact(tx, runId, evidenceId)`.
++- `server/src/assistant/workflows.ts` → `createDefinitionLookup()` đọc definition đã chứng minh của một máy; `workflowSteps(path)` là bảng ánh xạ nguồn chính thức → bước/gate.
+ 
+ ## Các bước
+ 
+ 1. Chụp sâu `SourcePin` và `ProjectionPin`, kể cả `derivation.options`, trước mọi lần chờ. Kiểm hai snapshot và dùng chính chúng cho `WorkflowRegistry.resolve`, so manifest và tính digest. Caller sửa object sau lời gọi không thể đổi identity đã xác thực.
+ 2. Chọn các `skills/*/SKILL.md` từ manifest source chính thức. Mỗi path phải là regular file trong cả source và projection, có cùng SHA-256. Adapter đọc lại bytes ở hai root, kiểm hash thực tế và so toàn bộ manifest source/projection với pin. File được mở với `O_NOFOLLOW | O_NONBLOCK`; `fstat` loại FIFO và file không regular trước khi đọc; FD được đóng trong `finally`.
+ 3. `customizationSha256` là SHA-256 của canonical `{schema: 'crew-v2:workflow-customization:1', workflow, sourceTreeSha256, projectionTreeSha256, layers}`. Superpowers có `layers = {}`: projection đã pin không chứa layer tùy biến nào, và phát biểu đó gắn vào `projectionTreeSha256`, nên đổi projection thì đổi digest; thứ tự key không ảnh hưởng. BMAD có đủ 7 layer path (SHA-256 hoặc `null`) đo từ projection. Hàm kiểm lại pin, từ chối source/projection lệch nhau, layer thừa/thiếu và layer bắt buộc bằng `null`.
+ 4. BMAD chỉ nhận runtime `claude`. Từ manifest projection, adapter chọn mọi file `.md` dưới `.claude/skills/bmad-build/` (kể cả thư mục con, không lấy `bmad-build-auto`), `customize.toml` và `_bmad/scripts/{render_skill,config_utils}.py`. Thiếu `SKILL.md`, `workflow.md`, `customize.toml`, một trong hai script, layer bắt buộc `_bmad/config.toml`, hoặc gặp symlink/không phải file ở cây skill hay layer path đều trả `WORKFLOW_SKILL_MISMATCH`. Mọi file được chọn và mọi layer có mặt được đọc lại bytes thật trong projection root. `skills` là các `.md` được chọn trừ `SKILL.md`. `render = {source, projection, selectedProjectionSha256, layers}` đúng bằng expectation của bộ kiểm tra artifact khi bỏ `projectRoot`/`generationRoot` do host gắn sau.
+ 5. `sha256` của định nghĩa là SHA-256 của canonical `{source, projection, skills, customizationSha256, render}` (Superpowers: `render = null`). Identity này chỉ chứng minh định nghĩa manifest đã đọc; nó không cấp quyền chạy model, phát lệnh hay chứng nhận runtime isolation. Adapter không chạy renderer, `uv` hay process con nào.
+ 6. Bộ kiểm tra artifact nhận byte manifest, projected sources, config layers và output. Nó từ chối proxy/accessor trước khi đọc, giới hạn tổng byte trước copy và kiểm hai quan sát của cùng `customize.toml` nhất quán. Path identity phải là Unicode hợp lệ; manifest schema1 và generation identity khớp canonical JSON của renderer Python. `resolved_values` chỉ nhận key từ token source đã chụp và loại scalar/string-list/review-layer chính thức của exact BMAD tree được chấp nhận. Unknown pin/category, key thừa hoặc short token mơ hồ đều bị từ chối.
+ 7. Adapter không còn trả `RENDER_ARTIFACT_REQUIRED`. Việc từ chối BMAD chưa có artifact thuộc server: run BMAD được tạo với `rendered_artifact_id = null` và admission từ chối dispatch khi giá trị này còn `null`. Không dùng hash/path do client khai báo làm bằng chứng renderer.
++8. `createRun` kiểm input, khóa root (phải là request) rồi project, rồi mới gọi resolver Actor persisted (turn chưa admit 503, admission lệch 403, không ghi row). Actor luôn là máy Trợ lý A do resolver trả, không lấy từ caller.
++9. Definition tra theo máy B đang gắn với project. Lookup chỉ đọc `gateway_applied.workflow_status` của máy đó: slot projection và slot source phải `current`, digest phải tính lại đúng trên pin của slot, skills, customization và render. Không suy definition từ applied revision. BMAD chỉ có ở runtime `claude` và luôn có `render`; Superpowers không có `render`. Hash không có, slot không current, digest lệch hoặc chỉ máy khác báo đều trả 422 `WORKFLOW_DEFINITION_UNKNOWN`. Definition khác workflow của path trả 422 `WORKFLOW_PATH_MISMATCH`; nguồn của một bước không có trong definition trả 422 `WORKFLOW_SKILL_MISSING`. Pin hoặc `workflowChoice` của root khác workflow trả 409; root đã có run trả 409 `WORKFLOW_RUN_EXISTS`.
++10. Graph là bảng ánh xạ cố định từ nguồn đã pin (bảng bên dưới). Mỗi bước là một ticket `step` con của root với `stepOperationId` cấp trước. Criteria của ticket ghi `workflowRun = {runId, path, stepKey, stepOperationId, sourcePath, gates:[{id, kind, requiredActor, citation}]}`. UUID gate được giữ chỗ trong `workflow_steps.gate_ids`; không tạo `workflow_gates` khi chưa có artifact. Mặc định tuần tự: mỗi bước chỉ chờ bước liền trước.
++11. Chạy song song chỉ khi `assistant_config.policy.parallelApprovalId` trỏ tới quyết định `approval` của owner trong cùng root, với `scope.parallel = {rootTicketId, path, definitionSha256, units:[{key,title,ownershipKeys}]}` khớp chính yêu cầu. Quyết định không phải của owner, khác loại hoặc khác root trả 403 `WORKFLOW_PARALLEL_APPROVAL_INVALID`. Scope lệch hoặc path không phải `architectural`/`bounded` trả 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH`; hai phần trùng ownership key trả 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`. Khi hợp lệ, bước triển khai tách thành từng phần với `stepOperationId` và ownership riêng, cùng chờ bước trước; bước review chờ đủ mọi phần.
++12. `createRun` tính `runGraphSha256` của đúng tập ticket và cạnh, rồi gọi `port.authorizeGraph` một lần. Sau đó insert `workflow_runs` (revision 1, `rendered_artifact_id` null). Mỗi ticket con đi qua session của port; sau khi ticket và step tồn tại thì ghi `assistant_operation_ids` (`action_kind='create_ticket'`, `target_identity` = ticket ID). Mỗi cạnh dependency cũng đi qua session rồi ghi operation riêng (`target_identity = ticketId:predecessorId`). `precondition_sha256` là hash của graph; `effect_id = sha256(canonicalJson([runId, stepOperationId, actionKind, targetIdentity, preconditionSha256]))`, cùng công thức `deriveEffectId` của gateway. Session phải được `close` với mọi phần tử đã dùng.
++13. `latchRenderedArtifact` chỉ cho run `bmad-*` chưa latch (409 `WORKFLOW_RENDER_NOT_REQUIRED` / `WORKFLOW_RENDER_ALREADY_LATCHED`). Evidence phải là `workflow_render_receipt` có attempt. Attempt phải thuộc ticket bước của chính run, cùng máy và `binding_revision` hiện hành của project. `definitionSha256` và `customizationSha256` trong `data` phải khớp run. `generationPath` phải đúng `{projectRoot}/_bmad/render/bmad-build/{slug}-{sha256(projectRoot)[:12]}/{20 hex}` như renderer chính thức. Lệch bất kỳ điều nào trả 409 `WORKFLOW_RENDER_RECEIPT_INVALID`. Đúng thì set `rendered_artifact_id` và tăng revision trong cùng một câu UPDATE có điều kiện. Server chưa có bản ghi workspace nên chưa đối chiếu được `projectRoot` với workspace thật; việc đó thuộc lát đăng ký receipt trên máy B.
++
++### Ánh xạ nguồn → bước/gate
++
++Superpowers 6.4.2 (revision `8ca22dba…`); dòng trích từ archive đã pin. BMAD 6.12.0 `bmad-build` (revision `05bfbd46…`); source path là file projection Claude đã audit.
++
++| Path | Bước (skill, source) | Gate (owner) |
++|---|---|---|
++| architectural | design (`skills/brainstorming/SKILL.md:81-84,129-134,171-176`) → spec (`:135-138,237-261`) → plan (`skills/writing-plans/SKILL.md:179-204`) → implement (`skills/test-driven-development/SKILL.md:31-34`) → review (`skills/requesting-code-review/SKILL.md:12-18`) → verify (`skills/verification-before-completion/SKILL.md:14-36`) | `design_approval` (brainstorming `:45-49,134,174-176`), `spec_approval` (`:46-49,256-261`), `plan_approval_execution_method` (writing-plans `:181-198`) |
++| bounded | design (brainstorming `:71-80,122-127`) → implement → review → verify; không spec/plan | `design_approval` (`:45,76-80,126`) |
++| bug | root_cause (`skills/systematic-debugging/SKILL.md:14-20,48-119`) → pattern (`:120-142`) → hypothesis (`:143-167`) → fix (`:168-196`) → review → verify | `architecture_discussion` trên fix (`:190-212`), chỉ materialize sau ba lần sửa thất bại |
++| spike | probe (brainstorming `:65-70,115-118`) → investigate (`:119-120,188-189`); cả hai là ticket `research` | `probe_approval` (`:44,118`) |
++| bmad-dispatch | step-01 (`step-01-clarify-and-route.md`) → step-02 (`step-02-plan.md`) → step-03 (`step-03-implement.md`) → step-04 (`step-04-review.md`) → step-05 (`step-05-present.md`) | `spec_approval` trên step-02 (CHECKPOINT 1, `step-02-plan.md:36-58`) |
++| bmad-oneshot | step-01 → step-02 (thoát sớm `:20`) → step-oneshot (`step-oneshot.md`, giữ lớp review chính thức) | không có |
++
++Bước implement của architectural dùng nguồn TDD vì cả hai phương pháp thực thi đều bắt buộc TDD; phương pháp (subagent-driven hay executing-plans) là lựa chọn của owner ở gate kế hoạch (`writing-plans:200-204`) và được dùng lúc dispatch, không đổi graph.
+ 
+ ## Files
+ 
+ | Đường dẫn | Vai trò |
+ |---|---|
+ | `gateway/src/assistant/workflow-manifest.ts` | Adapter định nghĩa Superpowers/BMAD hai tầng và digest customization chung |
+ | `gateway/src/assistant/render-artifacts.ts` | Bộ kiểm tra thuần byte của artifact BMAD, không đọc host hoặc chạy renderer |
+ | `gateway/test/render-artifacts.test.ts` | Kiểm consistency, cap, descriptor, category và Unicode trên byte fixture |
+ | `gateway/test/workflow-manifest.test.ts` | Kiểm fixture official source/projection, digest customization, định nghĩa BMAD và các điều kiện từ chối |
+ | `gateway/test/fixtures/workflow-definitions/bmad-claude-projection.json` | Tập con layout projection BMAD claude: bytes chính thức lấy từ archive đã pin, config layer tổng hợp |
++| `server/src/assistant/workflows.ts` | Lookup definition đã chứng minh của máy dự án và bảng ánh xạ nguồn → bước/gate |
++| `server/src/assistant/runs.ts` | `createRun` qua graph authorization của port và `latchRenderedArtifact` |
++| `server/test/assistant-workflows.test.ts` | PostgreSQL thật: lookup 422, resolver deny, ánh xạ 6 path, DAG/operation ID, latch, SQL bất biến, duyệt song song |
+ 
+ ## Dữ liệu
+ 
+-Server `createRun` và `answerGate` cần persisted Actor A, TurnFence/scope hiện hành và orchestration port thật. Definition/render receipt phải đi từ host producer đã review sang server với exact source, projection, customization/config, project root và rendered bytes. SQL fixture chỉ kiểm quan hệ; không chứng nhận producer hoặc authority. Gate chỉ materialize khi artifact thật đã được xác minh; UUID đặt trước không thay cho `workflow_gates.artifact_sha256` bắt buộc.
++`workflow_runs` giữ source/projection/definition/customization/path bất biến; chỉ `rendered_artifact_id` và `revision` đổi được (trigger SQL011). `workflow_steps` và `assistant_operation_ids` bất biến hoàn toàn. Render receipt là `evidence` loại `workflow_render_receipt` với `data = {definitionSha256, customizationSha256, projectRoot, generationPath, inspection, witness}`; producer trên máy B chưa có. Gate chỉ materialize khi artifact thật đã được xác minh; UUID đặt trước không thay cho `workflow_gates.artifact_sha256` bắt buộc. `answerGate` thuộc lát gate kế tiếp.
+ 
+ ## Flow liên quan
+ 
+-`gateway-workflows` giữ registry và pin source/projection; `server-assistant` giữ scope/TurnFence; `server-tickets` giữ root ticket và owner decisions. Phase06/T3 chưa nối adapter manifest với authority và run graph. Native workflow runtime/admission vẫn cần chứng cứ riêng, không suy ra từ unit fixture này.
++`gateway-workflows` giữ registry và pin source/projection; `server-gateway` lưu install report kèm definition; `server-assistant` giữ scope/TurnFence, resolver và graph authorization của port; `server-tickets` giữ root ticket và owner decisions. Native workflow runtime/admission vẫn cần chứng cứ riêng, không suy ra từ unit fixture này.
+ 
+ ## Tests
+ 
+-Từ `v2/gateway`: `node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts`. Superpowers dùng archive 6.4.2 và projection đã audit. BMAD dùng fixture `workflow-definitions/bmad-claude-projection.json`: bytes `bmad-build`, `customize.toml` và script lấy từ archive 6.12.0 đã pin và khớp hash projection build độc lập; config layer là bytes tổng hợp vì bytes installer sinh ra không được giữ lại. Test tính lại `ProjectionPin` trên cây tập con, nên chỉ chứng minh logic chọn/đo, không chứng nhận projection thật. Các case: digest Superpowers đổi theo `projection.treeSha256` và không đổi theo thứ tự key; BMAD đúng 7 layer, thiếu layer bắt buộc hoặc layer là symlink bị từ chối; layer tùy chọn xuất hiện làm đổi digest dù skill và token giữ nguyên; `skills` đúng tập `.md` trừ `SKILL.md` và phải có `workflow.md`; pin lệch trả `SOURCE_PROJECTION_MISMATCH` trước khi gọi registry; spy `child_process` xác nhận không có process con. Test ở `render-artifacts.test.ts` xác nhận `render` của adapter đúng bằng expectation D1 trừ hai root và inspector vẫn là bước riêng. Regression snapshot pin và FIFO giữ nguyên. Chưa có test renderer thực hoặc server run/gate; unit fixture không phải production acceptance.
++Từ `v2/gateway`: `node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts`. Superpowers dùng archive 6.4.2 và projection đã audit. BMAD dùng fixture `workflow-definitions/bmad-claude-projection.json`: bytes `bmad-build`, `customize.toml` và script lấy từ archive 6.12.0 đã pin và khớp hash projection build độc lập; config layer là bytes tổng hợp vì bytes installer sinh ra không được giữ lại. Test tính lại `ProjectionPin` trên cây tập con, nên chỉ chứng minh logic chọn/đo, không chứng nhận projection thật. Các case: digest Superpowers đổi theo `projection.treeSha256` và không đổi theo thứ tự key; BMAD đúng 7 layer, thiếu layer bắt buộc hoặc layer là symlink bị từ chối; layer tùy chọn xuất hiện làm đổi digest dù skill và token giữ nguyên; `skills` đúng tập `.md` trừ `SKILL.md` và phải có `workflow.md`; pin lệch trả `SOURCE_PROJECTION_MISMATCH` trước khi gọi registry; spy `child_process` xác nhận không có process con. Test ở `render-artifacts.test.ts` xác nhận `render` của adapter đúng bằng expectation D1 trừ hai root và inspector vẫn là bước riêng. Regression snapshot pin và FIFO giữ nguyên. Chưa có test renderer thực hoặc gate; unit fixture không phải production acceptance.
++
++Từ repo, `node --test v2/server/test/assistant-workflows.test.ts` cần PostgreSQL riêng (`CREW_V2_TEST_DATABASE_URL`, `CREW_V2_TEST_CONTAINER_ID`). Definition của máy B được seed bằng đúng vector chung `install-report-vector.json` của S3b. Turn đã admit dùng `seedAdmittedTurn` (receipt PASS của verifier fixture) và tool operation ghi trong cùng Tx; không có authority test-trust. Các case: hash không chứng minh trên máy B (hash lạ, slot mismatch, digest lệch, chỉ máy khác có) trả 422 và không row; resolver 503/403 không row; ánh xạ đủ 6 path với source SHA khớp definition; ticket con do máy A tạo, DAG đúng predecessor, operation ID riêng và effect ID tính lại được, không có `workflow_gates`; latch sai máy/attempt/definition/customization/project root/loại evidence trả 409, đúng thì revision 2, lần hai 409; UPDATE/DELETE identity bị trigger chặn; duyệt song song của máy hoặc khác root 403, trùng ownership 409, owner hợp lệ thì tách phần và join review.
+diff --git a/v2/docs/flows/server-assistant.md b/v2/docs/flows/server-assistant.md
+index b76f110..4703ab3 100644
+--- a/v2/docs/flows/server-assistant.md
++++ b/v2/docs/flows/server-assistant.md
+@@ -18,35 +18,36 @@ Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant
+ 2. `assistant.message.created` và message `attachment.input.changed` đọc revision từ message009. Ticket `attachment.input.changed`, `attachment.changed` đọc counter009 của đích. `comment.created` đọc cây con hiện tại và revision của từng descendant; không tăng counter thêm lần nữa. Ticket lifecycle `ticket.created/changed`, `dependency.added`, `decision.created`, `repair.recorded`, command và attempt events tạo work cursor riêng với `input_revision=null`. Event khác chỉ tiến cursor.
+ 3. Input wake khử trùng trên `(target_kind,target_id,input_revision)` khi revision khác null. `reconcileWork` quét revision message/ticket thực để bù wake mất, dùng cùng khóa dedup và giữ logical key/source cursor ban đầu. Các hàm này không tạo turn hay quyền inference.
+ 4. Ticket claim/ACK khóa event cursor và root trước các khóa authority. Message bắt đầu ở authority và không khóa root về sau. Guard calibration, machine, config, designation, turn và generation hiện hành đều phải khớp exact TurnFence. Trước cả replay, message work phải cùng message/conversation của turn; ticket work cần scope của chính turn còn hạn, đúng root/project, kể cả descendant. Message turn chỉ nhận root scope khi có route chưa revoke tới cùng root/project; monitor turn không message cần explicit root scope. Discovery toàn hệ thống không cấp turn quyền toàn hệ thống. Claim chỉ nhận reserved/running; ACK nhận running/finalizing/stopped. Uncertain bị giữ lại. Replay cùng fence không tăng attempts hoặc sửa ACK terminal.
+ 5. `allocateAssistantGeneration(tx)` khóa guard chung và tăng bigint monitor bằng UPDATE RETURNING, không reset hoặc wrap. Caller admission T2 phải bind giá trị với đúng normal turn hoặc calibration launch trong cùng transaction thành công; đọc/cấp generation tự nó không cấp quyền.
+ 6. SQL011 bảo vệ liên kết conversation/message, một turn sống, chứng từ bất biến, scope cụ thể, hex64 effect và ordinal hành động persist trong target identity. R1 tách challenge/certification và measured routing receipt khỏi certificate workflow008. R2 giữ thứ tự tool call và kết quả terminal. R3 chỉ nối derived authorization đúng route với parent còn hiệu lực, không tăng expiry/allowOriginal hoặc mở rộng reference original.
+ 7. R4 hook trên INSERT attempt kiểm launch đúng command/machine/process, chưa hết hạn hoặc retired, rồi bind attempt và active reservation nguyên tử. Release attempt cần stopped và finalized. Unclaimed release cần retirement cùng proof never-authorized hoặc launch đóng với exact identity và stop/journal chứng từ. Guard release kiểm cả INSERT và UPDATE bằng constraint deferred: terminal row có proof hợp lệ vẫn được insert/restore, row thiếu proof bị rollback. UUID artifact không chứng minh đã dừng.
+ 8. Owner chọn machine còn hiệu lực bằng cookie, Origin, CSRF và Idempotency-Key. PUT dùng machine UUID chuẩn chữ thường cho identity nội bộ, giữ nguyên request body để journal hash/replay. Thứ tự khóa: journal/event cursor → calibration guard → machines theo thứ tự → config → designation → live turns khi đổi máy → exact owner session FOR SHARE. Sau mọi lần chờ, statement riêng kiểm revoke/expiry bằng `clock_timestamp()`, trước cached reply hoặc mutation. Session lock giữ tới commit để serialize revocation.
+ 9. Mutation mới kiểm config CAS; replay không tạo designation mới. Policy update cùng machine giữ designation và live turn. Đổi máy khi idle retire identity cũ; turn chưa stopped hoặc calibration active trả409 và không retire một phần. Metadata không tạo grant, turn, command hoặc quyền inference. Direct input/doc reads, G2 và retirement runtime vẫn chờ producer tiếp theo.
+ 10. Resolver: kiểm fence/scope như cũ (scope thiếu404, fence lệch409, scope hết hạn409 đo bằng `clock_timestamp()`). Turn chưa có `admission_id` giữ503 `ASSISTANT_ADMISSION_NOT_CONFIGURED`. Turn đã admit phải có read session của chính admission (tra thẳng theo `read_session_id` và `admission_id`). Grant của session khóa FOR SHARE trước session: chưa revoke, còn hạn, cùng máy designation, cùng snapshot với session, đúng designation và revision của fence; re-route thu hồi grant nên session `reserved` còn lại cũng bị từ chối. Session `reserved/running`, cùng máy designation, process instance, designation revision, selection, policy receipt và snapshot input của scope. Selection dẫn tới policy receipt `PASS`, chưa revoke, cùng `deployment_id` của config và đúng verifier đã ghim, cùng máy; capability receipt của selection còn hiệu lực. Grant, session, selection và receipt khóa FOR SHARE rồi mới đo hạn bằng `clock_timestamp()`. Mọi lệch trả403 `ASSISTANT_ADMISSION_DENIED`, không fallback. Thành công trả `{kind:'machine', id: designation.machine_id}` đóng băng.
+ 11. Port chụp actor/proof/payload đồng bộ trước mọi await rồi gọi entry scoped; entry khóa root → ticket theo thứ tự → project trước verify. Authority: resolver; actor gọi phải đúng máy designation (403 `ORCHESTRATION_ACTOR_MISMATCH`); action phải nằm trong `scope.actions` (403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`); `operationId` phải là row `assistant_tool_operations` `pending` của cùng turn, được ghi trong chính Tx (`xmin` = transaction hiện hành; row đã commit từ Tx trước bị 404 `ASSISTANT_OPERATION_NOT_FOUND`), trên snapshot input của scope (409 `ASSISTANT_OPERATION_STALE`), row này khóa FOR UPDATE. Mỗi operation chỉ authorize một mutation trong Tx của nó; dùng lại trả 409 `ASSISTANT_OPERATION_CONSUMED`. Ticket đích, cha hoặc predecessor phải thuộc đúng `scope.root_ticket_id` và project; ngoài gốc hoặc scope message không có root trả404. Tạo request mới chỉ với scope message và quyết định `routing` của message ghi trong chính Tx (`xmin` = transaction hiện hành) với body đúng `{operationId,scopeId,ticketSha256}` bằng hash CreateTicket, cùng snapshot, input revision hiện hành (message khóa FOR SHARE khi đọc), actor máy A và `sha256` khớp; thiếu hoặc lệch trả403 `ORCHESTRATION_ROUTING_DECISION_REQUIRED`. Dependency không có cột actor: provenance là row tool operation (turn → designation → máy A) cộng journal actor A của mutation. Precondition cho caller: gọi port bên trong `mutate()` (hoặc khóa `event_cursor` trước root) để giữ thứ tự khóa với ingestion; router ghi tool operation và routing decision trực tiếp trong Tx (không qua savepoint) và ghi decision trước khi tăng `input_revision` của message; transport phải resolve proof → scope trước mọi truy vấn ticket để không lộ sự tồn tại.
++12. Graph authorization cho `create_run`: `port.authorizeGraph(tx, actor, proof, graph, graphSha256)` nhận `RunGraph = {runId, rootTicketId, tickets:[{key, input}], edges:[{key, ticketKey, predecessorKey}]}`. Mọi ticket phải là `step` con trực tiếp của root; key là UUID chữ thường, không trùng; cạnh chỉ nối hai ticket của graph, không tự nối, không lặp (sai shape trả 400). `graphSha256` phải bằng `runGraphSha256(graph)` = SHA-256 canonical của `['crew-v2:orchestration-graph:1', graph]` tính trên snapshot đồng bộ, lệch trả 403 `ORCHESTRATION_SCOPE_INVALID`. Port khóa root → project, resolver Actor, kiểm scope là root scope đúng root/project, `tool_names` có `create_run` và `actions` có `create_ticket` (cùng `dependency` nếu có cạnh), nếu thiếu trả 403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`. Operation phải là row pending ghi trong chính Tx như mục 11 và bị tiêu trong cùng tập `consumed` với mutation đơn lẻ. Vì vậy operation của `create_run` không authorize được mutation đơn lẻ và ngược lại (409 `ASSISTANT_OPERATION_CONSUMED`). Mỗi Tx chỉ có một graph. Session trả về chỉ dùng được trong Tx đó; Tx khác hoặc session đã đóng trả 404 `ASSISTANT_OPERATION_NOT_FOUND`. `createTicket(tx, key, input)` và `dependency(tx, ticketId, predecessorId, expectedRevision)` vẫn đi qua entry scoped của `server-tickets`. Authority khớp đúng một phần tử chưa dùng: key lạ, input khác hash đã băm, cạnh không có trong tập hoặc ticket ngoài graph trả 403 `ORCHESTRATION_TARGET_NOT_AUTHORIZED`; phần tử đã dùng trả 409 `ORCHESTRATION_TARGET_CONSUMED`. Mỗi phần tử resolve lại Actor, kiểm lại action của scope và membership root. `close(tx)` trả 409 `ORCHESTRATION_GRAPH_INCOMPLETE` nếu còn phần tử chưa dùng. Mutation đơn lẻ giữ nguyên hành vi mục 11.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/011_assistant.sql` | Persistence Assistant và ràng buộc R1–R4 |
+ | `server/src/assistant/contracts.ts` | Hợp đồng typed nhập từ producer đã có |
+ | `server/src/assistant/store.ts` | Fence và generation persistence |
+ | `server/src/assistant/inbox.ts` | Cursor, reconciliation, claim và ACK |
+ | `server/src/assistant/authority.ts` | Designation/CAS và resolver Actor từ admission/receipt persisted |
+-| `server/src/assistant/orchestration.ts` | `ProjectOrchestrationPort` thật và authority persisted (scope/operation/membership/routing decision) |
++| `server/src/assistant/orchestration.ts` | `ProjectOrchestrationPort` thật, authority persisted (scope/operation/membership/routing decision) và graph authorization một lần cho `create_run` |
+ | `server/src/assistant/routes.ts` | Owner config routes và credential lock |
+ | `server/test/assistant-store.test.ts` | PostgreSQL constraints, durable inbox và backup/restore |
+ | `server/test/assistant-authority.test.ts` | Fastify inject/auth thật, config CAS, lock races và UUID casing |
+-| `server/test/assistant-orchestration-port.test.ts` | Port thật trên PostgreSQL: Actor A, admission/receipt deny, operation, scope action, membership, routing decision, generic 404, command503 |
++| `server/test/assistant-orchestration-port.test.ts` | Port thật trên PostgreSQL: Actor A, admission/receipt deny, operation, scope action, membership, routing decision, generic 404, command503, graph authorization (hash lệch, ngoài tập, dùng lại, Tx khác, không thay thế lẫn nhau, scope tool) |
+ | `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử, gồm `seedAdmittedTurn` (receipt PASS của verifier fixture) và `seedToolOperation` |
+ 
+ ## Dữ liệu
+ 
+ Migrations001–010 giữ nguyên. SQL011 lưu config/designation/monitor/guard, routing certification, turns/selections/scopes, inbox, workflows/gates/questions/answers, assessments/dispatches, capacity/reservations, interventions/operation IDs, text/budget/route/retirement/launch/tool/doc receipts. Khóa ngoại dùng bảng thực và ON DELETE RESTRICT; các vòng phụ thuộc được kiểm deferred trong transaction.
+ 
+ Constraint identity deferred gắn selection với exact key của policy/capability receipts và machine designation của turn; không yêu cầu fixture UNVERIFIED trở thành PASS. Assessment snapshot phải thuộc chính ticket; dispatch command/step/assessment/decision cùng ticket và workflow run cùng root. Capacity receipt giữ exact ticket/kind/boot/ownership của request; reservation giữ machine/ticket của command và ownership của receipt. Ownership so sánh nguyên JSON array có thứ tự như DTO, không tự diễn giải thành set/sort. Những check này bảo vệ liên kết các hàng, không thay producer telemetry, canonical hash, approval hoặc admission.
+ 
+ `request_sha256` và `receipt_sha256` là SHA256 lowercase hex64 của toàn bộ DTO CapacityRequest/CapacityReceipt qua `canonicalJson`, không bao gồm hash tự thân hoặc linkage `receipt_id` ngoài DTO. Trusted producer T4 tính tại insert; T5 tiêu thụ. Hash không chứng nhận telemetry hay cấp admission. Consent producer phải kiểm identity/hash/current scope trước tạo linkage; artifact UUID chưa có registry generic trong001–010 nên trusted producer T2/native phải xác minh artifact và stop proof thực. Thiếu producer thì mặc định từ chối; fixture UNVERIFIED không phải production certificate.
+ 
+diff --git a/v2/server/src/assistant/orchestration.ts b/v2/server/src/assistant/orchestration.ts
+index 898e74a..e830faa 100644
+--- a/v2/server/src/assistant/orchestration.ts
++++ b/v2/server/src/assistant/orchestration.ts
+@@ -1,49 +1,156 @@
++import { createHash } from 'node:crypto';
+ import { digest } from '../attachments/submissions.ts';
+ import { canonicalJson } from '../journal/canonical.ts';
+ import type { Actor, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+-import { immutableSnapshot, invalidScope, orchestrationTargetHash } from '../tickets/assistant-access.ts';
+-import type { CreateTicket, DecisionInput, TicketServiceDependencies } from '../tickets/contracts.ts';
++import {
++  immutableSnapshot,
++  invalidScope,
++  orchestrationTargetHash,
++  uuid,
++} from '../tickets/assistant-access.ts';
++import type { CreateTicket, DecisionInput, Ticket, TicketServiceDependencies } from '../tickets/contracts.ts';
+ import { createTicketServices } from '../tickets/service.ts';
+ import type { PersistedAssistantActorResolver } from './authority.ts';
+ import type {
+   OrchestrationAction,
+   OrchestrationProof,
+   ProjectOrchestrationAuthority,
+   ProjectOrchestrationPort,
++  Sha256,
+ } from './contracts.ts';
+ 
+ type AssistantSignal = 'dependencies_ready' | 'wait_owner';
+ type Target =
+   | { action: 'create_ticket'; payload: CreateTicket }
+   | { action: 'decision'; payload: { ticketId: Id; input: DecisionInput } }
+   | { action: 'dependency'; payload: { ticketId: Id; predecessorId: Id; expectedRevision: number } }
+   | { action: 'signal'; payload: { ticketId: Id; signal: AssistantSignal; expectedRevision: number } };
+ type Binding = {
+   target: Target;
+   targetSha256: string;
+   actor: Actor;
+   proof: OrchestrationProof;
+   used: boolean;
++  element?: GraphElement;
+ };
++
++/** Child ticket of the run root, keyed by its pre-allocated step operation ID. */
++export type RunGraphTicket = { key: Id; input: CreateTicket };
++/** Dependency edge between two graph tickets, keyed by its own operation ID. */
++export type RunGraphEdge = { key: Id; ticketKey: Id; predecessorKey: Id };
++/** Exact set of mutations one pending `create_run` operation may authorize. */
++export type RunGraph = { runId: Id; rootTicketId: Id; tickets: RunGraphTicket[]; edges: RunGraphEdge[] };
++export interface RunGraphSession {
++  createTicket(tx: Tx, key: Id, input: CreateTicket): Promise<Ticket>;
++  dependency(tx: Tx, ticketId: Id, predecessorId: Id, expectedRevision: number): Promise<void>;
++  /** Every element must be used exactly once; afterwards the session is spent. */
++  close(tx: Tx): void;
++}
++export interface WorkflowOrchestrationPort extends ProjectOrchestrationPort {
++  authorizeGraph(
++    tx: Tx,
++    actor: Actor,
++    proof: OrchestrationProof,
++    graph: RunGraph,
++    graphSha256: Sha256,
++  ): Promise<RunGraphSession>;
++}
++type GraphEntry = {
++  tx: Tx;
++  actor: Actor;
++  proof: OrchestrationProof;
++  rootTicketId: Id;
++  tickets: Map<Id, { hash: string; used: boolean; ticketId: Id | null }>;
++  edges: Map<Id, { ticketKey: Id; predecessorKey: Id; used: boolean }>;
++  closed: boolean;
++};
++type GraphElement = { graph: GraphEntry; kind: 'ticket' | 'edge'; key: Id };
+ type ScopeRow = {
+   rootTicketId: Id | null;
+   messageId: Id | null;
+   projectId: Id | null;
+   inputSnapshotId: Id;
+ };
+ 
+ const notFound = () => new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+ const routingRequired = () =>
+   new ApiError('ORCHESTRATION_ROUTING_DECISION_REQUIRED', 403, 'Thiếu quyết định định tuyến cho yêu cầu mới');
+ const nullableId = (value: unknown): Id | null => (value === null ? null : String(value));
++const operationNotFound = () =>
++  new ApiError('ASSISTANT_OPERATION_NOT_FOUND', 404, 'Không tìm thấy thao tác Trợ lý');
++const targetNotAuthorized = () =>
++  new ApiError('ORCHESTRATION_TARGET_NOT_AUTHORIZED', 403, 'Thao tác ngoài tập đã được duyệt');
++const targetConsumed = () =>
++  new ApiError('ORCHESTRATION_TARGET_CONSUMED', 409, 'Phần tử của tập đã được dùng');
++const graphInvalid = () => new ApiError('VALIDATION', 400, 'Đồ thị điều phối không hợp lệ');
++const lowerUuid = (value: unknown): value is Id =>
++  typeof value === 'string' && uuid.test(value) && value === value.toLowerCase();
++
++/** Canonical digest of the exact graph a `create_run` operation authorizes. */
++export function runGraphSha256(graph: RunGraph): Sha256 {
++  return createHash('sha256')
++    .update(canonicalJson(['crew-v2:orchestration-graph:1', graph]))
++    .digest('hex');
++}
++
++// Shape only: children of the one root, unique lowercase keys, edges between graph tickets.
++function assertGraphShape(graph: RunGraph): void {
++  const plain = (value: unknown, keys: string[]): value is Record<string, unknown> =>
++    !!value &&
++    typeof value === 'object' &&
++    !Array.isArray(value) &&
++    canonicalJson(Object.keys(value).sort()) === canonicalJson([...keys].sort());
++  if (
++    !plain(graph, ['runId', 'rootTicketId', 'tickets', 'edges']) ||
++    !lowerUuid(graph.runId) ||
++    !lowerUuid(graph.rootTicketId) ||
++    !Array.isArray(graph.tickets) ||
++    !Array.isArray(graph.edges) ||
++    graph.tickets.length < 1 ||
++    graph.tickets.length > 64 ||
++    graph.edges.length > 256
++  )
++    throw graphInvalid();
++  const keys = new Set<string>();
++  const pairs = new Set<string>();
++  for (const ticket of graph.tickets) {
++    if (
++      !plain(ticket, ['key', 'input']) ||
++      !lowerUuid(ticket.key) ||
++      keys.has(ticket.key) ||
++      !ticket.input ||
++      typeof ticket.input !== 'object' ||
++      ticket.input.parentId !== graph.rootTicketId ||
++      ticket.input.level !== 'step'
++    )
++      throw graphInvalid();
++    keys.add(ticket.key);
++  }
++  const ticketKeys = new Set(keys);
++  for (const edge of graph.edges) {
++    if (
++      !plain(edge, ['key', 'ticketKey', 'predecessorKey']) ||
++      !lowerUuid(edge.key) ||
++      keys.has(edge.key) ||
++      !ticketKeys.has(edge.ticketKey) ||
++      !ticketKeys.has(edge.predecessorKey) ||
++      edge.ticketKey === edge.predecessorKey
++    )
++      throw graphInvalid();
++    const pair = `${edge.ticketKey}>${edge.predecessorKey}`;
++    if (pairs.has(pair)) throw graphInvalid();
++    keys.add(edge.key);
++    pairs.add(pair);
++  }
++}
+ 
+ function sameIdentity(binding: Binding, actor: Actor, proof: OrchestrationProof): boolean {
+   try {
+     return (
+       canonicalJson(actor) === canonicalJson(binding.actor) &&
+       canonicalJson(proof) === canonicalJson(binding.proof)
+     );
+   } catch {
+     return false;
+   }
+@@ -124,40 +231,42 @@ async function verifyTarget(
+     return verifyMembership(tx, scope, [input.parentId]);
+   }
+   if (target.action === 'dependency')
+     return verifyMembership(tx, scope, [target.payload.ticketId, target.payload.predecessorId]);
+   return verifyMembership(tx, scope, [target.payload.ticketId]);
+ }
+ 
+ function persistedAuthority(resolver: PersistedAssistantActorResolver) {
+   const resolve = resolver;
+   const bindings = new WeakMap<Tx, Binding>();
++  const graphs = new WeakMap<Tx, GraphEntry>();
+   // Each operation row authorizes exactly one mutation in its own Tx.
+   const consumed = new WeakMap<Tx, Set<string>>();
+   const authority: ProjectOrchestrationAuthority = Object.freeze({
+     async verify(
+       tx: Tx,
+       actor: Actor,
+       proof: OrchestrationProof,
+       action: OrchestrationAction,
+       targetSha256: string,
+     ): Promise<void> {
+       const binding = bindings.get(tx);
+       if (
+         !binding ||
+         binding.used ||
+         binding.target.action !== action ||
+         binding.targetSha256 !== targetSha256 ||
+         !sameIdentity(binding, actor, proof)
+       )
+         throw invalidScope();
+       binding.used = true;
++      if (binding.element) return verifyGraphElement(tx, binding, binding.element, action, targetSha256);
+       const resolved = await resolve(tx, binding.proof);
+       if (binding.actor.kind !== 'machine' || binding.actor.id !== resolved.id)
+         throw new ApiError('ORCHESTRATION_ACTOR_MISMATCH', 403, 'Máy gọi không phải máy Trợ lý hiện hành');
+       const [scope] = await tx`select root_ticket_id,message_id,project_id,actions,input_snapshot_id
+         from assistant_scopes where id=${binding.proof.scopeId}`;
+       if (!scope) throw new ApiError('ASSISTANT_SCOPE_NOT_FOUND', 404, 'Không tìm thấy phạm vi Trợ lý');
+       if (!Array.isArray(scope.actions) || !scope.actions.includes(action))
+         throw new ApiError('ORCHESTRATION_ACTION_NOT_IN_SCOPE', 403, 'Hành động ngoài phạm vi Trợ lý');
+       // The tools route writes the pending row in this same Tx before calling the port.
+       const [operation] =
+@@ -180,44 +289,181 @@ function persistedAuthority(resolver: PersistedAssistantActorResolver) {
+           messageId: nullableId(scope.message_id),
+           projectId: nullableId(scope.project_id),
+           inputSnapshotId: String(scope.input_snapshot_id),
+         },
+         binding,
+         resolved,
+         targetSha256,
+       );
+     },
+   });
++  // One element of the graph authorized for this Tx. The pending `create_run` operation
++  // was consumed once by authorizeGraph; each element is consumed here exactly once and
++  // the Actor, scope and root membership are re-resolved from persisted rows every time.
++  async function verifyGraphElement(
++    tx: Tx,
++    binding: Binding,
++    element: GraphElement,
++    action: OrchestrationAction,
++    targetSha256: string,
++  ): Promise<void> {
++    const { graph } = element;
++    if (
++      graphs.get(tx) !== graph ||
++      graph.tx !== tx ||
++      graph.closed ||
++      canonicalJson(binding.actor) !== canonicalJson(graph.actor) ||
++      canonicalJson(binding.proof) !== canonicalJson(graph.proof)
++    )
++      throw invalidScope();
++    const { target } = binding;
++    let members: Id[];
++    if (element.kind === 'ticket') {
++      const ticket = graph.tickets.get(element.key);
++      if (!ticket || target.action !== 'create_ticket' || ticket.hash !== targetSha256)
++        throw targetNotAuthorized();
++      if (ticket.used) throw targetConsumed();
++      ticket.used = true;
++      members = [graph.rootTicketId];
++    } else {
++      const edge = graph.edges.get(element.key);
++      if (!edge || target.action !== 'dependency') throw targetNotAuthorized();
++      const ticketId = graph.tickets.get(edge.ticketKey)?.ticketId;
++      const predecessorId = graph.tickets.get(edge.predecessorKey)?.ticketId;
++      if (
++        !ticketId ||
++        !predecessorId ||
++        target.payload.ticketId.toLowerCase() !== ticketId ||
++        target.payload.predecessorId.toLowerCase() !== predecessorId
++      )
++        throw targetNotAuthorized();
++      if (edge.used) throw targetConsumed();
++      edge.used = true;
++      members = [ticketId, predecessorId];
++    }
++    const resolved = await resolve(tx, graph.proof);
++    if (graph.actor.kind !== 'machine' || graph.actor.id !== resolved.id)
++      throw new ApiError('ORCHESTRATION_ACTOR_MISMATCH', 403, 'Máy gọi không phải máy Trợ lý hiện hành');
++    const [scope] = await tx`select root_ticket_id,project_id,actions,input_snapshot_id
++      from assistant_scopes where id=${graph.proof.scopeId}`;
++    if (!scope || scope.root_ticket_id !== graph.rootTicketId) throw notFound();
++    if (!Array.isArray(scope.actions) || !scope.actions.includes(action))
++      throw new ApiError('ORCHESTRATION_ACTION_NOT_IN_SCOPE', 403, 'Hành động ngoài phạm vi Trợ lý');
++    await verifyMembership(
++      tx,
++      {
++        rootTicketId: graph.rootTicketId,
++        messageId: null,
++        projectId: nullableId(scope.project_id),
++        inputSnapshotId: String(scope.input_snapshot_id),
++      },
++      members,
++    );
++  }
++  /**
++   * Consumes one pending `create_run` operation written in this Tx and binds it to the
++   * exact hashed graph. Locks root → project before the persisted Actor resolves.
++   */
++  async function authorizeGraph(
++    tx: Tx,
++    actor: Actor,
++    proof: OrchestrationProof,
++    graph: RunGraph,
++    graphSha256: string,
++  ): Promise<GraphEntry> {
++    assertGraphShape(graph);
++    if (graphSha256 !== runGraphSha256(graph)) throw invalidScope();
++    if (graphs.has(tx) || bindings.has(tx)) throw invalidScope();
++    if (actor.kind !== 'machine' || !uuid.test(actor.id))
++      throw new ApiError('ORCHESTRATION_MACHINE_REQUIRED', 403, 'Chỉ máy trợ lý được điều phối');
++    const [root] =
++      await tx`select id,root_id,project_id,level from tickets where id=${graph.rootTicketId} for update`;
++    if (!root || root.root_id !== root.id || root.level !== 'request') throw notFound();
++    await tx`select id from projects where id=${root.project_id} for update`;
++    const resolved = await resolve(tx, proof);
++    if (actor.id !== resolved.id)
++      throw new ApiError('ORCHESTRATION_ACTOR_MISMATCH', 403, 'Máy gọi không phải máy Trợ lý hiện hành');
++    const [scope] = await tx`select root_ticket_id,project_id,actions,tool_names,input_snapshot_id
++      from assistant_scopes where id=${proof.scopeId}`;
++    if (!scope) throw new ApiError('ASSISTANT_SCOPE_NOT_FOUND', 404, 'Không tìm thấy phạm vi Trợ lý');
++    if (scope.root_ticket_id !== graph.rootTicketId || scope.project_id !== root.project_id) throw notFound();
++    const needed: OrchestrationAction[] = graph.edges.length
++      ? ['create_ticket', 'dependency']
++      : ['create_ticket'];
++    if (
++      !Array.isArray(scope.actions) ||
++      !Array.isArray(scope.tool_names) ||
++      !scope.tool_names.includes('create_run') ||
++      needed.some((action) => !scope.actions.includes(action))
++    )
++      throw new ApiError('ORCHESTRATION_ACTION_NOT_IN_SCOPE', 403, 'Hành động ngoài phạm vi Trợ lý');
++    const [operation] =
++      await tx`select operation_id,turn_id,state,input_snapshot_id from assistant_tool_operations
++      where operation_id=${proof.operationId} and xmin=pg_current_xact_id()::xid for update`;
++    if (!operation || operation.turn_id !== proof.fence.turnId || operation.state !== 'pending')
++      throw operationNotFound();
++    if (operation.input_snapshot_id !== scope.input_snapshot_id)
++      throw new ApiError('ASSISTANT_OPERATION_STALE', 409, 'Thao tác Trợ lý không cùng input của phạm vi');
++    const used = consumed.get(tx) ?? new Set<string>();
++    consumed.set(tx, used);
++    const operationKey = String(operation.operation_id);
++    if (used.has(operationKey))
++      throw new ApiError('ASSISTANT_OPERATION_CONSUMED', 409, 'Thao tác Trợ lý đã được dùng');
++    used.add(operationKey);
++    const entry: GraphEntry = {
++      tx,
++      actor,
++      proof,
++      rootTicketId: graph.rootTicketId,
++      tickets: new Map(
++        graph.tickets.map((ticket) => [
++          ticket.key,
++          { hash: orchestrationTargetHash('create_ticket', ticket.input), used: false, ticketId: null },
++        ]),
++      ),
++      edges: new Map(
++        graph.edges.map((edge) => [
++          edge.key,
++          { ticketKey: edge.ticketKey, predecessorKey: edge.predecessorKey, used: false },
++        ]),
++      ),
++      closed: false,
++    };
++    graphs.set(tx, entry);
++    return entry;
++  }
+   // Records the port's own captured call so verify can check target membership;
+   // it grants nothing: every permission still comes from persisted rows above.
+   async function withTarget<R>(
+     tx: Tx,
+     actor: Actor,
+     proof: OrchestrationProof,
+     target: Target,
+     run: () => Promise<R>,
++    element?: GraphElement,
+   ): Promise<R> {
+     if (bindings.has(tx)) throw invalidScope();
+     bindings.set(tx, {
+       target,
+       targetSha256: orchestrationTargetHash(target.action, target.payload),
+       actor,
+       proof,
+       used: false,
++      ...(element ? { element } : {}),
+     });
+     try {
+       return await run();
+     } finally {
+       bindings.delete(tx);
+     }
+   }
+-  return { authority, withTarget };
++  return { authority, withTarget, authorizeGraph };
+ }
+ 
+ /**
+  * Persisted A2 authority. Membership needs the exact captured target, so only the
+  * port of this module can supply it; a bare verify call always fails closed.
+  */
+ export function createPersistedOrchestrationAuthority(
+   resolver: PersistedAssistantActorResolver,
+ ): ProjectOrchestrationAuthority {
+   return persistedAuthority(resolver).authority;
+@@ -228,24 +474,102 @@ export type ProjectOrchestrationPortDependencies = {
+   resolver: PersistedAssistantActorResolver;
+ };
+ 
+ /**
+  * Real G1 port over the scoped ticket writers. Each call snapshots its arguments
+  * synchronously, then the writer locks root → sorted tickets → project before the
+  * persisted authority verifies. `command` stays unreleased until execution owns it.
+  */
+ export function createProjectOrchestrationPort(
+   deps: ProjectOrchestrationPortDependencies,
+-): ProjectOrchestrationPort {
+-  const { authority, withTarget } = persistedAuthority(deps.resolver);
++): WorkflowOrchestrationPort {
++  const { authority, withTarget, authorizeGraph } = persistedAuthority(deps.resolver);
+   const services = createTicketServices({ ...deps.tickets, assistant: authority });
++  // A session works only in the Tx that authorized it; any other Tx sees no operation.
++  const session = (graph: GraphEntry): RunGraphSession => {
++    const current = (tx: Tx) => {
++      if (graph.tx !== tx || graph.closed) throw operationNotFound();
++    };
++    return Object.freeze({
++      async createTicket(tx: Tx, key: Id, input: CreateTicket) {
++        current(tx);
++        const call = immutableSnapshot({ key, input });
++        const ticket = graph.tickets.get(call.key);
++        if (!ticket) throw targetNotAuthorized();
++        if (ticket.used) throw targetConsumed();
++        if (ticket.hash !== orchestrationTargetHash('create_ticket', call.input)) throw targetNotAuthorized();
++        const created = await withTarget(
++          tx,
++          graph.actor,
++          graph.proof,
++          { action: 'create_ticket', payload: call.input },
++          () => services.assistantCreateTicket(tx, graph.actor, graph.proof, call.input),
++          { graph, kind: 'ticket', key: call.key },
++        );
++        ticket.ticketId = created.id.toLowerCase();
++        return created;
++      },
++      async dependency(tx: Tx, ticketId: Id, predecessorId: Id, expectedRevision: number) {
++        current(tx);
++        const call = immutableSnapshot({ ticketId, predecessorId, expectedRevision });
++        const keyOf = (id: unknown) =>
++          typeof id === 'string'
++            ? [...graph.tickets].find(([, ticket]) => ticket.ticketId === id.toLowerCase())?.[0]
++            : undefined;
++        const ticketKey = keyOf(call.ticketId);
++        const predecessorKey = keyOf(call.predecessorId);
++        const edge = [...graph.edges].find(
++          ([, value]) => value.ticketKey === ticketKey && value.predecessorKey === predecessorKey,
++        );
++        if (!ticketKey || !predecessorKey || !edge) throw targetNotAuthorized();
++        if (edge[1].used) throw targetConsumed();
++        const payload = {
++          ticketId: call.ticketId,
++          predecessorId: call.predecessorId,
++          expectedRevision: call.expectedRevision,
++        };
++        await withTarget(
++          tx,
++          graph.actor,
++          graph.proof,
++          { action: 'dependency', payload },
++          () =>
++            services.assistantAddDependency(
++              tx,
++              graph.actor,
++              graph.proof,
++              payload.ticketId,
++              payload.predecessorId,
++              payload.expectedRevision,
++            ),
++          { graph, kind: 'edge', key: edge[0] },
++        );
++      },
++      close(tx: Tx) {
++        current(tx);
++        if ([...graph.tickets.values(), ...graph.edges.values()].some((element) => !element.used))
++          throw new ApiError('ORCHESTRATION_GRAPH_INCOMPLETE', 409, 'Đồ thị điều phối chưa hoàn tất');
++        graph.closed = true;
++      },
++    });
++  };
+   return Object.freeze({
++    async authorizeGraph(
++      tx: Tx,
++      actor: Actor,
++      proof: OrchestrationProof,
++      graph: RunGraph,
++      graphSha256: Sha256,
++    ) {
++      const call = immutableSnapshot({ actor, proof, graph, graphSha256 });
++      return session(await authorizeGraph(tx, call.actor, call.proof, call.graph, call.graphSha256));
++    },
+     async createTicket(tx: Tx, actor: Actor, proof: OrchestrationProof, input: CreateTicket) {
+       const call = immutableSnapshot({ actor, proof, input });
+       return withTarget(tx, call.actor, call.proof, { action: 'create_ticket', payload: call.input }, () =>
+         services.assistantCreateTicket(tx, call.actor, call.proof, call.input),
+       );
+     },
+     async decision(tx: Tx, actor: Actor, proof: OrchestrationProof, ticketId: Id, input: DecisionInput) {
+       const call = immutableSnapshot({ actor, proof, ticketId, input });
+       return withTarget(
+         tx,
+diff --git a/v2/server/src/assistant/runs.ts b/v2/server/src/assistant/runs.ts
+new file mode 100644
+index 0000000..89d6429
+--- /dev/null
++++ b/v2/server/src/assistant/runs.ts
+@@ -0,0 +1,475 @@
++import { createHash, randomUUID } from 'node:crypto';
++import { posix } from 'node:path';
++import { samePin } from '../../../src/workflow-policy.ts';
++import { toDomainPin } from '../gateway/contracts.ts';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { Actor, Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { uuid } from '../tickets/assistant-access.ts';
++import type { CreateTicket, Ticket } from '../tickets/contracts.ts';
++import type { PersistedAssistantActorResolver } from './authority.ts';
++import type { OrchestrationProof, Sha256, SkillStep, WorkflowRun } from './contracts.ts';
++import type { RunGraph, WorkflowOrchestrationPort } from './orchestration.ts';
++import { runGraphSha256 } from './orchestration.ts';
++import type { DefinitionLookup, StepSpec, WorkflowPath } from './workflows.ts';
++import {
++  createDefinitionLookup,
++  stepSources,
++  workflowOfPath,
++  workflowPaths,
++  workflowSteps,
++} from './workflows.ts';
++
++export type CreateRunInput = { rootTicketId: Id; path: WorkflowPath; definitionSha256: Sha256 };
++export type WorkflowRunDependencies = {
++  port: WorkflowOrchestrationPort;
++  resolver: PersistedAssistantActorResolver;
++  lookup?: DefinitionLookup;
++};
++export type WorkflowRuns = {
++  createRun(tx: Tx, proof: OrchestrationProof, input: CreateRunInput): Promise<WorkflowRun>;
++  latchRenderedArtifact(tx: Tx, runId: Id, evidenceId: Id): Promise<WorkflowRun>;
++};
++
++type ParallelUnit = { key: string; title: string; ownershipKeys: string[] };
++type PlannedStep = {
++  spec: StepSpec;
++  stepId: Id;
++  operationId: Id;
++  gateIds: Id[];
++  predecessors: number[];
++  ownershipKeys: string[];
++  title: string;
++};
++
++const digest = /^[0-9a-f]{64}$/;
++const sha256 = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
++const sha256Text = (text: string) => createHash('sha256').update(text, 'utf8').digest('hex');
++const renderConflict = (message: string) => new ApiError('WORKFLOW_RENDER_RECEIPT_INVALID', 409, message);
++const plainObject = (value: unknown): value is Record<string, unknown> =>
++  !!value && typeof value === 'object' && !Array.isArray(value);
++
++/** Phase04 logical effect identity, recomputed from the persisted operation fields. */
++export function workflowEffectId(input: {
++  runId: Id;
++  stepOperationId: Id;
++  actionKind: string;
++  targetIdentity: string;
++  preconditionSha256: Sha256;
++}): Sha256 {
++  return sha256([
++    input.runId,
++    input.stepOperationId,
++    input.actionKind,
++    input.targetIdentity,
++    input.preconditionSha256,
++  ]);
++}
++
++function validateInput(input: CreateRunInput): CreateRunInput {
++  if (
++    !plainObject(input) ||
++    Object.keys(input).length !== 3 ||
++    typeof input.rootTicketId !== 'string' ||
++    !uuid.test(input.rootTicketId) ||
++    !workflowPaths.includes(input.path) ||
++    typeof input.definitionSha256 !== 'string' ||
++    !digest.test(input.definitionSha256)
++  )
++    throw new ApiError('VALIDATION', 400, 'Yêu cầu tạo run không hợp lệ');
++  return {
++    rootTicketId: input.rootTicketId.toLowerCase(),
++    path: input.path,
++    definitionSha256: input.definitionSha256,
++  };
++}
++
++function units(scope: unknown, input: CreateRunInput): ParallelUnit[] {
++  const parallel = plainObject(scope) ? scope.parallel : undefined;
++  if (
++    !plainObject(parallel) ||
++    parallel.rootTicketId !== input.rootTicketId ||
++    parallel.path !== input.path ||
++    parallel.definitionSha256 !== input.definitionSha256 ||
++    !Array.isArray(parallel.units) ||
++    parallel.units.length < 2 ||
++    parallel.units.length > 16
++  )
++    throw new ApiError('WORKFLOW_PARALLEL_SCOPE_MISMATCH', 409, 'Duyệt song song không khớp run');
++  const result: ParallelUnit[] = [];
++  const owned = new Set<string>();
++  const keys = new Set<string>();
++  for (const unit of parallel.units) {
++    if (
++      !plainObject(unit) ||
++      typeof unit.key !== 'string' ||
++      !/^[a-z0-9][a-z0-9-]{0,63}$/.test(unit.key) ||
++      keys.has(unit.key) ||
++      typeof unit.title !== 'string' ||
++      unit.title.length < 1 ||
++      unit.title.length > 120 ||
++      !Array.isArray(unit.ownershipKeys) ||
++      unit.ownershipKeys.length < 1 ||
++      unit.ownershipKeys.some((key) => typeof key !== 'string' || !key || key.length > 512)
++    )
++      throw new ApiError('WORKFLOW_PARALLEL_SCOPE_MISMATCH', 409, 'Duyệt song song không khớp run');
++    // Same path, index or migration in two units forbids overlap even with approval.
++    for (const key of unit.ownershipKeys as string[]) {
++      if (owned.has(key))
++        throw new ApiError('WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT', 409, 'Các phần song song trùng sở hữu');
++      owned.add(key);
++    }
++    keys.add(unit.key);
++    result.push({ key: unit.key, title: unit.title, ownershipKeys: [...(unit.ownershipKeys as string[])] });
++  }
++  return result;
++}
++
++/**
++ * Owner parallel approval from the Assistant policy. It must be an owner `approval`
++ * decision inside this root naming this exact run request; anything else denies.
++ */
++async function parallelApproval(
++  tx: Tx,
++  input: CreateRunInput,
++): Promise<{ id: Id; units: ParallelUnit[] } | null> {
++  const [config] = await tx`select policy from assistant_config where singleton=true`;
++  const id: unknown = plainObject(config?.policy) ? config.policy.parallelApprovalId : null;
++  if (id === null || id === undefined) return null;
++  const denied = () =>
++    new ApiError('WORKFLOW_PARALLEL_APPROVAL_INVALID', 403, 'Duyệt song song cần quyết định của chủ dự án');
++  if (typeof id !== 'string' || !uuid.test(id)) throw denied();
++  const [decision] = await tx`select d.id,d.actor_kind,d.actor_id,d.kind,d.scope,t.root_id
++    from decisions d join tickets t on t.id=d.ticket_id where d.id=${id.toLowerCase()} for share of d`;
++  if (!decision) throw denied();
++  if (
++    decision.actor_kind !== 'owner' ||
++    decision.actor_id !== 'owner' ||
++    decision.kind !== 'approval' ||
++    decision.root_id !== input.rootTicketId
++  )
++    throw denied();
++  if (input.path !== 'architectural' && input.path !== 'bounded')
++    throw new ApiError('WORKFLOW_PARALLEL_SCOPE_MISMATCH', 409, 'Đường workflow này chạy tuần tự');
++  return { id: String(decision.id), units: units(decision.scope, input) };
++}
++
++// Ordered official stages; with an exact owner approval the implementation stage
++// splits into disjoint units that the review stage joins.
++function plan(path: WorkflowPath, parallel: ParallelUnit[] | null): PlannedStep[] {
++  const steps: PlannedStep[] = [];
++  let previous: number[] = [];
++  for (const spec of workflowSteps(path)) {
++    const expand = parallel && spec.key === 'implement' ? parallel : [null];
++    const added: number[] = [];
++    for (const unit of expand) {
++      steps.push({
++        spec,
++        stepId: randomUUID(),
++        operationId: randomUUID(),
++        gateIds: spec.gates.map(() => randomUUID()),
++        predecessors: previous,
++        ownershipKeys: unit ? unit.ownershipKeys : [],
++        title: unit ? `${spec.title}: ${unit.title}` : spec.title,
++      });
++      added.push(steps.length - 1);
++    }
++    previous = added;
++  }
++  return steps;
++}
++
++function mapRun(row: Record<string, unknown>, steps: SkillStep[]): WorkflowRun {
++  return {
++    id: String(row.id),
++    rootTicketId: String(row.root_ticket_id),
++    source: row.source as WorkflowRun['source'],
++    projection: row.projection as WorkflowRun['projection'],
++    definitionSha256: String(row.definition_sha256),
++    customizationSha256: String(row.customization_sha256),
++    renderedArtifactId: row.rendered_artifact_id === null ? null : String(row.rendered_artifact_id),
++    path: row.path as WorkflowRun['path'],
++    revision: Number(row.revision),
++    steps,
++    parallelApprovalId: row.parallel_approval_id === null ? null : String(row.parallel_approval_id),
++  };
++}
++
++async function readRun(tx: Tx, runId: Id): Promise<WorkflowRun> {
++  const [row] = await tx`select * from workflow_runs where id=${runId}`;
++  if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy run');
++  // Creation order of the step tickets is their journal order.
++  const rows = await tx`select s.* from workflow_steps s
++    where s.run_id=${runId}
++    order by (select min(e.cursor) from events e where e.type='ticket.created' and e.ticket_id=s.ticket_id),s.id`;
++  const order = new Map<string, number>();
++  const pending = rows.map((step) => ({
++    id: String(step.id),
++    ticketId: String(step.ticket_id),
++    skill: String(step.skill),
++    sourcePath: String(step.source_path),
++    sourceSha256: String(step.source_sha256),
++    predecessorIds: step.predecessor_ids as Id[],
++    acceptance: step.acceptance as string[],
++    outputKinds: step.output_kinds as string[],
++    gateIds: step.gate_ids as Id[],
++    ownershipKeys: step.ownership_keys as string[],
++    role: step.role as SkillStep['role'],
++  }));
++  // Topological order: a step follows every predecessor; ties keep creation order.
++  const sorted: SkillStep[] = [];
++  while (sorted.length < pending.length) {
++    const next = pending.find(
++      (step) => !order.has(step.id) && step.predecessorIds.every((id) => order.has(id)),
++    );
++    if (!next) throw new Error('WORKFLOW_GRAPH_CYCLE');
++    order.set(next.id, sorted.length);
++    sorted.push(next);
++  }
++  return mapRun(row, sorted);
++}
++
++/**
++ * Server run graph from a pinned official definition. The Actor is always the persisted
++ * Assistant resolved from the proof; every child ticket and edge goes through the one
++ * graph authorization of the pending `create_run` operation.
++ */
++export function createWorkflowRuns(deps: WorkflowRunDependencies): WorkflowRuns {
++  const port = deps?.port;
++  const resolver = deps?.resolver;
++  if (!port || typeof port.authorizeGraph !== 'function' || typeof resolver !== 'function')
++    throw new Error('WORKFLOW_RUN_DEPENDENCIES_INVALID');
++  const lookup = deps.lookup ?? createDefinitionLookup();
++  return Object.freeze({
++    async createRun(tx: Tx, proof: OrchestrationProof, request: CreateRunInput): Promise<WorkflowRun> {
++      const input = validateInput(request);
++      // Lock order matches the scoped ticket writers: root → project → persisted Actor.
++      const [root] = await tx`select * from tickets where id=${input.rootTicketId} for update`;
++      if (!root || root.root_id !== root.id || root.level !== 'request')
++        throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++      const [project] = await tx`select id,machine_id from projects where id=${root.project_id} for update`;
++      if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
++      const actor: Actor = await resolver(tx, proof);
++      if (root.status === 'done' || root.status === 'cancelled')
++        throw new ApiError('TICKET_CLOSED', 409, 'Cây ticket đã kết thúc');
++      if (project.machine_id === null)
++        throw new ApiError('PROJECT_NOT_BOUND', 409, 'Dự án chưa gắn máy thực thi');
++      const record = await lookup(tx, String(project.machine_id), input.definitionSha256);
++      if (!record)
++        throw new ApiError('WORKFLOW_DEFINITION_UNKNOWN', 422, 'Máy dự án chưa báo definition này');
++      if (record.source.name !== workflowOfPath(input.path))
++        throw new ApiError('WORKFLOW_PATH_MISMATCH', 422, 'Đường workflow không thuộc definition');
++      const sources = stepSources(input.path, record.definition.skills);
++      const rootPin = root.workflow_pin as Ticket['workflowPin'];
++      const choice = plainObject(root.criteria) ? root.criteria.workflowChoice : undefined;
++      if (
++        (rootPin && !samePin(rootPin, toDomainPin(record.source))) ||
++        (choice !== undefined && choice !== record.source.name)
++      )
++        throw new ApiError('WORKFLOW_PIN_MISMATCH', 409, 'Workflow khác yêu cầu gốc');
++      const [existing] = await tx`select id from workflow_runs where root_ticket_id=${input.rootTicketId}`;
++      if (existing) throw new ApiError('WORKFLOW_RUN_EXISTS', 409, 'Yêu cầu đã có run');
++      const parallel = await parallelApproval(tx, input);
++      const runId = randomUUID();
++      const steps = plan(input.path, parallel?.units ?? null);
++      const inputs: CreateTicket[] = steps.map((step) => ({
++        projectId: String(root.project_id),
++        parentId: input.rootTicketId,
++        level: 'step',
++        kind: step.spec.kind,
++        title: step.title,
++        description: `Nguồn chính thức: ${step.spec.citation}`,
++        mandatory: true,
++        criteria: {
++          workflowRun: {
++            runId,
++            path: input.path,
++            stepKey: step.spec.key,
++            stepOperationId: step.operationId,
++            sourcePath: step.spec.sourcePath,
++            gates: step.spec.gates.map((gate, index) => ({
++              id: step.gateIds[index],
++              kind: gate.kind,
++              requiredActor: gate.requiredActor,
++              citation: gate.citation,
++            })),
++          },
++        },
++        inputs: {},
++        outputs: { kinds: step.spec.outputKinds },
++        skill: step.spec.skill,
++        workflowPin: null,
++      }));
++      const edges = steps.flatMap((step, index) =>
++        step.predecessors.map((predecessor) => ({
++          key: randomUUID(),
++          ticketKey: step.operationId,
++          predecessorKey: steps[predecessor]?.operationId as Id,
++          index,
++          predecessor,
++        })),
++      );
++      const graph: RunGraph = {
++        runId,
++        rootTicketId: input.rootTicketId,
++        tickets: steps.map((step, index) => ({
++          key: step.operationId,
++          input: inputs[index] as CreateTicket,
++        })),
++        edges: edges.map(({ key, ticketKey, predecessorKey }) => ({ key, ticketKey, predecessorKey })),
++      };
++      const graphSha256 = runGraphSha256(graph);
++      const session = await port.authorizeGraph(tx, actor, proof, graph, graphSha256);
++      await tx`insert into workflow_runs(id,root_ticket_id,source,projection,definition_sha256,customization_sha256,
++        rendered_artifact_id,path,revision,parallel_approval_id)
++        values(${runId},${input.rootTicketId},${tx.json(record.source)},${tx.json(record.projection)},
++        ${record.definition.sha256},${record.definition.customizationSha256},null,${input.path},1,${parallel?.id ?? null})`;
++      const tickets: Ticket[] = [];
++      for (const [index, step] of steps.entries()) {
++        const ticket = await session.createTicket(tx, step.operationId, inputs[index] as CreateTicket);
++        tickets.push(ticket);
++        await tx`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,
++          acceptance,output_kinds,gate_ids,ownership_keys,role)
++          values(${step.stepId},${runId},${ticket.id},${step.spec.skill},${step.spec.sourcePath},
++          ${sources.get(step.spec.sourcePath) as string},${tx.json(step.predecessors.map((p) => steps[p]?.stepId as Id))},
++          ${tx.json(step.spec.acceptance)},${tx.json(step.spec.outputKinds)},${tx.json(step.gateIds)},
++          ${tx.json(step.ownershipKeys)},${step.spec.role})`;
++        await insertOperation(
++          tx,
++          runId,
++          step.stepId,
++          step.operationId,
++          'create_ticket',
++          ticket.id,
++          graphSha256,
++        );
++      }
++      const revisions = new Map(tickets.map((ticket) => [ticket.id, ticket.revision]));
++      for (const edge of edges) {
++        const ticket = tickets[edge.index] as Ticket;
++        const predecessor = tickets[edge.predecessor] as Ticket;
++        const revision = revisions.get(ticket.id) as number;
++        await session.dependency(tx, ticket.id, predecessor.id, revision);
++        revisions.set(ticket.id, revision + 1);
++        await insertOperation(
++          tx,
++          runId,
++          (steps[edge.index] as PlannedStep).stepId,
++          edge.key,
++          'dependency',
++          `${ticket.id}:${predecessor.id}`,
++          graphSha256,
++        );
++      }
++      session.close(tx);
++      return readRun(tx, runId);
++    },
++
++    /**
++     * Latches the verified render receipt of a BMAD run once. The receipt must be
++     * `workflow_render_receipt` evidence of an attempt on a step ticket of this run, made
++     * by the project's current machine binding, for the run's exact definition and
++     * customization, with a generation path derived from its own project root.
++     */
++    async latchRenderedArtifact(tx: Tx, runId: Id, evidenceId: Id): Promise<WorkflowRun> {
++      if (
++        typeof runId !== 'string' ||
++        !uuid.test(runId) ||
++        typeof evidenceId !== 'string' ||
++        !uuid.test(evidenceId)
++      )
++        throw new ApiError('VALIDATION', 400, 'Định danh không hợp lệ');
++      const [run] =
++        await tx`select r.*,t.project_id from workflow_runs r join tickets t on t.id=r.root_ticket_id
++        where r.id=${runId.toLowerCase()} for update of r`;
++      if (!run) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy run');
++      if (run.path !== 'bmad-dispatch' && run.path !== 'bmad-oneshot')
++        throw new ApiError('WORKFLOW_RENDER_NOT_REQUIRED', 409, 'Run này không dùng render BMAD');
++      if (run.rendered_artifact_id !== null)
++        throw new ApiError('WORKFLOW_RENDER_ALREADY_LATCHED', 409, 'Run đã ghim render');
++      const [project] =
++        await tx`select machine_id,binding_revision from projects where id=${run.project_id} for share`;
++      const [evidence] = await tx`select id,ticket_id,attempt_id,kind,data from evidence
++        where id=${evidenceId.toLowerCase()} for share`;
++      if (!evidence) throw renderConflict('Receipt render không hợp lệ');
++      if (evidence.kind !== 'workflow_render_receipt' || evidence.attempt_id === null)
++        throw renderConflict('Receipt render không hợp lệ');
++      const [attempt] = await tx`select a.id,a.ticket_id,a.machine_id,a.binding_revision from attempts a
++        join workflow_steps s on s.ticket_id=a.ticket_id and s.run_id=${run.id}
++        where a.id=${evidence.attempt_id} for share of a`;
++      if (!attempt || attempt.ticket_id !== evidence.ticket_id)
++        throw renderConflict('Receipt không thuộc attempt của run');
++      if (
++        !project ||
++        project.machine_id === null ||
++        attempt.machine_id !== project.machine_id ||
++        Number(attempt.binding_revision) !== Number(project.binding_revision)
++      )
++        throw renderConflict('Receipt không đến từ máy dự án hiện hành');
++      const data: unknown = evidence.data;
++      if (
++        !plainObject(data) ||
++        data.definitionSha256 !== run.definition_sha256 ||
++        data.customizationSha256 !== run.customization_sha256
++      )
++        throw renderConflict('Receipt không khớp definition của run');
++      if (!renderPathMatches(data.projectRoot, data.generationPath))
++        throw renderConflict('Receipt không khớp project root');
++      const [updated] =
++        await tx`update workflow_runs set rendered_artifact_id=${evidence.id},revision=revision+1
++        where id=${run.id} and rendered_artifact_id is null returning id`;
++      if (!updated) throw new ApiError('WORKFLOW_RENDER_ALREADY_LATCHED', 409, 'Run đã ghim render');
++      return readRun(tx, String(run.id));
++    },
++  });
++}
++
++async function insertOperation(
++  tx: Tx,
++  runId: Id,
++  stepId: Id,
++  operationId: Id,
++  actionKind: 'create_ticket' | 'dependency',
++  targetIdentity: string,
++  preconditionSha256: Sha256,
++): Promise<void> {
++  const effectId = workflowEffectId({
++    runId,
++    stepOperationId: operationId,
++    actionKind,
++    targetIdentity,
++    preconditionSha256,
++  });
++  await tx`insert into assistant_operation_ids(id,run_id,step_id,action_kind,target_identity,precondition_sha256,effect_id)
++    values(${operationId},${runId},${stepId},${actionKind},${targetIdentity},${preconditionSha256},${effectId})`;
++}
++
++// Official renderer destination: {root}/_bmad/render/bmad-build/{slug}-{sha256(root)[:12]}/{20 hex}.
++function renderPathMatches(projectRoot: unknown, generationPath: unknown): boolean {
++  if (
++    typeof projectRoot !== 'string' ||
++    typeof generationPath !== 'string' ||
++    projectRoot.length > 4096 ||
++    !posix.isAbsolute(projectRoot) ||
++    posix.normalize(projectRoot) !== projectRoot ||
++    projectRoot.endsWith('/') ||
++    projectRoot.includes('\\') ||
++    projectRoot.includes('\0')
++  )
++    return false;
++  const baseName = posix.basename(projectRoot);
++  if (
++    [...baseName].some(
++      (character) => (character.codePointAt(0) ?? 0) < 32 || (character.codePointAt(0) ?? 0) > 126,
++    )
++  )
++    return false;
++  const cleaned =
++    baseName
++      .toLowerCase()
++      .replace(/[^a-z0-9]+/g, '-')
++      .replace(/^-|-$/g, '') || 'project';
++  const slug = cleaned.slice(0, 80).replace(/-$/g, '') || 'project';
++  const prefix = `${projectRoot}/_bmad/render/bmad-build/${slug}-${sha256Text(projectRoot).slice(0, 12)}/`;
++  return generationPath.startsWith(prefix) && /^[0-9a-f]{20}$/.test(generationPath.slice(prefix.length));
++}
+diff --git a/v2/server/src/assistant/workflows.ts b/v2/server/src/assistant/workflows.ts
+new file mode 100644
+index 0000000..6ec3f0b
+--- /dev/null
++++ b/v2/server/src/assistant/workflows.ts
+@@ -0,0 +1,504 @@
++import { createHash } from 'node:crypto';
++import type { ProjectionPin, Runtime, SourcePin, Workflow } from '../gateway/contracts.ts';
++import { runtimes } from '../gateway/contracts.ts';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import type { SkillStep, WorkflowRun } from './contracts.ts';
++
++export type WorkflowPath = WorkflowRun['path'];
++export type DefinitionSkill = { path: string; sha256: string };
++/** Definition the gateway of machine B reported for one installed projection slot (S3b). */
++export type WorkflowDefinitionRecord = {
++  source: SourcePin;
++  projection: ProjectionPin;
++  definition: {
++    sha256: string;
++    skills: DefinitionSkill[];
++    customizationSha256: string;
++    render: Record<string, unknown> | null;
++  };
++};
++/**
++ * Trusted definition lookup. The caller's hash is only a key: a record exists only
++ * when the machine's stored install report proves it for a current slot.
++ */
++export type DefinitionLookup = (
++  tx: Tx,
++  machineId: Id,
++  definitionSha256: string,
++) => Promise<WorkflowDefinitionRecord | null>;
++
++const digest = /^[0-9a-f]{64}$/;
++const sha256 = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
++const plainObject = (value: unknown): value is Record<string, unknown> =>
++  !!value && typeof value === 'object' && !Array.isArray(value);
++const same = (left: unknown, right: unknown) => {
++  try {
++    return canonicalJson(left) === canonicalJson(right);
++  } catch {
++    return false;
++  }
++};
++
++function skillsOf(value: unknown): DefinitionSkill[] | null {
++  if (!Array.isArray(value) || value.length === 0 || value.length > 512) return null;
++  const skills: DefinitionSkill[] = [];
++  const seen = new Set<string>();
++  for (const item of value) {
++    if (
++      !plainObject(item) ||
++      Object.keys(item).length !== 2 ||
++      typeof item.path !== 'string' ||
++      !item.path ||
++      item.path.length > 512 ||
++      typeof item.sha256 !== 'string' ||
++      !digest.test(item.sha256) ||
++      seen.has(item.path)
++    )
++      return null;
++    seen.add(item.path);
++    skills.push({ path: item.path, sha256: item.sha256 });
++  }
++  return skills;
++}
++
++/**
++ * Reads only `gateway_applied.workflow_status` of the given machine. A definition
++ * counts only on a `current` projection slot whose source slot is also `current`,
++ * and only when the gateway's canonical digest over the slot pins, skills,
++ * customization and render recomputes to the requested hash. The applied revision
++ * is never used to infer a definition.
++ */
++export function createDefinitionLookup(): DefinitionLookup {
++  return async (tx, machineId, definitionSha256) => {
++    if (!digest.test(definitionSha256)) return null;
++    const [row] =
++      await tx`select workflow_status from gateway_applied where machine_id=${machineId} for share`;
++    const status: unknown = row?.workflow_status;
++    if (!plainObject(status)) return null;
++    const found: WorkflowDefinitionRecord[] = [];
++    for (const workflow of ['superpowers', 'bmad'] as Workflow[]) {
++      const entry = status[workflow];
++      if (!plainObject(entry) || !plainObject(entry.source) || !plainObject(entry.projections)) continue;
++      const sourceSlot = entry.source;
++      if (sourceSlot.state !== 'current' || !plainObject(sourceSlot.installed)) continue;
++      const source = sourceSlot.installed as SourcePin;
++      if (source.name !== workflow) continue;
++      for (const runtime of runtimes as Runtime[]) {
++        const slot = entry.projections[runtime];
++        if (!plainObject(slot) || slot.state !== 'current' || !plainObject(slot.installed)) continue;
++        const definition = slot.definition;
++        if (!plainObject(definition) || definition.sha256 !== definitionSha256) continue;
++        const projection = slot.installed as ProjectionPin;
++        const skills = skillsOf(definition.skills);
++        const customizationSha256 = definition.customizationSha256;
++        const render = definition.render === undefined ? null : definition.render;
++        if (
++          projection.runtime !== runtime ||
++          projection.sourceTreeSha256 !== source.sourceTreeSha256 ||
++          !skills ||
++          typeof customizationSha256 !== 'string' ||
++          !digest.test(customizationSha256) ||
++          (render !== null && !plainObject(render))
++        )
++          continue;
++        // BMAD has a definition only for the Claude projection and always carries its render
++        // expectation; Superpowers never renders.
++        if (workflow === 'bmad' ? runtime !== 'claude' || render === null : render !== null) continue;
++        if (render && (!same(render.source, source) || !same(render.projection, projection))) continue;
++        if (sha256({ source, projection, skills, customizationSha256, render }) !== definitionSha256)
++          continue;
++        found.push({
++          source,
++          projection,
++          definition: { sha256: definitionSha256, skills, customizationSha256, render },
++        });
++      }
++    }
++    return found.length === 1 ? (found[0] ?? null) : null;
++  };
++}
++
++export type GateSpec = {
++  kind: string;
++  requiredActor: 'owner' | 'delegated';
++  /** Exact lines of the pinned source that define the gate. */
++  citation: string;
++};
++export type StepSpec = {
++  key: string;
++  skill: string;
++  sourcePath: string;
++  citation: string;
++  role: SkillStep['role'];
++  kind: 'code' | 'research';
++  title: string;
++  acceptance: string[];
++  outputKinds: string[];
++  gates: GateSpec[];
++};
++
++const sp = (skill: string) => `skills/${skill}/SKILL.md`;
++const bmad = (file: string) => `.claude/skills/bmad-build/${file}`;
++
++// Superpowers 6.4.2 (source revision 8ca22dba…, payload 29714b2c…). Citations are
++// lines of the pinned archive files; the graph is ordered and sequential by default.
++const implement: StepSpec = {
++  key: 'implement',
++  skill: 'test-driven-development',
++  sourcePath: sp('test-driven-development'),
++  citation:
++    'skills/test-driven-development/SKILL.md:31-34; skills/brainstorming/SKILL.md:127; skills/writing-plans/SKILL.md:200-204',
++  role: 'implement',
++  kind: 'code',
++  title: 'Triển khai theo TDD',
++  acceptance: [
++    'Mỗi thay đổi mã sản phẩm có test đỏ trước, rồi xanh',
++    'Phương pháp thực thi theo lựa chọn đã duyệt ở cổng kế hoạch (nếu có)',
++  ],
++  outputKinds: ['code', 'test'],
++  gates: [],
++};
++const review: StepSpec = {
++  key: 'review',
++  skill: 'requesting-code-review',
++  sourcePath: sp('requesting-code-review'),
++  citation: 'skills/requesting-code-review/SKILL.md:12-18',
++  role: 'review',
++  kind: 'code',
++  title: 'Yêu cầu review mã',
++  acceptance: ['Review độc lập trên toàn bộ thay đổi trước khi gộp'],
++  outputKinds: ['review'],
++  gates: [],
++};
++const verify: StepSpec = {
++  key: 'verify',
++  skill: 'verification-before-completion',
++  sourcePath: sp('verification-before-completion'),
++  citation: 'skills/verification-before-completion/SKILL.md:14-36',
++  role: 'review',
++  kind: 'code',
++  title: 'Xác minh trước khi hoàn tất',
++  acceptance: ['Bằng chứng kiểm tra mới chạy, không tuyên bố hoàn tất khi thiếu bằng chứng'],
++  outputKinds: ['verification'],
++  gates: [],
++};
++const debugPhase = (
++  key: string,
++  title: string,
++  lines: string,
++  acceptance: string,
++  outputKind: string,
++): StepSpec => ({
++  key,
++  skill: 'systematic-debugging',
++  sourcePath: sp('systematic-debugging'),
++  citation: `skills/systematic-debugging/SKILL.md:${lines}`,
++  role: 'research',
++  kind: 'research',
++  title,
++  acceptance: [acceptance],
++  outputKinds: [outputKind],
++  gates: [],
++});
++
++const superpowersPaths: Record<'architectural' | 'bounded' | 'bug' | 'spike', StepSpec[]> = {
++  architectural: [
++    {
++      key: 'design',
++      skill: 'brainstorming',
++      sourcePath: sp('brainstorming'),
++      citation: 'skills/brainstorming/SKILL.md:81-84,129-134,171-176',
++      role: 'research',
++      kind: 'research',
++      title: 'Brainstorming: thiết kế theo từng phần',
++      acceptance: ['Chủ dự án duyệt từng phần thiết kế đã trình bày'],
++      outputKinds: ['design'],
++      gates: [
++        {
++          kind: 'design_approval',
++          requiredActor: 'owner',
++          citation: 'skills/brainstorming/SKILL.md:45-49,134,174-176',
++        },
++      ],
++    },
++    {
++      key: 'spec',
++      skill: 'brainstorming',
++      sourcePath: sp('brainstorming'),
++      citation: 'skills/brainstorming/SKILL.md:135-138,237-261',
++      role: 'research',
++      kind: 'research',
++      title: 'Brainstorming: spec viết và tự review',
++      acceptance: ['Spec đã ghi, tự review, chủ dự án duyệt bản viết'],
++      outputKinds: ['spec'],
++      gates: [
++        {
++          kind: 'spec_approval',
++          requiredActor: 'owner',
++          citation: 'skills/brainstorming/SKILL.md:46-49,256-261',
++        },
++      ],
++    },
++    {
++      key: 'plan',
++      skill: 'writing-plans',
++      sourcePath: sp('writing-plans'),
++      citation: 'skills/writing-plans/SKILL.md:179-204',
++      role: 'research',
++      kind: 'research',
++      title: 'Viết kế hoạch triển khai',
++      acceptance: ['Chủ dự án review kế hoạch và chọn phương pháp thực thi'],
++      outputKinds: ['plan'],
++      gates: [
++        {
++          kind: 'plan_approval_execution_method',
++          requiredActor: 'owner',
++          citation: 'skills/brainstorming/SKILL.md:46-48; skills/writing-plans/SKILL.md:181-198',
++        },
++      ],
++    },
++    implement,
++    review,
++    verify,
++  ],
++  bounded: [
++    {
++      key: 'design',
++      skill: 'brainstorming',
++      sourcePath: sp('brainstorming'),
++      citation: 'skills/brainstorming/SKILL.md:71-80,122-127',
++      role: 'research',
++      kind: 'research',
++      title: 'Brainstorming: thiết kế ngắn trong hội thoại',
++      acceptance: ['Chủ dự án nói đồng ý với thiết kế ngắn; không spec, không plan'],
++      outputKinds: ['design'],
++      gates: [
++        {
++          kind: 'design_approval',
++          requiredActor: 'owner',
++          citation: 'skills/brainstorming/SKILL.md:45,76-80,126',
++        },
++      ],
++    },
++    implement,
++    review,
++    verify,
++  ],
++  bug: [
++    debugPhase(
++      'root_cause',
++      'Debug pha 1: điều tra nguyên nhân gốc',
++      '14-20,48-119',
++      'Có bằng chứng nguyên nhân gốc trước mọi đề xuất sửa',
++      'evidence',
++    ),
++    debugPhase(
++      'pattern',
++      'Debug pha 2: phân tích mẫu',
++      '120-142',
++      'Đối chiếu mẫu chạy đúng và khác biệt',
++      'pattern',
++    ),
++    debugPhase(
++      'hypothesis',
++      'Debug pha 3: giả thuyết và kiểm chứng',
++      '143-167',
++      'Một giả thuyết được kiểm chứng tối thiểu',
++      'hypothesis',
++    ),
++    {
++      key: 'fix',
++      skill: 'systematic-debugging',
++      sourcePath: sp('systematic-debugging'),
++      citation: 'skills/systematic-debugging/SKILL.md:168-196',
++      role: 'fix',
++      kind: 'code',
++      title: 'Debug pha 4: test đỏ rồi một bản sửa',
++      acceptance: [
++        'Test tái hiện đỏ trước khi sửa',
++        'Sau ba lần sửa thất bại phải thảo luận kiến trúc trước lần thứ tư',
++      ],
++      outputKinds: ['code', 'test'],
++      gates: [
++        {
++          kind: 'architecture_discussion',
++          requiredActor: 'owner',
++          citation: 'skills/systematic-debugging/SKILL.md:190-212',
++        },
++      ],
++    },
++    review,
++    verify,
++  ],
++  spike: [
++    {
++      key: 'probe',
++      skill: 'brainstorming',
++      sourcePath: sp('brainstorming'),
++      citation: 'skills/brainstorming/SKILL.md:65-70,115-118',
++      role: 'research',
++      kind: 'research',
++      title: 'Spike: câu hỏi và cách thử',
++      acceptance: ['Chủ dự án duyệt câu hỏi và cách thử; không spec, không design doc'],
++      outputKinds: ['probe'],
++      gates: [
++        {
++          kind: 'probe_approval',
++          requiredActor: 'owner',
++          citation: 'skills/brainstorming/SKILL.md:44,118',
++        },
++      ],
++    },
++    {
++      key: 'investigate',
++      skill: 'brainstorming',
++      sourcePath: sp('brainstorming'),
++      citation: 'skills/brainstorming/SKILL.md:65-70,119-120,188-189',
++      role: 'research',
++      kind: 'research',
++      title: 'Spike: điều tra và báo cáo khuyến nghị',
++      acceptance: [
++        'Kết quả là khuyến nghị nghiên cứu; mọi thứ dựng ra là throwaway, không hoàn tất mã sản phẩm',
++      ],
++      outputKinds: ['research'],
++      gates: [],
++    },
++  ],
++};
++
++// BMAD 6.12.0 bmad-build (source revision 05bfbd46…). Source paths are the audited
++// Claude projection files; runtime follows the rendered snapshot just in time.
++const bmadClarify: StepSpec = {
++  key: 'step-01',
++  skill: 'bmad-build',
++  sourcePath: bmad('step-01-clarify-and-route.md'),
++  citation: 'src/bmm-skills/ship/bmad-build/workflow.md:82-84; step-01-clarify-and-route.md:15-100',
++  role: 'research',
++  kind: 'research',
++  title: 'BMAD bước 1: làm rõ và định tuyến',
++  acceptance: ['Giữ nguyên ý định, cây sạch hoặc chủ dự án quyết định, chọn spec_file'],
++  outputKinds: ['intent'],
++  gates: [],
++};
++const bmadPlan = (gates: GateSpec[], citation: string): StepSpec => ({
++  key: 'step-02',
++  skill: 'bmad-build',
++  sourcePath: bmad('step-02-plan.md'),
++  citation,
++  role: 'research',
++  kind: 'research',
++  title: 'BMAD bước 2: lập kế hoạch và spec',
++  acceptance: ['Điều tra trước khi chọn dispatch hay oneshot; không ghi khoảng trống ý định thành giả định'],
++  outputKinds: ['spec'],
++  gates,
++});
++const bmadPaths: Record<'bmad-dispatch' | 'bmad-oneshot', StepSpec[]> = {
++  'bmad-dispatch': [
++    bmadClarify,
++    bmadPlan(
++      [
++        {
++          kind: 'spec_approval',
++          requiredActor: 'owner',
++          citation: 'src/bmm-skills/ship/bmad-build/step-02-plan.md:36-58',
++        },
++      ],
++      'src/bmm-skills/ship/bmad-build/step-02-plan.md:9-62',
++    ),
++    {
++      key: 'step-03',
++      skill: 'bmad-build',
++      sourcePath: bmad('step-03-implement.md'),
++      citation: 'src/bmm-skills/ship/bmad-build/step-03-implement.md:13-51',
++      role: 'implement',
++      kind: 'code',
++      title: 'BMAD bước 3: triển khai theo spec đã duyệt',
++      acceptance: ['Triển khai đúng spec ready-for-dev, kiểm acceptance và matrix test'],
++      outputKinds: ['code', 'test'],
++      gates: [],
++    },
++    {
++      key: 'step-04',
++      skill: 'bmad-build',
++      sourcePath: bmad('step-04-review.md'),
++      citation: 'src/bmm-skills/ship/bmad-build/step-04-review.md:21-85',
++      role: 'review',
++      kind: 'code',
++      title: 'BMAD bước 4: review nhiều lớp rồi phân loại',
++      acceptance: ['Khởi chạy mọi lớp review đã cấu hình trước khi đọc kết quả, rồi phân loại'],
++      outputKinds: ['review'],
++      gates: [],
++    },
++    {
++      key: 'step-05',
++      skill: 'bmad-build',
++      sourcePath: bmad('step-05-present.md'),
++      citation: 'src/bmm-skills/ship/bmad-build/step-05-present.md:11-39',
++      role: 'implement',
++      kind: 'code',
++      title: 'BMAD bước 5: đánh dấu xong, commit và trình bày',
++      acceptance: ['Spec done, commit và tóm tắt cho chủ dự án'],
++      outputKinds: ['summary'],
++      gates: [],
++    },
++  ],
++  'bmad-oneshot': [
++    bmadClarify,
++    bmadPlan([], 'src/bmm-skills/ship/bmad-build/step-02-plan.md:9-22'),
++    {
++      key: 'step-oneshot',
++      skill: 'bmad-build',
++      sourcePath: bmad('step-oneshot.md'),
++      citation: 'src/bmm-skills/ship/bmad-build/step-oneshot.md:1-103',
++      role: 'implement',
++      kind: 'code',
++      title: 'BMAD oneshot: triển khai, review và trình bày',
++      acceptance: [
++        'Giữ lớp review chính thức của oneshot',
++        'Khi phát sinh khoảng trống ý định hoặc việc không thể hoàn tác thì quay lại lập kế hoạch dispatch',
++      ],
++      outputKinds: ['code', 'test', 'review', 'summary'],
++      gates: [],
++    },
++  ],
++};
++
++export const workflowPaths: readonly WorkflowPath[] = Object.freeze([
++  'architectural',
++  'bounded',
++  'bug',
++  'spike',
++  'bmad-dispatch',
++  'bmad-oneshot',
++]);
++
++export function workflowOfPath(path: WorkflowPath): Workflow {
++  return path === 'bmad-dispatch' || path === 'bmad-oneshot' ? 'bmad' : 'superpowers';
++}
++
++/** Ordered official stages of a path. Unknown paths have no graph. */
++export function workflowSteps(path: WorkflowPath): readonly StepSpec[] {
++  if (path === 'bmad-dispatch' || path === 'bmad-oneshot') return bmadPaths[path];
++  if (path === 'architectural' || path === 'bounded' || path === 'bug' || path === 'spike')
++    return superpowersPaths[path];
++  throw new ApiError('VALIDATION', 400, 'Đường workflow không hợp lệ');
++}
++
++/** Source bytes hash of every stage, from the definition. A missing stage source waits (422). */
++export function stepSources(path: WorkflowPath, skills: readonly DefinitionSkill[]): Map<string, string> {
++  const byPath = new Map(skills.map((skill) => [skill.path, skill.sha256]));
++  const result = new Map<string, string>();
++  for (const step of workflowSteps(path)) {
++    const sha = byPath.get(step.sourcePath);
++    if (!sha)
++      throw new ApiError(
++        'WORKFLOW_SKILL_MISSING',
++        422,
++        'Definition thiếu nguồn chính thức của bước workflow',
++      );
++    result.set(step.sourcePath, sha);
++  }
++  return result;
++}
+diff --git a/v2/server/test/assistant-orchestration-port.test.ts b/v2/server/test/assistant-orchestration-port.test.ts
+index 6fc4e0c..d4cdb31 100644
+--- a/v2/server/test/assistant-orchestration-port.test.ts
++++ b/v2/server/test/assistant-orchestration-port.test.ts
+@@ -1,19 +1,21 @@
+ import assert from 'node:assert/strict';
+ import { createHash, randomUUID } from 'node:crypto';
+ import test from 'node:test';
+ import Fastify from 'fastify';
+ import { createPersistedAssistantActorResolver } from '../src/assistant/authority.ts';
+ import type { OrchestrationAction, OrchestrationProof, TurnFence } from '../src/assistant/contracts.ts';
++import type { RunGraph, RunGraphSession } from '../src/assistant/orchestration.ts';
+ import {
+   createPersistedOrchestrationAuthority,
+   createProjectOrchestrationPort,
++  runGraphSha256,
+ } from '../src/assistant/orchestration.ts';
+ import { digest } from '../src/attachments/submissions.ts';
+ import { bootstrapOwner } from '../src/auth/bootstrap.ts';
+ import { provisionMachine } from '../src/auth/machine.ts';
+ import { createAuthenticator } from '../src/auth/routes.ts';
+ import type { CreateCommand } from '../src/execution/contracts.ts';
+ import { canonicalJson } from '../src/journal/canonical.ts';
+ import { createMutator, mutate } from '../src/journal/mutation.ts';
+ import type { Actor, Db, Id, Tx } from '../src/platform/contracts.ts';
+ import { ApiError } from '../src/platform/errors.ts';
+@@ -43,20 +45,21 @@ type Admission = Omit<
+   'conversationId' | 'messageId' | 'target' | 'machineId'
+ >;
+ 
+ // Real persisted rows only: admitted turn, PASS receipt of the pinned fixture verifier,
+ // scope and pending tool operation. No test-trust authority or allowlist exists here.
+ async function portFixture(
+   db: Db,
+   options: {
+     scope?: 'root' | 'message';
+     actions?: OrchestrationAction[];
++    toolNames?: string[];
+     admission?: Admission | 'none';
+     verifierBuildSha256?: string;
+   } = {},
+ ) {
+   const f = await assistantFixture(db);
+   const machines = await f.mutation(randomUUID(), async (tx) => ({
+     a: await provisionMachine(tx, 'Assistant A'),
+     b: await provisionMachine(tx, 'Bound B'),
+   }));
+   const a: Actor = { kind: 'machine', id: machines.a.machine.id };
+@@ -85,21 +88,21 @@ async function portFixture(
+       ...options.admission,
+     });
+     fence = seeded.fence;
+     snapshotId = seeded.snapshotId as Id;
+     policyReceiptId = seeded.policyReceiptId;
+   }
+   const scopeId = randomUUID();
+   await db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,
+     scope_sha256,owner_authorization_id,expires_at)
+     values(${scopeId},${fence.turnId},${kind === 'root' ? f.request.id : null},${messageId},${kind === 'root' ? f.project.id : null},
+-    ${db.json(options.actions ?? allActions)},'[]',${snapshotId},${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
++    ${db.json(options.actions ?? allActions)},${db.json(options.toolNames ?? [])},${snapshotId},${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
+   const resolver = createPersistedAssistantActorResolver({
+     verifierBuildSha256: options.verifierBuildSha256 ?? fixtureVerifierBuildSha256,
+   });
+   const port = createProjectOrchestrationPort({ resolver });
+   const run = async <T>(
+     call: (tx: Tx, proof: OrchestrationProof, actor: Actor) => Promise<T>,
+     opts: {
+       actor?: Actor;
+       operationId?: Id | ((tx: Tx) => Promise<Id>);
+       before?: (tx: Tx, proof: OrchestrationProof) => Promise<void>;
+@@ -692,10 +695,267 @@ test('S2 bare persisted authority without the port target fails closed', async (
+           f.run((tx, proof, actor) =>
+             services.assistantRecordDecision(tx, actor, proof, f.a.id, decisionInput()),
+           ),
+         { code: 'ORCHESTRATION_SCOPE_INVALID', status: 403 },
+       );
+       assert.deepEqual(await f.state(), before);
+     } finally {
+       await f.close();
+     }
+   }));
++
++// Graph authorization: one pending `create_run` operation authorizes exactly one hashed
++// set of root children and edges. Fixtures use the same admitted turn and real rows.
++const graphFixture = (db: Db, options: { toolNames?: string[]; actions?: OrchestrationAction[] } = {}) =>
++  portFixture(db, { toolNames: options.toolNames ?? ['create_run'], actions: options.actions ?? allActions });
++type GraphFixture = Awaited<ReturnType<typeof graphFixture>>;
++function twoStepGraph(f: GraphFixture): { graph: RunGraph; first: Id; second: Id; edge: Id } {
++  const first = randomUUID();
++  const second = randomUUID();
++  const edge = randomUUID();
++  const graph: RunGraph = {
++    runId: randomUUID(),
++    rootTicketId: f.request.id,
++    tickets: [
++      { key: first, input: inputTicket(f.project.id, 'step', f.request.id, { title: 'Bước đồ thị 1' }) },
++      { key: second, input: inputTicket(f.project.id, 'step', f.request.id, { title: 'Bước đồ thị 2' }) },
++    ],
++    edges: [{ key: edge, ticketKey: second, predecessorKey: first }],
++  };
++  return { graph, first, second, edge };
++}
++
++test('S4 port graph authorization creates the exact hashed set with actor A and closes once', async () =>
++  withDatabase(async (db) => {
++    const f = await graphFixture(db);
++    try {
++      const { graph, first, second } = twoStepGraph(f);
++      const { value } = await f.run(async (tx, proof, actor) => {
++        const session = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
++        const one = await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
++        const two = await session.createTicket(tx, second, graph.tickets[1]?.input as CreateTicket);
++        await session.dependency(tx, two.id, one.id, two.revision);
++        session.close(tx);
++        return { one: one.id, two: two.id };
++      });
++      const ids = value as { one: Id; two: Id };
++      const rows = await db`select id,created_actor_kind,created_actor_id,parent_id from tickets
++        where id in ${db([ids.one, ids.two])} order by title`;
++      assert.deepEqual(
++        rows.map((row) => ({ ...row })),
++        [
++          {
++            id: ids.one,
++            created_actor_kind: 'machine',
++            created_actor_id: f.assistantA.id,
++            parent_id: f.request.id,
++          },
++          {
++            id: ids.two,
++            created_actor_kind: 'machine',
++            created_actor_id: f.assistantA.id,
++            parent_id: f.request.id,
++          },
++        ],
++      );
++      const edges = await db`select ticket_id,predecessor_id from dependencies where ticket_id=${ids.two}`;
++      assert.deepEqual(
++        edges.map((row) => ({ ...row })),
++        [{ ticket_id: ids.two, predecessor_id: ids.one }],
++      );
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S4 port graph whose hash differs from its payload is denied without rows', async () =>
++  withDatabase(async (db) => {
++    const f = await graphFixture(db);
++    try {
++      const { graph } = twoStepGraph(f);
++      const tampered: RunGraph = {
++        ...graph,
++        tickets: [
++          ...graph.tickets.slice(0, 1),
++          {
++            key: graph.tickets[1]?.key as Id,
++            input: inputTicket(f.project.id, 'step', f.request.id, { title: 'Bước bị đổi' }),
++          },
++        ],
++      };
++      const before = await f.state();
++      await assert.rejects(
++        () =>
++          f.run((tx, proof, actor) =>
++            f.port.authorizeGraph(tx, actor, proof, tampered, runGraphSha256(graph)),
++          ),
++        { code: 'ORCHESTRATION_SCOPE_INVALID', status: 403 },
++      );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S4 port graph mutation outside the hashed set is denied', async () =>
++  withDatabase(async (db) => {
++    const f = await graphFixture(db);
++    try {
++      const { graph, first } = twoStepGraph(f);
++      const before = await f.state();
++      const attempts: ((tx: Tx, session: RunGraphSession) => Promise<unknown>)[] = [
++        (tx, session) => session.createTicket(tx, randomUUID(), graph.tickets[0]?.input as CreateTicket),
++        (tx, session) =>
++          session.createTicket(
++            tx,
++            first,
++            inputTicket(f.project.id, 'step', f.request.id, { title: 'Khác phần tử đã băm' }),
++          ),
++        (tx, session) => session.dependency(tx, f.a.id, f.b.id, 1),
++        async (tx, session) => {
++          const one = await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
++          // Reverse direction of the authorized edge is not in the set.
++          return session.dependency(tx, one.id, f.a.id, one.revision);
++        },
++      ];
++      for (const attempt of attempts)
++        await assert.rejects(
++          () =>
++            f.run(async (tx, proof, actor) =>
++              attempt(tx, await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph))),
++            ),
++          { code: 'ORCHESTRATION_TARGET_NOT_AUTHORIZED', status: 403 },
++        );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S4 port graph element reused in the same session is a conflict', async () =>
++  withDatabase(async (db) => {
++    const f = await graphFixture(db);
++    try {
++      const { graph, first, second } = twoStepGraph(f);
++      const before = await f.state();
++      await assert.rejects(
++        () =>
++          f.run(async (tx, proof, actor) => {
++            const session = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
++            await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
++            return session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
++          }),
++        { code: 'ORCHESTRATION_TARGET_CONSUMED', status: 409 },
++      );
++      await assert.rejects(
++        () =>
++          f.run(async (tx, proof, actor) => {
++            const session = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
++            const one = await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
++            const two = await session.createTicket(tx, second, graph.tickets[1]?.input as CreateTicket);
++            await session.dependency(tx, two.id, one.id, two.revision);
++            return session.dependency(tx, two.id, one.id, two.revision + 1);
++          }),
++        { code: 'ORCHESTRATION_TARGET_CONSUMED', status: 409 },
++      );
++      await assert.rejects(
++        () =>
++          f.run(async (tx, proof, actor) => {
++            const session = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
++            await session.createTicket(tx, first, graph.tickets[0]?.input as CreateTicket);
++            session.close(tx);
++          }),
++        { code: 'ORCHESTRATION_GRAPH_INCOMPLETE', status: 409 },
++      );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S4 port graph authorization from another Tx is not found', async () =>
++  withDatabase(async (db) => {
++    const f = await graphFixture(db);
++    try {
++      const { graph, first } = twoStepGraph(f);
++      const committed = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
++      const before = await f.state();
++      await assert.rejects(
++        () =>
++          f.run((tx, proof, actor) => f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph)), {
++            operationId: committed,
++          }),
++        { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
++      );
++      let carried: RunGraphSession | null = null;
++      await f.run(async (tx, proof, actor) => {
++        carried = await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
++      });
++      await assert.rejects(
++        () =>
++          f.run((tx) =>
++            (carried as unknown as RunGraphSession).createTicket(
++              tx,
++              first,
++              graph.tickets[0]?.input as CreateTicket,
++            ),
++          ),
++        { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
++      );
++      const after = await f.state();
++      assert.deepEqual(
++        { tickets: after.tickets, dependencies: after.dependencies, decisions: after.decisions },
++        { tickets: before.tickets, dependencies: before.dependencies, decisions: before.decisions },
++      );
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S4 port create_run authorization and single mutations never stand in for each other', async () =>
++  withDatabase(async (db) => {
++    const f = await graphFixture(db);
++    try {
++      const { graph } = twoStepGraph(f);
++      const before = await f.state();
++      await assert.rejects(
++        () =>
++          f.run(async (tx, proof, actor) => {
++            await f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
++            return f.port.createTicket(tx, actor, proof, graph.tickets[0]?.input as CreateTicket);
++          }),
++        { code: 'ASSISTANT_OPERATION_CONSUMED', status: 409 },
++      );
++      await assert.rejects(
++        () =>
++          f.run(async (tx, proof, actor) => {
++            await f.port.decision(tx, actor, proof, f.a.id, decisionInput());
++            return f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph));
++          }),
++        { code: 'ASSISTANT_OPERATION_CONSUMED', status: 409 },
++      );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S4 port graph needs create_run in the scope tools and its actions', async () => {
++  for (const options of [{ toolNames: [] }, { actions: ['create_ticket'] as OrchestrationAction[] }])
++    await withDatabase(async (db) => {
++      const f = await graphFixture(db, options);
++      try {
++        const { graph } = twoStepGraph(f);
++        const before = await f.state();
++        await assert.rejects(
++          () =>
++            f.run((tx, proof, actor) =>
++              f.port.authorizeGraph(tx, actor, proof, graph, runGraphSha256(graph)),
++            ),
++          { code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE', status: 403 },
++        );
++        assert.deepEqual(await f.state(), before);
++      } finally {
++        await f.close();
++      }
++    });
++});
+diff --git a/v2/server/test/assistant-workflows.test.ts b/v2/server/test/assistant-workflows.test.ts
+new file mode 100644
+index 0000000..6bb8bd6
+--- /dev/null
++++ b/v2/server/test/assistant-workflows.test.ts
+@@ -0,0 +1,803 @@
++import assert from 'node:assert/strict';
++import { createHash, randomUUID } from 'node:crypto';
++import { readFile } from 'node:fs/promises';
++import test from 'node:test';
++import { createPersistedAssistantActorResolver } from '../src/assistant/authority.ts';
++import type {
++  OrchestrationAction,
++  OrchestrationProof,
++  TurnFence,
++  WorkflowRun,
++} from '../src/assistant/contracts.ts';
++import { createProjectOrchestrationPort } from '../src/assistant/orchestration.ts';
++import type { CreateRunInput } from '../src/assistant/runs.ts';
++import { createWorkflowRuns, workflowEffectId } from '../src/assistant/runs.ts';
++import { provisionMachine } from '../src/auth/machine.ts';
++import { mutate } from '../src/journal/mutation.ts';
++import type { Actor, Db, Id, Tx } from '../src/platform/contracts.ts';
++import { assistantFixture, fixtureVerifierBuildSha256 } from './support/assistant.ts';
++import { databaseFixture } from './support/db.ts';
++import { inputTicket, owner } from './support/tickets.ts';
++
++const withDatabase = databaseFixture(11);
++type VectorEntry = {
++  source: Record<string, unknown>;
++  projection: Record<string, unknown>;
++  definition: {
++    sha256: string;
++    skills: { path: string; sha256: string }[];
++    customizationSha256: string;
++    render?: Record<string, unknown>;
++  };
++};
++// Shared S3b vector: exactly what the gateway reports and the server stores for B.
++const vector = JSON.parse(
++  await readFile(
++    new URL('../../gateway/test/fixtures/workflow-definitions/install-report-vector.json', import.meta.url),
++    'utf8',
++  ),
++) as { superpowers: VectorEntry; bmad: VectorEntry };
++const superpowersHash = vector.superpowers.definition.sha256;
++const bmadHash = vector.bmad.definition.sha256;
++const skillSha = (workflow: 'superpowers' | 'bmad', path: string) =>
++  vector[workflow].definition.skills.find((skill) => skill.path === path)?.sha256;
++const missingSlot = { state: 'missing', installed: null, lastError: null, observedAt: null };
++const currentSlot = (installed: unknown, extra: Record<string, unknown> = {}) => ({
++  state: 'current',
++  installed,
++  lastError: null,
++  observedAt: '2026-10-04T00:00:00.000Z',
++  ...extra,
++});
++type Slot = {
++  state: string;
++  installed: unknown;
++  lastError: null;
++  observedAt: string | null;
++  definition?: VectorEntry['definition'];
++};
++type Status = Record<
++  'superpowers' | 'bmad',
++  { source: Slot; projections: Record<'claude' | 'codex' | 'api', Slot> }
++>;
++function workflowStatus(change?: (status: Status) => void): Record<string, unknown> {
++  const status: Status = JSON.parse(
++    JSON.stringify({
++      superpowers: {
++        source: currentSlot(vector.superpowers.source),
++        projections: {
++          claude: currentSlot(vector.superpowers.projection, { definition: vector.superpowers.definition }),
++          codex: missingSlot,
++          api: missingSlot,
++        },
++      },
++      bmad: {
++        source: currentSlot(vector.bmad.source),
++        projections: {
++          claude: currentSlot(vector.bmad.projection, { definition: vector.bmad.definition }),
++          codex: missingSlot,
++          api: missingSlot,
++        },
++      },
++    }),
++  );
++  change?.(status);
++  return status;
++}
++
++type RunFixtureOptions = {
++  workflow?: 'superpowers' | 'bmad';
++  admission?: 'none' | { receiptStatus: 'FAIL' };
++  actions?: OrchestrationAction[];
++};
++
++// Real persisted rows: admitted PASS turn of machine A, root scope with the create_run
++// tool, project bound to B, and B's stored install report (fixture seed of 007).
++async function runFixture(db: Db, options: RunFixtureOptions = {}) {
++  const f = await assistantFixture(db);
++  const machines = await f.mutation(randomUUID(), async (tx) => ({
++    a: await provisionMachine(tx, 'Assistant A'),
++    b: await provisionMachine(tx, 'Bound B'),
++    c: await provisionMachine(tx, 'Other C'),
++  }));
++  const a: Actor = { kind: 'machine', id: machines.a.machine.id };
++  const b: Actor = { kind: 'machine', id: machines.b.machine.id };
++  const c: Actor = { kind: 'machine', id: machines.c.machine.id };
++  await db`update projects set machine_id=${b.id},checkout_path='/tmp/s4-test-only',binding_revision=2 where id=${f.project.id}`;
++  const root = await f.mutation(randomUUID(), (tx) =>
++    f.services.createTicket(
++      tx,
++      inputTicket(f.project.id, 'request', null, {
++        kind: 'code',
++        title: 'Yêu cầu chạy workflow',
++        criteria: { workflowChoice: options.workflow ?? 'superpowers' },
++      }),
++      owner,
++    ),
++  );
++  const seedApplied = async (machineId: Id, status: Record<string, unknown>) => {
++    const reportId = randomUUID();
++    await db.begin(async (tx) => {
++      const [boot] = await tx`select 1 from gateway_boots where machine_id=${machineId}`;
++      if (!boot)
++        await tx`insert into gateway_boots(machine_id,boot_id,boot_generation,previous_generation,created_at)
++          values(${machineId},${randomUUID()},1,0,now())`;
++      await tx`insert into gateway_install_reports(id,machine_id,boot_generation,config_revision,body_hash,report,response,received_at)
++        values(${reportId},${machineId},1,1,${'a'.repeat(64)},${tx.json({ fixture: true })},${tx.json({ accepted: true })},now())`;
++      await tx`insert into gateway_applied(machine_id,revision,inventory,latest_report_id,workflow_status,applied_at)
++        values(${machineId},1,${tx.json(status as never)},${reportId},${tx.json(status as never)},now())
++        on conflict(machine_id) do update set inventory=excluded.inventory,workflow_status=excluded.workflow_status,
++        latest_report_id=excluded.latest_report_id`;
++    });
++  };
++  await seedApplied(b.id, workflowStatus());
++  const submitted = await f.submitMessage();
++  let fence: TurnFence;
++  let snapshotId: Id;
++  if (options.admission === 'none') {
++    fence = await f.seedTurn(submitted.conversation.id, null);
++    snapshotId = randomUUID();
++    await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++      values(${snapshotId},'ticket',${root.id},1,0,'{}',${'c'.repeat(64)})`;
++  } else {
++    const seeded = await f.seedAdmittedTurn({
++      conversationId: submitted.conversation.id,
++      messageId: null,
++      target: { kind: 'ticket', id: root.id },
++      machineId: a.id,
++      ...(options.admission ? { receiptStatus: options.admission.receiptStatus } : {}),
++    });
++    fence = seeded.fence;
++    snapshotId = seeded.snapshotId as Id;
++  }
++  const scopeId = randomUUID();
++  await db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,
++    scope_sha256,owner_authorization_id,expires_at)
++    values(${scopeId},${fence.turnId},${root.id},null,${f.project.id},
++    ${db.json(options.actions ?? ['create_ticket', 'dependency'])},${db.json(['create_run'])},${snapshotId},
++    ${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
++  const resolver = createPersistedAssistantActorResolver({ verifierBuildSha256: fixtureVerifierBuildSha256 });
++  const port = createProjectOrchestrationPort({ resolver });
++  const runs = createWorkflowRuns({ port, resolver });
++  // The tools route stand-in: a pending operation row written in the same Tx as the call.
++  const inTurn = async <T>(work: (tx: Tx, proof: OrchestrationProof) => Promise<T>): Promise<T> => {
++    const result = await mutate(
++      db,
++      { actor: a, route: 'test-only:assistant-create-run', key: randomUUID(), body: {} },
++      async (tx) => {
++        const operationId = await f.seedToolOperation(tx, { turnId: fence.turnId, snapshotId });
++        return { status: 201, body: { value: (await work(tx, { fence, scopeId, operationId })) as unknown } };
++      },
++    );
++    return result.body.value as T;
++  };
++  const create = (input: Partial<CreateRunInput> = {}) =>
++    inTurn((tx, proof) =>
++      runs.createRun(tx, proof, {
++        rootTicketId: root.id,
++        path: options.workflow === 'bmad' ? 'bmad-dispatch' : 'architectural',
++        definitionSha256: options.workflow === 'bmad' ? bmadHash : superpowersHash,
++        ...input,
++      }),
++    );
++  const rows = async () => ({
++    runs: await db`select * from workflow_runs order by id`,
++    steps: await db`select * from workflow_steps order by id`,
++    gates: await db`select * from workflow_gates order by id`,
++    operations: await db`select * from assistant_operation_ids order by id`,
++    tickets: await db`select id,revision,status from tickets order by id`,
++    dependencies: await db`select * from dependencies order by ticket_id,predecessor_id`,
++  });
++  return {
++    ...f,
++    assistantA: a,
++    boundB: b,
++    otherC: c,
++    root,
++    fence,
++    snapshotId,
++    scopeId,
++    runs,
++    inTurn,
++    create,
++    rows,
++    seedApplied,
++  };
++}
++type RunFixture = Awaited<ReturnType<typeof runFixture>>;
++
++async function stepCriteria(db: Db, run: WorkflowRun) {
++  const criteria = [];
++  for (const step of run.steps) {
++    const [row] = await db`select criteria from tickets where id=${step.ticketId}`;
++    criteria.push(row?.criteria.workflowRun);
++  }
++  return criteria;
++}
++
++async function assertGraph(db: Db, f: RunFixture, run: WorkflowRun) {
++  // Child tickets: created by machine A under the root of B's project.
++  const tickets = await db`select id,parent_id,root_id,level,created_actor_kind,created_actor_id from tickets
++    where id in ${db(run.steps.map((step) => step.ticketId))}`;
++  assert.equal(tickets.length, run.steps.length);
++  for (const ticket of tickets)
++    assert.deepEqual(
++      { ...ticket, id: undefined },
++      {
++        id: undefined,
++        parent_id: f.root.id,
++        root_id: f.root.id,
++        level: 'step',
++        created_actor_kind: 'machine',
++        created_actor_id: f.assistantA.id,
++      },
++    );
++  // The dependency DAG equals the step predecessor relation exactly.
++  const byStep = new Map(run.steps.map((step) => [step.id, step.ticketId]));
++  const expected = run.steps
++    .flatMap((step) =>
++      step.predecessorIds.map((id) => ({ ticket_id: step.ticketId, predecessor_id: byStep.get(id) })),
++    )
++    .sort((x, y) => `${x.ticket_id}${x.predecessor_id}`.localeCompare(`${y.ticket_id}${y.predecessor_id}`));
++  const dependencies = await db`select ticket_id,predecessor_id from dependencies
++    where ticket_id in ${db(run.steps.map((step) => step.ticketId))} order by ticket_id,predecessor_id`;
++  assert.deepEqual(
++    dependencies.map((row) => ({ ...row })),
++    expected,
++  );
++  // One distinct persisted operation per child ticket and per edge, effect IDs recomputable.
++  const operations = await db`select * from assistant_operation_ids where run_id=${run.id}`;
++  assert.equal(operations.length, run.steps.length + expected.length);
++  assert.equal(new Set(operations.map((row) => row.id)).size, operations.length);
++  const criteria = await stepCriteria(db, run);
++  for (const [index, step] of run.steps.entries()) {
++    const own = operations.filter((row) => row.step_id === step.id && row.action_kind === 'create_ticket');
++    assert.equal(own.length, 1);
++    assert.equal(own[0]?.id, criteria[index].stepOperationId);
++    assert.equal(own[0]?.target_identity, step.ticketId);
++  }
++  for (const row of operations)
++    assert.equal(
++      row.effect_id,
++      workflowEffectId({
++        runId: run.id,
++        stepOperationId: row.id,
++        actionKind: row.action_kind,
++        targetIdentity: row.target_identity,
++        preconditionSha256: row.precondition_sha256,
++      }),
++    );
++  // Gate IDs are reserved on the step; no gate row exists without an artifact.
++  assert.equal((await db`select * from workflow_gates where run_id=${run.id}`).length, 0);
++  for (const [index, step] of run.steps.entries())
++    assert.deepEqual(
++      criteria[index].gates.map((gate: { id: Id }) => gate.id),
++      step.gateIds,
++    );
++  return criteria;
++}
++
++const outline = (run: WorkflowRun, criteria: { stepKey: string; gates: { kind: string }[] }[]) =>
++  run.steps.map((step, index) => ({
++    key: criteria[index]?.stepKey,
++    skill: step.skill,
++    sourcePath: step.sourcePath,
++    role: step.role,
++    gates: criteria[index]?.gates.map((gate) => gate.kind),
++  }));
++const isChain = (run: WorkflowRun) =>
++  run.steps.every((step, index) =>
++    index === 0
++      ? step.predecessorIds.length === 0
++      : step.predecessorIds.length === 1 && step.predecessorIds[0] === run.steps[index - 1]?.id,
++  );
++
++test('assistant workflows: definition not proven on machine B is 422 without rows', async () =>
++  withDatabase(async (db) => {
++    const f = await runFixture(db);
++    try {
++      const before = await f.rows();
++      await assert.rejects(() => f.create({ definitionSha256: 'f'.repeat(64) }), {
++        code: 'WORKFLOW_DEFINITION_UNKNOWN',
++        status: 422,
++      });
++      // Same hash reported by another machine only.
++      await f.seedApplied(
++        f.boundB.id,
++        workflowStatus((status) => {
++          status.superpowers.projections.claude = missingSlot;
++        }),
++      );
++      await f.seedApplied(f.otherC.id, workflowStatus());
++      await assert.rejects(() => f.create(), { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 });
++      // Slot not current, even though the definition bytes are present.
++      await f.seedApplied(
++        f.boundB.id,
++        workflowStatus((status) => {
++          status.superpowers.projections.claude.state = 'mismatch';
++        }),
++      );
++      await assert.rejects(() => f.create(), { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 });
++      // Stored digest no longer recomputes over the slot pins and skills.
++      await f.seedApplied(
++        f.boundB.id,
++        workflowStatus((status) => {
++          status.superpowers.projections.claude.definition?.skills.pop();
++        }),
++      );
++      await assert.rejects(() => f.create(), { code: 'WORKFLOW_DEFINITION_UNKNOWN', status: 422 });
++      // A BMAD definition cannot drive a Superpowers path.
++      await f.seedApplied(f.boundB.id, workflowStatus());
++      await assert.rejects(() => f.create({ definitionSha256: bmadHash }), {
++        code: 'WORKFLOW_PATH_MISMATCH',
++        status: 422,
++      });
++      assert.deepEqual(await f.rows(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant workflows: resolver denial writes no run', async () => {
++  for (const [admission, expected] of [
++    ['none', { code: 'ASSISTANT_ADMISSION_NOT_CONFIGURED', status: 503 }],
++    [{ receiptStatus: 'FAIL' }, { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 }],
++  ] as const)
++    await withDatabase(async (db) => {
++      const f = await runFixture(db, { admission });
++      try {
++        const before = await f.rows();
++        await assert.rejects(() => f.create(), expected);
++        assert.deepEqual(await f.rows(), before);
++      } finally {
++        await f.close();
++      }
++    });
++});
++
++test('assistant workflows: architectural path follows the pinned brainstorming → plan chain', async () =>
++  withDatabase(async (db) => {
++    const f = await runFixture(db);
++    try {
++      const run = await f.create();
++      assert.equal(run.steps[0]?.sourcePath, 'skills/brainstorming/SKILL.md');
++      assert.equal(run.path, 'architectural');
++      assert.equal(run.revision, 1);
++      assert.equal(run.renderedArtifactId, null);
++      assert.equal(run.parallelApprovalId, null);
++      assert.equal(run.definitionSha256, superpowersHash);
++      assert.equal(run.customizationSha256, vector.superpowers.definition.customizationSha256);
++      assert.deepEqual(run.source, vector.superpowers.source);
++      assert.deepEqual(run.projection, vector.superpowers.projection);
++      const criteria = await assertGraph(db, f, run);
++      assert.deepEqual(outline(run, criteria), [
++        {
++          key: 'design',
++          skill: 'brainstorming',
++          sourcePath: 'skills/brainstorming/SKILL.md',
++          role: 'research',
++          gates: ['design_approval'],
++        },
++        {
++          key: 'spec',
++          skill: 'brainstorming',
++          sourcePath: 'skills/brainstorming/SKILL.md',
++          role: 'research',
++          gates: ['spec_approval'],
++        },
++        {
++          key: 'plan',
++          skill: 'writing-plans',
++          sourcePath: 'skills/writing-plans/SKILL.md',
++          role: 'research',
++          gates: ['plan_approval_execution_method'],
++        },
++        {
++          key: 'implement',
++          skill: 'test-driven-development',
++          sourcePath: 'skills/test-driven-development/SKILL.md',
++          role: 'implement',
++          gates: [],
++        },
++        {
++          key: 'review',
++          skill: 'requesting-code-review',
++          sourcePath: 'skills/requesting-code-review/SKILL.md',
++          role: 'review',
++          gates: [],
++        },
++        {
++          key: 'verify',
++          skill: 'verification-before-completion',
++          sourcePath: 'skills/verification-before-completion/SKILL.md',
++          role: 'review',
++          gates: [],
++        },
++      ]);
++      for (const step of run.steps) assert.equal(step.sourceSha256, skillSha('superpowers', step.sourcePath));
++      assert.ok(isChain(run), 'mặc định tuần tự: mỗi bước chỉ chờ bước trước');
++      for (const gate of criteria.flatMap((item) => item.gates)) assert.equal(gate.requiredActor, 'owner');
++      // A run cannot be created twice for the same root, and Superpowers runs never latch a render.
++      await assert.rejects(() => f.create(), { code: 'WORKFLOW_RUN_EXISTS', status: 409 });
++      await assert.rejects(() => db.begin((tx) => f.runs.latchRenderedArtifact(tx, run.id, randomUUID())), {
++        code: 'WORKFLOW_RENDER_NOT_REQUIRED',
++        status: 409,
++      });
++    } finally {
++      await f.close();
++    }
++  }));
++
++const superpowersOutlines: Record<'bounded' | 'bug' | 'spike', ReturnType<typeof outline>> = {
++  bounded: [
++    {
++      key: 'design',
++      skill: 'brainstorming',
++      sourcePath: 'skills/brainstorming/SKILL.md',
++      role: 'research',
++      gates: ['design_approval'],
++    },
++    {
++      key: 'implement',
++      skill: 'test-driven-development',
++      sourcePath: 'skills/test-driven-development/SKILL.md',
++      role: 'implement',
++      gates: [],
++    },
++    {
++      key: 'review',
++      skill: 'requesting-code-review',
++      sourcePath: 'skills/requesting-code-review/SKILL.md',
++      role: 'review',
++      gates: [],
++    },
++    {
++      key: 'verify',
++      skill: 'verification-before-completion',
++      sourcePath: 'skills/verification-before-completion/SKILL.md',
++      role: 'review',
++      gates: [],
++    },
++  ],
++  bug: [
++    ...['root_cause', 'pattern', 'hypothesis'].map((key) => ({
++      key,
++      skill: 'systematic-debugging',
++      sourcePath: 'skills/systematic-debugging/SKILL.md',
++      role: 'research' as const,
++      gates: [],
++    })),
++    {
++      key: 'fix',
++      skill: 'systematic-debugging',
++      sourcePath: 'skills/systematic-debugging/SKILL.md',
++      role: 'fix',
++      gates: ['architecture_discussion'],
++    },
++    {
++      key: 'review',
++      skill: 'requesting-code-review',
++      sourcePath: 'skills/requesting-code-review/SKILL.md',
++      role: 'review',
++      gates: [],
++    },
++    {
++      key: 'verify',
++      skill: 'verification-before-completion',
++      sourcePath: 'skills/verification-before-completion/SKILL.md',
++      role: 'review',
++      gates: [],
++    },
++  ],
++  spike: [
++    {
++      key: 'probe',
++      skill: 'brainstorming',
++      sourcePath: 'skills/brainstorming/SKILL.md',
++      role: 'research',
++      gates: ['probe_approval'],
++    },
++    {
++      key: 'investigate',
++      skill: 'brainstorming',
++      sourcePath: 'skills/brainstorming/SKILL.md',
++      role: 'research',
++      gates: [],
++    },
++  ],
++};
++
++test('assistant workflows: bounded, bug and spike paths map their pinned sources', async () => {
++  for (const path of ['bounded', 'bug', 'spike'] as const)
++    await withDatabase(async (db) => {
++      const f = await runFixture(db);
++      try {
++        const run = await f.create({ path });
++        const criteria = await assertGraph(db, f, run);
++        assert.deepEqual(outline(run, criteria), superpowersOutlines[path], path);
++        assert.ok(isChain(run), path);
++        for (const step of run.steps)
++          assert.equal(step.sourceSha256, skillSha('superpowers', step.sourcePath));
++        if (path === 'spike') {
++          const kinds =
++            await db`select kind from tickets where id in ${db(run.steps.map((step) => step.ticketId))}`;
++          assert.deepEqual(
++            [...new Set(kinds.map((row) => row.kind))],
++            ['research'],
++            'spike không hoàn tất mã sản phẩm',
++          );
++        }
++      } finally {
++        await f.close();
++      }
++    });
++});
++
++const projectRoot = '/Users/fixture/work/crew-ws-1';
++const generationPath = (root: string, tail = '0123456789abcdef0123') => {
++  const slug =
++    root
++      .split('/')
++      .pop()
++      ?.toLowerCase()
++      .replace(/[^a-z0-9]+/g, '-') ?? 'project';
++  const rootHash = createHash('sha256').update(root, 'utf8').digest('hex').slice(0, 12);
++  return `${root}/_bmad/render/bmad-build/${slug}-${rootHash}/${tail}`;
++};
++
++// Test-only execution rows standing in for the S6 receipt registration on machine B.
++async function seedReceipt(
++  db: Db,
++  input: {
++    ticketId: Id;
++    machineId: Id;
++    bindingRevision?: number;
++    data?: Record<string, unknown>;
++    kind?: string;
++  },
++  run: WorkflowRun,
++) {
++  const commandId = randomUUID(),
++    attemptId = randomUUID(),
++    evidenceId = randomUUID();
++  const [existing] = await db`select id from attempts where ticket_id=${input.ticketId} and state='active'`;
++  const attempt = existing?.id ?? attemptId;
++  if (!existing) {
++    await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state)
++      values(${commandId},${input.machineId},${input.ticketId},${input.bindingRevision ?? 2},'start','{}','received')`;
++    await db`insert into attempts(id,ticket_id,machine_id,command_id,fence,binding_revision,process_instance_id,state,lease_expires_at,workflow_pin)
++      values(${attemptId},${input.ticketId},${input.machineId},${commandId},1,${input.bindingRevision ?? 2},${randomUUID()},
++      'active',now()+interval '60 seconds','{}')`;
++  }
++  const data = {
++    definitionSha256: run.definitionSha256,
++    customizationSha256: run.customizationSha256,
++    projectRoot,
++    generationPath: generationPath(projectRoot),
++    inspection: { kind: 'artifact-inspection', manifestSha256: 'a'.repeat(64) },
++    ...input.data,
++  };
++  await db`insert into evidence(id,ticket_id,attempt_id,kind,data)
++    values(${evidenceId},${input.ticketId},${attempt},${input.kind ?? 'workflow_render_receipt'},${db.json(data)})`;
++  return evidenceId;
++}
++
++test('assistant workflows: bmad-dispatch run waits for a verified render latch', async () =>
++  withDatabase(async (db) => {
++    const f = await runFixture(db, { workflow: 'bmad' });
++    try {
++      const run = await f.create();
++      const criteria = await assertGraph(db, f, run);
++      const file = (name: string) => `.claude/skills/bmad-build/${name}`;
++      assert.deepEqual(outline(run, criteria), [
++        {
++          key: 'step-01',
++          skill: 'bmad-build',
++          sourcePath: file('step-01-clarify-and-route.md'),
++          role: 'research',
++          gates: [],
++        },
++        {
++          key: 'step-02',
++          skill: 'bmad-build',
++          sourcePath: file('step-02-plan.md'),
++          role: 'research',
++          gates: ['spec_approval'],
++        },
++        {
++          key: 'step-03',
++          skill: 'bmad-build',
++          sourcePath: file('step-03-implement.md'),
++          role: 'implement',
++          gates: [],
++        },
++        {
++          key: 'step-04',
++          skill: 'bmad-build',
++          sourcePath: file('step-04-review.md'),
++          role: 'review',
++          gates: [],
++        },
++        {
++          key: 'step-05',
++          skill: 'bmad-build',
++          sourcePath: file('step-05-present.md'),
++          role: 'implement',
++          gates: [],
++        },
++      ]);
++      for (const step of run.steps) assert.equal(step.sourceSha256, skillSha('bmad', step.sourcePath));
++      assert.ok(isChain(run));
++      assert.equal(run.renderedArtifactId, null);
++      assert.deepEqual(run.projection, vector.bmad.projection);
++      const [first, second] = run.steps;
++      const latch = (evidenceId: Id) =>
++        db.begin((tx) => f.runs.latchRenderedArtifact(tx, run.id, evidenceId));
++      const conflict = { code: 'WORKFLOW_RENDER_RECEIPT_INVALID', status: 409 };
++      const wrong: Promise<Id>[] = [];
++      // Attempt by a machine other than the current binding.
++      wrong.push(seedReceipt(db, { ticketId: second?.ticketId as Id, machineId: f.otherC.id }, run));
++      const good = { ticketId: first?.ticketId as Id, machineId: f.boundB.id };
++      // Attempt on a ticket outside this run.
++      wrong.push(seedReceipt(db, { ticketId: f.a.id, machineId: f.boundB.id }, run));
++      const denied = await Promise.all(wrong);
++      denied.push(await seedReceipt(db, { ...good, data: { definitionSha256: superpowersHash } }, run));
++      denied.push(await seedReceipt(db, { ...good, data: { customizationSha256: 'e'.repeat(64) } }, run));
++      denied.push(
++        await seedReceipt(db, { ...good, data: { projectRoot: '/Users/fixture/work/other' } }, run),
++      );
++      denied.push(await seedReceipt(db, { ...good, kind: 'artifact' }, run));
++      for (const evidenceId of denied) await assert.rejects(() => latch(evidenceId), conflict);
++      assert.equal(
++        (await db`select rendered_artifact_id,revision from workflow_runs where id=${run.id}`)[0]?.revision,
++        1,
++      );
++      const accepted = await seedReceipt(db, good, run);
++      const latched = await latch(accepted);
++      assert.equal(latched.renderedArtifactId, accepted);
++      assert.equal(latched.revision, 2);
++      const again = await seedReceipt(db, good, run);
++      await assert.rejects(() => latch(again), {
++        code: 'WORKFLOW_RENDER_ALREADY_LATCHED',
++        status: 409,
++      });
++      const [row] = await db`select rendered_artifact_id,revision from workflow_runs where id=${run.id}`;
++      assert.deepEqual({ ...row }, { rendered_artifact_id: accepted, revision: 2 });
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant workflows: bmad-oneshot keeps the official oneshot route without an artifact', async () =>
++  withDatabase(async (db) => {
++    const f = await runFixture(db, { workflow: 'bmad' });
++    try {
++      const run = await f.create({ path: 'bmad-oneshot' });
++      const criteria = await assertGraph(db, f, run);
++      const file = (name: string) => `.claude/skills/bmad-build/${name}`;
++      assert.deepEqual(outline(run, criteria), [
++        {
++          key: 'step-01',
++          skill: 'bmad-build',
++          sourcePath: file('step-01-clarify-and-route.md'),
++          role: 'research',
++          gates: [],
++        },
++        {
++          key: 'step-02',
++          skill: 'bmad-build',
++          sourcePath: file('step-02-plan.md'),
++          role: 'research',
++          gates: [],
++        },
++        {
++          key: 'step-oneshot',
++          skill: 'bmad-build',
++          sourcePath: file('step-oneshot.md'),
++          role: 'implement',
++          gates: [],
++        },
++      ]);
++      assert.equal(run.renderedArtifactId, null);
++      // A Superpowers path cannot use the BMAD definition.
++      await assert.rejects(() => f.create({ path: 'bounded' }), { status: 422 });
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('assistant workflows: pinned run and step identity is immutable in SQL', async () =>
++  withDatabase(async (db) => {
++    const f = await runFixture(db);
++    try {
++      const run = await f.create({ path: 'bounded' });
++      const updates = [
++        () => db`update workflow_runs set source='{}' where id=${run.id}`,
++        () => db`update workflow_runs set projection='{}' where id=${run.id}`,
++        () => db`update workflow_runs set definition_sha256=${'1'.repeat(64)} where id=${run.id}`,
++        () => db`update workflow_runs set customization_sha256=${'2'.repeat(64)} where id=${run.id}`,
++        () => db`update workflow_runs set path='bug' where id=${run.id}`,
++        () => db`update workflow_steps set gate_ids='[]' where run_id=${run.id}`,
++        () => db`update workflow_steps set source_sha256=${'3'.repeat(64)} where run_id=${run.id}`,
++        () => db`update assistant_operation_ids set target_identity='x' where run_id=${run.id}`,
++        () => db`delete from workflow_runs where id=${run.id}`,
++      ];
++      for (const update of updates) await assert.rejects(update, /ASSISTANT_RECORD_IMMUTABLE/);
++      const [row] = await db`select definition_sha256,revision from workflow_runs where id=${run.id}`;
++      assert.deepEqual({ ...row }, { definition_sha256: superpowersHash, revision: 1 });
++    } finally {
++      await f.close();
++    }
++  }));
++
++async function setParallelApproval(db: Db, decisionId: Id | null) {
++  await db`update assistant_config set policy=jsonb_set(policy,'{parallelApprovalId}',${db.json(decisionId as never)})
++    where singleton=true`;
++}
++async function insertDecision(db: Db, ticketId: Id, actor: Actor, kind: string, scope: unknown) {
++  const id = randomUUID();
++  await db`insert into decisions(id,ticket_id,actor_kind,actor_id,kind,content,rationale,sources,scope)
++    values(${id},${ticketId},${actor.kind},${actor.id},${kind},'Chạy song song hai phần','Phần độc lập','[]',${db.json(scope as never)})`;
++  return id;
++}
++
++test('assistant workflows: parallel needs an exact owner approval, sequential otherwise', async () =>
++  withDatabase(async (db) => {
++    const f = await runFixture(db);
++    try {
++      const scope = {
++        parallel: {
++          rootTicketId: f.root.id,
++          path: 'bounded',
++          definitionSha256: superpowersHash,
++          units: [
++            { key: 'api', title: 'API', ownershipKeys: ['v2/server/src/a.ts'] },
++            { key: 'web', title: 'Web', ownershipKeys: ['v2/web/src/b.tsx'] },
++          ],
++        },
++      };
++      const before = await f.rows();
++      await setParallelApproval(db, await insertDecision(db, f.root.id, f.assistantA, 'approval', scope));
++      await assert.rejects(() => f.create({ path: 'bounded' }), {
++        code: 'WORKFLOW_PARALLEL_APPROVAL_INVALID',
++        status: 403,
++      });
++      await setParallelApproval(db, await insertDecision(db, f.a.id, owner, 'approval', scope));
++      await assert.rejects(() => f.create({ path: 'bounded' }), {
++        code: 'WORKFLOW_PARALLEL_APPROVAL_INVALID',
++        status: 403,
++      });
++      const overlapping = structuredClone(scope);
++      overlapping.parallel.units[1]?.ownershipKeys.push('v2/server/src/a.ts');
++      await setParallelApproval(db, await insertDecision(db, f.root.id, owner, 'approval', overlapping));
++      await assert.rejects(() => f.create({ path: 'bounded' }), {
++        code: 'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT',
++        status: 409,
++      });
++      const after = await f.rows();
++      assert.deepEqual(
++        { runs: after.runs, steps: after.steps, operations: after.operations, tickets: after.tickets },
++        { runs: before.runs, steps: before.steps, operations: before.operations, tickets: before.tickets },
++      );
++      const approval = await insertDecision(db, f.root.id, owner, 'approval', scope);
++      await setParallelApproval(db, approval);
++      const run = await f.create({ path: 'bounded' });
++      assert.equal(run.parallelApprovalId, approval);
++      const criteria = await assertGraph(db, f, run);
++      assert.deepEqual(
++        criteria.map((item) => item.stepKey),
++        ['design', 'implement', 'implement', 'review', 'verify'],
++      );
++      const [design, one, two, review] = run.steps;
++      assert.deepEqual(one?.predecessorIds, [design?.id]);
++      assert.deepEqual(two?.predecessorIds, [design?.id]);
++      assert.deepEqual(new Set(review?.predecessorIds), new Set([one?.id, two?.id]));
++      assert.deepEqual(
++        [one?.ownershipKeys, two?.ownershipKeys],
++        [['v2/server/src/a.ts'], ['v2/web/src/b.tsx']],
++      );
++      assert.notEqual(criteria[1].stepOperationId, criteria[2].stepOperationId);
++    } finally {
++      await f.close();
++    }
++  }));
