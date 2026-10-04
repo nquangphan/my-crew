@@ -606,6 +606,7 @@ flows:
       - web/src/machines/onboarding.tsx
     files:
       - web/src/machines/onboarding-state.ts
+      - web/src/machines/held-discard.tsx
       - web/src/projects/setup.tsx
       - web/src/projects/setup-state.ts
     tests:

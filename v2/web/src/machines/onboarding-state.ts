@@ -112,6 +112,10 @@ export function onboardingFailureText(error: unknown, subject: FailureSubject): 
   if (!(error instanceof ApiFailure)) return 'Chưa xác nhận kết quả. Yêu cầu vẫn được giữ để gửi lại.';
   if (error.kind === 'configuration')
     return `Lỗi cấu hình máy chủ (${error.code}). Yêu cầu vẫn giữ khóa cũ; gửi lại sau khi máy chủ được cấu hình.`;
+  if (error.code === 'RESPONSE_SHAPE_INVALID')
+    return subject === 'machine'
+      ? 'Máy đã được đăng ký nhưng không đọc được token máy chủ trả về nên không hiển thị được. Thu hồi máy này rồi đăng ký lại.'
+      : 'Yêu cầu đã được máy chủ nhận nhưng phản hồi không đọc được. Tải lại danh sách để xem kết quả trước khi gửi lại.';
   if (error.code === 'INTENT_UNRESOLVED')
     return 'Đang có yêu cầu cũ chưa xác nhận. Hãy gửi lại đúng yêu cầu cũ trước.';
   if (error.code === 'IDEMPOTENCY_CONFLICT')
@@ -128,7 +132,10 @@ export function onboardingFailureText(error: unknown, subject: FailureSubject): 
     return subject === 'binding'
       ? 'Không tìm thấy dự án hoặc máy (máy có thể đã bị thu hồi). Hãy tải lại danh sách.'
       : 'Không tìm thấy đối tượng cần thao tác.';
-  if (error.status === 400) return 'Máy chủ từ chối thông tin đã nhập. Kiểm tra lại các trường.';
+  if (error.status === 400)
+    return error.message && error.message !== error.code
+      ? `Máy chủ từ chối thông tin đã nhập: ${error.message}. Kiểm tra lại các trường.`
+      : 'Máy chủ từ chối thông tin đã nhập. Kiểm tra lại các trường.';
   if (error.kind === 'transport' || error.kind === 'aborted' || error.code === 'UNCONFIRMED')
     return 'Chưa xác nhận kết quả. Yêu cầu vẫn được giữ nguyên khóa cũ để gửi lại.';
   return `Máy chủ báo lỗi (${error.code}).`;

@@ -9,6 +9,7 @@ import { type CSSProperties, useEffect, useId, useState } from 'react';
 import { useRuntime } from '../app-runtime.ts';
 import { decodeProvisionedMachine, type ProvisionedMachine } from '../contracts/machines.ts';
 import { queryRoots } from '../lib/query-keys.ts';
+import { DiscardHeld } from './held-discard.tsx';
 import {
   heldOperation,
   machineNameError,
@@ -125,6 +126,8 @@ export function MachineOnboarding() {
       setError(onboardingFailureText(failure, 'machine'));
     } finally {
       setBusy(false);
+      // A shape error still means the server may have registered the machine: show the real list.
+      void cache.invalidateQueries({ queryKey: queryRoots.machines });
     }
   };
 
@@ -170,10 +173,26 @@ export function MachineOnboarding() {
             {error}
           </p>
         )}
-        <div>
-          <button type="submit" style={buttonStyle} disabled={busy}>
+        {issued && !held && (
+          <p role="status" style={{ margin: 0 }}>
+            Đóng panel token ở trên trước khi đăng ký máy khác, để không mất token chưa lưu.
+          </p>
+        )}
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button type="submit" style={buttonStyle} disabled={busy || (issued !== null && !held)}>
             {held ? 'Gửi lại đúng yêu cầu cũ' : 'Đăng ký máy'}
           </button>
+          {held && (
+            <DiscardHeld
+              disabled={busy}
+              warning="Máy chủ có thể đã đăng ký máy này. Nếu bỏ yêu cầu cũ rồi gửi lại, có thể tạo máy trùng tên. Tên đã nhập được giữ lại."
+              onDiscard={() => {
+                pending.reject(held.id);
+                setName(heldName ?? '');
+                setError(null);
+              }}
+            />
+          )}
         </div>
       </form>
       <section aria-labelledby="machine-list-heading" style={{ display: 'grid', gap: '0.5rem' }}>

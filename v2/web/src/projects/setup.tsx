@@ -10,6 +10,7 @@ import { type CSSProperties, useId, useState } from 'react';
 import { useRuntime } from '../app-runtime.ts';
 import { decodeProject, type Machine, type Project } from '../contracts/machines.ts';
 import { queryRoots } from '../lib/query-keys.ts';
+import { DiscardHeld } from '../machines/held-discard.tsx';
 import {
   heldOperation,
   machinesQueryOptions,
@@ -96,6 +97,7 @@ function CreateProjectForm() {
       setError(onboardingFailureText(failure, 'project'));
     } finally {
       setBusy(false);
+      void cache.invalidateQueries({ queryKey: queryRoots.projects });
     }
   };
 
@@ -163,10 +165,25 @@ function CreateProjectForm() {
           {created}
         </p>
       )}
-      <div>
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <button type="submit" style={buttonStyle} disabled={busy}>
           {held ? 'Gửi lại đúng yêu cầu cũ' : 'Tạo dự án'}
         </button>
+        {held && heldBody && (
+          <DiscardHeld
+            disabled={busy}
+            warning="Máy chủ có thể đã tạo dự án này. Nếu bỏ yêu cầu cũ rồi tạo lại, có thể tạo bản trùng. Các trường đã nhập được giữ lại."
+            onDiscard={() => {
+              pending.reject(held.id);
+              setFields({
+                key: heldBody.key,
+                name: heldBody.name,
+                repositoryUrl: heldBody.repositoryUrl ?? '',
+              });
+              setError(null);
+            }}
+          />
+        )}
       </div>
     </form>
   );
@@ -206,6 +223,8 @@ function BindingSection({ project, machines }: { project: Project; machines: Mac
         return;
       }
       body = { ...shown, expectedRevision: project.bindingRevision };
+      // Freeze what the owner sent: a refetch after a conflict must not overwrite these fields.
+      setDraft(shown);
     }
     setError(null);
     setBusy(true);
@@ -291,10 +310,22 @@ function BindingSection({ project, machines }: { project: Project; machines: Mac
             {done}
           </p>
         )}
-        <div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button type="submit" style={buttonStyle} disabled={busy || (live.length === 0 && !held)}>
             {held ? 'Gửi lại đúng yêu cầu cũ' : rebinding ? 'Đổi máy' : 'Gắn máy'}
           </button>
+          {held && heldBody && (
+            <DiscardHeld
+              disabled={busy}
+              warning="Máy chủ có thể đã áp dụng yêu cầu cũ. Nếu bỏ, các trường đã nhập được giữ lại và bạn áp dụng lại trên revision mới đọc từ máy chủ; kiểm tra kết quả trước khi áp dụng."
+              onDiscard={async () => {
+                pending.reject(held.id);
+                setDraft({ machineId: heldBody.machineId, checkoutPath: heldBody.checkoutPath });
+                setError(null);
+                await cache.invalidateQueries({ queryKey: queryRoots.projects });
+              }}
+            />
+          )}
         </div>
       </form>
     </section>

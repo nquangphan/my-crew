@@ -30,3 +30,16 @@
 - Một yêu cầu treo mà lần gửi lại cũng trả 4xx không-chứng-minh (ví dụ 409) vẫn giữ khóa theo luật của `api.ts`; không có nút bỏ khóa trong slice này.
 - Token máy đã nhận mà phản hồi mất sau khi server commit: gửi lại cùng khóa cho server phát lại; sau khi token đã đóng thì không xem lại được (đúng một lần hiển thị).
 - Chưa có online/telemetry máy, công tắc nguồn, model pool, cài workflow (S7full, chờ G3/G4).
+
+## Fix round 1/5
+
+**Kết quả: DONE_WITH_CONCERNS.** RED semantic trước khi sửa source: 7/21 test fail trên hành vi (không có nút “Bỏ yêu cầu cũ”, `checkoutPathError` nhận `C:\`/UNC, trường đổi theo server sau 409, 400 không hiện lý do, không có thông báo khi 2xx sai định dạng). GREEN: unit web 253/253 (`--test-concurrency=1`), `tsc` sạch, Biome sạch, E2E `onboarding.spec.ts` 3/3 hai lượt và test thứ ba chạy riêng bằng `--grep`; `crew-docs generate/check --all/check --staged` ok trên mirror.
+
+- **I1:** component mới `machines/held-discard.tsx` (“Bỏ yêu cầu cũ” → hộp xác nhận cảnh báo bản trùng, với gắn máy cảnh báo áp dụng lại trên revision mới → “Vẫn bỏ yêu cầu cũ”). Gọi `PendingStore.reject` (API sẵn có, không sửa `api.ts`), giữ trường đã gõ, đọc lại danh sách dự án để lấy revision mới, lần gửi sau dùng khóa mới. Áp dụng cho cả đăng ký máy, tạo dự án và gắn máy; test gồm nhánh replay 409.
+- **I2:** `checkoutPathError` chỉ nhận POSIX bắt đầu bằng `/`, thông báo tiếng Việt nêu rõ từ chối `C:\`, UNC, tương đối. 400 của server hiện đúng thông điệp server trả.
+- **I3:** thêm test held replay cho `project:create` và bind, tombstone resume cho máy và bind.
+- **M1:** trường được chốt vào draft lúc gửi, nên 409 không đổi trường theo giá trị server mới (giá trị mới chỉ ở dòng trạng thái).
+- **M2 (nhỏ, làm luôn):** khóa nút đăng ký máy khi panel token còn mở.
+- **M3:** bỏ assertion body POST; kiểm IndexedDB, CacheStorage và cookie.
+- **M4:** response 2xx sai định dạng giờ báo rõ “máy đã được đăng ký nhưng token không hiển thị được, thu hồi rồi đăng ký lại” và đọc lại danh sách máy. Lưu ý: không thể “decode trước rồi mới accept” nếu không sửa `lib/api.ts` (mutate đã `accept` trước khi trả body), nên chỉ báo lỗi rõ chứ không giữ được khóa; cần PM quyết định nếu muốn đổi lib.
+- **M5:** cả ba test E2E tự dựng máy, dự án và binding, không còn phụ thuộc test 1.

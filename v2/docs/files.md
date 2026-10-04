@@ -410,6 +410,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/lib/pending-operation.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/lib/query-keys.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/lib/session.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/machines/held-discard.tsx` | [web-machines](flows/web-machines.md) (file) |
 | `web/src/machines/onboarding-state.ts` | [web-machines](flows/web-machines.md) (file) |
 | `web/src/machines/onboarding.tsx` | [web-machines](flows/web-machines.md) (điểm vào) |
 | `web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |

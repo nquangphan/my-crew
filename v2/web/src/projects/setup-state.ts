@@ -40,10 +40,13 @@ export function repositoryUrlValue(input: string): RepositoryUrlResult {
   }
 }
 
-/** Absolute path on the chosen machine; typed text, never an OS picker. */
+/**
+ * Absolute POSIX path on the chosen machine (macOS/Linux, starts with `/`); typed text, never an OS picker.
+ * Windows drive and UNC paths are rejected here because the server validates with the POSIX rules.
+ */
 export function checkoutPathError(path: string): string | null {
-  if (path.length === 0 || !(path.startsWith('/') || /^[A-Za-z]:[\\/]/.test(path) || path.startsWith('\\\\')))
-    return 'Nhập đường dẫn tuyệt đối trên máy đã chọn.';
+  if (!path.startsWith('/'))
+    return 'Đường dẫn phải là đường dẫn tuyệt đối kiểu macOS/Linux, bắt đầu bằng “/”. Không nhận đường dẫn tương đối, C:\\ hay UNC.';
   if (path.includes('\0')) return 'Đường dẫn không được chứa ký tự NUL.';
   if (path.length > checkoutPathMax) return `Đường dẫn tối đa ${checkoutPathMax} ký tự.`;
   return null;

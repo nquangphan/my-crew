@@ -41,7 +41,9 @@ class FakeServer {
   /** Commit, then drop the response of the next POST /v2/machines. */
   dropNextMachineResponse = false;
   /** Next PUT binding fails with this producer error (state untouched). */
-  bindError: { status: number; code: string } | null = null;
+  bindError: { status: number; code: string; message?: string } | null = null;
+  /** The next POST /v2/projects or PUT binding never reaches the producer (transport failure). */
+  failNext: 'project' | 'bind' | null = null;
   #receipts = new Map<string, Response>();
   #next = 1;
 
@@ -52,7 +54,13 @@ class FakeServer {
     this.calls.push(call);
     const json = (status: number, value: unknown) =>
       new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
-    const failure = (status: number, code: string) => json(status, { error: { code, message: code } });
+    const failure = (status: number, code: string, message = code) =>
+      json(status, { error: { code, message } });
+    const lost = (kind: 'project' | 'bind') => {
+      if (this.failNext !== kind) return;
+      this.failNext = null;
+      throw new TypeError('fetch failed');
+    };
     const path = url.split('?')[0] ?? url;
     if (path === '/v2/auth/session') return json(200, { owner: { id: 'owner' }, csrfToken: csrf });
     if (method === 'GET' && path === '/v2/machines')
@@ -82,6 +90,7 @@ class FakeServer {
       return response;
     }
     if (method === 'POST' && path === '/v2/projects') {
+      lost('project');
       const input = JSON.parse(body ?? '{}') as { key: string; name: string; repositoryUrl: string | null };
       if (this.projects.some((project) => project.key === input.key))
         return failure(409, 'PROJECT_KEY_CONFLICT');
@@ -98,10 +107,11 @@ class FakeServer {
     }
     const bind = /^\/v2\/projects\/([^/]+)\/binding$/.exec(path);
     if (method === 'PUT' && bind) {
+      lost('bind');
       if (this.bindError) {
         const error = this.bindError;
         this.bindError = null;
-        return failure(error.status, error.code);
+        return failure(error.status, error.code, error.message);
       }
       const project = this.projects.find((candidate) => candidate.id === bind[1]);
       if (!project) return failure(404, 'NOT_FOUND');
@@ -170,7 +180,8 @@ test('kiểm tra đầu vào khớp hợp đồng server: tên máy, mã dự á
   assert.equal(repositoryUrlValue('https://user:pw@git.example/x.git').ok, false);
   assert.equal(repositoryUrlValue('http://git.example/x.git').ok, false);
   assert.equal(repositoryUrlValue('git@github.com:a/b.git').ok, false);
-  assert.equal(checkoutPathError('relative/path'), 'Nhập đường dẫn tuyệt đối trên máy đã chọn.');
+  for (const bad of ['relative/path', 'C:\\work\\crew', 'C:/work/crew', '\\\\host\\share\\crew'])
+    assert.match(checkoutPathError(bad) ?? '', /bắt đầu bằng “\/”/, bad);
   assert.equal(checkoutPathError('/srv/work/crew'), null);
   assert.equal(checkoutPathError('/srv/\0x'), 'Đường dẫn không được chứa ký tự NUL.');
   assert.equal(checkoutPathError(`/${'a'.repeat(4096)}`), 'Đường dẫn tối đa 4096 ký tự.');
@@ -433,4 +444,255 @@ test('chưa có dự án: hướng dẫn tạo dự án trước', async () => {
   const env = await ready(setup(server));
   env.mountView(() => createElement(ProjectSetup));
   await screen.findByText('Chưa có dự án nào. Tạo dự án ở biểu mẫu phía trên.');
+});
+
+test('đăng ký máy: gửi lại yêu cầu cũ bị 409 thì có lối thoát “Bỏ yêu cầu cũ”, giữ tên và dùng khóa mới', async () => {
+  const server = new FakeServer();
+  server.dropNextMachineResponse = true;
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(MachineOnboarding));
+  await screen.findByText('Chưa có máy nào được đăng ký.');
+  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy giữ tên' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
+  await screen.findByRole('alert');
+  const oldKey = env.pending.list()[0]?.id;
+  assert.ok(oldKey);
+
+  fireEvent.click(await screen.findByRole('button', { name: 'Bỏ yêu cầu cũ' }));
+  assert.match((await screen.findByRole('alertdialog')).textContent ?? '', /máy trùng/);
+  assert.equal(env.pending.list().length, 1);
+  fireEvent.click(screen.getByRole('button', { name: 'Vẫn bỏ yêu cầu cũ' }));
+  await waitFor(() => assert.equal(env.pending.list().length, 0));
+  assert.equal((screen.getByLabelText('Tên máy') as HTMLInputElement).value, 'Máy giữ tên');
+  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
+  await screen.findByRole('region', { name: 'Token máy vừa đăng ký' });
+  const posts = mutations(server, 'POST', '/v2/machines');
+  assert.notEqual(posts[posts.length - 1]?.headers.get('idempotency-key'), oldKey);
+});
+
+test('đăng ký máy sau đăng xuất: tombstone dùng lại khóa cũ với tên nhập lại', async () => {
+  const server = new FakeServer();
+  const env = await ready(setup(server));
+  const operation = env.pending.begin({
+    intentId: 'machine:create',
+    method: 'POST',
+    path: '/v2/machines',
+    body: { name: 'Máy cũ' },
+    storage: 'tab',
+  });
+  env.pending.tombstoneAll();
+  env.mountView(() => createElement(MachineOnboarding));
+  await screen.findByText('Chưa có máy nào được đăng ký.');
+  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy cũ' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
+  await screen.findByRole('region', { name: 'Token máy vừa đăng ký' });
+  const posts = mutations(server, 'POST', '/v2/machines');
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0]?.headers.get('idempotency-key'), operation.id);
+});
+
+test('response 2xx sai định dạng khi đăng ký máy: báo rõ máy đã đăng ký mà token không hiển thị được', async () => {
+  const server = new FakeServer();
+  const base = server.fetch;
+  server.fetch = async (url, init) =>
+    (init?.method ?? 'GET') === 'POST' && url === '/v2/machines'
+      ? new Response(JSON.stringify({ machine: { id: 'x' } }), {
+          status: 201,
+          headers: { 'content-type': 'application/json' },
+        })
+      : base(url, init);
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(MachineOnboarding));
+  await screen.findByText('Chưa có máy nào được đăng ký.');
+  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy lỗi định dạng' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
+  const alert = await screen.findByRole('alert');
+  assert.match(alert.textContent ?? '', /đã được đăng ký/);
+  assert.match(alert.textContent ?? '', /[Tt]hu hồi/);
+  assert.equal(screen.queryByRole('region', { name: 'Token máy vừa đăng ký' }), null);
+});
+
+test('tạo dự án mất phản hồi: gửi lại đúng khóa và byte, không tạo dự án thứ hai', async () => {
+  const server = new FakeServer();
+  server.failNext = 'project';
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(ProjectSetup));
+  await screen.findByText('Chưa có dự án nào. Tạo dự án ở biểu mẫu phía trên.');
+  fireEvent.change(screen.getByLabelText('Mã dự án'), { target: { value: 'HELD' } });
+  fireEvent.change(screen.getByLabelText('Tên dự án'), { target: { value: 'Dự án treo' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Tạo dự án' }));
+  assert.match((await screen.findByRole('alert')).textContent ?? '', /Chưa xác nhận/);
+  assert.equal((screen.getByLabelText('Mã dự án') as HTMLInputElement).disabled, true);
+  fireEvent.click(screen.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' }));
+  await screen.findByRole('region', { name: 'Gắn máy cho dự án Dự án treo' });
+  const posts = mutations(server, 'POST', '/v2/projects');
+  assert.equal(posts.length, 2);
+  assert.equal(posts[1]?.headers.get('idempotency-key'), posts[0]?.headers.get('idempotency-key'));
+  assert.equal(posts[1]?.body, posts[0]?.body);
+  assert.equal(server.projects.length, 1);
+});
+
+test('tạo dự án: gửi lại yêu cầu cũ bị 409 thì bỏ yêu cầu cũ, giữ các trường và tạo bằng khóa mới', async () => {
+  const server = new FakeServer();
+  server.failNext = 'project';
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(ProjectSetup));
+  await screen.findByText('Chưa có dự án nào. Tạo dự án ở biểu mẫu phía trên.');
+  fireEvent.change(screen.getByLabelText('Mã dự án'), { target: { value: 'DUP' } });
+  fireEvent.change(screen.getByLabelText('Tên dự án'), { target: { value: 'Dự án trùng mã' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Tạo dự án' }));
+  await screen.findByRole('alert');
+  const oldKey = env.pending.list()[0]?.id;
+  server.projects.push({
+    id: projectA,
+    key: 'DUP',
+    name: 'Người khác tạo',
+    repositoryUrl: null,
+    machineId: null,
+    checkoutPath: null,
+    bindingRevision: 1,
+    docsState: 'missing',
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' }));
+  await waitFor(() => assert.match(screen.getByRole('alert').textContent ?? '', /Mã dự án đã tồn tại/));
+  assert.equal(env.pending.list().length, 1);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Bỏ yêu cầu cũ' }));
+  assert.match((await screen.findByRole('alertdialog')).textContent ?? '', /bản trùng/);
+  fireEvent.click(screen.getByRole('button', { name: 'Vẫn bỏ yêu cầu cũ' }));
+  await waitFor(() => assert.equal(env.pending.list().length, 0));
+  assert.equal((screen.getByLabelText('Mã dự án') as HTMLInputElement).value, 'DUP');
+  assert.equal((screen.getByLabelText('Tên dự án') as HTMLInputElement).value, 'Dự án trùng mã');
+  fireEvent.change(screen.getByLabelText('Mã dự án'), { target: { value: 'DUP2' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Tạo dự án' }));
+  await screen.findByRole('region', { name: 'Gắn máy cho dự án Dự án trùng mã' });
+  const posts = mutations(server, 'POST', '/v2/projects');
+  assert.notEqual(posts[posts.length - 1]?.headers.get('idempotency-key'), oldKey);
+});
+
+test('gắn máy mất phản hồi: gửi lại đúng khóa và byte, chỉ áp dụng một lần', async () => {
+  const server = new FakeServer();
+  seedBindable(server);
+  server.failNext = 'bind';
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(ProjectSetup));
+  const { section, machine, path } = await openBinding();
+  fireEvent.change(machine, { target: { value: machineA } });
+  fireEvent.change(path, { target: { value: '/srv/treo' } });
+  fireEvent.click(within(section).getByRole('button', { name: 'Gắn máy' }));
+  await within(section).findByRole('alert');
+  assert.equal(path.disabled, true);
+  fireEvent.click(within(section).getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' }));
+  await within(section).findByText(/Revision 2/);
+  const puts = mutations(server, 'PUT', `/v2/projects/${projectA}/binding`);
+  assert.equal(puts.length, 2);
+  assert.equal(puts[1]?.headers.get('idempotency-key'), puts[0]?.headers.get('idempotency-key'));
+  assert.equal(puts[1]?.body, puts[0]?.body);
+  assert.equal(server.projects[0]?.bindingRevision, 2);
+});
+
+test('gắn máy: replay bị 409 thì bỏ yêu cầu cũ, giữ trường đã gõ, áp dụng lại với revision mới đọc từ server', async () => {
+  const server = new FakeServer();
+  seedBindable(server);
+  server.failNext = 'bind';
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(ProjectSetup));
+  const { section, machine, path } = await openBinding();
+  fireEvent.change(machine, { target: { value: machineB } });
+  fireEvent.change(path, { target: { value: '/srv/giu-lai' } });
+  fireEvent.click(within(section).getByRole('button', { name: 'Gắn máy' }));
+  await within(section).findByRole('alert');
+  const oldKey = env.pending.list()[0]?.id;
+
+  // Another tab bound the project meanwhile.
+  const row = server.projects[0];
+  assert.ok(row);
+  row.machineId = machineA;
+  row.checkoutPath = '/srv/tab-khac';
+  row.bindingRevision = 3;
+  fireEvent.click(within(section).getByRole('button', { name: 'Gửi lại đúng yêu cầu cũ' }));
+  await waitFor(() => assert.match(within(section).getByRole('alert').textContent ?? '', /đã được thay đổi/));
+  assert.equal(env.pending.list().length, 1);
+
+  fireEvent.click(within(section).getByRole('button', { name: 'Bỏ yêu cầu cũ' }));
+  const dialog = await within(section).findByRole('alertdialog');
+  assert.match(dialog.textContent ?? '', /revision mới/);
+  fireEvent.click(within(section).getByRole('button', { name: 'Vẫn bỏ yêu cầu cũ' }));
+  await waitFor(() => assert.equal(env.pending.list().length, 0));
+  await within(section).findByText(/Revision 3/);
+  assert.equal(path.value, '/srv/giu-lai');
+  assert.equal(machine.value, machineB);
+
+  fireEvent.click(within(section).getByRole('button', { name: 'Đổi máy' }));
+  await within(section).findByText(/Revision 4/);
+  const puts = mutations(server, 'PUT', `/v2/projects/${projectA}/binding`);
+  const last = puts[puts.length - 1];
+  assert.equal(JSON.parse(last?.body ?? '{}').expectedRevision, 3);
+  assert.notEqual(last?.headers.get('idempotency-key'), oldKey);
+  assert.equal(server.projects[0]?.checkoutPath, '/srv/giu-lai');
+});
+
+test('gắn máy sau đăng xuất: tombstone dùng lại khóa cũ với trường nhập lại', async () => {
+  const server = new FakeServer();
+  seedBindable(server);
+  const env = await ready(setup(server));
+  const operation = env.pending.begin({
+    intentId: `project-bind:${projectA}`,
+    method: 'PUT',
+    path: `/v2/projects/${projectA}/binding`,
+    body: { machineId: machineA, checkoutPath: '/srv/cu', expectedRevision: 1 },
+    storage: 'tab',
+  });
+  env.pending.tombstoneAll();
+  env.mountView(() => createElement(ProjectSetup));
+  const { section, machine, path } = await openBinding();
+  fireEvent.change(machine, { target: { value: machineA } });
+  fireEvent.change(path, { target: { value: '/srv/cu' } });
+  fireEvent.click(within(section).getByRole('button', { name: 'Gắn máy' }));
+  await within(section).findByText(/Revision 2/);
+  const puts = mutations(server, 'PUT', `/v2/projects/${projectA}/binding`);
+  assert.equal(puts.length, 1);
+  assert.equal(puts[0]?.headers.get('idempotency-key'), operation.id);
+});
+
+test('409 sau khi bấm mà không sửa gì: trường giữ giá trị lúc gửi, giá trị server mới chỉ hiện để tham khảo', async () => {
+  const server = new FakeServer();
+  seedBindable(server, { machineId: machineA, checkoutPath: '/srv/ban-dau', bindingRevision: 2 });
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(ProjectSetup));
+  const { section, machine, path } = await openBinding();
+  assert.equal(path.value, '/srv/ban-dau');
+  const row = server.projects[0];
+  assert.ok(row);
+  row.machineId = machineB;
+  row.checkoutPath = '/srv/tab-khac';
+  row.bindingRevision = 3;
+  fireEvent.click(within(section).getByRole('button', { name: 'Đổi máy' }));
+  await within(section).findByRole('alert');
+  await within(section).findByText(/\/srv\/tab-khac · Revision 3/);
+  assert.equal(path.value, '/srv/ban-dau');
+  assert.equal(machine.value, machineA);
+  assert.equal(env.pending.list().length, 0);
+});
+
+test('đường dẫn Windows hoặc UNC bị chặn ở client; 400 của server hiện đúng lý do', async () => {
+  const server = new FakeServer();
+  seedBindable(server);
+  const env = await ready(setup(server));
+  env.mountView(() => createElement(ProjectSetup));
+  const { section, machine, path } = await openBinding();
+  fireEvent.change(machine, { target: { value: machineA } });
+  for (const bad of ['C:\\work\\crew', '\\\\host\\share']) {
+    fireEvent.change(path, { target: { value: bad } });
+    fireEvent.click(within(section).getByRole('button', { name: 'Gắn máy' }));
+    assert.match((await within(section).findByRole('alert')).textContent ?? '', /bắt đầu bằng “\/”/);
+  }
+  assert.equal(mutations(server, 'PUT', '/v2/projects').length, 0);
+
+  fireEvent.change(path, { target: { value: '/srv/hop-le' } });
+  server.bindError = { status: 400, code: 'VALIDATION', message: 'Thông tin gắn máy không hợp lệ' };
+  fireEvent.click(within(section).getByRole('button', { name: 'Gắn máy' }));
+  await waitFor(() =>
+    assert.match(within(section).getByRole('alert').textContent ?? '', /Thông tin gắn máy không hợp lệ/),
+  );
 });

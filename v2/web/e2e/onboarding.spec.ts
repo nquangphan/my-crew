@@ -89,11 +89,6 @@ test('hành trình sạch: đăng nhập, đăng ký máy, tạo dự án, gắn
   const logs: string[] = [];
   page.on('console', (message) => logs.push(message.text()));
   page.on('pageerror', (error) => logs.push(error.message));
-  const bodies: string[] = [];
-  page.on('request', (request) => {
-    if (new URL(request.url()).pathname.startsWith('/v2/') && request.method() !== 'GET')
-      bodies.push(`${request.url()} ${request.postData() ?? ''}`);
-  });
 
   await signIn(page, crew, '/machines');
   await expect(page.getByRole('heading', { name: 'Đăng ký máy', level: 1 })).toBeVisible();
@@ -140,7 +135,15 @@ test('hành trình sạch: đăng nhập, đăng ký máy, tạo dự án, gắn
     expect(logs.join('\n')).not.toContain(secret);
     expect(await page.content()).not.toContain(secret);
   }
-  expect(bodies.join('\n')).not.toContain(token);
+  // Neither IndexedDB, CacheStorage nor cookies hold anything of the credential.
+  const stores = await page.evaluate(async () => ({
+    databases: (await indexedDB.databases()).map((database) => database.name),
+    caches: await caches.keys(),
+    cookie: document.cookie,
+  }));
+  expect(stores.databases).toEqual([]);
+  expect(stores.caches).toEqual([]);
+  for (const secret of [token, crew.ownerPassword]) expect(stores.cookie).not.toContain(secret);
 });
 
 test('hai tab: revision cũ trả 409, giữ đường dẫn đã nhập, tải lại rồi áp dụng bằng khóa mới', async ({
@@ -148,7 +151,8 @@ test('hai tab: revision cũ trả 409, giữ đường dẫn đã nhập, tải 
   crew,
   context,
 }) => {
-  await signIn(page, crew, '/setup/projects');
+  await signIn(page, crew, '/machines');
+  await registerMachine(page, 'Máy hai tab');
   const first = await createProject(page, 'E2ESTALE', 'Dự án hai tab');
   await expect(first).toBeVisible();
 
@@ -167,7 +171,7 @@ test('hai tab: revision cũ trả 409, giữ đường dẫn đã nhập, tải 
     await route.continue();
   });
 
-  await first.getByLabel('Máy').selectOption({ label: 'Máy E2E 1' });
+  await first.getByLabel('Máy').selectOption({ label: 'Máy hai tab' });
   await first.getByLabel('Đường dẫn checkout').fill('/srv/tab-mot');
   await first.getByRole('button', { name: 'Gắn máy', exact: true }).click();
   await expect(first.getByText(/Revision 2/)).toBeVisible();
@@ -177,7 +181,7 @@ test('hai tab: revision cũ trả 409, giữ đường dẫn đã nhập, tải 
     if (request.method() === 'PUT')
       puts.push({ key: request.headers()['idempotency-key'], body: request.postData() });
   });
-  await second.getByLabel('Máy').selectOption({ label: 'Máy E2E 1' });
+  await second.getByLabel('Máy').selectOption({ label: 'Máy hai tab' });
   await second.getByLabel('Đường dẫn checkout').fill('/srv/tab-hai');
   await second.getByRole('button', { name: 'Gắn máy', exact: true }).click();
   await expect(second.getByRole('alert')).toContainText('đã được thay đổi');
@@ -228,17 +232,20 @@ test('đổi máy khi attempt active hoặc uncertain: 409 giải thích lý do,
   crew,
 }) => {
   await signIn(page, crew, '/machines');
-  await registerMachine(page, 'Máy E2E 2');
-  await page.getByRole('link', { name: 'Tạo dự án/Gắn máy' }).click();
-  const section = page.getByRole('region', { name: 'Gắn máy cho dự án Dự án E2E' });
-  await expect(section.getByText(/Máy E2E 1 · \/srv\/e2e\/checkout · Revision 2/)).toBeVisible();
-  const before = await binding(crew, 'E2EONB');
+  await registerMachine(page, 'Máy gốc');
+  await registerMachine(page, 'Máy đích');
+  const section = await createProject(page, 'E2EACT', 'Dự án đang chạy');
+  await section.getByLabel('Máy').selectOption({ label: 'Máy gốc' });
+  await section.getByLabel('Đường dẫn checkout').fill('/srv/e2e/goc');
+  await section.getByRole('button', { name: 'Gắn máy', exact: true }).click();
+  await expect(section.getByText(/Máy gốc · \/srv\/e2e\/goc · Revision 2/)).toBeVisible();
+  const before = await binding(crew, 'E2EACT');
 
-  const attemptId = await reserveAttempt(crew, 'E2EONB', 'uncertain');
+  const attemptId = await reserveAttempt(crew, 'E2EACT', 'uncertain');
   for (const state of ['uncertain', 'active'] as const) {
     if (state === 'active')
       await withDb(crew, (db) => db`update attempts set state = 'active' where id = ${attemptId}`);
-    await section.getByLabel('Máy').selectOption({ label: 'Máy E2E 2' });
+    await section.getByLabel('Máy').selectOption({ label: 'Máy đích' });
     await section.getByLabel('Đường dẫn checkout').fill('/srv/e2e/moi');
     const answered = page.waitForResponse((response) => response.request().method() === 'PUT');
     await section.getByRole('button', { name: 'Đổi máy', exact: true }).click();
@@ -249,8 +256,8 @@ test('đổi máy khi attempt active hoặc uncertain: 409 giải thích lý do,
     await expect(alert).toContainText('tiến trình');
     await expect(alert).toContainText('không tự dừng');
     await expect(section.getByLabel('Đường dẫn checkout')).toHaveValue('/srv/e2e/moi');
-    await expect(section.getByLabel('Máy').locator('option:checked')).toHaveText('Máy E2E 2');
-    expect(await binding(crew, 'E2EONB')).toEqual(before);
+    await expect(section.getByLabel('Máy').locator('option:checked')).toHaveText('Máy đích');
+    expect(await binding(crew, 'E2EACT')).toEqual(before);
     await withDb(crew, async (db) => {
       const [row] = await db`select state from attempts where id = ${attemptId}`;
       expect(row?.state).toBe(state);
