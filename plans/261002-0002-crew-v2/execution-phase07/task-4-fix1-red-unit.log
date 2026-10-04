@@ -1,0 +1,162 @@
+✔ đóng dialog giữ vùng đang xem (2.143416ms)
+✔ mở dialog chọn và focus node, không đổi viewport/expanded; di chuyển chỉ đổi viewport (0.183833ms)
+✔ mở/thu gọn: toggle giữ thứ tự ổn định, “Mở tất cả” khôi phục tất cả, không trùng (20.75775ms)
+✔ trạng thái sơ đồ lưu theo root trong tab storage; dữ liệu hỏng bị bỏ (0.428792ms)
+✔ search của route sơ đồ: UUID về chữ thường, UUID sai bị bỏ (không gây request hay mutation) (0.588083ms)
+✔ sơ đồ: root và bước hiện mặc định, task ẩn có badge; nhãn truy cập có cấp, trạng thái chữ và phiên bản (158.5225ms)
+✖ mở/thu gọn bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ; chỉ “Sắp xếp lại” mới bố cục toàn bộ (34.244875ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ mở node bằng click mở TicketDetail chung; đóng giữ viewport, expanded và trả focus về node (78.749375ms)
+✔ realtime: refetch cả graph (GET cũ bị hủy), node mới hiện mà viewport và vị trí cũ không đổi (17.413458ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ node biến mất khi dialog đang mở: đóng trả focus về khung sơ đồ (42.975208ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ bàn phím: mũi tên di chuyển focus giữa node theo cây; bảng quan hệ liệt kê đủ ID (21.88075ms)
+✔ dữ liệu graph hỏng: báo chẩn đoán, có “Tải lại” và danh sách thay thế giữ mọi node (13.498083ms)
+✔ mở bằng URL (reload) với ticket đã chọn: dialog hiện, đóng gọi onSelectTicket(null) (31.672916ms)
+✔ root→hai bước song song→join: mọi cặp dependency giữ nguyên, không có chuỗi tự suy, task thu gọn vào hiddenEdges (1.161542ms)
+✔ mở một bước chỉ hiện đúng task của bước đó; cạnh liên bước vẫn ẩn tới khi mở đủ hai đầu; mở tất cả không còn cạnh ẩn (0.266416ms)
+✔ badge đếm quan hệ dependency/repair tới công việc đang thu gọn theo bước chứa nó (0.255541ms)
+✔ repair check→fix chu kỳ 1–5: cạnh repair riêng, cùng đầu mút với parent vẫn giữ cả hai, vòng repair/dependency không làm layout lặp (0.285042ms)
+✔ graph đọc từ ticket con vẫn chiếu cả root: rootId thừa kế từ node (0.087625ms)
+✔ kết quả không phụ thuộc thứ tự input: node, cạnh và vị trí giống nhau (0.174167ms)
+✔ layout trái→phải: cột theo độ sâu (320+100), anh em theo ID, cha nằm giữa cây con, hàng cách 24 (0.124917ms)
+✔ dữ liệu hỏng có diagnostic, không bỏ node mồ côi, không lặp vô hạn (0.190125ms)
+✔ thiếu root: diagnostic ROOT_MISSING, mọi node vẫn được chiếu và có vị trí (0.072667ms)
+✔ chuỗi cha rất sâu (20 000) không tràn stack ở chiếu và layout (70.570875ms)
+✔ 200 bước / 600 task: giữ mọi cặp dependency, layout xác định và trong ngân sách thời gian (8.176209ms)
+✔ giữ vị trí cũ khi có node mới; node mới đặt cạnh cha; chỉ “Sắp xếp lại” mới layout lại (0.459292ms)
+✖ node mới không đè thẻ đang hiện của bước khác (task realtime dưới bước trên khi bước dưới cũng mở) (0.805084ms)
+✖ mở bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ, task mới cạnh bước, không chồng nhau (0.232541ms)
+✖ mở tất cả 200 bước / 600 task bằng placeNewNodes: không chồng thẻ, trong ngân sách thời gian (3.564584ms)
+✔ quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID (0.187458ms)
+✔ điều hướng bàn phím: trái về cha, phải tới con đầu, lên/xuống theo cột (0.150208ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 26
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1557.489417
+
+✖ failing tests:
+
+test at test/graph-state.test.ts:387:1
+✖ mở/thu gọn bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ; chỉ “Sắp xếp lại” mới bố cục toàn bộ (34.244875ms)
+  AssertionError [ERR_ASSERTION]: mở bước không dời 0d0d0d0d-0000-4000-8000-000000000001
+  + actual - expected
+  
+  + 'translate(0px,170px)'
+  - 'translate(0px,68px)'
+                   ^
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:398:34)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'translate(0px,170px)',
+    expected: 'translate(0px,68px)',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:403:1
+✖ node mới không đè thẻ đang hiện của bước khác (task realtime dưới bước trên khi bước dưới cũng mở) (0.805084ms)
+  AssertionError [ERR_ASSERTION]: không có hai thẻ chồng nhau
+  + actual - expected
+  
+  + [
+  +   '00000000-0000-4000-8000-000000000110~00000000-0000-4000-8000-000000000102'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:413:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ '00000000-0000-4000-8000-000000000110~00000000-0000-4000-8000-000000000102' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:416:1
+✖ mở bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ, task mới cạnh bước, không chồng nhau (0.232541ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   '00000000-0000-4000-8000-000000000101~00000000-0000-4000-8000-000000000110'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:423:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '00000000-0000-4000-8000-000000000101~00000000-0000-4000-8000-000000000110' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:426:1
+✖ mở tất cả 200 bước / 600 task bằng placeNewNodes: không chồng thẻ, trong ngân sách thời gian (3.564584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  403 !== 801
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:439:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 403,
+    expected: 801,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+exit=1

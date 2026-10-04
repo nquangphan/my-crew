@@ -1,0 +1,36 @@
+
+Running 4 tests using 1 worker
+
+[1/4] [chromium] › e2e/ticket-map.spec.ts:284:1 › A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload
+[chromium] › e2e/ticket-map.spec.ts:284:1 › A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload
+{"level":30,"time":1791109493124,"pid":36781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:51006"}
+
+  1) [chromium] › e2e/ticket-map.spec.ts:284:1 › A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "/crew-v2/requests/d701ae2c-43af-4a8c-a864-5e2e89d6a863/map"
+    Received: "/crew-v2/projects/70818dfb-f3c5-459d-bebf-63225d50e870/map"
+
+    Call Log:
+    - Timeout 15000ms exceeded while waiting on the predicate
+
+      302 |   await page.goto(`${crew.webOrigin}/crew-v2/projects/${seeded.projectId}/map?root=${root.id}`);
+      303 |   await signIn(page, crew);
+    > 304 |   await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe(mapPath(root.id));
+          |                                                                              ^
+      305 |   await expect(page.getByRole('link', { name: 'Dạng bảng' })).toHaveAttribute(
+      306 |     'href',
+      307 |     `/crew-v2/projects/${seeded.projectId}/tickets?view=board`,
+        at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/e2e/ticket-map.spec.ts:304:78
+
+    Error Context: test-results/ticket-map-A4-sơ-đồ-root-f-940f4-fit-URL-Back-Forward-reload-chromium/error-context.md
+
+
+[2/4] [chromium] › e2e/ticket-map.spec.ts:465:1 › G1 race: tạo con và dependency đồng thời khi sơ đồ mở — không cạnh treo, bảng/danh sách/sơ đồ cùng revision cuối
+[3/4] [chromium] › e2e/ticket-map.spec.ts:535:1 › 390px và 640px (tương đương zoom 200%): danh sách tương đương, không tràn ngang, mở dialog chung
+[4/4] [chromium] › e2e/ticket-map.spec.ts:562:1 › hiệu năng: 200 bước / 600 task — sơ đồ dùng được lần đầu ≤ 2s trên máy fixture
+  1 failed
+    [chromium] › e2e/ticket-map.spec.ts:284:1 › A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload 
+  3 did not run
+exit=1

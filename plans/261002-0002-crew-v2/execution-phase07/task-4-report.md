@@ -86,3 +86,34 @@ Hash là của bản log cuối (sau khi thêm `viewport-a4.json`).
 4. Quyết định thiết kế cần reviewer xem: mở/thu gọn một bước thì bố cục lại toàn bộ, vì đó là hành động cấu trúc của chính owner. Dữ liệu realtime thì luôn giữ vị trí. Đóng dialog cũng push một mục history, nên Back sau khi đóng sẽ mở lại dialog.
 5. Test component của sơ đồ nằm trong `graph-state.test.ts`, vì brief chỉ cho hai file unit. File đó tự gắn stub layout cho jsdom (ResizeObserver, DOMMatrixReadOnly, rAF, kích thước), không sửa harness.
 6. Cạnh phụ thuộc giữa hai bước cùng cột vẽ thành đường cong chữ S, vì handle nằm ở trái và phải. Đọc được, nhưng chưa đẹp.
+
+## FIX1 (review `task-4-review.md`, ruling PM)
+
+Commit: `a297d3d` (source/test/docs). Báo cáo, log và ảnh nằm ở commit kế tiếp. Gate nặng kiểm bằng parse JSON (`python3 -c … sys.exit(0 if heavyEligible is True else 1)`) và giữ slot; lượt này không vi phạm gate.
+
+| Mục | Sửa | RED trước (semantic) |
+|---|---|---|
+| I1 thẻ chồng | `placeNewNodes` tra ô bị chiếm theo cột (`Occupancy`), dời thẻ mới xuống ô trống đầu tiên khi ô cạnh cha đã có thẻ đang hiện, kể cả task của bước khác. E2E A4 và G1 so bounding box thật của mọi cặp `.react-flow__node` | Unit: task mới của bước 10 rơi đúng ô của task bước 11 → `không có hai thẻ chồng nhau` fail (`task-4-fix1-red-unit.log`) |
+| Ruling expand/collapse | Mở/thu gọn/mở tất cả dùng `placeNewNodes`: thẻ đã hiện đứng yên, nên bước vừa bấm giữ nguyên chỗ trên màn hình mà không cần dịch viewport. Chỉ “Sắp xếp lại” mới bố cục toàn bộ | DOM: `mở bước không dời <root>` fail; unit: mở bước và mở tất cả 801 node bằng `placeNewNodes` fail vì chồng thẻ |
+| I2 history | Đóng dialog mở trong app gọi `history.back()`; dialog từ URL đóng bằng `replace`. Back khi dialog mở là đóng. E2E: sau khi đóng, Forward mở lại, Back đóng; mở lại rồi Back đóng; deep link đóng bằng replace, Back/Forward không mở lại | E2E: `goForward` sau khi đóng không có dialog, vì đóng đã push (`task-4-fix1-red-e2e-history.log`) |
+| Route + M5 | `/requests/$rootId/map?ticket` (`RequestMapPage`); dự án lấy từ ticket gốc nên không hiện dưới dự án sai. `/projects/$projectId/map` là trang chọn yêu cầu; có `?root=` thì redirect replace (giữ `ticket`). Liên kết “Sơ đồ” trỏ route mới | E2E: link cũ không chuyển sang `/requests/<root>/map` (`task-4-fix1-red-e2e.log`) |
+| M1 | Khung cao vừa tới đáy cửa sổ (đo vị trí khung, tối thiểu 352 px). E2E: sau “Vừa khung”, khung nằm trong 1440×1000 và mọi thẻ nằm trong khung. Đã chụp lại `map-root-fork-join-repair.png`, `map-after-concurrent-writes.png` (20 thẻ rời nhau) | E2E: đáy khung vượt cửa sổ 108 px (`task-4-fix1-red-e2e-behaviour.log`) |
+| M3 | Bỏ ref mutable trong `useMemo`. Vị trí là state dẫn xuất, cập nhật trong render theo projection hoặc `layoutRun`. `actionsRef` gán trong `useLayoutEffect`, `positionsRef` trong `useEffect` | Refactor; test cũ và mới giữ xanh |
+| M4 | Docs: bảng/danh sách dùng list query, sơ đồ dùng graph query, hộp thoại dùng ticket query; chung producer và invalidation | — |
+| M6 | `web/src/graph/ticket-map-route.tsx` import CSS ReactFlow và re-export trang; router nạp lazy module này. Build: CSS 15.4 kB và JS 200 kB nằm ở chunk `ticket-map-route`, bundle chính không còn ReactFlow | — |
+
+Kiểm chứng:
+
+| Lệnh | Kết quả | Log |
+|---|---|---|
+| Biome 12 file | exit 0 | `task-4-fix1-biome.log` `5a07151d3f19` |
+| tsc | exit 0 | `task-4-fix1-typecheck.log` `19eaf43821a7` |
+| Unit web đầy đủ | 285/285 | `task-4-fix1-unit-full.log` `5e54ae3431d2` |
+| Build (outDir scratch) | exit 0 | `task-4-fix1-build.log` `e8d9c8af8c5c` |
+| `ticket-map.spec.ts` hai lượt liền | 4/4, 4/4 | `task-4-fix1-e2e-run1.log` `8d041241cc93`, `task-4-fix1-e2e-run2.log` `361d722ca87d` |
+| Spec lân cận `ticket-routes`, `app-router`, `tickets` | 8/8 | `task-4-fix1-e2e-adjacent.log` `c412de4d6714` |
+| `crew-docs generate` + `check --all` (bản sao v2) | ok | — |
+
+Số đo mới: viewport lệch 0/0/0 (`viewport-a4.json`); first usable 801 node là 211/208/196 ms (`perf-801.json`).
+
+Còn mở (không thuộc FIX1): M2 nhãn cạnh dày (PM ghi ledger); A4 dán ảnh/tệp chờ extractor; `repair_links` E2E vẫn ghi DB trực tiếp; ảnh chụp bằng Playwright test, IMG_6454 không có trong repo. Tải lại trang thì bố cục làm mới từ đầu, vì vị trí thẻ không được lưu (chỉ viewport và bước đang mở được lưu).

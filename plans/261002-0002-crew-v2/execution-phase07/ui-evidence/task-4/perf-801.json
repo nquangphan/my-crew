@@ -1,16 +1,16 @@
 {
   "firstUsableMs": [
-    236,
-    203,
-    206
+    211,
+    208,
+    196
   ],
   "fullReloadDevServerMs": [
+    204,
     212,
-    208,
-    217
+    202
   ],
-  "expandAllAndFitMs": 95,
-  "seedSeconds": 3.811,
+  "expandAllAndFitMs": 112,
+  "seedSeconds": 3.411,
   "nodes": 801,
   "dependencies": 599,
   "machine": {

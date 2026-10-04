@@ -1,0 +1,22 @@
+
+Running 8 tests using 1 worker
+
+[1/8] [chromium] › e2e/app-router.spec.ts:26:1 › router thật: guest chuyển login, quay về đúng path, stream trước GET dữ liệu, returnTo ngoài bị bác, logout đóng stream
+[chromium] › e2e/app-router.spec.ts:26:1 › router thật: guest chuyển login, quay về đúng path, stream trước GET dữ liệu, returnTo ngoài bị bác, logout đóng stream
+{"level":30,"time":1791115391602,"pid":69911,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:54782"}
+
+[2/8] [chromium] › e2e/app-router.spec.ts:90:1 › router thật: GET ticket của route deep link đứng sau catch-up /v2/events của phiên vừa xác minh
+[3/8] [chromium] › e2e/ticket-routes.spec.ts:40:1 › deep link /tickets/<id>: guest quay về đúng trang sau đăng nhập, reload vẫn giữ trang, GET ticket sau catch-up
+[chromium] › e2e/ticket-routes.spec.ts:40:1 › deep link /tickets/<id>: guest quay về đúng trang sau đăng nhập, reload vẫn giữ trang, GET ticket sau catch-up
+{"level":30,"time":1791115394942,"pid":70107,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55208"}
+
+[4/8] [chromium] › e2e/ticket-routes.spec.ts:68:1 › id không tồn tại hoặc không phải UUID hiện view không tìm thấy, không lộ dữ liệu
+[5/8] [chromium] › e2e/ticket-routes.spec.ts:81:1 › bảng/danh sách giữ view và bộ lọc trên URL, dialog dùng chung, nút quay lại từ trang ticket
+[6/8] [chromium] › e2e/ticket-routes.spec.ts:133:1 › đăng xuất xóa bản nháp: reload không mở ticket rồi logout; logout xong reload ở guest
+[7/8] [chromium] › e2e/tickets.spec.ts:256:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus
+[chromium] › e2e/tickets.spec.ts:256:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus
+{"level":30,"time":1791115399330,"pid":70376,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55891"}
+
+[8/8] [chromium] › e2e/tickets.spec.ts:358:1 › “Tạo yêu cầu” trên bảng: form project/loại/tiêu đề/workflow, Superpowers mặc định, đóng vẫn giữ bản nháp
+  8 passed (16.9s)
+exit=0
