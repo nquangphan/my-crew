@@ -82,8 +82,15 @@ server cho phép; authority production mặc định vẫn từ chối đến ph
    desired hoặc được máy báo cài.
 10. Owner `POST /v2/gateway/machines/:id/workflows/retry` `{expectedRevision}` (CSRF + Idempotency-Key,
     cùng khóa máy với PUT config) xếp thêm `sync_workflows {configRevision}` cho đúng revision hiện hành,
-    dùng khi PUT config no-op. Chưa cấu hình 409 `CONFIG_NOT_CONFIGURED`, revision lệch 409
-    `CONFIG_REVISION_CONFLICT`, config `enabled=false` 409 `CONFIG_DISABLED` (không xếp command). Nếu đã có
+    dùng khi PUT config no-op. Body có thể thêm `runtime` (`claude|codex|api`). Chưa cấu hình 409
+    `CONFIG_NOT_CONFIGURED`, revision lệch 409 `CONFIG_REVISION_CONFLICT`, 409 `CONFIG_DISABLED` (không xếp
+    command) khi `enabled=false` của máy, hoặc khi có `runtime` mà nguồn đó đang OFF (`isSourceEnabled`).
+    Ba switch nguồn desired (Claude, Codex, API) KHÔNG nằm trong config gateway: chúng đã có sẵn ở
+    `PUT/GET /v2/machines/:id/model-sources` (flow server-models; `enabled{claude,codex,api}` + CAS revision,
+    desired tách khỏi `applied` do gateway báo, gateway áp qua `sync_models`). `isSourceEnabled(tx, machineId,
+    runtime)` (service.ts) là hàm đọc thuần cho admission: cờ `enabled` của máy là công tắc tổng, rồi tới
+    switch nguồn; máy chưa có source config (cấu hình cũ) suy mọi nguồn từ cờ máy. Tắt một nguồn chỉ chặn
+    admission mới, không hủy attempt đã admitted. Admission chưa gọi hàm này (việc của T4). Nếu đã có
     command sync `queued`, hoặc `received` chưa quá 5 phút (`RECEIVED_COMMAND_LEASE_MS`, gateway giữ record
     cục bộ và retry tối đa 75 giây mỗi lần) cho revision đó thì trả lại command ấy với `created:false`; `received`
     quá hạn coi là bị bỏ, retry xếp command mới. Owner `GET /v2/gateway/machines/:id/commands?before&limit`

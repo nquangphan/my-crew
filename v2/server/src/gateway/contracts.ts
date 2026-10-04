@@ -199,7 +199,10 @@ export const toDomainPin = (source: SourcePin): Pin => ({
 export const retrySchema = {
   type: 'object',
   additionalProperties: false,
-  properties: { expectedRevision: { type: 'integer', minimum: 1, maximum: 2147483646 } },
+  properties: {
+    expectedRevision: { type: 'integer', minimum: 1, maximum: 2147483646 },
+    runtime: { enum: ['claude', 'codex', 'api'] },
+  },
   required: ['expectedRevision'],
 } as const;
 export const workflows: Workflow[] = ['bmad', 'superpowers'];

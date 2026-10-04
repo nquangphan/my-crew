@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import test from 'node:test';
 import type { ConfigInput, WorkflowCatalogue, WorkflowRetryResult } from '../src/gateway/contracts.ts';
+import { isSourceEnabled } from '../src/gateway/service.ts';
 import { canonicalJson } from '../src/journal/canonical.ts';
 import { databaseFixture } from './support/db.ts';
 import { gatewayFixture, heartbeat, nextConfig, projection, report, source } from './support/gateway.ts';
@@ -339,6 +340,48 @@ test('retry workflow: config enabled=false bị từ chối CONFIG_DISABLED và 
       assert.equal(code(denied), 'CONFIG_DISABLED');
       const [after] = await db`select count(*)::int as n from gateway_commands`;
       assert.equal(after?.n, before?.n);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('nguồn runtime: isSourceEnabled suy từ cờ máy khi chưa có source config, rồi theo từng switch; retry CONFIG_DISABLED theo runtime', async () =>
+  databaseFixture(8)(async (db) => {
+    const f = await gatewayFixture(db);
+    try {
+      const retry = `/v2/gateway/machines/${f.machineId}/workflows/retry`;
+      const enabledOf = (runtime: 'claude' | 'codex' | 'api') =>
+        db.begin((tx) => isSourceEnabled(tx as never, f.machineId, runtime));
+      assert.equal(await enabledOf('claude'), false, 'chưa có gateway config thì không nguồn nào ON');
+      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
+      for (const runtime of ['claude', 'codex', 'api'] as const)
+        assert.equal(await enabledOf(runtime), true, `${runtime} suy từ enabled=true của config cũ`);
+      const put = await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
+        expectedRevision: 0,
+        enabled: { claude: true, codex: false, api: false },
+        apiProviders: [],
+      });
+      assert.equal(put.statusCode, 200, put.text);
+      assert.deepEqual(
+        [await enabledOf('claude'), await enabledOf('codex'), await enabledOf('api')],
+        [true, false, false],
+      );
+      const [before] = await db`select count(*)::int as n from gateway_commands`;
+      const off = await f.owner.post(retry, { expectedRevision: 1, runtime: 'codex' });
+      assert.equal(off.statusCode, 409);
+      assert.equal(code(off), 'CONFIG_DISABLED');
+      const [after] = await db`select count(*)::int as n from gateway_commands`;
+      assert.equal(after?.n, before?.n, 'OFF không xếp command');
+      const on = await f.owner.post(retry, { expectedRevision: 1, runtime: 'claude' });
+      assert.equal(on.statusCode, 200, on.text);
+      assert.equal((await f.owner.post(retry, { expectedRevision: 1 })).statusCode, 200);
+      assert.equal((await f.owner.post(retry, { expectedRevision: 1, runtime: 'gpt' })).statusCode, 400);
+      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, {
+        ...nextConfig,
+        expectedRevision: 1,
+        enabled: false,
+      });
+      assert.equal(await enabledOf('claude'), false, 'cờ máy tắt thắng switch nguồn');
     } finally {
       await f.close();
     }

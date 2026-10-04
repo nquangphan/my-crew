@@ -23,6 +23,7 @@ import type {
   ProjectionInput,
   ProjectionPin,
   ProjectionSlotStatus,
+  Runtime,
   SourcePin,
   Workflow,
   WorkflowInventory,
@@ -174,6 +175,20 @@ export async function readGatewayApplied(tx: Tx, machineId: Id): Promise<Gateway
         appliedAt: row.applied_at ? (row.applied_at as Date).toISOString() : null,
       }
     : null;
+}
+/**
+ * Desired state of one runtime source (claude, codex, api) for fresh admission. Pure read of authority
+ * already stored: the machine-wide gateway `enabled` flag is a master switch, then the per-source switch
+ * in `model_source_configs`. A machine with no source config yet (older config) derives every source from
+ * the master flag, so existing machines keep their previous behaviour. An OFF source never cancels an
+ * attempt that was already admitted; callers use this only for new admission.
+ */
+export async function isSourceEnabled(tx: Tx, machineId: Id, runtime: Runtime): Promise<boolean> {
+  if (!runtimes.includes(runtime)) return false;
+  const [row] =
+    await tx`select g.enabled as master, (m.enabled->>${runtime}) as source from gateway_configs g left join model_source_configs m on m.machine_id=g.machine_id where g.machine_id=${machineId}`;
+  if (row?.master !== true) return false;
+  return row.source == null ? true : row.source === 'true';
 }
 async function event(tx: Tx, machineId: Id, type: string, data: Record<string, unknown>): Promise<void> {
   await appendEvent(tx, { type, projectId: null, ticketId: null, audienceMachineId: machineId, data });
@@ -491,13 +506,14 @@ export const RECEIVED_COMMAND_LEASE_MS = 5 * 60_000;
 export async function requestWorkflowRetry(
   tx: Tx,
   machineId: Id,
-  input: { expectedRevision: number },
+  input: { expectedRevision: number; runtime?: Runtime },
   now: Date,
 ): Promise<WorkflowRetryResult> {
   const config = await readGatewayConfig(tx, machineId);
   if (!config) fail('CONFIG_NOT_CONFIGURED');
   if (config.revision !== input.expectedRevision) fail('CONFIG_REVISION_CONFLICT');
-  if (!config.enabled) fail('CONFIG_DISABLED');
+  if (input.runtime ? !(await isSourceEnabled(tx, machineId, input.runtime)) : !config.enabled)
+    fail('CONFIG_DISABLED');
   const staleBefore = new Date(now.getTime() - RECEIVED_COMMAND_LEASE_MS);
   const [open] =
     await tx`select * from gateway_commands where machine_id=${machineId} and type='sync_workflows' and (state='queued' or (state='received' and received_at>${staleBefore})) and (payload->>'configRevision')::int=${config.revision} order by cursor desc limit 1`;

@@ -10,6 +10,7 @@ import type {
   GatewayProjectionPolicy,
   InstallReport,
   ProjectionInput,
+  Runtime,
 } from './contracts.ts';
 import {
   ackSchema,
@@ -192,7 +193,7 @@ export function registerGatewayRoutes(
       return read(request, actor, (tx) => readWorkflowCatalogue(tx, request.params.id));
     },
   );
-  app.post<{ Params: { id: Id }; Body: { expectedRevision: number } }>(
+  app.post<{ Params: { id: Id }; Body: { expectedRevision: number; runtime?: Runtime } }>(
     '/v2/gateway/machines/:id/workflows/retry',
     { schema: { params: idParams, body: retrySchema } },
     async (request, reply) => {
