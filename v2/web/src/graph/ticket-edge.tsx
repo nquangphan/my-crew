@@ -7,7 +7,7 @@
  */
 import { BaseEdge, type Edge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath } from '@xyflow/react';
 import type { CSSProperties } from 'react';
-import type { Point } from './layout.ts';
+import { bracketRun, type Point } from './layout.ts';
 import type { MapEdge } from './project.ts';
 
 export type TicketEdgeData = {
@@ -29,13 +29,13 @@ const labelStyle: CSSProperties = {
   background: '#17191c',
   whiteSpace: 'nowrap',
 };
-/** Horizontal run from the parent to the vertical trunk of its bracket. */
-const bracketRun = 28;
-
 function Label({ at, text, color }: { at: Point; text: string; color: string }) {
   return (
     <EdgeLabelRenderer>
-      <span style={{ ...labelStyle, color, transform: `translate(${at.x}px, ${at.y}px)` }}>{text}</span>
+      {/* Decorative: the relation is already announced by the edge's accessible label and the relations panel. */}
+      <span aria-hidden="true" style={{ ...labelStyle, color, transform: `translate(${at.x}px, ${at.y}px)` }}>
+        {text}
+      </span>
     </EdgeLabelRenderer>
   );
 }

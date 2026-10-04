@@ -178,13 +178,25 @@ export function chooseRealtimeAnchor(input: {
 
 /** Orthogonal route of a dependency/repair edge, plus where its label would sit. */
 export type SideRoute = { points: Point[]; label: Point };
+/** Horizontal run from a parent card to the vertical trunk of its bracket (mirrors the parent edge renderer). */
+export const bracketRun = 28;
 const laneStep = 6;
 const maxLanes = 6;
 
 /**
+ * X offset of a lane inside a column gap. Offsets skip the parent-bracket trunk (`bracketRun`) so a vertical
+ * run never sits on a bracket body; the highest lane still stays inside the gap (10 + maxLanes * laneStep ≤ gap).
+ */
+const laneOffset = (lane: number) => {
+  const offset = 10 + lane * laneStep;
+  return offset >= bracketRun ? offset + laneStep : offset;
+};
+
+/**
  * Short orthogonal routes like the mockup, never diagonal across a column: within one column the edge leaves
  * and enters on the right edges and runs down the gap to the right; across columns it runs down the gap
- * between the two columns. Overlapping vertical runs in one gap get separate lanes (6px apart).
+ * between the two columns. Overlapping vertical runs in one gap get separate lanes (6px apart, skipping the
+ * bracket trunk).
  */
 export function sideRoutes(
   edges: readonly { id: string; source: string; target: string; kind: string }[],
@@ -209,7 +221,7 @@ export function sideRoutes(
     if (lane < 0) lane = lanes.length < maxLanes ? lanes.length : lanes.indexOf(Math.min(...lanes));
     lanes[lane] = run.bottom;
     lanesByGap.set(run.gap, lanes);
-    const x = run.gap + 10 + lane * laneStep;
+    const x = run.gap + laneOffset(lane);
     const sy = run.s.y + cardHeight / 2;
     const ty = run.t.y + cardHeight / 2;
     const sameColumn = run.s.x === run.t.x;

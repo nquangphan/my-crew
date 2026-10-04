@@ -1,0 +1,48 @@
+✔ root→hai bước song song→join: mọi cặp dependency giữ nguyên, không có chuỗi tự suy, task thu gọn vào hiddenEdges (1.134916ms)
+✔ mở một bước chỉ hiện đúng task của bước đó; cạnh liên bước vẫn ẩn tới khi mở đủ hai đầu; mở tất cả không còn cạnh ẩn (0.268334ms)
+✔ badge đếm quan hệ dependency/repair tới công việc đang thu gọn theo bước chứa nó (0.291833ms)
+✔ repair check→fix chu kỳ 1–5: cạnh repair riêng, cùng đầu mút với parent vẫn giữ cả hai, vòng repair/dependency không làm layout lặp (0.328167ms)
+✔ graph đọc từ ticket con vẫn chiếu cả root: rootId thừa kế từ node (0.095167ms)
+✔ kết quả không phụ thuộc thứ tự input: node, cạnh và vị trí giống nhau (0.206541ms)
+✔ layout trái→phải: cột theo độ sâu (320+100), anh em theo ID, cha nằm giữa cây con, hàng cách 24 (0.132167ms)
+✔ dữ liệu hỏng có diagnostic, không bỏ node mồ côi, không lặp vô hạn (0.199166ms)
+✔ thiếu root: diagnostic ROOT_MISSING, mọi node vẫn được chiếu và có vị trí (0.066375ms)
+✔ chuỗi cha rất sâu (20 000) không tràn stack ở chiếu và layout (72.748417ms)
+✔ 200 bước / 600 task: giữ mọi cặp dependency, layout xác định và trong ngân sách thời gian (6.470083ms)
+✔ mở tất cả: bố cục lại cả cây, task nằm liền bước cha, node neo (root) đứng yên trên màn hình (0.344167ms)
+✔ neo realtime: thẻ focus chỉ khi còn trong khung; không thì thẻ gần tâm khung; không có gì thì root (0.137792ms)
+✔ cạnh phụ thuộc/sửa: đoạn vuông góc bám mép phải thẻ, thân dọc nằm trong khe cột, khoảng chồng tách làn (0.267625ms)
+✖ làn phụ thuộc/sửa không bao giờ trùng thân ngoặc cha–con (bracketRun) (0.362375ms)
+✔ nhãn cạnh không đè nhau và không đè thẻ, trừ nhãn của thẻ đang focus (0.412875ms)
+✔ quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID (0.161375ms)
+✔ điều hướng bàn phím: trái về cha, phải tới con đầu, lên/xuống theo cột (0.15225ms)
+✔ mật độ theo mockup owner duyệt: thẻ 280×48, hàng cách 10, cột cách 56, vẫn chạm được (0.061708ms)
+✔ khung nhìn ban đầu 1:1: root ở mép trái, giữa chiều cao khung, không fit toàn cây (0.03925ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 19
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 163.891625
+
+✖ failing tests:
+
+test at test/graph.test.ts:522:1
+✖ làn phụ thuộc/sửa không bao giờ trùng thân ngoặc cha–con (bracketRun) (0.362375ms)
+  AssertionError [ERR_ASSERTION]: e3 thân dọc trùng thân ngoặc cha–con
+      at TestContext.<anonymous> (file:///private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/red-map/test/graph.test.ts:537:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 28,
+    expected: 28,
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }

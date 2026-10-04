@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import type { Dependency, RepairLink, Ticket, TicketGraph } from '../src/contracts/tickets.ts';
 import type { LabelBox } from '../src/graph/layout.ts';
 import {
+  bracketRun,
   cardHeight,
   cardWidth,
   chooseRealtimeAnchor,
@@ -516,6 +517,28 @@ test('cạnh phụ thuộc/sửa: đoạn vuông góc bám mép phải thẻ, th
       if (a.top < b.bottom && b.top < a.bottom && Math.abs(a.x - b.x) < cardWidth)
         assert.notEqual(a.x, b.x, `${ia} và ${ib} chồng khoảng nhưng cùng làn`);
     }
+});
+
+test('làn phụ thuộc/sửa không bao giờ trùng thân ngoặc cha–con (bracketRun)', () => {
+  // Six runs whose vertical spans all overlap force every lane of one gap to be used.
+  const positions: Record<string, { x: number; y: number }> = {};
+  const edges: { id: string; source: string; target: string; kind: string }[] = [];
+  for (let k = 0; k < 6; k++) {
+    positions[`s${k}`] = { x: 0, y: k * pitch };
+    positions[`t${k}`] = { x: 0, y: (k + 6) * pitch };
+    edges.push({ id: `e${k}`, source: `s${k}`, target: `t${k}`, kind: 'dependency' });
+  }
+  const routes = sideRoutes(edges, positions);
+  const laneXs = new Set<number>();
+  for (const edge of edges) {
+    const trunk = routes[edge.id]?.points[1] as { x: number; y: number };
+    // Same column: the gap starts at the right edge of the cards.
+    const offset = trunk.x - cardWidth;
+    assert.notEqual(offset, bracketRun, `${edge.id} thân dọc trùng thân ngoặc cha–con`);
+    assert.ok(offset > 0 && offset < columnGap, `${edge.id} thân dọc phải nằm trong khe cột`);
+    laneXs.add(trunk.x);
+  }
+  assert.equal(laneXs.size, edges.length, 'các khoảng chồng nhau phải được tách làn');
 });
 
 function labelsOf(graph: TicketGraph) {

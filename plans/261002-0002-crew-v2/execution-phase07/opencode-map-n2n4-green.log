@@ -1,0 +1,101 @@
+✔ đóng dialog giữ vùng đang xem (1.947917ms)
+✔ mở dialog chọn và focus node, không đổi viewport/expanded; di chuyển chỉ đổi viewport (0.210416ms)
+✔ mở/thu gọn: toggle giữ thứ tự ổn định, “Mở tất cả” khôi phục tất cả, không trùng (18.460959ms)
+✔ trạng thái sơ đồ lưu theo root trong tab storage; dữ liệu hỏng bị bỏ (0.430208ms)
+✔ search của route sơ đồ: UUID về chữ thường, UUID sai bị bỏ (không gây request hay mutation) (0.618167ms)
+✔ đóng dialog chỉ lùi history khi mục hiện tại do chính sơ đồ của root này push (22.201875ms)
+✔ sơ đồ: root và bước hiện mặc định, task ẩn có badge; nhãn truy cập có cấp, trạng thái chữ và phiên bản (174.283ms)
+✔ mở/thu gọn: bố cục lại cả cây, task liền bước cha, node neo đứng yên trên màn hình (bước vừa bấm; focus hoặc root khi “tất cả”) (1089.560334ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ mở node bằng click mở TicketDetail chung; đóng giữ viewport, expanded và trả focus về node (87.495708ms)
+✔ realtime: refetch cả graph (GET cũ bị hủy), cây tự căn lại (cha giữa các con), thẻ gần tâm khung làm neo đứng yên, không fit (261.220459ms)
+✔ realtime với thẻ đang focus: thẻ đó làm neo, đứng yên trên màn hình (269.538042ms)
+✔ thẻ và khung theo mockup: tiêu đề + chấm trạng thái, dòng phụ “cấp · trạng thái”, viền focus, header kiểu modal, chú giải (34.489209ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ node biến mất khi dialog đang mở: đóng trả focus về khung sơ đồ (47.764ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ bàn phím: mũi tên di chuyển focus giữa node theo cây; bảng quan hệ liệt kê đủ ID (32.865ms)
+✔ dữ liệu graph hỏng: báo chẩn đoán, có “Tải lại” và danh sách thay thế giữ mọi node (17.519084ms)
+✔ mở bằng URL (reload) với ticket đã chọn: dialog hiện, đóng gọi onSelectTicket(null) (34.569125ms)
+✔ khung sơ đồ đo lại chiều cao khi nội dung phía trên đổi cỡ (ResizeObserver), không chỉ khi resize cửa sổ (14.711083ms)
+✔ root mới (chưa có trạng thái): mở ở 1:1, root ở mép trái giữa khung, không dùng fitView; cuộn chuột là cuộn (16.965667ms)
+✔ dialog mở từ sơ đồ theo màn 2: chấm trạng thái + tiêu đề, dòng phụ “loại · bước · gốc”, ô thông tin không bịa “Cập nhật” (70.226125ms)
+✔ realtime: thêm việc phía trên vùng đang xem (root ngoài khung, không focus) thì vùng đó không trượt (489.285584ms)
+✔ thân dialog theo màn 2: không lặp “Chưa có dữ liệu” của mục Thực thi hiện tại; ô Máy · model gộp phần còn thiếu (56.259666ms)
+✔ root→hai bước song song→join: mọi cặp dependency giữ nguyên, không có chuỗi tự suy, task thu gọn vào hiddenEdges (1.041125ms)
+✔ mở một bước chỉ hiện đúng task của bước đó; cạnh liên bước vẫn ẩn tới khi mở đủ hai đầu; mở tất cả không còn cạnh ẩn (0.240416ms)
+✔ badge đếm quan hệ dependency/repair tới công việc đang thu gọn theo bước chứa nó (0.252458ms)
+✔ repair check→fix chu kỳ 1–5: cạnh repair riêng, cùng đầu mút với parent vẫn giữ cả hai, vòng repair/dependency không làm layout lặp (0.275458ms)
+✔ graph đọc từ ticket con vẫn chiếu cả root: rootId thừa kế từ node (0.081708ms)
+✔ kết quả không phụ thuộc thứ tự input: node, cạnh và vị trí giống nhau (0.1935ms)
+✔ layout trái→phải: cột theo độ sâu (320+100), anh em theo ID, cha nằm giữa cây con, hàng cách 24 (0.118584ms)
+✔ dữ liệu hỏng có diagnostic, không bỏ node mồ côi, không lặp vô hạn (0.194042ms)
+✔ thiếu root: diagnostic ROOT_MISSING, mọi node vẫn được chiếu và có vị trí (0.069792ms)
+✔ chuỗi cha rất sâu (20 000) không tràn stack ở chiếu và layout (71.068834ms)
+✔ 200 bước / 600 task: giữ mọi cặp dependency, layout xác định và trong ngân sách thời gian (6.474625ms)
+✔ mở tất cả: bố cục lại cả cây, task nằm liền bước cha, node neo (root) đứng yên trên màn hình (0.365667ms)
+✔ neo realtime: thẻ focus chỉ khi còn trong khung; không thì thẻ gần tâm khung; không có gì thì root (0.149167ms)
+✔ cạnh phụ thuộc/sửa: đoạn vuông góc bám mép phải thẻ, thân dọc nằm trong khe cột, khoảng chồng tách làn (0.289791ms)
+✔ làn phụ thuộc/sửa không bao giờ trùng thân ngoặc cha–con (bracketRun) (0.12175ms)
+✔ nhãn cạnh không đè nhau và không đè thẻ, trừ nhãn của thẻ đang focus (0.479958ms)
+✔ quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID (0.179458ms)
+✔ điều hướng bàn phím: trái về cha, phải tới con đầu, lên/xuống theo cột (0.157875ms)
+✔ mật độ theo mockup owner duyệt: thẻ 280×48, hàng cách 10, cột cách 56, vẫn chạm được (0.081083ms)
+✔ khung nhìn ban đầu 1:1: root ở mép trái, giữa chiều cao khung, không fit toàn cây (0.041542ms)
+✔ draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại; chỉ “Bỏ bản nháp bình luận” mới xóa (180.689833ms)
+✔ gửi bình luận qua composer chung: một comment, ô nhập trống và timeline đọc lại (36.556333ms)
+✔ ticket đã kết thúc chỉ xem: không có composer bình luận (12.415875ms)
+✔ deep link ID chữ hoa đọc bằng ID chữ thường và vẫn hiện lý do chờ ngoài needs_input (12.8575ms)
+✔ danh sách yêu cầu: đọc level=request của producer, chỉ hiện gốc thật, chọn yêu cầu mở ticket, có “Tạo yêu cầu” (13.331542ms)
+✔ chi tiết dùng danh sách tệp đính kèm chung của Task5 cho đúng ticket (20.255583ms)
+✔ chi tiết trong hộp thoại nhúng editor liên kết tài liệu của ticket thay cho dòng “chưa có dữ liệu” (32.332416ms)
+✔ trang ticket đổi ticketId mà không remount: chữ nháp của A không sang B (19.81325ms)
+✔ mất response bình luận rồi tải lại trang: ô nội dung khôi phục, khóa và khớp body gửi lại (50.653917ms)
+✔ deep link chữ hoa: cache theo key chữ thường, invalidation chữ thường làm mới, revision cũ không ghi đè (16.578459ms)
+✔ ticket kết thúc: liên kết tài liệu chỉ xem, không có điều khiển sửa; lỗi đọc có “Thử lại” bấm được (25.523541ms)
+✔ ticket chuyển sang kết thúc qua realtime khi bình luận chưa xác nhận: composer vẫn còn để gửi lại (33.336541ms)
+✔ “Bỏ bản nháp bình luận” bỏ trọn chữ, tệp và compose; chưa xác nhận thì giữ chữ và báo (38.81275ms)
+✔ bỏ bản nháp bình luận chưa xác nhận cần xác nhận cảnh báo trùng (36.057458ms)
+✔ ticket deep link mounts the ticket page route for any id, so an unknown id reaches the 404 view (278.836834ms)
+✔ the project tickets route sits under the owner layout and keeps its filters in the search (0.550791ms)
+✔ the project docs route sits under the owner layout and passes the path through (0.176ms)
+✔ parseDocsSearch keeps only a sane non-empty string path (0.069125ms)
+✔ parseTicketsSearch defaults to the board and keeps only producer filters (0.174625ms)
+✔ the runtime provides compose services built from its own client, pending store and session (0.1085ms)
+✔ logout wipes form drafts of a reloaded page that never opened a ticket, and keeps unrelated keys (2.038209ms)
+ℹ tests 62
+ℹ suites 0
+ℹ pass 62
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5302.424875
+node_exit=0
