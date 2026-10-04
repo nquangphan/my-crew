@@ -1,0 +1,378 @@
+{"level":30,"time":1791096176727,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55211"}
+{"level":30,"time":1791096177104,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55216"}
+✔ HTTP persistence graph commands events docs reconnect restart and backup restore (1092.739291ms)
+ℹ {"realHttp":true,"port0":true,"prefix":6,"restartPool":true,"firstUrl":"http://127.0.0.1:55211","reopenedUrl":"http://127.0.0.1:55216","containerId":"9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb","restoredName":"crew_v2_restore_7a7593a6f3cc4e36bfb90bb91e3238b9","dumpBytes":74972}
+{"level":30,"time":1791096177709,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55225"}
+✔ HTTP ticket cached replay cannot race current binding or machine revocation across pools (433.575792ms)
+{"level":30,"time":1791096178111,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55234"}
+{"level":30,"time":1791096179220,"pid":54867,"hostname":"Phans-Mac-mini.local","reqId":"req-a","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+{"level":30,"time":1791096180238,"pid":54867,"hostname":"Phans-Mac-mini.local","reqId":"req-c","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+✔ real SSE current credential revocation and owner expiry close streams without future data (2415.361542ms)
+{"level":30,"time":1791096180553,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55244"}
+{"level":30,"time":1791096180783,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55247"}
+✔ HTTP default dispatch denies; reported evidence stays finalizing until trusted research test attestation (580.280167ms)
+{"level":30,"time":1791096181101,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55254"}
+✔ HTTP all machine ticket mutation families reject cached replay after rebind (408.204416ms)
+{"level":30,"time":1791096181503,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55259"}
+✔ HTTP fifth repair result remains fenced until confirmed physical stop (396.281833ms)
+{"level":30,"time":1791096181901,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55266"}
+✔ current credential and event scope share one snapshot across rebind and revocation (354.493792ms)
+{"level":50,"time":1791096182188,"pid":54867,"hostname":"Phans-Mac-mini.local","reqId":"req-1","code":"INTERNAL_ERROR","msg":"Lỗi API"}
+✔ buildApp composes without migrations or listener; unknown DB errors are generic503 (338.928167ms)
+{"level":30,"time":1791096182611,"pid":54867,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55275"}
+HTTP oversized observed container=9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb path=/v2/tickets bytes=1048587 status=413
+HTTP oversized observed container=9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb path=/v2/docs/imports bytes=25165835 status=413
+✔ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (501.932208ms)
+✔ assistant runtime schemas reject overflowing persisted counters without coercion (30.554958ms)
+✔ assistant runtime schemas validate every serializable DTO and discriminated routing variant (185.715ms)
+✔ assistant store schema has a durable empty inbox in the actual PostgreSQL migration prefix (192.775416ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6MnKw6
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6MnKw6 nonceSha256=91b2cbbdbf3e647018df3de11a1a974e5eb9475b73036336b3bfba956f022fd4
+attachment DB scratch identity dev=16777231 ino=220567904 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6MnKw6
+✔ assistant store retains one unrouted message across duplicate event ingestion and pool restart (257.780708ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-v5tH67
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-v5tH67 nonceSha256=f1a88beb90ea752cb2a484067ac3cb3af42a0cbd92249e155da865fab27556fa
+attachment DB scratch identity dev=16777231 ino=220567911 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-v5tH67
+✔ assistant store rolls back inbox insertion and cursor together after a crashed transaction (229.276708ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NvAtkB
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NvAtkB nonceSha256=c33e3caa6059281c4d2e9b7282077ed1f7633750c3526ff1e55833a305fdd963
+attachment DB scratch identity dev=16777231 ino=220567918 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NvAtkB
+✔ assistant store advances cursor in commit order without skipping or re-enqueuing an earlier event (227.050084ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-r74Qw4
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-r74Qw4 nonceSha256=59c9e01d96b656b560c4c00c6004c2e0e02e85a1e7d0490a8664d2a94a6f4e88
+attachment DB scratch identity dev=16777231 ino=220567925 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-r74Qw4
+✔ assistant store concurrent consumers commit one wake per event target revision (215.257833ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Z7rCGw
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Z7rCGw nonceSha256=bda1e5c3d3dd5f4b249e6728f25c04d9bbd68bb4b58160bfa31192961aa0130f
+attachment DB scratch identity dev=16777231 ino=220567932 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Z7rCGw
+✔ assistant store legacy root comment wakes current descendants using existing 009 counters exactly once (234.502125ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FMW2Z3
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FMW2Z3 nonceSha256=90c555f453c005ef1507025b50aef7d6bd9320682c137d74c20a6a5f17424e13
+attachment DB scratch identity dev=16777231 ino=220567939 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FMW2Z3
+✔ assistant store child comment excludes parent and sibling work (217.6355ms)
+✔ assistant store does not create an Assistant wake from unrelated internal probe metadata (152.04875ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6V7KWX
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6V7KWX nonceSha256=111534fab8959498e61e9ece5d151b5b68d2afa3a969839ba22e281ad1c67bc7
+attachment DB scratch identity dev=16777231 ino=220567946 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6V7KWX
+✔ assistant store revision reconciliation recovers an unrouted message and deduplicates its later event (224.26875ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3XdVXt
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3XdVXt nonceSha256=d996a40953495a9c3913b0db69246e145477c423fb13ee1aaffc550fde7e4464
+attachment DB scratch identity dev=16777231 ino=220567953 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3XdVXt
+✔ assistant store revision reconciliation preserves newer child input without waking its unchanged sibling twice (207.048542ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DESHdB
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DESHdB nonceSha256=fe1988c1f15ae280031937b638495ad9ee02c46bf0cc0b6ed4e266033c383aff
+attachment DB scratch identity dev=16777231 ino=220567960 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DESHdB
+✔ assistant store input events share a revision wake without rewriting its original cursor or logical key (214.013292ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rXWB2h
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rXWB2h nonceSha256=1ff7f8acb28f873addf9210f9216a0e41b3c89eee2fcd945b4439e81d823d552
+attachment DB scratch identity dev=16777231 ino=220567967 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rXWB2h
+✔ assistant store distinct lifecycle events survive deduplication while input revision is unchanged (206.694208ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sXoDlM
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sXoDlM nonceSha256=cdd06de67455a62819ff651081b16d2175f4da04ec4094b4c5d16006177159dc
+attachment DB scratch identity dev=16777231 ino=220567974 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sXoDlM
+✔ assistant store rejects claiming work with an unpersisted turn fence and preserves pending delivery (210.734167ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-c0mHrj
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-c0mHrj nonceSha256=31ebfab7eaf654d4b009b029fd86ce9d767827d5e0b7be98491005cd72740637
+attachment DB scratch identity dev=16777231 ino=220567981 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-c0mHrj
+✔ assistant store rejects acknowledging mere delivery without persisted turn authority (210.393ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WaTAdL
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WaTAdL nonceSha256=a493f47ad38e50ce1712097d6d41551c8e1f57dcd17753fc2088d685c25be022
+attachment DB scratch identity dev=16777231 ino=220567988 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WaTAdL
+✔ assistant store claims once and acknowledges only its exact current persisted fence (236.281125ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tNaX8n
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tNaX8n nonceSha256=651f53080e845cdb5956f1614e9b1bcbf931d2541f857e77876509afe14bdb75
+attachment DB scratch identity dev=16777231 ino=220567995 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tNaX8n
+✔ assistant store uncertain turn retains singleton guard and claimed work across restart (227.181375ms)
+✔ assistant store generation allocation rolls back and fails rather than wrapping bigint (154.075ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ckzrHc
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ckzrHc nonceSha256=707bbfe074531502a9fb8130de1f084df6aee3ecaed0a665d76618ed99c27a35
+attachment DB scratch identity dev=16777231 ino=220568002 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ckzrHc
+✔ assistant store turn linkage is immutable and exact to the submitted conversation (223.252458ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KgQowb
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KgQowb nonceSha256=e5f260223547747d92d7f1b213ef51b215843c8f8d662d1a0834389b925d7e32
+attachment DB scratch identity dev=16777231 ino=220568009 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KgQowb
+✔ assistant store routing certificate cannot change deployment or admit a different binary context (216.88925ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PwnlH8
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PwnlH8 nonceSha256=efaa24dc4edf339ab61f5d47443e8d089e0b6714664b24985bc5620cce59dd2c
+attachment DB scratch identity dev=16777231 ino=220568016 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PwnlH8
+✔ assistant store uncertain budget cannot rewind or settle without a reported spend receipt (201.387042ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0heL45
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0heL45 nonceSha256=1fb0e6718c2f75a90b7c00ea66c2a592ff552b8037b82984118078fc319b809d
+attachment DB scratch identity dev=16777231 ino=220568024 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0heL45
+✔ assistant store durable effects use hex64 and a persisted ordinal across repeated intentional actions (203.942166ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ELmWoc
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ELmWoc nonceSha256=aee045b29855f216a320bff99130c710d0a57a5c26f5ed09a03c47164b38ee50
+attachment DB scratch identity dev=16777231 ino=220568031 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ELmWoc
+✔ assistant store tool operations keep sequence and completed result immutable (220.917709ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JBFMI7
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JBFMI7 nonceSha256=253da1225db02c232386fbd370b6d59105e2f181655d9de9ad916e095257c7f1
+attachment DB scratch identity dev=16777231 ino=220568038 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JBFMI7
+✔ assistant store prelaunch hook rejects missing or different process identity and binds a matching claim atomically (217.30475ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3LRPAk
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3LRPAk nonceSha256=268e334ad3a3597a86eb04e3507d317ef532a120cd91cfb05354bbfd9476eb4b
+attachment DB scratch identity dev=16777231 ino=220568045 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3LRPAk
+✔ assistant store retirement tombstone blocks claim and unclaimed release needs exact never-authorized proof (217.728459ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VOrlaK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VOrlaK nonceSha256=b5d2c1509651498de48d7ee170458c6d401575435f384871c46d3b930c383830
+attachment DB scratch identity dev=16777231 ino=220568052 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VOrlaK
+✔ assistant store derived route consent cannot extend parent expiry or widen original access (220.251458ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t3tC8m
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t3tC8m nonceSha256=224d140fdb1ada7a35a088422bc407ce2ca9474d7c8edde3dccca7e8c0fef198
+attachment DB scratch identity dev=16777231 ino=220568059 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t3tC8m
+✔ assistant store capacity hashes are required hex64 immutable values independent of the request receipt latch (230.172917ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-I61uBZ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-I61uBZ nonceSha256=3264a4178f34e3a67158a7100da261524acb246f1b970835fbbc51928bd965c5
+attachment DB scratch identity dev=16777231 ino=220568066 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-I61uBZ
+assistant backup child intended ["exec","9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb","pg_dump","-U","postgres","-Fc","-d","crew_v2_test_4a63a7f9f0ed4098a9f2496e20567455"]
+assistant backup child created 55626
+assistant backup child closed 55626 0 null
+assistant restore database created crew_v2_test_96dc3c03766a4547b480b2aea6801fb4
+assistant backup child intended ["exec","-i","9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb","pg_restore","-U","postgres","--exit-on-error","-d","crew_v2_test_96dc3c03766a4547b480b2aea6801fb4"]
+assistant backup child created 55633
+assistant backup child closed 55633 0 null
+assistant backup restore verified {"prefix":10,"dumpSha256":"1a6c03b7e86d0f56628fe75cb7dd4e41a5787ef32973d5cff161401179a02188","dumpBytes":226048,"sourceDataSha256":"5f0e93eabc9189620db2017b0ac59994dff340a726512cd240c58dec44fb741c","restoredDataSha256":"5f0e93eabc9189620db2017b0ac59994dff340a726512cd240c58dec44fb741c","migrations":[{"version":1,"checksum":"dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"},{"version":2,"checksum":"11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9"},{"version":3,"checksum":"0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d"},{"version":4,"checksum":"1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f"},{"version":5,"checksum":"b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027"},{"version":6,"checksum":"8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae"},{"version":7,"checksum":"9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4"},{"version":8,"checksum":"d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f"},{"version":9,"checksum":"fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a"},{"version":10,"checksum":"aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d"}]}
+assistant restore database closed and removed crew_v2_test_96dc3c03766a4547b480b2aea6801fb4
+assistant backup child intended ["exec","9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb","pg_dump","-U","postgres","-Fc","-d","crew_v2_test_4a63a7f9f0ed4098a9f2496e20567455"]
+assistant backup child created 55651
+assistant backup child closed 55651 0 null
+assistant restore database created crew_v2_test_b17bc27720e2476f862e6d80f372aa16
+assistant backup child intended ["exec","-i","9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb","pg_restore","-U","postgres","--exit-on-error","-d","crew_v2_test_b17bc27720e2476f862e6d80f372aa16"]
+assistant backup child created 55658
+assistant backup child closed 55658 0 null
+assistant backup restore verified {"prefix":11,"dumpSha256":"b1965caf29877f26e696da2fdc7153c985bc907c998746e475b2997de8f9af59","dumpBytes":377515,"sourceDataSha256":"2e4c7a3557bf71af79ec0815a53176f181b7b855b886c44a50074865b11bd3a5","restoredDataSha256":"2e4c7a3557bf71af79ec0815a53176f181b7b855b886c44a50074865b11bd3a5","migrations":[{"version":1,"checksum":"dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"},{"version":2,"checksum":"11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9"},{"version":3,"checksum":"0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d"},{"version":4,"checksum":"1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f"},{"version":5,"checksum":"b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027"},{"version":6,"checksum":"8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae"},{"version":7,"checksum":"9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4"},{"version":8,"checksum":"d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f"},{"version":9,"checksum":"fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a"},{"version":10,"checksum":"aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d"},{"version":11,"checksum":"fb0c3f8f7738e718a710bd452e5c8560e131410e781bbe374dc8817ce4390841"}]}
+assistant restore database closed and removed crew_v2_test_b17bc27720e2476f862e6d80f372aa16
+✔ assistant store restores prefix010 before upgrade and prefix011 with identical data and migration hashes (1096.810542ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RiyKZ3
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RiyKZ3 nonceSha256=8fcf3e44980cf278cb83581029a9ba14b730dacdbe0bfdc749385ced0243b879
+attachment DB scratch identity dev=16777231 ino=220568073 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RiyKZ3
+✔ assistant FIX1 S1 binds message work and persisted scopes to the turn target before replay (268.653667ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZtzdBe
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZtzdBe nonceSha256=c0a5dfae79c875e125588f59e0c6de8a972da94317d36dc74c3ea1ac69ed9703
+attachment DB scratch identity dev=16777231 ino=220568080 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZtzdBe
+✔ assistant FIX1 S2 binds selection to exact receipt model and designation machine (215.746709ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FMMdPd
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FMMdPd nonceSha256=1e9116820a40dd9e2c09e074781ead142197e70ab0c4df700139f36f9e394f98
+attachment DB scratch identity dev=16777231 ino=220568087 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FMMdPd
+✔ assistant FIX1 S1 monitor turn needs an unexpired explicit root scope for ticket work (218.713666ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qHqUpq
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qHqUpq nonceSha256=c5e4398832ca95b3954710dea6bfde8839f36b795cb06381e4eddd7cc83351e3
+attachment DB scratch identity dev=16777231 ino=220568094 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qHqUpq
+✔ assistant FIX1 S3 binds assessment snapshot and dispatch command step decision to one ticket (227.095208ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-H14J7s
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-H14J7s nonceSha256=88c5044e2760ae4897a71cc7f7219c602477f4f9e061b380d91fc85182e06652
+attachment DB scratch identity dev=16777231 ino=220568101 uid=501 pid=55126
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-H14J7s
+✔ assistant FIX1 S4 binds receipt and reservation to exact request command and ownership array (229.542375ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yvOe5n
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yvOe5n nonceSha256=11a44d7d4c6e103ba92f75077fdfcc094fdc7361d6596a8caf20444017877a6d
+attachment DB scratch identity dev=16777231 ino=220568108 uid=501 pid=55126
+assistant backup child intended ["exec","9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb","pg_dump","-U","postgres","-Fc","-d","crew_v2_test_e06cb0f7334245128322fda7b803d2c5"]
+assistant backup child created 55790
+assistant backup child closed 55790 0 null
+assistant restore database created crew_v2_test_9c4796285ed84b639fdf83cc54d6e52d
+assistant backup child intended ["exec","-i","9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb","pg_restore","-U","postgres","--exit-on-error","-d","crew_v2_test_9c4796285ed84b639fdf83cc54d6e52d"]
+assistant backup child created 55797
+assistant backup child closed 55797 0 null
+assistant backup restore verified {"prefix":11,"dumpSha256":"53f41cc263d2edad812bb9ddd4fdf5b1a2bc5f918cdb29ce04117a2919ecd3f1","dumpBytes":378234,"sourceDataSha256":"101948786a6b5de96afa92d804e4fbdfa81cf79988764ac09f54c7a1a26848e0","restoredDataSha256":"101948786a6b5de96afa92d804e4fbdfa81cf79988764ac09f54c7a1a26848e0","migrations":[{"version":1,"checksum":"dda56a23030e01ee5025d61578969b53157f96fd19ffe6172108b652f6adfa76"},{"version":2,"checksum":"11806e8bb34e6aefb2f225d1499052d66d76c06f1ccd278021353fcc7fed78e9"},{"version":3,"checksum":"0949541124c0ff26fec05030b8693afe65705ff2d63887f7e452fa6d37487d5d"},{"version":4,"checksum":"1149012423551fb847c6a9adf3784906d466a6026d8edb67e079d433dcf8af4f"},{"version":5,"checksum":"b8351b54e99ae91a3d2476df812b8fc374860ae472cfe8b7459a4dfc61e41027"},{"version":6,"checksum":"8c48a69a27205ff95d11be8b966ffffcd079f62e537f5263777cd867325b75ae"},{"version":7,"checksum":"9a5542b2a58dd151d1ad78a7dc799ba7bee157abfd094c3c1ebfebf1a2d49eb4"},{"version":8,"checksum":"d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f"},{"version":9,"checksum":"fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a"},{"version":10,"checksum":"aa2a308ba8a180186e57fb08f93fac7195fc6c0468b821f96c107f4e13ccf59d"},{"version":11,"checksum":"fb0c3f8f7738e718a710bd452e5c8560e131410e781bbe374dc8817ce4390841"}]}
+assistant restore database closed and removed crew_v2_test_9c4796285ed84b639fdf83cc54d6e52d
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yvOe5n
+✔ assistant FIX1 S5 checks inserted released reservations and restores valid terminal proof rows (723.930083ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FBYyYK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FBYyYK nonceSha256=acc8852befe6029ccfb3e7fa7a7f7b32e4bd0c52c3aefa3da01f422a638173cd
+attachment DB scratch identity dev=16777231 ino=220568115 uid=501 pid=55126
+assistant FIX2 DB expiry witness {"state":"pending","operation":"claim","transaction_started_at":"2026-10-04T06:43:11.925Z","expires_at":"2026-10-04T06:43:12.025Z","checked_at":"2026-10-04T06:43:12.038Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FBYyYK
+✔ assistant FIX2 expired scope rejects claim from pending after DB wall-clock deadline (337.922833ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Jv1Cn7
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Jv1Cn7 nonceSha256=3693a9dcb5bb33efba23675338c929d32baa116275710d484a8d7d09f6317900
+attachment DB scratch identity dev=16777231 ino=220568122 uid=501 pid=55126
+assistant FIX2 DB expiry witness {"state":"claimed","operation":"claim","transaction_started_at":"2026-10-04T06:43:12.281Z","expires_at":"2026-10-04T06:43:12.381Z","checked_at":"2026-10-04T06:43:12.393Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Jv1Cn7
+✔ assistant FIX2 expired scope rejects claim from claimed after DB wall-clock deadline (354.5705ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VqhYpv
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VqhYpv nonceSha256=acf44c763c1d23b7166fb54a6b85ed8f1a86575a1314c9d09f44e2143a37724d
+attachment DB scratch identity dev=16777231 ino=220568129 uid=501 pid=55126
+assistant FIX2 DB expiry witness {"state":"claimed","operation":"ack","transaction_started_at":"2026-10-04T06:43:12.625Z","expires_at":"2026-10-04T06:43:12.726Z","checked_at":"2026-10-04T06:43:12.738Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VqhYpv
+✔ assistant FIX2 expired scope rejects ack from claimed after DB wall-clock deadline (344.652125ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-X60yHY
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-X60yHY nonceSha256=fc18359359627b8d3739cc140fc837ac222ff5ef4edb29ce5302e4f1b0bbeddd
+attachment DB scratch identity dev=16777231 ino=220568136 uid=501 pid=55126
+assistant FIX2 DB expiry witness {"state":"acked","operation":"ack","transaction_started_at":"2026-10-04T06:43:12.980Z","expires_at":"2026-10-04T06:43:13.081Z","checked_at":"2026-10-04T06:43:13.084Z","started_before_expiry":true,"wall_clock_expired":true}
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-X60yHY
+✔ assistant FIX2 expired scope rejects ack from acked after DB wall-clock deadline (345.561375ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fY9ikO
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fY9ikO nonceSha256=0ce4bbc1158195c7c3cd9df71252d7c615517678b5a3f21aa882a44ab92929dd
+attachment DB scratch identity dev=16777231 ino=220568143 uid=501 pid=55894
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fY9ikO
+✔ attachment reroute actual ticket retirement retains original identity audit and invalidates old inputs once (292.851584ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-uKSsJ5
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-uKSsJ5 nonceSha256=bbf66a1cb7de4ae5165d2440856b07a49667f2673ebb4068668ef9eb5b29c64f
+attachment DB scratch identity dev=16777231 ino=220568158 uid=501 pid=55894
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-uKSsJ5
+✔ attachment reroute concurrent decisions CAS exactly one new route and one retirement (258.744ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qc7viy
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qc7viy nonceSha256=9d7d4df911b0e2f48a1b8c8ded97c2c1e3dd8212b97899c6858c7c49559db6fd
+attachment DB scratch identity dev=16777231 ino=220568173 uid=501 pid=55894
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qc7viy
+✔ attachment reroute retirement failure rolls back actual workflow event route revision and original links (259.859917ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-w12ipc
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-w12ipc nonceSha256=0e51e9c7c0696168cfde8b194573832780e68a261e4c4506e835a1c6eca23872
+attachment DB scratch identity dev=16777231 ino=220568188 uid=501 pid=55894
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-w12ipc
+✔ attachment reroute actual claimed active attempt blocks despite expired lease and never fabricates stopped proof (262.042291ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FzKFMN
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FzKFMN nonceSha256=b5f198fe3dde6c18e3989039e25c8210541708aebea6dc7e66df9366fea3ccb6
+attachment DB scratch identity dev=16777231 ino=220568203 uid=501 pid=55894
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FzKFMN
+✔ attachment routing digest target and current authority checked before per-route and mutator cache replay (261.0605ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-c2d2vz
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-c2d2vz nonceSha256=7ca613017eed610a402bad67d585f5ef7bca7c6b4ce38568047710027ef7d6a0
+attachment DB scratch identity dev=16777231 ino=220568218 uid=501 pid=55894
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-c2d2vz
+✔ attachment routing configured owner decisions replay and correction default denies without retirement (257.352917ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DE4864
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DE4864 nonceSha256=5a916b0323ac4b782cb0faa39f2006c032fc0c12957e5b6e7489341882a93637
+attachment DB scratch identity dev=16777231 ino=220568233 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DE4864
+✔ attachment snapshot pending extraction cannot invent capabilities; descendant comments invalidate exact counter (771.8125ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jD2LWL
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jD2LWL nonceSha256=152d80c24d512fd58f83d0f0203c4f3af06d74a933c638582ad241195a6eef91
+attachment DB scratch identity dev=16777231 ino=220568248 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jD2LWL
+✔ attachment subset selection binds exact original identity when unit IDs repeat across files (950.132167ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fOHY7J
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fOHY7J nonceSha256=8ffed55651de7660260b2f1b383c03a68b49a5010b336573f3c92395c32d7f20
+attachment DB scratch identity dev=16777231 ino=220568306 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fOHY7J
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-1Ib2C6
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-1Ib2C6 nonceSha256=f987255a8fec1d58ee427e982e52c7250047c90d6a1703c15d949f7e15abd14d
+attachment DB scratch identity dev=16777231 ino=220568339 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-1Ib2C6
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6CkcRj
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6CkcRj nonceSha256=1d3469a493cbff7b6bf8ada853615ea90f3aeda39b587f3018b5ec2b0e100cf3
+attachment DB scratch identity dev=16777231 ino=220568372 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6CkcRj
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YF8i0O
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YF8i0O nonceSha256=f39193d6d6d964bb7fc59b8eef0af111d048413f24a035fd898898401d972dbe
+attachment DB scratch identity dev=16777231 ino=220568387 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YF8i0O
+✔ actual publication/comment and persisted 005 claim serialize in both winning orders across two pools (2748.398416ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RlAKpZ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RlAKpZ nonceSha256=622bccaa8b8069905a3b151fdf85b0471c0f361d04eb970d9cae04242fc1aaf1
+attachment DB scratch identity dev=16777231 ino=220568402 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RlAKpZ
+✔ preclaim compares actual latest extraction generation even before controlled version enqueue invalidates counter (703.781ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FtgBMc
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FtgBMc nonceSha256=aa3559908de89282ba62d1c4b8d25785af40508c64ff872bf95520175caafb99
+attachment DB scratch identity dev=16777231 ino=220568435 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FtgBMc
+✔ failed final publication transaction rolls back manifest and revisions and retains published orphan journal (663.2545ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nZQxNo
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nZQxNo nonceSha256=ccaab054b49f2ef5374c41ecf89788b23e2421118e49129742f21f78a0963d21
+attachment DB scratch identity dev=16777231 ino=220568468 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nZQxNo
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0KCguU
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0KCguU nonceSha256=49a5d49e83e1780a526c29f9d5b2230075043076fba6bb816557424565c925c8
+attachment DB scratch identity dev=16777231 ino=220568501 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0KCguU
+✔ initial owner route and fresh snapshot serialize on message before input across two pools (1498.99625ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JYRqtw
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JYRqtw nonceSha256=0a13cffd5eca8b28ffda58459cebd7260f11d960538330e8926211db04ce5b6e
+attachment DB scratch identity dev=16777231 ino=220568534 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-JYRqtw
+✔ grouped derivative coverage validates persisted hash arrays in bounded work under snapshot locks (744.409167ms)
+ℹ {"groupedUnits":2048,"queries":1,"rows":1,"validationReads":1,"unitElementReads":2048,"pid":56009,"argv":["/opt/homebrew/Cellar/node@24/24.21.0/bin/node","/Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/attachments-snapshots.test.ts"],"nodeOptions":"--max-old-space-size=384"}
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VZOgb3
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VZOgb3 nonceSha256=fcaef202bca7418aefb2afe9523350c2d717ede0cf785d957c11a8ce709efacd
+attachment DB scratch identity dev=16777231 ino=220568567 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VZOgb3
+✔ indexed snapshot candidates reject persisted derivative identity and coverage tampering (872.669375ms)
+attachment DB container 9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-e4zGiU
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-e4zGiU nonceSha256=8f2981464b381d89b238a3614ff82339b4e3bf65abec3264600d3e4d2c86a9df
+attachment DB scratch identity dev=16777231 ino=220568625 uid=501 pid=56009
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-e4zGiU
+✔ large approved subset uses bounded native membership and current unit lookup work (902.477625ms)
+ℹ {"totalUnits":2048,"selectedUnits":1024,"extractionQueries":2,"unitElementReads":14336,"projectionKindReads":24576,"membershipCalls":0,"membershipElementReads":0,"setMembershipCalls":2048,"classificationElementReads":1024}
+✔ concurrent claim fences one durable launch and lost reply replays it (132.222917ms)
+✔ independent pools racing claim keep one durable attempt and one fence (126.214166ms)
+✔ stopped observation reserves guard until result and verifier allow finalization (112.265583ms)
+✔ result before stop does not close; stopped result stays pending without verifier (103.104583ms)
+✔ current state read rejects stale project binding (97.294958ms)
+✔ registered artifact has canonical locator and checkpoint accepts same-attempt evidence (105.386833ms)
+✔ artifact route is authenticated idempotent and keeps late finalizing report (197.342667ms)
+✔ expired active lease rejects new artifact until running reconciliation, but finalizing accepts late report (106.935792ms)
+✔ pause after replacement targets the new attempt and repeat pause reuses only its command (124.286625ms)
+✔ wait_owner event matches ticket response both before and after stop proof (206.792208ms)
+✔ concurrent stop and retry result finalize once with one guard release (107.4905ms)
+✔ owner pause and cancel intents dominate a previously reported passed result (226.629958ms)
+✔ stopped attestation survives pool restart and recheck finalizes without rewriting proof (122.858833ms)
+✔ append-only verifier attestation linked to original reported evidence advances persisted passed result after pool restart (161.632042ms)
+✔ claim rejects unapproved deploy, unfinished predecessor, and expired permit before authority callback (270.2675ms)
+✔ missing dispatch authority leaves no attempt or running ticket (89.218791ms)
+✔ expired lease marks uncertain without accepting checkpoint progress (100.328958ms)
+✔ verified research result finalizes atomically only after physical stop (106.336875ms)
+✔ host needs_input result records scoped question decision (97.59925ms)
+✔ reconcile persists host provenance and refuses conflicting stop reason (102.341541ms)
+✔ fence exhaustion fails closed before attempt or ticket mutation (94.873208ms)
+✔ another queued launch stays blocked while stopped result is pending (98.980958ms)
+✔ internal needs_input intent finalizes stopped attempt and preserves repair limit (105.964625ms)
+✔ identical checkpoint and result replay are stable across JSONB key ordering (103.283417ms)
+✔ fifth repair failure after confirmed stop keeps needs_input and repair_limit (110.67625ms)
+✔ binding guard blocks uncertain attempt and releases only after terminal finalization (109.5325ms)
+✔ repair proof rejects same machine after binding revision changes (97.704542ms)
+✔ docs cũ cannot close a code request from a reported commit (98.720041ms)
+✔ code step completes from its verified result without requiring request merge (86.603458ms)
+✔ code request requires verified merge and docs at the same commit (84.170875ms)
+✔ request cannot finish while a mandatory descendant remains incomplete (85.320458ms)
+✔ completion requires every evidence kind listed in ticket criteria (83.096167ms)
+✔ ticket services keep the authority callbacks captured at construction (85.599416ms)
+{"level":30,"time":1791096209471,"pid":56979,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55558"}
+✔ docs tìm kiếm Unicode original bytes audit labels and actor permissions (474.120916ms)
+{"level":30,"time":1791096209881,"pid":56979,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55564"}
+✔ search full literal fallback beyond GIN prefix, escaped wildcard and scoped tie-safe cursor (417.770208ms)
+{"level":30,"time":1791096210273,"pid":56979,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55570"}
+✔ docs tree links composite ticket references and verified mixed standard-page completion reader (419.952209ms)
+{"level":30,"time":1791096210688,"pid":56979,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55575"}
+✔ search SQL deadline cancels blocked query and returns reusable single-connection pool (2367.219917ms)
+ℹ {"containerId":"9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb","db":"crew_v2_test_fdcbbe2964f44d33af7c3d928c4fa306","port":"26937"}
+ℹ {"containerId":"9fa3c229c60c6bf43c1640876d3f6d80dfdde38f640f7c4e9c5b3d43986e3dcb","db":"crew_v2_test_fdcbbe2964f44d33af7c3d928c4fa306","port":"26937","backendPid":404,"sameConnectionReused":true}
+{"level":30,"time":1791096213088,"pid":56979,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55587"}
+✔ search cursor tuple rejects coerced UUID arrays and unsafe paths with400 (371.545ms)
+✔ repair review counts only completed repair failures and fifth requests terminal intent (184.111916ms)
+ℹ tests 102
+ℹ suites 0
+ℹ pass 102
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37293.407959

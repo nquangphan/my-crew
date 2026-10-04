@@ -1,0 +1,28 @@
+v2/server/src/assistant/gates.ts:448:55 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+    446 │       (row) =>
+    447 │         String(row.fence) === String(newest?.fence) &&
+  > 448 │         (row.created_at as Date).getTime() === (newest?.created_at as Date).getTime(),
+        │                                                       ^^
+    449 │     );
+    450 │     return latest.every((row) => row.sha256 === artifactSha256) ? 'current' : 'superseded';
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+    446 │       (row) =>
+    447 │         String(row.fence) === String(newest?.fence) &&
+  > 448 │         (row.created_at as Date).getTime() === (newest?.created_at as Date).getTime(),
+        │                                                                             ^^^^^^^
+    449 │     );
+    450 │     return latest.every((row) => row.sha256 === artifactSha256) ? 'current' : 'superseded';
+  
+
+Checked 2 files in 28ms. No fixes applied.
+Found 1 error.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

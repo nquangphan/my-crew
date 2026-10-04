@@ -102,3 +102,49 @@ Test tự tính digest scope một cách độc lập từ tag và context, khô
    - `cycleId` chỉ dùng cho gate `after_three_failed_fixes`;
    - chưa phát event journal khi hỏi hoặc trả lời, vì type event nằm ngoài ownership; web/SSE sẽ cần event này.
 5. **Gate bị reject giữ run đứng yên.** Muốn đi tiếp hoặc đổi artifact phải tạo run mới thay run cũ (W5), việc này thuộc lát sau. Route `POST /v2/assistant/questions/:id/answers` vẫn là controller mỏng cần review sau lát này.
+
+## Vòng sửa 1 (theo `task-3-s2-review.md` và ruling PM)
+
+Commit `4653b89`. Mọi mục đều có RED trước khi sửa source.
+
+| Mục | Sửa | Test |
+|---|---|---|
+| I1 | `artifactState` lấy artifact mới nhất của bước theo `fence` của attempt rồi `created_at` của evidence, chỉ tính attempt của binding hiện hành; nếu nhiều row cùng mốc thì tất cả phải cùng SHA. Hỏi hoặc duyệt bytes cũ trả 409 `WORKFLOW_ARTIFACT_SUPERSEDED`, gate vẫn `pending`. `reject` bytes cũ vẫn được, để gate không bị kẹt. | approve X sau khi Y xuất hiện → 409 và không ghi row nào; hỏi lại X → 409; ghi lại X thì duyệt được; reject X sau Y → `rejected`. |
+| W7 | Schema không có quan hệ supersede hay cột thời gian trên `workflow_runs`. "Run mới hơn" lấy theo thứ tự journal: `min(events.cursor)` của các `ticket.created` thuộc ticket bước, cùng cách `readRun` đang sắp bước. Không thêm cột. Run có run mới hơn trên cùng root trả 409 `WORKFLOW_RUN_SUPERSEDED`, cả khi hỏi (mọi câu hỏi gắn run) lẫn khi trả lời. | seed run mới hơn bằng SQL (producer supersede thuộc lát sau) → trả lời và hỏi đều 409, không ghi row nào. |
+| M1 | `recordGateAnswer` khóa `event_cursor` trước root. Precondition ghi trong JSDoc và docs flow (bước 17). | Tx trần chờ khóa root; một kết nối khác `select … event_cursor for update nowait` nhận `55P03`. |
+| M2 | `ownershipPath` theo quy ước path của server docs (`validPath`, phân biệt hoa thường): bỏ segment `./` và một `/` cuối; từ chối `..`, path tuyệt đối, `//`, `\`. Hai unit xung đột khi path bằng nhau hoặc là cha/con. | `./src/a.ts` với `src/a.ts`, `src/db` với `src/db/011.sql`, `src/db/` với `src/./db/x.ts` → 409; 5 key xấu → 400; `src/db` với `src/dbx/a.ts` → hợp lệ. |
+| M3 | Thêm `parallelUnits(value, shapeError)` export từ `gates.ts`, dùng cho cả gate kế hoạch lẫn `runs.ts units()`. `runs.ts` giờ chỉ còn kiểm identity của run. | Run `bounded`: path lồng nhau → 409 CONFLICT; `dependsOn` → 409 DEPENDENCY; `../a.ts` → 409 SCOPE_MISMATCH. Toàn bộ test song song cũ của S4 vẫn xanh. |
+| M4 | Union `OperationRequest` thêm `{action:'ask_owner'; payload: QuestionProposal}`; `gates.ts` bỏ cast. Hash vẫn giữ tag `crew-v2:operation-request:1`. | RED là lỗi tsc TS2322 trên một `OperationRequest` có kiểu `ask_owner`; GREEN so hash với oracle có tag. |
+| M5 | Không đổi source: các ca này đã bị từ chối sẵn. | Decision đã trả lời của gate thiết kế dùng cho câu hỏi gate spec → 409; approval của owner mang scope câu hỏi nhưng nằm trên ticket ở root khác → 409; câu hỏi đã trả lời → 409. Không ghi row nào. Ca (d) của review không xảy ra được, vì state được kiểm dưới khóa và hai UPDATE có điều kiện chạy trong cùng savepoint của `recordGateAnswer`; gọi `answerGate` trần thì caller nhận lỗi và phải rollback Tx của mình. |
+
+**Hành vi S4 đã thay đổi trong `runs.ts`** (chỉ những chỗ hai luật trước đây lệch nhau):
+1. Ownership so trên path đã chuẩn hóa, và path lồng nhau giữa hai unit giờ là xung đột.
+2. Ownership key phải là path tương đối hợp lệ, mỗi unit tối đa 64 key. Trước đây chấp nhận mọi chuỗi 1–512 ký tự.
+3. Unit có field lạ giờ bị 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH`. Trước đây field lạ bị bỏ qua.
+4. Key trùng trong cùng một unit giờ là lỗi shape (409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH`). Trước đây là 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`.
+5. Run giờ nhận diện `dependsOn`: danh sách không rỗng trả 409 `WORKFLOW_PARALLEL_DEPENDENCY`.
+
+Phía gate cũng có một thay đổi: `dependsOn` trở thành tùy chọn (không có nghĩa là `[]`). `ownershipKeys` vẫn được lưu nguyên như owner gửi; chuẩn hóa chỉ dùng khi so xung đột.
+
+**TDD và kiểm tra**
+
+| Lượt | Kết quả | Log SHA (16) |
+|---|---|---|
+| RED run1 | Test khóa M1 treo đến timeout 120 s, vì test không nhả khóa khi assert sai. Đã dừng đúng process của lát (SIGTERM); container và lock đã được dọn. Test M5 sai thứ tự snapshot (`before` chụp trước khi seed decision). Sửa cả hai test, không đụng source. | `2800acafdba60cd6` |
+| RED | 29 test: 24 pass, 5 fail đúng ngữ nghĩa (I1, W7, M1, M2 gate, M2/M3 run). Các ca M5, reject sau Y và runtime `ask_owner` vốn đã pass (là test bổ sung độ phủ). | `d0dbebfb3fd07667` |
+| RED tsc (M4) | TS2322 `'ask_owner'` | `eea92583ec1d33c4` |
+| GREEN run1 | 29/29 | `06927dc16955ec7b` |
+| GREEN (8 tệp S2/S4/S5) | 235/235 (227 cộng 8 mới) | `5e05469fcb4a5985` |
+| Hồi quy | 102/102 | `8ce4f2607a217b50` |
+| Biome (gates, runs, operation-request, test) | 0 lỗi, 0 warning | `7eca6ebe0b0e2fdf` |
+| tsc strict scoped | exit 0, log rỗng | `e3b0c44298fc1c14` |
+
+Docs: cập nhật `assistant-workflows.md` (bước 11, 15, 17, 18 và phần test) và `server-assistant.md` (mục 11: `ask_owner` trong danh sách payload). Không đổi manifest. `crew-docs` `generate` (không thay đổi), `check --all` và `check --staged` đều ok trên mirror; hook commit cũng ok.
+
+Tài nguyên: mọi lượt nặng đều giữ lock với owner `s5-gates` và có `heavyEligible=true`. Sau mỗi lượt: 0 DB, 0 container, không còn `node --test` của lát.
+
+**Concerns vòng 1**
+- Chuẩn hóa path phân biệt hoa thường theo quy ước server docs. Trên FS không phân biệt hoa thường (macOS), `Src/A.ts` và `src/a.ts` vẫn lọt. Cần T7 đối chiếu với tập file thực tế.
+- Thứ tự "mới nhất" của artifact dựa vào `fence` rồi `created_at` (`now()` của Tx ghi). Vì evidence không có cột thứ tự riêng, các row cùng mốc được xử lý thận trọng: phải cùng SHA mới coi là hiện hành.
+- `WORKFLOW_RUN_SUPERSEDED` suy từ thứ tự journal vì schema không có quan hệ supersede. Lát superseding sau này nên ghi quan hệ tường minh, hoặc đóng các gate của run cũ.
+- W1–W6: chuyển ledger theo chỉ đạo, không làm trong lát này.

@@ -1,0 +1,50 @@
+v2/server/test/assistant-workflows.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    1978 1978 │         await assert.rejects(() => f.ask(gateProposal(f, run, designTarget(first))), superseded);
+    1979 1979 │         assert.deepEqual(await f.gateRows(), before);
+    1980      │ - ······const·[gate]·=·await·db`select·state,decision_id·from·workflow_gates·where·id=${design.gateIds[0]·as·Id}`;
+         1980 │ + ······const·[gate]·=
+         1981 │ + ········await·db`select·state,decision_id·from·workflow_gates·where·id=${design.gateIds[0]·as·Id}`;
+    1981 1982 │         assert.deepEqual({ ...gate }, { state: 'pending', decision_id: null });
+    1982 1983 │         // Re-registering the pinned bytes makes them the newest again.
+    ········· │ 
+    2026 2027 │         // because the superseding producer belongs to a later slice.
+    2027 2028 │         const newerStep = await f.mutation(randomUUID(), (tx) =>
+    2028      │ - ········f.services.createTicket(tx,·inputTicket(f.project.id,·'step',·f.root.id,·{·title:·'Run·mới'·}),·owner),
+         2029 │ + ········f.services.createTicket(
+         2030 │ + ··········tx,
+         2031 │ + ··········inputTicket(f.project.id,·'step',·f.root.id,·{·title:·'Run·mới'·}),
+         2032 │ + ··········owner,
+         2033 │ + ········),
+    2029 2034 │         );
+    2030 2035 │         const newerRun = randomUUID();
+    ········· │ 
+    2153 2158 │           });
+    2154 2159 │         // Sibling names sharing a prefix are not nested.
+    2155      │ - ······assert.equal(
+    2156      │ - ········(await·f.answer(owner,·withKeys(['src/db'],·['src/dbx/a.ts']))).gateState,
+    2157      │ - ········'approved',
+    2158      │ - ······);
+         2160 │ + ······assert.equal((await·f.answer(owner,·withKeys(['src/db'],·['src/dbx/a.ts']))).gateState,·'approved');
+    2159 2161 │       } finally {
+    2160 2162 │         await f.close();
+    ········· │ 
+    2250 2252 │         const specSha = textSha('spec v1');
+    2251 2253 │         await f.artifact(spec.ticketId, specSha);
+    2252      │ - ······const·second·=·await·f.ask(gateProposal(f,·run,·{·step:·1,·kind:·'spec_approval',·artifactSha256:·specSha·}));
+         2254 │ + ······const·second·=·await·f.ask(
+         2255 │ + ········gateProposal(f,·run,·{·step:·1,·kind:·'spec_approval',·artifactSha256:·specSha·}),
+         2256 │ + ······);
+    2253 2257 │         const scope = {
+    2254 2258 │           questionId: second.id,
+  
+
+Checked 2 files in 53ms. No fixes applied.
+Found 1 error.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

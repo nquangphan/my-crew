@@ -1,0 +1,3 @@
+test/assistant-workflows.test.ts(2294,39): error TS2322: Type '"ask_owner"' is not assignable to type '"create_run" | "create_ticket" | "decision" | "dependency" | "signal"'.
+test/assistant-workflows.test.ts(2294,60): error TS2322: Type 'QuestionProposal' is not assignable to type 'CreateTicket | { ticketId: string; input: DecisionInput; } | { ticketId: string; predecessorId: string; expectedRevision: number; } | { ticketId: string; signal: "dependencies_ready" | "wait_owner"; expectedRevision: number; } | { ...; }'.
+  Type 'QuestionProposal' is missing the following properties from type '{ ticketId: string; signal: "dependencies_ready" | "wait_owner"; expectedRevision: number; }': signal, expectedRevision
