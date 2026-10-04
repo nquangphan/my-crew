@@ -1,0 +1,23 @@
+✔ execute-tree proves a forked child that exits before the leader and records the leader (1625.366083ms)
+✔ execute-tree kills a child left alive when the leader exits and reports LIFETIME_UNKNOWN (27.356ms)
+✔ execute-tree reports LIFETIME_UNKNOWN for an observed member that leaves the session (4030.699166ms)
+✔ execute-tree timeout kills the whole session and returns a proven-empty receipt (1027.587375ms)
+✔ execute keeps installer semantics: fork stays UNKNOWN and no leader record is written (32.80875ms)
+✔ a held operations guard yields EXECUTOR_BUSY before any process or stage write (18.279291ms)
+✔ the leader record outside the stage is unaffected by a child that writes .leader in the stage (19.634708ms)
+✔ execute-tree exits 36 without running anything when the leader record cannot be written (5.602875ms)
+✔ a fork chain that outruns per-pid listing is still a survivor: UNKNOWN and nothing left running (2079.068334ms)
+✔ a timeout with an escaped member is UNKNOWN, not a reclaimable timeout receipt (3086.231ms)
+✔ a grandchild that leaves the session soon after its fork is observed through member NOTE_FORK (5065.40725ms)
+✔ a session above 256 members fails closed and kills members in other groups and escaped ones (2705.693917ms)
+✔ an invalid operations guard is EXECUTOR_GUARD_INVALID, distinct from a busy guard (7.480084ms)
+✔ a fork chain inside the leader group is caught by the kernel group check every time (110.893625ms)
+✔ a learned process group that emptied is pruned and does not block PASS (2029.395625ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22121.40725

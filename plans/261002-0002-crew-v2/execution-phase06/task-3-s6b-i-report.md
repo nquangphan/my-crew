@@ -95,3 +95,32 @@ Mọi lệnh test và cả `tsc` đều chạy trong slot nặng (`owner=s6b-i`)
 - Kill theo group đã học dựa vào giả định pid/pgid không bị tái dùng trong một lần chạy (macOS cấp pid tuần tự). Điều này đã ghi trong docs.
 - `receipts/{id}.leader` dùng O_EXCL: chạy lại cùng `id` mà bản cũ còn thì exit 36. S6b-ii cần kiểm `absent('receipts', '{id}.leader')` như với `{id}.json`, và dọn file này khi reclaim.
 - Câu hỏi còn mở của review (pid = sid có được giữ sau khi leader bị reap hay không) chưa xác minh; reconcile S6b-ii không nên dựa vào `getsid(x)==leaderPid` sau khi helper đã thoát.
+
+## FIX2 (re-review `task-3-s6b-i-fix1-re-review.md`) — commit `b719bf1`
+
+Status: DONE_WITH_CONCERNS. BASE vòng sửa: `4040cd6`. Verb `execute` giữ nguyên byte hành vi. Các hunk đổi trong `execute_owned` chỉ có phán quyết, drain và `extra` của receipt, đều nằm trong khối `as_tree`. `main` không đổi so với FIX1.
+
+Probe trước khi sửa (`$TMPDIR/crew-v2-s6b-i/p4.c`, macOS 26.6.2) đo `kill(-g,0)`: group có thành viên sống cùng uid → 0; group chỉ còn zombie, kể cả leader đã thoát mà chưa reap → EPERM; group đã mất → ESRCH. Vì vậy phép thử áp được cho cả group của leader mà không cần loại riêng leader zombie.
+
+| Mục | Sửa | Test |
+|---|---|---|
+| N1a | Comment C và docs bước 9 ghi đúng: `KERN_PROC_ALL` qua `proc_iterate()` chỉ gom tập pid dưới lock, còn pgid/stat đọc sau khi nhả lock, nên lần liệt kê **không nguyên tử**. Bất biến chặn chính được ghi rõ: còn phải kill sau khi leader thoát thì không bao giờ PASS. | — (docs/comment) |
+| N1b | `groups_alive()`: `kill(-g,0)==0` với group đã biết là còn thành viên sống. Lúc phán quyết: nếu listing ra 0 thì `survivors = groups_alive()`. Lúc xác nhận drain và trong `settle`: còn group sống thì chưa rỗng (drain còn phải kill thì bị nâng `survivors` như I1). | `a fork chain inside the leader group is caught by the kernel group check every time`: chuỗi 1500 hop trong group leader, chạy 3 lần, lần nào cũng UNKNOWN, `survivors≥1`, không còn tiến trình. Test cũ chuỗi ở group riêng vẫn giữ. |
+| N2 | Group bị loại ngay khi `kill(-g,0)` trả ESRCH (cả trong `groups_alive` lẫn `kill_groups`). `kill(-g,SIGKILL)` với group đã học chỉ gửi khi listing hiện tại có tiến trình sống `e_pgid==g` mà `getpgid(pid)==g && getsid(pid)==leader`. Group của leader miễn xác nhận vì leader chưa reap giữ id. Kill theo pid từ listing chỉ gửi cho pid có `getsid==leader` (entry chỉ khớp theo group thì không bị kill theo pid). Group sống mà không xác nhận được thì không bị kill, giữ session ở trạng thái chưa rỗng → UNKNOWN. Receipt tree thêm `groupsKnown` (additive). Câu "cửa sổ rất hẹp" đã bỏ khỏi docs, thay bằng mô tả cơ chế mới. | `a learned process group that emptied is pruned and does not block PASS`: thành viên `setpgrp` riêng, ngủ 2 giây rồi thoát; PASS, `groupsKnown===1` (chỉ còn group của leader) |
+| N3 | Docs ghi: `receipts/{id}.leader` dùng O_EXCL, caller phải kiểm `absent('receipts','{id}.leader')` trước khi chạy và dọn cùng `{id}.json` khi reclaim. Phần code thuộc S6b-ii. | — |
+
+### Bằng chứng
+
+| Bước | Kết quả | Log / SHA-256 |
+|---|---|---|
+| RED (15 test; nguồn C tạm khôi phục về bản FIX1 `HEAD`, TS/test mới) | exit 1, 14/15. Test prune fail ở `groupsKnown` (`undefined !== 1`). Test chuỗi trong group leader **pass trên code cũ**: helper cũ bắt được chuỗi bằng listing theo `e_pgid` ở cả 3 lần, nên khe không nguyên tử không tái hiện tất định được. Test mới vì vậy là test bất biến (3 lần lặp), không phải RED. RED của N2 chỉ chứng minh trường "pruned" quan sát được; còn tái dùng pgid thật thì không ép được nếu không quay vòng không gian pid. | `task-3-s6b-i-fix2-red.log` `de50599a…28df` |
+| GREEN focused | 15/15 | `task-3-s6b-i-fix2-green-run1.log` `31ebba25…63e9` |
+| Regression + ổn định + tsc + biome (bytes commit) | tree + `workflow-operations` + `workflow-registry` + `render-executor` + `isolation-workspace` 57/57; tree thêm 2 lần 15/15; `tsc --noEmit` exit 0; biome sạch | `task-3-s6b-i-fix2-green.log` `86ff1c9d…b5dc` |
+
+Mọi lệnh test và `tsc` đều chạy trong slot nặng sau khi gate trả `heavyEligible=true`. `ps` sau mỗi lượt không còn tiến trình của lát. Docs: `crew-docs generate` không đổi gì, `check --all`/`--staged` ok trên mirror; hook commit ok; manifest sửa dưới lock.
+
+### Concerns FIX2
+
+- N1b và N2 không có RED tất định (lý do ở trên); bằng chứng là test bất biến cộng trường `groupsKnown`.
+- Thành viên khác uid (setuid) không được `kill(-g,0)` đếm, vì kernel trả EPERM giống trường hợp chỉ còn zombie. Chúng chỉ được bắt qua liệt kê; điều này đã ghi trong docs.
+- N3 (dọn và kiểm `receipts/{id}.leader`) thuộc S6b-ii.
