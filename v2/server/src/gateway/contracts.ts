@@ -143,9 +143,51 @@ export type GatewayStatus = {
   applied: GatewayApplied | null;
   receivedAt: string | null;
   lastTelemetryAt: string | null;
+  /** From the live boot's last heartbeat; null when no heartbeat of the current boot exists. */
+  hostVersion: string | null;
+  appVersion: string | null;
+  /** Host-reported time, informational only; liveness uses receivedAt. */
+  observedAt: string | null;
+  telemetry: GatewayHeartbeat['telemetry'] | null;
   activeProcesses: GatewayHeartbeat['processes'];
   uncertainProcesses: GatewayHeartbeat['processes'];
   commands: GatewayCommand[];
+};
+export type WorkflowRetryResult = { created: boolean; configRevision: number; command: GatewayCommand };
+/** Per-slot comparison of desired against what the install report says is installed. */
+export type CatalogueVerdict =
+  | 'match'
+  | 'mismatch'
+  | 'not_installed'
+  | 'installing'
+  | 'error'
+  | 'not_desired';
+export type CatalogueSource = {
+  desired: SourcePin | null;
+  installed: SourcePin | null;
+  state: BundleState;
+  verdict: CatalogueVerdict;
+  versionMismatch: boolean;
+  lastError: SlotStatus<SourcePin>['lastError'];
+  observedAt: string | null;
+};
+export type CatalogueProjection = {
+  desired: ProjectionPin | null;
+  installed: ProjectionPin | null;
+  state: BundleState;
+  verdict: CatalogueVerdict;
+  /** Present only when the stored definition is provably tied to the exact current desired pins. */
+  definition: ProjectionDefinition | null;
+  lastError: SlotStatus<ProjectionPin>['lastError'];
+  observedAt: string | null;
+};
+export type WorkflowCatalogue = {
+  machineId: Id;
+  desiredConfigRevision: number | null;
+  appliedConfigRevision: number | null;
+  latestReport: { reportId: Id; configRevision: number; accepted: boolean; receivedAt: string } | null;
+  official: Record<Workflow, { version: string; sourceRevision: string; allowedSourceUrls: string[] }>;
+  workflows: Record<Workflow, { source: CatalogueSource; projections: Record<Runtime, CatalogueProjection> }>;
 };
 export const toDomainPin = (source: SourcePin): Pin => ({
   workflow: source.name,
@@ -154,6 +196,12 @@ export const toDomainPin = (source: SourcePin): Pin => ({
   checksum: source.sourceTreeSha256,
 });
 
+export const retrySchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: { expectedRevision: { type: 'integer', minimum: 1, maximum: 2147483646 } },
+  required: ['expectedRevision'],
+} as const;
 export const workflows: Workflow[] = ['bmad', 'superpowers'];
 export const runtimes: Runtime[] = ['claude', 'codex', 'api'];
 export const uuidSchema = { type: 'string', format: 'uuid' } as const;

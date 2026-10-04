@@ -234,6 +234,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/execution/contracts.ts` | [server-execution](flows/server-execution.md) (file) |
 | `server/src/execution/reconcile.ts` | [server-execution](flows/server-execution.md) (file) |
 | `server/src/execution/routes.ts` | [server-execution](flows/server-execution.md) (điểm vào) |
+| `server/src/gateway/catalogue.ts` | [server-gateway](flows/server-gateway.md) (file) |
 | `server/src/gateway/contracts.ts` | [server-gateway](flows/server-gateway.md) (file) |
 | `server/src/gateway/routes.ts` | [server-gateway](flows/server-gateway.md) (điểm vào) |
 | `server/src/gateway/service.ts` | [server-gateway](flows/server-gateway.md) (file) |
@@ -325,6 +326,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/fixtures/attachments/scan.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
 | `server/test/fixtures/attachments/text.pdf` | [attachment-extraction](flows/attachment-extraction.md) (test) |
 | `server/test/fixtures/legacy-docs/crlf-unicode.md` | [server-docs-import](flows/server-docs-import.md) (test) |
+| `server/test/gateway-owner-read.test.ts` | [server-gateway](flows/server-gateway.md) (test) |
 | `server/test/gateway.test.ts` | [server-gateway](flows/server-gateway.md) (test) |
 | `server/test/journal-scope.test.ts` | [server-journal](flows/server-journal.md) (test) |
 | `server/test/journal.test.ts` | [server-journal](flows/server-journal.md) (test) |

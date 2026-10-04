@@ -69,16 +69,36 @@ server cho phép; authority production mặc định vẫn từ chối đến ph
    và runtime slot, command chờ, process running/unknown. Trạng thái offline sau 60 giây dựa trên
    receipt server; boot mới chưa heartbeat cũng offline. Không route nào chạy model, cấp permit,
    reconcile process dừng hoặc nhả guard.
+9. Status owner thêm `hostVersion`, `appVersion` (null khi host không báo), `observedAt` (giờ host báo, chỉ
+   tham khảo) và `telemetry` từ heartbeat cuối của boot hiện hành; boot mới chưa heartbeat trả null cho cả
+   bốn trường, giống `lastTelemetryAt`. Owner `GET /v2/gateway/machines/:id/workflows` trả catalogue:
+   mỗi workflow có `source` và ba `projections` gồm `desired` (config hiện hành), `installed` và `state` của
+   report mới nhất, `verdict` (`match|mismatch|not_installed|installing|error|not_desired`) và
+   `versionMismatch` của source. Verdict luôn so với desired hiện tại, không suy từ `appliedConfigRevision`,
+   nên pin cũ sau khi desired đổi thành `mismatch`. `definition` (slot `current`) chỉ được trả khi khớp đúng
+   pin desired và digest canonical (cùng `definitionMatches` lúc nhận report), nếu không là null. Kèm
+   `latestReport` `{reportId,configRevision,accepted,receivedAt}` để phân biệt partial và `official`
+   (version, revision, URL được phép). Server không giữ digest pin chuẩn; pin đầy đủ chỉ có khi đã nằm trong
+   desired hoặc được máy báo cài.
+10. Owner `POST /v2/gateway/machines/:id/workflows/retry` `{expectedRevision}` (CSRF + Idempotency-Key,
+    cùng khóa máy với PUT config) xếp thêm `sync_workflows {configRevision}` cho đúng revision hiện hành,
+    dùng khi PUT config no-op. Chưa cấu hình 409 `CONFIG_NOT_CONFIGURED`, revision lệch 409
+    `CONFIG_REVISION_CONFLICT`; nếu đã có command sync chưa completed cho revision đó thì trả lại command
+    ấy với `created:false`, không xếp chồng. Owner `GET /v2/gateway/machines/:id/commands?before&limit`
+    (default 50, max 100) đọc lịch sử command mới nhất trước kèm `result` đã làm sạch, `nextBefore` null khi
+    hết. Chưa có: đọc key credential đang active (chờ Keychain phase04).
 
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |
 |---|---|
 | `server/migrations/007_gateway.sql` | 9 bảng, FK/CHECK/UNIQUE, retired boot và immutable receipts/report/pair |
+| `server/src/gateway/catalogue.ts` | Catalogue workflow owner chỉ đọc: desired so với installed, verdict, definition tin cậy |
 | `server/src/gateway/contracts.ts` | SourcePin, ProjectionPin, GatewayConfig, GatewayHeartbeat, InstallReport, DispatchSelection, AttemptProjectionPin, GatewayStatus, schemas |
 | `server/src/gateway/service.ts` | Boot/config CAS, replay, apply, ACK và fenced companion |
 | `server/src/gateway/routes.ts` | HTTP auth, strict schemas, mutation authorization và read snapshot |
 | `server/test/support/gateway.ts` | HTTP owner/machine thật, pin/status fixtures và private DB-backed claim/selection authority |
+| `server/test/gateway-owner-read.test.ts` | Status version/telemetry, catalogue, retry intent, lịch sử command owner |
 | `server/test/gateway.test.ts` | Protocol, scope, replay races, restart, DB constraints và backup/restore |
 
 ## Dữ liệu

@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { authenticateCurrentCredential } from '../auth/routes.ts';
 import type { Actor, Id, RouteDependencies, ServerOptions, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
+import { readWorkflowCatalogue } from './catalogue.ts';
 import type {
   ConfigInput,
   GatewayAck,
@@ -18,6 +19,7 @@ import {
   installReportSchema,
   objectSchema,
   projectionInputSchema,
+  retrySchema,
   uuidSchema,
 } from './contracts.ts';
 import {
@@ -25,10 +27,12 @@ import {
   authorizeGatewayMutation,
   denyProjectionSelection,
   listGatewayCommands,
+  listMachineCommands,
   readGatewayApplied,
   readGatewayConfig,
   readGatewayStatus,
   registerBoot,
+  requestWorkflowRetry,
   saveAttemptProjection,
   saveHeartbeat,
   saveInstallReport,
@@ -178,6 +182,47 @@ export function registerGatewayRoutes(
     async (request) => {
       const actor = await deps.auth.requireOwner(request, { csrf: false });
       return read(request, actor, (tx) => readGatewayStatus(tx, request.params.id, options.now()));
+    },
+  );
+  app.get<{ Params: { id: Id } }>(
+    '/v2/gateway/machines/:id/workflows',
+    { schema: { params: idParams, querystring: objectSchema({}) } },
+    async (request) => {
+      const actor = await deps.auth.requireOwner(request, { csrf: false });
+      return read(request, actor, (tx) => readWorkflowCatalogue(tx, request.params.id));
+    },
+  );
+  app.post<{ Params: { id: Id }; Body: { expectedRevision: number } }>(
+    '/v2/gateway/machines/:id/workflows/retry',
+    { schema: { params: idParams, body: retrySchema } },
+    async (request, reply) => {
+      const actor = await deps.auth.requireOwner(request, { csrf: true });
+      return write(request, reply, actor, request.params.id, (tx) =>
+        requestWorkflowRetry(tx, request.params.id, request.body, options.now()),
+      );
+    },
+  );
+  app.get<{ Params: { id: Id }; Querystring: { before?: string; limit?: string } }>(
+    '/v2/gateway/machines/:id/commands',
+    {
+      schema: {
+        params: idParams,
+        querystring: objectSchema(
+          { before: cursorSchema, limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' } },
+          [],
+        ),
+      },
+    },
+    async (request) => {
+      const actor = await deps.auth.requireOwner(request, { csrf: false });
+      return read(request, actor, (tx) =>
+        listMachineCommands(
+          tx,
+          request.params.id,
+          request.query.before,
+          request.query.limit === undefined ? 50 : Number(request.query.limit),
+        ),
+      );
     },
   );
 }

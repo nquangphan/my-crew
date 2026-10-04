@@ -292,10 +292,12 @@ flows:
     entrypoints:
       - server/src/gateway/routes.ts
     files:
+      - server/src/gateway/catalogue.ts
       - server/src/gateway/contracts.ts
       - server/src/gateway/service.ts
       - server/migrations/007_gateway.sql
     tests:
+      - server/test/gateway-owner-read.test.ts
       - server/test/gateway.test.ts
       - server/test/support/gateway.ts
   server-models:

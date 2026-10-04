@@ -24,7 +24,9 @@ import type {
   ProjectionPin,
   ProjectionSlotStatus,
   SourcePin,
+  Workflow,
   WorkflowInventory,
+  WorkflowRetryResult,
 } from './contracts.ts';
 import { runtimes, toDomainPin, workflows } from './contracts.ts';
 
@@ -63,15 +65,38 @@ export async function authorizeGatewayMutation(
   if (current.kind !== actor.kind || current.id !== actor.id) fail('UNAUTHENTICATED', 401);
 }
 
+const officialReleases = {
+  bmad: {
+    version: '6.12.0',
+    revision: '05bfbd46d00766ec88eb9b42e76be2c575d64d7b',
+    repo: 'bmad-code-org/BMAD-METHOD',
+  },
+  superpowers: {
+    version: '6.4.2',
+    revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d',
+    repo: 'obra/superpowers',
+  },
+} as const;
+/** HTTPS source locations accepted for an official release; single source for validation and catalogue. */
+export function officialSourceUrls(name: Workflow): string[] {
+  const release = officialReleases[name];
+  const suffixes = [release.revision, `refs/tags/v${release.version}`];
+  const urls = suffixes.flatMap((suffix) => [
+    `https://github.com/${release.repo}/archive/${suffix}.tar.gz`,
+    `https://codeload.github.com/${release.repo}/tar.gz/${suffix}`,
+  ]);
+  if (name === 'bmad')
+    urls.push(`https://registry.npmjs.org/bmad-method/-/bmad-method-${release.version}.tgz`);
+  return urls;
+}
+export const officialRelease = (name: Workflow) => ({
+  version: officialReleases[name].version,
+  sourceRevision: officialReleases[name].revision,
+  allowedSourceUrls: officialSourceUrls(name),
+});
 export function validateOfficialSource(pin: SourcePin): void {
-  const release =
-    pin.name === 'bmad'
-      ? {
-          version: '6.12.0',
-          revision: '05bfbd46d00766ec88eb9b42e76be2c575d64d7b',
-          repo: 'bmad-code-org/BMAD-METHOD',
-        }
-      : { version: '6.4.2', revision: '8ca22dba9a94f28898bbce59f2537ff4d87c747d', repo: 'obra/superpowers' };
+  const release = officialReleases[pin.name];
+  if (!release) fail('WORKFLOW_SOURCE_INVALID', 400);
   if (pin.version !== release.version || pin.sourceRevision !== release.revision)
     fail('WORKFLOW_SOURCE_INVALID', 400);
   let url: URL;
@@ -90,13 +115,7 @@ export function validateOfficialSource(pin: SourcePin): void {
     url.href !== pin.sourceUrl
   )
     fail('WORKFLOW_SOURCE_INVALID', 400);
-  const suffixes = [release.revision, `refs/tags/v${release.version}`];
-  const allowed = suffixes.flatMap((suffix) => [
-    `https://github.com/${release.repo}/archive/${suffix}.tar.gz`,
-    `https://codeload.github.com/${release.repo}/tar.gz/${suffix}`,
-  ]);
-  if (pin.name === 'bmad')
-    allowed.push(`https://registry.npmjs.org/bmad-method/-/bmad-method-${release.version}.tgz`);
+  const allowed = officialSourceUrls(pin.name);
   if (
     !allowed.includes(pin.sourceUrl) ||
     (url.hostname === 'registry.npmjs.org') !== (pin.packageIntegrity !== null)
@@ -252,7 +271,7 @@ export async function saveHeartbeat(tx: Tx, machineId: Id, input: GatewayHeartbe
  * A projection definition is trusted only when the slot holds exactly the desired source and projection
  * pins and the digest equals the gateway's canonical identity over those pins, skills and customization.
  */
-function definitionMatches(
+export function definitionMatches(
   slot: ProjectionSlotStatus,
   source: SourcePin,
   projection: ProjectionPin | null,
@@ -337,7 +356,7 @@ export async function saveInstallReport(
   });
   return response;
 }
-function mapCommand(row: Record<string, unknown>): GatewayCommand {
+export function mapCommand(row: Record<string, unknown>): GatewayCommand {
   return {
     id: row.id as Id,
     machineId: row.machine_id as Id,
@@ -431,9 +450,59 @@ export async function readGatewayStatus(tx: Tx, machineId: Id, now: Date): Promi
     workflows: applied?.workflows ?? (last?.inventory as WorkflowInventory | undefined) ?? missingInventory(),
     receivedAt,
     lastTelemetryAt: receivedAt,
+    hostVersion: live ? String(last.host_version) : null,
+    appVersion: live && last.app_version !== null ? String(last.app_version) : null,
+    observedAt: live && last.observed_at ? new Date(last.observed_at as Date).toISOString() : null,
+    telemetry: live ? (last.telemetry as GatewayHeartbeat['telemetry']) : null,
     activeProcesses: processes.filter((p) => p.observation === 'running'),
     uncertainProcesses: processes.filter((p) => p.observation === 'unknown'),
     commands: commands.map(mapCommand),
+  };
+}
+/** Owner history of machine commands, newest first, with their completion result; keyset on the 007 cursor. */
+export async function listMachineCommands(
+  tx: Tx,
+  machineId: Id,
+  before: string | undefined,
+  limit: number,
+): Promise<{ items: GatewayCommand[]; nextBefore: string | null }> {
+  if (before !== undefined) parseCursor(before);
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) fail('LIMIT_INVALID', 400);
+  const [machine] = await tx`select id from machines where id=${machineId}`;
+  if (!machine) fail('NOT_FOUND', 404);
+  const rows =
+    before === undefined
+      ? await tx`select * from gateway_commands where machine_id=${machineId} order by cursor desc limit ${limit + 1}`
+      : await tx`select * from gateway_commands where machine_id=${machineId} and cursor<${before} order by cursor desc limit ${limit + 1}`;
+  const items = rows.slice(0, limit).map(mapCommand);
+  return { items, nextBefore: rows.length > limit ? (items.at(-1)?.cursor ?? null) : null };
+}
+/**
+ * Owner retry/reinstall intent for the current desired revision. Config PUT is a no-op when desired is
+ * unchanged, so this queues one more sync_workflows for the same revision. An unfinished command for that
+ * revision is returned instead of stacking duplicates.
+ */
+export async function requestWorkflowRetry(
+  tx: Tx,
+  machineId: Id,
+  input: { expectedRevision: number },
+  now: Date,
+): Promise<WorkflowRetryResult> {
+  const config = await readGatewayConfig(tx, machineId);
+  if (!config) fail('CONFIG_NOT_CONFIGURED');
+  if (config.revision !== input.expectedRevision) fail('CONFIG_REVISION_CONFLICT');
+  const [open] =
+    await tx`select * from gateway_commands where machine_id=${machineId} and type='sync_workflows' and state<>'completed' and (payload->>'configRevision')::int=${config.revision} order by cursor desc limit 1`;
+  if (open) return { created: false, configRevision: config.revision, command: mapCommand(open) };
+  const [cursor] = await tx`update gateway_command_cursor set value=value+1 where singleton returning value`;
+  const commandId = randomUUID();
+  const [row] =
+    await tx`insert into gateway_commands(id,machine_id,type,payload,state,created_at,cursor) values(${commandId},${machineId},'sync_workflows',${tx.json({ configRevision: config.revision })},'queued',${now},${cursor?.value}) returning *`;
+  await event(tx, machineId, 'gateway.command.created', { commandId, type: 'sync_workflows' });
+  return {
+    created: true,
+    configRevision: config.revision,
+    command: mapCommand(row as Record<string, unknown>),
   };
 }
 
