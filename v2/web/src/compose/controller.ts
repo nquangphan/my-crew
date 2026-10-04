@@ -61,6 +61,8 @@ export type ComposeView = {
   draft: ComposeDraft;
   /** Last error code for the owner (validation, policy, transport or server code). */
   errorCode: string | null;
+  /** Producer message behind an unconfirmed 5xx (for example why the server is not ready). */
+  errorMessage: string | null;
   /** The submit key survives only as a payload-free tombstone (after logout): re-enter the same content. */
   needsPayload: boolean;
   /** Submit button state: new submit, retry of the frozen operation, or re-entry for a tombstone. */
@@ -131,6 +133,12 @@ function errorCode(error: unknown): string {
   return 'UNEXPECTED';
 }
 
+/** Producer message behind an unconfirmed 5xx (the code itself is replaced by `UNCONFIRMED`). */
+function serverMessage(error: unknown): string | null {
+  if (!(error instanceof ApiFailure) || error.status === null || error.status < 500) return null;
+  return error.message && error.message !== error.code ? error.message : null;
+}
+
 function isOperation(entry: PendingOperation | RecoveryTombstone | undefined): entry is PendingOperation {
   return entry !== undefined && 'bodyJson' in entry;
 }
@@ -196,7 +204,11 @@ export class ComposeController {
   #receiptTaken = false;
   /** Key of the latest submit of this intent, kept while its outcome is not proven. */
   #lastSubmitId: string | null = null;
+  /** Bumped by `startNew`; a send that finishes under an older generation no longer owns the draft. */
+  #generation = 0;
+  readonly #offPending: () => void;
   #errorCode: string | null = null;
+  #errorMessage: string | null = null;
   #receipt: ComposeReceipt | null = null;
   #policy: Promise<AttachmentPolicy> | null = null;
   #queue: Promise<unknown> = Promise.resolve();
@@ -246,6 +258,7 @@ export class ComposeController {
         this.#draft.state = 'ambiguous';
       }
     }
+    this.#offPending = this.#pending.subscribe(() => this.#onPendingChange());
   }
 
   // ---- observation ------------------------------------------------------------------------------------
@@ -260,11 +273,13 @@ export class ComposeController {
     this.#view ??= Object.freeze({
       draft: this.#draft,
       errorCode: this.#errorCode,
+      errorMessage: this.#errorMessage,
       needsPayload: this.#tombstoneId !== null,
       submittable: this.#submittable(),
       receipt: this.#receipt,
       assistantRead: this.#assistantRead,
-      discardable: this.#tombstoneId !== null || this.#lockReason !== null,
+      discardable:
+        this.#draft.state !== 'sending' && (this.#tombstoneId !== null || this.#lockReason !== null),
     });
     return this.#view;
   }
@@ -287,8 +302,16 @@ export class ComposeController {
   }
 
   /** Explicit owner decision to drop the local draft; unresolved keys stay in the PendingStore. */
-  discard(): void {
+  async discard(): Promise<void> {
+    if (this.#draft.state === 'sending') return;
     if (this.#tombstoneId === null && this.#lockReason === null) return;
+    const sessionId = this.#draft.sessionId;
+    if (sessionId !== null) {
+      // An open compose of the dropped draft is abandoned so it cannot be submitted or hold quota; a
+      // submitted one is left as is (the DELETE path reads it back and stops).
+      await this.#enqueue(() => this.#abandonSession()).catch(() => undefined);
+      this.#releaseSessionKeys(sessionId);
+    }
     this.startNew();
   }
 
@@ -418,24 +441,27 @@ export class ComposeController {
    */
   async submit(assistantRead: AssistantRead): Promise<ComposeReceipt | null> {
     if (this.#draft.state === 'sending' || this.#draft.state === 'accepted') return null;
-    let operation: PendingOperation;
+    const generation = this.#generation;
+    let operation: PendingOperation | null;
     try {
       operation = await this.#submitOperation(assistantRead);
     } catch (error) {
       this.#fail(error);
       return null;
     }
+    if (operation === null || generation !== this.#generation) return null;
     this.#lastSubmitId = operation.id;
     this.#draft = { ...this.#draft, submitOperation: operation, state: 'sending' };
-    this.#errorCode = null;
+    this.#setError(null);
     this.#emit();
     let value: unknown;
     try {
       value = await this.#client.mutate<unknown>(operation);
     } catch (error) {
-      await this.#afterSubmitFailure(operation, error);
+      if (generation === this.#generation) await this.#afterSubmitFailure(operation, error);
       return null;
     }
+    if (generation !== this.#generation) return null;
     let receipt: ComposeReceipt;
     try {
       receipt = decodeComposeReceipt(this.#draft.submission.kind, value);
@@ -443,7 +469,7 @@ export class ComposeController {
       // The server committed and the key is released: stay locked; resending the frozen body on the same
       // compose replays the stored response instead of creating a second entity.
       this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
-      this.#errorCode = 'RESPONSE_SHAPE_INVALID';
+      this.#setError('RESPONSE_SHAPE_INVALID');
       this.#emit();
       return null;
     }
@@ -484,6 +510,7 @@ export class ComposeController {
     for (const abort of this.#aborts.values()) abort.abort(new ApiFailure(null, 'ABORTED', 'aborted'));
     this.#aborts.clear();
     this.#bytes.clear();
+    this.#generation++;
     this.#intentId = this.#newId();
     this.#sessionTarget = null;
     this.#tombstoneId = null;
@@ -493,7 +520,7 @@ export class ComposeController {
     this.#lastSubmitId = null;
     this.#receipt = null;
     this.#receiptTaken = false;
-    this.#errorCode = null;
+    this.#setError(null);
     this.#draft = {
       submission: this.#draft.submission,
       sessionId: null,
@@ -512,12 +539,13 @@ export class ComposeController {
     this.#aborts.clear();
     this.#bytes.clear();
     this.#options.hasher.dispose();
+    this.#offPending();
     this.#listeners.clear();
   }
 
   // ---- internals: submit ------------------------------------------------------------------------------
 
-  async #submitOperation(assistantRead: AssistantRead): Promise<PendingOperation> {
+  async #submitOperation(assistantRead: AssistantRead): Promise<PendingOperation | null> {
     const existing = this.#draft.submitOperation
       ? this.#pending.get(this.#draft.submitOperation.id)
       : undefined;
@@ -532,8 +560,19 @@ export class ComposeController {
       // compose replays the stored result; a new body would be a second intent.
       return this.#beginSubmit(this.#frozen.path, JSON.parse(this.#frozen.bodyJson));
     }
+    if (this.#lockReason === 'SUBMIT_UNCONFIRMED') {
+      // Nothing to resend from this tab: let GET compose settle the outcome first.
+      await this.#enqueue(() => this.#refresh()).catch((error) => this.#fail(error));
+      return null;
+    }
     if (this.#lockReason !== null) throw new ComposeValidationError(this.#lockReason);
-    if (this.#draft.state !== 'editing') throw new ComposeValidationError('SUBMIT_UNCONFIRMED');
+    if (this.#draft.state !== 'editing') {
+      // The frozen key vanished without a body in memory (resolved by the recovery panel after a reload
+      // or remount): GET compose decides between a locked submitted draft and a free editing draft.
+      this.#markVanished();
+      await this.#enqueue(() => this.#refresh()).catch((error) => this.#fail(error));
+      return null;
+    }
     if (this.#draft.files.length === 0 && this.#draft.sessionId === null)
       await this.#enqueue(() => this.#ensureSession());
     await this.#queue;
@@ -543,6 +582,70 @@ export class ComposeController {
     this.#frozen = { path: operation.path, bodyJson: operation.bodyJson };
     this.#assistantRead = assistantRead;
     return operation;
+  }
+
+  #markVanished(): void {
+    this.#lockReason = 'SUBMIT_UNCONFIRMED';
+    this.#setError('SUBMIT_UNCONFIRMED');
+    this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
+    this.#emit();
+  }
+
+  /** The frozen submit key changed outside this controller (recovery panel replay, logout tombstone). */
+  #onPendingChange(): void {
+    const operation = this.#draft.submitOperation;
+    if (!operation || this.#draft.state === 'sending' || this.#pending.get(operation.id)) return;
+    if (this.#pending.tombstones().some((tombstone) => tombstone.id === operation.id)) {
+      this.#tombstoneId = operation.id;
+      this.#draft = { ...this.#draft, submitOperation: null, state: 'suspended' };
+      this.#emit();
+      return;
+    }
+    if (this.#frozen) {
+      // The same body can be resent on this compose to read the stored result.
+      this.#draft = { ...this.#draft, submitOperation: null };
+      this.#emit();
+      return;
+    }
+    this.#markVanished();
+    void this.#enqueue(() => this.#refresh()).catch((error) => this.#fail(error));
+  }
+
+  /** True when this tab still owns an unresolved submit for the draft. */
+  #ownsSubmit(): boolean {
+    const operation = this.#draft.submitOperation;
+    return (
+      (operation !== null && this.#pending.get(operation.id) !== undefined) ||
+      this.#tombstoneId !== null ||
+      this.#frozen !== null
+    );
+  }
+
+  /** Free the unresolved draft state after GET compose proved the frozen submit did not commit. */
+  #unlockUnconfirmed(): void {
+    this.#lockReason = null;
+    this.#setError(null);
+    this.#frozen = null;
+    this.#assistantRead = null;
+    this.#lastSubmitId = null;
+    this.#draft = { ...this.#draft, submitOperation: null, state: 'editing' };
+  }
+
+  /** Drop the submit key and frozen body of a compose that is proven unable to commit them. */
+  #releaseSubmit(): void {
+    const operationId = this.#draft.submitOperation?.id ?? this.#tombstoneId;
+    // Clear the draft first so the PendingStore listener does not read the rejection as a vanished key.
+    this.#tombstoneId = null;
+    this.#unlockUnconfirmed();
+    if (operationId) this.#pending.reject(operationId);
+  }
+
+  /** Reserve/remove keys of a compose this draft no longer uses. */
+  #releaseSessionKeys(sessionId: string): void {
+    for (const file of this.#draft.files) {
+      this.#resolve(this.#reserveIntent(file.localId, sessionId), 'reject');
+      if (file.uploadId) this.#resolve(this.#removeIntent(file.uploadId), 'reject');
+    }
   }
 
   #beginSubmit(path: string, body: unknown): PendingOperation {
@@ -595,7 +698,7 @@ export class ComposeController {
       this.#assistantRead = null;
       this.#lastSubmitId = null;
     }
-    this.#errorCode = code;
+    this.#setError(code, serverMessage(error));
     this.#emit();
     if (!kept && this.#draft.state === 'editing' && reconcileAfterSubmit.has(code))
       await this.#enqueue(() => this.#refresh()).catch((failure) => this.#fail(failure));
@@ -657,7 +760,7 @@ export class ComposeController {
       await this.#abandonSession();
     } catch {
       // The old session is never reused; the server expires it by TTL.
-      this.#errorCode = 'PREVIOUS_COMPOSE_KEPT';
+      this.#setError('PREVIOUS_COMPOSE_KEPT');
     }
     this.#detachFromSession('TARGET_CHANGED');
   }
@@ -694,11 +797,7 @@ export class ComposeController {
     this.#aborts.clear();
     // The old compose is closed or never reused: its unresolved reserve/remove keys can no longer matter.
     const oldSession = this.#draft.sessionId;
-    if (oldSession !== null)
-      for (const file of this.#draft.files) {
-        this.#resolve(this.#reserveIntent(file.localId, oldSession), 'reject');
-        if (file.uploadId) this.#resolve(this.#removeIntent(file.uploadId), 'reject');
-      }
+    if (oldSession !== null) this.#releaseSessionKeys(oldSession);
     const files = this.#draft.files
       .filter((file) => file.state !== 'removing')
       .map((file): DraftFile => {
@@ -713,7 +812,7 @@ export class ComposeController {
       });
     this.#sessionTarget = null;
     this.#draft = { ...this.#draft, sessionId: null, selectionRevision: null, files };
-    this.#errorCode ??= code;
+    if (this.#errorCode === null) this.#setError(code);
     this.#emit();
     for (const file of files) if (file.state === 'selected') this.#schedule(file.localId);
   }
@@ -738,30 +837,28 @@ export class ComposeController {
     if (view.session.state === 'submitted') {
       // Never move files to a new compose: either our frozen submit is replayed for its receipt, or the
       // compose was submitted without a local key and the draft stays locked until the owner discards it.
-      const ours =
-        this.#draft.submitOperation !== null || this.#tombstoneId !== null || this.#frozen !== null;
-      if (!ours) {
+      if (!this.#ownsSubmit()) {
         this.#lockReason = 'SUBMITTED_ELSEWHERE';
-        this.#errorCode = 'SUBMITTED_ELSEWHERE';
+        this.#setError('SUBMITTED_ELSEWHERE');
         this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
       }
       this.#mergeFiles(view, false);
       return;
     }
     if (view.session.state !== 'open') {
-      if (this.#lockReason === 'SUBMIT_UNCONFIRMED') {
-        this.#lockReason = null;
-        this.#draft = { ...this.#draft, state: 'editing' };
-      }
+      if (this.#lockReason === 'SUBMIT_UNCONFIRMED') this.#unlockUnconfirmed();
       this.#detachFromSession('COMPOSE_CLOSED');
       return;
     }
-    if (this.#lockReason === 'SUBMIT_UNCONFIRMED') {
-      // The vanished key did not submit this still-open compose: it was rejected.
-      this.#lockReason = null;
-      this.#errorCode = null;
-      this.#draft = { ...this.#draft, state: 'editing' };
+    if (Date.parse(view.session.expiresAt) <= this.#now().getTime()) {
+      // An expired open compose can no longer be submitted, and an earlier send would have made it
+      // `submitted`: any unresolved submit of it is proven not committed. Files move to a new compose.
+      this.#releaseSubmit();
+      this.#detachFromSession('COMPOSE_EXPIRED');
+      return;
     }
+    // The vanished key did not submit this still-open compose: it was rejected.
+    if (this.#lockReason === 'SUBMIT_UNCONFIRMED') this.#unlockUnconfirmed();
     this.#mergeFiles(view, true);
   }
 
@@ -967,6 +1064,12 @@ export class ComposeController {
           await this.#refresh();
           continue;
         }
+        if (error instanceof ApiFailure && error.code === 'ATTACHMENT_COMPOSE_CLOSED') {
+          // Closed or expired: GET compose moves the files to a new compose and reschedules them.
+          await this.#refresh();
+          if (this.#draft.sessionId === sessionId) throw error;
+          return;
+        }
         throw error;
       }
     }
@@ -1005,6 +1108,8 @@ export class ComposeController {
         this.#patch(localId, { state: 'unknown', errorCode: errorCode(error) });
         return;
       }
+      // The compose expired or closed: the file was moved to a new compose and rescheduled.
+      if (signal.aborted) return;
       const after = this.#file(localId);
       if (!after || after.state === 'ready' || after.state === 'failed' || after.state === 'removing') return;
       if (after.state === 'reserved' && definitiveUpload.has(code)) {
@@ -1172,8 +1277,13 @@ export class ComposeController {
     this.#emit();
   }
 
+  #setError(code: string | null, message: string | null = null): void {
+    this.#errorCode = code;
+    this.#errorMessage = code === null ? null : message;
+  }
+
   #fail(error: unknown): void {
-    this.#errorCode = errorCode(error);
+    this.#setError(errorCode(error), serverMessage(error));
     this.#emit();
   }
 

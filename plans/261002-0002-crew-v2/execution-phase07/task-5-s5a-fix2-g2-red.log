@@ -1,0 +1,167 @@
+✔ freezeSubmission ticket: đúng path/body, không gửi kind/target/draftKey, selection rỗng hợp lệ (1.72625ms)
+✔ freezeSubmission comment và assistant_message: đúng route/body, giữ clientMessageId (0.141875ms)
+✔ freezeSubmission chặn target sai, field sai giới hạn và text/file cùng rỗng (1.551417ms)
+✔ PendingStore.begin cho cùng intent/path/body ra đúng bytes của freezeSubmission (0.573708ms)
+✔ canSubmit: file lỗi chặn gửi dù có text; sending/accepted không gửi; ambiguous chỉ retry op cũ (0.151625ms)
+✔ mất phản hồi sau commit: khóa form, retry cùng key/body, một ticket; frozen body không đổi khi form đổi (17.88825ms)
+✔ hết phiên rồi đăng nhập lại cùng owner: retry giữ key gốc và clientMessageId, một message (3.126666ms)
+✔ reload tab: compose ID/revision và key gốc được giữ, không lưu text/File; gửi lại ra một comment (0.80875ms)
+✔ logout: chỉ còn tombstone; không cấp key mới, nhập lại đúng nội dung gửi bằng key cũ (0.892333ms)
+✔ comment chỉ có ảnh ready: selection đúng mọi upload active, receipt không nói “đã đọc” (3.69275ms)
+✔ 201 không giải mã được thì draft vẫn khóa; gửi lại đúng body cũ, không có entity thứ hai (0.50475ms)
+✔ lượt gửi đã submitted mà op cục bộ đã mất thì khóa, không mở lượt mới, không tạo bản trùng (0.867125ms)
+✔ nhập lại sau logout với file và consent selected-inputs gửi được bằng key cũ (2.553208ms)
+✔ op được panel khôi phục replay thì composer gửi lại đúng body, nhận lại receipt cũ (0.378584ms)
+✔ SELECTION_CHANGED khi gửi thì đọc lại compose, upload lạ trở thành file chặn/đúng selection (0.79825ms)
+✔ takeReceipt trả receipt đúng một lần (0.438333ms)
+✔ panel khôi phục replay sau khi composer dựng lại: gửi lại không kẹt, chuyển sang khóa có lối thoát (0.62375ms)
+✔ nhả trạng thái chưa xác nhận khi lượt gửi còn mở thì consent cũ không còn bị khóa (0.456333ms)
+✔ discard bị chặn khi đang gửi; kết quả về sau vẫn thuộc draft đang gửi (1.366ms)
+✔ discard bỏ lượt gửi còn mở và chỉ giữ khóa submit ở panel (1.4975ms)
+✖ 503 EXTRACTION_NOT_CONFIGURED khi gửi kèm tệp: giữ khóa, hiện lý do của máy chủ, gửi lại cùng key khi máy chủ sẵn sàng (2.366708ms)
+✖ lượt gửi hết hạn: SELECTION_CHANGED dẫn tới lượt mới, tệp được tải lại, chỉ một bình luận (229.568709ms)
+✔ selection chứa tệp máy chủ không còn: 404 NOT_FOUND, tệp bị đánh dấu thiếu và chặn gửi (1.102917ms)
+✖ 403 ORIGIN_INVALID: làm mới phiên một lần, vẫn lỗi thì tạm dừng và giữ khóa (0.554333ms)
+✔ 403 OWNER_REQUIRED trên lần gửi đầu: bị từ chối hẳn, form mở lại, không giữ khóa (0.143ms)
+✔ 401 SESSION_INVALID: phiên hết hạn, đăng nhập lại (200) rồi gửi lại cùng khóa (0.354541ms)
+✔ tên ảnh clipboard không tên/tên chung có giờ Asia/Ho_Chi_Minh và đuôi theo MIME (0.698667ms)
+✔ một luồng nhận file: paste giữ cả text và ảnh; input/drop dùng FileList (0.526417ms)
+✔ policy kiểm trước hash theo giá trị được công bố, không gắn cứng 25MiB (0.148958ms)
+✔ digestFile: SHA-256 đúng, từ chối vượt ngân sách trước khi đọc (2.841625ms)
+✔ worker hasher: mỗi lượt một file, abort dừng worker và bỏ listener, dispose dừng worker (4.57ms)
+✔ reserve tuần tự theo revision hiện hành rồi PUT cùng upload ID; hai ảnh paste đều ready (15.105084ms)
+✔ file lỗi chặn gửi dù có text; bỏ file lỗi cục bộ thì gửi được (0.617084ms)
+✔ file trùng hash+size bị đánh dấu để owner bỏ, không reserve thêm (2.28325ms)
+✔ bỏ file: DELETE với revision hiện hành, 409 thì đọc lại compose và gửi lại theo revision mới (1.524791ms)
+✔ mất phản hồi reserve sau commit: GET compose nhận lại upload, không tạo reservation thứ hai (3.183125ms)
+✔ reserve chưa tới server: GET chưa chứng minh được thì retry gửi lại đúng key/body cũ (1.995208ms)
+✔ PUT bận/receiving: chờ rồi gửi lại cùng bytes cùng ID, ready thắng (1.894125ms)
+✔ lỗi transport thật khi PUT: file chưa sẵn sàng thì không gửi; retry dùng lại reservation (2.55725ms)
+✔ đổi project: bỏ compose cũ rõ ràng rồi chuyển file sang compose mới (2.430625ms)
+✔ reload mất bytes: chọn lại phải đúng size+SHA trước khi gửi bytes (3.643291ms)
+✔ dispose dừng hasher và không còn listener (0.163708ms)
+✔ preview chỉ nhận PNG/JPEG theo magic bytes, không SVG/HTML/PDF (0.060042ms)
+✔ bytes preview phải khớp SHA/MIME của record, không tin tên tệp hay content-type (0.679709ms)
+✔ trạng thái trích xuất nêu phần thiếu theo trang/sheet/ô và không nói “đã đọc” (0.192458ms)
+✔ đổi project khi reserve chưa xác nhận: op cũ được giải quyết, file lên compose mới (2.754125ms)
+✔ PUT còn receiving sau vòng chờ, Thử lại tiếp tục chờ rồi gửi cùng bytes tới khi ready (2.109ms)
+✔ reload khi server receiving và không còn bytes: có Thử lại, không đứng ở Đang tải lên (0.859375ms)
+✔ PUT gặp 401 thì file unknown; đăng nhập lại rồi reconcile tải tiếp cùng upload (1.820042ms)
+✔ bỏ file khi DELETE chưa tới server: GET chứng minh chưa commit thì nhả key, DELETE lại theo revision mới (1.748542ms)
+✔ abandon gặp ATTACHMENT_SELECTION_STALE thì đọc lại revision rồi bỏ lượt gửi (1.842917ms)
+✔ paste chỉ chặn khi có file, chèn chữ tại con trỏ; paste thường giữ nguyên (0.105709ms)
+✔ nút Thử lại/Chọn lại/Bỏ theo trạng thái file (0.058583ms)
+✔ khóa form, consent đóng băng và state báo cho form (0.07775ms)
+✖ lượt gửi hết hạn khi đang giữ chỗ hoặc tải bytes: tệp chuyển sang lượt mới và sẵn sàng (229.536834ms)
+✖ PUT gặp ATTACHMENT_UPLOAD_EXPIRED: tệp chuyển sang lượt mới và tải lại (224.973041ms)
+✖ refs theo bình luận lấy từ projection máy chủ; refs còn lại là của ticket hoặc kế thừa (1.649ms)
+✔ dán ảnh kèm chữ: chặn mặc định, chèn chữ tại con trỏ và thêm tệp; dán chữ thường không bị chặn (47.490042ms)
+✔ kéo thả khi phiên hết hạn: không nhận tệp, ô nội dung chỉ đọc (32.873042ms)
+✔ consent và khóa form: chưa xác nhận thì nội dung chỉ đọc, consent đã đóng băng, nút gửi lại đúng yêu cầu cũ (20.375417ms)
+✔ receipt được giao một lần rồi bắt đầu bản nháp mới với consent tắt (16.968ms)
+✔ nút gửi theo nội dung; nhập lại sau logout có nút bỏ bản nháp kèm cảnh báo (13.835375ms)
+✖ máy chủ chưa sẵn sàng xử lý tệp: hiện lý do và nút gửi lại đúng yêu cầu cũ (10.658041ms)
+ℹ tests 63
+ℹ suites 0
+ℹ pass 56
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 810.77325
+
+✖ failing tests:
+
+test at test/compose-submit.test.ts:576:1
+✖ 503 EXTRACTION_NOT_CONFIGURED khi gửi kèm tệp: giữ khóa, hiện lý do của máy chủ, gửi lại cùng key khi máy chủ sẵn sàng (2.366708ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Chưa cấu hình xử lý tệp/. Input:
+  
+  ''
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose-submit.test.ts:586:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: /Chưa cấu hình xử lý tệp/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at test/compose-submit.test.ts:597:1
+✖ lượt gửi hết hạn: SELECTION_CHANGED dẫn tới lượt mới, tệp được tải lại, chỉ một bình luận (229.568709ms)
+  Error: TIMEOUT:moved
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:487:9)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose-submit.test.ts:608:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/compose-submit.test.ts:632:1
+✖ 403 ORIGIN_INVALID: làm mới phiên một lần, vẫn lỗi thì tạm dừng và giữ khóa (0.554333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'editing'
+  - 'suspended'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose-submit.test.ts:637:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'editing',
+    expected: 'suspended',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/compose.test.ts:742:1
+✖ lượt gửi hết hạn khi đang giữ chỗ hoặc tải bytes: tệp chuyển sang lượt mới và sẵn sàng (229.536834ms)
+  Error: TIMEOUT:moved
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:487:9)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose.test.ts:755:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/compose.test.ts:770:1
+✖ PUT gặp ATTACHMENT_UPLOAD_EXPIRED: tệp chuyển sang lượt mới và tải lại (224.973041ms)
+  Error: TIMEOUT:moved
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:487:9)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose.test.ts:781:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/compose.test.ts:787:1
+✖ refs theo bình luận lấy từ projection máy chủ; refs còn lại là của ticket hoặc kế thừa (1.649ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose.test.ts:805:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/composer-dom.test.ts:225:1
+✖ máy chủ chưa sẵn sàng xử lý tệp: hiện lý do và nút gửi lại đúng yêu cầu cũ (10.658041ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Chưa cấu hình xử lý tệp/. Input:
+  
+  'Chưa xác nhận kết quả. Gửi lại sẽ dùng đúng yêu cầu cũ.'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/composer-dom.test.ts:239:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Chưa xác nhận kết quả. Gửi lại sẽ dùng đúng yêu cầu cũ.',
+    expected: /Chưa cấu hình xử lý tệp/,
+    operator: 'match',
+    diff: 'simple'
+  }

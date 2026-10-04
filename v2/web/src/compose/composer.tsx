@@ -126,6 +126,13 @@ const messages: Record<string, string> = {
   UNCONFIRMED: 'Chưa xác nhận kết quả. Gửi lại sẽ dùng đúng yêu cầu cũ.',
   RESPONSE_SHAPE_INVALID: 'Máy chủ trả dữ liệu không đúng định dạng. Gửi lại sẽ nhận lại đúng kết quả cũ.',
   UPLOAD_RECEIVING: 'Máy chủ vẫn đang nhận tệp này từ lần gửi trước. Thử lại để kiểm tra lại.',
+  NOT_FOUND: 'Máy chủ không còn một tệp trong lượt gửi. Bỏ tệp bị thiếu rồi gửi lại.',
+  ORIGIN_INVALID:
+    'Máy chủ không nhận nguồn gửi của tab này. Yêu cầu vẫn giữ khóa cũ; tải lại trang rồi thử lại.',
+  OWNER_REQUIRED: 'Phiên hiện tại không phải chủ sở hữu nên không được gửi.',
+  COMPOSE_EXPIRED: 'Lượt gửi đã hết hạn; tệp được chuyển sang lượt gửi mới.',
+  ATTACHMENT_UPLOAD_EXPIRED: 'Lượt tải tệp đã hết hạn.',
+  ATTACHMENT_COMPOSE_CLOSED: 'Lượt gửi đã đóng.',
   SUBMIT_UNCONFIRMED: 'Chưa xác nhận lần gửi trước. Đang kiểm tra với máy chủ; nội dung vẫn khóa.',
   SUBMITTED_ELSEWHERE:
     'Lượt gửi này đã được máy chủ lưu nhưng tab này không còn kết quả. Xem ở danh sách; bỏ bản nháp nếu muốn soạn mới.',
@@ -293,6 +300,8 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
       void queryClient.invalidateQueries({ queryKey: queryRoots.ticket(ticketId) });
     }
     latest.current.onAccepted(receipt);
+    // Consent belongs to one intent: the next draft starts without it.
+    setAllowRead(false);
     controller.startNew();
   }, [pendingReceipt, controller, queryClient]);
 
@@ -434,7 +443,12 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
           nội dung ban đầu để gửi bằng khóa cũ; không tạo yêu cầu mới.
         </p>
       )}
-      {view?.errorCode && <p role="alert">{describe(view.errorCode)}</p>}
+      {view?.errorCode && (
+        <p role="alert">
+          {describe(view.errorCode)}
+          {view.errorMessage ? ` Máy chủ báo: ${view.errorMessage}.` : ''}
+        </p>
+      )}
       {notice && <p aria-live="polite">{notice}</p>}
       <div style={{ display: 'flex', gap: '0.75rem' }}>
         <button type="button" disabled={!view?.submittable || !authenticated} onClick={() => void submit()}>
@@ -450,7 +464,7 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
           </button>
         )}
         {locks.showDiscard && (
-          <button type="button" onClick={() => controller?.discard()}>
+          <button type="button" onClick={() => void controller?.discard()}>
             Bỏ bản nháp này
           </button>
         )}

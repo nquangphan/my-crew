@@ -359,9 +359,7 @@ test('comment chỉ có ảnh ready: selection đúng mọi upload active, recei
   assert.doesNotMatch(receiptSummary(receipt), /đã đọc|đã hiểu/i);
 });
 
-// ---- fix round 1 -----------------------------------------------------------------------------------------
-
-test('I1: 201 không giải mã được thì draft vẫn khóa; gửi lại đúng body cũ, không có entity thứ hai', async () => {
+test('201 không giải mã được thì draft vẫn khóa; gửi lại đúng body cũ, không có entity thứ hai', async () => {
   const server = new FakeComposeServer();
   const { controller } = await controllerFor(server, commentSubmission('nội dung gốc'));
   server.corruptNext = (call) => call.url.endsWith('/attachment-comments');
@@ -379,7 +377,7 @@ test('I1: 201 không giải mã được thì draft vẫn khóa; gửi lại đ�
   assert.equal(server.composes.size, 1);
 });
 
-test('I1: lượt gửi đã submitted mà op cục bộ đã mất thì khóa, không mở lượt mới, không tạo bản trùng', async () => {
+test('lượt gửi đã submitted mà op cục bộ đã mất thì khóa, không mở lượt mới, không tạo bản trùng', async () => {
   const server = new FakeComposeServer();
   const first = await controllerFor(server, commentSubmission('đã gửi ở panel'));
   server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
@@ -399,12 +397,12 @@ test('I1: lượt gửi đã submitted mà op cục bộ đã mất thì khóa, 
   assert.equal(server.comments.length, 1);
   assert.equal(server.composes.size, 1, 'không mở compose mới');
   assert.equal(reloaded.controller.view().discardable, true, 'owner có lối thoát rõ ràng');
-  reloaded.controller.discard();
+  await reloaded.controller.discard();
   assert.equal(reloaded.controller.view().draft.state, 'editing');
   assert.equal(reloaded.controller.view().draft.sessionId, null);
 });
 
-test('I2: nhập lại sau logout với file và consent selected-inputs gửi được bằng key cũ', async () => {
+test('nhập lại sau logout với file và consent selected-inputs gửi được bằng key cũ', async () => {
   const server = new FakeComposeServer();
   const env = await controllerFor(server, commentSubmission('kèm ảnh'));
   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
@@ -436,7 +434,7 @@ test('I2: nhập lại sau logout với file và consent selected-inputs gửi �
   assert.equal(server.comments.length, 1);
 });
 
-test('I5: op được panel khôi phục replay thì composer gửi lại đúng body, nhận lại receipt cũ', async () => {
+test('op được panel khôi phục replay thì composer gửi lại đúng body, nhận lại receipt cũ', async () => {
   const server = new FakeComposeServer();
   const env = await controllerFor(server, commentSubmission('panel'));
   server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
@@ -451,7 +449,7 @@ test('I5: op được panel khôi phục replay thì composer gửi lại đúng
   assert.equal(server.comments.length, 1);
 });
 
-test('I5: SELECTION_CHANGED khi gửi thì đọc lại compose, upload lạ trở thành file chặn/đúng selection', async () => {
+test('SELECTION_CHANGED khi gửi thì đọc lại compose, upload lạ trở thành file chặn/đúng selection', async () => {
   const server = new FakeComposeServer();
   const env = await controllerFor(server, commentSubmission('có chữ'));
   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
@@ -477,10 +475,207 @@ test('I5: SELECTION_CHANGED khi gửi thì đọc lại compose, upload lạ tr�
   assert.equal(receipt?.kind === 'comment' && receipt.attachmentIds.length, 2);
 });
 
-test('I5: takeReceipt trả receipt đúng một lần', async () => {
+test('takeReceipt trả receipt đúng một lần', async () => {
   const server = new FakeComposeServer();
   const env = await controllerFor(server, commentSubmission('một lần'));
   await env.controller.submit('none');
   assert.equal(env.controller.takeReceipt()?.kind, 'comment');
   assert.equal(env.controller.takeReceipt(), null);
+});
+
+test('panel khôi phục replay sau khi composer dựng lại: gửi lại không kẹt, chuyển sang khóa có lối thoát', async () => {
+  const server = new FakeComposeServer();
+  const first = await controllerFor(server, commentSubmission('dựng lại'));
+  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+  await first.controller.submit('none');
+  first.controller.dispose();
+  const reloaded = await controllerFor(server, commentSubmission(''), await harness(server, first.storage));
+  const operation = reloaded.controller.view().draft.submitOperation;
+  assert.ok(operation, 'op vẫn còn sau reload');
+  await reloaded.client.mutate(operation);
+  await reloaded.controller.submit('none');
+  await settle(() => reloaded.controller.view().errorCode === 'SUBMITTED_ELSEWHERE', 'resolved');
+  assert.equal(reloaded.controller.view().discardable, true);
+  const before = server.calls.length;
+  await reloaded.controller.submit('none');
+  assert.equal(
+    server.calls.slice(before).filter((call) => call.method === 'POST').length,
+    0,
+    'không gửi gì thêm',
+  );
+  assert.equal(server.comments.length, 1);
+});
+
+test('nhả trạng thái chưa xác nhận khi lượt gửi còn mở thì consent cũ không còn bị khóa', async () => {
+  const server = new FakeComposeServer();
+  const first = await controllerFor(server, commentSubmission('consent cũ'));
+  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
+  await first.controller.submit('selected-inputs');
+  const operation = first.controller.view().draft.submitOperation;
+  assert.ok(operation);
+  first.controller.dispose();
+  const env = await harness(server, first.storage);
+  env.pending.reject(operation.id);
+  const reloaded = await controllerFor(server, commentSubmission('consent cũ'), env);
+  assert.equal(reloaded.controller.view().assistantRead, 'selected-inputs');
+  await reloaded.controller.reconcile();
+  assert.equal(reloaded.controller.view().draft.state, 'editing');
+  assert.equal(reloaded.controller.view().assistantRead, null);
+  await reloaded.controller.submit('none');
+  const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+  assert.equal(JSON.parse(posts.at(-1)?.body ?? '{}').assistantRead, 'none');
+});
+
+test('discard bị chặn khi đang gửi; kết quả về sau vẫn thuộc draft đang gửi', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('đang gửi'));
+  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+  await env.controller.submit('none');
+  env.pending.tombstoneAll();
+  env.controller.dispose();
+  const after = await controllerFor(
+    server,
+    commentSubmission('đang gửi'),
+    await harness(server, env.storage),
+  );
+  await after.controller.reconcile();
+  server.hold = (call) => call.url.endsWith('/attachment-comments');
+  const sending = after.controller.submit('none');
+  await settle(() => after.controller.view().draft.state === 'sending', 'sending');
+  assert.equal(after.controller.view().discardable, false);
+  await after.controller.discard();
+  assert.equal(after.controller.view().draft.state, 'sending');
+  server.hold = null;
+  server.release();
+  const receipt = await sending;
+  assert.equal(receipt?.kind, 'comment');
+  assert.equal(after.controller.view().draft.state, 'accepted');
+});
+
+test('discard bỏ lượt gửi còn mở và chỉ giữ khóa submit ở panel', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('bỏ'));
+  await env.controller.addFiles([pngFile('a.png', 3)], 'input');
+  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
+  await env.controller.submit('none');
+  const key = env.controller.view().draft.submitOperation?.id;
+  const sessionId = env.controller.view().draft.sessionId ?? '';
+  env.pending.tombstoneAll();
+  env.controller.dispose();
+  const after = await controllerFor(server, commentSubmission(''), await harness(server, env.storage));
+  await after.controller.reconcile();
+  assert.equal(after.controller.view().discardable, true);
+  await after.controller.discard();
+  assert.equal(server.composes.get(sessionId)?.state, 'abandoned', 'lượt gửi cũ được bỏ trên server');
+  assert.equal(after.controller.view().draft.sessionId, null);
+  assert.deepEqual(
+    after.pending.tombstones().map((tombstone) => tombstone.id),
+    [key],
+    'chỉ khóa submit còn ở panel',
+  );
+  assert.equal(after.pending.list().length, 0);
+});
+
+test('503 EXTRACTION_NOT_CONFIGURED khi gửi kèm tệp: giữ khóa, hiện lý do của máy chủ, gửi lại cùng key khi máy chủ sẵn sàng', async () => {
+  const server = new FakeComposeServer();
+  server.extractionConfigured = false;
+  const env = await controllerFor(server, commentSubmission('kèm tệp'));
+  await env.controller.addFiles([pngFile('a.png', 7)], 'input');
+  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+  assert.equal(await env.controller.submit('none'), null);
+  const view = env.controller.view();
+  assert.equal(view.draft.state, 'ambiguous');
+  assert.equal(view.errorCode, 'UNCONFIRMED');
+  assert.match(view.errorMessage ?? '', /Chưa cấu hình xử lý tệp/);
+  const key = view.draft.submitOperation?.id;
+  assert.ok(key && env.pending.get(key), 'khóa không bị nhả');
+  server.extractionConfigured = true;
+  const receipt = await env.controller.submit('none');
+  assert.equal(receipt?.kind, 'comment');
+  const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+  assert.ok(posts.every((call) => call.headers.get('idempotency-key') === key));
+  assert.equal(env.controller.view().errorMessage, null);
+});
+
+test('lượt gửi hết hạn: SELECTION_CHANGED dẫn tới lượt mới, tệp được tải lại, chỉ một bình luận', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('hết hạn'));
+  await env.controller.addFiles([pngFile('a.png', 8)], 'input');
+  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+  const first = env.controller.view().draft.sessionId ?? '';
+  const compose = server.composes.get(first);
+  assert.ok(compose);
+  compose.expired = true;
+  assert.equal(await env.controller.submit('none'), null);
+  assert.equal(env.controller.view().errorCode, 'COMPOSE_EXPIRED', 'báo hết hạn thay vì lỗi lựa chọn chung');
+  await settle(
+    () =>
+      env.controller.view().draft.sessionId !== first &&
+      env.controller.view().draft.files[0]?.state === 'ready',
+    'moved',
+  );
+  assert.equal(env.controller.view().draft.state, 'editing');
+  const receipt = await env.controller.submit('none');
+  assert.equal(receipt?.kind, 'comment');
+  assert.equal(server.comments.length, 1);
+});
+
+test('selection chứa tệp máy chủ không còn: 404 NOT_FOUND, tệp bị đánh dấu thiếu và chặn gửi', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('mất tệp'));
+  await env.controller.addFiles([pngFile('a.png', 9)], 'input');
+  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+  server.uploads.delete(env.controller.view().draft.files[0]?.uploadId ?? '');
+  assert.equal(await env.controller.submit('none'), null);
+  assert.equal(env.controller.view().errorCode, 'NOT_FOUND');
+  await settle(() => env.controller.view().draft.files[0]?.errorCode === 'ATTACHMENT_MISSING', 'missing');
+  assert.equal(env.controller.view().submittable, false);
+});
+
+test('403 ORIGIN_INVALID: làm mới phiên một lần, vẫn lỗi thì giữ khóa ở trạng thái tạm dừng và gửi lại cùng khóa', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('origin'));
+  server.originInvalid = true;
+  await env.controller.submit('none');
+  assert.equal(env.controller.view().errorCode, 'ORIGIN_INVALID');
+  assert.equal(env.controller.view().draft.state, 'editing', 'chưa gửi submit nào');
+  const kept = env.pending.list();
+  assert.equal(kept.length, 1);
+  assert.equal(kept[0]?.state, 'suspended');
+  assert.equal(
+    server.calls.filter((call) => call.method === 'GET' && call.url === '/v2/auth/session').length,
+    2,
+    'làm mới phiên đúng một lần',
+  );
+  server.originInvalid = false;
+  assert.equal((await env.controller.submit('none'))?.kind, 'comment');
+  const opens = server.calls.filter((call) => call.url === '/v2/attachment-compose');
+  assert.ok(opens.every((call) => call.headers.get('idempotency-key') === kept[0]?.id));
+  assert.equal(server.composes.size, 1);
+});
+
+test('403 OWNER_REQUIRED trên lần gửi đầu: bị từ chối hẳn, form mở lại, không giữ khóa', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('owner'));
+  server.ownerRequired = true;
+  await env.controller.submit('none');
+  assert.equal(env.controller.view().errorCode, 'OWNER_REQUIRED');
+  assert.equal(env.controller.view().draft.state, 'editing');
+  assert.equal(env.pending.list().length, 0);
+});
+
+test('401 SESSION_INVALID: phiên hết hạn, đăng nhập lại (200) rồi gửi lại cùng khóa', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('phiên'));
+  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+  await env.controller.submit('none');
+  server.sessionInvalid = true;
+  await env.controller.submit('none');
+  assert.equal(env.session.snapshot().state, 'expired');
+  assert.equal(env.controller.view().draft.state, 'suspended');
+  server.sessionInvalid = false;
+  assert.equal(await env.session.login('mat-khau'), true);
+  assert.equal((await env.controller.submit('none'))?.kind, 'comment');
+  assert.equal(server.comments.length, 1);
 });

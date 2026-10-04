@@ -310,3 +310,46 @@ export function summarizeExtraction(extraction: Extraction): CoverageSummary {
     ),
   };
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// Comment-scoped refs (G2 projection)
+
+export const decodeCommentAttachmentGroup = obj({
+  commentId: uuid,
+  attachments: arr(decodeTicketAttachment),
+});
+export type CommentAttachmentGroup = Infer<typeof decodeCommentAttachmentGroup>;
+const decodeCommentAttachmentPage = page(decodeCommentAttachmentGroup);
+
+/**
+ * GET `/v2/tickets/:id/attachments/by-comment` (`attachments/comment-refs.ts`): comment-scoped live refs,
+ * keyset-paged by commentId. Inherited and route links never appear here, only in the flattened list.
+ */
+export function commentAttachmentsQuery(client: OwnerClient, ticketId: string) {
+  return {
+    queryKey: [...attachmentQueryKeys.ticket(ticketId), 'by-comment'] as const,
+    queryFn: ({ signal }: { signal?: AbortSignal }): Promise<CommentAttachmentGroup[]> =>
+      allPages(
+        client,
+        `/v2/tickets/${encodeURIComponent(ticketId)}/attachments/by-comment`,
+        decodeCommentAttachmentPage,
+        signal,
+      ),
+    retry: false,
+  };
+}
+
+/**
+ * Splits the flattened ticket list into the producer's comment groups and the remaining refs (the ticket's
+ * own files or ones inherited from ancestors). Grouping uses only the projection's linkIds.
+ */
+export function groupTicketAttachments(
+  flat: readonly TicketAttachment[],
+  groups: readonly CommentAttachmentGroup[],
+): { comments: CommentAttachmentGroup[]; other: TicketAttachment[] } {
+  const grouped = new Set(groups.flatMap((group) => group.attachments.map((ref) => ref.linkId)));
+  return {
+    comments: groups.filter((group) => group.attachments.length > 0),
+    other: flat.filter((ref) => !grouped.has(ref.linkId)),
+  };
+}

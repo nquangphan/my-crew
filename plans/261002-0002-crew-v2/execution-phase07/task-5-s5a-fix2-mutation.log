@@ -1,0 +1,8 @@
+control [test/composer-dom.test.ts] -> [('pass', '6'), ('fail', '0')]
+paste-no-preventDefault [test/composer-dom.test.ts] -> [('pass', '5'), ('fail', '1')]
+dragover-ignores-lock [test/composer-dom.test.ts] -> [('pass', '5'), ('fail', '1')]
+textarea-never-readonly [test/composer-dom.test.ts] -> [('pass', '4'), ('fail', '2')]
+consent-never-disabled [test/composer-dom.test.ts] -> [('pass', '5'), ('fail', '1')]
+discard-button-hidden [test/composer-dom.test.ts] -> [('pass', '5'), ('fail', '1')]
+no-server-message [test/composer-dom.test.ts] -> [('pass', '5'), ('fail', '1')]
+not-found-no-refresh [test/compose-submit.test.ts] -> [('pass', '25'), ('fail', '1')]

@@ -91,3 +91,45 @@ Telemetry khi lấy slot: RED 5,238 GiB / pressure 1 / CPU idle 84,36% / đĩa 7
 - `discard()` để owner bỏ bản nháp đang khóa: khóa cũ vẫn nằm trong `PendingStore`/panel; gửi nội dung mới sau đó có thể tạo thêm mục nếu yêu cầu cũ đã được lưu. Ledger ghi việc “bỏ request ambiguous” là quyết định UX của owner. Hiện composer chỉ cho bỏ ở trạng thái re-entry hoặc `SUBMITTED_ELSEWHERE`/`SUBMIT_UNCONFIRMED`, kèm cảnh báo; cần owner chốt.
 - Tải lại trang sau khi 201 không giải mã được thì body đóng băng (chỉ nằm trong bộ nhớ) không còn. Draft bị khóa `SUBMITTED_ELSEWHERE` và receipt chỉ xem được ở danh sách.
 - Các Minor M1–M4, M6, M7 chưa sửa (M7 đã sửa tham chiếu dòng trong docs).
+
+## 9. Vòng sửa 2 (re-review `task-5-s5a-fix1-re-review.md`: N1–N5, I5 DOM; khớp hợp đồng G2 theo `producer-g2-review.md`)
+
+**Owner đã quyết:** giữ `discard()` kèm cảnh báo có thể tạo bản trùng; thêm devDependency chỉ dùng cho test. Controller ủy quyền tôi sửa `v2/web/package.json` và lock.
+
+**Dependency (pin chính xác, `pnpm add -D --save-exact --ignore-workspace` trong `v2/web`):** `jsdom` **30.1.1**, `@testing-library/react` **16.3.3**. Peer bắt buộc `@testing-library/dom` **10.4.2** được pnpm tự cài, chỉ nằm trong `pnpm-lock.yaml`, không có trong `package.json`. `package.json` chỉ đổi đúng hai dòng (thứ tự cũ giữ nguyên); `pnpm install --frozen-lockfile` trả “Already up to date”. Không thêm `@types/jsdom`: kiểu tối thiểu nằm ở `test/support/jsdom.d.ts`. Cấu hình test: `test/support/dom.ts` dựng jsdom thành global và trả hàm đóng cửa sổ; `test/support/tsx-loader.ts` là module hook nạp `.tsx` bằng `transformWithOxc` của Vite. Repo đã có tiền lệ nạp JSX qua Vite SSR trong `app-wiring.test.ts`. Script `test` không đổi.
+
+| Mục | Test | RED trước khi sửa | Sửa |
+|---|---|---|---|
+| N1 | “panel khôi phục replay sau khi composer dựng lại…” | fail (`fix2-red.log`) | “Ours” xác định bằng `pending.get(id)` (`#ownsSubmit`). Controller subscribe `PendingStore`: khóa biến mất mà không có body thì vào `SUBMIT_UNCONFIRMED` rồi GET compose. Bấm gửi lúc đó chỉ chờ GET, không gửi gì. Op bị tombstone ngoài tầm controller thì chuyển sang `suspended` |
+| N2 | “nhả trạng thái chưa xác nhận… consent cũ không còn bị khóa” | fail | `#unlockUnconfirmed` xóa `#assistantRead`/`#lastSubmitId`/`#frozen` ở cả hai chỗ mở khóa |
+| N3 | “discard bị chặn khi đang gửi…” | fail | `discard` return khi `sending`; `discardable`/`showDiscard` loại `sending`. Bộ đếm `#generation`: kết quả về sau của draft đã bỏ không được gắn vào draft mới |
+| N4 | “discard bỏ lượt gửi còn mở và chỉ giữ khóa submit ở panel” | fail | `discard` abandon compose cũ (DELETE; nếu đã `submitted` thì đọc lại rồi dừng) và nhả khóa reserve/remove của lượt đó. Khóa submit giữ nguyên, đúng cảnh báo. Ghi chú: ở trạng thái được phép discard (re-entry hoặc khóa), tệp đã khóa nên thường không còn reserve/remove treo; phần dọn khóa là phòng thủ |
+| N5 | Bỏ tiền tố `I1:`…`I5 composer:` khỏi tên test | — | Đổi sang mô tả hành vi |
+| I5 DOM | `test/composer-dom.test.ts` (6 test, jsdom + RTL, component thật qua provider thật, producer giả) | “receipt… consent tắt” fail thật: consent của ý định cũ mang sang ý định mới. Năm test nối dây PASS ngay, nên mỗi điểm nối được chứng minh bằng đột biến (`fix2-mutation.log`): bỏ `preventDefault` khi paste, dragOver bỏ qua khóa, textarea không bao giờ `readOnly`, consent không bao giờ `disabled`, ẩn nút bỏ bản nháp, bỏ lý do máy chủ. Mỗi đột biến làm đúng test đó fail; control 6/6 | Reset consent khi giao receipt |
+
+**Khớp hợp đồng G2 (server là chuẩn), RED → GREEN (`fix2-g2-red.log`: 7 fail):**
+1. Thêm by-comment vào fake, cùng `commentAttachmentsQuery` + `groupTicketAttachments` (decoder `{items:[{commentId,attachments}],nextCursor}`). `TicketAttachments` hiện nhóm theo bình luận, phần còn lại là “Tệp của ticket và tệp kế thừa”.
+2. 503 `EXTRACTION_NOT_CONFIGURED`: Task2 đổi code thành `UNCONFIRMED` và giữ khóa. View thêm `errorMessage` (message của 5xx), composer hiện “Máy chủ báo: Chưa cấu hình xử lý tệp”; retry dùng cùng key. Có test controller và test DOM.
+3. Id lạ trong selection: fake trả 404 `NOT_FOUND` theo đúng thứ tự kiểm của `submissions.ts`. Composer đọc lại compose và đánh dấu `ATTACHMENT_MISSING` (đột biến bỏ refresh cho NOT_FOUND làm test fail).
+4. 403 `ORIGIN_INVALID` (làm mới phiên một lần, giữ khóa `suspended`, retry cùng key) và `OWNER_REQUIRED` (lần gửi đầu bị từ chối hẳn). Test ORIGIN ban đầu viết sai kỳ vọng, vì lỗi xảy ra ở bước mở compose chứ không phải submit; đã sửa để assert đúng hành vi giữ và tái dùng khóa.
+5. Login trả 200.
+6. Hết hạn: `SELECTION_CHANGED` khi compose hết hạn, `ATTACHMENT_COMPOSE_CLOSED` khi giữ chỗ và `ATTACHMENT_UPLOAD_EXPIRED` khi PUT. Ba test RED (`TIMEOUT:moved`). Sửa: `#refresh` coi compose `open` có `expiresAt` đã qua là đóng: nhả khóa submit chưa giải quyết (lượt mở đã hết hạn thì không thể commit) rồi chuyển tệp sang lượt mới. `#reserve` gặp `ATTACHMENT_COMPOSE_CLOSED` thì GET compose; `#upload` dừng khi tệp đã được chuyển đi. Mã lỗi hiển thị là `COMPOSE_EXPIRED`.
+7. 401 `SESSION_INVALID`: phiên hết hạn, đăng nhập lại (200) rồi gửi lại cùng khóa.
+
+**E2E `compose.spec.ts`: BLOCKED.** `web/scripts/e2e-fixture.ts:551` gọi `buildApp` không kèm `attachments`. Không sửa harness thì API của fixture không có route attachment, nên kể cả đường text-only cũng không chạy được. Handoff cho controller: fixture cần truyền `AttachmentAssembly` (`storageRoot`/`storageHostId`; trên macOS cần cả cổng `receivers`, vì mặc định đòi native Linux closed-ACK). Đường có tệp còn cần extractor đã được chứng nhận.
+
+| Lệnh (sole heavy slot, heap 384 MiB, watchdog Python) | Kết quả | Log, SHA-256 |
+|---|---|---|
+| RED N1–N4 + DOM (3 file) | 5 test fail theo assertion. Process DOM không tự exit (timer gc của React Query, cửa sổ jsdom còn mở) nên watchdog dừng ở 300 giây, log không có dòng tổng; đã sửa bằng `after(closeDom)` + `gcTime` vô hạn. Kiểm `ps`: không còn process `node --test` | `task-5-s5a-fix2-red.log` `40a575a487339662a1e9d609b638cf02cf61f07a983d21a1b35fb5a12369b7cb` |
+| Sau sửa N (trung gian) | 51/53: còn 2 lỗi trong test (thiếu `await discard()`, chờ sai điều kiện), đã sửa | `task-5-s5a-fix2-green-n.log` `0a2b00d1ce016b398cbd78d1a08e6aec7c9d334b14a9cf63bd04c97d5f3cb606` |
+| RED G2 | 63 test, 7 fail | `task-5-s5a-fix2-g2-red.log` `b0c84508c3301d2c8247be7a40a1775f716965c46a69b881498186b9d50c354e` |
+| GREEN (trước format) | 63/63 | `task-5-s5a-fix2-green.log` `655604db05599cc77ab33ca9035837ff0b9089e490d584730c0e8773e55181a7` |
+| Đột biến nối dây DOM + NOT_FOUND | control 6/6; 7 đột biến đều bị bắt | `task-5-s5a-fix2-mutation.log` `2e9c52a60342a2dc64718bcae6a717a57cf4746676176269ff5ded7853eed7dc` |
+| `biome check` 15 file (gồm `package.json`) | exit 0 | `task-5-s5a-fix2-biome.log` `21d462a13fb241168cefa03678f4c5d4cc99c5aba7ff821f96ed7931261108c2` |
+| `tsc --noEmit && vite build` | exit 0 | `task-5-s5a-fix2-build.log` `0b7ca9020da47675b38f806c4adcc31e209d0ae0a64340382ff2b459fc93da80` |
+| Focused sau format | 63/63 | `task-5-s5a-fix2-green-final.log` `af2eb8dad4593053d2720f3024fb41836ed8795ff506ba27bc96d736b7653b07` |
+| Web unit không DB (compose ×3 + client/events/auth-recovery) | 102/102 | `task-5-s5a-fix2-unit-full.log` `5c0e4ab13582bacd0c8d4350ab1ee2f67a75d6d5497b30f2e11673572ff04d76` |
+
+Telemetry khi lấy slot: 4,535 GiB / pressure 1 / CPU idle 82,16% / đĩa 751 GiB. Slot đã trả. Manifest lock giữ từ lúc đọc HEAD `31ced2b` tới khi commit, chỉ thêm hunk của tôi (4 file test vào flow `web-attachments`, cùng 4 dòng generated trong `files.md`). Docs: `web-attachments.md` cập nhật; `web-shell.md` thêm devDependency ở hàng `package.json` (R3).
+
+**Còn lại:** M1–M4 (M3 một phần, nhờ subscribe `PendingStore`), M6 chưa sửa; A5 blocked như trên.

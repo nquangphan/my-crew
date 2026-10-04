@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import {
+  commentAttachmentsQuery,
   describeLocator,
   type Extraction,
   fetchVerifiedBytes,
+  groupTicketAttachments,
   sniffRaster,
   summarizeExtraction,
 } from '../src/attachments/queries.ts';
@@ -521,9 +523,7 @@ test('trạng thái trích xuất nêu phần thiếu theo trang/sheet/ô và kh
   assert.equal(describeLocator({ kind: 'unknown' }), 'Vị trí không xác định');
 });
 
-// ---- fix round 1 -----------------------------------------------------------------------------------------
-
-test('I3: đổi project khi reserve chưa xác nhận: op cũ được giải quyết, file lên compose mới', async () => {
+test('đổi project khi reserve chưa xác nhận: op cũ được giải quyết, file lên compose mới', async () => {
   const env = await setup(ticketSubmission());
   env.server.failBefore = (call) => call.method === 'POST' && call.url.endsWith('/uploads');
   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
@@ -545,7 +545,7 @@ test('I3: đổi project khi reserve chưa xác nhận: op cũ được giải q
   );
 });
 
-test('I4: PUT còn receiving sau vòng chờ, Thử lại tiếp tục chờ rồi gửi cùng bytes tới khi ready', async () => {
+test('PUT còn receiving sau vòng chờ, Thử lại tiếp tục chờ rồi gửi cùng bytes tới khi ready', async () => {
   const env = await setup(commentSubmission(''));
   env.server.busyPuts = 6;
   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
@@ -557,7 +557,7 @@ test('I4: PUT còn receiving sau vòng chờ, Thử lại tiếp tục chờ r�
   assert.equal(new Set(puts.map((call) => call.url)).size, 1);
 });
 
-test('I4: reload khi server receiving và không còn bytes: có Thử lại, không đứng ở Đang tải lên', async () => {
+test('reload khi server receiving và không còn bytes: có Thử lại, không đứng ở Đang tải lên', async () => {
   const server = new FakeComposeServer();
   server.busyPuts = 50;
   const first = await setup(commentSubmission(''), server);
@@ -587,7 +587,7 @@ test('I4: reload khi server receiving và không còn bytes: có Thử lại, kh
   assert.equal(controller.view().draft.files[0]?.state, 'ready');
 });
 
-test('I5: PUT gặp 401 thì file unknown; đăng nhập lại rồi reconcile tải tiếp cùng upload', async () => {
+test('PUT gặp 401 thì file unknown; đăng nhập lại rồi reconcile tải tiếp cùng upload', async () => {
   const env = await setup(commentSubmission(''));
   env.server.failBefore = null;
   const original = env.server.fetch;
@@ -622,7 +622,7 @@ test('I5: PUT gặp 401 thì file unknown; đăng nhập lại rồi reconcile t
   assert.equal(env.server.uploads.size, 1);
 });
 
-test('I5: bỏ file khi DELETE chưa tới server: GET chứng minh chưa commit thì nhả key, DELETE lại theo revision mới', async () => {
+test('bỏ file khi DELETE chưa tới server: GET chứng minh chưa commit thì nhả key, DELETE lại theo revision mới', async () => {
   const env = await setup(commentSubmission(''));
   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
   await settle(() => env.files()[0]?.state === 'ready', 'ready');
@@ -640,7 +640,7 @@ test('I5: bỏ file khi DELETE chưa tới server: GET chứng minh chưa commit
   assert.notEqual(deletes[0]?.headers.get('idempotency-key'), deletes.at(-1)?.headers.get('idempotency-key'));
 });
 
-test('I5: abandon gặp ATTACHMENT_SELECTION_STALE thì đọc lại revision rồi bỏ lượt gửi', async () => {
+test('abandon gặp ATTACHMENT_SELECTION_STALE thì đọc lại revision rồi bỏ lượt gửi', async () => {
   const env = await setup(commentSubmission(''));
   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
   await settle(() => env.files()[0]?.state === 'ready', 'ready');
@@ -658,7 +658,7 @@ test('I5: abandon gặp ATTACHMENT_SELECTION_STALE thì đọc lại revision r�
   assert.equal(env.files().length, 0);
 });
 
-test('I5 composer: paste chỉ chặn khi có file, chèn chữ tại con trỏ; paste thường giữ nguyên', () => {
+test('paste chỉ chặn khi có file, chèn chữ tại con trỏ; paste thường giữ nguyên', () => {
   const image = pngFile('image.png', 1);
   assert.deepEqual(
     pasteDecision({ files: [], text: 'chữ', value: 'ab', start: 1, end: 1, filesLocked: false }),
@@ -678,7 +678,7 @@ test('I5 composer: paste chỉ chặn khi có file, chèn chữ tại con trỏ;
   );
 });
 
-test('I5 composer: nút Thử lại/Chọn lại/Bỏ theo trạng thái file', () => {
+test('nút Thử lại/Chọn lại/Bỏ theo trạng thái file', () => {
   const base = { localId: 'l', name: 'a.png', size: 1, sha256: null, uploadId: null, errorCode: null };
   const open = { hasBytes: true, active: false, locked: false };
   assert.equal(fileActions({ ...base, state: 'unknown' }, open).retry, true);
@@ -703,7 +703,7 @@ test('I5 composer: nút Thử lại/Chọn lại/Bỏ theo trạng thái file', 
   });
 });
 
-test('I5 composer: khóa form, consent đóng băng và state báo cho form', () => {
+test('khóa form, consent đóng băng và state báo cho form', () => {
   const view = {
     state: 'editing' as const,
     needsPayload: false,
@@ -737,4 +737,84 @@ test('I5 composer: khóa form, consent đóng băng và state báo cho form', ()
   const guest = composeLocks(view, { ...ctx, authenticated: false });
   assert.equal(guest.textLocked, true);
   assert.equal(guest.filesLocked, true);
+});
+
+test('lượt gửi hết hạn khi đang giữ chỗ hoặc tải bytes: tệp chuyển sang lượt mới và sẵn sàng', async () => {
+  const env = await setup(commentSubmission(''));
+  await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+  await settle(() => env.files()[0]?.state === 'ready', 'ready');
+  const first = env.controller.view().draft.sessionId ?? '';
+  const compose = env.server.composes.get(first);
+  assert.ok(compose);
+  compose.expired = true;
+  env.server.hold = (call) => call.method === 'PUT';
+  await env.controller.addFiles([pngFile('b.png', 2)], 'input');
+  await settle(
+    () => env.server.calls.some((call) => call.url.endsWith('/uploads') && call.method === 'POST'),
+    'reserve',
+  );
+  env.server.hold = null;
+  env.server.release();
+  await settle(
+    () =>
+      env.controller.view().draft.sessionId !== first &&
+      env.files().length === 2 &&
+      env.files().every((file) => file.state === 'ready'),
+    'moved',
+  );
+  assert.ok(
+    env.server.calls.some(
+      (call) => call.url.includes(first) && call.method === 'POST' && call.url.endsWith('/uploads'),
+    ),
+    'đã gặp ATTACHMENT_COMPOSE_CLOSED ở lượt cũ',
+  );
+});
+
+test('PUT gặp ATTACHMENT_UPLOAD_EXPIRED: tệp chuyển sang lượt mới và tải lại', async () => {
+  const env = await setup(commentSubmission(''));
+  env.server.hold = (call) => call.method === 'PUT';
+  await env.controller.addFiles([pngFile('a.png', 3)], 'input');
+  await settle(() => env.server.calls.some((call) => call.method === 'PUT'), 'put');
+  const first = env.controller.view().draft.sessionId ?? '';
+  const compose = env.server.composes.get(first);
+  assert.ok(compose);
+  compose.expired = true;
+  env.server.hold = null;
+  env.server.release();
+  await settle(
+    () => env.controller.view().draft.sessionId !== first && env.files()[0]?.state === 'ready',
+    'moved',
+  );
+});
+
+test('refs theo bình luận lấy từ projection máy chủ; refs còn lại là của ticket hoặc kế thừa', async () => {
+  const server = new FakeComposeServer();
+  const env = await harness(server);
+  const controller = new ComposeController({
+    draftKey: 'draft-groups',
+    submission: commentSubmission(''),
+    client: env.client,
+    pending: env.pending,
+    storage: env.storage,
+    hasher: inlineHasher().hasher,
+    loadPolicy: (signal) => env.client.get('/v2/attachment-policy', { signal }),
+    sleep: async () => undefined,
+  });
+  await controller.addFiles([pngFile('a.png', 4)], 'input');
+  await settle(() => controller.view().draft.files[0]?.state === 'ready', 'ready');
+  const receipt = await controller.submit('none');
+  assert.equal(receipt?.kind, 'comment');
+  const groups = await commentAttachmentsQuery(env.client, ticketId).queryFn({});
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0]?.commentId, receipt?.kind === 'comment' ? receipt.comment.id : '');
+  const commentRef = groups[0]?.attachments[0];
+  assert.ok(commentRef);
+  const inherited = {
+    ...commentRef,
+    linkId: 'cccccccc-dddd-4eee-8fff-000000000001',
+    attachmentId: 'cccccccc-dddd-4eee-8fff-000000000002',
+  };
+  const grouped = groupTicketAttachments([inherited, commentRef], groups);
+  assert.deepEqual(grouped.comments, groups);
+  assert.deepEqual(grouped.other, [inherited]);
 });

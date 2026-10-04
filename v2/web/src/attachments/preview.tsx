@@ -10,8 +10,10 @@ import { useEffect, useState } from 'react';
 import type { OwnerClient } from '../lib/api.ts';
 import type { ByteFetch, Extraction, TicketAttachment } from './queries.ts';
 import {
+  commentAttachmentsQuery,
   extractionsQuery,
   fetchVerifiedBytes,
+  groupTicketAttachments,
   sniffRaster,
   summarizeExtraction,
   textPreviewMaxChars,
@@ -254,26 +256,41 @@ export function TicketAttachments({
   onUnauthorized?: () => void;
 }) {
   const query = useQuery(ticketAttachmentsQuery(client, ticketId));
-  if (query.isPending) return <p aria-live="polite">Đang tải tệp đính kèm…</p>;
+  const byComment = useQuery(commentAttachmentsQuery(client, ticketId));
+  if (query.isPending || byComment.isPending) return <p aria-live="polite">Đang tải tệp đính kèm…</p>;
   if (query.isError) return <p role="status">Không đọc được danh sách tệp đính kèm.</p>;
   if (query.data.length === 0) return <p>Ticket chưa có tệp đính kèm.</p>;
+  const groups = byComment.isError
+    ? { comments: [], other: query.data }
+    : groupTicketAttachments(query.data, byComment.data);
+  const row = (item: TicketAttachment) => (
+    <AttachmentRow
+      key={item.linkId}
+      item={item}
+      client={client}
+      fetch={fetch}
+      onUnauthorized={onUnauthorized}
+    />
+  );
+  const list = { display: 'grid', gap: '0.5rem', paddingLeft: '1.25rem' } as const;
   return (
     <section aria-label="Tệp đính kèm" style={{ display: 'grid', gap: '0.5rem' }}>
-      <p>
-        Danh sách gồm cả tệp kế thừa từ ticket cha. Nhóm theo bình luận và nhãn nguồn request/step/bình luận
-        sẽ có khi máy chủ cung cấp dữ liệu nguồn.
-      </p>
-      <ul style={{ display: 'grid', gap: '0.5rem', paddingLeft: '1.25rem' }}>
-        {query.data.map((item) => (
-          <AttachmentRow
-            key={item.linkId}
-            item={item}
-            client={client}
-            fetch={fetch}
-            onUnauthorized={onUnauthorized}
-          />
-        ))}
-      </ul>
+      {byComment.isError && (
+        <p role="status">Chưa đọc được nhóm tệp theo bình luận; đang hiện danh sách chung.</p>
+      )}
+      {groups.comments.map((group) => (
+        <section key={group.commentId} aria-label="Tệp của bình luận" data-comment-id={group.commentId}>
+          <h4 style={{ margin: 0 }}>Tệp của bình luận</h4>
+          <ul style={list}>{group.attachments.map(row)}</ul>
+        </section>
+      ))}
+      {groups.other.length > 0 && (
+        <section aria-label="Tệp của ticket và tệp kế thừa">
+          <h4 style={{ margin: 0 }}>Tệp của ticket và tệp kế thừa</h4>
+          <p style={{ margin: 0 }}>Nhãn nguồn request/step cho tệp kế thừa sẽ có khi máy chủ cung cấp.</p>
+          <ul style={list}>{groups.other.map(row)}</ul>
+        </section>
+      )}
     </section>
   );
 }

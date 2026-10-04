@@ -550,5 +550,9 @@ flows:
       - web/test/compose.test.ts
       - web/test/compose-submit.test.ts
       - web/test/support/compose-server.ts
+      - web/test/composer-dom.test.ts
+      - web/test/support/dom.ts
+      - web/test/support/tsx-loader.ts
+      - web/test/support/jsdom.d.ts
 shared: {}
 unassigned: []

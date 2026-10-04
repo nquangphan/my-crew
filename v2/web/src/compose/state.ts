@@ -671,7 +671,7 @@ export function composeLocks(
     consentLocked: filesLocked || view.assistantRead !== null,
     consent: view.assistantRead !== null ? view.assistantRead === 'selected-inputs' : context.localConsent,
     reportedState: view.needsPayload ? 'editing' : view.state,
-    showDiscard: view.discardable,
+    showDiscard: view.discardable && view.state !== 'sending',
     showAbandon: view.state === 'editing' && !view.needsPayload && view.hasDraft,
   };
 }

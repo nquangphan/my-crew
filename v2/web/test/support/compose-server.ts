@@ -31,6 +31,8 @@ type Compose = {
   conversationId?: string;
   revision: number;
   state: 'open' | 'submitted' | 'abandoned';
+  /** Past `expiresAt`: the server rejects reserve, PUT and submission (`staging.ts:341,391`, `submissions.ts:133`). */
+  expired?: boolean;
 };
 export type Call = { method: string; url: string; headers: Headers; body: string | null };
 type Reply = { status: number; body: unknown };
@@ -98,8 +100,8 @@ function sha(bytes: Uint8Array | string): string {
   return createHash('sha256').update(bytes).digest('hex');
 }
 
-function error(status: number, code: string): Reply {
-  return { status, body: { error: { code, message: code } } };
+function error(status: number, code: string, message = code): Reply {
+  return { status, body: { error: { code, message } } };
 }
 
 export class FakeComposeServer {
@@ -118,6 +120,19 @@ export class FakeComposeServer {
   failBefore: ((call: Call) => boolean) | null = null;
   /** Commit the next matching request, then answer 201 with a body that does not match the contract. */
   corruptNext: ((call: Call) => boolean) | null = null;
+  /** Server-side switches mirroring producer branches (`auth/routes.ts:43,47`, `auth/session.ts:116`). */
+  sessionInvalid = false;
+  originInvalid = false;
+  ownerRequired = false;
+  /** False: submissions with files answer 503 EXTRACTION_NOT_CONFIGURED (`submissions.ts:147`). */
+  extractionConfigured = true;
+  readonly #commentLinks: { ticketId: string; commentId: string; attachmentIds: string[] }[] = [];
+  /** Hold matching requests (before the producer sees them) until `release()`. */
+  hold: ((call: Call) => boolean) | null = null;
+  #held: (() => void)[] = [];
+  release(): void {
+    for (const resume of this.#held.splice(0)) resume();
+  }
   /** While true every PUT content fails with a transport error before reaching the producer. */
   blockPuts = false;
   /** PUT content answers 409 ATTACHMENT_UPLOAD_BUSY this many times while the upload reads `receiving`. */
@@ -134,6 +149,7 @@ export class FakeComposeServer {
       throw new TypeError('fetch failed');
     }
     if (this.blockPuts && method === 'PUT') throw new TypeError('fetch failed');
+    if (this.hold?.(call)) await new Promise<void>((resume) => this.#held.push(resume));
     const bytes = init.body instanceof Blob ? new Uint8Array(await init.body.arrayBuffer()) : null;
     const reply = this.#handle(call, bytes);
     if (this.corruptNext?.(call) && reply.status < 300) {
@@ -161,10 +177,13 @@ export class FakeComposeServer {
         : error(401, 'UNAUTHENTICATED');
     if (path === '/v2/auth/session' && call.method === 'POST') {
       this.authenticated = true;
-      return { status: 201, body: { owner: { id: 'owner' }, csrfToken: csrf } };
+      return { status: 200, body: { owner: { id: 'owner' }, csrfToken: csrf } };
     }
     if (!this.authenticated) return error(401, 'UNAUTHENTICATED');
+    if (this.sessionInvalid) return error(401, 'SESSION_INVALID');
     if (call.method === 'GET') return this.#read(path);
+    if (this.ownerRequired) return error(403, 'OWNER_REQUIRED');
+    if (this.originInvalid) return error(403, 'ORIGIN_INVALID');
     if (call.headers.get('x-csrf-token') !== csrf) return error(403, 'CSRF_INVALID');
     if (call.method === 'PUT') return this.#put(path, bytes ?? new Uint8Array());
     const key = call.headers.get('idempotency-key') ?? '';
@@ -178,6 +197,8 @@ export class FakeComposeServer {
 
   #read(path: string): Reply {
     if (path === '/v2/attachment-policy') return { status: 200, body: policy };
+    const byComment = /^\/v2\/tickets\/([^/?]+)\/attachments\/by-comment(?:\?(.*))?$/.exec(path);
+    if (byComment) return this.#byComment(byComment[1] ?? '', new URLSearchParams(byComment[2] ?? ''));
     const match = /^\/v2\/attachment-compose\/([^/]+)$/.exec(path);
     const compose = match ? this.composes.get(match[1] ?? '') : undefined;
     if (!compose) return error(404, 'ATTACHMENT_NOT_FOUND');
@@ -192,6 +213,35 @@ export class FakeComposeServer {
     };
   }
 
+  /** GET `/v2/tickets/:id/attachments/by-comment` (`comment-refs.ts`): keyset by commentId. */
+  #byComment(ticket: string, query: URLSearchParams): Reply {
+    const limit = Number(query.get('limit') ?? 50);
+    const cursor = query.get('cursor');
+    const groups = this.#commentLinks
+      .filter((link) => link.ticketId === ticket && link.attachmentIds.length > 0)
+      .filter((link) => cursor === null || link.commentId > cursor)
+      .sort((a, b) => (a.commentId < b.commentId ? -1 : 1));
+    const items = groups.slice(0, limit).map((link) => ({
+      commentId: link.commentId,
+      attachments: link.attachmentIds.map((id, index) => {
+        const upload = this.uploads.get(id);
+        return {
+          linkId: `bbbbbbbb-cccc-4ddd-8eee-${String(index).padStart(4, '0')}${id.slice(-8)}`,
+          attachmentId: id,
+          sha256: upload?.sha256 ?? '0'.repeat(64),
+          ownerId: 'owner',
+          fileName: upload?.fileName ?? 'x',
+          mime: upload?.mime ?? null,
+          byteLength: upload?.byteLength ?? 0,
+        };
+      }),
+    }));
+    return {
+      status: 200,
+      body: { items, nextCursor: groups.length > limit ? (items.at(-1)?.commentId ?? null) : null },
+    };
+  }
+
   #session(compose: Compose) {
     return {
       id: compose.id,
@@ -202,7 +252,7 @@ export class FakeComposeServer {
       ...(compose.conversationId ? { conversationId: compose.conversationId } : {}),
       revision: compose.revision,
       state: compose.state,
-      expiresAt: '2026-10-05T00:00:00.000Z',
+      expiresAt: compose.expired ? '2000-01-01T00:00:00.000Z' : '2099-01-01T00:00:00.000Z',
     };
   }
 
@@ -233,6 +283,7 @@ export class FakeComposeServer {
       return error(409, 'ATTACHMENT_UPLOAD_BUSY');
     }
     if (upload.state === 'ready') return { status: 200, body: this.#attachment(upload) };
+    if (this.composes.get(upload.composeId)?.expired) return error(409, 'ATTACHMENT_UPLOAD_EXPIRED');
     if (upload.state !== 'reserved') return error(409, 'ATTACHMENT_UPLOAD_CONFLICT');
     if (bytes.byteLength !== upload.byteLength || sha(bytes) !== upload.sha256)
       return error(409, 'ATTACHMENT_REPLAY_MISMATCH');
@@ -259,7 +310,7 @@ export class FakeComposeServer {
     if (method === 'POST' && match) {
       const compose = this.composes.get(match[1] ?? '');
       if (!compose) return error(404, 'ATTACHMENT_NOT_FOUND');
-      if (compose.state !== 'open') return error(409, 'ATTACHMENT_COMPOSE_CLOSED');
+      if (compose.state !== 'open' || compose.expired) return error(409, 'ATTACHMENT_COMPOSE_CLOSED');
       if (compose.revision !== body.expectedRevision) return error(409, 'ATTACHMENT_SELECTION_STALE');
       const upload: Upload = {
         attachmentId: uuidFor(2),
@@ -318,7 +369,7 @@ export class FakeComposeServer {
       });
     match = /^\/v2\/tickets\/([^/]+)\/attachment-comments$/.exec(path);
     if (method === 'POST' && match)
-      return this.#submit('comment', body, () => {
+      return this.#submit('comment', body, (ids) => {
         const comment = {
           id: uuidFor(4),
           ticketId: match?.[1],
@@ -327,6 +378,7 @@ export class FakeComposeServer {
           createdAt: '2026-10-04T03:00:00.000Z',
         };
         this.comments.push(comment);
+        this.#commentLinks.push({ ticketId: String(match?.[1]), commentId: comment.id, attachmentIds: ids });
         return { comment };
       });
     if (method === 'POST' && path === '/v2/attachment-submissions/messages')
@@ -362,14 +414,19 @@ export class FakeComposeServer {
     if (prior) return prior.hash === hash ? prior.reply : error(409, 'COMPOSE_ALREADY_SUBMITTED');
     const compose = this.composes.get(selection.composeSessionId);
     if (!compose || compose.purpose !== purpose) return error(404, 'NOT_FOUND');
-    if (compose.state !== 'open' || compose.revision !== selection.selectionRevision)
+    if (compose.state !== 'open' || compose.revision !== selection.selectionRevision || compose.expired)
       return error(409, 'SELECTION_CHANGED');
+    const ids = [...selection.attachmentIds].sort();
+    for (const id of ids)
+      if (this.uploads.get(id)?.composeId !== compose.id)
+        return error(404, 'NOT_FOUND', 'Không tìm thấy tệp');
     const active = [...this.uploads.values()].filter(
       (upload) => upload.composeId === compose.id && upload.state !== 'abandoned',
     );
-    const ids = [...selection.attachmentIds].sort();
     if (active.length !== ids.length || active.some((upload) => !ids.includes(upload.attachmentId)))
       return error(409, 'SELECTION_CHANGED');
+    if (active.length > 0 && !this.extractionConfigured)
+      return error(503, 'EXTRACTION_NOT_CONFIGURED', 'Chưa cấu hình xử lý tệp');
     if (active.some((upload) => upload.state !== 'ready')) return error(422, 'ATTACHMENT_NOT_READY');
     const response = create(ids);
     const reply = {

@@ -400,9 +400,13 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/compose-submit.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/compose.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+| `web/test/composer-dom.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
+| `web/test/support/dom.ts` | [web-attachments](flows/web-attachments.md) (test) |
+| `web/test/support/jsdom.d.ts` | [web-attachments](flows/web-attachments.md) (test) |
+| `web/test/support/tsx-loader.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |
