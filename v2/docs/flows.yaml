@@ -530,5 +530,21 @@ flows:
     tests:
       - web/test/tickets.test.ts
       - web/e2e/tickets.spec.ts
+  web-attachments:
+    title: Composer chung và tệp đính kèm web Crew v2
+    doc: docs/flows/web-attachments.md
+    entrypoints:
+      - web/src/compose/composer.tsx
+    files:
+      - web/src/compose/state.ts
+      - web/src/compose/controller.ts
+      - web/src/compose/file-hash.ts
+      - web/src/compose/file-hash.worker.ts
+      - web/src/attachments/preview.tsx
+      - web/src/attachments/queries.ts
+    tests:
+      - web/test/compose.test.ts
+      - web/test/compose-submit.test.ts
+      - web/test/support/compose-server.ts
 shared: {}
 unassigned: []

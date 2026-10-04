@@ -361,8 +361,15 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/pnpm-lock.yaml` | [web-shell](flows/web-shell.md) (file) |
 | `web/scripts/e2e-fixture.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/app-runtime.ts` | [web-shell](flows/web-shell.md) (file) |
+| `web/src/attachments/preview.tsx` | [web-attachments](flows/web-attachments.md) (file) |
+| `web/src/attachments/queries.ts` | [web-attachments](flows/web-attachments.md) (file) |
 | `web/src/auth/login.tsx` | [web-data](flows/web-data.md) (file) |
 | `web/src/auth/session-boundary.tsx` | [web-data](flows/web-data.md) (điểm vào) |
+| `web/src/compose/composer.tsx` | [web-attachments](flows/web-attachments.md) (điểm vào) |
+| `web/src/compose/controller.ts` | [web-attachments](flows/web-attachments.md) (file) |
+| `web/src/compose/file-hash.ts` | [web-attachments](flows/web-attachments.md) (file) |
+| `web/src/compose/file-hash.worker.ts` | [web-attachments](flows/web-attachments.md) (file) |
+| `web/src/compose/state.ts` | [web-attachments](flows/web-attachments.md) (file) |
 | `web/src/contracts/attachments.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/contracts/docs.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/contracts/http.ts` | [web-data](flows/web-data.md) (file) |
@@ -387,8 +394,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/test/app-wiring.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
+| `web/test/compose-submit.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+| `web/test/compose.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |
