@@ -231,3 +231,7 @@ Ruling: re-release phase03 cho S6b theo lát: S6b-i `operation-native.c` + `oper
 Dispatch S6b-i.
 
 10:20 S6b-i `a1981b7`/`428c96f` DONE_WITH_CONCERNS (6/6 x3, 48/48). Lệch memo: KERN_PROC_SESSION không có trên macOS 26.6.2 → liệt kê process + getsid(); thêm exit watch mỗi member để phát hiện escape; timeout tree trả receipt nếu session rỗng sau kill (Q4); tsc lần 2 chạy ngoài slot (vi phạm gate nhỏ). Full security review (phase03-owner) dispatch.
+
+10:50 S6b-i security review `task-3-s6b-i-review.md`: Spec ❌, phase03-owner chấp nhận hướng (KERN_PROC_ALL+getsid, NOTE_EXIT từng member) nhưng bytes chưa; Important3 (I1 drain phải kill vẫn PASS; I2 nhánh timedOut bỏ qua escaped; I3 `.leader` trong stage child ghi được) /Minor6/⚠️5. FIX1/5 resume: I1, I2, I3, M1 (kill mọi member kể cả pgid riêng/escaped), M3 (NOTE_FORK), M5 (tách lỗi toàn vẹn guard khỏi EXECUTOR_BUSY), M6 test. M2/M4 ledger.
+Câu hỏi mở cho S6b-ii: XNU có giữ không cấp lại pid đang là sid của session còn member sau khi leader bị reap không — quyết định reconcile có dùng getsid làm bằng chứng không.
+Codex batch 1 (docs/comment) commit — PM chỉnh comment code sang tiếng Anh.
