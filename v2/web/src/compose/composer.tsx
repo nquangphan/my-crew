@@ -130,6 +130,8 @@ const messages: Record<string, string> = {
   ORIGIN_INVALID:
     'Máy chủ không nhận nguồn gửi của tab này. Yêu cầu vẫn giữ khóa cũ; tải lại trang rồi thử lại.',
   OWNER_REQUIRED: 'Phiên hiện tại không phải chủ sở hữu nên không được gửi.',
+  DISCARD_UNCONFIRMED:
+    'Chưa xác nhận được việc bỏ lượt gửi trên máy chủ. Bản nháp và yêu cầu bỏ vẫn được giữ; bấm bỏ bản nháp lần nữa để gửi lại đúng yêu cầu đó.',
   COMPOSE_EXPIRED: 'Lượt gửi đã hết hạn; tệp được chuyển sang lượt gửi mới.',
   ATTACHMENT_UPLOAD_EXPIRED: 'Lượt tải tệp đã hết hạn.',
   ATTACHMENT_COMPOSE_CLOSED: 'Lượt gửi đã đóng.',

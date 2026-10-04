@@ -33,6 +33,8 @@ type Compose = {
   state: 'open' | 'submitted' | 'abandoned';
   /** Past `expiresAt`: the server rejects reserve, PUT and submission (`staging.ts:341,391`, `submissions.ts:133`). */
   expired?: boolean;
+  /** Server-side expiry instant to report (default far future, or the past when `expired`). */
+  expiresAt?: string;
 };
 export type Call = { method: string; url: string; headers: Headers; body: string | null };
 type Reply = { status: number; body: unknown };
@@ -252,7 +254,8 @@ export class FakeComposeServer {
       ...(compose.conversationId ? { conversationId: compose.conversationId } : {}),
       revision: compose.revision,
       state: compose.state,
-      expiresAt: compose.expired ? '2000-01-01T00:00:00.000Z' : '2099-01-01T00:00:00.000Z',
+      expiresAt:
+        compose.expiresAt ?? (compose.expired ? '2000-01-01T00:00:00.000Z' : '2099-01-01T00:00:00.000Z'),
     };
   }
 

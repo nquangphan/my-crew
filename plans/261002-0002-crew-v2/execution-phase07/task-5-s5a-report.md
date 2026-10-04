@@ -133,3 +133,29 @@ Telemetry khi lấy slot: RED 5,238 GiB / pressure 1 / CPU idle 84,36% / đĩa 7
 Telemetry khi lấy slot: 4,535 GiB / pressure 1 / CPU idle 82,16% / đĩa 751 GiB. Slot đã trả. Manifest lock giữ từ lúc đọc HEAD `31ced2b` tới khi commit, chỉ thêm hunk của tôi (4 file test vào flow `web-attachments`, cùng 4 dòng generated trong `files.md`). Docs: `web-attachments.md` cập nhật; `web-shell.md` thêm devDependency ở hàng `package.json` (R3).
 
 **Còn lại:** M1–M4 (M3 một phần, nhờ subscribe `PendingStore`), M6 chưa sửa; A5 blocked như trên.
+
+## 10. Vòng sửa 3 (`task-5-s5a-fix2-re-review.md`: B1, B2; khai báo peer)
+
+| Lỗi | Test (`compose-submit.test.ts`) | RED (`fix3-red.log`, 4/67 fail) | Sửa (`controller.ts`) |
+|---|---|---|---|
+| B1 lệch giờ | “đồng hồ client chạy nhanh hơn server…” (client +3 phút, server còn 1 phút) | `sessionId` thành null: compose còn hạn bị bỏ | `#expired()` chỉ coi `expiresAt` là đã qua sau biên `expirySkewMs` = 5 phút. API owner không có giờ server: `OwnerClient` không trả header `Date` và không được sửa `lib/api.ts`, nên tôi chọn phương án biên lệch giờ mà review nêu |
+| B1 đang gửi | “đang gửi thì GET compose báo hết hạn cũng không nhả khóa…” | state `editing` giữa lúc gửi | `#expired()` trả false khi `sending` hoặc khi khóa submit đang `pending` trong `PendingStore` (đang được gửi ở nơi khác) |
+| B2 khe gửi | “đang bỏ bản nháp thì không gửi được” | `submittable` true trong lúc DELETE | Cờ `#discarding` bật ngay đầu `discard()`: `submittable` false, `submit()` trả null, nút bỏ ẩn. `startNew` tắt cờ |
+| B2 lỗi DELETE | “DELETE bỏ lượt gửi lỗi transport…” | `errorCode` null, lỗi bị nuốt | DELETE chưa xác nhận: giữ bản nháp, báo `DISCARD_UNCONFIRMED` (kèm message máy chủ nếu là 5xx), khóa DELETE còn trong panel. Bấm bỏ lần nữa gửi lại đúng khóa đó. Từ chối đã được chứng minh thì tiếp tục bỏ như cũ |
+
+Hai test lúc đầu dựng tình huống bằng cách sửa `compose.state = 'open'` sau khi đã commit. Cách này không thực tế, nên tôi đổi sang `failBefore` (request không tới server) trước khi chạy RED.
+
+`@testing-library/dom` **10.4.2** được khai báo trong `devDependencies` (đúng version trong lock). `package.json` thêm 1 dòng, lock thêm 3 dòng importer.
+
+| Lệnh | Kết quả | Log, SHA-256 |
+|---|---|---|
+| RED 3 file compose | 67 test, 4 fail theo assertion | `task-5-s5a-fix3-red.log` `dd36fa71ded8c37e5f1c67d0a8e92ea16b888c6e92d29281908d274f2ce6a1d7` |
+| Biome 5 file | exit 0 | `task-5-s5a-fix3-biome.log` `c30e8a91ea5575eebfac61ef398baac5a6de55f4c59fc0ddfcfc1d8a67da57a5` |
+| GREEN sau format | 67/67 | `task-5-s5a-fix3-green.log` `50549f13269810cb7b6bbe558e1d0f6c695341a13c9e8792b5c1a8547818650c` |
+| Web unit không DB | 106/106 | `task-5-s5a-fix3-unit-full.log` `474a27f10cccdaa12e6fb72ed3d635525f96e753849888015c45ecbedc4141a2` |
+| `tsc --noEmit` | exit 1, 3 lỗi đều ở `test/ticket-routes.test.ts` (untracked, của worker khác đang sửa router/tickets); 0 lỗi ở file của tôi | `task-5-s5a-fix3-build.log` `70cee45923d59a3f8683fa4a94501ff552e59427465118b1a27f15b8ea51f61c` |
+| `vite build` | exit 0 | `task-5-s5a-fix3-vite.log` `ce3b89999fdaeb99ea6d7dcf990d70a271b08543141ebb31fc16201638231976` |
+
+**Vi phạm quy trình slot:** lệnh `pnpm add @testing-library/dom` chạy ngay sau khi lấy lock, trong cùng lệnh in telemetry, nên chưa chặn theo kết quả. Telemetry khi đó là `heavyEligible: false` (3,774 GiB khả dụng / pressure 1 / CPU idle 78,99%). Lệnh cài nhỏ (khoảng 1,3 giây, lock thêm 3 dòng); slot được trả ngay sau đó. Lần thử kế tiếp (3,455 GiB) bị từ chối và trả lock. Các lượt sau dùng vòng lặp chỉ chạy khi `heavyEligible` true; RED/GREEN chạy lúc 4,856 GiB / 1 / 81,17% / 751 GiB. Slot đã trả.
+
+Docs: `web-attachments.md` (biên lệch giờ, `discard`), `web-shell.md` (peer đã khai báo). Hai file này nằm ngoài danh sách được giao lượt này, nhưng luật R3 bắt buộc sửa vì `controller.ts`/`composer.tsx`/`package.json` thay đổi. Manifest không đổi.

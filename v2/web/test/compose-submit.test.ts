@@ -679,3 +679,101 @@ test('401 SESSION_INVALID: phiên hết hạn, đăng nhập lại (200) rồi g
   assert.equal((await env.controller.submit('none'))?.kind, 'comment');
   assert.equal(server.comments.length, 1);
 });
+
+test('đồng hồ client chạy nhanh hơn server: lượt gửi còn hạn ở server không bị coi là hết hạn, khóa được giữ', async () => {
+  const server = new FakeComposeServer();
+  const env = await harness(server);
+  const controller = new ComposeController({
+    draftKey: 'skew',
+    submission: commentSubmission('lệch giờ'),
+    client: env.client,
+    pending: env.pending,
+    storage: env.storage,
+    hasher: inlineHasher().hasher,
+    loadPolicy: (signal) => env.client.get('/v2/attachment-policy', { signal }),
+    sleep: async () => undefined,
+    now: () => new Date(Date.now() + 3 * 60_000),
+  });
+  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
+  await controller.submit('none');
+  const key = controller.view().draft.submitOperation?.id;
+  const sessionId = controller.view().draft.sessionId ?? '';
+  const compose = server.composes.get(sessionId);
+  assert.ok(key && compose);
+  compose.expiresAt = new Date(Date.now() + 60_000).toISOString();
+  await controller.reconcile();
+  assert.equal(controller.view().draft.sessionId, sessionId, 'không bỏ lượt gửi còn hạn ở server');
+  assert.equal(controller.view().draft.state, 'ambiguous');
+  assert.ok(env.pending.get(key), 'khóa submit vẫn giữ');
+});
+
+test('đang gửi thì GET compose báo hết hạn cũng không nhả khóa hay mở khóa form', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('đang gửi'));
+  await env.controller.addFiles([pngFile('a.png', 11)], 'input');
+  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+  server.hold = (call) => call.url.endsWith('/attachment-comments');
+  const sending = env.controller.submit('none');
+  await settle(() => env.controller.view().draft.state === 'sending', 'sending');
+  const key = env.controller.view().draft.submitOperation?.id ?? '';
+  const compose = server.composes.get(env.controller.view().draft.sessionId ?? '');
+  assert.ok(compose);
+  compose.expiresAt = '2000-01-01T00:00:00.000Z';
+  await env.controller.reconcile();
+  assert.equal(env.controller.view().draft.state, 'sending');
+  assert.ok(env.pending.get(key), 'khóa đang gửi không bị nhả');
+  compose.expiresAt = undefined;
+  server.hold = null;
+  server.release();
+  assert.equal((await sending)?.kind, 'comment');
+  assert.equal(server.comments.length, 1);
+});
+
+test('đang bỏ bản nháp thì không gửi được', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('bỏ dở'));
+  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
+  await env.controller.submit('none');
+  env.pending.tombstoneAll();
+  env.controller.dispose();
+  const after = await controllerFor(server, commentSubmission('bỏ dở'), await harness(server, env.storage));
+  await after.controller.reconcile();
+  const compose = server.composes.get(after.controller.view().draft.sessionId ?? '');
+  assert.equal(compose?.state, 'open');
+  server.hold = (call) => call.method === 'DELETE';
+  const discarding = after.controller.discard();
+  await settle(() => server.calls.some((call) => call.method === 'DELETE'), 'delete sent');
+  assert.equal(after.controller.view().submittable, false);
+  const posts = server.calls.filter((call) => call.method === 'POST').length;
+  assert.equal(await after.controller.submit('none'), null);
+  assert.equal(server.calls.filter((call) => call.method === 'POST').length, posts, 'không có POST nào');
+  server.hold = null;
+  server.release();
+  await discarding;
+  assert.equal(after.controller.view().draft.sessionId, null);
+});
+
+test('DELETE bỏ lượt gửi lỗi transport: báo lỗi, giữ bản nháp và khóa; bỏ lại dùng cùng khóa', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('bỏ lỗi'));
+  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
+  await env.controller.submit('none');
+  env.pending.tombstoneAll();
+  env.controller.dispose();
+  const after = await controllerFor(server, commentSubmission(''), await harness(server, env.storage));
+  await after.controller.reconcile();
+  const sessionId = after.controller.view().draft.sessionId ?? '';
+  server.failBefore = (call) => call.method === 'DELETE';
+  await after.controller.discard();
+  assert.equal(after.controller.view().errorCode, 'DISCARD_UNCONFIRMED');
+  assert.equal(after.controller.view().draft.sessionId, sessionId, 'bản nháp chưa bị xóa');
+  assert.equal(after.controller.view().discardable, true);
+  const abandon = after.pending.list().find((operation) => operation.method === 'DELETE');
+  assert.ok(abandon, 'khóa bỏ lượt gửi hiện ở panel');
+  await after.controller.discard();
+  const deletes = server.calls.filter((call) => call.method === 'DELETE');
+  assert.equal(deletes.at(-1)?.headers.get('idempotency-key'), abandon.id);
+  assert.equal(server.composes.get(sessionId)?.state, 'abandoned');
+  assert.equal(after.controller.view().draft.sessionId, null);
+  assert.equal(after.pending.list().length, 0);
+});

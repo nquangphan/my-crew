@@ -1,0 +1,3 @@
+test/ticket-routes.test.ts(78,28): error TS2339: Property 'params' does not exist on type 'never'.
+test/ticket-routes.test.ts(97,26): error TS2339: Property 'params' does not exist on type 'never'.
+test/ticket-routes.test.ts(98,26): error TS2339: Property 'search' does not exist on type 'never'.

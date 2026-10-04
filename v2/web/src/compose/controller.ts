@@ -90,6 +90,11 @@ export type ComposeControllerOptions = {
 type FileSource = 'clipboard' | 'drop' | 'input';
 
 const uploadBackoff = [1000, 2000, 4000] as const;
+/**
+ * Clock-skew allowance before a compose is treated as expired from this tab. The owner API exposes no
+ * server clock, so an `expiresAt` is trusted as past only after this margin on the client clock.
+ */
+export const expirySkewMs = 5 * 60_000;
 const definitiveUpload = new Set([
   'ATTACHMENT_CONTENT_INVALID',
   'ATTACHMENT_MAGIC_MISMATCH',
@@ -206,6 +211,8 @@ export class ComposeController {
   #lastSubmitId: string | null = null;
   /** Bumped by `startNew`; a send that finishes under an older generation no longer owns the draft. */
   #generation = 0;
+  /** Set for the whole of `discard()`: no submit may start while the draft is being dropped. */
+  #discarding = false;
   readonly #offPending: () => void;
   #errorCode: string | null = null;
   #errorMessage: string | null = null;
@@ -279,7 +286,9 @@ export class ComposeController {
       receipt: this.#receipt,
       assistantRead: this.#assistantRead,
       discardable:
-        this.#draft.state !== 'sending' && (this.#tombstoneId !== null || this.#lockReason !== null),
+        !this.#discarding &&
+        this.#draft.state !== 'sending' &&
+        (this.#tombstoneId !== null || this.#lockReason !== null),
     });
     return this.#view;
   }
@@ -303,13 +312,27 @@ export class ComposeController {
 
   /** Explicit owner decision to drop the local draft; unresolved keys stay in the PendingStore. */
   async discard(): Promise<void> {
-    if (this.#draft.state === 'sending') return;
+    if (this.#discarding || this.#draft.state === 'sending') return;
     if (this.#tombstoneId === null && this.#lockReason === null) return;
+    this.#discarding = true;
+    this.#emit();
     const sessionId = this.#draft.sessionId;
     if (sessionId !== null) {
       // An open compose of the dropped draft is abandoned so it cannot be submitted or hold quota; a
       // submitted one is left as is (the DELETE path reads it back and stops).
-      await this.#enqueue(() => this.#abandonSession()).catch(() => undefined);
+      try {
+        await this.#enqueue(() => this.#abandonSession());
+      } catch (error) {
+        if (this.#unresolved(`${this.#intentId}:abandon:${sessionId}`)) {
+          // Unconfirmed DELETE: keep the draft and its key (shown in the recovery panel); a new discard
+          // resends the same key.
+          this.#discarding = false;
+          this.#setError('DISCARD_UNCONFIRMED', serverMessage(error));
+          this.#emit();
+          return;
+        }
+        // A proven rejection leaves nothing pending for this compose.
+      }
       this.#releaseSessionKeys(sessionId);
     }
     this.startNew();
@@ -440,7 +463,7 @@ export class ComposeController {
    * frozen body and only applies to a new submit.
    */
   async submit(assistantRead: AssistantRead): Promise<ComposeReceipt | null> {
-    if (this.#draft.state === 'sending' || this.#draft.state === 'accepted') return null;
+    if (this.#discarding || this.#draft.state === 'sending' || this.#draft.state === 'accepted') return null;
     const generation = this.#generation;
     let operation: PendingOperation | null;
     try {
@@ -511,6 +534,7 @@ export class ComposeController {
     this.#aborts.clear();
     this.#bytes.clear();
     this.#generation++;
+    this.#discarding = false;
     this.#intentId = this.#newId();
     this.#sessionTarget = null;
     this.#tombstoneId = null;
@@ -717,6 +741,7 @@ export class ComposeController {
   }
 
   #submittable(): boolean {
+    if (this.#discarding) return false;
     if (this.#tombstoneId !== null) {
       const selection = selectionOf(this.#draft);
       if (!selection) return false;
@@ -850,7 +875,7 @@ export class ComposeController {
       this.#detachFromSession('COMPOSE_CLOSED');
       return;
     }
-    if (Date.parse(view.session.expiresAt) <= this.#now().getTime()) {
+    if (this.#expired(view.session.expiresAt)) {
       // An expired open compose can no longer be submitted, and an earlier send would have made it
       // `submitted`: any unresolved submit of it is proven not committed. Files move to a new compose.
       this.#releaseSubmit();
@@ -860,6 +885,19 @@ export class ComposeController {
     // The vanished key did not submit this still-open compose: it was rejected.
     if (this.#lockReason === 'SUBMIT_UNCONFIRMED') this.#unlockUnconfirmed();
     this.#mergeFiles(view, true);
+  }
+
+  /**
+   * Expired beyond the skew margin, and no send of the frozen submit can still be running: never while this
+   * tab is sending, nor while the PendingStore has the key in flight (`pending`).
+   */
+  #expired(expiresAt: string): boolean {
+    if (this.#draft.state === 'sending') return false;
+    const operation = this.#draft.submitOperation
+      ? this.#pending.get(this.#draft.submitOperation.id)
+      : undefined;
+    if (operation?.state === 'pending') return false;
+    return Date.parse(expiresAt) + expirySkewMs <= this.#now().getTime();
   }
 
   /** Server state is authoritative for every upload of the compose. */
