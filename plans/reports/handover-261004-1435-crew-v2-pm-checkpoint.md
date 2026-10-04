@@ -76,3 +76,45 @@ Việc kế tiếp và ruling còn chờ:
 - Trước merge: triage toàn bộ dòng `minor (deferred)` hai ledger + checklist T7; full `tsc` web/server.
 
 Cần owner: gửi lại ảnh tham chiếu map `IMG_6454.JPG` (không còn trong repo/~/Downloads); máy dự án chạy BMAD cần `uv` + Python ≥3.11.
+
+## Cập nhật 04/10 21:40 — dừng phiên (owner bảo dừng, quota tuần Claude đã dùng 95%)
+
+Đã push tới `976de07`; phần cuối phiên được push cùng bản cập nhật này. Nghiệm thu thêm sau 19:40:
+
+| Mục | Commit cuối | Ghi chú |
+|---|---|---|
+| G4w ba switch gateway | `4998044` | |
+| Task4 polish theo design owner duyệt (`ui-evidence/design-map-mockup.html`) | `531892b` | neo realtime, cạnh vuông góc, nhãn không đè |
+| Sơ đồ N2/N4 (làn tránh thân ngoặc, nhãn `aria-hidden`) | sau `accba5a` | OpenCode code, tester chạy test |
+| Sơ đồ N1 (thẻ neo đứng yên khi kéo + realtime) | `a4df5b0` | Codex code, PM giữ lưu viewport ở `onMoveEnd` |
+| S6b-i native `execute-tree` | `b719bf1` | |
+| S6b-ii render wiring gateway | `cf78d0f` | từ chối `BMAD_TRACKED_IN_CHECKOUT`, probe CPython ≥3.11 |
+| Mở rộng từ chối mọi đích render (N3) | `8d0ef6e` | `_bmad` lồng giữ exclusion cũ |
+| B2a M6 + S2 N3 (input/nguồn null → 400) | `accba5a` | |
+| e2e-fixture bỏ non-null assertion | `0d86cd7` | |
+
+Ruling S6b (Q1–Q7, N1) đã chốt trong `execution-phase06/pm-s6b-rulings-memo-261004.md`.
+
+Việc kế tiếp (theo thứ tự):
+1. **S6b-iii (server):**
+   - `registerRenderReceipt`, route và latch.
+   - So witness/prerequisites với `gateway_applied` để chống giả mạo.
+   - Mở schema `prerequisites` của install report, rồi bật `prerequisites` trên `GatewaySync`.
+   - Nối bridge `beforeRelease`.
+   - **Lệnh reconcile render stage.** Bắt buộc có trước khi bật production: hiện chỉ một stage `unknown` là chặn mọi render BMAD trên root đó.
+2. **S6b-iv:** integration test chạy `uv` thật, cấp heavy slot.
+3. Phase06 T4–T7; phase07 S6assistant (G3), S7full, Task8, A3/A5 có file.
+4. **Trước merge:**
+   - Triage mọi dòng `minor (deferred)` trong hai ledger, gồm cả checklist S6b-iii/T7 ở mốc 13:20 và 13:40 của `progress.md`.
+   - Chạy whole-branch review.
+   - Chạy full `tsc` cho web và server.
+
+Phân công agent ngoài (memory owner):
+- **Codex (`gpt-6-luna`):** nhận việc nhỏ, chỉ sửa code. Chạy bằng `codex exec … < /dev/null`, nếu không sẽ treo ở bước chờ stdin.
+- **OpenCode Go:** chỉ sửa code; test do agent khác chạy. Phiên này OpenCode đã hết quota, nên kiểm tra bằng `opencode stats` trước khi giao.
+
+Untracked chưa xử lý: `execution-phase07/task-4-visual-vs-reference.md` và `web-int-unit-err.log`. Đây là tàn dư của worker trước; xem rồi commit hoặc xóa.
+
+Cần owner:
+- Máy dự án chạy BMAD cần `uv` và CPython ≥3.11. Nếu project tự pin `.python-version`, interpreter đó cũng phải là CPython ≥3.11.
+- Nâng cấp `uv` hoặc Python xong thì phải gửi lại install report, nếu không render sẽ dừng (HALT).
