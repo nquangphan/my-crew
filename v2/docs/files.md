@@ -104,6 +104,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/host-failures.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/host-lifecycle.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/http-operations.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+| `gateway/test/isolation-render.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/isolation-runtime.test.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
 | `gateway/test/isolation-workspace.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/isolation.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |

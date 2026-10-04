@@ -266,6 +266,7 @@ flows:
       - gateway/test/fixtures/workflows/bmad-6.12.0.tgz
       - gateway/test/fixtures/workflows/official-audits.json
       - gateway/test/fixtures/workflows/superpowers-6.4.2.tgz
+      - gateway/test/isolation-render.test.ts
       - gateway/test/isolation-workspace.test.ts
       - gateway/test/isolation.test.ts
       - gateway/test/support/audit-dependency-content.ts

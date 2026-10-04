@@ -15,6 +15,16 @@ export type InventoryEntry = {
   classification: 'product' | 'discovery' | 'selected' | 'runtime-system';
   reason: string | null;
 };
+/**
+ * Runtime-discovery paths the workspace placed itself as regular copies: exact files with their pinned
+ * SHA-256, the directories holding them, and one directory whose contents a measured generator
+ * writes. Inside the roots these paths span, anything undeclared is a blocker.
+ */
+export type InjectedDeclaration = {
+  files: Record<string, string>;
+  directories: string[];
+  generated: string;
+};
 export type Surface = {
   surface: string;
   status: 'PASS' | 'FAIL' | 'UNVERIFIED';
@@ -146,6 +156,7 @@ export async function auditWorkspace(
   selectedMount?: { path: string; target: string },
   executableTargets: readonly string[] = [],
   separatelyAuditedGitRoot?: string,
+  injected?: InjectedDeclaration,
 ): Promise<{ entries: InventoryEntry[]; blockers: string[] }> {
   if ((await realpath(root)) !== root) throw new Error('WORKSPACE_ALIAS');
   if (separatelyAuditedGitRoot !== undefined && separatelyAuditedGitRoot !== join(root, '.git'))
@@ -153,6 +164,22 @@ export async function auditWorkspace(
   const entries: InventoryEntry[] = [],
     blockers: string[] = [];
   let total = 0;
+  const injectedFiles = new Map(Object.entries(injected?.files ?? {}));
+  const injectedDirectories = new Set(injected?.directories ?? []);
+  const injectedRoots = new Set(
+    [...injectedFiles.keys(), ...injectedDirectories, ...(injected ? [injected.generated] : [])].map(
+      (path) => path.split('/')[0],
+    ),
+  );
+  const seen = new Set<string>();
+  // How an injected path is declared, or null when it lies outside every declared root.
+  const declaration = (rel: string): 'file' | 'directory' | 'generated' | 'undeclared' | null => {
+    if (!injected || !injectedRoots.has(rel.split('/')[0])) return null;
+    if (injectedFiles.has(rel)) return 'file';
+    if (injectedDirectories.has(rel)) return 'directory';
+    if (rel.startsWith(`${injected.generated}/`)) return 'generated';
+    return 'undeclared';
+  };
   async function visit(dir: string, depth: number): Promise<void> {
     if (depth > 100 || entries.length > 30000) throw new Error('INVENTORY_LIMIT');
     for (const name of (await readdir(dir)).sort()) {
@@ -177,6 +204,19 @@ export async function auditWorkspace(
       };
       entries.push(entry);
       if (s.uid !== process.getuid?.()) blockers.push(`FOREIGN_OWNER:${rel}`);
+      const declared = declaration(rel);
+      if (declared !== null) {
+        seen.add(rel);
+        if (declared === 'undeclared') blockers.push(`UNDECLARED_INJECTION:${rel}`);
+        else if (s.isSymbolicLink()) blockers.push(`INJECTED_SYMLINK:${rel}`);
+        else if (declared === 'file' && !s.isFile()) blockers.push(`INJECTED_BYTES:${rel}`);
+        else if (declared === 'directory' && !s.isDirectory()) blockers.push(`INJECTED_BYTES:${rel}`);
+        else {
+          entry.classification = 'selected';
+          entry.reason =
+            declared === 'generated' || rel === injected?.generated ? 'render-output' : 'render-input';
+        }
+      }
       if (s.isSymbolicLink()) {
         entry.target = await readlink(full);
         const target = await realpath(full).catch(() => null);
@@ -190,9 +230,16 @@ export async function auditWorkspace(
         if (total > 256 * 1024 * 1024) throw new Error('INVENTORY_LIMIT');
         if (s.nlink !== 1) blockers.push(`HARDLINK:${rel}`);
         else entry.sha256 = await fileDigest(full);
+        if (declared === 'file' && entry.sha256 !== injectedFiles.get(rel)) {
+          blockers.push(`INJECTED_BYTES:${rel}`);
+          entry.classification = 'discovery';
+          entry.reason = reason;
+        }
       } else blockers.push(`SPECIAL_FILE:${rel}`);
     }
   }
   await visit(root, 0);
+  for (const path of [...injectedFiles.keys(), ...injectedDirectories])
+    if (!seen.has(path)) blockers.push(`INJECTED_MISSING:${path}`);
   return { entries, blockers };
 }

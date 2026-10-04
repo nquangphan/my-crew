@@ -1,6 +1,18 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { constants } from 'node:fs';
 import { lstat, mkdir, open, readFile, realpath, rename, symlink, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, posix, resolve } from 'node:path';
+import {
+  createRenderExecutor,
+  type RenderHaltReason,
+  type RenderJournal,
+  type RenderLogDiagnostics,
+  type RenderPrerequisites,
+  type RenderStageUpdate,
+  reclaimRenderStage,
+  type WorkflowRenderReceipt,
+} from '../assistant/render-executor.ts';
+import type { WorkflowDefinition } from '../assistant/workflow-manifest.ts';
 import {
   AtomicRecords,
   canonicalJson,
@@ -16,6 +28,7 @@ import {
   type CommandEvidence,
   contained,
   fileDigest,
+  type InjectedDeclaration,
   type InventoryEntry,
 } from './inventory.ts';
 import { isolationPolicy, policyIdentity } from './policy.ts';
@@ -43,8 +56,24 @@ export type IsolatedWorkspace = {
   commands: string[];
   gitInventorySha256: string;
   commitInput?: { path: string; device: number; inode: number; ownerUid: number; sha256: string };
+  /** BMAD only: the render inputs copied into the workspace and the render destination. */
+  injected?: InjectedDeclaration;
+  /** BMAD only: the one render of this workspace; `receipt` is set on success, `halt` otherwise. */
+  render?: {
+    operationId: string;
+    receipt: WorkflowRenderReceipt | null;
+    halt: { reason: RenderHaltReason; log?: RenderLogDiagnostics } | null;
+  };
   productionEnabled: false;
 };
+/** Render request of a BMAD attempt: the run's definition and the install-report prerequisites. */
+export type WorkspaceRender = { definition: WorkflowDefinition; prerequisites: RenderPrerequisites };
+export type RenderRecord = {
+  formatVersion: 1;
+  kind: 'isolation-render';
+  attemptId: string;
+  operationId: string;
+} & RenderStageUpdate;
 type CommandRecord = {
   formatVersion: 1;
   kind: 'isolation-command';
@@ -53,6 +82,94 @@ type CommandRecord = {
   state: 'reserved' | 'pending' | 'complete' | 'unknown' | 'deleted';
   evidence: CommandEvidence;
 };
+const attemptUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const renderDestination = '_bmad/render';
+// Every render input lives under one of these roots of the official BMAD layout.
+const renderInputRoots = ['_bmad/', '.claude/skills/bmad-build/'];
+const maxRenderInputBytes = 16 * 1024 * 1024;
+
+/** Bytes of `root/relative` with no symlink at any level: a single-link regular file within the bound. */
+async function readPinnedInput(root: string, relative: string): Promise<Buffer> {
+  const parts = relative.split('/');
+  for (let index = 1; index < parts.length; index++) {
+    const parent = await lstat(join(root, ...parts.slice(0, index)));
+    if (!parent.isDirectory()) throw new Error('RENDER_INPUT_UNSAFE');
+  }
+  const handle = await open(
+    join(root, relative),
+    constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+  );
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.nlink !== 1 || stat.size > maxRenderInputBytes)
+      throw new Error('RENDER_INPUT_UNSAFE');
+    const bytes = await handle.readFile();
+    if (bytes.length !== stat.size) throw new Error('RENDER_INPUT_UNSAFE');
+    return bytes;
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * Copies into `workspace` exactly the render inputs `definition.render` pins: the selected skill
+ * files and renderer scripts plus every present config layer, read from the immutable projection and
+ * written as fresh regular files after their SHA-256 matched the pin. Creates the empty render
+ * destination. Nothing else from the projection is copied. The executor re-verifies the same set.
+ */
+export async function materializeRenderInputs(
+  workspace: string,
+  projectionRoot: string,
+  definition: WorkflowDefinition,
+): Promise<InjectedDeclaration> {
+  const render = definition.render;
+  if (!render) throw new Error('RENDER_DEFINITION_REQUIRED');
+  const files = new Map<string, string>(Object.entries(render.selectedProjectionSha256));
+  for (const [path, digest] of Object.entries(render.layers)) {
+    if (digest === null) continue;
+    if (files.has(path) && files.get(path) !== digest) throw new Error('RENDER_INPUT_MISMATCH');
+    files.set(path, digest);
+  }
+  const directories = new Set<string>([renderDestination]);
+  for (const [path, digest] of files) {
+    if (
+      typeof digest !== 'string' ||
+      !/^[0-9a-f]{64}$/.test(digest) ||
+      posix.normalize(path) !== path ||
+      path.split('/').some((part) => part === '' || part === '.' || part === '..') ||
+      !/^[A-Za-z0-9._/-]+$/.test(path) ||
+      !renderInputRoots.some((prefix) => path.startsWith(prefix))
+    )
+      throw new Error('RENDER_INPUT_UNSAFE');
+    const parts = path.split('/');
+    for (let index = 1; index < parts.length; index++) directories.add(parts.slice(0, index).join('/'));
+  }
+  // Exclusion already moved every owner `_bmad`/`.claude` entry out, so nothing may exist here yet.
+  for (const directory of [...directories].sort((a, b) => a.split('/').length - b.split('/').length))
+    await mkdir(join(workspace, directory), { mode: 0o755 });
+  for (const [path, digest] of [...files].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+    const bytes = await readPinnedInput(projectionRoot, path);
+    if (hash(bytes) !== digest) throw new Error('RENDER_INPUT_MISMATCH');
+    const handle = await open(
+      join(workspace, path),
+      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW,
+      0o644,
+    );
+    try {
+      await handle.writeFile(bytes);
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  }
+  for (const directory of directories) await syncDirectory(join(workspace, directory));
+  return {
+    files: Object.fromEntries([...files].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
+    directories: [...directories].sort(),
+    generated: renderDestination,
+  };
+}
+
 export class IsolationWorkspace {
   private readonly registry: WorkflowRegistry;
   private readonly store: AtomicRecords;
@@ -86,13 +203,15 @@ export class IsolationWorkspace {
         const target = await realpath(path).catch(() => null);
         if (target) targets.push(target);
       }
-      return new IsolationWorkspace(
+      const service = new IsolationWorkspace(
         root,
         registry,
         store,
         await OwnedOperations.open(join(root, 'operations'), store),
         targets,
       );
+      await service.reconcileRenders();
+      return service;
     } catch (error) {
       await store.close();
       throw error;
@@ -103,6 +222,45 @@ export class IsolationWorkspace {
   }
   async get(attemptId: string): Promise<IsolatedWorkspace | null> {
     return this.store.get(this.key(attemptId));
+  }
+  /** Durable render-stage records of one attempt, in no particular order. */
+  async renders(attemptId: string): Promise<RenderRecord[]> {
+    const records = await this.store.all<RenderRecord>();
+    return records.filter((r) => r.kind === 'isolation-render' && r.attemptId === attemptId);
+  }
+  /**
+   * The store lock is exclusive to one process, so at open no render is in flight: a stage still
+   * `reserved` or `pending` was left by a crash and its closure is unknown.
+   */
+  private async reconcileRenders(): Promise<void> {
+    await this.store.transaction(async () => {
+      for (const record of await this.store.all<RenderRecord>())
+        if (record.kind === 'isolation-render' && (record.state === 'reserved' || record.state === 'pending'))
+          await this.store.put(`render-${record.operationId}`, {
+            ...record,
+            state: 'unknown',
+            error: record.error ?? 'RENDER_INTERRUPTED',
+          });
+    });
+  }
+  private renderJournal(attemptId: string): RenderJournal {
+    return {
+      // One stage whose closure was never proven blocks every new render on this root.
+      blocked: async () =>
+        (await this.store.all<RenderRecord>()).some(
+          (r) => r.kind === 'isolation-render' && !['complete', 'deleted'].includes(r.state),
+        ),
+      record: async (operationId, update) => {
+        const record: RenderRecord = {
+          formatVersion: 1,
+          kind: 'isolation-render',
+          attemptId,
+          operationId,
+          ...update,
+        };
+        await this.store.put(`render-${operationId}`, record);
+      },
+    };
   }
   async commands(attemptId: string): Promise<CommandEvidence[]> {
     const records = await this.store.all<CommandRecord>();
@@ -237,18 +395,36 @@ export class IsolationWorkspace {
     }
     return evidence;
   }
+  /**
+   * With `inputRender` (BMAD), the pinned render inputs are copied in and the official renderer runs once
+   * before the final audit, so the recorded entries include them and the generation; a halt fails the
+   * prepare and keeps the workspace retained with the halt diagnostics.
+   */
   async prepareWorkspace(
     ownerCheckout: string,
     attemptId: string,
     inputSource: SourcePin,
     inputProjection: ProjectionPin,
+    inputRender?: WorkspaceRender,
   ): Promise<IsolatedWorkspace> {
     return this.store.transaction(async () => {
       if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$/.test(attemptId)) throw new Error('INVALID_ATTEMPT_ID');
+      // The render receipt names the attempt, which the server knows by UUID.
+      if (inputRender !== undefined && !attemptUuid.test(attemptId)) throw new Error('INVALID_ATTEMPT_ID');
       if (await this.get(attemptId)) throw new Error('ATTEMPT_ALREADY_RESERVED');
       if ((await realpath(ownerCheckout)) !== resolve(ownerCheckout)) throw new Error('OWNER_CHECKOUT_ALIAS');
       const source = structuredClone(inputSource),
         projection = structuredClone(inputProjection);
+      const render = inputRender === undefined ? undefined : structuredClone(inputRender);
+      if (
+        render !== undefined &&
+        (render.definition?.render === undefined ||
+          source.name !== 'bmad' ||
+          projection.runtime !== 'claude' ||
+          !same(render.definition.render.source, source) ||
+          !same(render.definition.render.projection, projection))
+      )
+        throw new Error('RENDER_DEFINITION_BINDING_MISMATCH');
       const selected = await this.registry.resolve(source, projection);
       if (
         contained(ownerCheckout, this.root) ||
@@ -507,6 +683,31 @@ export class IsolationWorkspace {
           await mkdir(join(workspace, '.agents'), { mode: 0o700 });
           await symlink(join(selected.projectionRoot, '.agents/skills'), join(workspace, '.agents/skills'));
         }
+        if (render !== undefined) {
+          record.injected = await materializeRenderInputs(
+            workspace,
+            selected.projectionRoot,
+            render.definition,
+          );
+          record.render = { operationId: randomUUID(), receipt: null, halt: null };
+          await this.store.put(this.key(attemptId), record);
+          const outcome = await createRenderExecutor({
+            operations: this.operations,
+            journal: this.renderJournal(attemptId),
+            prerequisites: render.prerequisites,
+            clock: () => new Date(),
+          }).render({
+            definition: render.definition,
+            projectRoot: workspace,
+            attemptId,
+            operationId: record.render.operationId,
+          });
+          if ('halt' in outcome) {
+            record.render.halt = { reason: outcome.reason, ...(outcome.log ? { log: outcome.log } : {}) };
+            throw new Error(`RENDER_HALTED:${outcome.reason}`);
+          }
+          record.render.receipt = outcome.receipt;
+        }
         const after = await auditWorkspace(
           workspace,
           projection.runtime === 'codex'
@@ -514,6 +715,7 @@ export class IsolationWorkspace {
             : undefined,
           [],
           join(workspace, '.git'),
+          record.injected,
         );
         if (after.blockers.length) throw new Error(after.blockers.join(';'));
         record.entries = after.entries;
@@ -550,7 +752,8 @@ export class IsolationWorkspace {
     if (
       (await this.commands(record.attemptId)).some(
         (c) => !c.receipt || c.receipt.forkObserved || !c.receipt.treeEmpty,
-      )
+      ) ||
+      (await this.renders(record.attemptId)).some((r) => r.state !== 'complete' && r.state !== 'deleted')
     )
       throw new Error('PROCESS_CLOSURE_UNVERIFIED');
     const identity = await this.operations.attest('stages', record.operationId, record.operationId);
@@ -577,6 +780,7 @@ export class IsolationWorkspace {
         : undefined,
       [],
       join(workspace, '.git'),
+      record.injected,
     );
     if (audit.blockers.length) throw new Error('CROSS_WORKFLOW_SOURCE');
     if (canonicalJson(audit.entries) !== canonicalJson(record.entries))
@@ -611,6 +815,22 @@ export class IsolationWorkspace {
       const commands = await this.commands(attemptId);
       if (commands.some((c) => !c.receipt || c.receipt.forkObserved || !c.receipt.treeEmpty))
         return 'retained';
+      const renders = await this.renders(attemptId);
+      // Within the transaction no render is in flight: reserved or pending means it was interrupted.
+      for (const r of renders)
+        if (r.state === 'reserved' || r.state === 'pending')
+          await this.store.put(`render-${r.operationId}`, {
+            ...r,
+            state: 'unknown',
+            error: r.error ?? 'RENDER_INTERRUPTED',
+          });
+      if (renders.some((r) => r.state !== 'complete' && r.state !== 'deleted')) return 'retained';
+      // A proven stage whose reclaim failed earlier is reclaimed now.
+      for (const r of renders)
+        if (r.state === 'complete' && r.stageIdentity) {
+          await reclaimRenderStage(this.operations, `render-${r.operationId}`, r.stageIdentity);
+          await this.store.put(`render-${r.operationId}`, { ...r, state: 'deleted' });
+        }
       await this.operations.remove('stages', record.operationId, record.identity);
       await this.registry.release(`isolation:${attemptId}`, record.source, record.projection);
       await this.store.put(this.key(attemptId), { ...record, state: 'deleted' });
