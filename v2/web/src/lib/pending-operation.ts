@@ -200,6 +200,7 @@ export class PendingStore {
   readonly #tombstones = new Map<string, RecoveryTombstone>();
   readonly #listeners = new Set<() => void>();
   readonly #resumed = new Set<string>();
+  readonly #sending = new Set<string>();
   #listSnapshot: readonly PendingOperation[] | null = null;
   #tombstoneSnapshot: readonly RecoveryTombstone[] | null = null;
   #unknownVersion = false;
@@ -283,6 +284,22 @@ export class PendingStore {
     this.#operations.set(id, operation);
     this.#commit();
     return operation;
+  }
+
+  /** True for an operation re-entered from a tombstone; its bytes may differ from the original send. */
+  isResumed(id: string): boolean {
+    return this.#resumed.has(id);
+  }
+
+  /** Single-flight per operation: false when a send for this key is already in flight in this tab. */
+  claim(id: string): boolean {
+    if (this.#sending.has(id)) return false;
+    this.#sending.add(id);
+    return true;
+  }
+
+  release(id: string): void {
+    this.#sending.delete(id);
   }
 
   markPending(id: string): void {

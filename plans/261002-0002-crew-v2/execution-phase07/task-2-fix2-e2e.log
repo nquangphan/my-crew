@@ -1,0 +1,14 @@
+$ node_modules/.bin/playwright test e2e/auth.spec.ts e2e/events.spec.ts --reporter=list
+
+Running 3 tests using 1 worker
+
+{"level":30,"time":1791083627619,"pid":299,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55285"}
+  ✓  1 [chromium] › e2e/auth.spec.ts:162:1 › A2: mất response → phiên hết hạn → đăng nhập lại cùng owner → replay đúng key/body → một project/receipt (1.2s)
+  ✓  2 [chromium] › e2e/auth.spec.ts:274:1 › logout chỉ giữ tombstone; payload khác cùng key bị 409 và giữ tombstone; secret không vào sessionStorage (565ms)
+{"level":30,"time":1791083631528,"pid":543,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:55691"}
+{"level":30,"time":1791083633893,"pid":543,"hostname":"Phans-Mac-mini.local","reqId":"req-5","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+  ✓  3 [chromium] › e2e/events.spec.ts:125:1 › SSE thật: catch-up rồi stream Last-Event-ID, event làm stale query, hết phiên đóng stream và nối lại sau reauth (3.7s)
+
+  3 passed (10.3s)
+
+[watchdog] pid=275 exit=0 timeout=False wall=10.62s

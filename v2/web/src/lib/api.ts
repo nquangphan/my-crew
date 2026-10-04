@@ -4,7 +4,8 @@
  * Unconfirmed outcomes (transport error, abort, 5xx, unreadable 2xx) keep the operation ambiguous with the
  * same key. A stale CSRF/Origin 403 suspends it, refreshes the session once and replays the same bytes.
  * A 4xx releases the key only when it proves rejection: always for body-deterministic errors, otherwise only
- * when no earlier send of this key could have committed. Only a confirmed 2xx clears the draft.
+ * when no earlier send of this key could have committed; a payload re-entered from a tombstone returns to the
+ * tombstone instead. One send per operation is in flight at a time. Only a confirmed 2xx clears the draft.
  */
 import { type Decoder, decodeApiErrorBody, isUuid } from '../contracts/http.ts';
 import type { PendingOperation, PendingStore } from './pending-operation.ts';
@@ -97,7 +98,8 @@ function staleCredential(failure: ApiFailure): boolean {
 
 /**
  * Errors decided by the request bytes alone (schema, body validation, key format, size, media type). The
- * same bytes failed the earlier sends too, so the key never committed. Other 4xx (403/404/409/422...) can
+ * same frozen bytes failed the earlier sends too, so the key never committed. This does not hold for a
+ * payload re-entered from a tombstone, which is handled separately. Other 4xx (403/404/409/422...) can
  * come from route `authorize` callbacks that run before the idempotency lookup and depend on current state.
  */
 function bodyDeterministic(failure: ApiFailure): boolean {
@@ -175,6 +177,15 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
     if (!current || current.bodyJson !== operation.bodyJson)
       throw new ApiFailure(null, 'OPERATION_UNKNOWN', 'local');
     requireSession();
+    if (!pending.claim(current.id)) throw new ApiFailure(null, 'OPERATION_IN_FLIGHT', 'local');
+    try {
+      return await deliver<T>(current, request);
+    } finally {
+      pending.release(current.id);
+    }
+  }
+
+  async function deliver<T>(current: PendingOperation, request: RequestOptions): Promise<T> {
     // Any earlier send of this key may have committed; only body-deterministic 4xx then prove rejection.
     let uncertain = current.state !== 'pending';
     let refreshed = false;
@@ -252,12 +263,22 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
         pending.markSuspended(current.id);
         if (refreshed) throw failure;
         refreshed = true;
+        const aborted = () => {
+          pending.markAmbiguous(current.id);
+          return new ApiFailure(null, 'ABORTED', 'aborted');
+        };
+        if (request.signal?.aborted) throw aborted();
         await refreshCsrf();
+        if (request.signal?.aborted) throw aborted();
         pending.markPending(current.id);
         attempt--;
         continue;
       }
-      if (uncertain && !bodyDeterministic(failure)) pending.markAmbiguous(current.id);
+      if (pending.isResumed(current.id)) {
+        // Re-entered bytes may differ from the original send; no 4xx proves the original key never
+        // committed, so the payload is dropped and the key returns to its tombstone.
+        pending.conflict(current.id);
+      } else if (uncertain && !bodyDeterministic(failure)) pending.markAmbiguous(current.id);
       else pending.reject(current.id);
       throw failure;
     }

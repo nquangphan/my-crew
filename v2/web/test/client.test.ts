@@ -555,3 +555,128 @@ test('4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không
   );
   assert.equal(pending.get(fresh.id), undefined, 'operation chưa từng gửi được trả lời rõ ràng thì terminal');
 });
+
+test('payload nhập lại cho tombstone bị 400/413/404 → trở về tombstone, không nhả key cũ', async () => {
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    () => json(400, { error: { code: 'INVALID_INPUT', message: 'Dữ liệu không hợp lệ' } }),
+    () => json(413, { error: { code: 'BODY_TOO_LARGE', message: 'Dữ liệu vượt giới hạn' } }),
+    () => json(404, { error: { code: 'NOT_FOUND', message: 'Không tìm thấy' } }),
+  );
+  const session = await authenticated(server.fetch);
+  const pending = new PendingStore(null);
+  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
+  const original = pending.begin({
+    intentId: 'a',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'AB' },
+    storage: 'tab',
+  });
+  pending.markAmbiguous(original.id);
+  pending.tombstoneAll();
+  for (const [body, status] of [
+    [{ key: '' }, 400],
+    [{ key: 'AB', name: 'x'.repeat(10) }, 413],
+    [{ key: 'AB', name: 'y' }, 404],
+  ] as const) {
+    const resumed = pending.resume(original.id, body, 'tab');
+    await assert.rejects(
+      client.mutate(resumed),
+      (error: unknown) => error instanceof ApiFailure && error.status === status,
+    );
+    assert.equal(pending.get(original.id), undefined, 'payload sai không được giữ');
+    assert.deepEqual(
+      pending.tombstones().map((item) => item.id),
+      [original.id],
+      `${status}: tombstone giữ key cũ`,
+    );
+    assert.throws(
+      () =>
+        pending.begin({
+          intentId: 'a',
+          method: 'POST',
+          path: '/v2/projects',
+          body: { key: 'AB' },
+          storage: 'tab',
+        }),
+      IntentUnresolvedError,
+    );
+  }
+});
+
+test('hai lượt mutate song song trên cùng operation: lượt sau bị chặn, không gửi request', async () => {
+  let release: (response: Response) => void = () => undefined;
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    () => new Promise<Response>((resolve) => (release = resolve)),
+  );
+  const session = await authenticated(server.fetch);
+  const pending = new PendingStore(null);
+  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
+  const operation = pending.begin({
+    intentId: 'a',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'AB' },
+    storage: 'tab',
+  });
+  const first = client.mutate(operation);
+  await new Promise((resolve) => setImmediate(resolve));
+  await assert.rejects(
+    client.mutate(operation),
+    (error: unknown) => error instanceof ApiFailure && error.code === 'OPERATION_IN_FLIGHT',
+  );
+  assert.equal(server.calls.length, 2, 'lượt trùng không được gửi');
+  release(json(201, { id: 'p1' }));
+  assert.deepEqual(await first, { id: 'p1' });
+  assert.equal(pending.get(operation.id), undefined);
+});
+
+test('caller abort trước khi làm mới CSRF hoặc trong lúc làm mới → không replay, giữ key', async () => {
+  const before = new AbortController();
+  const during = new AbortController();
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    () => {
+      before.abort();
+      return csrfInvalid();
+    },
+    csrfInvalid,
+    () => {
+      during.abort();
+      return json(200, { owner: { id: 'owner' }, csrfToken: freshCsrf });
+    },
+  );
+  const session = await authenticated(server.fetch);
+  const pending = new PendingStore(null);
+  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
+  const first = pending.begin({
+    intentId: 'a',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'AB' },
+    storage: 'tab',
+  });
+  pending.markAmbiguous(first.id);
+  await assert.rejects(
+    client.mutate(first, { signal: before.signal }),
+    (error: unknown) => error instanceof ApiFailure && error.kind === 'aborted',
+  );
+  assert.equal(server.calls.length, 2, 'không làm mới, không replay');
+  assert.equal(pending.get(first.id)?.state, 'ambiguous');
+  const second = pending.begin({
+    intentId: 'b',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'CD' },
+    storage: 'tab',
+  });
+  await assert.rejects(
+    client.mutate(second, { signal: during.signal }),
+    (error: unknown) => error instanceof ApiFailure && error.kind === 'aborted',
+  );
+  assert.equal(server.calls.length, 4, 'đã làm mới nhưng không replay');
+  assert.equal(session.csrf(), freshCsrf);
+  assert.equal(pending.get(second.id)?.id, second.id);
+});

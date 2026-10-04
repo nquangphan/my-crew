@@ -156,3 +156,35 @@ Hash source sau vòng sửa:
 | `v2/web/test/auth-recovery.test.ts` | `26d885e13fb5377c5de4be30616bac742fc706ac4b54d9229d6f654235c4941a` |
 
 **Còn lại:** khi operation bị giữ `ambiguous` vì một 4xx phụ thuộc trạng thái (ví dụ ticket đã bị xóa), panel vẫn cho gửi lại nhưng chưa có cách để owner chủ động bỏ yêu cầu đó. Việc này cần quyết định UX (xác nhận bỏ, tức chấp nhận rủi ro trùng). Các Minor trong ledger chưa sửa trong vòng này.
+
+## 8. Vòng sửa 2 (re-review `task-2-fix1-re-review.md`: N1, N2, N4)
+
+**Thay đổi:**
+- **N1** (`api.ts`, `pending-operation.ts`): operation nhập lại từ tombstone (`PendingStore.isResumed`) gặp bất kỳ 4xx nào (gồm 400/413/415 và 4xx phụ thuộc trạng thái) đều đi qua `pending.conflict(id)`. Operation quay về tombstone với key cũ, payload nhập sai bị bỏ; key không bị nhả. Lý do: server kiểm schema/limit/content-type trước bước so `body_hash`, nên bytes nhập lại khác bản gốc có thể nhận 400 thay vì 409.
+- **N2:** `PendingStore.claim/release` làm mỗi operation chỉ có một lượt gửi đang chạy trong tab. Lượt trùng nhận `OPERATION_IN_FLIGHT` (`kind: 'local'`), không gửi request và không đổi state; `uncertain` không bị suy sai nữa.
+- **N4:** nhánh làm mới CSRF kiểm `request.signal` trước và sau `refreshCsrf()`. Nếu caller đã abort, web không replay, operation về `ambiguous` với key giữ nguyên, và lỗi trả `kind: 'aborted'`.
+- Docs: `v2/docs/flows/web-data.md` bước 4 và mục Tests. N3 không sửa (PM đã ghi ledger).
+
+**Test mới (`client.test.ts`):**
+- Resume rồi nhận lần lượt 400/413/404: tombstone vẫn còn đúng key, `begin` cùng intent ném `IntentUnresolvedError`.
+- Hai lượt `mutate` song song: lượt sau bị `OPERATION_IN_FLIGHT`, chỉ có 1 request; lượt đầu vẫn accepted.
+- Abort trước khi làm mới (không GET, không replay) và abort trong lúc làm mới (CSRF đã đổi nhưng không replay): key được giữ.
+
+| Lệnh (heap 384 MiB, watchdog, sole heavy slot) | Kết quả | Log, SHA-256 |
+|---|---|---|
+| RED `node --test test/client.test.ts` | exit 1, tests 19, fail 3, đều do assertion hành vi (`400: tombstone giữ key cũ`, validation `OPERATION_IN_FLIGHT`/aborted trả false) | `task-2-fix2-red.log` `2b03b01bc2b856084f79343a6b729cc9e95f269ac455662673b11c6b72c212bf` |
+| GREEN cùng lệnh | exit 0, 19/19 | `task-2-fix2-green-focused.log` `f66b2abbe043e187cfe342da2378d9c05eeaae03c728446357e5c92538dbc51d` |
+| `biome check` 17 file | exit 0, không còn diagnostic | `task-2-fix2-biome.log` `a9a8e0b6216a1031f7979d6a1fcfe2e4f2323708cccbb6fce467cda40237ea05` |
+| `tsc --noEmit` | exit 0 | `task-2-fix2-typecheck.log` `1af1bb3e095d3cec2b5393c43bebf21a1c19c83c8cbeb8d799cb0cb4be1ba748` |
+| `node --test test/*.test.ts` | exit 0, 46/46 | `task-2-fix2-unit-full.log` `072d78f7f72d06e1dc17a47e5640f0e405fc5ebc0b1b1e6dd2e6333363cfa9b4` |
+| `playwright test e2e/auth.spec.ts e2e/events.spec.ts` | exit 0, 3 passed (10,3 giây) | `task-2-fix2-e2e.log` `a6afebb5850919ee33caaabe6f249720c52f0e2302c0e48471b71bca72b049e9` |
+
+Telemetry (GiB khả dụng / pressure / CPU idle % / đĩa GiB): RED 4,888/1/72,8/753,3; GREEN và E2E 4,828/1/60,28/753,3. Slot đã trả; `ls` xác nhận lock không còn.
+
+Cleanup: danh sách `docker ps -a` trước và sau E2E trùng nhau; TMPDIR không còn `crew-v2-web-*`; PID 275/299/543 không còn; không còn listener trên 55285/55691; `test-results` đã xóa.
+
+Hash source: `v2/web/src/lib/api.ts` `54ac911dc59c56c728025298996ee7a4a2b2fa46e077875eec0ca87bccb5c599`, `v2/web/src/lib/pending-operation.ts` `27195508e2cb43f766c84839840ea9230100f2aeac160a1abfa6208bea36a786`, `v2/web/test/client.test.ts` `78074aa354579e6c333330e33550a3f194ce23030128d63758a275af56e61b69`.
+
+**Còn lại:**
+- Guard in-flight nằm trong `PendingStore` của tab, chưa chặn hai tab cùng gửi một operation. Với operation tab, sessionStorage là riêng cho mỗi tab nên tình huống này không xảy ra.
+- Khi payload nhập lại bị đưa về tombstone, panel hiện “Máy chủ từ chối yêu cầu (code)” cùng dòng tombstone. Câu chữ có thể làm rõ hơn trong vòng UX (cùng nhóm với N3).

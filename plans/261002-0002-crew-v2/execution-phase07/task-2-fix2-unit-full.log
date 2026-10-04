@@ -1,0 +1,67 @@
+$ sh -c node --test test/*.test.ts
+✔ bootstrapping → authenticated / guest / bootstrap-unavailable (13.249916ms)
+✔ login là POST {password} không CSRF/key, mật khẩu 1–4096, 429 không tự thử lại (0.703291ms)
+✔ owner khác sau reauth không được authenticated (0.447917ms)
+✔ mất response → 401 khi gửi lại → reauth cùng owner → replay đúng key/body với CSRF mới (2.553208ms)
+✔ logout: DELETE kèm CSRF, đóng phiên, chỉ giữ tombstone không payload (0.639416ms)
+✔ nhập lại payload khác → 409 giữ tombstone và cùng key; payload đúng thì accepted (0.535958ms)
+✔ reload tab: operation tab giữ key/body ở trạng thái ambiguous, operation memory thành tombstone (0.237625ms)
+✔ đóng form secret chuyển operation memory thành tombstone và xóa secret (0.095333ms)
+✔ serializer từ chối memory operation, secret, token và hash của secret (0.1715ms)
+✔ return route chỉ nhận path nội bộ /crew-v2/ (0.123584ms)
+✔ logout với CSRF cũ làm mới CSRF rồi DELETE lại để server thu hồi phiên (0.252541ms)
+✔ GET chỉ gọi same-origin /v2/ kèm cookie và từ chối path ngoài (15.001041ms)
+✔ không mutation hoặc upload trước khi có phiên (1.157375ms)
+✔ mutation JSON gửi CSRF, Idempotency-Key = operation.id và đúng bodyJson đã freeze (0.569375ms)
+✔ upload bytes thô gửi CSRF, octet-stream, không Idempotency-Key (0.44025ms)
+✔ 503 không phải JSON thành ApiFailure, GET thử lại tối đa 3 lần (0.568959ms)
+✔ AbortError khi mutation đang gửi → ambiguous, không đổi key, không tự gửi lại (0.321042ms)
+✔ hai lần thử lại sau lỗi transport/503 giữ cùng key và cùng body (0.346834ms)
+✔ lỗi transport hết lượt → Chưa xác nhận, operation vẫn ambiguous với cùng key (0.221209ms)
+✔ 401 khi gửi → phiên expired, khóa write, operation suspended giữ nguyên key/body (0.816375ms)
+✔ IDEMPOTENCY_CONFLICT giữ operation; lỗi 400 là từ chối cuối cho phép key mới (0.507875ms)
+✔ GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ qua (0.936375ms)
+✔ decoder từ chối thiếu field, sai primitive và field lạ chưa review (0.380417ms)
+✔ 403 CSRF_INVALID trên operation ambiguous không nhả key; làm mới CSRF rồi replay đúng key/body (0.97875ms)
+✔ 403 CSRF_INVALID mà làm mới phiên nhận 401 → expired, operation suspended giữ key (0.660083ms)
+✔ 403 ORIGIN_INVALID lặp lại sau một lần làm mới → dừng, operation suspended giữ key (0.606709ms)
+✔ 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không nhả key; 400 theo body vẫn là terminal (0.950958ms)
+✔ payload nhập lại cho tombstone bị 400/413/404 → trở về tombstone, không nhả key cũ (0.452417ms)
+✔ hai lượt mutate song song trên cùng operation: lượt sau bị chặn, không gửi request (7.47875ms)
+✔ caller abort trước khi làm mới CSRF hoặc trong lúc làm mới → không replay, giữ key (0.518417ms)
+✔ cursor bigint không bị làm tròn (1.215959ms)
+✔ SSE parser: CRLF/CR/LF, multiline, comment, tách chunk giữa UTF-8 và CRLF (0.957417ms)
+✔ SSE parser đóng khi frame vượt 1MiB hoặc UTF-8 hỏng (43.699125ms)
+✔ invalidations: ticket đánh stale detail/graph/list/attention; type lạ invalidation rộng trong scope (0.307917ms)
+✔ catch-up đọc /v2/events?after=&limit=100 tới rỗng rồi stream với Last-Event-ID; dedup trùng/out-of-order (20.83275ms)
+✔ frame hỏng đóng stream, resync qua GET và dừng sau số lần giới hạn (1.461584ms)
+✔ frame có event name khác type trong data bị coi là hỏng (0.590459ms)
+✔ phiên hết hạn (401) đóng stream và báo session expire (1.665708ms)
+✔ reconnect invalidation rộng; invalidation lỗi khi mất kết nối vẫn chờ và thử lại (3.462334ms)
+{"level":30,"time":1791083614357,"pid":99315,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:54218"}
+fixture-identities={"containerName":"crew-v2-web-18523bff-7c38-4522-8b81-e785a3df0348","containerImageDigest":"sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280","dbPort":53867,"dbName":"crew_v2_test_c15221a711f041f6a80a9c065cb3f6a2","apiOrigin":"http://127.0.0.1:54218","webOrigin":"http://127.0.0.1:54217","registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-NRE5tn/registry.json","resources":[{"kind":"scratch","id":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-NRE5tn","ownershipNonce":"18523bff-7c38-4522-8b81-e785a3df0348","startIdentity":"16777231:220441347"},{"kind":"container","id":"2089efc7af741a6d6fa1f66a99cf9e3d9b04f576341eaf99256c025c9cf3392d","ownershipNonce":"18523bff-7c38-4522-8b81-e785a3df0348","startIdentity":"2089efc7af741a6d6fa1f66a99cf9e3d9b04f576341eaf99256c025c9cf3392d:2026-10-04T03:13:32.822619597Z"},{"kind":"database","id":"crew_v2_test_c15221a711f041f6a80a9c065cb3f6a2","ownershipNonce":"18523bff-7c38-4522-8b81-e785a3df0348","startIdentity":"2089efc7af741a6d6fa1f66a99cf9e3d9b04f576341eaf99256c025c9cf3392d:16385"},{"kind":"listener","id":"web:54217","ownershipNonce":"18523bff-7c38-4522-8b81-e785a3df0348","startIdentity":"99315:Sun Oct  4 10:13:32 2026:web:54217:18523bff-7c38-4522-8b81-e785a3df0348"},{"kind":"listener","id":"api:54218","ownershipNonce":"18523bff-7c38-4522-8b81-e785a3df0348","startIdentity":"99315:Sun Oct  4 10:13:32 2026:api:54218:18523bff-7c38-4522-8b81-e785a3df0348"}]}
+fixture-cleanup=[{"resourceId":"api:54218","state":"stopped","reason":null},{"resourceId":"web:54217","state":"stopped","reason":null},{"resourceId":"crew_v2_test_c15221a711f041f6a80a9c065cb3f6a2","state":"removed","reason":null},{"resourceId":"2089efc7af741a6d6fa1f66a99cf9e3d9b04f576341eaf99256c025c9cf3392d","state":"removed","reason":null},{"resourceId":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-NRE5tn","state":"removed","reason":null}]
+✔ withFixture giữ API, web và DB riêng suốt callback rồi đóng đúng tài nguyên (2122.249708ms)
+✔ unit: identity lạ giữ UNKNOWN và không gọi stop/remove (0.442042ms)
+✔ unit: STOP chưa xác minh giữ UNKNOWN và không remove (0.112334ms)
+scratch-timeout-ready={"scratchPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-fix2-RS1t45","registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-fix2-RS1t45/registry.json","startIdentity":"16777231:220441377"}
+scratch-timeout-own-cleanup={"scratchPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-fix2-RS1t45","absent":true}
+✔ unit: scratch REMOVE hết hạn rồi stat trả trễ phải giữ registry (255.276875ms)
+{"level":30,"time":1791083616636,"pid":99315,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:54585"}
+active-request-ready={"registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-5flhWP/registry.json","apiOrigin":"http://127.0.0.1:54585","resources":[{"kind":"scratch","id":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-5flhWP","ownershipNonce":"b2625db3-c8ad-4f9e-bc1c-d90598383c38","startIdentity":"16777231:220441380"},{"kind":"container","id":"2eeab05a4da4b5b732fd2fdc5348a00bec99aed6719c74fde23976e887f169c0","ownershipNonce":"b2625db3-c8ad-4f9e-bc1c-d90598383c38","startIdentity":"2eeab05a4da4b5b732fd2fdc5348a00bec99aed6719c74fde23976e887f169c0:2026-10-04T03:13:35.196330125Z"},{"kind":"database","id":"crew_v2_test_cdf34de8acaf4126842f7e415593fd0a","ownershipNonce":"b2625db3-c8ad-4f9e-bc1c-d90598383c38","startIdentity":"2eeab05a4da4b5b732fd2fdc5348a00bec99aed6719c74fde23976e887f169c0:16385"},{"kind":"listener","id":"web:54583","ownershipNonce":"b2625db3-c8ad-4f9e-bc1c-d90598383c38","startIdentity":"99315:Sun Oct  4 10:13:32 2026:web:54583:b2625db3-c8ad-4f9e-bc1c-d90598383c38"},{"kind":"listener","id":"api:54585","ownershipNonce":"b2625db3-c8ad-4f9e-bc1c-d90598383c38","startIdentity":"99315:Sun Oct  4 10:13:32 2026:api:54585:b2625db3-c8ad-4f9e-bc1c-d90598383c38"}]}
+active-request-cleanup=[{"resourceId":"api:54585","state":"stopped","reason":null},{"resourceId":"web:54583","state":"stopped","reason":null},{"resourceId":"crew_v2_test_cdf34de8acaf4126842f7e415593fd0a","state":"removed","reason":null},{"resourceId":"2eeab05a4da4b5b732fd2fdc5348a00bec99aed6719c74fde23976e887f169c0","state":"removed","reason":null},{"resourceId":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-5flhWP","state":"removed","reason":null}]
+✔ request đang gửi dở không được giữ fixture close vô hạn hoặc xóa asset khi STOP chưa rõ (1854.172833ms)
+interrupt-ready={"childPid":99797,"processRecord":"99306 Sun Oct  4 10:13:36 2026","registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-LJcwVo/registry.json","resources":[{"kind":"scratch","id":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-LJcwVo","ownershipNonce":"7eb23f74-d99a-4ee4-9fdb-44257547fbf6","startIdentity":"16777231:220441406"},{"kind":"container","id":"72b454947d5c66f549f529e58c7955704fd0ca40fd930f2892ad239e9a27f788","ownershipNonce":"7eb23f74-d99a-4ee4-9fdb-44257547fbf6","startIdentity":"72b454947d5c66f549f529e58c7955704fd0ca40fd930f2892ad239e9a27f788:2026-10-04T03:13:37.223564959Z"},{"kind":"database","id":"crew_v2_test_0cb9648d5c2f4d68926fd958686cdfc7","ownershipNonce":"7eb23f74-d99a-4ee4-9fdb-44257547fbf6","startIdentity":"72b454947d5c66f549f529e58c7955704fd0ca40fd930f2892ad239e9a27f788:16385"},{"kind":"listener","id":"web:54937","ownershipNonce":"7eb23f74-d99a-4ee4-9fdb-44257547fbf6","startIdentity":"99797:Sun Oct  4 10:13:36 2026:web:54937:7eb23f74-d99a-4ee4-9fdb-44257547fbf6"},{"kind":"listener","id":"api:54938","ownershipNonce":"7eb23f74-d99a-4ee4-9fdb-44257547fbf6","startIdentity":"99797:Sun Oct  4 10:13:36 2026:api:54938:7eb23f74-d99a-4ee4-9fdb-44257547fbf6"}]}
+interrupt-cleanup=[{"resourceId":"api:54938","state":"stopped","reason":null},{"resourceId":"web:54937","state":"stopped","reason":null},{"resourceId":"crew_v2_test_0cb9648d5c2f4d68926fd958686cdfc7","state":"removed","reason":null},{"resourceId":"72b454947d5c66f549f529e58c7955704fd0ca40fd930f2892ad239e9a27f788","state":"removed","reason":null},{"resourceId":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-LJcwVo","state":"removed","reason":null}]
+✔ SIGTERM trên preview child đóng đúng run và xác minh STOP trước khi thoát (2137.231958ms)
+✔ web v2 có package độc lập, base riêng và không nhập source v1 (93.623ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 46
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6636.635542
+
+[watchdog] pid=99306 exit=0 timeout=False wall=6.73s
