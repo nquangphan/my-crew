@@ -1,0 +1,2 @@
+src/docs/manifest.ts(2,23): error TS7016: Could not find a declaration file for module 'picomatch'. '/Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/picomatch@4.0.7/node_modules/picomatch/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/picomatch` if it exists or add a new declaration (.d.ts) file containing `declare module 'picomatch';`

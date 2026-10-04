@@ -1,0 +1,45 @@
+## gate before container create
+Sun Oct  4 02:29:22 UTC 2026
+{"at": "2026-10-04T02:29:22.662240+00:00", "pageSize": 16384, "pages": {"Pages free": 29206, "Pages inactive": 287558, "Pages speculative": 6636}, "availableBytes": 5298585600, "availableGiB": 4.935, "pressure": 1, "cpuIdlePercent": 82.41, "cpu": "5.21% user, 12.37% sys, 82.41% idle", "diskFreeBytes": 809741459456, "diskFreeGiB": 754.131, "heavyEligible": true}
+name=crew-v2-test-8af37941-11d3-4e03-b557-bb6d1dc3c50f id=a85894fa6a3a4226df456957c88edfc67c81ce6cfb8584a412876a6436bdc79d
+127.0.0.1:55847
+mem=268435456 nanocpus=1000000000 pids=64 image=postgres:18.6
+pg_isready ok attempt=3
+## gate before Node GREEN118 run1
+Sun Oct  4 02:29:32 UTC 2026
+{"at": "2026-10-04T02:29:33.058769+00:00", "pageSize": 16384, "pages": {"Pages free": 7144, "Pages inactive": 312315, "Pages speculative": 12780}, "availableBytes": 5443403776, "availableGiB": 5.07, "pressure": 1, "cpuIdlePercent": 81.45, "cpu": "6.95% user, 11.58% sys, 81.45% idle", "diskFreeBytes": 809692368896, "diskFreeGiB": 754.085, "heavyEligible": true}
+## gate before scoped tsc
+Sun Oct  4 02:30:25 UTC 2026
+{"at": "2026-10-04T02:30:25.893981+00:00", "pageSize": 16384, "pages": {"Pages free": 25267, "Pages inactive": 282677, "Pages speculative": 16568}, "availableBytes": 5316804608, "availableGiB": 4.952, "pressure": 1, "cpuIdlePercent": 62.88, "cpu": "18.98% user, 18.13% sys, 62.88% idle", "diskFreeBytes": 809739362304, "diskFreeGiB": 754.129, "heavyEligible": true}
+## gate before container create (run2, node v24.21.0)
+Sun Oct  4 02:30:45 UTC 2026
+{"at": "2026-10-04T02:30:46.151418+00:00", "pageSize": 16384, "pages": {"Pages free": 7802, "Pages inactive": 318739, "Pages speculative": 2259}, "availableBytes": 5387059200, "availableGiB": 5.017, "pressure": 1, "cpuIdlePercent": 78.85, "cpu": "6.4% user, 15.10% sys, 78.85% idle", "diskFreeBytes": 809741430784, "diskFreeGiB": 754.13, "heavyEligible": true}
+name=crew-v2-test-52f6c31b-da07-4f5d-8695-57ef8973a521 id=74b7f15e2554973ac1515da289b591c2e5a19c94b9baba80082d2dab0e408e2f
+127.0.0.1:56392
+mem=268435456 nanocpus=1000000000 pids=64 image=postgres:18.6
+pg_isready ok attempt=3
+## gate before Node GREEN118 run2
+Sun Oct  4 02:30:55 UTC 2026
+{"at": "2026-10-04T02:30:55.592842+00:00", "pageSize": 16384, "pages": {"Pages free": 6533, "Pages inactive": 317609, "Pages speculative": 5410}, "availableBytes": 5399379968, "availableGiB": 5.029, "pressure": 1, "cpuIdlePercent": 85.6, "cpu": "4.54% user, 10.38% sys, 85.6% idle", "diskFreeBytes": 809692602368, "diskFreeGiB": 754.085, "heavyEligible": true}
+## gate before scoped tsc run2
+Sun Oct  4 02:31:36 UTC 2026
+{"at": "2026-10-04T02:31:37.067484+00:00", "pageSize": 16384, "pages": {"Pages free": 5991, "Pages inactive": 308305, "Pages speculative": 4366}, "availableBytes": 5220958208, "availableGiB": 4.862, "pressure": 1, "cpuIdlePercent": 81.96, "cpu": "5.37% user, 12.65% sys, 81.96% idle", "diskFreeBytes": 809740562432, "diskFreeGiB": 754.13, "heavyEligible": true}
+## gate before Biome
+Sun Oct  4 02:31:57 UTC 2026
+{"at": "2026-10-04T02:31:57.814507+00:00", "pageSize": 16384, "pages": {"Pages free": 6497, "Pages inactive": 310372, "Pages speculative": 1290}, "availableBytes": 5212717056, "availableGiB": 4.855, "pressure": 1, "cpuIdlePercent": 77.17, "cpu": "8.36% user, 14.46% sys, 77.17% idle", "diskFreeBytes": 809741438976, "diskFreeGiB": 754.13, "heavyEligible": true}
+## gate before Biome run2
+Sun Oct  4 02:32:23 UTC 2026
+{"at": "2026-10-04T02:32:23.877477+00:00", "pageSize": 16384, "pages": {"Pages free": 11511, "Pages inactive": 284513, "Pages speculative": 3115}, "availableBytes": 4901093376, "availableGiB": 4.564, "pressure": 1, "cpuIdlePercent": 84.26, "cpu": "4.59% user, 11.14% sys, 84.26% idle", "diskFreeBytes": 809741348864, "diskFreeGiB": 754.13, "heavyEligible": true}
+## gate before scoped tsc final
+Sun Oct  4 02:32:30 UTC 2026
+{"at": "2026-10-04T02:32:31.192903+00:00", "pageSize": 16384, "pages": {"Pages free": 7138, "Pages inactive": 312605, "Pages speculative": 350}, "availableBytes": 5244403712, "availableGiB": 4.884, "pressure": 1, "cpuIdlePercent": 82.35, "cpu": "5.55% user, 12.9% sys, 82.35% idle", "diskFreeBytes": 809741340672, "diskFreeGiB": 754.13, "heavyEligible": true}
+## gate before container create (final)
+Sun Oct  4 02:32:36 UTC 2026
+{"at": "2026-10-04T02:32:37.326357+00:00", "pageSize": 16384, "pages": {"Pages free": 17384, "Pages inactive": 297696, "Pages speculative": 1617}, "availableBytes": 5188763648, "availableGiB": 4.832, "pressure": 1, "cpuIdlePercent": 78.57, "cpu": "10.86% user, 10.55% sys, 78.57% idle", "diskFreeBytes": 809741332480, "diskFreeGiB": 754.13, "heavyEligible": true}
+name=crew-v2-test-fe17779c-76cf-4b5e-9189-985f3d0310a0 id=9c8e6eb0e550eca21098bbbd9662b73f7187c235ea42cfa7cd48361bfd594b9b
+127.0.0.1:56927
+mem=268435456 nanocpus=1000000000 pids=64 image=postgres:18.6
+pg_isready ok attempt=3
+## gate before Node GREEN118 final
+Sun Oct  4 02:32:43 UTC 2026
+{"at": "2026-10-04T02:32:44.347181+00:00", "pageSize": 16384, "pages": {"Pages free": 5362, "Pages inactive": 301551, "Pages speculative": 740}, "availableBytes": 5040586752, "availableGiB": 4.694, "pressure": 1, "cpuIdlePercent": 76.14, "cpu": "5.50% user, 18.34% sys, 76.14% idle", "diskFreeBytes": 809692749824, "diskFreeGiB": 754.085, "heavyEligible": true}

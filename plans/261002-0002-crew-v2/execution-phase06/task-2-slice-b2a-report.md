@@ -92,3 +92,113 @@ PM grant07:10:36VN, quota74used/26remaining. Own5 Biome check --write exit0 trư
 | task-2-slice-b2a-green-format.log | `c6fb212ef6eb09752d69e47481302c55289d979901f6c0cc7c082d756ddd7750` |
 | task-2-slice-b2a-green-resource.log | `8f0c02c87f8e4c3c26ca3d85a85ff0bd7748e5c6a818baa18ddda692f7cfaf53` |
 | task-2-slice-b2a-green-held-cleanup.log | `b1a493c8f3875e7e00f555b87034c3f02f824f4b4030a042be2cf87922babd2a` |
+
+## GREEN 04/10 (Claude)
+
+**Kết quả: GREEN 118/118 pass, fail0/skip0/cancelled0, exit0 trên Node v24.21.0; scoped strict tsc exit0 (output rỗng); Biome exit0, 0 warning.** Một sửa nhỏ trong owned files (bỏ non-null assertion), sau đó chạy lại tsc/Biome/118 trên source cuối. Không sửa migration 001–011, không nới generic ACL, không biến test allowlist thành quyền production, không giả owner actor. Independent review vẫn chờ PM dispatch.
+
+### Môi trường
+
+- Worktree `/Volumes/CORSAIR/Projects/my-crew-v2`, nhánh `codex/crew-v2-server`, BASE `80734d9`. pnpm 10.32.1.
+- Cài đặt ban đầu chạy trên Node v24.2.0 (`pnpm install --ignore-workspace --frozen-lockfile` trong `v2/` và `v2/server/`). Giữa phiên coordinator nâng Node lên v24.21.0 (`/opt/homebrew/bin/node`, thỏa engines ≥24.12); đã chạy lại install frozen (lockfile up to date, không đổi gì) và **mọi lượt test/tsc tính kết quả đều chạy trên v24.21.0**. Run1 trên v24.2.0 giữ làm raw evidence, không tính.
+- Biome: `pnpm dlx @biomejs/biome@2.5.14` (đúng version trong `pnpm-lock.yaml`), config `biome.json` gốc repo.
+- Docs bundle: `pnpm install --frozen-lockfile --ignore-scripts --filter @crew/docs-kit...` rồi `pnpm --filter @crew/docs-kit build` (dist gitignored).
+
+### Resource gate (pm-telemetry.py, mọi lượt heavyEligible=true)
+
+| Thời điểm UTC | Launch | Pressure | Available GiB | CPU idle % | Disk GiB |
+|---|---|---|---|---|---|
+| 02:29:22 | PG create run1 | 1 | 4.935 | 82.41 | 754.131 |
+| 02:29:33 | Node run1 (v24.2.0) | 1 | 5.070 | 81.45 | 754.085 |
+| 02:30:25 | tsc run1 | 1 | 4.952 | 62.88 | 754.129 |
+| 02:30:46 | PG create run2 | 1 | 5.017 | 78.85 | 754.130 |
+| 02:30:55 | Node run2 (v24.21.0) | 1 | 5.029 | 85.60 | 754.085 |
+| 02:31:37 | tsc run2 | 1 | 4.862 | 81.96 | 754.130 |
+| 02:31:58 | Biome run1 | 1 | 4.855 | 77.17 | 754.130 |
+| 02:32:24 | Biome run2 | 1 | 4.564 | 84.26 | 754.130 |
+| 02:32:31 | tsc final | 1 | 4.884 | 82.35 | 754.130 |
+| 02:32:37 | PG create final | 1 | 4.832 | 78.57 | 754.130 |
+| 02:32:44 | Node final | 1 | 4.694 | 76.14 | 754.085 |
+
+Quota theo ruling 04/10 09:30 (>5%) do PM theo dõi; worker không đọc được quota.
+
+### Container (mỗi lượt một container riêng, tuần tự)
+
+`postgres:18.6` local (image `4ef4dbc939d6`, không pull), `--rm --memory 256m --cpus 1 --pids-limit 64`, `-p 127.0.0.1::5432`, inspect actual mem268435456/nanoCPUs1000000000/pids64, `pg_isready` bounded 60×0.5s (ok ở lần 3 cả ba lượt).
+
+| Lượt | Name | ID | Port |
+|---|---|---|---|
+| run1 | crew-v2-test-8af37941-11d3-4e03-b557-bb6d1dc3c50f | a85894fa6a3a4226df456957c88edfc67c81ce6cfb8584a412876a6436bdc79d | 55847 |
+| run2 | crew-v2-test-52f6c31b-da07-4f5d-8695-57ef8973a521 | 74b7f15e2554973ac1515da289b591c2e5a19c94b9baba80082d2dab0e408e2f | 56392 |
+| final | crew-v2-test-fe17779c-76cf-4b5e-9189-985f3d0310a0 | 9c8e6eb0e550eca21098bbbd9662b73f7187c235ea42cfa7cd48361bfd594b9b | 56927 |
+
+### Lệnh chính xác
+
+```sh
+NODE_OPTIONS=--max-old-space-size=384 \
+CREW_V2_TEST_DATABASE_URL=postgres://postgres@127.0.0.1:<port>/crew_v2_test \
+CREW_V2_TEST_CONTAINER_ID=<id> \
+/opt/homebrew/bin/node --test --test-concurrency=1 --test-timeout=60000 \
+  v2/server/test/assistant-mutations.test.ts v2/server/test/assistant-orchestration.test.ts \
+  v2/server/test/tickets.test.ts v2/server/test/deploy.test.ts v2/server/test/dependencies.test.ts
+
+NODE_OPTIONS=--max-old-space-size=384 pnpm --dir v2/server exec tsc \
+  --noEmit --ignoreConfig --skipLibCheck --target ESNext --module NodeNext \
+  --strict --allowImportingTsExtensions --erasableSyntaxOnly --verbatimModuleSyntax --types node \
+  src/platform/picomatch.d.ts src/platform/thread-stream.d.ts src/attachments/extract/yauzl.d.ts \
+  src/tickets/service.ts src/tickets/decisions.ts src/tickets/dependencies.ts \
+  src/tickets/assistant-access.ts test/assistant-mutations.test.ts
+
+pnpm dlx @biomejs/biome@2.5.14 check v2/server/src/tickets/service.ts v2/server/src/tickets/decisions.ts \
+  v2/server/src/tickets/dependencies.ts v2/server/src/tickets/assistant-access.ts \
+  v2/server/test/assistant-mutations.test.ts
+```
+
+### Kết quả từng lượt
+
+| Lượt | Source | Kết quả |
+|---|---|---|
+| run1 test (Node v24.2.0) | freeze trước | 118 pass/0 fail, exit0, 22256.36ms — không tính vì sai Node |
+| tsc run1 | freeze trước | exit1: `src/docs/manifest.ts` TS7016 thiếu khai báo `picomatch` |
+| run2 test (v24.21.0) | freeze trước | 118 pass/0 fail, exit0, 20565.22ms |
+| tsc run2 | freeze trước | exit0, output rỗng |
+| Biome run1 | freeze trước | exit0 nhưng 3 warning `lint/style/noNonNullAssertion` |
+| Biome run2 | source cuối | exit0, `Checked 5 files`, 0 warning |
+| tsc final | source cuối | exit0, output rỗng |
+| **final test (v24.21.0)** | **source cuối** | **118 pass/0 fail/0 cancelled/0 skipped, exit0, 20550.71ms** |
+
+### Root cause và sửa
+
+1. **tsc run1 exit1 — lỗi lệnh, không phải source.** `--ignoreConfig` với danh sách file tường minh bỏ qua các ambient declaration mà `tsconfig.json` (`include: src/**`) vốn nạp. Import closure của `service.ts` giờ chạm `src/docs/manifest.ts` (import `picomatch`), nên cần `src/platform/picomatch.d.ts`. Đã thêm đúng ba file `.d.ts` của chính project vào lệnh (không đổi skipLibCheck/strict). Không sửa source.
+2. **Biome 3 warning noNonNullAssertion** trong code mới (`assistant-access.ts:162–163` `initial[0]!`, `decisions.ts:237` `prepared.tickets[0]!`); các lượt Biome trước của slice khác đều 0 warning. Thay bằng destructuring + guard tường minh: `assistant-access.ts` ném `invalidScope()` (403 `ORCHESTRATION_SCOPE_INVALID`) nếu tập target rỗng; `decisions.ts` ném cùng mã nếu prepared không có ticket. Nhánh này không reachable vì `prepare` đã từ chối submitted rỗng bằng `VALIDATION`; hành vi các đường reachable không đổi, đã chứng minh bằng final 118.
+
+### Docs (R3)
+
+`v2/docs/flows/server-tickets.md` (flow sở hữu `decisions.ts` và `assistant-access.ts`) cập nhật trạng thái GREEN/strict/Biome và guard tường minh. Mirror chuẩn theo recipe phase02: baseline `git archive HEAD:v2` commit trong mirror tạm (scratchpad), overlay working `v2/` (loại node_modules/.git), `crew-docs generate` (index.md/files.md unchanged), `check --all` ok, `check --staged` ok. Mirror đã xóa.
+
+### Cleanup witness
+
+Sau mỗi lượt: query `pg_database like 'crew_v2_test_%'` 0 rows, `docker stop <exact id>` (auto-remove `--rm`), `docker ps -a --filter id=<id>` rỗng, `docker inspect` → `no such object`, `docker ps -a --filter name=crew-v2-test-` rỗng, `pgrep "node --test"`/`tsc --noEmit` none. Lần cuối 02:33:10 UTC. Không đụng crew-dev-postgres/visinote-*. Không host scratch còn lại. Heavy slot đã trả.
+
+### SHA256
+
+| File | SHA256 |
+|---|---|
+| v2/server/src/tickets/service.ts | `ea22905be9db47890d631db39bfb12da12d1390245573dbea2dfe2f88e26bec3` (không đổi) |
+| v2/server/src/tickets/decisions.ts | `3121f066541d69cb7ed9215f4b250db143f199e44754e7b56fbd541a3fbc79b1` |
+| v2/server/src/tickets/dependencies.ts | `b090f768f43f70acea6fb0b2bb05c02e4a769d12e5a7dc47abca02f9ec63118a` (không đổi) |
+| v2/server/src/tickets/assistant-access.ts | `4b59a49e0d856464e56dac7237353d9fa6be0d982e5611f207cc714c92b22366` |
+| v2/server/test/assistant-mutations.test.ts | `701fba4b54473017e59dd4ae3d8be3c7cb25f45a2eec73fbd22270f966368075` (không đổi) |
+| task-2-slice-b2a-green-claude-final.log | `e4647ce9ba717fcb55b8dfe144dcf8fc18bd3b58c9023cfac39a30578991775e` |
+| task-2-slice-b2a-green-claude-run2.log | `3b9ef1bc5d19ca9c7b0bdcc73f4abbc7cb99e61dc0d9222c5f028eeb06e5098e` |
+| task-2-slice-b2a-green-claude-run1.log | `3822421aa628ec5e438576edc0f59fc019bce5ae5a6718e2ada8e6bb484767b0` |
+| task-2-slice-b2a-green-claude-typecheck.log | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (rỗng) |
+| task-2-slice-b2a-green-claude-typecheck-run2.log | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (rỗng) |
+| task-2-slice-b2a-green-claude-typecheck-run1.log | `16e476d291269bbbedbad5665d805df734aaf69ccaaa1506f12de8c44c8eab02` |
+| task-2-slice-b2a-green-claude-biome.log | `29586471ac3eccee6f19d5d816f3e6b8ba3f62f87678b50316f67d606b30c892` |
+| task-2-slice-b2a-green-claude-biome-run1.log | `37ddbc9e01856b969192a00a2b248e50d8eb0ed6ee028edded2e2d0ab1e00e2e` |
+| task-2-slice-b2a-green-claude-resource.log | `145eeb5e97fcb8f509ac45fcab06dc7bb10e7aaa1effa41c99ba96564c71fa2d` |
+| task-2-slice-b2a-green-claude-cleanup.log | `0ab0b47824bad6f0cc55f761745ce8638c20b77f6215291300efbc184a6d348a` |
+| task-2-slice-b2a-green-claude-install.log | `8807e8c74f399218af30606472c8bbf6dd3ea4504d2a57807c99645789c0bd90` |
+
+Giới hạn: scoped strict không phải full-server typecheck PASS; B2b signal/command, B3 input locks và production positive authority vẫn pending.

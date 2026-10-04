@@ -1,0 +1,48 @@
+Sun Oct  4 02:30:10 UTC 2026
+container=a85894fa6a3a4226df456957c88edfc67c81ce6cfb8584a412876a6436bdc79d name=crew-v2-test-8af37941-11d3-4e03-b557-bb6d1dc3c50f
+## leftover per-test DB check
+ datname 
+---------
+(0 rows)
+
+## stop (--rm auto-remove)
+a85894fa6a3a4226df456957c88edfc67c81ce6cfb8584a412876a6436bdc79d
+## docker ps -a filter id=a85894fa6a3a4226df456957c88edfc67c81ce6cfb8584a412876a6436bdc79d
+(empty above = absent)
+error: no such object: a85894fa6a3a4226df456957c88edfc67c81ce6cfb8584a412876a6436bdc79d
+## node test processes
+none
+No host scratch directory created for B2a GREEN (Claude).
+
+=== run2 cleanup ===
+Sun Oct  4 02:31:26 UTC 2026
+container=74b7f15e2554973ac1515da289b591c2e5a19c94b9baba80082d2dab0e408e2f name=crew-v2-test-52f6c31b-da07-4f5d-8695-57ef8973a521
+ datname 
+---------
+(0 rows)
+
+74b7f15e2554973ac1515da289b591c2e5a19c94b9baba80082d2dab0e408e2f
+## docker ps -a filter id
+(empty above = absent)
+error: no such object: 74b7f15e2554973ac1515da289b591c2e5a19c94b9baba80082d2dab0e408e2f
+## docker ps -a filter name=crew-v2-test-
+(empty above = no crew-v2-test containers)
+node --test: none
+No host scratch directory created for B2a GREEN (Claude).
+
+=== final run cleanup ===
+Sun Oct  4 02:33:10 UTC 2026
+container=9c8e6eb0e550eca21098bbbd9662b73f7187c235ea42cfa7cd48361bfd594b9b name=crew-v2-test-fe17779c-76cf-4b5e-9189-985f3d0310a0
+ datname 
+---------
+(0 rows)
+
+9c8e6eb0e550eca21098bbbd9662b73f7187c235ea42cfa7cd48361bfd594b9b
+## docker ps -a filter id
+(empty above = absent)
+error: no such object: 9c8e6eb0e550eca21098bbbd9662b73f7187c235ea42cfa7cd48361bfd594b9b
+## docker ps -a filter name=crew-v2-test-
+(empty above = no crew-v2-test containers)
+node --test: none
+tsc: none
+No host scratch directory created for B2a GREEN (Claude).

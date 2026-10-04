@@ -1,0 +1,62 @@
+# pnpm dlx @biomejs/biome@2.5.14 (locked version) check, repo-root biome.json
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +2
+++
+Progress: resolved 9, reused 2, downloaded 0, added 2, done
+v2/server/src/tickets/assistant-access.ts:162:22 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    160 │         initial.push(row);
+    161 │       }
+  > 162 │       const rootId = initial[0]!.root_id as Id;
+        │                      ^^^^^^^^^^^
+    163 │       const projectId = initial[0]!.project_id as Id;
+    164 │       if (initial.some((row) => row.root_id !== rootId || row.project_id !== projectId))
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    160 160 │           initial.push(row);
+    161 161 │         }
+    162     │ - ······const·rootId·=·initial[0]!.root_id·as·Id;
+        162 │ + ······const·rootId·=·initial[0]?.root_id·as·Id;
+    163 163 │         const projectId = initial[0]!.project_id as Id;
+    164 164 │         if (initial.some((row) => row.root_id !== rootId || row.project_id !== projectId))
+  
+
+v2/server/src/tickets/assistant-access.ts:163:25 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    161 │       }
+    162 │       const rootId = initial[0]!.root_id as Id;
+  > 163 │       const projectId = initial[0]!.project_id as Id;
+        │                         ^^^^^^^^^^^
+    164 │       if (initial.some((row) => row.root_id !== rootId || row.project_id !== projectId))
+    165 │         throw new ApiError('DEPENDENCY_SCOPE', 409, 'Phụ thuộc phải cùng yêu cầu');
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    161 161 │         }
+    162 162 │         const rootId = initial[0]!.root_id as Id;
+    163     │ - ······const·projectId·=·initial[0]!.project_id·as·Id;
+        163 │ + ······const·projectId·=·initial[0]?.project_id·as·Id;
+    164 164 │         if (initial.some((row) => row.root_id !== rootId || row.project_id !== projectId))
+    165 165 │           throw new ApiError('DEPENDENCY_SCOPE', 409, 'Phụ thuộc phải cùng yêu cầu');
+  
+
+v2/server/src/tickets/decisions.ts:237:20 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    235 │     const payload = operation.payload;
+    236 │     const prepared = await access.prepare(tx, operation, [payload.ticketId]);
+  > 237 │     const ticket = prepared.tickets[0]!;
+        │                    ^^^^^^^^^^^^^^^^^^^^
+    238 │     await prepareDecision(tx, ticket, payload.input, operation.actor, readSource);
+    239 │     const scope = await access.authorize(tx, prepared);
+  
+
+Checked 5 files in 18ms. No fixes applied.
+Found 3 warnings.
+biome exit=0

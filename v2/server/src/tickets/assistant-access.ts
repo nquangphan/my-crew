@@ -159,8 +159,10 @@ export function createAssistantAccess(authority?: ProjectOrchestrationAuthority)
         if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
         initial.push(row);
       }
-      const rootId = initial[0]!.root_id as Id;
-      const projectId = initial[0]!.project_id as Id;
+      const [first] = initial;
+      if (!first) throw invalidScope();
+      const rootId = first.root_id as Id;
+      const projectId = first.project_id as Id;
       if (initial.some((row) => row.root_id !== rootId || row.project_id !== projectId))
         throw new ApiError('DEPENDENCY_SCOPE', 409, 'Phụ thuộc phải cùng yêu cầu');
       const [root] =

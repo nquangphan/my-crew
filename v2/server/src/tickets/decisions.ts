@@ -234,7 +234,8 @@ export function createAssistantDecisionRecorder(
     const operation = captureAssistantOperation(actor, proof, 'decision', { ticketId, input });
     const payload = operation.payload;
     const prepared = await access.prepare(tx, operation, [payload.ticketId]);
-    const ticket = prepared.tickets[0]!;
+    const [ticket] = prepared.tickets;
+    if (!ticket) throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
     await prepareDecision(tx, ticket, payload.input, operation.actor, readSource);
     const scope = await access.authorize(tx, prepared);
     return persistDecision(tx, ticket, payload.ticketId, payload.input, operation.actor, { prepared, scope });
