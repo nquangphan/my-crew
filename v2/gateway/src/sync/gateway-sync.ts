@@ -145,8 +145,8 @@ export class GatewaySync {
     }
   }
   private async prerequisites(source: SourcePin, pin: ProjectionPin): Promise<RenderPrerequisites | null> {
-    const { projectionRoot } = await this.options.registry.resolve(source, pin);
     try {
+      const { projectionRoot } = await this.options.registry.resolve(source, pin);
       return (await this.options.prerequisites?.(projectionRoot)) ?? null;
     } catch {
       return null;

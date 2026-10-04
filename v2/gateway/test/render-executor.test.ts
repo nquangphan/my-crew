@@ -1137,9 +1137,9 @@ async function withProbeHost(
     uvPath: string;
     pythonLink: string;
     pythonReal: string;
-    calls: [string, string[]][];
+    calls: [string, string[], string][];
     outputs: Map<string, string | Error>;
-    runner: (file: string, args: string[]) => Promise<string>;
+    runner: (file: string, args: string[], options: { cwd: string }) => Promise<string>;
   }) => Promise<void>,
 ): Promise<void> {
   const base = await realpath(await mkdtemp(join(tmpdir(), 'crew-render-probe-')));
@@ -1155,14 +1155,14 @@ async function withProbeHost(
     await writeFile(pythonReal, 'python bytes\n', { mode: 0o755 });
     const pythonLink = join(base, 'bin', 'python3.13');
     await symlink(pythonReal, pythonLink);
-    const calls: [string, string[]][] = [];
+    const calls: [string, string[], string][] = [];
     const outputs = new Map<string, string | Error>([
       ['--version', 'uv 0.12.13 (Homebrew 2026-09-30)\n'],
       ['python', `${pythonLink}\n`],
-      ['-c', '3.13.5\n'],
+      ['-c', 'cpython 3.13.5\n'],
     ]);
-    const runner = async (file: string, args: string[]) => {
-      calls.push([file, [...args]]);
+    const runner = async (file: string, args: string[], options: { cwd: string }) => {
+      calls.push([file, [...args], options.cwd]);
       const output = outputs.get(args[0]);
       if (output instanceof Error) throw output;
       return output ?? '';
@@ -1194,19 +1194,32 @@ test('install-report probe measures uv and the interpreter uv finds for the pinn
         version: '3.13.5',
       },
     });
+    // Every probe command runs in the projection root, never in the gateway's own working directory,
+    // so a `.python-version` or `.venv` there cannot change the interpreter uv finds.
     assert.deepEqual(host.calls, [
-      [host.uvPath, ['--version']],
-      [host.uvPath, ['python', 'find', '--script', `${host.projectionRoot}/_bmad/scripts/render_skill.py`]],
-      [host.pythonReal, ['-c', 'import sys;print(sys.version.split()[0])']],
+      [host.uvPath, ['--version'], host.projectionRoot],
+      [
+        host.uvPath,
+        ['python', 'find', '--script', `${host.projectionRoot}/_bmad/scripts/render_skill.py`],
+        host.projectionRoot,
+      ],
+      [
+        host.pythonReal,
+        ['-c', 'import sys;print(sys.implementation.name, sys.version.split()[0])'],
+        host.projectionRoot,
+      ],
     ]);
   });
 });
 
 test('install-report probe refuses an interpreter the pinned renderer cannot run or an unusable answer', async () => {
   const cases: [string, (host: { outputs: Map<string, string | Error>; base: string }) => void, RegExp][] = [
-    ['CLT Python 3.9', (h) => h.outputs.set('-c', '3.9.6\n'), /RENDER_PYTHON_UNSUPPORTED/],
-    ['Python 2', (h) => h.outputs.set('-c', '2.7.18\n'), /RENDER_PYTHON_UNSUPPORTED/],
-    ['garbled version', (h) => h.outputs.set('-c', 'Python three\n'), /RENDER_PYTHON_UNSUPPORTED/],
+    ['CLT Python 3.9', (h) => h.outputs.set('-c', 'cpython 3.9.6\n'), /RENDER_PYTHON_UNSUPPORTED/],
+    ['Python 2', (h) => h.outputs.set('-c', 'cpython 2.7.18\n'), /RENDER_PYTHON_UNSUPPORTED/],
+    ['garbled version', (h) => h.outputs.set('-c', 'cpython three\n'), /RENDER_PYTHON_UNSUPPORTED/],
+    ['PyPy 3.11', (h) => h.outputs.set('-c', 'pypy 3.11.13\n'), /RENDER_PYTHON_UNSUPPORTED/],
+    ['GraalPy 3.11', (h) => h.outputs.set('-c', 'graalpy 3.11.7\n'), /RENDER_PYTHON_UNSUPPORTED/],
+    ['version without implementation', (h) => h.outputs.set('-c', '3.13.5\n'), /RENDER_PYTHON_UNSUPPORTED/],
     [
       'no interpreter found',
       (h) => h.outputs.set('python', new Error('error: No interpreter found for Python >=3.11')),
@@ -1269,12 +1282,13 @@ test('install-report probe runs the owner executables without a shell by default
     await writeFile(
       host.uvPath,
       `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "uv 0.12.13"; exit 0; fi\n` +
+        `[ "$(pwd -P)" = "${host.projectionRoot}" ] || exit 3\n` +
         `if [ "$1 $2 $3 $4" = "python find --script ${host.projectionRoot}/_bmad/scripts/render_skill.py" ]; then echo "${host.pythonLink}"; exit 0; fi\nexit 2\n`,
       { mode: 0o755 },
     );
     await writeFile(
       host.pythonReal,
-      `#!/bin/sh\n[ "$1 $2" = "-c import sys;print(sys.version.split()[0])" ] && echo 3.12.12\n`,
+      `#!/bin/sh\n[ "$1 $2" = "-c import sys;print(sys.implementation.name, sys.version.split()[0])" ] && echo cpython 3.12.12\n`,
       { mode: 0o755 },
     );
     const measured = await probeRenderPrerequisites({
@@ -1287,4 +1301,10 @@ test('install-report probe runs the owner executables without a shell by default
     assert.equal(measured.python.version, '3.12.12');
     assert.equal(measured.python.sha256, sha256(await readFile(host.pythonReal)));
   });
+});
+
+test('render executor source spells its private-use sanitizer delimiters as escapes', async () => {
+  const source = await readFile(new URL('../src/assistant/render-executor.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /[-]/u);
+  assert(source.includes('\\uE000') && source.includes('\\uE001'));
 });

@@ -521,6 +521,7 @@ test('sync reports measured render prerequisites beside a BMAD render definition
     ) {
       if (source.name === 'bmad' && projection.runtime !== 'claude')
         throw new Error('WORKFLOW_DEFINITION_UNAVAILABLE');
+      if (source.name === 'bmad' && armResolveFailure) failNextResolve = true;
       // Only the BMAD claude definition carries a render tier; its content is opaque to sync.
       return {
         sha256: projection.treeSha256,
@@ -544,6 +545,17 @@ test('sync reports measured render prerequisites beside a BMAD render definition
       version: '3.13.5',
     },
   };
+  // Lets a test make the projection lookup made for the prerequisites (after the definition) fail.
+  let failNextResolve = false;
+  const registry = Object.create(w.registry) as typeof w.registry;
+  registry.resolve = async (...args: Parameters<typeof w.registry.resolve>) => {
+    if (failNextResolve) {
+      failNextResolve = false;
+      throw new Error('PROJECTION_RESOLVE_FAILED');
+    }
+    return w.registry.resolve(...args);
+  };
+  let armResolveFailure = false;
   const run = async (probe?: (projectionRoot: string) => Promise<typeof measured>) => {
     const reports: import('../src/commands/contracts.ts').InstallReport[] = [];
     const home = await bridgeRoot();
@@ -558,7 +570,7 @@ test('sync reports measured render prerequisites beside a BMAD render definition
       machineId: command.machineId,
       bootId: randomUUID(),
       bootGeneration: '1',
-      registry: w.registry,
+      registry,
       http,
       recipes: w.projections,
       definitions,
@@ -612,6 +624,15 @@ test('sync reports measured render prerequisites beside a BMAD render definition
     assert.equal(missing.bmad.projections.claude.state, 'current');
     assert.deepEqual(missing.bmad.projections.claude.definition, plain.bmad.projections.claude.definition);
     assert.equal('prerequisites' in missing.bmad.projections.claude, false);
+
+    // The projection lookup for the probe failing likewise only omits the field.
+    armResolveFailure = true;
+    const unresolved = await run(async () => measured);
+    armResolveFailure = false;
+    assert.equal(failNextResolve, false, 'the prerequisites lookup was attempted');
+    assert.equal(unresolved.bmad.projections.claude.state, 'current');
+    assert.deepEqual(unresolved.bmad.projections.claude.definition, plain.bmad.projections.claude.definition);
+    assert.equal('prerequisites' in unresolved.bmad.projections.claude, false);
   } finally {
     await w.close();
     await owned.cleanup();

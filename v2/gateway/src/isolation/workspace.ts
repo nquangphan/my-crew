@@ -668,6 +668,14 @@ export class IsolationWorkspace {
           throw new Error('CLONE_NOT_CLEAN');
         const before = await auditWorkspace(workspace, undefined, [], join(workspace, '.git'));
         if (before.blockers.length) throw new Error(before.blockers.join(';'));
+        // The clone is clean at the owner commit, so every entry is tracked. A BMAD render would replace
+        // a tracked `_bmad` with the render subset and the runtime could commit that replacement, so the
+        // prepare refuses before anything of the owner's `_bmad` is moved.
+        if (
+          render !== undefined &&
+          before.entries.some((e) => e.path === '_bmad' || e.path.startsWith('_bmad/'))
+        )
+          throw new Error('BMAD_TRACKED_IN_CHECKOUT');
         record.exclusions = before.entries.filter((e) => e.classification === 'discovery');
         const excludedRoots: string[] = [];
         for (const entry of record.exclusions) {

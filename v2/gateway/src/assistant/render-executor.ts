@@ -443,9 +443,9 @@ function escapeRegExp(value: string): string {
 function sanitizeLine(text: string, labels: readonly [string, string][]): string {
   // Finished fragments are parked behind private-use delimiters so later rules cannot touch them;
   // delimiters already present in the child's output are dropped first.
-  let line = text.replace(/[]/g, '');
+  let line = text.replace(/[\uE000\uE001]/g, '');
   const kept: string[] = [];
-  const hold = (fragment: string) => `${kept.push(fragment) - 1}`;
+  const hold = (fragment: string) => `\uE000${kept.push(fragment) - 1}\uE001`;
   for (const [value, label] of [...labels].sort((a, b) => b[0].length - a[0].length))
     line = line.replace(new RegExp(`${escapeRegExp(value)}${labelSuffix}`, 'g'), (_match, suffix?: string) =>
       hold(`${label}${suffix ?? ''}`),
@@ -470,7 +470,7 @@ function sanitizeLine(text: string, labels: readonly [string, string][]): string
     (_match, name: string) => `${name}=${hold('{redacted}')}`,
   );
   line = line.replace(pathRun, '{path}');
-  line = line.replace(/(\d+)/g, (_match, index: string) => kept[Number(index)] ?? '?');
+  line = line.replace(/\uE000(\d+)\uE001/g, (_match, index: string) => kept[Number(index)] ?? '?');
   return [...line]
     .map((character) => (/^[\x20-\x7e]$/.test(character) ? character : '?'))
     .join('')
@@ -579,13 +579,25 @@ async function removeLeader(root: string, name: string): Promise<void> {
   await unlink(path);
 }
 
-/** Reclaims a render stage whose closure is proven, then its session leader record. */
+/**
+ * Reclaims a render stage whose closure is proven, then its session leader record. Idempotent: a stage
+ * already gone (an earlier reclaim removed it but failed afterwards) counts as removed, so a retry only
+ * finishes the leader cleanup instead of failing on the missing stage forever.
+ */
 export async function reclaimRenderStage(
   operations: Pick<RenderOperations, 'root' | 'remove'>,
   name: string,
   identity: OwnedIdentity,
 ): Promise<void> {
-  await operations.remove('stages', name, identity);
+  const present = await lstat(join(operations.root, 'stages', name)).then(
+    () => true,
+    (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') return false;
+      throw error;
+    },
+  );
+  // A stage that is present is removed only through the helper, which checks its identity.
+  if (present) await operations.remove('stages', name, identity);
   await removeLeader(operations.root, name);
 }
 
@@ -981,19 +993,20 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
   };
 }
 
-/** Runs one owner executable (no shell) and resolves with its stdout; rejects on any failure. */
-export type ProbeRunner = (file: string, args: string[]) => Promise<string>;
+/** Runs one owner executable (no shell) in `cwd` and resolves with its stdout; rejects on any failure. */
+export type ProbeRunner = (file: string, args: string[], options: { cwd: string }) => Promise<string>;
 
-const pythonVersionProgram = 'import sys;print(sys.version.split()[0])';
+const pythonVersionProgram = 'import sys;print(sys.implementation.name, sys.version.split()[0])';
 
 // The owner's own environment decides which interpreter `uv` finds, as for the runtime's own
 // `uv run`; only downloads and network are switched off. Bounded in time and output.
-const ownerRunner: ProbeRunner = (file, args) =>
+const ownerRunner: ProbeRunner = (file, args, { cwd }) =>
   new Promise((resolve, reject) => {
     execFile(
       file,
       args,
       {
+        cwd,
         env: { ...process.env, UV_OFFLINE: '1', UV_PYTHON_DOWNLOADS: 'never' },
         timeout: 10_000,
         maxBuffer: 64 * 1024,
@@ -1036,6 +1049,9 @@ async function measuredIdentity(path: string): Promise<{ realpath: string; sha25
  * at `uvPath` (path, resolved path, SHA-256 of the resolved bytes, `uv --version`), and the
  * interpreter `uv python find --script` picks for the projection's pinned `render_skill.py` — the one
  * the runtime's own `uv run` would use — with its version, which must be CPython 3.11 or newer.
+ * Every command runs with the projection root as working directory: `uv` reads `.python-version` and
+ * `.venv` from the working directory and its parents, and the projection root carries neither, like a
+ * workspace whose project pins no interpreter, so the gateway's own working directory cannot sway it.
  * Rejects with RENDER_PREREQUISITE_INVALID, RENDER_UV_UNAVAILABLE, RENDER_PYTHON_UNAVAILABLE or
  * RENDER_PYTHON_UNSUPPORTED. Versions are recorded as reported, not verified.
  */
@@ -1045,8 +1061,9 @@ export async function probeRenderPrerequisites(input: {
   run?: ProbeRunner;
 }): Promise<RenderPrerequisites> {
   const { uvPath, projectionRoot } = input;
-  const run = input.run ?? ownerRunner;
   if (!lexicalPath(uvPath) || !lexicalPath(projectionRoot)) throw new Error('RENDER_PREREQUISITE_INVALID');
+  const runner = input.run ?? ownerRunner;
+  const run = (file: string, args: string[]) => runner(file, args, { cwd: projectionRoot });
   const uvMeasured = await probeStep('RENDER_UV_UNAVAILABLE', () => measuredIdentity(uvPath));
   const uvVersion = await probeStep('RENDER_UV_UNAVAILABLE', async () =>
     probeLine(await run(uvMeasured.realpath, ['--version']), /^.{1,128}$/),
@@ -1062,11 +1079,11 @@ export async function probeRenderPrerequisites(input: {
   const pythonMeasured = await probeStep('RENDER_PYTHON_UNAVAILABLE', () => measuredIdentity(pythonPath));
   const pythonVersion = await probeStep('RENDER_PYTHON_UNAVAILABLE', async () => {
     const output = await run(pythonMeasured.realpath, ['-c', pythonVersionProgram]);
-    const version = typeof output === 'string' ? output.replace(/\r?\n$/, '') : '';
-    const match = /^3\.(\d{1,3})\.\d{1,3}(?:[a-z]+\d*)?$/.exec(version);
-    // The pinned renderer needs `tomllib`, new in Python 3.11.
-    if (!match || Number(match[1]) < 11) throw new Error('RENDER_PYTHON_UNSUPPORTED');
-    return version;
+    const line = typeof output === 'string' ? output.replace(/\r?\n$/, '') : '';
+    // Only CPython is accepted, and the pinned renderer needs `tomllib`, new in Python 3.11.
+    const match = /^cpython (3\.(\d{1,3})\.\d{1,3}(?:[a-z]+\d*)?)$/.exec(line);
+    if (!match || Number(match[2]) < 11) throw new Error('RENDER_PYTHON_UNSUPPORTED');
+    return match[1];
   });
   return {
     uv: { path: uvPath, ...uvMeasured, version: uvVersion },

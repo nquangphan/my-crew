@@ -130,16 +130,18 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare', 
     for (const [path, digest] of Object.entries(definition.render.layers)) if (digest) pinned[path] = digest;
     assert.deepEqual(Object.keys(pinned).sort(), expectedFiles);
 
-    // Owner checkout tracking its own `_bmad` and `.claude`; both must be excluded, never mixed in.
+    // Two owner checkouts: `owner` tracks only `.claude` (excluded from the clone, then the render subset
+    // is materialized); `trackedOwner` also tracks `_bmad`, which a BMAD prepare must refuse.
     const owner = join(root, 'owner');
+    const trackedOwner = join(root, 'tracked-owner');
     const home = join(root, 'fixture-home');
-    for (const path of [owner, home, join(home, 'template'), join(home, 'hooks')])
+    for (const path of [owner, trackedOwner, home, join(home, 'template'), join(home, 'hooks')])
       await mkdir(path, { mode: 0o700 });
     const projectionRoot = (await registry.resolve(pin, projection)).projectionRoot;
-    const ownerGit = async (...args: string[]) => {
+    const repoGit = async (repo: string, ...args: string[]) => {
       const e = await service.measure(
         'fixture',
-        owner,
+        repo,
         git,
         [
           '-c',
@@ -151,11 +153,11 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare', 
           ...args,
         ],
         {
-          workspace: owner,
+          workspace: repo,
           attemptHome: home,
           projectionRoot,
-          extraRead: [owner, '/Library/Developer/CommandLineTools'],
-          extraWrite: [owner],
+          extraRead: [repo, '/Library/Developer/CommandLineTools'],
+          extraWrite: [repo],
           environment: [
             'GIT_CONFIG_NOSYSTEM=1',
             'GIT_CONFIG_GLOBAL=/dev/null',
@@ -166,27 +168,37 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare', 
       assert.equal(e.receipt?.exitCode, 0, e.output || e.error || 'missing receipt');
       return e.output.trim();
     };
-    await ownerGit('init', owner);
-    await mkdir(join(owner, 'docs'));
-    await mkdir(join(owner, '_bmad'));
-    await mkdir(join(owner, '.claude'));
-    await writeFile(join(owner, 'docs/product.md'), 'product specifications remain\n');
-    await writeFile(join(owner, '_bmad/legacy.toml'), 'owner = "tracked"\n');
-    await writeFile(join(owner, '.claude/settings.json'), '{"owner":true}\n');
-    await ownerGit('-C', owner, 'add', '--all');
-    await ownerGit(
-      '-C',
-      owner,
-      '-c',
-      'user.name=Fixture',
-      '-c',
-      'user.email=fixture@example.invalid',
-      '-c',
-      'commit.gpgSign=false',
-      'commit',
-      '-m',
-      'fixture',
-    );
+    const commitOwner = async (repo: string, files: Record<string, string>) => {
+      await repoGit(repo, 'init', repo);
+      for (const [path, body] of Object.entries(files)) {
+        await mkdir(join(repo, path, '..'), { recursive: true });
+        await writeFile(join(repo, path), body);
+      }
+      await repoGit(repo, '-C', repo, 'add', '--all');
+      await repoGit(
+        repo,
+        '-C',
+        repo,
+        '-c',
+        'user.name=Fixture',
+        '-c',
+        'user.email=fixture@example.invalid',
+        '-c',
+        'commit.gpgSign=false',
+        'commit',
+        '-m',
+        'fixture',
+      );
+    };
+    await commitOwner(owner, {
+      'docs/product.md': 'product specifications remain\n',
+      '.claude/settings.json': '{"owner":true}\n',
+    });
+    await commitOwner(trackedOwner, {
+      'docs/product.md': 'product specifications remain\n',
+      '_bmad/legacy.toml': 'owner = "tracked"\n',
+      '.claude/settings.json': '{"owner":true}\n',
+    });
 
     // Install-report prerequisites: `uv` and a Homebrew-style linked interpreter.
     await mkdir(join(root, 'bin'));
@@ -203,7 +215,7 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare', 
     const render = { definition, prerequisites };
 
     await t.test('a prepare without a render request is unchanged', async () => {
-      const w = await service.prepareWorkspace(owner, 'plain-attempt', pin, projection);
+      const w = await service.prepareWorkspace(trackedOwner, 'plain-attempt', pin, projection);
       assert.equal('injected' in w, false);
       assert.equal('render' in w, false);
       assert(w.exclusions.some((e) => e.path === '_bmad/legacy.toml'));
@@ -239,7 +251,9 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare', 
           'notes.py',
         ])
           assert(!w.entries.some((e) => e.path.endsWith(`/${omitted}`)), omitted);
-        assert(w.exclusions.some((e) => e.path === '_bmad/legacy.toml'));
+        // An untracked `_bmad` in the owner checkout is materialized as before; `.claude` is excluded.
+        assert(w.exclusions.some((e) => e.path === '.claude/settings.json'));
+        assert(!w.exclusions.some((e) => e.path.startsWith('_bmad')));
 
         assert(w.injected);
         assert.deepEqual(Object.keys(w.injected.files).sort(), expectedFiles);
@@ -327,6 +341,55 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare', 
         assert.equal(await service.cleanup(attemptId), 'deleted');
       },
     );
+
+    await t.test(
+      'a BMAD prepare refuses an owner checkout that tracks _bmad and leaves it in place',
+      async () => {
+        const attemptId = randomUUID();
+        await assert.rejects(
+          () => service.prepareWorkspace(trackedOwner, attemptId, pin, projection, render),
+          /BMAD_TRACKED_IN_CHECKOUT/,
+        );
+        const record = await service.get(attemptId);
+        assert(record);
+        assert.equal(record.state, 'retained');
+        assert.equal('injected' in record, false);
+        assert.equal('render' in record, false);
+        assert.deepEqual(record.exclusions, []);
+        // Nothing of the owner's `_bmad` was moved, removed or replaced, in the clone or the checkout.
+        assert.equal(
+          await readFile(join(record.workspace, '_bmad/legacy.toml'), 'utf8'),
+          'owner = "tracked"\n',
+        );
+        assert.deepEqual(await filesBelow(record.workspace, '_bmad'), ['_bmad/legacy.toml']);
+        assert.equal(await readFile(join(trackedOwner, '_bmad/legacy.toml'), 'utf8'), 'owner = "tracked"\n');
+        assert.deepEqual(await service.renders(attemptId), []);
+        assert.equal(await service.cleanup(attemptId), 'deleted');
+      },
+    );
+
+    await t.test('cleanup treats a proven render stage that is already gone as reclaimed', async () => {
+      const attemptId = randomUUID();
+      const w = await service.prepareWorkspace(owner, attemptId, pin, projection, render);
+      const [done] = await service.renders(attemptId);
+      assert.equal(done.state, 'deleted');
+      assert(done.stageIdentity);
+      // As if the stage was removed but the leader cleanup or the `deleted` record write failed.
+      await service.close();
+      const journal = await AtomicRecords.open(join(root, 'isolation', 'journal'));
+      try {
+        await journal.put(`render-${done.operationId}`, { ...done, state: 'complete' });
+      } finally {
+        await journal.close();
+      }
+      service = await IsolationWorkspace.open(join(root, 'isolation'), registry);
+      assert.equal(await service.cleanup(attemptId), 'deleted');
+      assert.deepEqual(
+        (await service.renders(attemptId)).map((r) => r.state),
+        ['deleted'],
+      );
+      assert.equal(await lstat(w.workspace).catch(() => null), null);
+    });
 
     await t.test('an undeclared or altered injected path is an audit blocker', async () => {
       const attemptId = randomUUID();
