@@ -1,0 +1,425 @@
+3b202e9 fix(v2-web): sửa thông báo token không hiển thị và thêm lối thoát cho tombstone onboarding
+ .../execution-phase07/task-7-s7basic-report.md     |  8 ++++
+ v2/docs/flows/web-machines.md                      |  2 +-
+ v2/web/src/machines/onboarding-state.ts            |  2 +-
+ v2/web/src/machines/onboarding.tsx                 | 11 +++--
+ v2/web/src/projects/setup.tsx                      | 28 ++++++-----
+ v2/web/test/onboarding.test.ts                     | 55 ++++++++++++++++++++--
+ 6 files changed, 83 insertions(+), 23 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/task-7-s7basic-report.md b/plans/261002-0002-crew-v2/execution-phase07/task-7-s7basic-report.md
+index c8e8081..2171f6c 100644
+--- a/plans/261002-0002-crew-v2/execution-phase07/task-7-s7basic-report.md
++++ b/plans/261002-0002-crew-v2/execution-phase07/task-7-s7basic-report.md
+@@ -36,10 +36,18 @@
+ **Kết quả: DONE_WITH_CONCERNS.** RED semantic trước khi sửa source: 7/21 test fail trên hành vi (không có nút “Bỏ yêu cầu cũ”, `checkoutPathError` nhận `C:\`/UNC, trường đổi theo server sau 409, 400 không hiện lý do, không có thông báo khi 2xx sai định dạng). GREEN: unit web 253/253 (`--test-concurrency=1`), `tsc` sạch, Biome sạch, E2E `onboarding.spec.ts` 3/3 hai lượt và test thứ ba chạy riêng bằng `--grep`; `crew-docs generate/check --all/check --staged` ok trên mirror.
+ 
+ - **I1:** component mới `machines/held-discard.tsx` (“Bỏ yêu cầu cũ” → hộp xác nhận cảnh báo bản trùng, với gắn máy cảnh báo áp dụng lại trên revision mới → “Vẫn bỏ yêu cầu cũ”). Gọi `PendingStore.reject` (API sẵn có, không sửa `api.ts`), giữ trường đã gõ, đọc lại danh sách dự án để lấy revision mới, lần gửi sau dùng khóa mới. Áp dụng cho cả đăng ký máy, tạo dự án và gắn máy; test gồm nhánh replay 409.
+ - **I2:** `checkoutPathError` chỉ nhận POSIX bắt đầu bằng `/`, thông báo tiếng Việt nêu rõ từ chối `C:\`, UNC, tương đối. 400 của server hiện đúng thông điệp server trả.
+ - **I3:** thêm test held replay cho `project:create` và bind, tombstone resume cho máy và bind.
+ - **M1:** trường được chốt vào draft lúc gửi, nên 409 không đổi trường theo giá trị server mới (giá trị mới chỉ ở dòng trạng thái).
+ - **M2 (nhỏ, làm luôn):** khóa nút đăng ký máy khi panel token còn mở.
+ - **M3:** bỏ assertion body POST; kiểm IndexedDB, CacheStorage và cookie.
+ - **M4:** response 2xx sai định dạng giờ báo rõ “máy đã được đăng ký nhưng token không hiển thị được, thu hồi rồi đăng ký lại” và đọc lại danh sách máy. Lưu ý: không thể “decode trước rồi mới accept” nếu không sửa `lib/api.ts` (mutate đã `accept` trước khi trả body), nên chỉ báo lỗi rõ chứ không giữ được khóa; cần PM quyết định nếu muốn đổi lib.
+ - **M5:** cả ba test E2E tự dựng máy, dự án và binding, không còn phụ thuộc test 1.
++
++## Fix round 2/5
++
++**Kết quả: DONE.** RED semantic (3 test fail trên hành vi: thông báo còn nhắc thu hồi, submit trực tiếp vẫn gửi khi panel token mở, tombstone sau `IDEMPOTENCY_CONFLICT` không có lối thoát). GREEN: unit web 255/255, `tsc` và Biome sạch, E2E `onboarding.spec.ts` 3/3, `crew-docs` generate/check ok trên mirror. Không sửa `lib/api.ts`.
++
++- **I1:** `RESPONSE_SHAPE_INVALID` của form máy nay là “Máy đã được đăng ký nhưng không hiển thị được token. Hãy đăng ký một máy mới với tên khác.” (không nhắc thu hồi); test đối chiếu và khẳng định không có chữ “thu hồi”.
++- **Minor 1:** “Bỏ yêu cầu cũ” hiện cho mọi entry chưa xác nhận kể cả tombstone, gọi `reject` theo id và giữ trường đang nhập; test kèm FakeServer trả `IDEMPOTENCY_CONFLICT` khi cùng khóa khác body.
++- **Minor 2:** `onSubmit` của form máy bỏ qua khi `issued` còn mở (trừ khi đang giữ yêu cầu cũ để gửi lại).
+diff --git a/v2/docs/flows/web-machines.md b/v2/docs/flows/web-machines.md
+index 4d41a62..83a0839 100644
+--- a/v2/docs/flows/web-machines.md
++++ b/v2/docs/flows/web-machines.md
+@@ -12,21 +12,21 @@ Flow này cho owner đã đăng nhập tự dựng môi trường làm việc t
+ - `web/src/projects/setup-state.ts`: luật nhập mã dự án, tên, URL repository và đường dẫn checkout, khớp `projects/routes.ts` và `projects/service.ts` của server.
+ 
+ ## Các bước
+ 
+ 1. **Đăng ký máy.** Owner nhập tên (1–200 ký tự sau khi bỏ khoảng trắng hai đầu). Trang gửi `POST /v2/machines` `{ name }` qua `PendingOperation` với intent cố định `machine:create`. Kết quả `{ machine, token }` được giải mã và đặt vào state của component. Token không vào query cache, `PendingStore`, `sessionStorage`/`localStorage` hay log. Panel “Token máy vừa đăng ký” có nút “Sao chép token” và “Đã lưu token, đóng”; token bị xóa khi đóng, khi component unmount, khi phiên hết hạn hoặc đăng xuất và khi tab ẩn (`pagehide`). Sau khi token đã mất thì không xem lại được.
+ 2. **Mất phản hồi khi đăng ký.** Yêu cầu chưa xác nhận giữ nguyên khóa và nội dung; ô tên khóa lại và nút đổi thành “Gửi lại đúng yêu cầu cũ”, gửi đúng khóa và byte cũ nên không đăng ký máy thứ hai (server phát lại kết quả cũ). Sau khi tải lại tab, yêu cầu còn trong tab storage được xử lý giống vậy. Nếu chỉ còn tombstone (đăng xuất giữa chừng), nhập lại tên rồi gửi sẽ dùng lại khóa cũ.
+ 3. **Danh sách máy.** `machinesQueryOptions` đọc hết các trang `GET /v2/machines` (key `queryKeys.machines()`), hiện tên, “Đang dùng/Đã thu hồi” và tám ký tự đầu của ID. Trạng thái online/telemetry chưa hiện vì chờ producer G4.
+ 4. **Tạo dự án.** Mã khớp `^[A-Z][A-Z0-9_-]{1,31}$`, tên 1–200 ký tự, URL repository để trống (null) hoặc HTTPS/SSH có tên máy chủ và không chứa tài khoản/mật khẩu. Gửi `POST /v2/projects` `{ key, name, repositoryUrl }`, intent `project:create`. `409 PROJECT_KEY_CONFLICT` giữ nguyên các trường đã nhập và khóa được nhả để gửi lại với mã khác bằng khóa mới.
+ 5. **Gắn hoặc đổi máy.** Mỗi dự án có một khối “Gắn máy cho dự án …” hiện máy đang gắn, đường dẫn và `bindingRevision` thật đọc từ `GET /v2/projects`. Owner chọn máy chưa thu hồi và nhập đường dẫn POSIX tuyệt đối trên máy dự án (text, bắt đầu bằng `/`, tối đa 4096 ký tự, không NUL); `C:\`, UNC và đường dẫn tương đối bị từ chối ở client với lý do bằng tiếng Việt, vì server kiểm theo luật POSIX. Gửi `PUT /v2/projects/:id/binding` `{ machineId, checkoutPath, expectedRevision }` với `expectedRevision` là revision đang hiển thị, intent `project-bind:<projectId>`. Sau mỗi lần gửi trang đọc lại danh sách dự án.
+ 6. **Xung đột.** `409 REVISION_CONFLICT` (tab khác đã đổi) hiện lý do, giữ máy và đường dẫn đã nhập, tải lại revision mới; khóa cũ đã bị từ chối nên bấm lại sẽ gửi revision mới bằng khóa mới. `409 ACTIVE_EXECUTION` (còn attempt `active`, `uncertain` hoặc `finalizing`) hiện lý do cần đối chiếu tác vụ ở trang ticket, giữ các trường, không đổi binding và giao diện không tự tạm dừng, hủy hay kết thúc tác vụ. Yêu cầu chưa xác nhận được giữ khóa cũ và gửi lại đúng byte. Trường nhập được chốt lúc gửi, nên 409 không làm trường đổi theo giá trị server mới (giá trị mới chỉ hiện ở dòng trạng thái). Lỗi 400 của server hiện đúng lý do server trả.
+-7. **Lối thoát khi yêu cầu treo.** Cả ba form có nút “Bỏ yêu cầu cũ” khi đang giữ một yêu cầu chưa xác nhận (kể cả khi gửi lại bị 409). Owner phải xác nhận cảnh báo có thể tạo bản trùng (với gắn máy: áp dụng lại trên revision mới). Sau đó yêu cầu cũ bị bỏ bằng `PendingStore.reject`, các trường được giữ, danh sách dự án được đọc lại để lấy revision mới, và lần gửi kế tiếp dùng khóa mới. Phản hồi 2xx sai định dạng khi đăng ký máy báo rõ máy có thể đã được đăng ký nhưng token không hiển thị được và cần thu hồi rồi đăng ký lại (giới hạn: `OwnerClient` đã xác nhận yêu cầu trước khi giải mã). Không đăng ký máy mới khi panel token còn mở.
++7. **Lối thoát khi yêu cầu treo.** Cả ba form có nút “Bỏ yêu cầu cũ” khi đang giữ một yêu cầu chưa xác nhận (kể cả khi gửi lại bị 409). Owner phải xác nhận cảnh báo có thể tạo bản trùng (với gắn máy: áp dụng lại trên revision mới). Sau đó yêu cầu cũ bị bỏ bằng `PendingStore.reject`, các trường được giữ, danh sách dự án được đọc lại để lấy revision mới, và lần gửi kế tiếp dùng khóa mới. Phản hồi 2xx sai định dạng khi đăng ký máy báo rõ máy đã được đăng ký nhưng không hiển thị được token, nên đăng ký một máy mới với tên khác (giới hạn: `OwnerClient` đã xác nhận yêu cầu trước khi giải mã; thu hồi máy chưa có ở server/web). “Bỏ yêu cầu cũ” cũng hiện khi chỉ còn tombstone (payload gốc đã mất sau đăng xuất) và lần nhập lại bị `IDEMPOTENCY_CONFLICT`. Submit trực tiếp bị chặn khi panel token còn mở. Không đăng ký máy mới khi panel token còn mở.
+ 8. **Trạng thái trống.** Chưa có máy: trang dự án hướng dẫn mở “Đăng ký máy” và nút gắn bị khóa. Chưa có dự án: hướng dẫn tạo dự án trước. Owner chưa khởi tạo được báo ngay ở màn hình đăng nhập; trang không tự lấy ID fixture hay token v1.
+ 
+ ## Dữ liệu
+ 
+ DTO `Machine`, `ProvisionedMachine` và `Project` lấy từ `web/src/contracts/machines.ts`. Dữ liệu duy nhất trong query cache là danh sách máy và danh sách dự án, không có credential. Tab storage chỉ giữ `PendingOperation` của `machine:create`, `project:create` và `project-bind:*` (nội dung không chứa bí mật). Bản nháp chưa gửi nằm trong state component, nên mất khi đóng trang nhưng trường đã nhập vẫn còn sau lỗi.
+ 
+ ## Flow liên quan
+ 
+ `web-data.md` sở hữu `OwnerClient`, `PendingOperation`, query key và đồng bộ sự kiện (`project.bound`/`project.created` làm mới danh sách). `web-shell.md` sở hữu router và thanh bên mount hai trang này. Phía server: `server-platform.md` (đăng ký máy, `auth/routes.ts`) và flow dự án/thực thi (`projects/service.ts` `bindProject`, `execution/attempts.ts` `assertNoActiveProjectExecution`).
+ 
+diff --git a/v2/web/src/machines/onboarding-state.ts b/v2/web/src/machines/onboarding-state.ts
+index 09d81ca..6678cd8 100644
+--- a/v2/web/src/machines/onboarding-state.ts
++++ b/v2/web/src/machines/onboarding-state.ts
+@@ -107,21 +107,21 @@ export async function submitIntent<T>(
+ 
+ export type FailureSubject = 'machine' | 'project' | 'binding';
+ 
+ /** Owner-facing reason for a failed onboarding request; the caller keeps every typed field. */
+ export function onboardingFailureText(error: unknown, subject: FailureSubject): string {
+   if (!(error instanceof ApiFailure)) return 'Chưa xác nhận kết quả. Yêu cầu vẫn được giữ để gửi lại.';
+   if (error.kind === 'configuration')
+     return `Lỗi cấu hình máy chủ (${error.code}). Yêu cầu vẫn giữ khóa cũ; gửi lại sau khi máy chủ được cấu hình.`;
+   if (error.code === 'RESPONSE_SHAPE_INVALID')
+     return subject === 'machine'
+-      ? 'Máy đã được đăng ký nhưng không đọc được token máy chủ trả về nên không hiển thị được. Thu hồi máy này rồi đăng ký lại.'
++      ? 'Máy đã được đăng ký nhưng không hiển thị được token. Hãy đăng ký một máy mới với tên khác.'
+       : 'Yêu cầu đã được máy chủ nhận nhưng phản hồi không đọc được. Tải lại danh sách để xem kết quả trước khi gửi lại.';
+   if (error.code === 'INTENT_UNRESOLVED')
+     return 'Đang có yêu cầu cũ chưa xác nhận. Hãy gửi lại đúng yêu cầu cũ trước.';
+   if (error.code === 'IDEMPOTENCY_CONFLICT')
+     return 'Nội dung khác với yêu cầu cũ chưa xác nhận. Nhập lại đúng nội dung ban đầu để gửi lại.';
+   if (['UNAUTHENTICATED', 'SESSION_REQUIRED', 'SESSION_ENDED'].includes(error.code))
+     return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục; các trường đã nhập vẫn được giữ.';
+   if (error.code === 'ACTIVE_EXECUTION')
+     return 'Dự án còn tiến trình đang chạy hoặc chưa được đối chiếu nên chưa đổi máy được. Hãy đối chiếu tác vụ ở trang ticket rồi thử lại; giao diện này không tự dừng, hủy hay kết thúc tác vụ.';
+   if (error.code === 'REVISION_CONFLICT')
+diff --git a/v2/web/src/machines/onboarding.tsx b/v2/web/src/machines/onboarding.tsx
+index 3b44e13..0c20f72 100644
+--- a/v2/web/src/machines/onboarding.tsx
++++ b/v2/web/src/machines/onboarding.tsx
+@@ -78,21 +78,22 @@ function TokenPanel({ issued, onClose }: { issued: ProvisionedMachine; onClose:
+ 
+ export function MachineOnboarding() {
+   const { client, pending, session } = useRuntime();
+   const cache = useQueryClient();
+   const nameId = useId();
+   const [name, setName] = useState('');
+   const [error, setError] = useState<string | null>(null);
+   const [busy, setBusy] = useState(false);
+   const [issued, setIssued] = useState<ProvisionedMachine | null>(null);
+   const machines = useQuery(machinesQueryOptions(client));
+-  const held = heldOperation(useUnresolved(pending, machineIntent));
++  const entry = useUnresolved(pending, machineIntent);
++  const held = heldOperation(entry);
+   const heldName = held ? (JSON.parse(held.bodyJson) as { name: string }).name : null;
+ 
+   // The credential never outlives the authenticated view that received it.
+   useEffect(() => {
+     const clear = () => setIssued(null);
+     const off = session.subscribe(() => {
+       if (session.snapshot().state !== 'authenticated') clear();
+     });
+     window.addEventListener('pagehide', clear);
+     return () => {
+@@ -139,21 +140,21 @@ export function MachineOnboarding() {
+           Mỗi máy chạy Crew cần một token riêng. Sau khi đăng ký, tạo dự án rồi gắn máy ở mục “Tạo dự án/Gắn
+           máy”.
+         </p>
+       </div>
+       {issued && <TokenPanel issued={issued} onClose={() => setIssued(null)} />}
+       <form
+         aria-label="Biểu mẫu đăng ký máy"
+         style={{ display: 'grid', gap: '0.75rem' }}
+         onSubmit={(event) => {
+           event.preventDefault();
+-          if (!busy) void submit();
++          if (!busy && (issued === null || held !== null)) void submit();
+         }}
+       >
+         <div style={fieldStyle}>
+           <label htmlFor={nameId}>Tên máy</label>
+           <input
+             id={nameId}
+             type="text"
+             autoComplete="off"
+             value={heldName ?? name}
+             disabled={busy || held !== null}
+@@ -175,27 +176,27 @@ export function MachineOnboarding() {
+         )}
+         {issued && !held && (
+           <p role="status" style={{ margin: 0 }}>
+             Đóng panel token ở trên trước khi đăng ký máy khác, để không mất token chưa lưu.
+           </p>
+         )}
+         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+           <button type="submit" style={buttonStyle} disabled={busy || (issued !== null && !held)}>
+             {held ? 'Gửi lại đúng yêu cầu cũ' : 'Đăng ký máy'}
+           </button>
+-          {held && (
++          {entry && (
+             <DiscardHeld
+               disabled={busy}
+               warning="Máy chủ có thể đã đăng ký máy này. Nếu bỏ yêu cầu cũ rồi gửi lại, có thể tạo máy trùng tên. Tên đã nhập được giữ lại."
+               onDiscard={() => {
+-                pending.reject(held.id);
+-                setName(heldName ?? '');
++                pending.reject(entry.id);
++                if (heldName !== null) setName(heldName);
+                 setError(null);
+               }}
+             />
+           )}
+         </div>
+       </form>
+       <section aria-labelledby="machine-list-heading" style={{ display: 'grid', gap: '0.5rem' }}>
+         <h2 id="machine-list-heading">Máy đã đăng ký</h2>
+         {machines.isPending && <p role="status">Đang tải danh sách máy…</p>}
+         {machines.error && (
+diff --git a/v2/web/src/projects/setup.tsx b/v2/web/src/projects/setup.tsx
+index 1b4899a..3798b35 100644
+--- a/v2/web/src/projects/setup.tsx
++++ b/v2/web/src/projects/setup.tsx
+@@ -52,21 +52,22 @@ const bindIntent = (projectId: string) => `project-bind:${projectId}`;
+ type CreateBody = { key: string; name: string; repositoryUrl: string | null };
+ 
+ function CreateProjectForm() {
+   const { client, pending } = useRuntime();
+   const cache = useQueryClient();
+   const ids = { key: useId(), name: useId(), repo: useId() };
+   const [fields, setFields] = useState({ key: '', name: '', repositoryUrl: '' });
+   const [error, setError] = useState<string | null>(null);
+   const [created, setCreated] = useState<string | null>(null);
+   const [busy, setBusy] = useState(false);
+-  const held = heldOperation(useUnresolved(pending, createIntent));
++  const entry = useUnresolved(pending, createIntent);
++  const held = heldOperation(entry);
+   const heldBody = held ? (JSON.parse(held.bodyJson) as CreateBody) : null;
+   const shown = heldBody
+     ? { key: heldBody.key, name: heldBody.name, repositoryUrl: heldBody.repositoryUrl ?? '' }
+     : fields;
+ 
+   const submit = async () => {
+     setCreated(null);
+     let body: CreateBody;
+     if (heldBody) body = heldBody;
+     else {
+@@ -162,31 +163,32 @@ function CreateProjectForm() {
+       )}
+       {created && (
+         <p role="status" style={{ margin: 0 }}>
+           {created}
+         </p>
+       )}
+       <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+         <button type="submit" style={buttonStyle} disabled={busy}>
+           {held ? 'Gửi lại đúng yêu cầu cũ' : 'Tạo dự án'}
+         </button>
+-        {held && heldBody && (
++        {entry && (
+           <DiscardHeld
+             disabled={busy}
+             warning="Máy chủ có thể đã tạo dự án này. Nếu bỏ yêu cầu cũ rồi tạo lại, có thể tạo bản trùng. Các trường đã nhập được giữ lại."
+             onDiscard={() => {
+-              pending.reject(held.id);
+-              setFields({
+-                key: heldBody.key,
+-                name: heldBody.name,
+-                repositoryUrl: heldBody.repositoryUrl ?? '',
+-              });
++              pending.reject(entry.id);
++              if (heldBody)
++                setFields({
++                  key: heldBody.key,
++                  name: heldBody.name,
++                  repositoryUrl: heldBody.repositoryUrl ?? '',
++                });
+               setError(null);
+             }}
+           />
+         )}
+       </div>
+     </form>
+   );
+ }
+ 
+ type BindDraft = { machineId: string; checkoutPath: string };
+@@ -194,21 +196,22 @@ type BindBody = BindDraft & { expectedRevision: number };
+ 
+ function BindingSection({ project, machines }: { project: Project; machines: Machine[] }) {
+   const { client, pending } = useRuntime();
+   const cache = useQueryClient();
+   const ids = { machine: useId(), path: useId() };
+   const [draft, setDraft] = useState<BindDraft | null>(null);
+   const [error, setError] = useState<string | null>(null);
+   const [done, setDone] = useState<string | null>(null);
+   const [busy, setBusy] = useState(false);
+   const intent = bindIntent(project.id);
+-  const held = heldOperation(useUnresolved(pending, intent));
++  const entry = useUnresolved(pending, intent);
++  const held = heldOperation(entry);
+   const heldBody = held ? (JSON.parse(held.bodyJson) as BindBody) : null;
+ 
+   const live = machines.filter((machine) => !machine.revokedAt);
+   const bound = machines.find((machine) => machine.id === project.machineId);
+   const fromServer: BindDraft = {
+     machineId: live.some((machine) => machine.id === project.machineId) ? (project.machineId ?? '') : '',
+     checkoutPath: project.checkoutPath ?? '',
+   };
+   const shown: BindDraft = heldBody ?? draft ?? fromServer;
+ 
+@@ -307,27 +310,28 @@ function BindingSection({ project, machines }: { project: Project; machines: Mac
+         )}
+         {done && (
+           <p role="status" style={{ margin: 0 }}>
+             {done}
+           </p>
+         )}
+         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+           <button type="submit" style={buttonStyle} disabled={busy || (live.length === 0 && !held)}>
+             {held ? 'Gửi lại đúng yêu cầu cũ' : rebinding ? 'Đổi máy' : 'Gắn máy'}
+           </button>
+-          {held && heldBody && (
++          {entry && (
+             <DiscardHeld
+               disabled={busy}
+               warning="Máy chủ có thể đã áp dụng yêu cầu cũ. Nếu bỏ, các trường đã nhập được giữ lại và bạn áp dụng lại trên revision mới đọc từ máy chủ; kiểm tra kết quả trước khi áp dụng."
+               onDiscard={async () => {
+-                pending.reject(held.id);
+-                setDraft({ machineId: heldBody.machineId, checkoutPath: heldBody.checkoutPath });
++                pending.reject(entry.id);
++                if (heldBody)
++                  setDraft({ machineId: heldBody.machineId, checkoutPath: heldBody.checkoutPath });
+                 setError(null);
+                 await cache.invalidateQueries({ queryKey: queryRoots.projects });
+               }}
+             />
+           )}
+         </div>
+       </form>
+     </section>
+   );
+ }
+diff --git a/v2/web/test/onboarding.test.ts b/v2/web/test/onboarding.test.ts
+index ca10ea1..f713cf0 100644
+--- a/v2/web/test/onboarding.test.ts
++++ b/v2/web/test/onboarding.test.ts
+@@ -37,21 +37,21 @@ type Call = { method: string; url: string; headers: Headers; body: string | null
+ class FakeServer {
+   machines: Machine[] = [];
+   projects: Project[] = [];
+   calls: Call[] = [];
+   /** Commit, then drop the response of the next POST /v2/machines. */
+   dropNextMachineResponse = false;
+   /** Next PUT binding fails with this producer error (state untouched). */
+   bindError: { status: number; code: string; message?: string } | null = null;
+   /** The next POST /v2/projects or PUT binding never reaches the producer (transport failure). */
+   failNext: 'project' | 'bind' | null = null;
+-  #receipts = new Map<string, Response>();
++  #receipts = new Map<string, { body: string | null; response: Response }>();
+   #next = 1;
+ 
+   fetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
+     const method = init.method ?? 'GET';
+     const body = typeof init.body === 'string' ? init.body : null;
+     const call: Call = { method, url, headers: new Headers(init.headers), body };
+     this.calls.push(call);
+     const json = (status: number, value: unknown) =>
+       new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } });
+     const failure = (status: number, code: string, message = code) =>
+@@ -62,23 +62,23 @@ class FakeServer {
+       throw new TypeError('fetch failed');
+     };
+     const path = url.split('?')[0] ?? url;
+     if (path === '/v2/auth/session') return json(200, { owner: { id: 'owner' }, csrfToken: csrf });
+     if (method === 'GET' && path === '/v2/machines')
+       return json(200, { items: this.machines, nextCursor: null });
+     if (method === 'GET' && path === '/v2/projects')
+       return json(200, { items: this.projects, nextCursor: null });
+     const key = call.headers.get('idempotency-key') ?? '';
+     const prior = this.#receipts.get(`${method}:${path}:${key}`);
+-    if (prior) return prior.clone();
++    if (prior) return prior.body === body ? prior.response.clone() : failure(409, 'IDEMPOTENCY_CONFLICT');
+     const remember = (response: Response) => {
+-      this.#receipts.set(`${method}:${path}:${key}`, response.clone());
++      this.#receipts.set(`${method}:${path}:${key}`, { body, response: response.clone() });
+       return response;
+     };
+     if (method === 'POST' && path === '/v2/machines') {
+       const input = JSON.parse(body ?? '{}') as { name: string };
+       const machine: Machine = {
+         id: `aaaaaaaa-0000-4000-8000-${String(this.#next++).padStart(12, '0')}`,
+         name: input.name,
+         revokedAt: null,
+       };
+       this.machines.push(machine);
+@@ -501,21 +501,23 @@ test('response 2xx sai định dạng khi đăng ký máy: báo rõ máy đã đ
+           headers: { 'content-type': 'application/json' },
+         })
+       : base(url, init);
+   const env = await ready(setup(server));
+   env.mountView(() => createElement(MachineOnboarding));
+   await screen.findByText('Chưa có máy nào được đăng ký.');
+   fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy lỗi định dạng' } });
+   fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
+   const alert = await screen.findByRole('alert');
+   assert.match(alert.textContent ?? '', /đã được đăng ký/);
+-  assert.match(alert.textContent ?? '', /[Tt]hu hồi/);
++  assert.match(alert.textContent ?? '', /không hiển thị được token/);
++  assert.match(alert.textContent ?? '', /đăng ký một máy mới với tên khác/);
++  assert.doesNotMatch(alert.textContent ?? '', /[Tt]hu hồi/);
+   assert.equal(screen.queryByRole('region', { name: 'Token máy vừa đăng ký' }), null);
+ });
+ 
+ test('tạo dự án mất phản hồi: gửi lại đúng khóa và byte, không tạo dự án thứ hai', async () => {
+   const server = new FakeServer();
+   server.failNext = 'project';
+   const env = await ready(setup(server));
+   env.mountView(() => createElement(ProjectSetup));
+   await screen.findByText('Chưa có dự án nào. Tạo dự án ở biểu mẫu phía trên.');
+   fireEvent.change(screen.getByLabelText('Mã dự án'), { target: { value: 'HELD' } });
+@@ -689,10 +691,55 @@ test('đường dẫn Windows hoặc UNC bị chặn ở client; 400 của serve
+   }
+   assert.equal(mutations(server, 'PUT', '/v2/projects').length, 0);
+ 
+   fireEvent.change(path, { target: { value: '/srv/hop-le' } });
+   server.bindError = { status: 400, code: 'VALIDATION', message: 'Thông tin gắn máy không hợp lệ' };
+   fireEvent.click(within(section).getByRole('button', { name: 'Gắn máy' }));
+   await waitFor(() =>
+     assert.match(within(section).getByRole('alert').textContent ?? '', /Thông tin gắn máy không hợp lệ/),
+   );
+ });
++
++test('đăng ký máy: khi panel token còn mở, submit trực tiếp không gửi thêm yêu cầu', async () => {
++  const server = new FakeServer();
++  const env = await ready(setup(server));
++  env.mountView(() => createElement(MachineOnboarding));
++  await screen.findByText('Chưa có máy nào được đăng ký.');
++  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy một' } });
++  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
++  await screen.findByRole('region', { name: 'Token máy vừa đăng ký' });
++  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy hai' } });
++  fireEvent.submit(screen.getByRole('form', { name: 'Biểu mẫu đăng ký máy' }));
++  await new Promise((resolve) => setTimeout(resolve, 20));
++  assert.equal(mutations(server, 'POST', '/v2/machines').length, 1);
++});
++
++test('tombstone mất payload gốc: nhập lại khác bị IDEMPOTENCY_CONFLICT vẫn có “Bỏ yêu cầu cũ” và dùng khóa mới', async () => {
++  const server = new FakeServer();
++  server.dropNextMachineResponse = true;
++  const env = await ready(setup(server));
++  env.mountView(() => createElement(MachineOnboarding));
++  await screen.findByText('Chưa có máy nào được đăng ký.');
++  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy gốc' } });
++  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
++  await screen.findByRole('alert');
++  const oldKey = env.pending.list()[0]?.id;
++  act(() => env.pending.tombstoneAll());
++  await waitFor(() => assert.equal((screen.getByLabelText('Tên máy') as HTMLInputElement).disabled, false));
++
++  fireEvent.change(screen.getByLabelText('Tên máy'), { target: { value: 'Máy khác' } });
++  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
++  await waitFor(() =>
++    assert.match(screen.getByRole('alert').textContent ?? '', /Nội dung khác với yêu cầu cũ/),
++  );
++  assert.equal(env.pending.tombstones().length, 1);
++
++  fireEvent.click(screen.getByRole('button', { name: 'Bỏ yêu cầu cũ' }));
++  assert.match((await screen.findByRole('alertdialog')).textContent ?? '', /máy trùng/);
++  fireEvent.click(screen.getByRole('button', { name: 'Vẫn bỏ yêu cầu cũ' }));
++  await waitFor(() => assert.equal(env.pending.tombstones().length, 0));
++  assert.equal((screen.getByLabelText('Tên máy') as HTMLInputElement).value, 'Máy khác');
++  fireEvent.click(screen.getByRole('button', { name: 'Đăng ký máy' }));
++  await screen.findByRole('region', { name: 'Token máy vừa đăng ký' });
++  const posts = mutations(server, 'POST', '/v2/machines');
++  assert.notEqual(posts[posts.length - 1]?.headers.get('idempotency-key'), oldKey);
++});
