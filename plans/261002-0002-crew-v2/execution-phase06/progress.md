@@ -184,3 +184,7 @@ Ruling M1: replay operation đã commit miễn maxTurnMs (như ngân sách số 
 Ruling W2: catalog latestSnapshotId = latest_verified_snapshot_id (null nếu chưa verified) — Trợ lý route theo docs đã xác minh — sai thì Trợ lý không thấy snapshot mới chưa verify.
 Checklist T7 (từ B3a): M2 lời gọi 4xx không tính ngân sách nhưng giữ event_cursor toàn cục — cân nhắc tính mọi lời gọi; M4 mount production phải chạy lại test với AJV/error handler của buildApp (coerceTypes:false, useDefaults:false); W3 mọi writer input phải khóa event_cursor trước (đi qua mutate()); W4 GET tools/:operationId, wait intent ask_owner, mount production, gateway tool-client (carrier x-crew-provider-call-id); W5 cast toolRequestSha256 an toàn khi không có action port trùng tên tool. M6 fixture assistant.ts ngoài ownership — chấp nhận (test-only).
 Task 5: minor (deferred): composer câu thông báo riêng cho mã *_NOT_CONFIGURED (hiện dùng errorMessage server).
+
+01:40 B3a FIX1 `c348950` (260/260, regression 102/102).
+Ruling: chấp nhận thêm field bắt buộc `truncated` vào kind `catalog` của RoutingToolValue (contracts.ts + schema strict) — additive, chưa consumer — R2 type trong phase-06 coi như cập nhật theo ruling này (gateway/web sau dùng `truncated`). 
+Ruling: header `x-crew-provider-call-id` cấm dấu phẩy (hẹp hơn ruling 00:50) để phát hiện header trùng sau merge — fail-closed — gateway tool-client không được sinh providerCallId có dấu phẩy.
