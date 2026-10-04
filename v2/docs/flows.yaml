@@ -515,8 +515,6 @@ flows:
       - web/test/auth-recovery.test.ts
       - web/e2e/auth.spec.ts
       - web/e2e/events.spec.ts
-shared: {}
-unassigned: []
   web-tickets:
     title: Bảng, danh sách và hộp thoại ticket dùng chung trên web Crew v2
     doc: docs/flows/web-tickets.md
@@ -532,3 +530,5 @@ unassigned: []
     tests:
       - web/test/tickets.test.ts
       - web/e2e/tickets.spec.ts
+shared: {}
+unassigned: []
