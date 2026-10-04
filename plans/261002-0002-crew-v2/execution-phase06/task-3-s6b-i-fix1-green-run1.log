@@ -1,0 +1,58 @@
+✔ execute-tree proves a forked child that exits before the leader and records the leader (1715.982583ms)
+✔ execute-tree kills a child left alive when the leader exits and reports LIFETIME_UNKNOWN (25.036167ms)
+✔ execute-tree reports LIFETIME_UNKNOWN for an observed member that leaves the session (4137.632917ms)
+✔ execute-tree timeout kills the whole session and returns a proven-empty receipt (1036.193917ms)
+✔ execute keeps installer semantics: fork stays UNKNOWN and no leader record is written (34.675875ms)
+✔ a held operations guard yields EXECUTOR_BUSY before any process or stage write (21.57525ms)
+✔ the leader record outside the stage is unaffected by a child that writes .leader in the stage (21.294875ms)
+✔ execute-tree exits 36 without running anything when the leader record cannot be written (5.713166ms)
+✔ a fork chain that outruns per-pid listing is still a survivor: UNKNOWN and nothing left running (2046.829167ms)
+✖ a timeout with an escaped member is UNKNOWN, not a reclaimable timeout receipt (3027.010917ms)
+✔ a grandchild that leaves the session soon after its fork is observed through member NOTE_FORK (5172.154083ms)
+✖ a session above 256 members fails closed and kills members in other groups and escaped ones (2742.280583ms)
+✔ an invalid operations guard is EXECUTOR_GUARD_INVALID, distinct from a busy guard (7.622125ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 11
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20198.204167
+
+✖ failing tests:
+
+test at test/workflow-operations-tree.test.ts:253:1
+✖ a timeout with an escaped member is UNKNOWN, not a reclaimable timeout receipt (3027.010917ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:258:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /EXECUTOR_LIFETIME_UNKNOWN/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/workflow-operations-tree.test.ts:283:1
+✖ a session above 256 members fails closed and kills members in other groups and escaped ones (2742.280583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   17516
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:301:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 17516 ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

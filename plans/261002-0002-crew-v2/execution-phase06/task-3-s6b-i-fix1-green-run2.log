@@ -1,0 +1,40 @@
+✔ execute-tree proves a forked child that exits before the leader and records the leader (1677.739ms)
+✔ execute-tree kills a child left alive when the leader exits and reports LIFETIME_UNKNOWN (32.181208ms)
+✔ execute-tree reports LIFETIME_UNKNOWN for an observed member that leaves the session (4033.709292ms)
+✔ execute-tree timeout kills the whole session and returns a proven-empty receipt (1038.290458ms)
+✔ execute keeps installer semantics: fork stays UNKNOWN and no leader record is written (29.621ms)
+✔ a held operations guard yields EXECUTOR_BUSY before any process or stage write (17.755209ms)
+✔ the leader record outside the stage is unaffected by a child that writes .leader in the stage (19.720708ms)
+✔ execute-tree exits 36 without running anything when the leader record cannot be written (5.523833ms)
+✖ a fork chain that outruns per-pid listing is still a survivor: UNKNOWN and nothing left running (2066.595375ms)
+✔ a timeout with an escaped member is UNKNOWN, not a reclaimable timeout receipt (3077.01425ms)
+✔ a grandchild that leaves the session soon after its fork is observed through member NOTE_FORK (5059.051291ms)
+✔ a session above 256 members fails closed and kills members in other groups and escaped ones (2697.378333ms)
+✔ an invalid operations guard is EXECUTOR_GUARD_INVALID, distinct from a busy guard (7.428375ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 12
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19972.108959
+
+✖ failing tests:
+
+test at test/workflow-operations-tree.test.ts:236:1
+✖ a fork chain that outruns per-pid listing is still a survivor: UNKNOWN and nothing left running (2066.595375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:250:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

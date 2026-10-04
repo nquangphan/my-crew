@@ -1,0 +1,17 @@
+== regression
+ℹ tests 55
+ℹ pass 55
+ℹ fail 0
+== tree run 2
+ℹ tests 13
+ℹ pass 13
+ℹ fail 0
+== tree run 3
+ℹ tests 13
+ℹ pass 13
+ℹ fail 0
+== typecheck
+tsc exit=0
+== biome
+Checked 2 files in 35ms. No fixes applied.
+biome exit=0

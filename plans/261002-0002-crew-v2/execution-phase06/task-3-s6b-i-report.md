@@ -60,3 +60,38 @@ Docs: `docs/flows/gateway-workflows.md` (bước 9 và bảng Files), `docs/flow
 
 - Lệch 1–3 ở trên cần phase03-owner review diff C, đúng như ruling yêu cầu.
 - `render-executor` chưa dùng `EXECUTOR_BUSY`/`executeTree`; việc này thuộc S6b-ii.
+
+## FIX1 (review `task-3-s6b-i-review.md`) — commit `4c4e0aa`
+
+Status: DONE_WITH_CONCERNS. BASE của vòng sửa: `9dfec86` (lúc commit HEAD là `10c73f0`, các commit xen giữa chỉ đụng web/plan phase07). Verb `execute` giữ nguyên hành vi: trong `execute_owned`, mọi dòng đổi đều nằm sau `as_tree`. Thay đổi duy nhất ngoài chế độ tree là tách mã guard trong `main` (M5), áp cho mọi verb như yêu cầu.
+
+| Mục | Sửa | Test (native thật) |
+|---|---|---|
+| I1 | Trong vòng chờ sau leader, nếu còn thứ phải kill trong khi phán quyết lúc leader thoát là rỗng (`survivors=0, escaped=0`, không timeout), thì `survivors` bị nâng lên `max(remaining,1)`, nên run không bao giờ PASS. Thêm vào đó, thành viên session gồm cả tiến trình sống có **process group đã biết** thuộc session, đọc từ snapshot `KERN_PROC_ALL` nguyên tử (`e_pgid`). Group được học qua `getsid`→`getpgid`→`getsid` trên thành viên đã xác nhận, nên chuỗi fork-thoát nhanh trong group đã biết không lọt qua khe liệt kê/`getsid` nữa. | `a fork chain that outruns per-pid listing…`: chuỗi 2000 hop ở group riêng, leader thoát giữa chuỗi → UNKNOWN, `sessionEmptyAtExit=false`, không còn tiến trình nào |
+| I2 | `executeTree` đòi `escaped===0` ở mọi nhánh, kể cả timeout. Escape được ghi **ngay lúc thấy** (`getsid` trả một session sống khác; cờ `left` cố định), trước mọi kill. Cách cũ suy ra escape lúc phán quyết, nên kill lúc timeout xoá mất bằng chứng. | `a timeout with an escaped member is UNKNOWN…` |
+| I3 | Bản leader chuẩn là `receipts/{id}.leader` (O_EXCL/O_NOFOLLOW/0600, fsync file và thư mục `receipts`). Không còn bản trong stage. Không ghi được thì exit 36 trước khi mở gate. | Test 1 đọc `receipts/tree-pass.leader` và khẳng định stage không có `.leader`; `the leader record outside the stage is unaffected…` (child ghi `1 0.000000` vào stage `.leader`, bản trong receipts vẫn đúng pid); `execute`/BUSY không tạo `receipts/{id}.leader` |
+| M1 | `kill_session` kill mọi group đã học (kể cả leader), leader, mọi thành viên của một listing mới **không giới hạn**, và mọi thành viên đã theo dõi chưa thoát (kể cả đã rời session). Mọi đường lỗi sau gate (32/35, kevent lỗi, liệt kê lỗi/vượt trần, clock lỗi, `fstat` stage lỗi) gọi `settle`: lặp kill tới khi listing không giới hạn rỗng và mọi thành viên đã theo dõi thoát, tối đa 2 giây, rồi mới reap leader. | `a session above 256 members fails closed and kills members in other groups and escaped ones`: thành viên `setpgrp` riêng, thành viên đã `setsid`, 300 sleep → `EXECUTOR_RECEIPT_MISSING`, không receipt, không còn tiến trình nào. Lần chạy đầu bắt được một sleep `sh` vừa fork trong lúc kill; nhờ đó mới thêm `settle`. |
+| M2 (ledger) | Hệ quả phụ: kill lúc timeout và lúc chờ dùng listing mới (`kill_session`) thay cho danh sách cũ đã qua một lần quét `tree()`. | — |
+| M3 | Thành viên được arm `EV_ADD|EV_CLEAR` với `NOTE_FORK|NOTE_EXIT`; knote tự gỡ khi thành viên thoát. | `a grandchild that leaves the session soon after its fork is observed through member NOTE_FORK`: cháu ở trong session 0,3 s, nằm giữa hai tick |
+| M4 (ledger) | Docs bước 9 ghi trần 256 **cộng dồn** cho thành viên được theo dõi, cộng trần 256 mỗi lần liệt kê và 256 group. | Test hopper chạm đúng trần này (`treeEmpty=false`, fail-closed), nên test không khẳng định `treeEmpty` |
+| M5 | Guard không phải file thường riêng của user (symlink, sai mode/uid/nlink, mở lỗi, `flock` lỗi khác `EWOULDBLOCK`) → exit 24 → `EXECUTOR_GUARD_INVALID`. Chỉ `EWOULDBLOCK` → 20 → `EXECUTOR_BUSY`. | `an invalid operations guard is EXECUTOR_GUARD_INVALID…` (guard 0644, cả hai verb) |
+| M6 | Thêm các test exit 36, drain-kill (hopper, survivor) và session >256 như trên. | — |
+
+### Bằng chứng
+
+| Bước | Kết quả | Log / SHA-256 |
+|---|---|---|
+| RED (13 test, code `a1981b7`) | exit 1, 7/13 fail đúng ngữ nghĩa: ENOENT `receipts/*.leader` (I3 ×2), thiếu rejection (exit 36, I2, M3), tiến trình còn sống sau overflow (M1), `EXECUTOR_BUSY` thay `EXECUTOR_GUARD_INVALID` (M5). Test hopper (I1) **pass ngay trên code cũ**: helper cũ bắt được chuỗi ở lần liệt kê lúc phán quyết, không tái hiện tất định được nhánh "hai lần liệt kê đều trượt". Sửa I1 dựa trên lập luận của review cộng snapshot group nguyên tử; test giữ vai trò khẳng định bất biến. | `task-3-s6b-i-fix1-red.log` `5db23e0f…4388` |
+| GREEN lần 1 | 11/13: I2 vẫn fail (kill lúc timeout xoá bằng chứng escape), overflow còn một sleep → sửa: ghi escape ngay lúc thấy, thêm `settle` | `task-3-s6b-i-fix1-green-run1.log` `386684d3…f886` |
+| GREEN lần 2 | 12/13: hopper `treeEmpty=false` vì chạm trần theo dõi cộng dồn (fail-closed đúng) → bỏ khẳng định `treeEmpty` trong test, có ghi lý do | `task-3-s6b-i-fix1-green-run2.log` `8ef884c0…608c` |
+| GREEN lần 3 | 13/13 | `task-3-s6b-i-fix1-green-run3.log` `46b9b941…d048` |
+| Regression + ổn định + tsc + biome (bytes commit) | tree + `workflow-operations` + `workflow-registry` + `render-executor` + `isolation-workspace` 55/55; tree thêm 2 lần 13/13; `tsc --noEmit` exit 0; biome sạch | `task-3-s6b-i-fix1-green.log` `98ea3896…3f75` |
+
+Mọi lệnh test và cả `tsc` đều chạy trong slot nặng (`owner=s6b-i`), sau khi gate trả `heavyEligible=true`. Sau mỗi lượt `ps` không còn tiến trình của lát. Hook `after` giờ đăng ký marker argv **trước** khi tiến trình mang marker khởi động. Lần RED đầu đăng ký muộn nên ba tiến trình (perl và sleep có marker riêng) sống tới khi tự hết `sleep 30`; khi kiểm tra thì chúng đã tự thoát. Docs: `gateway-workflows.md` bước 9 và bảng Files; `crew-docs generate` không đổi gì, `check --all`/`--staged` ok; manifest sửa dưới `crew-v2-manifest.lock`.
+
+### Concerns FIX1
+
+- Nhánh I1 "drain thấy thành viên khi phán quyết là rỗng" không có RED tất định (xem trên). Snapshot group nguyên tử thu hẹp nó về đúng phần dư đã ghi: thành viên ở group chưa biết.
+- Kill theo group đã học dựa vào giả định pid/pgid không bị tái dùng trong một lần chạy (macOS cấp pid tuần tự). Điều này đã ghi trong docs.
+- `receipts/{id}.leader` dùng O_EXCL: chạy lại cùng `id` mà bản cũ còn thì exit 36. S6b-ii cần kiểm `absent('receipts', '{id}.leader')` như với `{id}.json`, và dọn file này khi reclaim.
+- Câu hỏi còn mở của review (pid = sid có được giữ sau khi leader bị reap hay không) chưa xác minh; reconcile S6b-ii không nên dựa vào `getsid(x)==leaderPid` sau khi helper đã thoát.

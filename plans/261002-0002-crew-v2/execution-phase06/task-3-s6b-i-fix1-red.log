@@ -1,0 +1,139 @@
+✖ execute-tree proves a forked child that exits before the leader and records the leader (1668.767875ms)
+✔ execute-tree kills a child left alive when the leader exits and reports LIFETIME_UNKNOWN (27.034167ms)
+✔ execute-tree reports LIFETIME_UNKNOWN for an observed member that leaves the session (4135.877417ms)
+✔ execute-tree timeout kills the whole session and returns a proven-empty receipt (1038.751084ms)
+✔ execute keeps installer semantics: fork stays UNKNOWN and no leader record is written (31.193125ms)
+✔ a held operations guard yields EXECUTOR_BUSY before any process or stage write (18.505666ms)
+✖ the leader record outside the stage is unaffected by a child that writes .leader in the stage (20.164291ms)
+✖ execute-tree exits 36 without running anything when the leader record cannot be written (20.463458ms)
+✔ a fork chain that outruns per-pid listing is still a survivor: UNKNOWN and nothing left running (2055.49325ms)
+✖ a timeout with an escaped member is UNKNOWN, not a reclaimable timeout receipt (3130.8285ms)
+✖ a grandchild that leaves the session soon after its fork is observed through member NOTE_FORK (5032.643042ms)
+✖ a session above 256 members fails closed and kills members in other groups and escaped ones (2650.08ms)
+✖ an invalid operations guard is EXECUTOR_GUARD_INVALID, distinct from a busy guard (5.852959ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 6
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 20055.105875
+
+✖ failing tests:
+
+test at test/workflow-operations-tree.test.ts:74:1
+✖ execute-tree proves a forked child that exits before the leader and records the leader (1668.767875ms)
+  Error: ENOENT: no such file or directory, lstat '/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-tree-QpsTwe/workflows/receipts/tree-pass.leader'
+      at async lstat (node:internal/fs/promises:1734:18)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:96:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'lstat',
+    path: '/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-tree-QpsTwe/workflows/receipts/tree-pass.leader'
+  }
+
+test at test/workflow-operations-tree.test.ts:209:1
+✖ the leader record outside the stage is unaffected by a child that writes .leader in the stage (20.164291ms)
+  Error: ENOENT: no such file or directory, open '/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-tree-QpsTwe/workflows/receipts/tree-forged-leader.leader'
+      at async open (node:internal/fs/promises:1345:25)
+      at async readFile (node:internal/fs/promises:1996:14)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:219:33)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'open',
+    path: '/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-tree-QpsTwe/workflows/receipts/tree-forged-leader.leader'
+  }
+
+test at test/workflow-operations-tree.test.ts:223:1
+✖ execute-tree exits 36 without running anything when the leader record cannot be written (20.463458ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:226:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /EXECUTOR_RECEIPT_MISSING/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/workflow-operations-tree.test.ts:251:1
+✖ a timeout with an escaped member is UNKNOWN, not a reclaimable timeout receipt (3130.8285ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:256:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /EXECUTOR_LIFETIME_UNKNOWN/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/workflow-operations-tree.test.ts:267:1
+✖ a grandchild that leaves the session soon after its fork is observed through member NOTE_FORK (5032.643042ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:272:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /EXECUTOR_LIFETIME_UNKNOWN/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/workflow-operations-tree.test.ts:281:1
+✖ a session above 256 members fails closed and kills members in other groups and escaped ones (2650.08ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   11369
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:297:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 11369 ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/workflow-operations-tree.test.ts:302:1
+✖ an invalid operations guard is EXECUTOR_GUARD_INVALID, distinct from a busy guard (5.852959ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /EXECUTOR_GUARD_INVALID/. Input:
+  
+  'Error: EXECUTOR_BUSY'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:308:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: EXECUTOR_BUSY
+        at OwnedOperations.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/workflows/operations.ts:182:28)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async OwnedOperations.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/workflows/operations.ts:133:21)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:308:5)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /EXECUTOR_GUARD_INVALID/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
