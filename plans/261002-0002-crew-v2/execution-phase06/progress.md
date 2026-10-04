@@ -75,3 +75,13 @@ Ruling D1-F3 supersedes earlier string-only PM interpretation: pinned bmad6.12.0
 2026-10-04 07:07 PM resume/report: quota73used27remaining, no newfeature slice. Root verified final D1FIX1 source29881b48/test0b1e51ea and raw25/25d83208bc/typesempty/Biome66f227a6; own priorPIDsabsent. Original reviewer resumed scoped fourfindings with delta84eb77f9 and correctedofficiallistcategoryruling, STATIConly (freshp2/3.825GiB/idle58.47/disk20.522 blocksheavy). B2a structural5pathfreeze complete, actual118GREEN stillpending. Web existingFIX2 full6/types/Biome grant at07:06 freshp2/4.227GiB/idle65.4/disk23.857, workerpercreationgate mandatory; no newUI/browser. User aggregate report given, no acceptance inferred from unit milestone.
 
 07:12 D1 FIX1 original reviewer6cdc60f4 FULLREAD SPEC/QUALITYApproved scoped4findings, no newblockingdelta; root verified final2source/raw25/types/Biome. Root adding exact2paths to assistant-workflows flow and updating7H2; index-only docs validation/commit pending heavy slot. Pureinspection accepted, BMAD remainsdeny/noT3run graph. Quota74used26remaining; B2a existing118GREEN/checks resumedsoleheavy, webpending no resources.
+
+## PM tiếp nhận handover04/10 09:30VN (Claude Code, máy mới)
+
+Worktree `/Volumes/CORSAIR/Projects/my-crew-v2` nhánh `codex/crew-v2-server` HEAD `0c35a43`. Telemetry09:26 pressure1/available5.508GiB/idle79.28%/disk754GiB heavyEligible. Quota tuần Claude76used/24remaining.
+
+Ruling: owner đổi ngưỡng dừng dispatch từ còn25% thành còn5% (handover đã sửa, commit `0c35a43`) — owner quyết trực tiếp — sai thì tốn quota tuần.
+Ruling: implementer/reviewer Codex cũ không resume được trên máy này; fix round dùng fresh agent mang report file làm bộ nhớ, đúng nhánh "harness cannot send another message" của SDD — sai thì mất ngữ cảnh worker cũ, report file bù lại.
+Ruling: gate quota trong recipe RED/GREEN cũ (quotaremaining>25%) thay bằng >5% theo owner; các gate RAM/CPU/disk/PG giữ nguyên.
+
+Dispatch kế tiếp: B2a GREEN118/strict/Biome (sole heavy slot), rồi full independent review B2a. Web Task1 FIX2 final6 chờ B2a freeze.
