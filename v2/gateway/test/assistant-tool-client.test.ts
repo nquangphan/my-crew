@@ -35,16 +35,27 @@ const canon = (value: unknown): string => {
 
 type Seen = { url: string; providerHeaders: string[]; auth: string | undefined; body: any };
 type Behavior =
-  | { kind: 'status'; status: number; body?: unknown }
+  | { kind: 'status'; status: number; body?: unknown; headers?: Record<string, string> }
   | { kind: 'drop' }
   | { kind: 'commit-then-drop' };
-type Stored = { fingerprint: string; clientSequence: string; providerCallId: string; reply: unknown };
+type Stored = {
+  turnId: string;
+  fingerprint: string;
+  clientSequence: string;
+  providerCallId: string;
+  reply: unknown;
+};
 
 async function fakeServer() {
   const seen: Seen[] = [];
   const queue: Behavior[] = [];
   const stored = new Map<string, Stored>();
-  const hooks: { transform?: (reply: any, body: any) => any } = {};
+  const hooks: {
+    transform?: (reply: any, body: any) => any;
+    bearer: string;
+    /** Turns whose authority is gone: authorize fails before any replay, like a stale resolver. */
+    revoked: Set<string>;
+  } = { bearer, revoked: new Set() };
   const sockets = new Set<import('node:net').Socket>();
   const read = (request: IncomingMessage) =>
     new Promise<string>((resolve, reject) => {
@@ -61,45 +72,57 @@ async function fakeServer() {
         providerHeaders.push(String(request.rawHeaders[i + 1]));
     const body = JSON.parse(text);
     seen.push({ url: request.url ?? '', providerHeaders, auth: request.headers.authorization, body });
-    const send = (status: number, payload: unknown) => {
-      response.writeHead(status, { 'content-type': 'application/json' });
+    const send = (status: number, payload: unknown, headers: Record<string, string> = {}) => {
+      response.writeHead(status, { 'content-type': 'application/json', ...headers });
       response.end(JSON.stringify(payload));
     };
     const fail = (status: number, code: string) => send(status, { error: { code, message: 'x' } });
     const behavior = queue.shift();
     if (behavior?.kind === 'drop') return request.socket.destroy();
-    if (behavior?.kind === 'status') return send(behavior.status, behavior.body ?? { error: { code: 'X' } });
-    if (request.headers.authorization !== `Bearer ${bearer}`) return fail(401, 'UNAUTHENTICATED');
+    if (behavior?.kind === 'status')
+      return send(behavior.status, behavior.body ?? { error: { code: 'X' } }, behavior.headers);
+    // Same order as the real route: body schema, bearer, machine, provider header, authorize
+    // (turn authority, before any replay), then idempotency and the fresh-operation clash.
+    const keys = Object.keys(body).sort().join(',');
+    if (keys !== 'call,clientSequence,fence,inputSnapshot,operationId' || !uuidPattern.test(body.operationId))
+      return fail(400, 'INVALID_INPUT');
+    if (request.headers.authorization !== `Bearer ${hooks.bearer}`) return fail(401, 'UNAUTHENTICATED');
     const [providerCallId] = providerHeaders;
     if (providerHeaders.length !== 1 || !providerPattern.test(providerCallId ?? ''))
       return fail(400, 'PROVIDER_CALL_ID_INVALID');
-    const keys = Object.keys(body).sort().join(',');
-    if (keys !== 'call,clientSequence,fence,inputSnapshot,operationId' || !uuidPattern.test(body.operationId))
-      return fail(400, 'VALIDATION');
-    if (request.url !== `/v2/assistant/turns/${body.fence.turnId}/tools`)
+    const turnId = String(body.fence.turnId).toLowerCase();
+    if (request.url?.toLowerCase() !== `/v2/assistant/turns/${turnId}/tools` || hooks.revoked.has(turnId))
       return fail(404, 'ASSISTANT_SCOPE_NOT_FOUND');
     const operationId = String(body.operationId).toLowerCase();
     const fingerprint = canon({ providerCallId, request: body });
     const old = stored.get(operationId);
     if (old) {
-      if (old.fingerprint !== fingerprint) return fail(409, 'ASSISTANT_OPERATION_CONFLICT');
+      if (old.fingerprint !== fingerprint) return fail(409, 'IDEMPOTENCY_CONFLICT');
       return send(200, old.reply);
     }
     for (const other of stored.values())
-      if (other.clientSequence === body.clientSequence || other.providerCallId === providerCallId)
+      if (
+        other.turnId === turnId &&
+        (other.clientSequence === body.clientSequence || other.providerCallId === providerCallId)
+      )
         return fail(409, 'ASSISTANT_OPERATION_CONFLICT');
     const name = body.call.name as string;
-    const reply =
-      name === 'read_catalog'
-        ? {
-            operationId,
-            state: 'completed',
-            result: { kind: 'catalog', items: [], truncated: false },
-            errorCode: null,
-          }
-        : { operationId, state: 'rejected', result: null, errorCode: 'TOOL_NOT_RELEASED' };
+    const released: Record<string, unknown> = {
+      read_catalog: { kind: 'catalog', items: [], truncated: false },
+      read_docs: {
+        kind: 'docs',
+        page: { path: body.call.input.path, text: '# Tài liệu' },
+        readReceiptId: randomUUID(),
+      },
+      create_run: { kind: 'run', run: { id: randomUUID() } },
+      ask_owner: { kind: 'question', question: { id: randomUUID(), revision: 1, state: 'open' } },
+    };
+    const reply = released[name]
+      ? { operationId, state: 'completed', result: released[name], errorCode: null }
+      : { operationId, state: 'rejected', result: null, errorCode: 'TOOL_NOT_RELEASED' };
     const final = hooks.transform ? hooks.transform(reply, body) : reply;
     stored.set(operationId, {
+      turnId,
       fingerprint,
       clientSequence: body.clientSequence,
       providerCallId: providerCallId as string,
@@ -157,12 +180,13 @@ async function harness(options: { maxAttempts?: number } = {}) {
   const root = await mkdtemp(join(await realpath(tmpdir()), 'crew-b3b-'));
   const server = await fakeServer();
   const clock = { now: 1_000_000 };
+  const auth = { current: bearer };
   const sleeps: number[] = [];
   const open = () =>
     createToolClient({
       root,
       baseUrl: server.url,
-      bearer,
+      bearer: () => auth.current,
       now: () => clock.now,
       sleep: async (ms) => {
         sleeps.push(ms);
@@ -184,6 +208,7 @@ async function harness(options: { maxAttempts?: number } = {}) {
     root,
     server,
     clock,
+    auth,
     sleeps,
     client,
     journalFiles,
@@ -295,21 +320,6 @@ test('tool client: invalid events are rejected before any I/O', async () => {
             expectedRouteRevision: 0,
             ticket: {},
             confidence: 2,
-            rationale: 'r',
-            docReadIds: [],
-          },
-        }),
-      ],
-      [
-        'secret-named key inside ticket',
-        tool({
-          name: 'route_message',
-          input: {
-            messageId: randomUUID(),
-            expectedInputRevision: '1',
-            expectedRouteRevision: 0,
-            ticket: { criteria: { token: 'leak' } },
-            confidence: 0.5,
             rationale: 'r',
             docReadIds: [],
           },
@@ -428,6 +438,11 @@ test('tool client: valid payloads of every released and unreleased tool are acce
         sequence: String(sequence++),
         call,
       } as unknown as RoutingEvent);
+      if (call.name === 'read_docs' || call.name === 'create_run') {
+        assert.equal(result.state, 'completed', call.name);
+        assert.equal(result.result?.kind, call.name === 'read_docs' ? 'docs' : 'run');
+        continue;
+      }
       assert.equal(result.state, 'rejected', call.name);
       assert.equal(result.errorCode, 'TOOL_NOT_RELEASED');
       assert.equal(result.result, null);
@@ -488,7 +503,7 @@ test('tool client: persistent outage is bounded and retryable, then recovers wit
       assert.equal(error.retryable, true);
       return true;
     });
-    assert.ok(h.server.seen.length <= 3, `sent ${h.server.seen.length}`);
+    assert.equal(h.server.seen.length, 3, 'one request per attempt, none wasted');
     h.server.queue.length = 0;
     await c.close();
     const second = await h.client();
@@ -503,16 +518,19 @@ test('tool client: persistent outage is bounded and retryable, then recovers wit
 
 test('tool client: terminal HTTP statuses are not retried and are replayed after restart without I/O', async () => {
   const table: [number, string, string][] = [
-    [400, 'VALIDATION', 'invalid'],
+    [400, 'INVALID_INPUT', 'invalid'],
+    [400, 'ASSISTANT_FENCE_INVALID', 'invalid'],
     [400, 'PROVIDER_CALL_ID_INVALID', 'invalid'],
-    [401, 'UNAUTHENTICATED', 'unauthorized'],
-    [403, 'ASSISTANT_TOOL_NOT_IN_SCOPE', 'unauthorized'],
+    [403, 'ASSISTANT_MACHINE_REQUIRED', 'forbidden'],
+    [403, 'ASSISTANT_TOOL_NOT_IN_SCOPE', 'forbidden'],
     [404, 'ASSISTANT_SCOPE_NOT_FOUND', 'not_found'],
+    [404, 'NOT_FOUND', 'not_found'],
     [409, 'ASSISTANT_INPUT_STALE', 'stale'],
-    [409, 'ASSISTANT_TURN_STALE', 'stale'],
+    [409, 'IDEMPOTENCY_CONFLICT', 'conflict'],
     [409, 'ASSISTANT_OPERATION_CONFLICT', 'conflict'],
+    [409, 'WORKFLOW_RUN_EXISTS', 'conflict'],
     [409, 'ASSISTANT_TOOL_BUDGET_EXHAUSTED', 'budget'],
-    [422, 'SOMETHING', 'rejected'],
+    [422, 'WORKFLOW_QUESTION_TICKET_REQUIRED', 'rejected'],
   ];
   for (const [status, code, expected] of table) {
     const h = await harness();
@@ -637,5 +655,325 @@ test('tool client: unsafe server URLs are refused', async () => {
       await assert.rejects(createToolClient({ root, baseUrl: url, bearer }), /UNSAFE_SERVER_URL/);
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+type Harness = Awaited<ReturnType<typeof harness>>;
+const sent = (h: Harness) => h.server.seen.length;
+const rotated = 'rotated-bearer-secret-token-9876543210';
+
+test('tool client: 401 is not recorded; with a refreshed credential the same operation is sent again', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    const t = turn();
+    h.server.hooks.bearer = rotated;
+    await assert.rejects(c.execute(t, catalogEvent()), (error) => {
+      assert.ok(error instanceof ToolClientError);
+      assert.equal(error.kind, 'unauthorized');
+      assert.equal(error.status, 401);
+      assert.equal(error.serverCode, 'UNAUTHENTICATED');
+      assert.equal(error.retryable, true);
+      return true;
+    });
+    assert.equal(sent(h), 1, '401 is not retried inside one call');
+    h.auth.current = rotated;
+    const result = await c.execute(t, catalogEvent());
+    assert.equal(result.state, 'completed');
+    assert.equal(sent(h), 2);
+    assert.equal(canon(h.server.seen[0]?.body), canon(h.server.seen[1]?.body));
+    assert.equal(h.server.seen[1]?.auth, `Bearer ${rotated}`);
+    for (const file of await h.journalFiles()) {
+      const text = await readFile(file, 'utf8');
+      assert.ok(!text.includes('rotated-bearer') && !text.includes(bearer));
+    }
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: 408, 425, 429 and plain 503 retry with exact attempt counts and never close the operation', async () => {
+  for (const [status, code] of [
+    [408, 'REQUEST_TIMEOUT'],
+    [425, 'TOO_EARLY'],
+    [429, 'RATE_LIMITED'],
+    [503, 'SERVICE_UNAVAILABLE'],
+  ] as const) {
+    const h = await harness();
+    try {
+      const c = await h.client();
+      const t = turn();
+      for (let i = 0; i < 4; i += 1)
+        h.server.queue.push({ kind: 'status', status, body: { error: { code, message: 'x' } } });
+      await assert.rejects(c.execute(t, catalogEvent(), { maxAttempts: 3 }), (error) => {
+        assert.ok(error instanceof ToolClientError);
+        assert.equal(error.kind, 'unavailable', String(status));
+        assert.equal(error.retryable, true);
+        return true;
+      });
+      assert.equal(sent(h), 3, `${status}: one request per attempt`);
+      assert.equal(h.sleeps.length, 2);
+      await assert.rejects(c.execute(t, catalogEvent(), { maxAttempts: 1 }), kind('unavailable'));
+      assert.equal(sent(h), 4, `${status}: a single attempt sends exactly one request`);
+      assert.equal((await c.execute(t, catalogEvent())).state, 'completed', `${status}: not poisoned`);
+      assert.equal(new Set(h.server.seen.map((s) => canon(s.body))).size, 1);
+    } finally {
+      await h.done();
+    }
+  }
+});
+
+test('tool client: 429 honours Retry-After seconds, capped at one minute', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    h.server.queue.push(
+      { kind: 'status', status: 429, headers: { 'retry-after': '7' } },
+      { kind: 'status', status: 429, headers: { 'retry-after': '3600' } },
+    );
+    const result = await c.execute(turn(), catalogEvent());
+    assert.equal(result.state, 'completed');
+    assert.deepEqual(h.sleeps, [7000, 60000]);
+    assert.equal(sent(h), 3);
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: 413 and unlisted 4xx are infrastructure errors that do not close the operation', async () => {
+  for (const status of [413, 405, 410]) {
+    const h = await harness();
+    try {
+      const c = await h.client();
+      const t = turn();
+      h.server.queue.push({
+        kind: 'status',
+        status,
+        body: { error: { code: 'BODY_TOO_LARGE', message: 'x' } },
+      });
+      await assert.rejects(c.execute(t, catalogEvent()), (error) => {
+        assert.ok(error instanceof ToolClientError);
+        assert.equal(error.kind, 'rejected');
+        assert.equal(error.status, status);
+        assert.equal(error.retryable, false);
+        return true;
+      });
+      assert.equal(sent(h), 1);
+      assert.equal((await c.execute(t, catalogEvent())).state, 'completed', `${status}: not poisoned`);
+    } finally {
+      await h.done();
+    }
+  }
+});
+
+test('tool client: 503 not-configured stops retrying but keeps the operation open', async () => {
+  for (const code of ['ASSISTANT_TOOLS_NOT_CONFIGURED', 'ASSISTANT_POLICY_INVALID']) {
+    const h = await harness();
+    try {
+      const c = await h.client();
+      const t = turn();
+      h.server.queue.push({ kind: 'status', status: 503, body: { error: { code, message: 'x' } } });
+      await assert.rejects(c.execute(t, catalogEvent()), (error) => {
+        assert.ok(error instanceof ToolClientError);
+        assert.equal(error.kind, 'not_configured');
+        assert.equal(error.serverCode, code);
+        assert.equal(error.retryable, false);
+        return true;
+      });
+      assert.equal(sent(h), 1);
+      assert.deepEqual(h.sleeps, []);
+      await c.close();
+      const later = await h.client();
+      assert.equal((await later.execute(t, catalogEvent())).state, 'completed');
+      assert.equal(sent(h), 2);
+      assert.equal(canon(h.server.seen[0]?.body), canon(h.server.seen[1]?.body));
+    } finally {
+      await h.done();
+    }
+  }
+});
+
+test('tool client: a redirect is a terminal configuration error, not retried and not recorded', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    const t = turn();
+    h.server.queue.push({ kind: 'status', status: 302, headers: { location: 'http://127.0.0.1:1/x' } });
+    await assert.rejects(c.execute(t, catalogEvent()), (error) => {
+      assert.ok(error instanceof ToolClientError);
+      assert.equal(error.kind, 'misconfigured');
+      assert.equal(error.status, 302);
+      assert.equal(error.retryable, false);
+      return true;
+    });
+    assert.equal(sent(h), 1);
+    assert.deepEqual(h.sleeps, []);
+    assert.equal((await c.execute(t, catalogEvent())).state, 'completed');
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: released tools complete with their matching docs, run and question values', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    const t = turn();
+    const docs = await c.execute(t, {
+      kind: 'tool',
+      providerCallId: 'toolu_d',
+      sequence: '1',
+      call: {
+        name: 'read_docs',
+        input: { projectId: randomUUID(), snapshotId: randomUUID(), path: 'docs/a.md' },
+      },
+    });
+    assert.equal(docs.result?.kind, 'docs');
+    const run = await c.execute(t, {
+      kind: 'tool',
+      providerCallId: 'toolu_r',
+      sequence: '2',
+      call: {
+        name: 'create_run',
+        input: { rootTicketId: randomUUID(), path: 'bounded', definitionSha256: sha('d') },
+      },
+    });
+    assert.equal(run.result?.kind, 'run');
+    const question = await c.execute(t, {
+      kind: 'tool',
+      providerCallId: 'toolu_q',
+      sequence: '3',
+      call: {
+        name: 'ask_owner',
+        input: {
+          conversationId: randomUUID(),
+          ticketId: randomUUID(),
+          runId: null,
+          stepId: null,
+          gateId: null,
+          cycleId: null,
+          artifactSha256: null,
+          question: 'Chọn phạm vi nào?',
+          options: ['a', 'b'],
+          scopeSha256: sha('scope'),
+        },
+      },
+    });
+    assert.equal(question.result?.kind, 'question');
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: a UUID fence in upper case is normalised, so the same turn never conflicts with itself', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    const t = turn();
+    const upper: ToolTurn = {
+      fence: {
+        ...t.fence,
+        turnId: t.fence.turnId.toUpperCase(),
+        designationId: t.fence.designationId.toUpperCase(),
+        processInstanceId: t.fence.processInstanceId.toUpperCase(),
+      },
+      inputSnapshot: { ...t.inputSnapshot, snapshotId: t.inputSnapshot.snapshotId.toUpperCase() },
+    };
+    const first = await c.execute(upper, catalogEvent());
+    const second = await c.execute(t, catalogEvent());
+    assert.deepEqual(second, first);
+    assert.equal(sent(h), 1, 'the second spelling replays from the journal');
+    assert.deepEqual(h.server.seen[0]?.body.fence, t.fence);
+    assert.equal(h.server.seen[0]?.url, `/v2/assistant/turns/${t.fence.turnId}/tools`);
+    assert.equal(h.server.seen[0]?.body.operationId, toolOperationId(t.fence.turnId, 'toolu_01', '1'));
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: secret-looking keys of business payloads are allowed', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    const ticket = { title: 't', criteria: { password: 'rotate-me', secret: { token: 'x' } } };
+    const result = await c.execute(turn(), {
+      kind: 'tool',
+      providerCallId: 'toolu_s',
+      sequence: '1',
+      call: {
+        name: 'route_message',
+        input: {
+          messageId: randomUUID(),
+          expectedInputRevision: '1',
+          expectedRouteRevision: 0,
+          ticket,
+          confidence: 0.5,
+          rationale: 'r',
+          docReadIds: [],
+        },
+      },
+    });
+    assert.equal(result.state, 'rejected');
+    assert.deepEqual(h.server.seen[0]?.body.call.input.ticket, ticket);
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: a changed fence or pin for an already journaled call is a local conflict without I/O', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    const t = turn();
+    await c.execute(t, catalogEvent());
+    for (const changed of [
+      { ...t, fence: { ...t.fence, generation: '8' } },
+      { ...t, inputSnapshot: { ...t.inputSnapshot, inputRevision: '2' } },
+    ])
+      await assert.rejects(c.execute(changed, catalogEvent()), kind('conflict'));
+    assert.equal(sent(h), 1);
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: a turn without current authority is 404 not_found even for a new operation', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    const t = turn();
+    await c.execute(t, catalogEvent());
+    h.server.hooks.revoked.add(t.fence.turnId.toLowerCase());
+    await assert.rejects(c.execute(t, catalogEvent('toolu_02', '2')), (error) => {
+      assert.ok(error instanceof ToolClientError);
+      assert.equal(error.kind, 'not_found');
+      assert.equal(error.serverCode, 'ASSISTANT_SCOPE_NOT_FOUND');
+      return true;
+    });
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: concurrent executes of one call agree on a single stored result', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    const t = turn();
+    const [a, b] = await Promise.all([c.execute(t, catalogEvent()), c.execute(t, catalogEvent())]);
+    assert.deepEqual(a, b);
+    assert.equal(h.server.stored.size, 1);
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: a root already opened by another client is refused', async () => {
+  const h = await harness();
+  try {
+    await h.client();
+    await assert.rejects(h.client());
+  } finally {
+    await h.done();
   }
 });

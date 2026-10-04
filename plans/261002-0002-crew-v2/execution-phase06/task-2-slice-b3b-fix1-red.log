@@ -1,0 +1,556 @@
+# RED: tests of fix round 1 against 97737a1 client
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-kNdMKv
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-kNdMKv nonceSha256=b6c002d092010909173b5d93121b8d85ac1a60ac3341c47b2507953b68b6db59
+attachment DB scratch identity dev=16777231 ino=220597350 uid=501 pid=93877
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-kNdMKv
+✔ real route: read_catalog and read_docs complete with the matching values and replay after restart (662.391916ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9BAAac
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9BAAac nonceSha256=08c7c45963695ce95c9a5e3d876672a2d685d29f98c4f9f7aa5a5e43e078c82d
+attachment DB scratch identity dev=16777231 ino=220597438 uid=501 pid=93877
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9BAAac
+✖ real route: an upper-case turn fence is normalised and gives the same operation (420.82575ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZUn12c
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZUn12c nonceSha256=538fbff807a22227f816541fdac1919825a7d8a036ab0bee10d045d08a07dc3b
+attachment DB scratch identity dev=16777231 ino=220597485 uid=501 pid=93877
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZUn12c
+✔ real route: an unreleased tool is a rejected result, not an error (418.555208ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rA13ei
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rA13ei nonceSha256=4262cefe870b33ba7c288662bdfebb3b0b2b874a54fc14ac3cc8fe786126d6e7
+attachment DB scratch identity dev=16777231 ino=220597556 uid=501 pid=93877
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rA13ei
+✖ real route: wrong bearer is 401 unauthorized, not recorded, and the corrected bearer reuses the operation (441.008292ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-N1DeMn
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-N1DeMn nonceSha256=3efaced5a59b497803cc86f448941add34a48f2d96b580cced99394902a4480d
+attachment DB scratch identity dev=16777231 ino=220597628 uid=501 pid=93877
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-N1DeMn
+✔ real route: another machine and a stale turn authority are one 404 not_found (494.223458ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SanIgY
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SanIgY nonceSha256=cdf087cd0ba0a3b1b712db5af3970f119dd307205f0c670ba1b40fc8b57fe3ce
+attachment DB scratch identity dev=16777231 ino=220597703 uid=501 pid=93877
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SanIgY
+✖ real route: a stale input pin is 409 stale; a tool outside the scope is 403 forbidden (406.3805ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vbx6yi
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vbx6yi nonceSha256=b2c39fdee98966713a5708cceeb5bf5275c245cfe878d4dd48a64fe1d8502cc7
+attachment DB scratch identity dev=16777231 ino=220597722 uid=501 pid=93877
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vbx6yi
+✔ real route: the per-turn budget is 409 budget for a new call, and a committed call still replays (411.071166ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Xc99MV
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Xc99MV nonceSha256=6c29c7bd524f966492105201bdfa8d7e12277cc18d5d40c94fde8d1c29e35b55
+attachment DB scratch identity dev=16777231 ino=220597742 uid=501 pid=93877
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Xc99MV
+✔ real route: a repeated sequence under another provider call is 409 conflict (417.749833ms)
+✖ tool client: read_catalog posts the exact request with the provider header and returns the matching value (100.443875ms)
+✔ tool client: operation ID is a deterministic UUID of turn, provider call and sequence (0.604667ms)
+✖ tool client: a completed call replays from the journal after restart without a new request (76.944958ms)
+✖ tool client: the operation is durable before the HTTP call and a restart reuses its ID and body (141.940209ms)
+✔ tool client: invalid events are rejected before any I/O (65.400375ms)
+✖ tool client: valid payloads of every released and unreleased tool are accepted (82.480167ms)
+✖ tool client: 5xx and network loss retry the identical request with bounded backoff (136.695375ms)
+✖ tool client: a reply lost after the server committed is read back from the stored result (85.166292ms)
+✖ tool client: persistent outage is bounded and retryable, then recovers with the same operation (194.847834ms)
+✖ tool client: terminal HTTP statuses are not retried and are replayed after restart without I/O (493.742458ms)
+✖ tool client: only the matching result kind and a well-formed envelope are accepted (78.636125ms)
+✖ tool client: the same provider call with a different payload is a local conflict without I/O (75.754875ms)
+✔ tool client: the bearer never reaches durable files or error messages (100.5285ms)
+✔ tool client: unsafe server URLs are refused (0.4205ms)
+✖ tool client: 401 is not recorded; with a refreshed credential the same operation is sent again (75.243625ms)
+✖ tool client: 408, 425, 429 and plain 503 retry with exact attempt counts and never close the operation (81.931209ms)
+✖ tool client: 429 honours Retry-After seconds, capped at one minute (75.216959ms)
+✖ tool client: 413 and unlisted 4xx are infrastructure errors that do not close the operation (79.905875ms)
+✖ tool client: 503 not-configured stops retrying but keeps the operation open (97.363042ms)
+✖ tool client: a redirect is a terminal configuration error, not retried and not recorded (81.27675ms)
+✖ tool client: released tools complete with their matching docs, run and question values (76.0645ms)
+✖ tool client: a UUID fence in upper case is normalised, so the same turn never conflicts with itself (74.586083ms)
+✖ tool client: secret-looking keys of business payloads are allowed (61.494375ms)
+✖ tool client: a changed fence or pin for an already journaled call is a local conflict without I/O (81.809916ms)
+✖ tool client: a turn without current authority is 404 not_found even for a new operation (85.994333ms)
+✖ tool client: concurrent executes of one call agree on a single stored result (81.721375ms)
+✔ tool client: a root already opened by another client is refused (59.811208ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 10
+ℹ fail 25
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3860.5955
+
+✖ failing tests:
+
+test at test/assistant-tool-client-route.test.ts:204:1
+✖ real route: an upper-case turn fence is normalised and gives the same operation (420.82575ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_CONFLICT: operation id already bound to a different request
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:517:15)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:217:22
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:166:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withRoute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:163:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'conflict',
+    status: null,
+    serverCode: null,
+    retryable: false
+  }
+
+test at test/assistant-tool-client-route.test.ts:237:1
+✖ real route: wrong bearer is 401 unauthorized, not recorded, and the corrected bearer reuses the operation (441.008292ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:243:19
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:166:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withRoute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:163:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client-route.test.ts:259:1
+✖ real route: a stale input pin is 409 stale; a tool outside the scope is 403 forbidden (406.3805ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'unauthorized'
+  - 'forbidden'
+  
+      at Object.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:178:10)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:264:5
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:166:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withRoute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client-route.test.ts:163:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unauthorized',
+    expected: 'forbidden',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tool-client.test.ts:225:1
+✖ tool client: read_catalog posts the exact request with the provider header and returns the matching value (100.443875ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:230:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:261:1
+✖ tool client: a completed call replays from the journal after restart without a new request (76.944958ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:266:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:276:1
+✖ tool client: the operation is durable before the HTTP call and a restart reuses its ID and body (141.940209ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:287:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:378:1
+✖ tool client: valid payloads of every released and unreleased tool are accepted (82.480167ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:435:22)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:456:1
+✖ tool client: 5xx and network loss retry the identical request with bounded backoff (136.695375ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:462:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:479:1
+✖ tool client: a reply lost after the server committed is read back from the stored result (85.166292ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:485:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:494:1
+✖ tool client: persistent outage is bounded and retryable, then recovers with the same operation (194.847834ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:511:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:519:1
+✖ tool client: terminal HTTP statuses are not retried and are replayed after restart without I/O (493.742458ms)
+  AssertionError [ERR_ASSERTION]: 403 ASSISTANT_MACHINE_REQUIRED
+  + actual - expected
+  
+  + 'unauthorized'
+  - 'forbidden'
+  
+      at Object.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:543:16)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:541:7)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'unauthorized',
+    expected: 'forbidden',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tool-client.test.ts:561:1
+✖ tool client: only the matching result kind and a well-formed envelope are accepted (78.636125ms)
+  AssertionError [ERR_ASSERTION]: wrong kind
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:579:7)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: ToolClientError: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+        at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+        at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:579:7)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/assistant-tool-client.test.ts:602:1
+✖ tool client: the same provider call with a different payload is a local conflict without I/O (75.754875ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:607:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:665:1
+✖ tool client: 401 is not recorded; with a refreshed credential the same operation is sent again (75.243625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at Object.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:676:14)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:671:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tool-client.test.ts:695:1
+✖ tool client: 408, 425, 429 and plain 503 retry with exact attempt counts and never close the operation (81.931209ms)
+  AssertionError [ERR_ASSERTION]: 408
+  + actual - expected
+  
+  + 'rejected'
+  - 'unavailable'
+  
+      at Object.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:710:16)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:708:7)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'rejected',
+    expected: 'unavailable',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tool-client.test.ts:726:1
+✖ tool client: 429 honours Retry-After seconds, capped at one minute (75.216959ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_REJECTED: HTTP 429 X
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:422:45)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:734:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'rejected',
+    status: 429,
+    serverCode: 'X',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:743:1
+✖ tool client: 413 and unlisted 4xx are infrastructure errors that do not close the operation (79.905875ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_REJECTED: HTTP 413 BODY_TOO_LARGE
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:422:45)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:762:21)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'rejected',
+    status: 413,
+    serverCode: 'BODY_TOO_LARGE',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:769:1
+✖ tool client: 503 not-configured stops retrying but keeps the operation open (97.363042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'unauthorized'
+  - 'not_configured'
+  
+      at Object.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:778:16)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:776:7)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unauthorized',
+    expected: 'not_configured',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tool-client.test.ts:796:1
+✖ tool client: a redirect is a terminal configuration error, not retried and not recorded (81.27675ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'unauthorized'
+  - 'misconfigured'
+  
+      at Object.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:804:14)
+      at expectedException (node:assert:578:17)
+      at expectsError (node:assert:703:21)
+      at strict.rejects (node:assert:769:3)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:802:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unauthorized',
+    expected: 'misconfigured',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tool-client.test.ts:817:1
+✖ tool client: released tools complete with their matching docs, run and question values (76.0645ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:822:18)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:868:1
+✖ tool client: a UUID fence in upper case is normalised, so the same turn never conflicts with itself (74.586083ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:882:19)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:894:1
+✖ tool client: secret-looking keys of business payloads are allowed (61.494375ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_INVALID: secret_body_forbidden
+      at invalid (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:320:37)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:523:15)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:899:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'invalid',
+    status: null,
+    serverCode: null,
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:923:1
+✖ tool client: a changed fence or pin for an already journaled call is a local conflict without I/O (81.809916ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:928:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:940:1
+✖ tool client: a turn without current authority is 404 not_found even for a new operation (85.994333ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:945:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+test at test/assistant-tool-client.test.ts:958:1
+✖ tool client: concurrent executes of one call agree on a single stored result (81.721375ms)
+  Error [ToolClientError]: ASSISTANT_TOOL_UNAUTHORIZED: HTTP 401 UNAUTHENTICATED
+      at terminalError (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:413:48)
+      at Object.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/tool-client.ts:536:11)
+      at async Promise.all (index 0)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/assistant-tool-client.test.ts:963:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    kind: 'unauthorized',
+    status: 401,
+    serverCode: 'UNAUTHENTICATED',
+    retryable: false
+  }
+
+# RED (supplement): same fake-server tests with a string bearer so the old client runs; isolates behaviour failures from the missing bearer-provider API
+✔ tool client: read_catalog posts the exact request with the provider header and returns the matching value (96.384667ms)
+✔ tool client: operation ID is a deterministic UUID of turn, provider call and sequence (0.215583ms)
+✔ tool client: a completed call replays from the journal after restart without a new request (124.097041ms)
+✔ tool client: the operation is durable before the HTTP call and a restart reuses its ID and body (129.083041ms)
+✔ tool client: invalid events are rejected before any I/O (52.879083ms)
+✔ tool client: valid payloads of every released and unreleased tool are accepted (180.174875ms)
+✔ tool client: 5xx and network loss retry the identical request with bounded backoff (132.512542ms)
+✔ tool client: a reply lost after the server committed is read back from the stored result (77.460708ms)
+✔ tool client: persistent outage is bounded and retryable, then recovers with the same operation (188.068125ms)
+✖ tool client: terminal HTTP statuses are not retried and are replayed after restart without I/O (452.280625ms)
+✔ tool client: only the matching result kind and a well-formed envelope are accepted (790.4275ms)
+✔ tool client: the same provider call with a different payload is a local conflict without I/O (70.216458ms)
+✔ tool client: the bearer never reaches durable files or error messages (95.286584ms)
+✔ tool client: unsafe server URLs are refused (0.336834ms)
+✖ tool client: 401 is not recorded; with a refreshed credential the same operation is sent again (71.751541ms)
+✖ tool client: 408, 425, 429 and plain 503 retry with exact attempt counts and never close the operation (79.270375ms)
+✖ tool client: 429 honours Retry-After seconds, capped at one minute (72.154792ms)
+✖ tool client: 413 and unlisted 4xx are infrastructure errors that do not close the operation (71.040875ms)
+✖ tool client: 503 not-configured stops retrying but keeps the operation open (95.730167ms)
+✖ tool client: a redirect is a terminal configuration error, not retried and not recorded (73.156958ms)
+✔ tool client: released tools complete with their matching docs, run and question values (114.033417ms)
+✖ tool client: a UUID fence in upper case is normalised, so the same turn never conflicts with itself (78.112625ms)
+✖ tool client: secret-looking keys of business payloads are allowed (53.971625ms)
+✔ tool client: a changed fence or pin for an already journaled call is a local conflict without I/O (69.930167ms)
+✔ tool client: a turn without current authority is 404 not_found even for a new operation (90.195292ms)
+✔ tool client: concurrent executes of one call agree on a single stored result (72.574666ms)
+✔ tool client: a root already opened by another client is refused (56.204625ms)
+ℹ tests 27
+ℹ pass 18
+ℹ fail 9
+✖ failing tests:
+✖ tool client: terminal HTTP statuses are not retried and are replayed after restart without I/O (452.280625ms)
+  AssertionError [ERR_ASSERTION]: 403 ASSISTANT_MACHINE_REQUIRED
+  + actual - expected
+      at expectedException (node:assert:578:17)
+    actual: 'unauthorized',
+    expected: 'forbidden',
+✖ tool client: 401 is not recorded; with a refreshed credential the same operation is sent again (71.751541ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+      at expectedException (node:assert:578:17)
+    actual: false,
+    expected: true,
+✖ tool client: 408, 425, 429 and plain 503 retry with exact attempt counts and never close the operation (79.270375ms)
+  AssertionError [ERR_ASSERTION]: 408
+  + actual - expected
+      at expectedException (node:assert:578:17)
+    actual: 'rejected',
+    expected: 'unavailable',
+✖ tool client: 429 honours Retry-After seconds, capped at one minute (72.154792ms)
+✖ tool client: 413 and unlisted 4xx are infrastructure errors that do not close the operation (71.040875ms)
+✖ tool client: 503 not-configured stops retrying but keeps the operation open (95.730167ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+    actual: undefined,
+✖ tool client: a redirect is a terminal configuration error, not retried and not recorded (73.156958ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+    actual: undefined,
+✖ tool client: a UUID fence in upper case is normalised, so the same turn never conflicts with itself (78.112625ms)
+✖ tool client: secret-looking keys of business payloads are allowed (53.971625ms)

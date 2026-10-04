@@ -77,6 +77,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/src/workflows/registry.ts` | [gateway-workflows](flows/gateway-workflows.md) (điểm vào) |
 | `gateway/src/workflows/retention.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
 | `gateway/src/workflows/stage.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+| `gateway/test/assistant-tool-client-route.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
 | `gateway/test/assistant-tool-client.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
 | `gateway/test/connection.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/credential-broker.test.ts` | [gateway-models](flows/gateway-models.md) (test) |

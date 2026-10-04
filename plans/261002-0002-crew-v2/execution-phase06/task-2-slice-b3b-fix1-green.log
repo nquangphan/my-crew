@@ -1,0 +1,81 @@
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Gsp7N5
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Gsp7N5 nonceSha256=302ca53829348255618eaf168d9b73ff9a4c37fc2fe9c54a56fd65f1f37feaf6
+attachment DB scratch identity dev=16777231 ino=220599038 uid=501 pid=96874
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Gsp7N5
+✔ real route: read_catalog and read_docs complete with the matching values and replay after restart (682.271667ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vib8hn
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vib8hn nonceSha256=8e4f1b78eac9e8a8d095d13df5f5a7cce8d9afbc8548bf59b067ffb32ddeb31e
+attachment DB scratch identity dev=16777231 ino=220599161 uid=501 pid=96874
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vib8hn
+✔ real route: an upper-case turn fence is normalised and gives the same operation (457.372666ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-7IxMvR
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-7IxMvR nonceSha256=edb746dc51bc53a8e1b5786840d6effddfcc87773b38c324fd06a1c7cc5b56e2
+attachment DB scratch identity dev=16777231 ino=220599210 uid=501 pid=96874
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-7IxMvR
+✔ real route: an unreleased tool is a rejected result, not an error (403.491833ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tUJfQI
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tUJfQI nonceSha256=333098cf8abaa1a826207e8a2ed08b34ccccdf16a5302a4950d49e3f0935ff48
+attachment DB scratch identity dev=16777231 ino=220599257 uid=501 pid=96874
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-tUJfQI
+✔ real route: wrong bearer is 401 unauthorized, not recorded, and the corrected bearer reuses the operation (465.169042ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jC3rlE
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jC3rlE nonceSha256=f267ce8259bd424720fd411d72622c084f9110f1c72bf6e636e093a6a8871437
+attachment DB scratch identity dev=16777231 ino=220599309 uid=501 pid=96874
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jC3rlE
+✔ real route: another machine and a stale turn authority are one 404 not_found (482.682791ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0wTDhE
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0wTDhE nonceSha256=0a577db111372b083e2648fa829d9b63c2e590f6cbefc46b7de1c98e50dbe4e6
+attachment DB scratch identity dev=16777231 ino=220599363 uid=501 pid=96874
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0wTDhE
+✔ real route: a stale input pin is 409 stale; a tool outside the scope is 403 forbidden (428.257833ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-15HHFP
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-15HHFP nonceSha256=92b2f18b8609d9a2a5a00718141fe74520f6a67363e66b0970a50288a3bf859d
+attachment DB scratch identity dev=16777231 ino=220599432 uid=501 pid=96874
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-15HHFP
+✔ real route: the per-turn budget is 409 budget for a new call, and a committed call still replays (420.52225ms)
+attachment DB container d276dddb321657b787e9a14552333cf4b66efcae05b796d1944bcbd0dee7c6bd root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t6pSCm
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t6pSCm nonceSha256=0746a39a9540bd3fcaa0ab40f21ddbe0626b4b92aeb3f52fd25d7a6e634327a0
+attachment DB scratch identity dev=16777231 ino=220599506 uid=501 pid=96874
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t6pSCm
+✔ real route: a repeated sequence under another provider call is 409 conflict (414.88575ms)
+✔ tool client: read_catalog posts the exact request with the provider header and returns the matching value (121.983ms)
+✔ tool client: operation ID is a deterministic UUID of turn, provider call and sequence (0.2795ms)
+✔ tool client: a completed call replays from the journal after restart without a new request (144.175458ms)
+✔ tool client: the operation is durable before the HTTP call and a restart reuses its ID and body (139.888708ms)
+✔ tool client: invalid events are rejected before any I/O (62.859708ms)
+✔ tool client: valid payloads of every released and unreleased tool are accepted (249.12025ms)
+✔ tool client: 5xx and network loss retry the identical request with bounded backoff (94.436875ms)
+✔ tool client: a reply lost after the server committed is read back from the stored result (88.702458ms)
+✔ tool client: persistent outage is bounded and retryable, then recovers with the same operation (142.036292ms)
+✔ tool client: terminal HTTP statuses are not retried and are replayed after restart without I/O (1758.933625ms)
+✔ tool client: only the matching result kind and a well-formed envelope are accepted (777.749583ms)
+✔ tool client: the same provider call with a different payload is a local conflict without I/O (76.973625ms)
+✔ tool client: the bearer never reaches durable files or error messages (70.515ms)
+✔ tool client: unsafe server URLs are refused (0.416459ms)
+✔ tool client: 401 is not recorded; with a refreshed credential the same operation is sent again (76.279791ms)
+✔ tool client: 408, 425, 429 and plain 503 retry with exact attempt counts and never close the operation (301.520542ms)
+✔ tool client: 429 honours Retry-After seconds, capped at one minute (70.438375ms)
+✔ tool client: 413 and unlisted 4xx are infrastructure errors that do not close the operation (219.039834ms)
+✔ tool client: 503 not-configured stops retrying but keeps the operation open (264.375083ms)
+✔ tool client: a redirect is a terminal configuration error, not retried and not recorded (71.807708ms)
+✔ tool client: released tools complete with their matching docs, run and question values (105.604375ms)
+✔ tool client: a UUID fence in upper case is normalised, so the same turn never conflicts with itself (74.118833ms)
+✔ tool client: secret-looking keys of business payloads are allowed (73.9685ms)
+✔ tool client: a changed fence or pin for an already journaled call is a local conflict without I/O (71.137709ms)
+✔ tool client: a turn without current authority is 404 not_found even for a new operation (89.085459ms)
+✔ tool client: concurrent executes of one call agree on a single stored result (80.572917ms)
+✔ tool client: a root already opened by another client is refused (56.351916ms)
+✔ journal HTTP restart preserves exact route/body/key for lost replies and distinct mutation phases (296.443833ms)
+✔ journal HTTP rejects credential fields and transport cannot mutate the durable replay body (74.628958ms)
+✔ journal HTTP real socket lost replies replay every mutation with identical persisted body and key (349.604458ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-http-retry-lDYbY8","device":"16777231","inode":"220599119","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-http-retry-lDYbY8","device":"16777231","inode":"220599119","uid":501,"deleted":true}
+✔ transient recovery keeps original response and key, backoff, pending ambiguity and settled retry across reopen (260.229375ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5377.627834

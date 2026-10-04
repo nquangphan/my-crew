@@ -102,6 +102,7 @@ export type ToolTurn = { fence: TurnFence; inputSnapshot: DispatchInputPin };
 export type ToolClientErrorKind =
   | 'invalid'
   | 'unauthorized'
+  | 'forbidden'
   | 'not_found'
   | 'stale'
   | 'conflict'
@@ -109,6 +110,8 @@ export type ToolClientErrorKind =
   | 'rejected'
   | 'response_invalid'
   | 'unavailable'
+  | 'not_configured'
+  | 'misconfigured'
   | 'journal';
 /** Never carries a response body or credential: only the kind, HTTP status and server error code. */
 export class ToolClientError extends Error {
@@ -358,71 +361,6 @@ export function toolOperationId(turnId: Id, providerCallId: string, sequence: st
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
-// ---- transport: the provider call ID travels in the journaled phase, so it is crash-safe ----
-
-const phasePrefix = 'assistant-tool:';
-class TransportFailure extends Error {}
-
-function toolTransport(baseUrl: string, bearer: string, fetchImpl: typeof fetch): HttpTransport {
-  const base = new URL(baseUrl);
-  if (base.protocol !== 'https:' && !(base.protocol === 'http:' && base.hostname === '127.0.0.1'))
-    throw new Error('UNSAFE_SERVER_URL');
-  return async (request: Readonly<HttpRequest>): Promise<HttpResponse> => {
-    const providerCallId = request.phase.startsWith(phasePrefix)
-      ? request.phase.slice(phasePrefix.length)
-      : '';
-    if (
-      !providerCallPattern.test(providerCallId) ||
-      !request.route.startsWith('/v2/') ||
-      request.route.includes('..')
-    )
-      throw new Error('UNSAFE_TOOL_REQUEST');
-    try {
-      const response = await fetchImpl(new URL(request.route, base), {
-        method: 'POST',
-        redirect: 'error',
-        signal: AbortSignal.timeout(30000),
-        // The bearer lives only in this closure, never in the journaled request.
-        headers: {
-          authorization: `Bearer ${bearer}`,
-          'content-type': 'application/json',
-          'x-crew-provider-call-id': providerCallId,
-        },
-        body: JSON.stringify(request.canonicalBody),
-      });
-      return { status: response.status, body: await response.json() };
-    } catch {
-      // Network loss, timeout or an unreadable body: the outcome is unknown, so retry the same request.
-      throw new TransportFailure('TOOL_TRANSPORT_FAILED');
-    }
-  };
-}
-
-const transientStatus = (status: number) => [500, 502, 503, 504].includes(status);
-
-function serverCodeOf(body: unknown): string | null {
-  const code = isObject(body) && isObject(body.error) ? body.error.code : undefined;
-  return typeof code === 'string' && /^[A-Za-z0-9_]{1,64}$/.test(code) ? code : null;
-}
-
-/** Terminal (non-retryable) HTTP outcomes per the route contract. */
-function terminalError(status: number, body: unknown): ToolClientError {
-  const serverCode = serverCodeOf(body);
-  const extra = { status, serverCode };
-  const detail = `HTTP ${status}${serverCode ? ` ${serverCode}` : ''}`;
-  if (status === 401 || status === 403) return new ToolClientError('unauthorized', detail, extra);
-  if (status === 404) return new ToolClientError('not_found', detail, extra);
-  if (status === 409) {
-    if (serverCode === 'ASSISTANT_TOOL_BUDGET_EXHAUSTED') return new ToolClientError('budget', detail, extra);
-    if (serverCode === 'ASSISTANT_INPUT_STALE' || serverCode === 'ASSISTANT_TURN_STALE')
-      return new ToolClientError('stale', detail, extra);
-    return new ToolClientError('conflict', detail, extra);
-  }
-  if (status === 400) return new ToolClientError('invalid', detail, extra);
-  if (status >= 400 && status < 500) return new ToolClientError('rejected', detail, extra);
-  return new ToolClientError('response_invalid', detail, extra);
-}
-
 /** Exact envelope of a 200 reply; a completed result must be the one value kind of the tool. */
 function parseResult(tool: RoutingTool['name'], operationId: Id, body: unknown): RoutingToolResult {
   const bad = (detail: string) => new ToolClientError('response_invalid', detail);
@@ -445,13 +383,162 @@ function parseResult(tool: RoutingTool['name'], operationId: Id, body: unknown):
   return body as unknown as RoutingToolResult;
 }
 
+// ---- transport: the provider call ID travels in the journaled phase, so it is crash-safe ----
+
+const phasePrefix = 'assistant-tool:';
+const maxBackoffMs = 60000;
+/** Only these statuses are business outcomes of the route; the journal records them for good. */
+const recordedStatuses = new Set([200, 400, 403, 404, 409, 422]);
+/** 503 codes that are server configuration, not load: stop retrying, keep the operation open. */
+const notConfigured = new Set(['ASSISTANT_TOOLS_NOT_CONFIGURED', 'ASSISTANT_POLICY_INVALID']);
+
+/**
+ * A send that must not be recorded. The journal keeps the first response of an operation for
+ * good, so anything that is not a business outcome (credential, load, infrastructure, malformed
+ * reply) is thrown instead: the operation stays open and the same call can be executed again.
+ */
+class SendFailure extends Error {
+  readonly error: ToolClientError;
+  readonly retry: boolean;
+  readonly delayMs: number | null;
+  constructor(error: ToolClientError, retry: boolean, delayMs: number | null = null) {
+    super(error.message);
+    this.error = error;
+    this.retry = retry;
+    this.delayMs = delayMs;
+  }
+}
+
+function serverCodeOf(body: unknown): string | null {
+  const code = isObject(body) && isObject(body.error) ? body.error.code : undefined;
+  return typeof code === 'string' && /^[A-Za-z0-9_]{1,64}$/.test(code) ? code : null;
+}
+
+/** `Retry-After` as delta seconds or an HTTP date, in milliseconds, capped. */
+function retryAfterMs(value: string | null, now: number): number | null {
+  if (value === null) return null;
+  const seconds = /^[0-9]{1,9}$/.test(value.trim()) ? Number(value) * 1000 : Date.parse(value) - now;
+  return Number.isFinite(seconds) ? Math.min(maxBackoffMs, Math.max(0, seconds)) : null;
+}
+
+type Bearer = string | (() => string | Promise<string>);
+
+/**
+ * The journaled body keeps the free-form `call` as canonical JSON text, so the journal's key-name
+ * secret scan covers only the fixed envelope (fence, pin) and never business keys inside a
+ * ticket or question. The transport rebuilds the exact request body from it.
+ */
+function toolTransport(
+  baseUrl: string,
+  bearer: Bearer,
+  fetchImpl: typeof fetch,
+  now: () => number,
+): HttpTransport {
+  const base = new URL(baseUrl);
+  if (base.protocol !== 'https:' && !(base.protocol === 'http:' && base.hostname === '127.0.0.1'))
+    throw new Error('UNSAFE_SERVER_URL');
+  return async (request: Readonly<HttpRequest>): Promise<HttpResponse> => {
+    const providerCallId = request.phase.startsWith(phasePrefix)
+      ? request.phase.slice(phasePrefix.length)
+      : '';
+    if (
+      !providerCallPattern.test(providerCallId) ||
+      !request.route.startsWith('/v2/') ||
+      request.route.includes('..')
+    )
+      throw new Error('UNSAFE_TOOL_REQUEST');
+    const { callJson, ...envelope } = request.canonicalBody as Record<string, unknown> & { callJson: string };
+    const call = JSON.parse(callJson) as RoutingTool;
+    const operationId = String(envelope.operationId);
+    let credential: string;
+    try {
+      // Resolved per send, so a refreshed credential reaches the very next retry.
+      credential = typeof bearer === 'function' ? await bearer() : bearer;
+    } catch {
+      throw new SendFailure(
+        new ToolClientError('unauthorized', 'credential unavailable', { retryable: true }),
+        false,
+      );
+    }
+    let response: Response;
+    try {
+      response = await fetchImpl(new URL(request.route, base), {
+        method: 'POST',
+        // A redirect would resend the bearer elsewhere: never follow, classify below.
+        redirect: 'manual',
+        signal: AbortSignal.timeout(30000),
+        headers: {
+          authorization: `Bearer ${credential}`,
+          'content-type': 'application/json',
+          'x-crew-provider-call-id': providerCallId,
+        },
+        body: JSON.stringify({ ...envelope, call }),
+      });
+    } catch {
+      // Network loss or timeout: the outcome is unknown, so retry the same request.
+      throw new SendFailure(new ToolClientError('unavailable', 'network failure', { retryable: true }), true);
+    }
+    const status = response.status;
+    const body: unknown = await response.json().catch(() => null);
+    const serverCode = serverCodeOf(body);
+    const detail = `HTTP ${status}${serverCode ? ` ${serverCode}` : ''}`;
+    const extra = { status, serverCode };
+    if (status === 200) {
+      try {
+        parseResult(call.name, operationId, body);
+      } catch (error) {
+        if (error instanceof ToolClientError) throw new SendFailure(error, false);
+        throw error;
+      }
+      return { status, body };
+    }
+    if (recordedStatuses.has(status)) return { status, body };
+    if (status >= 300 && status < 400)
+      throw new SendFailure(new ToolClientError('misconfigured', `${detail} redirect`, extra), false);
+    if (status === 401)
+      throw new SendFailure(
+        new ToolClientError('unauthorized', detail, { ...extra, retryable: true }),
+        false,
+      );
+    if (status === 503 && serverCode !== null && notConfigured.has(serverCode))
+      throw new SendFailure(new ToolClientError('not_configured', detail, extra), false);
+    if ([408, 425, 429].includes(status) || status >= 500)
+      throw new SendFailure(
+        new ToolClientError('unavailable', detail, { ...extra, retryable: true }),
+        true,
+        retryAfterMs(response.headers.get('retry-after'), now()),
+      );
+    // 413 and every other unlisted status: infrastructure, not a business verdict.
+    throw new SendFailure(new ToolClientError('rejected', detail, extra), false);
+  };
+}
+
+/** Business outcomes the journal records: the route contract's terminal statuses. */
+function terminalError(status: number, body: unknown): ToolClientError {
+  const serverCode = serverCodeOf(body);
+  const extra = { status, serverCode };
+  const detail = `HTTP ${status}${serverCode ? ` ${serverCode}` : ''}`;
+  if (status === 403) return new ToolClientError('forbidden', detail, extra);
+  // 404 is one shape for every unresolvable scope: unknown turn, other machine, stale fence.
+  if (status === 404) return new ToolClientError('not_found', detail, extra);
+  if (status === 409) {
+    if (serverCode === 'ASSISTANT_TOOL_BUDGET_EXHAUSTED') return new ToolClientError('budget', detail, extra);
+    if (serverCode === 'ASSISTANT_INPUT_STALE') return new ToolClientError('stale', detail, extra);
+    return new ToolClientError('conflict', detail, extra);
+  }
+  if (status === 400) return new ToolClientError('invalid', detail, extra);
+  if (status === 422) return new ToolClientError('rejected', detail, extra);
+  return new ToolClientError('response_invalid', detail, extra);
+}
+
 export type ToolClientOptions = {
   /** Gateway private state root; the client owns the `assistant-tools` directory below it. */
   root: string;
   baseUrl: string;
-  bearer: string;
+  /** A function is resolved on every send, so a refreshed credential reaches the next attempt. */
+  bearer: Bearer;
   fetch?: typeof fetch;
-  /** Attempts per `execute` before the call surfaces as retryable `unavailable`. Default 6. */
+  /** Requests per `execute` before the call surfaces as retryable `unavailable`. Default 6. */
   maxAttempts?: number;
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
@@ -463,25 +550,22 @@ export type ToolClient = {
 };
 
 export async function createToolClient(options: ToolClientOptions): Promise<ToolClient> {
-  const transport = toolTransport(options.baseUrl, options.bearer, options.fetch ?? fetch);
+  const now = options.now ?? Date.now;
+  const transport = toolTransport(options.baseUrl, options.bearer, options.fetch ?? fetch, now);
   const defaultAttempts = options.maxAttempts ?? 6;
   const sleep = options.sleep ?? ((ms: number) => delay(ms));
-  const journal = await HttpOperationJournal.open(join(options.root, 'assistant-tools'), transport, {
-    ...(options.now ? { now: options.now } : {}),
-  });
+  const journal = await HttpOperationJournal.open(join(options.root, 'assistant-tools'), transport, { now });
 
+  /** One real request per attempt: a recorded response returns without sending at all. */
   async function send(operationId: Id, attempts: number): Promise<HttpResponse> {
     for (let attempt = 0; ; attempt += 1) {
       try {
-        const response = await journal.retryTransient(operationId);
-        if (!transientStatus(response.status)) return response;
+        return await journal.replay(operationId);
       } catch (error) {
-        if (!(error instanceof TransportFailure)) throw error;
+        if (!(error instanceof SendFailure)) throw error;
+        if (!error.retry || attempt + 1 >= attempts) throw error.error;
+        await sleep(error.delayMs ?? Math.min(maxBackoffMs, 1000 * 2 ** attempt));
       }
-      if (attempt + 1 >= attempts)
-        throw new ToolClientError('unavailable', 'server unavailable', { retryable: true });
-      // Matches the journal schedule (1s doubling to 60s), plus a margin so the gate is open.
-      await sleep(Math.min(60000, 1000 * 2 ** attempt) + 10);
     }
   }
 
@@ -494,22 +578,28 @@ export async function createToolClient(options: ToolClientOptions): Promise<Tool
     assertTurn(turn);
     const attempts = call.maxAttempts ?? defaultAttempts;
     if (!Number.isSafeInteger(attempts) || attempts < 1) throw invalid('maxAttempts');
-    const operationId = toolOperationId(turn.fence.turnId, event.providerCallId, event.sequence);
-    const request: RoutingToolRequest = {
-      fence: { ...turn.fence },
-      operationId,
-      clientSequence: event.sequence,
-      inputSnapshot: { ...turn.inputSnapshot },
-      call: event.call,
+    // UUID spelling must not make one turn look like two requests.
+    const fence: TurnFence = {
+      ...turn.fence,
+      turnId: turn.fence.turnId.toLowerCase(),
+      designationId: turn.fence.designationId.toLowerCase(),
+      processInstanceId: turn.fence.processInstanceId.toLowerCase(),
     };
+    const operationId = toolOperationId(fence.turnId, event.providerCallId, event.sequence);
     try {
       // Durable before the first send; the same call after a restart finds this exact record.
       await journal.prepare({
         operationId,
         method: 'POST',
-        route: `/v2/assistant/turns/${turn.fence.turnId.toLowerCase()}/tools`,
+        route: `/v2/assistant/turns/${fence.turnId}/tools`,
         phase: `${phasePrefix}${event.providerCallId}`,
-        canonicalBody: request,
+        canonicalBody: {
+          fence,
+          operationId,
+          clientSequence: event.sequence,
+          inputSnapshot: { ...turn.inputSnapshot, snapshotId: turn.inputSnapshot.snapshotId.toLowerCase() },
+          callJson: canonicalJson(event.call),
+        },
       });
     } catch (error) {
       const code = error instanceof Error ? error.message : '';
@@ -531,8 +621,6 @@ export async function createToolClient(options: ToolClientOptions): Promise<Tool
       throw new ToolClientError('journal', 'operation journal failure');
     }
     if (response.status === 200) return parseResult(event.call.name, operationId, response.body);
-    if (response.status >= 200 && response.status < 300)
-      throw new ToolClientError('response_invalid', `HTTP ${response.status}`, { status: response.status });
     throw terminalError(response.status, response.body);
   }
 
