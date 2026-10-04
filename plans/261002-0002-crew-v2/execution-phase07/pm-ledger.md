@@ -265,3 +265,5 @@ Task 4: minor (deferred — ứng viên OpenCode sửa code + tester chạy test
 12:55 Map N2/N4 commit (OpenCode code + tester RED 1 fail semantic/GREEN 62/62/E2E ticket-map 4/4). Task 4: minor N2, N4 — đóng.
 
 14:00 Task4 N1 ruling: bỏ cơ chế hoãn, luôn dời viewport ngay trong layout effect (kể cả khi kéo); E2E đo boundingBox thẻ neo khi giữ chuột và sau thả. Giao OpenCode batch7 (code+test, tester chạy sau).
+
+14:40 Task4 N1 commit (Codex code + PM onMoveEnd lưu viewport + tester RED G1 lệch 39.93px / GREEN 62/62, tsc 0, E2E 4/4). Task 4: minor N1 — đóng. Còn N3 (nhãn mép phải bị cắt, chấp nhận).
