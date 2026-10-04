@@ -375,6 +375,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/e2e/onboarding.spec.ts` | [web-machines](flows/web-machines.md) (test) |
 | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/e2e/support/owner-seed.ts` | [web-shell](flows/web-shell.md) (file) |
+| `web/e2e/ticket-map.spec.ts` | [web-ticket-map](flows/web-ticket-map.md) (test) |
 | `web/e2e/ticket-routes.spec.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/e2e/tickets.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/index.html` | [web-shell](flows/web-shell.md) (file) |
@@ -405,6 +406,12 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/docs/search.tsx` | [web-docs](flows/web-docs.md) (file) |
 | `web/src/docs/space.tsx` | [web-docs](flows/web-docs.md) (điểm vào) |
 | `web/src/docs/ticket-links.tsx` | [web-docs](flows/web-docs.md) (file) |
+| `web/src/graph/layout.ts` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+| `web/src/graph/project.ts` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+| `web/src/graph/state.ts` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+| `web/src/graph/ticket-edge.tsx` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+| `web/src/graph/ticket-map.tsx` | [web-ticket-map](flows/web-ticket-map.md) (điểm vào) |
+| `web/src/graph/ticket-node.tsx` | [web-ticket-map](flows/web-ticket-map.md) (file) |
 | `web/src/lib/api.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/lib/events.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/lib/pending-operation.ts` | [web-data](flows/web-data.md) (file) |
@@ -444,6 +451,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/fixture-scratch.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `web/test/graph-state.test.ts` | [web-ticket-map](flows/web-ticket-map.md) (test) |
+| `web/test/graph.test.ts` | [web-ticket-map](flows/web-ticket-map.md) (test) |
 | `web/test/onboarding.test.ts` | [web-machines](flows/web-machines.md) (test) |
 | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/support/dom-events.ts` | [web-tickets](flows/web-tickets.md) (test) |

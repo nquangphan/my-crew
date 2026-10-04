@@ -1,0 +1,710 @@
+/**
+ * Ticket map: the whole request tree from root (left) to steps and tasks (right), read-only. Data is the shared
+ * graph query (`queryKeys.graph`), so an event invalidation refetches the whole root (TanStack cancels the GET
+ * in flight) and board/list/map show the same revision; edges are never patched one by one. Clicking a card
+ * opens the shared `TicketDialog`; the map stays mounted behind it, and closing only clears the selection, so
+ * viewport, expanded steps and focus are exactly as before. The view state is kept per root in tab storage.
+ * A new root is fitted once; realtime updates never refit. Torn or malformed data shows a diagnostic and falls
+ * back to the equivalent list, which is also the narrow-screen view.
+ */
+import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import {
+  MarkerType,
+  Position,
+  ReactFlow,
+  ReactFlowProvider,
+  useNodesInitialized,
+  useReactFlow,
+  type Viewport,
+} from '@xyflow/react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { routeUuid, useRuntime } from '../app-runtime.ts';
+import type { Ticket, TicketGraph } from '../contracts/tickets.ts';
+import { TicketDialog } from '../tickets/dialog.tsx';
+import { TicketPagination } from '../tickets/list.tsx';
+import { failureText, requestListFilters, useTicketGraph, useTicketList } from '../tickets/queries.ts';
+import { levelLabels, mergeTicketPages, requestRoots, statusIcons, statusLabels } from '../tickets/status.ts';
+import {
+  cardHeight,
+  cardWidth,
+  layoutHierarchy,
+  type MapDirection,
+  neighbourInDirection,
+  type Point,
+  placeNewNodes,
+} from './layout.ts';
+import {
+  expandableIds,
+  hiddenRelationCounts,
+  type MapProjection,
+  nodeRelations,
+  projectGraph,
+} from './project.ts';
+import {
+  closeMapDialog,
+  initialMapView,
+  type MapSearch,
+  type MapViewState,
+  maxZoom,
+  minZoom,
+  moveMapViewport,
+  openMapDialog,
+  parseMapSearch,
+  readMapView,
+  setMapExpanded,
+  toggleMapExpanded,
+  writeMapView,
+} from './state.ts';
+import { edgeLabel, type TicketFlowEdge, ticketEdgeTypes } from './ticket-edge.tsx';
+import { type TicketFlowNode, TicketNode, type TicketNodeActions } from './ticket-node.tsx';
+
+export type TicketMapProps = {
+  rootId: string;
+  selectedTicketId: string | null;
+  onSelectTicket: (ticketId: string | null) => void;
+  /** Called when the graph shows that `rootId` is a descendant; the caller can switch to the real root. */
+  onRootResolved?: (rootId: string) => void;
+};
+
+const nodeTypes = { ticket: TicketNode };
+const cardSize = { width: cardWidth, height: cardHeight };
+const cardPointer: CSSProperties = { pointerEvents: 'all' };
+/** Fixed handle geometry, so edges can be drawn before (or without) DOM measurement. */
+const cardHandles: NonNullable<TicketFlowNode['handles']> = [
+  { type: 'target', position: Position.Left, x: 0, y: cardHeight / 2, width: 1, height: 1 },
+  { type: 'source', position: Position.Right, x: cardWidth, y: cardHeight / 2, width: 1, height: 1 },
+];
+const flowStyle: CSSProperties = {
+  height: 'min(70vh, 44rem)',
+  minHeight: '22rem',
+  border: '1px solid rgb(148 163 184 / 0.6)',
+  borderRadius: '0.75rem',
+};
+const barStyle: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' };
+const controlsStyle: CSSProperties = { ...barStyle, margin: 0, padding: 0, border: 'none', minWidth: 0 };
+const buttonStyle: CSSProperties = {
+  font: 'inherit',
+  padding: '0.35rem 0.7rem',
+  borderRadius: '0.5rem',
+  border: '1px solid currentColor',
+  background: 'transparent',
+  color: 'inherit',
+  cursor: 'pointer',
+};
+const panelStyle: CSSProperties = {
+  display: 'grid',
+  gap: '0.35rem',
+  padding: '0.75rem',
+  borderRadius: '0.75rem',
+  border: '1px solid rgb(148 163 184 / 0.6)',
+  overflowWrap: 'anywhere',
+};
+const outlineButton: CSSProperties = {
+  font: 'inherit',
+  color: 'inherit',
+  background: 'transparent',
+  border: 'none',
+  padding: 0,
+  textAlign: 'left',
+  textDecoration: 'underline',
+  cursor: 'pointer',
+  overflowWrap: 'anywhere',
+};
+
+const diagnosticText: Readonly<Record<string, string>> = {
+  DUPLICATE_ID: 'Ticket xuất hiện nhiều lần',
+  ROOT_MISSING: 'Không tìm thấy yêu cầu gốc',
+  ROOT_MULTIPLE: 'Có thêm một yêu cầu gốc khác',
+  ROOT_MISMATCH: 'Ticket thuộc yêu cầu gốc khác',
+  PROJECT_MISMATCH: 'Ticket thuộc dự án khác',
+  PARENT_MISSING: 'Thiếu ticket cha',
+  LEVEL_INVALID: 'Cấp ticket không khớp với ticket cha',
+  PARENT_CYCLE: 'Chuỗi cha/con có vòng',
+  DEPENDENCY_CYCLE: 'Phụ thuộc có vòng',
+  DEPENDENCY_DANGLING: 'Phụ thuộc trỏ tới ticket không có trong sơ đồ',
+  REPAIR_DANGLING: 'Vòng sửa trỏ tới ticket không có trong sơ đồ',
+};
+
+export function diagnosticLabel(code: string): string {
+  const split = code.indexOf(':');
+  const kind = split < 0 ? code : code.slice(0, split);
+  const subject = split < 0 ? '' : code.slice(split + 1);
+  return `${diagnosticText[kind] ?? `Mã ${kind}`}${subject ? ` (${subject})` : ''}`;
+}
+
+function narrowScreen(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(max-width: 40rem)').matches
+    : false;
+}
+
+export function TicketMap(props: TicketMapProps) {
+  return (
+    <ReactFlowProvider>
+      <MapView key={props.rootId} {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: TicketMapProps) {
+  const { client, composeServices } = useRuntime();
+  const storage = composeServices?.storage ?? null;
+  const graph = useTicketGraph(client, rootId);
+  const flow = useReactFlow<TicketFlowNode, TicketFlowEdge>();
+  const nodesReady = useNodesInitialized();
+  const [restored] = useState(() => readMapView(storage, rootId));
+  const [view, setView] = useState<MapViewState>(() => ({
+    ...(restored ?? initialMapView(rootId)),
+    selectedTicketId,
+  }));
+  const [listMode, setListMode] = useState(narrowScreen);
+  const [layoutRun, setLayoutRun] = useState(0);
+  const [container, setContainer] = useState<HTMLElement | null>(null);
+  const trigger = useRef<HTMLElement | null>(null);
+  const fitted = useRef(restored !== null);
+  const relayout = useRef(true);
+  const positionsRef = useRef<Record<string, Point>>({});
+
+  useEffect(() => {
+    setView((current) =>
+      current.selectedTicketId === selectedTicketId
+        ? current
+        : selectedTicketId === null
+          ? closeMapDialog(current)
+          : openMapDialog(current, selectedTicketId),
+    );
+  }, [selectedTicketId]);
+  useEffect(() => {
+    writeMapView(storage, view);
+  }, [storage, view]);
+
+  const expanded = useMemo(() => new Set(view.expanded), [view.expanded]);
+  const projection = useMemo<MapProjection | null>(
+    () => (graph.data ? projectGraph(graph.data, rootId, expanded) : null),
+    [graph.data, rootId, expanded],
+  );
+  useEffect(() => {
+    if (projection && projection.rootId !== rootId && onRootResolved) onRootResolved(projection.rootId);
+  }, [projection, rootId, onRootResolved]);
+
+  // Known nodes keep their place across refetches; only an expand/collapse or “Sắp xếp lại” lays out again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: layoutRun only forces the explicit relayout.
+  const positions = useMemo(() => {
+    if (!projection) return {};
+    const next = relayout.current
+      ? layoutHierarchy(projection)
+      : placeNewNodes(positionsRef.current, projection);
+    relayout.current = false;
+    positionsRef.current = next;
+    return next;
+  }, [projection, layoutRun]);
+
+  const saveViewport = useCallback((viewport: Viewport) => {
+    setView((current) => moveMapViewport(current, viewport));
+  }, []);
+
+  const focusNode = useCallback(
+    (ticketId: string) => {
+      const button = container?.querySelector<HTMLButtonElement>(`button[data-map-node="${ticketId}"]`);
+      if (button) return button.focus();
+      const at = positionsRef.current[ticketId];
+      if (!at) return;
+      // Off-screen cards are not rendered (onlyRenderVisibleElements): bring the card into view, then focus it.
+      void flow.setCenter(at.x + cardWidth / 2, at.y + cardHeight / 2, { zoom: flow.getZoom() }).then(() => {
+        saveViewport(flow.getViewport());
+        requestAnimationFrame(() =>
+          container?.querySelector<HTMLButtonElement>(`button[data-map-node="${ticketId}"]`)?.focus(),
+        );
+      });
+    },
+    [container, flow, saveViewport],
+  );
+
+  const actionsRef = useRef<TicketNodeActions | null>(null);
+  actionsRef.current = {
+    open: (ticketId, element) => {
+      trigger.current = element;
+      onSelectTicket(ticketId);
+    },
+    toggle: (ticketId) => {
+      relayout.current = true;
+      setView((current) => toggleMapExpanded(current, ticketId));
+    },
+    navigate: (ticketId, direction: MapDirection) => {
+      if (!projection) return;
+      const next = neighbourInDirection(projection, positionsRef.current, ticketId, direction);
+      if (next) focusNode(next);
+    },
+    focus: (ticketId) =>
+      setView((current) =>
+        current.focusedTicketId === ticketId ? current : { ...current, focusedTicketId: ticketId },
+      ),
+  };
+  const actions = useMemo<TicketNodeActions>(
+    () => ({
+      open: (id, element) => actionsRef.current?.open(id, element),
+      toggle: (id) => actionsRef.current?.toggle(id),
+      navigate: (id, direction) => actionsRef.current?.navigate(id, direction),
+      focus: (id) => actionsRef.current?.focus(id),
+    }),
+    [],
+  );
+
+  const childCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (!graph.data) return counts;
+    const collapsible = new Set(expandableIds(graph.data));
+    for (const row of mergeTicketPages([graph.data.nodes]))
+      if (row.parentId !== null && collapsible.has(row.parentId))
+        counts[row.parentId] = (counts[row.parentId] ?? 0) + 1;
+    return counts;
+  }, [graph.data]);
+  const badges = useMemo(
+    () => (graph.data && projection ? hiddenRelationCounts(graph.data, projection) : {}),
+    [graph.data, projection],
+  );
+  const titles = useMemo(
+    () => new Map((graph.data?.nodes ?? []).map((row) => [row.id, row.title])),
+    [graph.data],
+  );
+
+  const nodes = useMemo<TicketFlowNode[]>(
+    () =>
+      (projection?.nodes ?? []).map((ticket) => ({
+        id: ticket.id,
+        type: 'ticket',
+        position: positions[ticket.id] ?? { x: 0, y: 0 },
+        width: cardWidth,
+        height: cardHeight,
+        // Cards have a fixed size: declaring it lets fit/bounds include cards that are off screen and therefore
+        // never mounted or measured (onlyRenderVisibleElements).
+        measured: cardSize,
+        handles: cardHandles,
+        // ReactFlow turns pointer events off for nodes that are neither selectable nor draggable; the card's
+        // own buttons must stay clickable.
+        style: cardPointer,
+        draggable: false,
+        connectable: false,
+        deletable: false,
+        selectable: false,
+        focusable: false,
+        data: {
+          ticket,
+          isRoot: ticket.id === projection?.rootId,
+          childCount: childCounts[ticket.id] ?? 0,
+          expanded: expanded.has(ticket.id),
+          hiddenRelations: badges[ticket.id] ?? 0,
+          actions,
+        },
+      })),
+    [projection, positions, childCounts, expanded, badges, actions],
+  );
+  const edges = useMemo<TicketFlowEdge[]>(
+    () =>
+      (projection?.edges ?? []).map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: edge.kind,
+        data: edge.cycleId ? { cycleId: edge.cycleId } : {},
+        markerEnd: edge.kind === 'parent' ? undefined : { type: MarkerType.ArrowClosed, color: '#e2e8f0' },
+        focusable: false,
+        selectable: false,
+        deletable: false,
+        ariaLabel: edgeLabel(edge, (id) => titles.get(id) ?? id),
+      })),
+    [projection, titles],
+  );
+
+  // A root seen for the first time in this tab is fitted once; later data changes never refit.
+  useEffect(() => {
+    if (fitted.current || !nodesReady || nodes.length === 0) return;
+    fitted.current = true;
+    void flow.fitView({ padding: 0.15, maxZoom: 1 }).then(() => saveViewport(flow.getViewport()));
+  }, [nodesReady, nodes.length, flow, saveViewport]);
+
+  const explicit = (action: Promise<boolean>) => {
+    void action.then(() => saveViewport(flow.getViewport()));
+  };
+  const rearrange = () => {
+    relayout.current = true;
+    setLayoutRun((run) => run + 1);
+  };
+  const setExpandedIds = (ids: readonly string[]) => {
+    relayout.current = true;
+    setView((current) => setMapExpanded(current, ids));
+  };
+
+  const diagnostics = projection?.diagnostics ?? [];
+  const showList = listMode || diagnostics.length > 0;
+  const selectedNode =
+    selectedTicketId === null
+      ? null
+      : container?.querySelector<HTMLElement>(`[data-map-node="${selectedTicketId}"]`);
+  const returnFocus = (trigger.current?.isConnected ? trigger.current : null) ?? selectedNode ?? container;
+  const focused = view.focusedTicketId;
+
+  return (
+    <section
+      ref={setContainer}
+      aria-label="Sơ đồ ticket"
+      data-testid="ticket-map"
+      data-nodes={projection?.nodes.length}
+      data-focus-fallback=""
+      tabIndex={-1}
+      style={{ display: 'grid', gap: '0.75rem', minWidth: 0 }}
+    >
+      {graph.isPending && <p role="status">Đang tải sơ đồ…</p>}
+      {graph.error && (
+        <p role="alert">
+          Không tải được sơ đồ: {failureText(graph.error)}{' '}
+          <button type="button" style={buttonStyle} onClick={() => void graph.refetch()}>
+            Thử lại
+          </button>
+        </p>
+      )}
+      {graph.data && projection && (
+        <>
+          <CurrentSteps nodes={graph.data.nodes} />
+          {diagnostics.length > 0 && (
+            <div role="alert" style={panelStyle}>
+              <strong>
+                Dữ liệu sơ đồ chưa nhất quán — đang hiện dạng danh sách để không mất ticket nào.
+              </strong>
+              <ul style={{ margin: 0 }}>
+                {diagnostics.map((code) => (
+                  <li key={code}>{diagnosticLabel(code)}</li>
+                ))}
+              </ul>
+              <div>
+                <button type="button" style={buttonStyle} onClick={() => void graph.refetch()}>
+                  Tải lại
+                </button>
+              </div>
+            </div>
+          )}
+          <fieldset aria-label="Điều khiển sơ đồ" style={controlsStyle}>
+            {!showList && (
+              <>
+                <button type="button" style={buttonStyle} onClick={() => explicit(flow.zoomIn())}>
+                  Phóng to
+                </button>
+                <button type="button" style={buttonStyle} onClick={() => explicit(flow.zoomOut())}>
+                  Thu nhỏ
+                </button>
+                <button
+                  type="button"
+                  style={buttonStyle}
+                  onClick={() => explicit(flow.fitView({ padding: 0.15, maxZoom: 1 }))}
+                >
+                  Vừa khung
+                </button>
+                <button type="button" style={buttonStyle} onClick={rearrange}>
+                  Sắp xếp lại
+                </button>
+                <button
+                  type="button"
+                  style={buttonStyle}
+                  onClick={() => setExpandedIds(expandableIds(graph.data))}
+                >
+                  Mở tất cả
+                </button>
+                <button type="button" style={buttonStyle} onClick={() => setExpandedIds([])}>
+                  Thu gọn tất cả
+                </button>
+              </>
+            )}
+            {diagnostics.length === 0 && (
+              <button
+                type="button"
+                style={buttonStyle}
+                aria-pressed={listMode}
+                onClick={() => setListMode(!listMode)}
+              >
+                {listMode ? 'Xem dạng sơ đồ' : 'Xem dạng danh sách'}
+              </button>
+            )}
+          </fieldset>
+          {showList ? (
+            <TicketOutline
+              graph={graph.data}
+              rootId={projection.rootId}
+              onOpen={(id, element) => actionsRef.current?.open(id, element)}
+            />
+          ) : (
+            <div style={flowStyle}>
+              <ReactFlow<TicketFlowNode, TicketFlowEdge>
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
+                edgeTypes={ticketEdgeTypes}
+                defaultViewport={view.viewport}
+                minZoom={minZoom}
+                maxZoom={maxZoom}
+                onMoveEnd={(_, viewport) => saveViewport(viewport)}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                nodesFocusable={false}
+                edgesFocusable={false}
+                elementsSelectable={false}
+                deleteKeyCode={null}
+                selectionKeyCode={null}
+                multiSelectionKeyCode={null}
+                disableKeyboardA11y
+                zoomOnDoubleClick={false}
+                onlyRenderVisibleElements
+                colorMode="dark"
+              />
+            </div>
+          )}
+          {focused !== null && titles.has(focused) && (
+            <RelationsPanel graph={graph.data} ticketId={focused} titleOf={(id) => titles.get(id) ?? id} />
+          )}
+        </>
+      )}
+      <TicketDialog
+        ticketId={selectedTicketId}
+        returnFocus={returnFocus}
+        onClose={() => onSelectTicket(null)}
+      />
+    </section>
+  );
+}
+
+/** Running or waiting steps, by producer status only (no inferred order). */
+function CurrentSteps({ nodes }: { nodes: readonly Ticket[] }) {
+  const active = mergeTicketPages([nodes]).filter(
+    (row) => row.level === 'step' && (row.status === 'running' || row.status === 'needs_input'),
+  );
+  return (
+    <p style={{ margin: 0 }}>
+      {active.length === 0
+        ? 'Chưa có bước nào đang chạy hoặc chờ bạn.'
+        : `Bước đang làm: ${active.map((row) => `${row.title} (${statusLabels[row.status]})`).join(', ')}.`}
+    </p>
+  );
+}
+
+function RelationsPanel({
+  graph,
+  ticketId,
+  titleOf,
+}: {
+  graph: TicketGraph;
+  ticketId: string;
+  titleOf: (id: string) => string;
+}) {
+  const relations = nodeRelations(graph, ticketId);
+  const item = (id: string) => `${titleOf(id)} — ${id}`;
+  const rows: [string, string[]][] = [
+    ['Ticket cha', relations.parentId === null ? [] : [item(relations.parentId)]],
+    ['Ticket con', relations.children.map(item)],
+    ['Phải xong trước ticket này', relations.predecessors.map(item)],
+    ['Ticket này phải xong trước', relations.successors.map(item)],
+    [
+      'Vòng sửa',
+      relations.repairs.map(
+        (link) => `Vòng ${link.cycleId}: kiểm tra ${item(link.checkStepId)} → sửa ${item(link.fixTicketId)}`,
+      ),
+    ],
+  ];
+  return (
+    <section aria-label={`Quan hệ của ${titleOf(ticketId)}`} style={panelStyle}>
+      <h2 style={{ margin: 0, fontSize: '1rem' }}>Quan hệ của {titleOf(ticketId)}</h2>
+      <dl style={{ margin: 0, display: 'grid', gap: '0.25rem' }}>
+        {rows.map(([label, values]) => (
+          <div key={label}>
+            <dt style={{ fontWeight: 600 }}>{label}</dt>
+            <dd style={{ margin: 0 }}>{values.length === 0 ? 'Không có' : values.join('; ')}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+/**
+ * List equivalent of the map: every ticket of the root in tree order (iterative, indented by depth), with
+ * level, status text, predecessors and repair links. Tickets outside the tree are listed after it.
+ */
+function TicketOutline({
+  graph,
+  rootId,
+  onOpen,
+}: {
+  graph: TicketGraph;
+  rootId: string;
+  onOpen: (ticketId: string, trigger: HTMLElement) => void;
+}) {
+  const rows = useMemo(() => {
+    const nodes = mergeTicketPages([graph.nodes]);
+    const byId = new Map(nodes.map((row) => [row.id, row]));
+    const children = new Map<string, Ticket[]>();
+    for (const row of nodes)
+      if (row.parentId !== null && byId.has(row.parentId))
+        children.set(row.parentId, [...(children.get(row.parentId) ?? []), row]);
+    const ordered: { ticket: Ticket; depth: number }[] = [];
+    const seen = new Set<string>();
+    const walk = (start: Ticket, depth: number) => {
+      const stack = [{ ticket: start, depth }];
+      while (stack.length > 0) {
+        const next = stack.pop() as { ticket: Ticket; depth: number };
+        if (seen.has(next.ticket.id)) continue;
+        seen.add(next.ticket.id);
+        ordered.push(next);
+        const kids = [...(children.get(next.ticket.id) ?? [])].sort((a, b) => (a.id < b.id ? 1 : -1));
+        for (const kid of kids) stack.push({ ticket: kid, depth: next.depth + 1 });
+      }
+    };
+    const root = byId.get(rootId);
+    if (root) walk(root, 0);
+    for (const row of [...nodes].sort((a, b) => (a.id < b.id ? -1 : 1))) if (!seen.has(row.id)) walk(row, 0);
+    return ordered;
+  }, [graph.nodes, rootId]);
+  const titleOf = (id: string) => graph.nodes.find((row) => row.id === id)?.title ?? id;
+  return (
+    <ul
+      aria-label="Danh sách ticket thay cho sơ đồ"
+      style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.4rem' }}
+    >
+      {rows.map(({ ticket, depth }) => {
+        const relations = nodeRelations(graph, ticket.id);
+        return (
+          <li
+            key={ticket.id}
+            data-ticket-id={ticket.id}
+            data-revision={ticket.revision}
+            style={{ paddingLeft: `${Math.min(depth, 6) * 1.25}rem`, display: 'grid', gap: '0.15rem' }}
+          >
+            <button
+              type="button"
+              style={outlineButton}
+              onClick={(event) => onOpen(ticket.id, event.currentTarget)}
+            >
+              {ticket.title}
+            </button>
+            <span>
+              {levelLabels[ticket.level]} · <span aria-hidden="true">{statusIcons[ticket.status]}</span>{' '}
+              {statusLabels[ticket.status]} · Phiên bản {ticket.revision}
+            </span>
+            {relations.predecessors.length > 0 && (
+              <span>Sau khi xong: {relations.predecessors.map(titleOf).join(', ')}</span>
+            )}
+            {relations.repairs.length > 0 && (
+              <span>
+                Vòng sửa:{' '}
+                {relations.repairs
+                  .map((link) => `${titleOf(link.checkStepId)} → ${titleOf(link.fixTicketId)}`)
+                  .join(', ')}
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Root picker: request roots of the project (producer `level=request`), paged with “Tải thêm”. */
+function RootPicker({
+  projectId,
+  rootId,
+  onPick,
+}: {
+  projectId: string;
+  rootId: string | undefined;
+  onPick: (rootId: string) => void;
+}) {
+  const list = useTicketList(useRuntime().client, requestListFilters({ projectId }));
+  const roots = requestRoots(list.tickets);
+  return (
+    <div style={{ display: 'grid', gap: '0.5rem' }}>
+      <label style={barStyle}>
+        Yêu cầu
+        <select
+          style={{ maxWidth: '100%', minWidth: 0 }}
+          value={rootId ?? ''}
+          onChange={(event) => {
+            if (event.target.value) onPick(event.target.value);
+          }}
+        >
+          <option value="">Chọn yêu cầu…</option>
+          {rootId !== undefined && !roots.some((row) => row.id === rootId) && (
+            <option value={rootId}>{rootId}</option>
+          )}
+          {roots.map((row) => (
+            <option key={row.id} value={row.id}>
+              {row.title}
+            </option>
+          ))}
+        </select>
+      </label>
+      <TicketPagination list={list} />
+    </div>
+  );
+}
+
+/** Route `/projects/$projectId/map?root=<uuid>&ticket=<uuid>`: the open dialog lives in the URL (Back/Forward/reload). */
+export function TicketMapPage() {
+  const params = useParams({ strict: false }) as { projectId?: string };
+  const projectId = routeUuid(params.projectId);
+  const search = parseMapSearch(useSearch({ strict: false }));
+  const navigate = useNavigate();
+  const go = useCallback(
+    (next: MapSearch, replace = false) => {
+      if (!projectId) return;
+      void navigate({ to: '/projects/$projectId/map', params: { projectId }, search: next, replace });
+    },
+    [navigate, projectId],
+  );
+  const root = search.root;
+  const onRootResolved = useCallback(
+    (resolved: string) => go({ root: resolved, ...(search.ticket ? { ticket: search.ticket } : {}) }, true),
+    [go, search.ticket],
+  );
+  if (!projectId)
+    return (
+      <section className="page-stack" aria-labelledby="map-heading">
+        <h1 id="map-heading">Không tìm thấy dự án</h1>
+        <Link className="nav-link" to="/">
+          Về tổng quan
+        </Link>
+      </section>
+    );
+  return (
+    <section className="page-stack" aria-labelledby="map-heading">
+      <div className="page-intro">
+        <h1 id="map-heading">Sơ đồ yêu cầu</h1>
+      </div>
+      <nav style={barStyle} aria-label="Cách xem ticket">
+        <Link
+          className="nav-link"
+          to="/projects/$projectId/tickets"
+          params={{ projectId }}
+          search={{ view: 'board' }}
+        >
+          Dạng bảng
+        </Link>
+        <Link
+          className="nav-link"
+          to="/projects/$projectId/tickets"
+          params={{ projectId }}
+          search={{ view: 'list' }}
+        >
+          Dạng danh sách
+        </Link>
+      </nav>
+      <RootPicker projectId={projectId} rootId={root} onPick={(picked) => go({ root: picked })} />
+      {root === undefined ? (
+        <p>Chọn một yêu cầu để xem sơ đồ.</p>
+      ) : (
+        <TicketMap
+          rootId={root}
+          selectedTicketId={search.ticket ?? null}
+          onSelectTicket={(ticketId) => go(ticketId === null ? { root } : { root, ticket: ticketId })}
+          onRootResolved={onRootResolved}
+        />
+      )}
+    </section>
+  );
+}

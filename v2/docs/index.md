@@ -53,6 +53,7 @@
 | [Không gian tài liệu chỉ đọc trên web Crew v2](flows/web-docs.md) | `web-docs` | `web/src/docs/space.tsx` |
 | [Onboarding owner Crew v2 trên web, gồm đăng ký máy, tạo dự án và gắn máy](flows/web-machines.md) | `web-machines` | `web/src/machines/onboarding.tsx` |
 | [Khung web và fixture cô lập Crew v2](flows/web-shell.md) | `web-shell` | `web/src/main.tsx` |
+| [Sơ đồ ticket chỉ đọc theo yêu cầu gốc trên web Crew v2](flows/web-ticket-map.md) | `web-ticket-map` | `web/src/graph/ticket-map.tsx` |
 | [Bảng, danh sách và hộp thoại ticket dùng chung trên web Crew v2](flows/web-tickets.md) | `web-tickets` | `web/src/tickets/dialog.tsx` |
 <!-- crew-docs:flows:end -->
 

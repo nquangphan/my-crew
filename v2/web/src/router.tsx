@@ -2,12 +2,16 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   Outlet,
   redirect,
   useRouter,
   useSearch,
 } from '@tanstack/react-router';
 import { useEffect, useSyncExternalStore } from 'react';
+// ReactFlow's base stylesheet for the ticket map; imported here so the map module itself stays loadable by
+// `node --test` (which cannot import CSS).
+import '@xyflow/react/dist/style.css';
 import {
   type AppRuntime,
   authorizeRoute,
@@ -20,6 +24,7 @@ import { LoginScreen } from './auth/login.tsx';
 import { SessionBoundary } from './auth/session-boundary.tsx';
 import { ComposeServicesProvider } from './compose/composer.tsx';
 import { ProjectDocsPage } from './docs-route.tsx';
+import { parseMapSearch } from './graph/state.ts';
 import { safeReturnPath } from './lib/session.ts';
 import { MachineOnboarding } from './machines/onboarding.tsx';
 import { ProjectSetup } from './projects/setup.tsx';
@@ -130,6 +135,13 @@ export function createAppRouter(runtime: AppRuntime) {
     validateSearch: parseTicketsSearch,
     component: ProjectTicketsPage,
   });
+  const projectMapRoute = createRoute({
+    getParentRoute: () => protectedRoute,
+    path: '/projects/$projectId/map',
+    validateSearch: parseMapSearch,
+    // ReactFlow is only needed on this route; keep it out of the main bundle.
+    component: lazyRouteComponent(() => import('./graph/ticket-map.tsx'), 'TicketMapPage'),
+  });
   const projectDocsRoute = createRoute({
     getParentRoute: () => protectedRoute,
     path: '/projects/$projectId/docs',
@@ -159,6 +171,7 @@ export function createAppRouter(runtime: AppRuntime) {
       projectSetupRoute,
       projectRoute,
       projectTicketsRoute,
+      projectMapRoute,
       projectDocsRoute,
       ticketRoute,
     ]),

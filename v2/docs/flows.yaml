@@ -612,5 +612,20 @@ flows:
     tests:
       - web/test/onboarding.test.ts
       - web/e2e/onboarding.spec.ts
+  web-ticket-map:
+    title: Sơ đồ ticket chỉ đọc theo yêu cầu gốc trên web Crew v2
+    doc: docs/flows/web-ticket-map.md
+    entrypoints:
+      - web/src/graph/ticket-map.tsx
+    files:
+      - web/src/graph/project.ts
+      - web/src/graph/layout.ts
+      - web/src/graph/state.ts
+      - web/src/graph/ticket-node.tsx
+      - web/src/graph/ticket-edge.tsx
+    tests:
+      - web/test/graph.test.ts
+      - web/test/graph-state.test.ts
+      - web/e2e/ticket-map.spec.ts
 shared: {}
 unassigned: []
