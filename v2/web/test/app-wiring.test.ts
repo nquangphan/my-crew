@@ -55,8 +55,6 @@ function fakeApi(authenticated = true) {
       return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
     }
     if (url.startsWith('/v2/events')) return json({ items: [], cursor: '0' });
-    if (url === '/v2/projects/flaky')
-      return json({ error: { code: 'SERVICE_UNAVAILABLE', message: 'x' } }, 503);
     return json({ ok: true });
   };
   return { fetch, log };

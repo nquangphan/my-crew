@@ -41,3 +41,11 @@ Danh sách `docker ps -a` trước/sau trùng nhau, không còn `crew-v2-web-*` 
 - `/` và `/projects/$projectId` vẫn là nội dung minh họa phía sau đăng nhập; S3a/S5a gắn route thật vào `protectedRoute` trong `router.tsx`.
 - Chưa có E2E router thật giữ trong repo (spec Task2 mount harness); đề xuất Task sau thêm spec thật dựa trên bản scratch.
 - Tab mới đọc journal từ 0 (backlog producer G) và các minor Task2 còn hoãn không đổi.
+
+## Vòng sửa 1 (review `task-2-wiring-review.md`)
+
+- **I1/I2:** thêm `v2/web/e2e/app-router.spec.ts` (fixture Task1, không mock mạng, chỉ quan sát request). Bao: guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=%2Fcrew-v2%2Fprojects%2Fabc%3Fx%3D1`; đăng nhập quay về đúng path; sau GET session xác minh, GET đầu tiên là `/v2/events` và chỉ có một `/v2/events/stream` (thứ tự trên `ProtectedLayout` thật; hiện layout chưa có GET dữ liệu nên assertion là "không GET nào khác đi trước catch-up", S3a/S5a gắn dữ liệu thật thì vẫn đúng); `returnTo=https://evil.example/` rơi về `/crew-v2/`; đăng xuất làm request stream bị hủy. Xóa cache khi logout chỉ được chứng minh ở unit test (E2E không với tới QueryClient).
+- **M2:** xóa nhánh `/v2/projects/flaky`. **M4:** viết lại mục "Dữ liệu" và đoạn tests của `web-shell.md`. **M6:** `ProtectedLayout` truyền `returnTo = internalReturnPath(useLocation())` cho `SessionBoundary`.
+- M3 và M5 để PM ghi ledger.
+
+Kết quả (heap 384 MiB, giữ lock owner=web-wiring; telemetry 4.832 GiB / pressure 1 / idle 72.35% / đĩa 751.8 GiB): E2E `app-router` + `auth` + `events` 4/4; `vite build` exit 0; Biome ba file sạch. Web unit 83/84 và `tsc` đỏ chỉ ở `test/compose-submit.test.ts` (`receiptSummary`, `draftKey`, `conversationId`, `clientMessageId` chưa có trong `src/compose/state.ts`), file của worker S5a đang viết dở, không phải của wiring; `app-wiring.test.ts` xanh. `docker ps -a` trước/sau trùng nhau, `test-results` đã xóa, lock đã nhả. Log: `task-2-wiring-fix1-*.log`.
