@@ -22,7 +22,7 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
 
 9. `server/src/journal/event-contracts.ts` whitelist thêm gateway.config.changed, gateway.booted, gateway.install.reported, gateway.command.created và gateway.command.acknowledged. Event chỉ chứa revision/UUID/generation/type/phase/accepted, audience đích danh máy, project/ticket null; từ chối raw inventory, URL, result, error hay secret. Gateway service append cùng transaction CAS/ACK/report; heartbeat receipt không phát event và không thay attempt. Authorization recheck actual credential chạy trước cached replay, máy chưa gắn project chỉ đọc event dành riêng mình theo scope hiện hành.
 
-10. `server/src/journal/routes.ts` → `GET /v2/events/latest` (không nhận query) trả `{cursor}` là giá trị hiện tại của `event_cursor` dưới dạng chuỗi thập phân bigint (`"0"` khi journal trống). Cursor chỉ tăng khi transaction ghi event commit nên mọi event ≤ giá trị này đã hiển thị; tab mới đọc nó rồi dùng làm `after` hoặc `Last-Event-ID` thay vì đọc journal từ 0. Cần xác thực như `GET /v2/events`; không lộ nội dung event.
+10. `server/src/journal/routes.ts` → `GET /v2/events/latest` (không nhận query) trả `{cursor}` là giá trị hiện tại của `event_cursor` dưới dạng chuỗi thập phân bigint (`"0"` khi journal trống). Cursor chỉ tăng khi transaction ghi event commit nên mọi event ≤ giá trị này đã hiển thị; tab mới đọc nó rồi dùng làm `after` hoặc `Last-Event-ID` thay vì đọc journal từ 0. Chỉ owner (`requireOwner`, không CSRF vì là GET): máy gọi nhận 403 `OWNER_REQUIRED`, không phiên nhận 401, vì bộ đếm là toàn cục và sẽ để máy suy ra hoạt động của dự án khác. Không lộ nội dung event. Cursor journal là bigint thập phân, khác UUID của list ticket và cursor base64url của docs-links.
 
 ## Files
 

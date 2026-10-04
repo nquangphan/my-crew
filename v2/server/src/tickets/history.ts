@@ -35,9 +35,9 @@ export async function readTicketHistory(
     const rows = await tx`select e.cursor, e.type, e.occurred_at, e.data,
         coalesce(c.actor_kind, d.actor_kind) as actor_kind, coalesce(c.actor_id, d.actor_id) as actor_id
       from events e
-      left join comments c on e.type = 'comment.created' and c.id = (e.data->>'commentId')::uuid
+      left join comments c on e.type = 'comment.created' and c.id::text = lower(e.data->>'commentId')
         and c.ticket_id = e.ticket_id
-      left join decisions d on e.type = 'decision.created' and d.id = (e.data->>'decisionId')::uuid
+      left join decisions d on e.type = 'decision.created' and d.id::text = lower(e.data->>'decisionId')
         and d.ticket_id = e.ticket_id
       where e.ticket_id = ${ticketId} and e.cursor > ${cursor}::bigint
         and (${ownerView} or e.audience_machine_id is null or e.audience_machine_id = ${machineId}::uuid)

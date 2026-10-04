@@ -6,6 +6,7 @@ import { appendEvent } from '../src/journal/events.ts';
 import { createMutator } from '../src/journal/mutation.ts';
 import { registerEventRoutes } from '../src/journal/routes.ts';
 import type { Actor, Db } from '../src/platform/contracts.ts';
+import { ApiError } from '../src/platform/errors.ts';
 import { registerTicketRoutes } from '../src/tickets/routes.ts';
 import { databaseFixture } from './support/db.ts';
 import { inputTicket, owner, ticketFixture } from './support/tickets.ts';
@@ -26,9 +27,18 @@ async function appFor(db: Db, actorOf: (header: string | undefined) => Actor) {
   const deps = {
     mutator: createMutator(db),
     auth: {
-      authenticate: async (request: { headers: Record<string, unknown> }) =>
-        actorOf(request.headers['x-actor'] as string | undefined),
-      requireOwner: async () => owner,
+      authenticate: async (request: { headers: Record<string, unknown> }) => {
+        if (request.headers['x-actor'] === 'none')
+          throw new ApiError('UNAUTHENTICATED', 401, 'Chưa đăng nhập');
+        return actorOf(request.headers['x-actor'] as string | undefined);
+      },
+      requireOwner: async (request: { headers: Record<string, unknown> }) => {
+        if (request.headers['x-actor'] === 'none')
+          throw new ApiError('UNAUTHENTICATED', 401, 'Chưa đăng nhập');
+        const actor = actorOf(request.headers['x-actor'] as string | undefined);
+        if (actor.kind !== 'owner') throw new ApiError('OWNER_REQUIRED', 403, 'Cần quyền chủ dự án');
+        return actor;
+      },
     },
   };
   registerTicketRoutes(app, options, deps as never);
@@ -274,6 +284,35 @@ test('GET /v2/events/latest trả cursor lớn nhất dạng chuỗi, an toàn v
       assert.equal(big.json().cursor, '9007199254740993');
       assert.match(big.body, /"cursor":"9007199254740993"/);
       assert.equal((await app.inject({ method: 'GET', url: '/v2/events/latest?after=1' })).statusCode, 400);
+    } finally {
+      await app.close();
+    }
+  }));
+
+test('GET /v2/events/latest chỉ dành cho owner: machine bị 403, không phiên bị 401', async () =>
+  withDatabase(async (db) => {
+    await db`update event_cursor set value = 41 where singleton = true`;
+    const machine: Actor = { kind: 'machine', id: randomUUID() };
+    const app = await appFor(db, (header) => (header === 'machine' ? machine : owner));
+    try {
+      const denied = await app.inject({
+        method: 'GET',
+        url: '/v2/events/latest',
+        headers: { 'x-actor': 'machine' },
+      });
+      assert.equal(denied.statusCode, 403);
+      assert.equal(denied.json().code, 'OWNER_REQUIRED');
+      assert.ok(!denied.body.includes('41'));
+      const anonymous = await app.inject({
+        method: 'GET',
+        url: '/v2/events/latest',
+        headers: { 'x-actor': 'none' },
+      });
+      assert.equal(anonymous.statusCode, 401);
+      assert.ok(!anonymous.body.includes('41'));
+      assert.deepEqual((await app.inject({ method: 'GET', url: '/v2/events/latest' })).json(), {
+        cursor: '41',
+      });
     } finally {
       await app.close();
     }

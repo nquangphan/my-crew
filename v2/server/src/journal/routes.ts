@@ -78,7 +78,7 @@ export function registerEventRoutes(
     '/v2/events/latest',
     { schema: { querystring: { type: 'object', additionalProperties: false, properties: {} } } },
     async (request) => {
-      await deps.auth.authenticate(request);
+      await deps.auth.requireOwner(request, { csrf: false });
       const [row] = await options.db`select value from event_cursor where singleton = true`;
       if (!row) throw new Error('EVENT_CURSOR_MISSING');
       return { cursor: parseCursor(String(row.value)) };
