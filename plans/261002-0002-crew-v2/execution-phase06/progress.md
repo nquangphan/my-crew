@@ -167,3 +167,8 @@ Follow-up nhỏ giao worker S4 ngay: N3 thêm tag phiên bản `crew-v2:operatio
 22:35 S5 `2bdc332` security review `task-3-s2-review.md`: gần đạt, Needs fixes, Important1 (approve artifact đã bị thay thế) /Minor5/⚠️7; không có đường giả owner/chéo gate/replay/execution ngoài danh sách/deadlock qua mutate(). FIX1/5 resume: I1, nâng W7 (gate của run bị supersede → 409), M1–M5; re-release hẹp runs.ts (gộp validator parallel) và operation-request.ts (union ask_owner).
 Ruling chờ: W1 DTO route answer (phase-06:155 answer:string/decisionId nullable vs GateAnswer) — quyết ở slice route controller.
 Task 3 S2: ⚠️ ghi checklist: W2 ask_owner + wait intent (phase-06:226) chưa làm → T4/T5; W3 sharedInputSha256 chưa đối chiếu, architectural parallel chưa hiện thực được vì steps bất biến → S5b/T4; W4 actor resolve bị bỏ qua, binding máy phụ thuộc B3, 404 trước resolver; W5 câu hỏi không ticket 422, chưa có event question/answer → B3/T6; W6 UI phải cho owner xem đúng bytes SHA (phase07 A6full).
+
+23:05 S5 FIX1 `4653b89` re-review `task-3-s2-fix1-re-review.md`: Approved; I1/W7/M1/M3/M4/M5 ADDRESSED, M2 một phần; không breakage bảo mật, bất biến S4 giữ.
+Ruling N1: một artifact hiện hành mỗi gate — bước nhiều file phải gói thành một artifact; giữ hành vi fail-closed hiện tại.
+Follow-up nhỏ giao worker S5: N3 run thiếu cursor ticket.created → 409 (fail-closed), N2 thêm project_id vào truy vấn events, N4 chuẩn hóa so xung đột (decodeURIComponent+NFC+lowercase).
+Task 3 S2: minor (deferred, checklist T7): N5 ownership_keys lưu bản thô — T7 dùng chung hàm chuẩn hóa khi so tập file thật.
