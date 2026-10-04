@@ -151,6 +151,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/workflow-fix.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-manifest.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
 | `gateway/test/workflow-native-projection.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+| `gateway/test/workflow-operations-tree.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-operations.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/workflow-registry.test.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/tsconfig.build.json` | [gateway-host](flows/gateway-host.md) (file) |

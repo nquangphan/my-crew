@@ -122,6 +122,7 @@ export class OwnedOperations {
     await onQuarantine?.();
     await this.helper.run(this.args('delete', 'quarantine', name, object));
   }
+  /** Installer mode: any fork leaves the process lifetime unknown. */
   async execute(
     id: string,
     object: OwnedIdentity,
@@ -129,26 +130,63 @@ export class OwnedOperations {
     command: string[],
     timeoutSeconds = 90,
   ): Promise<ExecutionReceipt> {
+    const receipt = await this.run('execute', id, object, cwd, command, timeoutSeconds);
+    if (!receipt.treeEmpty || receipt.forkObserved) throw new Error('EXECUTOR_LIFETIME_UNKNOWN');
+    return receipt;
+  }
+  /**
+   * Bounded process tree: the leader runs in its own session and forks are allowed, but the session must
+   * already be empty when the leader exits and no watched member may have left it alive. Survivors are
+   * killed by the helper and still yield EXECUTOR_LIFETIME_UNKNOWN. A timeout kills the whole session and
+   * returns the receipt only when the helper proved the session empty afterwards. A descendant that calls
+   * setsid() before it is first observed cannot be seen by any tick and stays a documented residual.
+   */
+  async executeTree(
+    id: string,
+    object: OwnedIdentity,
+    cwd: string,
+    command: string[],
+    timeoutSeconds = 90,
+  ): Promise<ExecutionReceipt> {
+    const receipt = await this.run('execute-tree', id, object, cwd, command, timeoutSeconds);
+    const closed =
+      receipt.mode === 'tree' &&
+      receipt.treeEmpty === true &&
+      (receipt.timedOut === true ||
+        (receipt.sessionEmptyAtExit === true && receipt.survivors === 0 && receipt.escaped === 0));
+    if (!closed) throw new Error('EXECUTOR_LIFETIME_UNKNOWN');
+    return receipt;
+  }
+  private async run(
+    verb: 'execute' | 'execute-tree',
+    id: string,
+    object: OwnedIdentity,
+    cwd: string,
+    command: string[],
+    timeoutSeconds: number,
+  ): Promise<ExecutionReceipt> {
     const child = await this.helper.spawn([
-      ...this.args('execute', 'stages', id, object),
+      ...this.args(verb, 'stages', id, object),
       this.layout.parents.receipts.device,
       this.layout.parents.receipts.inode,
       cwd,
       String(timeoutSeconds),
       ...command,
     ]);
-    await new Promise<void>((resolve, reject) => {
+    const code = await new Promise<number | null>((resolve, reject) => {
       child.once('error', reject);
-      child.once('close', (code) => (code === 0 ? resolve() : reject(new Error('EXECUTOR_RECEIPT_MISSING'))));
+      child.once('close', (exit) => resolve(exit));
     });
+    // 20: `.operations.guard` is held elsewhere. The helper exits before forking or writing the stage,
+    // so nothing ran and the caller may reclaim the stage instead of retaining it as unknown.
+    if (code === 20) throw new Error('EXECUTOR_BUSY');
+    if (code !== 0) throw new Error('EXECUTOR_RECEIPT_MISSING');
     const receipt = await readRecord<ExecutionReceipt>(join(this.root, 'receipts', `${id}.json`));
     if (
       !receipt ||
       receipt.operationId !== id ||
       receipt.device !== object.device ||
-      receipt.inode !== object.inode ||
-      !receipt.treeEmpty ||
-      receipt.forkObserved
+      receipt.inode !== object.inode
     )
       throw new Error('EXECUTOR_LIFETIME_UNKNOWN');
     return receipt;
@@ -167,4 +205,10 @@ export type ExecutionReceipt = {
   forkObserved: boolean;
   exitCode: number;
   timedOut: boolean;
+  /** Present only on execute-tree receipts; `treeEmpty` there means the session was proven empty. */
+  mode?: 'tree';
+  sessionEmptyAtExit?: boolean;
+  survivors?: number;
+  escaped?: number;
+  maxSessionSize?: number;
 };

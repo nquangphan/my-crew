@@ -284,6 +284,7 @@ flows:
       - gateway/test/workflow-build.test.ts
       - gateway/test/workflow-fix.test.ts
       - gateway/test/workflow-native-projection.test.ts
+      - gateway/test/workflow-operations-tree.test.ts
       - gateway/test/workflow-operations.test.ts
       - gateway/test/workflow-registry.test.ts
   server-gateway:

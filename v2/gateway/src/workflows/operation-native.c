@@ -6,6 +6,8 @@
 #include <sys/event.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
+#include <sys/sysctl.h>
+#include <stdint.h>
 #include <time.h>
 #include <signal.h>
 #include <dirent.h>
@@ -100,7 +102,65 @@ static int tree(int fd,dev_t dev,int remove_entries){
   scan_depth--;
   return result;
 }
-static int execute_owned(int root,int fd,int argc,char **argv){
+/* execute-tree session tracking. KERN_PROC_SESSION answers ENOENT on current macOS, so a member is any listed
+   process whose getsid() equals the leader pid; exited (zombie) processes report no session and are not members.
+   The leader stays unreaped (running or zombie) until tracking ends, so its pid cannot name another session. */
+#define SESSION_MAX 256
+static struct kinfo_proc *proc_table;
+static size_t proc_capacity;
+static pid_t session_pids[SESSION_MAX];
+static struct{pid_t pid;int exited;}members[SESSION_MAX];
+static int member_count,untracked;
+static int session_list(pid_t leader){
+  int mib[3]={CTL_KERN,KERN_PROC,KERN_PROC_ALL};
+  for(int attempt=0;attempt<4;attempt++){
+    size_t size=0;if(sysctl(mib,3,NULL,&size,NULL,0))return -1;
+    size+=size/4+16*sizeof(struct kinfo_proc);
+    if(size>proc_capacity){struct kinfo_proc *grown=realloc(proc_table,size);if(!grown)return -1;proc_table=grown;proc_capacity=size;}
+    size=proc_capacity;
+    if(sysctl(mib,3,proc_table,&size,NULL,0)){if(errno==ENOMEM)continue;return -1;}
+    int count=0;
+    for(size_t i=0;i<size/sizeof(struct kinfo_proc);i++){
+      pid_t pid=proc_table[i].kp_proc.p_pid;
+      if(pid<=0||pid==leader||getsid(pid)!=leader)continue;
+      if(count==SESSION_MAX)return -1;
+      session_pids[count++]=pid;
+    }
+    return count;
+  }
+  return -1;
+}
+/* Each member gets its own NOTE_EXIT so leaving the session alive (setsid) is told apart from exiting. */
+static void watch(int queue,pid_t leader,pid_t pid){
+  for(int i=0;i<member_count;i++)if(members[i].pid==pid&&!members[i].exited)return;
+  if(member_count==SESSION_MAX){untracked=1;return;}
+  struct kevent change;EV_SET(&change,pid,EVFILT_PROC,EV_ADD|EV_ONESHOT,NOTE_EXIT,0,(void*)(intptr_t)(member_count+1));
+  if(kevent(queue,&change,1,NULL,0,NULL)<0){if(errno!=ESRCH)untracked=1;return;}
+  // Re-checked after arming so the watch belongs to the session member, not a pid reused in between.
+  if(getsid(pid)!=leader){EV_SET(&change,pid,EVFILT_PROC,EV_DELETE,0,0,NULL);kevent(queue,&change,1,NULL,0,NULL);return;}
+  members[member_count].pid=pid;members[member_count].exited=0;member_count++;
+}
+static void member_event(struct kevent *event){
+  intptr_t index=(intptr_t)event->udata;
+  if(index>0&&index<=member_count&&members[index-1].pid==(pid_t)event->ident&&(event->fflags&NOTE_EXIT))members[index-1].exited=1;
+}
+static void absorb(int queue,pid_t leader,long millis){
+  struct kevent event;struct timespec wait={millis/1000,(millis%1000)*1000000};
+  while(kevent(queue,NULL,0,&event,1,&wait)==1){
+    if(event.ident!=(uintptr_t)leader)member_event(&event);
+    wait.tv_sec=0;wait.tv_nsec=0;
+  }
+}
+static int unexited_outside(int listed){
+  int count=0;
+  for(int i=0;i<member_count;i++){
+    if(members[i].exited)continue;
+    int inside=0;for(int j=0;j<listed;j++)if(session_pids[j]==members[i].pid)inside=1;
+    if(!inside)count++;
+  }
+  return count;
+}
+static int execute_owned(int root,int fd,int argc,char **argv,int as_tree){
   if(argc<18)return 2;
   int receipts=dir_at(root,"receipts",argv[12],argv[13]);if(receipts<0)return 34;
   // execute ABI appends working-directory, timeout-seconds, absolute command and arguments.
@@ -111,7 +171,8 @@ static int execute_owned(int root,int fd,int argc,char **argv){
   if(child==0){
     close(gate[1]); close(queue); char byte;
     if(read(gate[0],&byte,1)!=1)_exit(126); close(gate[0]);
-    if(setpgid(0,0)||chdir(argv[14]))_exit(126);
+    // execute-tree: the leader starts its own session so every descendant that stays in it is enumerable.
+    if((as_tree?setsid()<0:setpgid(0,0)!=0)||chdir(argv[14]))_exit(126);
     int log=openat(fd,"execution.log",O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
     int null=open("/dev/null",O_RDONLY);if(log<0||null<0)_exit(126);
     dup2(null,0);dup2(log,1);dup2(log,2);close(log);close(null);
@@ -129,22 +190,65 @@ static int execute_owned(int root,int fd,int argc,char **argv){
   close(gate[0]);struct kevent change;
   EV_SET(&change,child,EVFILT_PROC,EV_ADD|EV_CLEAR,NOTE_FORK|NOTE_EXIT,0,NULL);
   if(kevent(queue,&change,1,NULL,0,NULL)<0){close(gate[1]);waitpid(child,NULL,0);return 31;}
+  if(as_tree){
+    // `.leader` names the session leader ("pid start-seconds.microseconds") for reconcile after a crash.
+    struct kinfo_proc info;size_t size=sizeof(info);int mib[4]={CTL_KERN,KERN_PROC,KERN_PROC_PID,child};
+    int leader=openat(fd,".leader",O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
+    if(leader<0||sysctl(mib,4,&info,&size,NULL,0)||size!=sizeof(info)||info.kp_proc.p_pid!=child||dprintf(leader,"%d %lld.%06d\n",child,(long long)info.kp_proc.p_starttime.tv_sec,(int)info.kp_proc.p_starttime.tv_usec)<0||fsync(leader)||fsync(fd)){
+      if(leader>=0)close(leader);close(gate[1]);waitpid(child,NULL,0);return 36;
+    }
+    close(leader);
+  }
   char byte=1;if(write(gate[1],&byte,1)!=1){close(gate[1]);waitpid(child,NULL,0);return 31;}close(gate[1]);
   struct stat owned;if(fstat(fd,&owned))return 35;
-  int forked=0,exited=0,timed=0;struct timespec now;if(clock_gettime(CLOCK_MONOTONIC,&now))return 35;time_t deadline=now.tv_sec+seconds;
+  int forked=0,exited=0,timed=0,listed=0,max_session=1;struct timespec now;if(clock_gettime(CLOCK_MONOTONIC,&now))return 35;time_t deadline=now.tv_sec+seconds;
   while(!exited){struct kevent event;struct timespec tick={1,0};int count=kevent(queue,NULL,0,&event,1,&tick);
     if(count<0&&errno==EINTR)continue;
     if(count<0||(count==1&&(event.flags&EV_ERROR))){kill(child,SIGKILL);waitpid(child,NULL,0);return 32;}
-    if(count==1){if(event.fflags&NOTE_FORK)forked=1;if(event.fflags&NOTE_EXIT)exited=1;}
+    if(count==1&&event.ident!=(uintptr_t)child)member_event(&event);
+    else if(count==1){if(event.fflags&NOTE_FORK)forked=1;if(event.fflags&NOTE_EXIT)exited=1;}
+    if(as_tree&&!exited){
+      listed=session_list(child);
+      if(listed<0){kill(-child,SIGKILL);kill(child,SIGKILL);waitpid(child,NULL,0);return 32;}
+      if(listed+1>max_session)max_session=listed+1;
+      for(int i=0;i<listed;i++)watch(queue,child,session_pids[i]);
+    }
     total_bytes=0;scanned_entries=0;scan_depth=0;scan_overflow=0;int accounted=tree(fd,owned.st_dev,0);
     if(clock_gettime(CLOCK_MONOTONIC,&now)){kill(child,SIGKILL);waitpid(child,NULL,0);return 35;}
-    if(!exited&&(scan_overflow||(accounted==0&&total_bytes>256ULL*1024*1024)||now.tv_sec>=deadline)){timed=1;kill(-child,SIGKILL);kill(child,SIGKILL);}
+    if(!exited&&(scan_overflow||(accounted==0&&total_bytes>256ULL*1024*1024)||now.tv_sec>=deadline)){timed=1;kill(-child,SIGKILL);kill(child,SIGKILL);if(as_tree)for(int i=0;i<listed;i++)kill(session_pids[i],SIGKILL);}
+  }
+  int survivors=0,escaped=0,drained=0;
+  if(as_tree){
+    // Judged at leader exit, before reaping it: members still in the session survived the leader.
+    absorb(queue,child,0);
+    survivors=session_list(child);
+    // A member may fork between the listing and its getsid(); an empty answer is confirmed once more.
+    if(survivors==0)survivors=session_list(child);
+    if(survivors<0){kill(-child,SIGKILL);waitpid(child,NULL,0);return 32;}
+    // Watched members without NOTE_EXIT that are no longer listed left the session alive.
+    if(unexited_outside(survivors)){absorb(queue,child,100);}
+    escaped=unexited_outside(survivors)+untracked;
+    struct timespec started;if(clock_gettime(CLOCK_MONOTONIC,&started)){kill(-child,SIGKILL);waitpid(child,NULL,0);return 35;}
+    for(;;){
+      int remaining=session_list(child);if(remaining<0)break;
+      int alive=0;for(int i=0;i<member_count;i++)if(!members[i].exited)alive++;
+      if(remaining==0&&alive==0){drained=session_list(child)==0;break;}
+      if(clock_gettime(CLOCK_MONOTONIC,&now)||now.tv_sec-started.tv_sec>=2)break;
+      kill(-child,SIGKILL);
+      for(int i=0;i<remaining;i++)kill(session_pids[i],SIGKILL);
+      for(int i=0;i<member_count;i++)if(!members[i].exited)kill(members[i].pid,SIGKILL);
+      absorb(queue,child,20);
+    }
+    if(untracked)drained=0;
   }
   int status;pid_t waited;do{waited=waitpid(child,&status,0);}while(waited<0&&errno==EINTR);close(queue);
   if(waited!=child)return 32;int code=WIFEXITED(status)?WEXITSTATUS(status):128+(WIFSIGNALED(status)?WTERMSIG(status):0);
   char receipt_name[256];snprintf(receipt_name,sizeof(receipt_name),"%s.json",argv[8]);
   int receipt=openat(receipts,receipt_name,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);if(receipt<0)return 33;
-  if(dprintf(receipt,"{\"formatVersion\":1,\"operationId\":\"%s\",\"device\":\"%llu\",\"inode\":\"%llu\",\"treeEmpty\":%s,\"forkObserved\":%s,\"exitCode\":%d,\"timedOut\":%s}",argv[8],(unsigned long long)owned.st_dev,(unsigned long long)owned.st_ino,forked?"false":"true",forked?"true":"false",code,timed?"true":"false")<0||fsync(receipt)||fsync(receipts))return 33;
+  // Tree receipts append their fields; treeEmpty there means the session was proven empty after the leader.
+  char extra[192]="";
+  if(as_tree)snprintf(extra,sizeof(extra),",\"mode\":\"tree\",\"sessionEmptyAtExit\":%s,\"survivors\":%d,\"escaped\":%d,\"maxSessionSize\":%d",survivors==0?"true":"false",survivors,escaped,max_session);
+  if(dprintf(receipt,"{\"formatVersion\":1,\"operationId\":\"%s\",\"device\":\"%llu\",\"inode\":\"%llu\",\"treeEmpty\":%s,\"forkObserved\":%s,\"exitCode\":%d,\"timedOut\":%s%s}",argv[8],(unsigned long long)owned.st_dev,(unsigned long long)owned.st_ino,as_tree?(drained?"true":"false"):(forked?"false":"true"),forked?"true":"false",code,timed?"true":"false",extra)<0||fsync(receipt)||fsync(receipts))return 33;
   close(receipt);return 0;
 }
 int main(int argc,char **argv){
@@ -206,7 +310,8 @@ int main(int argc,char **argv){
     close(root);
     return 7;
   }
-  if(!strcmp(argv[1],"execute")){return execute_owned(root,child,argc,argv);}
+  if(!strcmp(argv[1],"execute")){return execute_owned(root,child,argc,argv,0);}
+  if(!strcmp(argv[1],"execute-tree")){return execute_owned(root,child,argc,argv,1);}
   if(!strcmp(argv[1],"inspect")){identity(&s);}
   else if(!strcmp(argv[1],"recover")){
     if(argc!=14){
