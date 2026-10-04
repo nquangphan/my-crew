@@ -138,8 +138,10 @@ export class OwnedOperations {
    * Bounded process tree: the leader runs in its own session and forks are allowed, but the session must
    * already be empty when the leader exits and no watched member may have left it alive. Survivors are
    * killed by the helper and still yield EXECUTOR_LIFETIME_UNKNOWN. A timeout kills the whole session and
-   * returns the receipt only when the helper proved the session empty afterwards. A descendant that calls
-   * setsid() before it is first observed cannot be seen by any tick and stays a documented residual.
+   * returns the receipt only when the helper proved the session empty afterwards and nothing escaped it: a
+   * descendant of an escaped member is outside the session and cannot be proven gone. A descendant that calls
+   * setsid() before it is first observed cannot be seen and stays a documented residual. The leader record
+   * for reconcile is `receipts/{id}.leader`, outside the stage the child can write.
    */
   async executeTree(
     id: string,
@@ -152,8 +154,8 @@ export class OwnedOperations {
     const closed =
       receipt.mode === 'tree' &&
       receipt.treeEmpty === true &&
-      (receipt.timedOut === true ||
-        (receipt.sessionEmptyAtExit === true && receipt.survivors === 0 && receipt.escaped === 0));
+      receipt.escaped === 0 &&
+      (receipt.timedOut === true || (receipt.sessionEmptyAtExit === true && receipt.survivors === 0));
     if (!closed) throw new Error('EXECUTOR_LIFETIME_UNKNOWN');
     return receipt;
   }
@@ -177,9 +179,11 @@ export class OwnedOperations {
       child.once('error', reject);
       child.once('close', (exit) => resolve(exit));
     });
-    // 20: `.operations.guard` is held elsewhere. The helper exits before forking or writing the stage,
-    // so nothing ran and the caller may reclaim the stage instead of retaining it as unknown.
+    // 20: `.operations.guard` is held elsewhere; 24: the guard is not a private regular file of this user.
+    // Both exit before forking or writing the stage, so nothing ran and the caller may reclaim the stage
+    // instead of retaining it as unknown. Only 20 is a retryable busy signal.
     if (code === 20) throw new Error('EXECUTOR_BUSY');
+    if (code === 24) throw new Error('EXECUTOR_GUARD_INVALID');
     if (code !== 0) throw new Error('EXECUTOR_RECEIPT_MISSING');
     const receipt = await readRecord<ExecutionReceipt>(join(this.root, 'receipts', `${id}.json`));
     if (

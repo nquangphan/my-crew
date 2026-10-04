@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn } from 'node:child_process';
-import { lstat, mkdtemp, readdir, readFile, realpath, rm } from 'node:fs/promises';
+import { chmod, lstat, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, test } from 'node:test';
@@ -13,6 +13,7 @@ let store: AtomicRecords;
 let ops: OwnedOperations;
 // Every process these tests start carries a distinctive argv so cleanup never signals a reused pid.
 const started: { pid: number; command: string }[] = [];
+const markers: string[] = [];
 
 function alive(pid: number): boolean {
   try {
@@ -40,6 +41,18 @@ function remember(pid: number, command: string): number {
   started.push({ pid, command });
   return pid;
 }
+/** Registers an argv marker unique to this file before any process carrying it starts. */
+function own(marker: string): string {
+  markers.push(marker);
+  return marker;
+}
+/** Processes whose argv contains a marker; used where pids change (fork chains). */
+function marked(marker: string): number[] {
+  return execFileSync('/bin/ps', ['-axo', 'pid=,command='], { encoding: 'utf8' })
+    .split('\n')
+    .filter((line) => line.includes(marker) && !line.includes('/bin/ps'))
+    .map((line) => Number(line.trim().split(/\s+/)[0]));
+}
 async function receiptOf(id: string): Promise<ExecutionReceipt | null> {
   return readRecord<ExecutionReceipt>(join(path, 'receipts', `${id}.json`));
 }
@@ -53,6 +66,7 @@ before(async () => {
 after(async () => {
   for (const { pid, command } of started)
     if (alive(pid) && commandOf(pid).includes(command)) process.kill(pid, 'SIGKILL');
+  for (const marker of markers) for (const pid of marked(marker)) process.kill(pid, 'SIGKILL');
   await store.close();
   await rm(root, { recursive: true, force: true });
 });
@@ -76,12 +90,15 @@ test('execute-tree proves a forked child that exits before the leader and record
   assert.equal(receipt.timedOut, false);
   assert.equal(receipt.exitCode, 0);
   assert((receipt.maxSessionSize ?? 0) >= 2, `maxSessionSize ${receipt.maxSessionSize}`);
-  // `.leader` lets a later reconcile name the session leader: "pid start-seconds.microseconds".
-  const leaderStat = await lstat(join(location, '.leader'));
+  // `receipts/{id}.leader` names the session leader for reconcile: "pid start-seconds.microseconds".
+  // It lives outside the stage, which the child can write.
+  const leaderPath = join(path, 'receipts', 'tree-pass.leader');
+  const leaderStat = await lstat(leaderPath);
   assert(leaderStat.isFile());
   assert.equal(leaderStat.nlink, 1);
   assert.equal(leaderStat.mode & 0o777, 0o600);
-  const leader = /^(\d+) (\d+)\.(\d{6})\n$/.exec(await readFile(join(location, '.leader'), 'utf8'));
+  await assert.rejects(() => lstat(join(location, '.leader')), { code: 'ENOENT' });
+  const leader = /^(\d+) (\d+)\.(\d{6})\n$/.exec(await readFile(leaderPath, 'utf8'));
   assert(leader, 'leader record format');
   assert.equal(leader[1], (await logLines(location))[0]);
   const startedAt = Number(leader[2]) * 1000;
@@ -150,6 +167,7 @@ test('execute keeps installer semantics: fork stays UNKNOWN and no leader record
   assert.equal(receipt?.treeEmpty, false);
   assert.equal(receipt?.mode, undefined);
   await assert.rejects(() => lstat(join(location, '.leader')), { code: 'ENOENT' });
+  await assert.rejects(() => lstat(join(path, 'receipts', 'plain-fork.leader')), { code: 'ENOENT' });
 });
 
 test('a held operations guard yields EXECUTOR_BUSY before any process or stage write', async () => {
@@ -179,6 +197,7 @@ test('a held operations guard yields EXECUTOR_BUSY before any process or stage w
     await assert.rejects(() => ops.execute('busy', identity, location, command, 5), /EXECUTOR_BUSY/);
     await assert.rejects(() => ops.executeTree('busy', identity, location, command, 5), /EXECUTOR_BUSY/);
     assert.equal(await receiptOf('busy'), null);
+    await assert.rejects(() => lstat(join(path, 'receipts', 'busy.leader')), { code: 'ENOENT' });
     assert.deepEqual(await readdir(location), ['.operation-owner']);
   } finally {
     holder.kill('SIGTERM');
@@ -187,4 +206,117 @@ test('a held operations guard yields EXECUTOR_BUSY before any process or stage w
   // Nothing ran, so the stage is reclaimable at once instead of being retained as UNKNOWN.
   await ops.remove('stages', 'busy', identity);
   await assert.rejects(() => lstat(location), { code: 'ENOENT' });
+});
+
+test('the leader record outside the stage is unaffected by a child that writes .leader in the stage', async () => {
+  const { identity, location } = await stage('tree-forged-leader');
+  await ops.executeTree(
+    'tree-forged-leader',
+    identity,
+    location,
+    ['/bin/sh', '-c', "echo $$; printf '1 0.000000\\n' > .leader"],
+    10,
+  );
+  assert.equal(await readFile(join(location, '.leader'), 'utf8'), '1 0.000000\n');
+  const leader = /^(\d+) /.exec(await readFile(join(path, 'receipts', 'tree-forged-leader.leader'), 'utf8'));
+  assert.equal(leader?.[1], (await logLines(location))[0]);
+});
+
+test('execute-tree exits 36 without running anything when the leader record cannot be written', async () => {
+  const { identity, location } = await stage('tree-no-leader');
+  await writeFile(join(path, 'receipts', 'tree-no-leader.leader'), 'occupied\n', { mode: 0o600 });
+  await assert.rejects(
+    () => ops.executeTree('tree-no-leader', identity, location, ['/bin/sh', '-c', 'echo ran'], 5),
+    /EXECUTOR_RECEIPT_MISSING/,
+  );
+  assert.equal(await receiptOf('tree-no-leader'), null);
+  assert.deepEqual(await readdir(location), ['.operation-owner']);
+});
+
+test('a fork chain that outruns per-pid listing is still a survivor: UNKNOWN and nothing left running', async () => {
+  // The chain moves to its own process group, is observed there, then hops: each hop forks and the
+  // parent exits at once, so a pid listed in one snapshot may be gone when it is checked. The leader
+  // exits mid-chain; the result must never be PASS and the whole group must be killed.
+  const marker = own('crew_s6b_tree_hopper');
+  const { identity, location } = await stage('tree-hopper');
+  const script = `/usr/bin/perl -e 'setpgrp(0, 0); select(undef, undef, undef, 1.5); for (1..2000) { my $p = fork; exit 0 if $p; last unless defined $p } sleep 30' ${marker} & /bin/sleep 2`;
+  await assert.rejects(
+    () => ops.executeTree('tree-hopper', identity, location, ['/bin/sh', '-c', script], 15),
+    /EXECUTOR_LIFETIME_UNKNOWN/,
+  );
+  assert.deepEqual(marked(marker), []);
+  const receipt = await receiptOf('tree-hopper');
+  assert.equal(receipt?.sessionEmptyAtExit, false);
+  // treeEmpty is not asserted: hops can exhaust the cumulative 256-member watch cap, which fails closed.
+});
+
+test('a timeout with an escaped member is UNKNOWN, not a reclaimable timeout receipt', async () => {
+  const marker = own('crew_s6b_tree_timeout_escape');
+  const { identity, location } = await stage('tree-timeout-escape');
+  own('sleep 30.0143');
+  const script = `/usr/bin/perl -MPOSIX -e 'sleep 1; POSIX::setsid() > 0 or exit 9; sleep 30' ${marker} & /bin/sleep 30.0143`;
+  await assert.rejects(
+    () => ops.executeTree('tree-timeout-escape', identity, location, ['/bin/sh', '-c', script], 3),
+    /EXECUTOR_LIFETIME_UNKNOWN/,
+  );
+  const receipt = await receiptOf('tree-timeout-escape');
+  assert.equal(receipt?.timedOut, true);
+  assert((receipt?.escaped ?? 0) >= 1, `escaped ${receipt?.escaped}`);
+  assert.deepEqual(marked(marker), []);
+  assert.deepEqual(marked('sleep 30.0143'), []);
+});
+
+test('a grandchild that leaves the session soon after its fork is observed through member NOTE_FORK', async () => {
+  // Without a fork watch on members the grandchild lives in the session between two 1-second ticks.
+  const marker = own('crew_s6b_tree_grandchild');
+  const { identity, location } = await stage('tree-grandchild');
+  const script = `/usr/bin/perl -MPOSIX -MTime::HiRes=sleep -e 'sleep 1.5; if (fork == 0) { sleep 0.3; POSIX::setsid(); sleep 30; exit } sleep 2' ${marker} & /bin/sleep 5`;
+  await assert.rejects(
+    () => ops.executeTree('tree-grandchild', identity, location, ['/bin/sh', '-c', script], 15),
+    /EXECUTOR_LIFETIME_UNKNOWN/,
+  );
+  const receipt = await receiptOf('tree-grandchild');
+  assert((receipt?.escaped ?? 0) >= 1, `escaped ${receipt?.escaped}`);
+  assert.deepEqual(marked(marker), []);
+});
+
+test('a session above 256 members fails closed and kills members in other groups and escaped ones', async () => {
+  const group = own('crew_s6b_tree_own_group');
+  const escapee = own('crew_s6b_tree_overflow_escape');
+  const { identity, location } = await stage('tree-overflow');
+  own('sleep 30.0257');
+  const script = [
+    `/usr/bin/perl -e 'setpgrp(0, 0); sleep 30' ${group} &`,
+    `/usr/bin/perl -MPOSIX -e 'sleep 1; POSIX::setsid() > 0 or exit 9; sleep 30' ${escapee} &`,
+    '/bin/sleep 2.5',
+    'i=0; while [ $i -lt 300 ]; do /bin/sleep 30.0257 & i=$((i+1)); done; wait',
+  ].join('\n');
+  await assert.rejects(
+    () => ops.executeTree('tree-overflow', identity, location, ['/bin/sh', '-c', script], 30),
+    /EXECUTOR_RECEIPT_MISSING/,
+  );
+  assert.equal(await receiptOf('tree-overflow'), null);
+  assert.deepEqual(marked(group), []);
+  assert.deepEqual(marked(escapee), []);
+  assert.deepEqual(marked('sleep 30.0257'), []);
+});
+
+test('an invalid operations guard is EXECUTOR_GUARD_INVALID, distinct from a busy guard', async () => {
+  const { identity, location } = await stage('guard-invalid');
+  const guard = join(path, '.operations.guard');
+  await chmod(guard, 0o644);
+  try {
+    const command = ['/bin/sh', '-c', 'echo ran'];
+    await assert.rejects(
+      () => ops.execute('guard-invalid', identity, location, command, 5),
+      /EXECUTOR_GUARD_INVALID/,
+    );
+    await assert.rejects(
+      () => ops.executeTree('guard-invalid', identity, location, command, 5),
+      /EXECUTOR_GUARD_INVALID/,
+    );
+    assert.deepEqual(await readdir(location), ['.operation-owner']);
+  } finally {
+    await chmod(guard, 0o600);
+  }
 });
