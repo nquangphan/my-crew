@@ -1,0 +1,210 @@
+FIX2 delta: baseline byte snapshot (head seen by FIX1 re-review) -> HEAD d3f092f
+ .../web/scripts/e2e-fixture.ts                     | 26 +++++++++++++++++-----
+ 1 file changed, 20 insertions(+), 6 deletions(-)
+ .../web/test}/fixture-lifecycle.test.ts            | 85 ++++++++++++++++++++++
+ 1 file changed, 85 insertions(+)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/task-1-fix1-baseline/scripts-e2e-fixture.ts b/v2/web/scripts/e2e-fixture.ts
+index f6dee21..94b2cdb 100644
+--- a/plans/261002-0002-crew-v2/execution-phase07/task-1-fix1-baseline/scripts-e2e-fixture.ts
++++ b/v2/web/scripts/e2e-fixture.ts
+@@ -74,20 +74,39 @@ async function listenLoopback(server: ReturnType<typeof createServer>): Promise<
+     server.listen(0, '127.0.0.1', () => {
+       server.off('error', fail);
+       done();
+     });
+   });
+   const address = server.address();
+   if (!address || typeof address === 'string') throw new Error('WEB_LISTENER_ADDRESS_UNKNOWN');
+   return address.port;
+ }
+ 
++type ScratchRemovalPort = {
++  stat(path: string): Promise<{ dev: number; ino: number }>;
++  rm(path: string, options: { recursive: true }): Promise<void>;
++};
++
++export function createScratchRemoval(
++  scratchPath: string,
++  scratchIdentity: string,
++  port: ScratchRemovalPort = { stat, rm },
++): (signal: AbortSignal) => Promise<boolean> {
++  return async (signal) => {
++    const entry = await port.stat(scratchPath);
++    if (signal.aborted) return false;
++    if (String(entry.dev) + ':' + String(entry.ino) !== scratchIdentity) return false;
++    await port.rm(scratchPath, { recursive: true });
++    return true;
++  };
++}
++
+ export async function startOwnedFixture(): Promise<FixtureHandle> {
+   const migrations = await captureMigrations(11);
+   if (
+     migrations.files.length !== frozenHashes.length ||
+     migrations.files.some((file, index) => file.sha256 !== frozenHashes[index])
+   ) {
+     throw new Error('WEB_FIXTURE_MIGRATION_PREFIX_DRIFT');
+   }
+ 
+   const ownershipNonce = randomUUID();
+@@ -399,26 +418,21 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
+       readStartIdentity: async () => {
+         try {
+           const entry = await stat(scratchPath);
+           return String(entry.dev) + ':' + String(entry.ino);
+         } catch {
+           return null;
+         }
+       },
+       stop: async () => true,
+       confirmStopped: async () => true,
+-      remove: async () => {
+-        const entry = await stat(scratchPath);
+-        if (String(entry.dev) + ':' + String(entry.ino) !== scratchIdentity) return false;
+-        await rm(scratchPath, { recursive: true });
+-        return true;
+-      },
++      remove: createScratchRemoval(scratchPath, scratchIdentity),
+     });
+     results.push(scratchResult);
+     if (scratchResult.state === 'unknown') {
+       phase = 'unknown:SCRATCH_REMOVE';
+       await persist();
+     }
+     return results;
+   }
+ 
+   try {
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/task-1-fix1-baseline/fixture-lifecycle.test.ts b/v2/web/test/fixture-lifecycle.test.ts
+index aadeb97..ed106b0 100644
+--- a/plans/261002-0002-crew-v2/execution-phase07/task-1-fix1-baseline/fixture-lifecycle.test.ts
++++ b/v2/web/test/fixture-lifecycle.test.ts
+@@ -1,22 +1,26 @@
+ import assert from 'node:assert/strict';
+ import { spawn, spawnSync } from 'node:child_process';
+ import { existsSync } from 'node:fs';
++import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
+ import { connect } from 'node:net';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
+ import test from 'node:test';
+ import { fileURLToPath } from 'node:url';
+ import {
+   type CleanupResult,
+   closeOwnedResource,
+   type OwnedResource,
+   withFixture,
+ } from '../e2e/support/fixture.ts';
++import { createScratchRemoval } from '../scripts/e2e-fixture.ts';
+ 
+ test('withFixture giữ API, web và DB riêng suốt callback rồi đóng đúng tài nguyên', async () => {
+   let entered = false;
+   let runError: unknown;
+   try {
+     await withFixture(async (handle) => {
+       entered = true;
+       assert.match(handle.apiOrigin, /^http:\/\/127\.0\.0\.1:\d+$/);
+       assert.match(handle.webOrigin, /^http:\/\/127\.0\.0\.1:\d+$/);
+       assert.match(handle.dbName, /^crew_v2_test_[0-9a-f]+$/);
+@@ -139,20 +143,101 @@ test('unit: STOP chưa xác minh giữ UNKNOWN và không remove', async () => {
+       },
+     });
+   } catch (error) {
+     if (!(error instanceof Error && error.message === 'FIXTURE_UNAVAILABLE')) throw error;
+   }
+   assert.deepEqual(result, { resourceId: ownedListener.id, state: 'unknown', reason: 'STOP_UNVERIFIED' });
+   assert.equal(stopped, 1);
+   assert.equal(removed, 0);
+ });
+ 
++test('unit: scratch REMOVE hết hạn rồi stat trả trễ phải giữ registry', async () => {
++  const scratchPath = await mkdtemp(join(tmpdir(), 'crew-v2-web-fix2-'));
++  const registryPath = join(scratchPath, 'registry.json');
++  await writeFile(registryPath, '{"phase":"unknown"}', { mode: 0o600 });
++  const original = await stat(scratchPath);
++  const identity = String(original.dev) + ':' + String(original.ino);
++  const resource: OwnedResource = {
++    kind: 'scratch',
++    id: scratchPath,
++    ownershipNonce: 'unit-scratch-timeout',
++    startIdentity: identity,
++  };
++  console.log(
++    'scratch-timeout-ready=' + JSON.stringify({ scratchPath, registryPath, startIdentity: identity }),
++  );
++  let releaseStat: () => void = () => undefined;
++  const delayed = new Promise<void>((resolve) => {
++    releaseStat = resolve;
++  });
++  let markStatStarted: () => void = () => undefined;
++  const statStarted = new Promise<void>((resolve) => {
++    markStatStarted = resolve;
++  });
++  let removeCalls = 0;
++  let lateRemove: Promise<void> | undefined;
++  const within = async <T>(pending: Promise<T>, milliseconds: number): Promise<T> => {
++    let timer: ReturnType<typeof setTimeout> | undefined;
++    try {
++      return await Promise.race([
++        pending,
++        new Promise<T>((_, reject) => {
++          timer = setTimeout(() => reject(new Error('SCRATCH_TEST_SETUP_DEADLINE')), milliseconds);
++        }),
++      ]);
++    } finally {
++      clearTimeout(timer);
++    }
++  };
++
++  try {
++    const pending = closeOwnedResource(resource, {
++      deadlineMs: 250,
++      readStartIdentity: async () => identity,
++      stop: async () => true,
++      confirmStopped: async () => true,
++      remove: createScratchRemoval(scratchPath, identity, {
++        stat: async (path) => {
++          assert.equal(path, scratchPath);
++          markStatStarted();
++          await delayed;
++          return { dev: original.dev, ino: original.ino };
++        },
++        rm: (path, options) => {
++          removeCalls++;
++          lateRemove = rm(path, options);
++          return lateRemove;
++        },
++      }),
++    });
++    await within(statStarted, 1_000);
++    const result = await within(pending, 2_000);
++    assert.deepEqual(result, { resourceId: scratchPath, state: 'unknown', reason: 'REMOVE_DEADLINE' });
++    releaseStat();
++    await new Promise<void>((resolve) => setImmediate(resolve));
++    assert.equal(removeCalls, 0, 'Callback đã abort không được khởi chạy rm sau stat');
++    assert.equal(existsSync(registryPath), true, 'Registry UNKNOWN phải còn để PM đối chiếu');
++  } finally {
++    releaseStat();
++    await lateRemove?.catch(() => undefined);
++    if (existsSync(scratchPath)) {
++      const current = await stat(scratchPath);
++      if (String(current.dev) + ':' + String(current.ino) === identity) {
++        await rm(scratchPath, { recursive: true });
++      }
++    }
++    console.log(
++      'scratch-timeout-own-cleanup=' + JSON.stringify({ scratchPath, absent: !existsSync(scratchPath) }),
++    );
++  }
++});
++
+ test('request đang gửi dở không được giữ fixture close vô hạn hoặc xóa asset khi STOP chưa rõ', async () => {
+   let cleanupUnknown = false;
+   let socket: ReturnType<typeof connect> | undefined;
+   const within = async <T>(pending: Promise<T>, milliseconds: number, reason: string): Promise<T> => {
+     let timer: ReturnType<typeof setTimeout> | undefined;
+     try {
+       return await Promise.race([
+         pending,
+         new Promise<T>((_, reject) => {
+           timer = setTimeout(() => reject(new Error(reason)), milliseconds);
