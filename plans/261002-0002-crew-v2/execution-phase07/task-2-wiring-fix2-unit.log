@@ -1,0 +1,14 @@
+✔ the event stream starts before the first protected GET (112.578ms)
+✔ query defaults disable retry because OwnerClient.get retries itself, and keep focus/reconnect refetch (0.931875ms)
+✔ an unauthenticated protected route is sent to login with an internal return path (0.869209ms)
+✔ the login return route accepts only internal /crew-v2/ paths (0.084042ms)
+✔ logout wipes the query cache and closes the event stream (22.127583ms)
+✔ session expiry stops the stream and drops the cache so the route boundary asks for re-authentication (0.578209ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 276.398375

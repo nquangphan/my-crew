@@ -4,18 +4,11 @@ import {
   createRouter,
   Outlet,
   redirect,
-  useLocation,
   useRouter,
   useSearch,
 } from '@tanstack/react-router';
 import { useEffect, useSyncExternalStore } from 'react';
-import {
-  type AppRuntime,
-  authorizeRoute,
-  internalReturnPath,
-  parseLoginSearch,
-  useRuntime,
-} from './app-runtime.ts';
+import { type AppRuntime, authorizeRoute, parseLoginSearch, useRuntime } from './app-runtime.ts';
 import { LoginScreen } from './auth/login.tsx';
 import { SessionBoundary } from './auth/session-boundary.tsx';
 import { safeReturnPath } from './lib/session.ts';
@@ -53,14 +46,8 @@ function ProjectHome() {
 
 function ProtectedLayout() {
   const { session, pending, client } = useRuntime();
-  const location = useLocation();
   return (
-    <SessionBoundary
-      session={session}
-      pending={pending}
-      client={client}
-      returnTo={internalReturnPath(location)}
-    >
+    <SessionBoundary session={session} pending={pending} client={client}>
       <Outlet />
     </SessionBoundary>
   );

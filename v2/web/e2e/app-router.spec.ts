@@ -64,9 +64,12 @@ test('router thật: guest chuyển login, quay về đúng path, stream trướ
   const afterLogout = calls.length;
 
   await page.goto(`${crew.webOrigin}/crew-v2/login?returnTo=${encodeURIComponent('https://evil.example/')}`);
+  await expect(heading).toBeVisible();
+  // As a guest, neither the logout nor the fresh page load opens any event request.
+  expect(calls.slice(afterLogout).filter((call) => call.startsWith('GET /v2/events'))).toEqual([]);
   await password.fill(crew.ownerPassword);
   await signIn.click();
   await expect(page.getByRole('heading', { name: 'Không gian làm việc', level: 1 })).toBeVisible();
   expect(new URL(page.url()).pathname).toBe('/crew-v2/');
-  expect(calls.slice(afterLogout).some((call) => call.includes('evil'))).toBe(false);
+  expect(page.url()).not.toContain('evil.example');
 });

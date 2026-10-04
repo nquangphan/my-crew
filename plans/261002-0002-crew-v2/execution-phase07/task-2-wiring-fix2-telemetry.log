@@ -1,0 +1,1 @@
+{"at": "2026-10-04T03:32:25.511700+00:00", "pageSize": 16384, "pages": {"Pages free": 5599, "Pages inactive": 287189, "Pages speculative": 2462}, "availableBytes": 4837376000, "availableGiB": 4.505, "pressure": 1, "cpuIdlePercent": 85.66, "cpu": "4.45% user, 9.87% sys, 85.66% idle", "diskFreeBytes": 806852628480, "diskFreeGiB": 751.44, "heavyEligible": true}
