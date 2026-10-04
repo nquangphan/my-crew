@@ -89,3 +89,8 @@ Task 3 S3a: minor (scheduled S3b): M4 waitReason chỉ hiện ở needs_input, f
 Task 3 S3a: minor (deferred): M3 role=status bao nút và alert lồng (`list.tsx:82-106`); M5 heading phẳng h2 (`dialog.tsx:76`); M6 refetch toàn trang history/graph mỗi event — ghi giới hạn vào docs.
 Ruling: docs canonical cho web là `v2/docs/flows/<flow>.md` (không phải `docs/v2/...` như brief) — chuẩn v2 docs 7 H2 + manifest — sai thì chỉ đổi đường dẫn tham chiếu.
 Ruling: ⚠️ callers 4/6, hai route ticket, deep link/reload/404/zoom200%, focus-return browser test → checklist S3b + controller mount route + A3.
+
+14:05 S5a `aa98e43` full review `task-5-s5a-review.md`: Spec ❌, Needs fixes, Important5 (I1 entity trùng qua 409 COMPOSE_ALREADY_SUBMITTED, I2 tombstone+file kẹt, I3 reserve không gắn session, I4 receiving không resume, I5 TDD vi phạm/thiếu test nhánh) /Minor7. FIX1/5 resume implementer, RED bắt buộc từng finding, gộp M5.
+Ruling: `freezeSubmission` giữ là hàm thuần validate/serialize; key do `PendingStore.begin` cấp (Task2 đã accept) — lệch chữ brief nhưng đúng bất biến một nguồn cấp key — sai thì đổi chữ ký nhỏ. M1 (không có caller production) → controller dùng nó khi wiring ComposeServicesProvider hoặc xóa ở final triage.
+Task 5 S5a: minor (deferred): M2 double-click race UI; M3 controller không subscribe PendingStore; M4 dispose không reject hash; M6 preview đọc hết body trước kiểm size; M7 docs tham chiếu routes.ts cũ.
+Producer gap: A5/A3 chặn bởi G2 (buildApp chưa mount registerAttachmentRoutes/registerInputScopeRoutes, thiếu projection commentId→refs) và G1/G3 — PM cần xác định owner G1/G2 trong phase05/08 trước khi A3/A5.
