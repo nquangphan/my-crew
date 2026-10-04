@@ -118,3 +118,4 @@ Task 2 B2b-i: minor (deferred): M3 flow server-tickets.md số bước lặp "8.
 Task 2 B2b-i: minor (deferred): M4 test serialize một chiều và dùng sleep(200) (`assistant-mutations.test.ts:991`).
 Ruling: ⚠️W1 wait_owner trên ready không retire start command chưa claim → checklist T4 (retirement R4). ⚠️W2 dò trạng thái trước verify → đã có ruling chống dò ở transport (A2) cho B3. ⚠️W3 M2 còn ở decisions/dependencies → gộp trong S2 khi đụng prepare.
 Dispatch S2 (T2-C positive resolver + orchestration port) theo memo A3/S2, thêm license gộp B2b-i M1 + B2a M2 vào `access.prepare`.
+Ruling 11:35: S3b sửa thêm `v2/server/src/gateway/contracts.ts` (schema đóng của install report) được chấp nhận — memo S3b đã cho phép contract type nơi DTO report nằm — sai thì phase03-owner review sẽ bắt.
