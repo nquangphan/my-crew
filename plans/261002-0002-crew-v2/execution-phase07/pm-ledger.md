@@ -194,3 +194,9 @@ Task 2 follow-up: complete — c4ab472. Important assertion A5/A3 E2E (1 POST + 
 Task 2 follow-up: minor (deferred): m1 cờ lỗi cấu hình chỉ ở memory (mất sau reload); m2 assert invalidate ['v2'] nằm trong if (app-wiring.test); m3 GET/upload 503 cấu hình đổi kind 'http'→'configuration' — ghi vào web-data.md cho Task5/G2.
 
 03:55 S7basic/A7basic `333468a` DONE (unit 243/243, E2E onboarding+app-router 5/5 x2 trên API/PG thật). Lưu ý TDD: RED là missing-module (không tính là RED semantic theo handover) — reviewer đánh giá test độc lập.
+
+04:10 S7basic review `task-7-s7basic-review.md`: Needs fixes, Important3 (held op 409 khóa form vĩnh viễn; path Windows/UNC client nhận server từ chối; thiếu test replay/tombstone) /Minor5. FIX1/5 resume: I1–I3, M1, M3, M4, M5.
+Ruling I1: form onboarding dùng pattern "Bỏ" owner đã duyệt (cảnh báo trùng, xác nhận, áp dụng lại key mới + revision mới, giữ field).
+Ruling I2: checkout path chỉ POSIX tuyệt đối (máy dự án macOS/Linux).
+S7basic: minor (deferred): M2 đăng ký máy thứ hai khi panel token mở ghi đè token cũ không cảnh báo.
+**BẢO MẬT (server, ngoài S7basic, PHẢI sửa trước deploy):** `journal/mutation.ts:42-49` lưu response idempotency gồm token máy dạng plaintext trong `idempotency.response` → token nằm trên DB và replay theo key trả lại token. Ruling: tạo task server riêng — không lưu secret trong response idempotency (lưu bản redacted + chỉ trả token ở lần đầu; replay trả trạng thái "đã tạo, token không xem lại được"), kèm migration dọn row cũ nếu có; cần review bảo mật. Báo owner.
