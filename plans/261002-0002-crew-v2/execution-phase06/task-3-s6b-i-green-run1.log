@@ -1,0 +1,14 @@
+✔ execute-tree proves a forked child that exits before the leader and records the leader (1897.227208ms)
+✔ execute-tree kills a child left alive when the leader exits and reports LIFETIME_UNKNOWN (31.126625ms)
+✔ execute-tree reports LIFETIME_UNKNOWN for an observed member that leaves the session (4132.578625ms)
+✔ execute-tree timeout kills the whole session and returns a proven-empty receipt (1031.935458ms)
+✔ execute keeps installer semantics: fork stays UNKNOWN and no leader record is written (31.62175ms)
+✔ a held operations guard yields EXECUTOR_BUSY before any process or stage write (18.06225ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7220.514708

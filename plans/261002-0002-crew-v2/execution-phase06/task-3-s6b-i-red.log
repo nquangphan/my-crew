@@ -1,0 +1,89 @@
+✖ execute-tree proves a forked child that exits before the leader and records the leader (1808.854208ms)
+✖ execute-tree kills a child left alive when the leader exits and reports LIFETIME_UNKNOWN (28.069875ms)
+✖ execute-tree reports LIFETIME_UNKNOWN for an observed member that leaves the session (4026.92425ms)
+✖ execute-tree timeout kills the whole session and returns a proven-empty receipt (1028.720083ms)
+✔ execute keeps installer semantics: fork stays UNKNOWN and no leader record is written (32.999458ms)
+✖ a held operations guard yields EXECUTOR_BUSY before any process or stage write (11.741542ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 1
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7020.848958
+
+✖ failing tests:
+
+test at test/workflow-operations-tree.test.ts:60:1
+✖ execute-tree proves a forked child that exits before the leader and records the leader (1808.854208ms)
+  Error: EXECUTOR_LIFETIME_UNKNOWN
+      at OwnedOperations.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/workflows/operations.ts:153:13)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:63:19)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at test/workflow-operations-tree.test.ts:91:1
+✖ execute-tree kills a child left alive when the leader exits and reports LIFETIME_UNKNOWN (28.069875ms)
+  AssertionError [ERR_ASSERTION]: survivor must be killed before the helper returns
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:98:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/workflow-operations-tree.test.ts:106:1
+✖ execute-tree reports LIFETIME_UNKNOWN for an observed member that leaves the session (4026.92425ms)
+  AssertionError [ERR_ASSERTION]: escaped member must be killed
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:117:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/workflow-operations-tree.test.ts:125:1
+✖ execute-tree timeout kills the whole session and returns a proven-empty receipt (1028.720083ms)
+  Error: EXECUTOR_LIFETIME_UNKNOWN
+      at OwnedOperations.execute (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/workflows/operations.ts:153:13)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:127:19)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/workflow-operations-tree.test.ts:154:1
+✖ a held operations guard yields EXECUTOR_BUSY before any process or stage write (11.741542ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /EXECUTOR_BUSY/. Input:
+  
+  'Error: EXECUTOR_RECEIPT_MISSING'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/workflow-operations-tree.test.ts:178:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: EXECUTOR_RECEIPT_MISSING
+        at ChildProcess.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/workflows/operations.ts:142:70)
+        at ChildProcess.wrapper (node:events:639:12)
+        at ChildProcess.emit (node:events:514:28)
+        at maybeClose (node:internal/child_process:1141:16)
+        at ChildProcess._handle.onexit (node:internal/child_process:306:5),
+    expected: /EXECUTOR_BUSY/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

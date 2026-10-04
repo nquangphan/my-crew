@@ -1,0 +1,36 @@
+== tree run 1
+ℹ tests 6
+ℹ pass 6
+ℹ fail 0
+== tree run 2
+ℹ tests 6
+ℹ pass 6
+ℹ fail 0
+== tree run 3
+ℹ tests 6
+ℹ pass 6
+ℹ fail 0
+== typecheck
+tsc exit=0
+== biome
+gateway/test/workflow-operations-tree.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+     92  92 │     const { identity, location } = await stage('tree-survivor');
+     93  93 │     await assert.rejects(
+     94     │ - ····()·=>·ops.executeTree('tree-survivor',·identity,·location,·['/bin/sh',·'-c',·'/bin/sleep·32·&·echo·$!'],·10),
+         94 │ + ····()·=>
+         95 │ + ······ops.executeTree('tree-survivor',·identity,·location,·['/bin/sh',·'-c',·'/bin/sleep·32·&·echo·$!'],·10),
+     95  96 │       /EXECUTOR_LIFETIME_UNKNOWN/,
+     96  97 │     );
+  
+
+Checked 2 files in 35ms. No fixes applied.
+Found 1 error.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+
+biome exit=1
