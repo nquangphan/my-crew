@@ -215,4 +215,6 @@ export type ExecutionReceipt = {
   survivors?: number;
   escaped?: number;
   maxSessionSize?: number;
+  /** Learned process groups still held when the receipt was written; emptied groups are pruned. */
+  groupsKnown?: number;
 };

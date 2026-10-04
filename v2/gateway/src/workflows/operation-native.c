@@ -102,12 +102,17 @@ static int tree(int fd,dev_t dev,int remove_entries){
   scan_depth--;
   return result;
 }
-/* execute-tree session tracking. KERN_PROC_SESSION answers ENOENT on current macOS. A member is a live (non-zombie)
-   process from one KERN_PROC_ALL snapshot whose process group is known to belong to the session, or whose getsid()
-   equals the leader pid. The group test reads the atomic snapshot, so a fork chain inside a known group cannot
-   slip between listing and getsid(). Groups are learned from getsid()-confirmed members; a group never changes
-   session. The leader stays unreaped (running or zombie) until tracking ends, so its pid cannot name another
-   session or group. Caps (256 listed, 256 watched in total over the run, 256 groups) fail closed. */
+/* execute-tree session tracking. KERN_PROC_SESSION answers ENOENT on current macOS. A listed member is a live
+   (non-zombie) process from a KERN_PROC_ALL listing whose process group is known to belong to the session, or whose
+   getsid() equals the leader pid. The listing is NOT atomic: XNU's proc_iterate() collects the pid set under the
+   process list lock, drops it, and only then reads each process's pgid/state, so a fast fork->exit chain can be
+   missing from a listing. Two other checks close that gap for known groups: kill(-group,0) is answered by the
+   kernel walking the group's members under the group's lock (0 = a live member of this uid remains), and any
+   process still to kill after the leader exited makes the run unproven. Groups are learned from getsid()-confirmed
+   members (a group never changes session), pruned as soon as kill(-group,0) answers ESRCH, and signalled only while
+   a member is confirmed in the session at that moment. The leader stays unreaped (running or zombie) until tracking
+   ends, so its pid cannot name another session or group. Caps (256 listed, 256 watched in total over the run,
+   256 groups) fail closed. */
 #define SESSION_MAX 256
 static struct kinfo_proc *proc_table;
 static size_t proc_capacity;
@@ -167,15 +172,50 @@ static int escapes(void){
   for(int i=0;i<member_count;i++)if(members[i].left)count++;
   return count;
 }
-/* Every tree-mode kill: the leader's group and every learned group, each member of a fresh uncapped listing, and
-   every watched member that has not exited (including ones that left the session). */
+/* Known groups that still hold a live member of this uid; groups answering ESRCH are gone and pruned. EPERM means
+   only zombies (such as the exited leader) or members of another uid remain: those are not counted here. */
+static int groups_alive(void){
+  int alive=0;
+  for(int i=0;i<group_count;){
+    if(kill(-groups[i],0)==0)alive++;
+    else if(errno==ESRCH){groups[i]=groups[--group_count];continue;}
+    i++;
+  }
+  return alive;
+}
+/* A learned group is signalled only if a listed live process is in it and in the session right now. The leader's
+   own group needs no proof: the unreaped leader holds that id. */
+static int group_confirmed(pid_t leader,pid_t group,int entries){
+  if(group==leader)return 1;
+  for(int i=0;i<entries;i++){
+    pid_t pid=proc_table[i].kp_proc.p_pid;
+    if(proc_table[i].kp_eproc.e_pgid==group&&proc_table[i].kp_proc.p_stat!=SZOMB&&getpgid(pid)==group&&getsid(pid)==leader)return 1;
+  }
+  return 0;
+}
+static void kill_groups(pid_t leader){
+  int entries=snapshot();
+  if(entries<0){kill(-leader,SIGKILL);return;}
+  for(int i=0;i<group_count;){
+    pid_t group=groups[i];
+    if(kill(-group,0)!=0&&errno==ESRCH){groups[i]=groups[--group_count];continue;}
+    if(group_confirmed(leader,group,entries))kill(-group,SIGKILL);
+    i++;
+  }
+}
+/* Every tree-mode kill: confirmed groups, the leader, each listed process confirmed in the session by getsid(),
+   and every watched member that has not exited (including ones that left the session). An unconfirmed live group
+   is not signalled; it keeps the session from being proven empty. */
 static void kill_session(pid_t leader){
   note_escapes(leader);
-  for(int i=0;i<group_count;i++)kill(-groups[i],SIGKILL);
+  kill_groups(leader);
   kill(leader,SIGKILL);
   int entries=snapshot();
-  for(int i=0;i<entries;i++)if(in_session(&proc_table[i],leader))kill(proc_table[i].kp_proc.p_pid,SIGKILL);
-  for(int i=0;i<group_count;i++)kill(-groups[i],SIGKILL);
+  for(int i=0;i<entries;i++){
+    pid_t pid=proc_table[i].kp_proc.p_pid;
+    if(in_session(&proc_table[i],leader)&&getsid(pid)==leader)kill(pid,SIGKILL);
+  }
+  kill_groups(leader);
   for(int i=0;i<member_count;i++)if(!members[i].exited)kill(members[i].pid,SIGKILL);
 }
 /* Each member gets NOTE_EXIT, so leaving the session alive (setsid) is told apart from exiting, and NOTE_FORK, so
@@ -199,6 +239,7 @@ static void settle(int queue,pid_t leader){
     int entries=snapshot(),alive=entries<0;
     for(int i=0;i<entries&&!alive;i++)if(in_session(&proc_table[i],leader))alive=1;
     for(int i=0;i<member_count&&!alive;i++)if(!members[i].exited&&getsid(members[i].pid)>0)alive=1;
+    if(!alive&&groups_alive())alive=1;
     if(!alive||clock_gettime(CLOCK_MONOTONIC,&now)||now.tv_sec-start.tv_sec>=2)return;
   }
 }
@@ -282,13 +323,15 @@ static int execute_owned(int root,int fd,int argc,char **argv,int as_tree){
     // A member may fork between the listing and its getsid(); an empty answer is confirmed once more.
     if(survivors==0)survivors=session_list(child);
     if(survivors<0){settle(queue,child);waitpid(child,NULL,0);return 32;}
+    // A known group with a live member is a survivor even when the listing missed it.
+    if(survivors==0)survivors=groups_alive();
     note_escapes(child);
     escaped=escapes();
     struct timespec started;if(clock_gettime(CLOCK_MONOTONIC,&started)){settle(queue,child);waitpid(child,NULL,0);return 35;}
     for(;;){
       int remaining=session_list(child);if(remaining<0){settle(queue,child);break;}
       int alive=0;for(int i=0;i<member_count;i++)if(!members[i].exited)alive++;
-      if(remaining==0&&alive==0){drained=session_list(child)==0;break;}
+      if(remaining==0&&alive==0&&!groups_alive()){drained=session_list(child)==0&&!groups_alive();break;}
       // Anything still to kill after the leader exited means the session was not empty at that moment,
       // even if both exit listings missed it; such a run is never proven.
       if(!timed&&survivors==0&&escaped==0)survivors=remaining>0?remaining:1;
@@ -306,7 +349,7 @@ static int execute_owned(int root,int fd,int argc,char **argv,int as_tree){
   int receipt=openat(receipts,receipt_name,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);if(receipt<0)return 33;
   // Tree receipts append their fields; treeEmpty there means the session was proven empty after the leader.
   char extra[192]="";
-  if(as_tree)snprintf(extra,sizeof(extra),",\"mode\":\"tree\",\"sessionEmptyAtExit\":%s,\"survivors\":%d,\"escaped\":%d,\"maxSessionSize\":%d",survivors==0?"true":"false",survivors,escaped,max_session);
+  if(as_tree)snprintf(extra,sizeof(extra),",\"mode\":\"tree\",\"sessionEmptyAtExit\":%s,\"survivors\":%d,\"escaped\":%d,\"maxSessionSize\":%d,\"groupsKnown\":%d",survivors==0?"true":"false",survivors,escaped,max_session,group_count);
   if(dprintf(receipt,"{\"formatVersion\":1,\"operationId\":\"%s\",\"device\":\"%llu\",\"inode\":\"%llu\",\"treeEmpty\":%s,\"forkObserved\":%s,\"exitCode\":%d,\"timedOut\":%s%s}",argv[8],(unsigned long long)owned.st_dev,(unsigned long long)owned.st_ino,as_tree?(drained?"true":"false"):(forked?"false":"true"),forked?"true":"false",code,timed?"true":"false",extra)<0||fsync(receipt)||fsync(receipts))return 33;
   close(receipt);return 0;
 }

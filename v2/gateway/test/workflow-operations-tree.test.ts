@@ -320,3 +320,36 @@ test('an invalid operations guard is EXECUTOR_GUARD_INVALID, distinct from a bus
     await chmod(guard, 0o600);
   }
 });
+
+test('a fork chain inside the leader group is caught by the kernel group check every time', async () => {
+  // kill(-group, 0) walks the group under its lock, so the chain cannot slip between listing and getsid().
+  const marker = own('crew_s6b_tree_leader_group_hopper');
+  for (const run of [1, 2, 3]) {
+    const id = `tree-leader-hopper-${run}`;
+    const { identity, location } = await stage(id);
+    const script = `/usr/bin/perl -e 'for (1..1500) { my $p = fork; exit 0 if $p; last unless defined $p } sleep 30' ${marker} &`;
+    await assert.rejects(
+      () => ops.executeTree(id, identity, location, ['/bin/sh', '-c', script], 15),
+      /EXECUTOR_LIFETIME_UNKNOWN/,
+    );
+    const receipt = await receiptOf(id);
+    assert.equal(receipt?.sessionEmptyAtExit, false, `run ${run}`);
+    assert((receipt?.survivors ?? 0) >= 1, `run ${run} survivors ${receipt?.survivors}`);
+    assert.deepEqual(marked(marker), [], `run ${run}`);
+  }
+});
+
+test('a learned process group that emptied is pruned and does not block PASS', async () => {
+  const { identity, location } = await stage('tree-group-pruned');
+  const receipt = await ops.executeTree(
+    'tree-group-pruned',
+    identity,
+    location,
+    ['/bin/sh', '-c', "/usr/bin/perl -e 'setpgrp(0, 0); sleep 2' & wait"],
+    10,
+  );
+  assert.equal(receipt.sessionEmptyAtExit, true);
+  assert.equal(receipt.escaped, 0);
+  // Only the leader's own group is still held: the member's group was learned, emptied and pruned.
+  assert.equal(receipt.groupsKnown, 1);
+});
