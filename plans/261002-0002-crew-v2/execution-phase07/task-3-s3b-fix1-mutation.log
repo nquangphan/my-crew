@@ -1,0 +1,14 @@
+TELEMETRY {"at": "2026-10-04T05:30:09.625264+00:00", "pageSize": 16384, "pages": {"Pages free": 43321, "Pages inactive": 243214, "Pages speculative": 1280}, "availableBytes": 4715560960, "availableGiB": 4.392, "pressure": 1, "cpuIdlePercent": 75.7, "cpu": "13.56% user, 11.35% sys, 75.7% idle", "diskFreeBytes": 805853077504, "diskFreeGiB": 750.509, "heavyEligible": true}
+CMD /var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T//crew-v2-web-s3b/s3b-mutate.sh
+== control
+ℹ pass 4 ℹ fail 0 
+== M2 mutant: ticket key keeps raw case (1)
+ℹ pass 0 ℹ fail 1 
+== I1 mutant: no key (1)
+ℹ pass 0 ℹ fail 1 
+== M3 mutant: fieldset enabled
+ℹ pass 0 ℹ fail 1 
+== M6 mutant: hide on terminal
+ℹ pass 0 ℹ fail 1 
+restored-queries
+EXIT 0

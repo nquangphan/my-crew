@@ -51,3 +51,44 @@ E2E kiểm: bản nháp bình luận giữ giá trị và focus qua event realti
 4. `test/support/dom-events.ts` (`useDomEventConstructors`) đã được `docs-space-dom.test.ts` của S6docs import (commit `2eb8936`) trước khi file này được commit. HEAD trong khoảng `2eb8936..60f546e` thiếu file đó.
 5. Lịch sử đầy đủ (`/history`) chưa đọc vì contracts chưa có decoder (Task2). Minor S3a M3/M5/M6 vẫn deferred.
 6. Bỏ bản nháp yêu cầu/bình luận chỉ xóa phần chữ. Tệp phải bỏ bằng nút của composer, vì composer không cho gọi abandon từ ngoài.
+
+## 5. Vòng sửa 1 (review `task-3-s3b-review.md`)
+
+**Trạng thái: I1, I2, M1, M2, M3, M6 đã sửa — commit `d9216cc`. I3: NEEDS_CONTEXT.** M4/M5 do PM ghi vào ledger. Script nằm trong `$TMPDIR/crew-v2-web-s3b/`; chỉ chạy khi giữ heavy slot và `heavyEligible` là true. Trước commit đã kiểm: mọi import tương đối trong các file staged đều trỏ tới file đã track.
+
+| Finding | Sửa | Test (RED trước) |
+|---|---|---|
+| I1 | `<CommentComposer key={ticket.id} …>` (`detail.tsx`) | “trang ticket đổi ticketId mà không remount” — RED `TIMEOUT:A restored` (chữ của B hiện trên A) |
+| I2 | `FormDrafts` ghi đồng thời vào bộ nhớ và tab storage (`browserTabStorage()` = `sessionStorage`, cùng nơi với draft record và `PendingStore`). Key `crew-v2:form-draft:create-request` và `…:comment:<id>`. Đọc lại có kiểm kiểu. Xóa khi `logging_out`/`guest` (cả lúc tạo kho). Field đã lưu được ưu tiên hơn project của view | Thuần: lưu/đọc lại, bỏ bản ghi hỏng. DOM: mất response → tải lại trang (session/pending/client mới trên cùng storage) → field bị khóa, project/kind/title/description/workflow khớp byte body; gửi lại cùng key/body, một ticket. Bình luận: ô nội dung khôi phục, chỉ đọc, bằng `text` của body; gửi lại cùng key/body, một comment |
+| M1 | Nhãn `owner_input` (“Cần bạn trả lời hoặc quyết định.”), comment ghi nguồn `service.ts:420,486` | unit `waitNotice` |
+| M2 | (code đã đúng từ `60f546e`) | DOM: `getQueryData(ticket(lower))` có dữ liệu, key chữ hoa không có; invalidate `queryRoots.ticket(lower)` làm detail mở bằng ID chữ hoa refetch (rev 5); response rev 3 không ghi đè. Pass ngay vì code đã đúng; đột biến key giữ chữ hoa làm test fail |
+| M3 | Bọc `TicketDocsLinksEditor` trong `<fieldset disabled={terminal}>`, không sửa `docs/*` | DOM: mọi input/button của editor ở trạng thái `:disabled` trên ticket `done` |
+| M6 | `CommentComposer` luôn được mount. Trên ticket kết thúc, nó chỉ ẩn khi composer ở `editing`; nếu không thì hiện kèm ghi chú | DOM: đang `ambiguous` thì ticket chuyển `done` qua invalidation; nút “Gửi lại đúng yêu cầu cũ” còn, gửi lại tạo một comment, rồi composer ẩn |
+
+**I3 — NEEDS_CONTEXT (thiếu API S5a, không sửa compose/\*):** `AttachmentComposer` không đưa controller ra ngoài: `ComposerProps` không có handle hay prop nào để form ra lệnh bỏ, nên form không gọi được `discard()`/`abandon()`. Nếu có handle thì hai hàm này cũng chưa đủ để bỏ trọn:
+- `discard()` thoát ngay khi không có tombstone/`lockReason` (`controller.ts` `discard`), tức là không làm gì ở `editing` và ở `ambiguous` còn op;
+- `abandon()` chỉ chạy ở `editing`.
+
+API cần có, ví dụ `ComposerProps.onHandle?(handle: { discardDraft(): Promise<'discarded' | 'blocked' | 'unconfirmed'> })`. Hàm này phải:
+- từ chối khi `sending`;
+- ở `editing`: abandon compose session và tệp, rồi `startNew()`;
+- ở `ambiguous`/`suspended`/tombstone/`SUBMIT_UNCONFIRMED`/`SUBMITTED_ELSEWHERE`: làm như `discard()` hiện tại (khóa submit giữ trong panel Task2, có cảnh báo trùng owner đã duyệt);
+- trả kết quả, để form chỉ xóa field/chữ sau khi bỏ thành công.
+
+Hiện nút “Bỏ bản nháp yêu cầu/bình luận” vẫn chỉ xóa chữ, và tệp vẫn bỏ bằng “Bỏ bản nháp tệp” của composer. Hành vi này đã ghi trong docs flow.
+
+| Bước | Kết quả | Log, SHA-256 (8 ký tự đầu) |
+|---|---|---|
+| RED | 46 test: 39 pass, 7 fail theo hành vi/assertion | `task-3-s3b-fix1-red.log` `6eebf218` |
+| GREEN focused | 46/46 | `task-3-s3b-fix1-green-focused.log` `33130cd3` |
+| Đột biến (M2 key chữ hoa, I1 bỏ key, M3 fieldset enabled, M6 ẩn khi terminal) | control 4/4; mỗi đột biến fail 1; source đã khôi phục | `task-3-s3b-fix1-mutation.log` `868b2f35` |
+| Unit web (trừ fixture-lifecycle) + tsc + vite build | 197/197; tsc 0; vite 0 | `task-3-s3b-fix1-unit-full.log` `ce1c8055` |
+| Biome 14 file | exit 0 | `task-3-s3b-fix1-biome.log` `e35f9a6d` |
+| E2E `tickets.spec.ts` (fixture thật) | 2 passed | `task-3-s3b-fix1-e2e.log` `11b689b9` |
+
+Docker trước/sau giống nhau; đã xóa `test-results`; lock đã trả. Manifest không đổi (không có file mới).
+
+Giới hạn còn lại (đã ghi trong docs):
+- Kho bản nháp chỉ tự xóa khi đã được tạo trong lần tải trang hiện tại.
+- Ticket đã kết thúc mà còn bình luận chưa xác nhận từ trước khi tải trang: ô bình luận không hiện, owner gửi lại qua panel Task2.
+- A3 vẫn BLOCKED vì fixture chưa mount attachments.

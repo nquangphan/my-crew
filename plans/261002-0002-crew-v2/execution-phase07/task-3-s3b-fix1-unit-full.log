@@ -1,0 +1,15 @@
+TELEMETRY {"at": "2026-10-04T05:30:20.880195+00:00", "pageSize": 16384, "pages": {"Pages free": 45060, "Pages inactive": 255662, "Pages speculative": 4209}, "availableBytes": 4995989504, "availableGiB": 4.653, "pressure": 1, "cpuIdlePercent": 85.6, "cpu": "5.19% user, 9.74% sys, 85.6% idle", "diskFreeBytes": 805852991488, "diskFreeGiB": 750.509, "heavyEligible": true}
+CMD /var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T//crew-v2-web-s3b/s3b-full.sh
+== unit: test/app-wiring.test.ts test/auth-recovery.test.ts test/client.test.ts test/compose-submit.test.ts test/compose.test.ts test/composer-dom.test.ts test/create-request.test.ts test/docs-links.test.ts test/docs-space-dom.test.ts test/docs-ticket-links-dom.test.ts test/events.test.ts test/ticket-detail-dom.test.ts test/ticket-routes.test.ts test/tickets.test.ts test/workspace.test.ts
+ℹ tests 197
+ℹ pass 197
+ℹ fail 0
+ℹ cancelled 0
+== tsc
+tsc exit=0
+== vite build
+../../../../../../var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/tmp.wsa1RQ5nc5/assets/index-6kdFat5q.js             499.07 kB │ gzip: 157.86 kB
+
+✓ built in 105ms
+vite exit=0
+EXIT 0

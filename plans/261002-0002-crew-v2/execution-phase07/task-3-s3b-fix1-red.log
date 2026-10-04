@@ -1,0 +1,768 @@
+TELEMETRY {"at": "2026-10-04T05:28:01.804282+00:00", "pageSize": 16384, "pages": {"Pages free": 15055, "Pages inactive": 289889, "Pages speculative": 3776}, "availableBytes": 5058068480, "availableGiB": 4.711, "pressure": 1, "cpuIdlePercent": 86.73, "cpu": "3.6% user, 10.20% sys, 86.73% idle", "diskFreeBytes": 805853159424, "diskFreeGiB": 750.509, "heavyEligible": true}
+CMD perl -e alarm 400; exec @ARGV node --test test/tickets.test.ts test/create-request.test.ts test/ticket-detail-dom.test.ts
+✔ makeRequestSubmission map chính xác field form sang CreateTicket và target ticket (1.751375ms)
+✔ defaultRequestFields: Superpowers mặc định, loại code, giữ project được chọn (0.095375ms)
+✔ workflowOptions: Superpowers đứng đầu là mặc định, BMAD ghi rõ chỉ có định nghĩa cho Claude Code (16.005042ms)
+✔ requestFormLocked: chỉ sửa field khi composer đang editing (0.123291ms)
+✔ formDrafts giữ bản nháp qua hết phiên/đăng nhập lại, xóa khi đăng xuất, tách theo session (0.784417ms)
+✖ formDrafts lưu vào tab storage, phiên mới (tải lại trang) đọc lại đúng field; dữ liệu hỏng bị bỏ (0.663125ms)
+✔ form tạo yêu cầu text-only: Superpowers mặc định, gửi đúng body, một ticket và mở ticket.id trả về (117.450667ms)
+✔ chọn BMAD rõ ràng kèm PNG: body có workflowChoice bmad và đúng ID tệp (35.971959ms)
+✔ mất response rồi hết phiên: field bị khóa, đăng nhập lại gửi lại đúng key/body, một ticket (37.364208ms)
+✔ nút “Tạo yêu cầu”: đóng hộp thoại giữ field, chỉ “Bỏ bản nháp yêu cầu” mới xóa (78.669ms)
+✖ mất response rồi tải lại trang: field khôi phục, bị khóa và khớp từng byte body gửi lại (37.561833ms)
+✔ draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại; chỉ “Bỏ bản nháp bình luận” mới xóa (159.334333ms)
+✔ gửi bình luận qua composer chung: một comment, ô nhập trống và timeline đọc lại (29.221625ms)
+✔ ticket đã kết thúc chỉ xem: không có composer bình luận (12.143375ms)
+✔ deep link ID chữ hoa đọc bằng ID chữ thường và vẫn hiện lý do chờ ngoài needs_input (12.002ms)
+✔ danh sách yêu cầu: đọc level=request của producer, chỉ hiện gốc thật, chọn yêu cầu mở ticket, có “Tạo yêu cầu” (12.592167ms)
+✔ chi tiết dùng danh sách tệp đính kèm chung của Task5 cho đúng ticket (14.692125ms)
+✔ chi tiết trong hộp thoại nhúng editor liên kết tài liệu của ticket thay cho dòng “chưa có dữ liệu” (31.519792ms)
+✖ trang ticket đổi ticketId mà không remount: chữ nháp của A không sang B (308.335291ms)
+✖ mất response bình luận rồi tải lại trang: ô nội dung khôi phục, khóa và khớp body gửi lại (46.012916ms)
+✔ deep link chữ hoa: cache theo key chữ thường, invalidation chữ thường làm mới, revision cũ không ghi đè (16.492875ms)
+✖ ticket kết thúc: editor liên kết tài liệu chỉ đọc (15.843875ms)
+✖ ticket chuyển sang kết thúc qua realtime khi bình luận chưa xác nhận: composer vẫn còn để gửi lại (42.603291ms)
+✔ statusLabels đủ 7 nhãn tiếng Việt, mỗi trạng thái có biểu tượng riêng và thứ tự cột (0.88775ms)
+✔ requestRoots chỉ nhận level request, id===rootId, parentId null; không suy từ title/trang đầu (0.176417ms)
+✔ requestRoots và mergeTicketPages: ID trùng lấy revision mới bất kể thứ tự trang (0.099458ms)
+✔ groupByStatus luôn có đủ 7 nhóm, gom done/cancelled riêng (0.085292ms)
+✔ parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị hợp lệ (0.2445ms)
+✔ ticketListPath dựng đúng query /v2/tickets với cursor UUID và limit (0.29725ms)
+✔ fetchTicketPage giải mã DTO, sai shape báo RESPONSE_SHAPE_INVALID (0.346208ms)
+✔ ticketListOptions phân trang tới nextCursor null, không tự tải hết (0.089417ms)
+✔ fetchAllPages đọc hết trang theo cursor đến null (0.234417ms)
+✔ fetchAllPages dừng khi cursor lặp lại thay vì vòng vô hạn (0.143667ms)
+✔ buildLegacyTimeline sắp theo createdAt rồi id, không theo thứ tự UUID (0.171834ms)
+✔ ticketQueryOptions: response revision cũ không ghi đè revision mới trong cache (0.581708ms)
+✔ ticketQueryOptions từ chối ticketId không phải UUID trước khi gọi mạng (0.073542ms)
+✔ formatTime hiển thị theo Asia/Ho_Chi_Minh, chuỗi lỗi giữ nguyên (0.090375ms)
+✔ actorLabel phân biệt chủ dự án và máy (0.057291ms)
+✔ pickReturnFocus: trả về trigger nếu còn trong DOM, nếu mất thì container dự phòng (0.07ms)
+✔ ticketListPath gửi filter level của producer cho danh sách yêu cầu gốc (0.059208ms)
+✔ ticketId chữ hoa được chuẩn hóa chữ thường cho query key, path và revision guard (0.146917ms)
+✔ historyQueryOptions đọc đúng collection bằng ID chữ thường (0.069625ms)
+✔ failureText tách lỗi phía trình duyệt, hủy tải và lỗi máy chủ (0.163791ms)
+✔ waitNotice hiện waitReason ở mọi trạng thái, chỉ nói “chờ bạn” khi needs_input (0.09425ms)
+✔ requestListFilters ép level request cho view yêu cầu, giữ filter producer khác (0.078958ms)
+✖ waitNotice có nhãn tiếng Việt cho owner_input (0.322458ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 39
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1457.104208
+
+✖ failing tests:
+
+test at test/create-request.test.ts:152:1
+✖ formDrafts lưu vào tab storage, phiên mới (tải lại trang) đọc lại đúng field; dữ liệu hỏng bị bỏ (0.663125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + null
+  - {
+  -   description: 'Mô tả\nhai dòng',
+  -   kind: 'docs',
+  -   projectId: '11111111-1111-4111-8111-111111111111',
+  -   title: 'Tiêu đề có dấu',
+  -   workflowChoice: 'bmad'
+  - }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:167:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: { projectId: '11111111-1111-4111-8111-111111111111', kind: 'docs', title: 'Tiêu đề có dấu', description: 'Mô tả\nhai dòng', workflowChoice: 'bmad' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/create-request.test.ts:465:1
+✖ mất response rồi tải lại trang: field khôi phục, bị khóa và khớp từng byte body gửi lại (37.561833ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '11111111-1111-4111-8111-111111111111'
+  - '44444444-4444-4444-8444-444444444444'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/create-request.test.ts:497:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '11111111-1111-4111-8111-111111111111',
+    expected: '44444444-4444-4444-8444-444444444444',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/ticket-detail-dom.test.ts:345:1
+✖ trang ticket đổi ticketId mà không remount: chữ nháp của A không sang B (308.335291ms)
+  Error: TIMEOUT:A restored
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:135:5
+
+test at test/ticket-detail-dom.test.ts:362:1
+✖ mất response bình luận rồi tải lại trang: ô nội dung khôi phục, khóa và khớp body gửi lại (46.012916ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + ''
+  - 'Bình luận trước khi tải lại'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:379:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: 'Bình luận trước khi tải lại',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/ticket-detail-dom.test.ts:413:1
+✖ ticket kết thúc: editor liên kết tài liệu chỉ đọc (15.843875ms)
+  AssertionError [ERR_ASSERTION]: <input type="checkbox">
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:441:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/ticket-detail-dom.test.ts:444:1
+✖ ticket chuyển sang kết thúc qua realtime khi bình luận chưa xác nhận: composer vẫn còn để gửi lại (42.603291ms)
+  Error [TestingLibraryElementError]: Unable to find an accessible element with the role "button" and name `/Gửi lại đúng yêu cầu cũ/`
+  
+  Here are the accessible roles:
+  
+    dialog:
+  
+    Name "Ticket A":
+    [36m<div[39m
+      [33maria-describedby[39m=[32m"radix-_r_2a_"[39m
+      [33maria-labelledby[39m=[32m"radix-_r_29_"[39m
+      [33mdata-state[39m=[32m"open"[39m
+      [33mdata-testid[39m=[32m"ticket-dialog"[39m
+      [33mid[39m=[32m"radix-_r_28_"[39m
+      [33mrole[39m=[32m"dialog"[39m
+      [33mstyle[39m=[32m"position: fixed; top: 4vh; left: 50%; transform: translateX(-50%); width: min(60rem, -2rem + 100vw); max-height: 92vh; overflow: auto; box-sizing: border-box; padding: 1.5rem; border-radius: 0.75rem; background: canvas; color: canvastext; box-shadow: 0 1.5rem 3rem rgb(15 23 42 / 0.3); pointer-events: auto;"[39m
+      [33mtabindex[39m=[32m"-1"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    button:
+  
+    Name "Đóng":
+    [36m<button[39m
+      [33maria-label[39m=[32m"Đóng"[39m
+      [33mstyle[39m=[32m"float: right; font: inherit; padding: 0.35rem 0.6rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+      [33mtype[39m=[32m"button"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    article:
+  
+    Name "":
+    [36m<article[39m
+      [33mdata-revision[39m=[32m"2"[39m
+      [33mdata-testid[39m=[32m"ticket-detail"[39m
+      [33mdata-ticket-id[39m=[32m"66666666-6666-4666-8666-666666666666"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 1.25rem; min-width: 0px;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    banner:
+  
+    Name "":
+    [36m<header[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.4rem;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    heading:
+  
+    Name "Ticket A":
+    [36m<h2[39m
+      [33mid[39m=[32m"radix-_r_29_"[39m
+      [33mstyle[39m=[32m"margin: 0px;"[39m
+    [36m/>[39m
+  
+    Name "Mô tả":
+    [36m<h2[39m
+      [33mid[39m=[32m"description-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Thông tin":
+    [36m<h2[39m
+      [33mid[39m=[32m"fields-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Thực thi hiện tại":
+    [36m<h2[39m
+      [33mid[39m=[32m"run-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Ticket con":
+    [36m<h2[39m
+      [33mid[39m=[32m"children-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Tệp và tài liệu liên quan":
+    [36m<h2[39m
+      [33mid[39m=[32m"related-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Lịch sử":
+    [36m<h2[39m
+      [33mid[39m=[32m"history-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    paragraph:
+  
+    Name "":
+    [36m<p[39m
+      [33mid[39m=[32m"radix-_r_2a_"[39m
+      [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<p[39m
+      [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<p />[39m
+  
+    Name "":
+    [36m<p />[39m
+  
+    Name "":
+    [36m<p[39m
+      [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<p />[39m
+  
+    --------------------------------------------------
+    note:
+  
+    Name "":
+    [36m<p[39m
+      [33mrole[39m=[32m"note"[39m
+      [33mstyle[39m=[32m"margin: 0px; padding: 0.6rem 0.8rem; border: 1px solid; border-radius: 0.5rem;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    region:
+  
+    Name "Mô tả":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"description-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Thông tin":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"fields-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Thực thi hiện tại":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"run-66666666-6666-4666-8666-666666666666"[39m
+    [36m/>[39m
+  
+    Name "Ticket con":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"children-66666666-6666-4666-8666-666666666666"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.5rem;"[39m
+    [36m/>[39m
+  
+    Name "Tệp và tài liệu liên quan":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"related-66666666-6666-4666-8666-666666666666"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+    [36m/>[39m
+  
+    Name "Lịch sử":
+    [36m<section[39m
+      [33maria-labelledby[39m=[32m"history-66666666-6666-4666-8666-666666666666"[39m
+      [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    term:
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    Name "":
+    [36m<dt />[39m
+  
+    --------------------------------------------------
+    definition:
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    Name "":
+    [36m<dd[39m
+      [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+    code:
+  
+    Name "":
+    [36m<code />[39m
+  
+    Name "":
+    [36m<code />[39m
+  
+    --------------------------------------------------
+    alert:
+  
+    Name "":
+    [36m<p[39m
+      [33mrole[39m=[32m"alert"[39m
+    [36m/>[39m
+  
+    --------------------------------------------------
+  
+  Ignored nodes: comments, script, style
+  [36m<body[39m
+    [33mdata-scroll-locked[39m=[32m"1"[39m
+    [33mstyle[39m=[32m"pointer-events: none;"[39m
+  [36m>[39m
+    [36m<span[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+      [33mdata-radix-focus-guard[39m=[32m""[39m
+      [33mstyle[39m=[32m"outline: none; opacity: 0; position: fixed; pointer-events: none;"[39m
+      [33mtabindex[39m=[32m"0"[39m
+    [36m/>[39m
+    [36m<div[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+    [36m/>[39m
+    [36m<div[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+      [33mdata-state[39m=[32m"open"[39m
+      [33mstyle[39m=[32m"pointer-events: auto; position: fixed; inset: 0px; background: rgba(15, 23, 42, 0.45);"[39m
+    [36m/>[39m
+    [36m<div[39m
+      [33maria-describedby[39m=[32m"radix-_r_2a_"[39m
+      [33maria-labelledby[39m=[32m"radix-_r_29_"[39m
+      [33mdata-state[39m=[32m"open"[39m
+      [33mdata-testid[39m=[32m"ticket-dialog"[39m
+      [33mid[39m=[32m"radix-_r_28_"[39m
+      [33mrole[39m=[32m"dialog"[39m
+      [33mstyle[39m=[32m"position: fixed; top: 4vh; left: 50%; transform: translateX(-50%); width: min(60rem, -2rem + 100vw); max-height: 92vh; overflow: auto; box-sizing: border-box; padding: 1.5rem; border-radius: 0.75rem; background: canvas; color: canvastext; box-shadow: 0 1.5rem 3rem rgb(15 23 42 / 0.3); pointer-events: auto;"[39m
+      [33mtabindex[39m=[32m"-1"[39m
+    [36m>[39m
+      [36m<button[39m
+        [33maria-label[39m=[32m"Đóng"[39m
+        [33mstyle[39m=[32m"float: right; font: inherit; padding: 0.35rem 0.6rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+        [33mtype[39m=[32m"button"[39m
+      [36m>[39m
+        [36m<span[39m
+          [33maria-hidden[39m=[32m"true"[39m
+        [36m>[39m
+          [0m×[0m
+        [36m</span>[39m
+      [36m</button>[39m
+      [36m<article[39m
+        [33mdata-revision[39m=[32m"2"[39m
+        [33mdata-testid[39m=[32m"ticket-detail"[39m
+        [33mdata-ticket-id[39m=[32m"66666666-6666-4666-8666-666666666666"[39m
+        [33mstyle[39m=[32m"display: grid; gap: 1.25rem; min-width: 0px;"[39m
+      [36m>[39m
+        [36m<header[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.4rem;"[39m
+        [36m>[39m
+          [36m<span>[39m
+            [0mYêu cầu[0m
+            [0m · [0m
+            [0mLập trình[0m
+          [36m</span>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"radix-_r_29_"[39m
+            [33mstyle[39m=[32m"margin: 0px;"[39m
+          [36m>[39m
+            [0mTicket A[0m
+          [36m</h2>[39m
+          [36m<p[39m
+            [33mid[39m=[32m"radix-_r_2a_"[39m
+            [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+          [36m>[39m
+            [0mTrạng thái: [0m
+            [36m<span[39m
+              [33mdata-status[39m=[32m"done"[39m
+              [33mstyle[39m=[32m"white-space: nowrap;"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33maria-hidden[39m=[32m"true"[39m
+              [36m>[39m
+                [0m✓[0m
+              [36m</span>[39m
+              [0m [0m
+              [0mHoàn thành[0m
+            [36m</span>[39m
+            [0m · Phiên bản [0m
+            [0m2[0m
+          [36m</p>[39m
+        [36m</header>[39m
+        [36m<p[39m
+          [33mrole[39m=[32m"note"[39m
+          [33mstyle[39m=[32m"margin: 0px; padding: 0.6rem 0.8rem; border: 1px solid; border-radius: 0.5rem;"[39m
+        [36m>[39m
+          [0mTicket đã kết thúc ([0m
+          [0mHoàn thành[0m
+          [0m), chỉ xem.[0m
+        [36m</p>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"description-66666666-6666-4666-8666-666666666666"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"description-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mMô tả[0m
+          [36m</h2>[39m
+          [36m<p[39m
+            [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+          [36m>[39m
+            [0mMô tả[0m
+          [36m</p>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"fields-66666666-6666-4666-8666-666666666666"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"fields-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mThông tin[0m
+          [36m</h2>[39m
+          [36m<dl[39m
+            [33mstyle[39m=[32m"display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: 0.35rem 1rem; margin: 0px;"[39m
+          [36m>[39m
+            [36m<dt>[39m
+              [0mMã ticket[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [36m<code>[39m
+                [0m66666666-6666-4666-8666-666666666666[0m
+              [36m</code>[39m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mTicket gốc[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [36m<code>[39m
+                [0m66666666-6666-4666-8666-666666666666[0m
+              [36m</code>[39m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mTicket cha[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mKhông có[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mBắt buộc[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mCó[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mWorkflow đã ghim[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa ghim[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mSkill[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mKhông có[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mSố vòng sửa[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0m0[0m
+              [0m/5[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mCommit đã merge[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có[0m
+            [36m</dd>[39m
+          [36m</dl>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"run-66666666-6666-4666-8666-666666666666"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"run-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mThực thi hiện tại[0m
+          [36m</h2>[39m
+          [36m<dl[39m
+            [33mstyle[39m=[32m"display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: 0.35rem 1rem; margin: 0px;"[39m
+          [36m>[39m
+            [36m<dt>[39m
+              [0mMáy[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mModel[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mĐộ khó[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mLượt chạy[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+            [36m<dt>[39m
+              [0mBằng chứng[0m
+            [36m</dt>[39m
+            [36m<dd[39m
+              [33mstyle[39m=[32m"margin: 0px; overflow-wrap: anywhere;"[39m
+            [36m>[39m
+              [0mChưa có dữ liệu — máy chủ chưa cung cấp thông tin này.[0m
+            [36m</dd>[39m
+          [36m</dl>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"children-66666666-6666-4666-8666-666666666666"[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.5rem;"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"children-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mTicket con[0m
+          [36m</h2>[39m
+          [36m<p>[39m
+            [0mKhông có ticket con.[0m
+          [36m</p>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"related-66666666-6666-4666-8666-666666666666"[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"related-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mTệp và tài liệu liên quan[0m
+          [36m</h2>[39m
+          [36m<p[39m
+            [33mrole[39m=[32m"alert"[39m
+          [36m>[39m
+            [0mKhông tìm thấy tài liệu này trong phiên bản đang xem.[0m
+          [36m</p>[39m
+          [36m<p>[39m
+            [0mTicket chưa có tệp đính kèm.[0m
+          [36m</p>[39m
+        [36m</section>[39m
+        [36m<section[39m
+          [33maria-labelledby[39m=[32m"history-66666666-6666-4666-8666-666666666666"[39m
+          [33mstyle[39m=[32m"display: grid; gap: 0.75rem;"[39m
+        [36m>[39m
+          [36m<h2[39m
+            [33mid[39m=[32m"history-66666666-6666-4666-8666-666666666666"[39m
+          [36m>[39m
+            [0mLịch sử[0m
+          [36m</h2>[39m
+          [36m<p[39m
+            [33mstyle[39m=[32m"margin: 0px; white-space: pre-wrap; overflow-wrap: anywhere;"[39m
+          [36m>[39m
+            [0mGồm bình luận và quyết định đã ghi nhận. Review, phương án dự phòng, sản phẩm, commit và đồng bộ tài liệu sẽ hiện khi máy chủ cung cấp lịch sử đầy đủ.[0m
+          [36m</p>[39m
+          [36m<p>[39m
+            [0mChưa có bình luận hay quyết định nào.[0m
+          [36m</p>[39m
+        [36m</section>[39m
+      [36m</article>[39m
+    [36m</div>[39m
+    [36m<span[39m
+      [33maria-hidden[39m=[32m"true"[39m
+      [33mdata-aria-hidden[39m=[32m"true"[39m
+      [33mdata-radix-focus-guard[39m=[32m""[39m
+      [33mstyle[39m=[32m"outline: none; opacity: 0; position: fixed; pointer-events: none;"[39m
+      [33mtabindex[39m=[32m"0"[39m
+    [36m/>[39m
+  [36m</body>[39m
+      at Object.getElementError (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/ticket-detail-dom.test.ts:461:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/tickets.test.ts:417:1
+✖ waitNotice có nhãn tiếng Việt cho owner_input (0.322458ms)
+  AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /owner_input/. Input:
+  
+  'Đang chờ bạn. Lý do chờ: mã từ máy chủ “owner_input”.'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:419:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Đang chờ bạn. Lý do chờ: mã từ máy chủ “owner_input”.',
+    expected: /owner_input/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+EXIT 1
