@@ -1,0 +1,473 @@
+▶ isolation workspace materializes and renders BMAD inputs inside prepare
+  ✔ a prepare without a render request is unchanged (2276.986583ms)
+  ✔ BMAD prepare copies exactly the definition subset and renders before the audit (3166.683833ms)
+  ✔ a halted render fails prepare closed and still declares the render destination (2183.546875ms)
+  ✖ a BMAD prepare refuses an owner checkout that tracks _bmad and leaves it in place (1673.697792ms)
+  ✖ cleanup treats a proven render stage that is already gone as reclaimed (1984.009958ms)
+  ✔ an undeclared or altered injected path is an audit blocker (2063.81825ms)
+  ✔ requests that cannot render stop before any render stage is reserved (1427.081708ms)
+  ✔ a render stage left pending by a crash becomes unknown and blocks renders (4272.548ms)
+✖ isolation workspace materializes and renders BMAD inputs inside prepare (25467.340167ms)
+✔ render executor refuses a non-BMAD definition without reserving or spawning anything (142.864375ms)
+✔ render executor runs the official uv argv once and returns the exact workflow render receipt (80.144625ms)
+✔ render executor leaves an existing byte-identical generation untouched on a second render (85.65575ms)
+✔ render executor never runs one operation twice (117.390458ms)
+✔ render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children (515.986875ms)
+✔ render executor halts when stdout does not name exactly the rendered workflow entry (1800.527583ms)
+✔ render executor halts when the printed generation does not match its measured bytes (1430.436333ms)
+✔ render executor refuses drifted workspace inputs before reserving or spawning (1015.336667ms)
+✔ render executor binds the project root to the canonical workspace directory (142.013541ms)
+✔ render executor requires the recorded uv bytes before spawning (178.542209ms)
+✔ render executor refuses an inconsistent or unacceptable definition before spawning (203.864084ms)
+✔ render executor validates attempt and operation identifiers before any effect (123.838042ms)
+✔ render executor refuses unpinned files beside the renderer, skill and config before spawning (1076.790334ms)
+✔ render executor refuses unpinned files that appear beside the renderer during the render (716.644959ms)
+✔ render executor tells owned-operation lock contention apart from operation reuse (221.526417ms)
+✔ render executor returns the log digest and a sanitized first line when a run halts (385.71625ms)
+✔ render executor accepts a symlinked uv by hashing and running the resolved executable (170.287291ms)
+✔ render executor requires a canonical owned-operation root before reserving a stage (92.7975ms)
+✔ render executor removes bracketed and home paths and credential values from the halt line (88.452458ms)
+✔ render executor detects a file added and removed beside the renderer during the render (605.600166ms)
+✔ render executor pins the recorded Python through UV_PYTHON and refuses other interpreter bytes (240.320542ms)
+✔ render executor records every stage transition durably and frees the session leader record (248.764667ms)
+✔ render executor keeps the stage, leader record and an unknown record when closure is unproven (431.432917ms)
+✔ render executor reclaims the stage and keeps nothing when the executor never started the child (548.087125ms)
+✔ render executor refuses a run whose session leader record already exists (184.118166ms)
+✔ render executor refuses new renders while an earlier render stage awaits reconciliation (97.059292ms)
+✔ render executor halts without spawning when the durable stage record cannot be written (93.644333ms)
+✔ render executor returns the last non-empty log line, skipping blank lines at either end (177.304209ms)
+✔ render executor redacts credentials that follow a known path in a halt line (66.234542ms)
+✔ render executor detects a closure file rewritten and restored during the render (535.002458ms)
+✖ install-report probe measures uv and the interpreter uv finds for the pinned renderer (2.6935ms)
+✖ install-report probe refuses an interpreter the pinned renderer cannot run or an unusable answer (15.875167ms)
+✖ install-report probe runs the owner executables without a shell by default (642.252583ms)
+✖ render executor source spells its private-use sanitizer delimiters as escapes (1.717083ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-VD3ux2","device":"16777231","inode":"220934319","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-VD3ux2","device":"16777231","inode":"220934319","uid":501,"deleted":true}
+✔ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (3311.52525ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-L7H13u","device":"16777231","inode":"220936010","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-L7H13u","device":"16777231","inode":"220936010","uid":501,"deleted":true}
+✔ sync superseded command completes immutable failure and new command installs new revision (2420.875458ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-uSAz8S","device":"16777231","inode":"220937013","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-uSAz8S","device":"16777231","inode":"220937013","uid":501,"deleted":true}
+✔ sync lost report/reopen preserves report key and retries only unavailable declared projection (2582.395917ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-sUX8rb","device":"16777231","inode":"220938265","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-sUX8rb","device":"16777231","inode":"220938265","uid":501,"deleted":true}
+✔ sync verifies cached source bytes even when every desired projection is null (2242.966ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Mdej9w","device":"16777231","inode":"220939334","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Mdej9w","device":"16777231","inode":"220939334","uid":501,"deleted":true}
+✔ sync defers command ahead of desired snapshot, then applies after reopen without false supersession (2061.872791ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-kSNG1l","device":"16777231","inode":"220940320","uid":501}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-RTOMR5","device":"16777231","inode":"220940608","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-RTOMR5","device":"16777231","inode":"220940608","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-837yup","device":"16777231","inode":"220940649","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-837yup","device":"16777231","inode":"220940649","uid":501,"deleted":true}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-kSNG1l","device":"16777231","inode":"220940320","uid":501,"deleted":true}
+✔ sync carries the workflow definition on current projections only, and omits it when unavailable (1815.650708ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-MYJ0Xa","device":"16777231","inode":"220940701","uid":501}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-o0ToET","device":"16777231","inode":"220941063","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-o0ToET","device":"16777231","inode":"220941063","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-b7bx7Y","device":"16777231","inode":"220941114","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-b7bx7Y","device":"16777231","inode":"220941114","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-PS8Iaw","device":"16777231","inode":"220941176","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-PS8Iaw","device":"16777231","inode":"220941176","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Qy3v4e","device":"16777231","inode":"220941237","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Qy3v4e","device":"16777231","inode":"220941237","uid":501,"deleted":true}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-MYJ0Xa","device":"16777231","inode":"220940701","uid":501,"deleted":true}
+✖ sync reports measured render prerequisites beside a BMAD render definition only (2360.770125ms)
+✔ gateway definition adapter output matches the committed golden vector the server verifies (1990.291292ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-qJ00lk","device":"16777231","inode":"220941970","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-qJ00lk","device":"16777231","inode":"220941970","uid":501,"deleted":true}
+✔ sync reports an integrity failure of the definition loader as an error slot, never silently current (1620.974083ms)
+ℹ tests 52
+ℹ suites 0
+ℹ pass 44
+ℹ fail 8
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 25583.560125
+
+✖ failing tests:
+
+test at test/isolation-render.test.ts:345:13
+✖ a BMAD prepare refuses an owner checkout that tracks _bmad and leaves it in place (1673.697792ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:349:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:345:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /BMAD_TRACKED_IN_CHECKOUT/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/isolation-render.test.ts:371:13
+✖ cleanup treats a proven render stage that is already gone as reclaimed (1984.009958ms)
+  Error: Command failed: /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-ii-pZgV1A/isolation/operations/native/ddeed471a33b6372d237f0508a83d587a453b3b271214dcc20b082687b2c31d8/helper quarantine /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-ii-pZgV1A/isolation/operations 16777231 220934576 stages 16777231 220934577 render-951e5ea3-8e6c-4ad1-8336-61752001414d 16777231 220941501 2 16777231 220934581
+  
+      at genericNodeError (node:internal/errors:986:15)
+      at wrappedFn (node:internal/errors:540:14)
+      at ChildProcess.exithandler (node:child_process:417:12)
+      at ChildProcess.emit (node:events:514:28)
+      at maybeClose (node:internal/child_process:1141:16)
+      at ChildProcess._handle.onexit (node:internal/child_process:306:5) {
+    code: 6,
+    killed: false,
+    signal: null,
+    cmd: '/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-ii-pZgV1A/isolation/operations/native/ddeed471a33b6372d237f0508a83d587a453b3b271214dcc20b082687b2c31d8/helper quarantine /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-ii-pZgV1A/isolation/operations 16777231 220934576 stages 16777231 220934577 render-951e5ea3-8e6c-4ad1-8336-61752001414d 16777231 220941501 2 16777231 220934581',
+    stdout: '',
+    stderr: ''
+  }
+
+test at test/render-executor.test.ts:1176:1
+✖ install-report probe measures uv and the interpreter uv finds for the pinned renderer (2.6935ms)
+  Error: RENDER_UV_UNAVAILABLE
+      at probeStep (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/render-executor.ts:1024:11)
+      at async probeRenderPrerequisites (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/render-executor.ts:1051:21)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1178:22
+      at async withProbeHost (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1170:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1177:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/render-executor.test.ts:1215:1
+✖ install-report probe refuses an interpreter the pinned renderer cannot run or an unusable answer (15.875167ms)
+  AssertionError [ERR_ASSERTION]: CLT Python 3.9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1253:7
+      at async withProbeHost (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1170:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1251:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: RENDER_UV_UNAVAILABLE
+        at probeStep (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/render-executor.ts:1024:11)
+        at async probeRenderPrerequisites (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/render-executor.ts:1051:21)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1253:7
+        at async withProbeHost (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1170:5)
+        at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1251:5)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /RENDER_PYTHON_UNSUPPORTED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:1279:1
+✖ install-report probe runs the owner executables without a shell by default (642.252583ms)
+  Error: RENDER_PYTHON_UNAVAILABLE
+      at probeStep (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/render-executor.ts:1024:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async probeRenderPrerequisites (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/render-executor.ts:1054:22)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1294:22
+      at async withProbeHost (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1170:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1280:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/render-executor.test.ts:1306:1
+✖ render executor source spells its private-use sanitizer delimiters as escapes (1.717083ms)
+  AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /[-]/u. Input:
+  
+  "import { execFile } from 'node:child_process';\n" +
+    "import { createHash } from 'node:crypto';\n" +
+    "import { constants } from 'node:fs';\n" +
+    "import { lstat, mkdir, open, readdir, realpath, unlink, writeFile } from 'node:fs/promises';\n" +
+    "import { join, posix } from 'node:path';\n" +
+    "import { canonicalJson, hash } from '../journal/atomic-records.ts';\n" +
+    "import type { ExecutionReceipt, OwnedIdentity, OwnedOperations } from '../workflows/operations.ts';\n" +
+    'import {\n' +
+    '  createBmadArtifactInspector,\n' +
+    '  type RenderArtifactInspection,\n' +
+    '  type RenderLayerPath,\n' +
+    '  validateRenderDefinition,\n' +
+    "} from './render-artifacts.ts';\n" +
+    "import { customizationContext, type RenderDefinition, type WorkflowDefinition } from './workflow-manifest.ts';\n" +
+    '\n' +
+    '/**\n' +
+    ' * An owner executable as the install report measured it: the path as configured or found, its\n' +
+    ' * resolved path (a package-manager symlink is accepted), the SHA-256 of the resolved bytes and the\n' +
+    ' * version it printed. The version is a pass-through witness, never re-measured.\n' +
+    ' */\n' +
+    'export type ExecutableIdentity = { path: string; realpath: string; sha256: string; version: string };\n' +
+    '/** Render prerequisites recorded per BMAD projection in the install report. */\n' +
+    'export type RenderPrerequisites = { uv: ExecutableIdentity; python: ExecutableIdentity };\n' +
+    "export type RenderOperations = Pick<OwnedOperations, 'root' | 'absent' | 'create' | 'executeTree' | 'remove'>;\n" +
+    '/**\n' +
+    ' * Lifecycle of one render stage `stages/render-{operationId}`: `reserved` before the stage exists,\n' +
+    " * `pending` once it does, `complete` when the child's closure is proven (or it never started),\n" +
+    ' * `unknown` when it is not, and `deleted` once the stage is reclaimed.\n' +
+    ' */\n' +
+    "export type RenderStageState = 'reserved' | 'pending' | 'complete' | 'unknown' | 'deleted';\n" +
+    'export type RenderStageUpdate = {\n' +
+    '  state: RenderStageState;\n' +
+    '  stageIdentity: OwnedIdentity | null;\n' +
+    '  /** `receipts/render-{operationId}.leader` as the executor wrote it: "pid start-seconds.micros". */\n' +
+    '  leader: string | null;\n' +
+    '  receipt: ExecutionReceipt | null;\n' +
+    '  error: string | null;\n' +
+    '};\n' +
+    '/** Durable owner of render-stage records; a render starts only when nothing awaits reconciliation. */\n' +
+    'export type RenderJournal = {\n' +
+    '  blocked(): Promise<boolean>;\n' +
+    '  record(operationId: string, update: RenderStageUpdate): Promise<void>;\n' +
+    '};\n' +
+    'export type RenderExecutorOptions = {\n' +
+    '  operations: RenderOperations;\n' +
+    '  journal: RenderJournal;\n' +
+    '  /** Owner `uv` and Python identities as recorded by the install report; bytes are re-hashed per render. */\n' +
+    '  prerequisites: RenderPrerequisites;\n' +
+    '  clock: () => Date;\n' +
+    '  /** Wall-clock bound enforced by the owned executor, 1–120 s. */\n' +
+    '  timeoutSeconds?: number;\n' +
+    '};\n' +
+    'export type RenderRequest = {\n' +
+    '  definition: WorkflowDefinition;\n' +
+    '  projectRoot: string;\n' +
+    '  attemptId: string;\n' +
+    '  operationId: string;\n' +
+    '};\n' +
+    'export type RenderWitness = {\n' +
+    '  uvPath: string;\n' +
+    '  uvSha256: string;\n' +
+    '  uvVersion: string;\n' +
+    '  /** Interpreter passed as UV_PYTHON; a witness only, the generation identity does not include it. */\n' +
+    '  python: { path: string; sha256: string; version: string };\n' +
+    '  argv: string[];\n' +
+    '  exitCode: number;\n' +
+    '  stdoutPath: string;\n' +
+    '  startedAt: string;\n' +
+    '  endedAt: string;\n' +
+    '  operationId: string;\n' +
+    '};\n' +
+    'export type WorkflowRenderReceipt = {\n' +
+    "  kind: 'workflow_render_receipt';\n" +
+    '  attemptId: string;\n' +
+    '  data: {\n' +
+    '    definitionSha256: string;\n' +
+    '    customizationSha256: string;\n' +
+    '    projectRoot: string;\n' +
+    '    generationPath: string;\n' +
+    '    inspection: RenderArtifactInspection;\n' +
+    '    witness: RenderWitness;\n' +
+    '  };\n' +
+    '};\n' +
+    'export type RenderHaltReason =\n' +
+    "  | 'RENDER_NOT_BMAD'\n" +
+    "  | 'RENDER_REQUEST_INVALID'\n" +
+    "  | 'RENDER_DEFINITION_MISMATCH'\n" +
+    "  | 'RENDER_PROJECT_ROOT_MISMATCH'\n" +
+    "  | 'RENDER_INPUT_MISMATCH'\n" +
+    "  | 'RENDER_UV_UNAVAILABLE'\n" +
+    "  | 'RENDER_PYTHON_UNAVAILABLE'\n" +
+    "  | 'RENDER_RECONCILE_REQUIRED'\n" +
+    "  | 'RENDER_OPERATION_REUSED'\n" +
+    "  | 'RENDER_OPERATION_BUSY'\n" +
+    "  | 'RENDER_OPERATION_GUARD_INVALID'\n" +
+    "  | 'RENDER_OPERATION_UNAVAILABLE'\n" +
+    "  | 'RENDER_LIFETIME_UNKNOWN'\n" +
+    "  | 'RENDER_TIMED_OUT'\n" +
+    "  | 'RENDER_EXIT_NONZERO'\n" +
+    "  | 'RENDER_STDOUT_MISMATCH'\n" +
+    "  | 'RENDER_ARTIFACT_MISMATCH'\n" +
+    "  | 'RENDER_CLEANUP_FAILED'\n" +
+    "  | 'RENDER_UNEXPECTED_FAILURE';\n" +
+    '/**\n' +
+    ' * Present on a halt once an execution log exists: its digest and its first and last non-empty lines,\n' +
+    ' * each sanitized. The lines remain untrusted text.\n' +
+    ' */\n' +
+    'export type RenderLogDiagnostics = { sha256: string; firstLine: string; lastLine: string };\n' +
+    'export type RenderOutcome =\n' +
+    '  | { receipt: WorkflowRenderReceipt }\n' +
+    '  | { halt: true; reason: RenderHaltReason; log?: RenderLogDiagnostics };\n' +
+    '\n' +
+    "const skillRoot = '.claude/skills/bmad-build';\n" +
+    "const rendererPath = '_bmad/scripts/render_skill.py';\n" +
+    'const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;\n' +
+    'const digest = /^[0-9a-f]{64}$/;\n' +
+    "const entryPrefix = 'read and follow ';\n" +
+    "const entrySuffix = '/workflow.md';\n" +
+    '// Per-file and per-snapshot read bounds match the artifact inspector, which re-applies them.\n' +
+    'const maxFileBytes = 16 * 1024 * 1024;\n' +
+    'const maxSnapshotBytes = 32 * 1024 * 1024;\n' +
+    'const maxLogBytes = 64 * 1024;\n' +
+    'const maxTreeEntries = 512;\n' +
+    'const maxTreeDepth = 32;\n' +
+    'const maxExecutableBytes = 256 * 1024 * 1024;\n' +
+    '// The owned executor caps every file it lets the child write at 64 MiB (RLIMIT_FSIZE).\n' +
+    'const maxDigestLogBytes = 64 * 1024 * 1024;\n' +
+    'const maxLine = 256;\n' +
+    '// Head and tail windows of the log read for diagnostics.\n' +
+    'const lineWindow = 4096;\n' +
+    'const leaderRecord = /^\\d{1,10} \\d{1,20}\\.\\d{6}$/;\n' +
+    '// `render_skill.py` puts its own directory first on `sys.path`; nothing else may sit beside it.\n' +
+    "const scriptNames = ['config_utils.py', 'render_skill.py'];\n" +
+    '\n' +
+    'class RenderHalt extends Error {\n' +
+    '  readonly reason: RenderHaltReason;\n' +
+    '  readonly log: RenderLogDiagnostics | undefined;\n' +
+    '  constructor(reason: RenderHaltReason, log?: RenderLogDiagnostics) {\n' +
+    '    super(reason);\n' +
+    '    this.reason = reason;\n' +
+    '    this.log = log;\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function halt(reason: RenderHaltReason): never {\n' +
+    '  throw new RenderHalt(reason);\n' +
+    '}\n' +
+    '\n' +
+    'async function guard<T>(reason: RenderHaltReason, work: () => T | Promise<T>): Promise<T> {\n' +
+    '  try {\n' +
+    '    return await work();\n' +
+    '  } catch (error) {\n' +
+    '    if (error instanceof RenderHalt) throw error;\n' +
+    '    halt(reason);\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function isPlainRecord(value: unknown): value is Record<string, unknown> {\n' +
+    "  return value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype;\n" +
+    '}\n' +
+    '\n' +
+    '/** Absolute, normalized, well-formed and printable: safe to quote in a sandbox profile and argv. */\n' +
+    'function lexicalPath(value: unknown): value is string {\n' +
+    '  if (\n' +
+    "    typeof value !== 'string' ||\n" +
+    '    value.length < 2 ||\n' +
+    '    value.length > 4096 ||\n' +
+    '    !value.isWellFormed() ||\n' +
+    '    !posix.isAbsolute(value) ||\n' +
+    '    posix.normalize(value) !== value ||\n' +
+    "    value.endsWith('/')\n" +
+    '  )\n' +
+    '    return false;\n' +
+    '  for (const character of value) {\n' +
+    '    const code = character.codePointAt(0) ?? 0;\n' +
+    `    if (code < 32 || code === 127 || character === '"' || character === '\\\\') return false;\n` +
+    '  }\n' +
+    '  return true;\n' +
+    '}\n' +
+    '\n' +
+    '/** Official renderer slug of the project directory name; the inspector refuses non-ASCII names. */\n' +
+    'function projectSlug(projectRoot: string): string | null {\n' +
+    '  const baseName = posix.basename(projectRoot);\n' +
+    '  if (![...baseName].every((character) => /^[\\x20-\\x7e]$/.test(character))) return null;\n' +
+    '  const cleaned =\n' +
+    '    baseName\n' +
+    '      .toLowerCase()\n' +
+    "      .replace(/[^a-z0-9]+/g, '-')\n" +
+    "      .replace(/^-|-$/g, '') || 'project';\n" +
+    "  return cleaned.slice(0, 80).replace(/-$/g, '') || 'project';\n" +
+    '}\n' +
+    '\n' +
+    'type Budget = { remaining: number };\n' +
+    '\n' +
+    '/**\n' +
+    ' * Reads `root/relative` without following any symlink on the way: every parent is a real directory\n' +
+    ' * and the file is a single-link regular file within `maxBytes`. Returns null when it is absent.\n' +
+    ' */\n' +
+    'async function readContained(\n' +
+    '  root: string,\n' +
+    '  relative: string,\n' +
+    '  maxBytes: number,\n' +
+    '  budget: Budget,\n' +
+    '): Promise<Buffer | null> {\n' +
+    "  const parts = relative.split('/');\n" +
+    '  for (let index = 1; index < parts.length; index++) {\n' +
+    '    const parent = await lstat(join(root, ...parts.slice(0, index))).catch((error: NodeJS.ErrnoException) => {\n' +
+    "      if (error.code === 'ENOENT') return null;\n" +
+    '      throw error;\n' +
+    '    });\n' +
+    '    if (parent === null) return null;\n' +
+    "    if (!parent.isDirectory()) throw new Error('RENDER_PATH_NOT_CONTAINED');\n" +
+    '  }\n' +
+    '  let handle: Awaited<ReturnType<typeof open>>;\n' +
+    '  try {\n' +
+    '    handle = await open(\n' +
+    '      join(root, relative),\n' +
+    '      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,\n' +
+    '    );\n' +
+    '  } catch (error) {\n' +
+    "    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;\n" +
+    '    throw error;\n' +
+    '  }\n' +
+    '  try {\n' +
+    '    const stat = await handle.stat();\n' +
+    '    if (!stat.isFile() || stat.nlink !== 1 || stat.size > maxBytes || stat.size > budget.remaining)\n' +
+    "      throw new Error('RENDER_PATH_NOT_CONTAINED');\n" +
+    '    // One spare byte detects growth after stat without reading an unbounded file.\n' +
+    '    const bytes = Buffer.alloc(stat.size + 1);\n' +
+    '    let length = 0;\n' +
+    '    for (;;) {\n' +
+    '      const { bytesRead } = await handle.read(bytes, length, bytes.length - length, length);\n' +
+    '      if (bytesRead === 0) break;\n' +
+    '      length += bytesRead;\n' +
+    "      if (length > stat.size) throw new Error('RENDER_PATH_NOT_CONTAINED');\n" +
+    '    }\n' +
+    "    if (length !== stat.size) throw new Error('RENDER_PATH_NOT_CONTAINED');\n" +
+    '    budget.remaining -= length;\n' +
+    '    return bytes.subarray(0, length);\n' +
+    '  } finally {\n' +
+    '    await handle.close();\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'type InputBytes = {\n' +
+    '  projectedFiles: Record<string, Buffer>;\n' +
+    '  layerFiles: Record<RenderLayerPath, Buffer | null>;\n' +
+    '  sizes: Record<string, number>;\n' +
+    '};\n' +
+    '\n' +
+    'async function readInputs(\n' +
+    '  projectRoot: string,\n' +
+    '  render: RenderDefinition,\n' +
+    '  budget: Budget,\n' +
+    '): Promise<InputBytes> {\n' +
+    '  const projectedFiles: Record<string, Buffer> = {};\n' +
+    '  const sizes: Record<string, number> = {};\n' +
+    '  for (const path of Object.keys(render.selectedProjectionSha256)) {\n' +
+    '    const bytes = await readContained(projectRoot, path, maxFileBytes, budget);\n' +
+    "    if (bytes === null) throw new Error('RENDER_INPUT_ABSENT');\n" +
+    '    projectedFiles[path] = bytes;\n' +
+    '    sizes[path] = bytes.length;\n' +
+    '  }\n' +
+    '  const layerFiles = {} as Record<RenderLayerPath, Buffer | null>;\n' +
+    '  for (const path of Object.keys(render.layers) as RenderLayerPath[]) {\n' +
+    '    const bytes = Object.hasOwn(proj'... 34578 more characters
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1308:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'import { execFile } from \'node:child_process\';\nimport { createHash } from \'node:crypto\';\nimport { constants } from \'node:fs\';\nimport { lstat, mkdir, open, readdir, realpath, unlink, writeFile } from \'node:fs/promises\';\nimport { join, posix } from \'node:path\';\nimport { canonicalJson, hash } from \'../journal/atomic-records.ts\';\nimport type { ExecutionReceipt, OwnedIdentity, OwnedOperations } from \'../workflows/operations.ts\';\nimport {\n  createBmadArtifactInspector,\n  type RenderArtifactInspection,\n  type RenderLayerPath,\n  validateRenderDefinition,\n} from \'./render-artifacts.ts\';\nimport { customizationContext, type RenderDefinition, type WorkflowDefinition } from \'./workflow-manifest.ts\';\n\n/**\n * An owner executable as the install report measured it: the path as configured or found, its\n * resolved path (a package-manager symlink is accepted), the SHA-256 of the resolved bytes and the\n * version it printed. The version is a pass-through witness, never re-measured.\n */\nexport type ExecutableIdentity = { path: string; realpath: string; sha256: string; version: string };\n/** Render prerequisites recorded per BMAD projection in the install report. */\nexport type RenderPrerequisites = { uv: ExecutableIdentity; python: ExecutableIdentity };\nexport type RenderOperations = Pick<OwnedOperations, \'root\' | \'absent\' | \'create\' | \'executeTree\' | \'remove\'>;\n/**\n * Lifecycle of one render stage `stages/render-{operationId}`: `reserved` before the stage exists,\n * `pending` once it does, `complete` when the child\'s closure is proven (or it never started),\n * `unknown` when it is not, and `deleted` once the stage is reclaimed.\n */\nexport type RenderStageState = \'reserved\' | \'pending\' | \'complete\' | \'unknown\' | \'deleted\';\nexport type RenderStageUpdate = {\n  state: RenderStageState;\n  stageIdentity: OwnedIdentity | null;\n  /** `receipts/render-{operationId}.leader` as the executor wrote it: "pid start-seconds.micros". */\n  leader: string | null;\n  receipt: ExecutionReceipt | null;\n  error: string | null;\n};\n/** Durable owner of render-stage records; a render starts only when nothing awaits reconciliation. */\nexport type RenderJournal = {\n  blocked(): Promise<boolean>;\n  record(operationId: string, update: RenderStageUpdate): Promise<void>;\n};\nexport type RenderExecutorOptions = {\n  operations: RenderOperations;\n  journal: RenderJournal;\n  /** Owner `uv` and Python identities as recorded by the install report; bytes are re-hashed per render. */\n  prerequisites: RenderPrerequisites;\n  clock: () => Date;\n  /** Wall-clock bound enforced by the owned executor, 1–120 s. */\n  timeoutSeconds?: number;\n};\nexport type RenderRequest = {\n  definition: WorkflowDefinition;\n  projectRoot: string;\n  attemptId: string;\n  operationId: string;\n};\nexport type RenderWitness = {\n  uvPath: string;\n  uvSha256: string;\n  uvVersion: string;\n  /** Interpreter passed as UV_PYTHON; a witness only, the generation identity does not include it. */\n  python: { path: string; sha256: string; version: string };\n  argv: string[];\n  exitCode: number;\n  stdoutPath: string;\n  startedAt: string;\n  endedAt: string;\n  operationId: string;\n};\nexport type WorkflowRenderReceipt = {\n  kind: \'workflow_render_receipt\';\n  attemptId: string;\n  data: {\n    definitionSha256: string;\n    customizationSha256: string;\n    projectRoot: string;\n    generationPath: string;\n    inspection: RenderArtifactInspection;\n    witness: RenderWitness;\n  };\n};\nexport type RenderHaltReason =\n  | \'RENDER_NOT_BMAD\'\n  | \'RENDER_REQUEST_INVALID\'\n  | \'RENDER_DEFINITION_MISMATCH\'\n  | \'RENDER_PROJECT_ROOT_MISMATCH\'\n  | \'RENDER_INPUT_MISMATCH\'\n  | \'RENDER_UV_UNAVAILABLE\'\n  | \'RENDER_PYTHON_UNAVAILABLE\'\n  | \'RENDER_RECONCILE_REQUIRED\'\n  | \'RENDER_OPERATION_REUSED\'\n  | \'RENDER_OPERATION_BUSY\'\n  | \'RENDER_OPERATION_GUARD_INVALID\'\n  | \'RENDER_OPERATION_UNAVAILABLE\'\n  | \'RENDER_LIFETIME_UNKNOWN\'\n  | \'RENDER_TIMED_OUT\'\n  | \'RENDER_EXIT_NONZERO\'\n  | \'RENDER_STDOUT_MISMATCH\'\n  | \'RENDER_ARTIFACT_MISMATCH\'\n  | \'RENDER_CLEANUP_FAILED\'\n  | \'RENDER_UNEXPECTED_FAILURE\';\n/**\n * Present on a halt once an execution log exists: its digest and its first and last non-empty lines,\n * each sanitized. The lines remain untrusted text.\n */\nexport type RenderLogDiagnostics = { sha256: string; firstLine: string; lastLine: string };\nexport type RenderOutcome =\n  | { receipt: WorkflowRenderReceipt }\n  | { halt: true; reason: RenderHaltReason; log?: RenderLogDiagnostics };\n\nconst skillRoot = \'.claude/skills/bmad-build\';\nconst rendererPath = \'_bmad/scripts/render_skill.py\';\nconst uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;\nconst digest = /^[0-9a-f]{64}$/;\nconst entryPrefix = \'read and follow \';\nconst entrySuffix = \'/workflow.md\';\n// Per-file and per-snapshot read bounds match the artifact inspector, which re-applies them.\nconst maxFileBytes = 16 * 1024 * 1024;\nconst maxSnapshotBytes = 32 * 1024 * 1024;\nconst maxLogBytes = 64 * 1024;\nconst maxTreeEntries = 512;\nconst maxTreeDepth = 32;\nconst maxExecutableBytes = 256 * 1024 * 1024;\n// The owned executor caps every file it lets the child write at 64 MiB (RLIMIT_FSIZE).\nconst maxDigestLogBytes = 64 * 1024 * 1024;\nconst maxLine = 256;\n// Head and tail windows of the log read for diagnostics.\nconst lineWindow = 4096;\nconst leaderRecord = /^\\d{1,10} \\d{1,20}\\.\\d{6}$/;\n// `render_skill.py` puts its own directory first on `sys.path`; nothing else may sit beside it.\nconst scriptNames = [\'config_utils.py\', \'render_skill.py\'];\n\nclass RenderHalt extends Error {\n  readonly reason: RenderHaltReason;\n  readonly log: RenderLogDiagnostics | undefined;\n  constructor(reason: RenderHaltReason, log?: RenderLogDiagnostics) {\n    super(reason);\n    this.reason = reason;\n    this.log = log;\n  }\n}\n\nfunction halt(reason: RenderHaltReason): never {\n  throw new RenderHalt(reason);\n}\n\nasync function guard<T>(reason: RenderHaltReason, work: () => T | Promise<T>): Promise<T> {\n  try {\n    return await work();\n  } catch (error) {\n    if (error instanceof RenderHalt) throw error;\n    halt(reason);\n  }\n}\n\nfunction isPlainRecord(value: unknown): value is Record<string, unknown> {\n  return value !== null && typeof value === \'object\' && Object.getPrototypeOf(value) === Object.prototype;\n}\n\n/** Absolute, normalized, well-formed and printable: safe to quote in a sandbox profile and argv. */\nfunction lexicalPath(value: unknown): value is string {\n  if (\n    typeof value !== \'string\' ||\n    value.length < 2 ||\n    value.length > 4096 ||\n    !value.isWellFormed() ||\n    !posix.isAbsolute(value) ||\n    posix.normalize(value) !== value ||\n    value.endsWith(\'/\')\n  )\n    return false;\n  for (const character of value) {\n    const code = character.codePointAt(0) ?? 0;\n    if (code < 32 || code === 127 || character === \'"\' || character === \'\\\\\') return false;\n  }\n  return true;\n}\n\n/** Official renderer slug of the project directory name; the inspector refuses non-ASCII names. */\nfunction projectSlug(projectRoot: string): string | null {\n  const baseName = posix.basename(projectRoot);\n  if (![...baseName].every((character) => /^[\\x20-\\x7e]$/.test(character))) return null;\n  const cleaned =\n    baseName\n      .toLowerCase()\n      .replace(/[^a-z0-9]+/g, \'-\')\n      .replace(/^-|-$/g, \'\') || \'project\';\n  return cleaned.slice(0, 80).replace(/-$/g, \'\') || \'project\';\n}\n\ntype Budget = { remaining: number };\n\n/**\n * Reads `root/relative` without following any symlink on the way: every parent is a real directory\n * and the file is a single-link regular file within `maxBytes`. Returns null when it is absent.\n */\nasync function readContained(\n  root: string,\n  relative: string,\n  maxBytes: number,\n  budget: Budget,\n): Promise<Buffer | null> {\n  const parts = relative.split(\'/\');\n  for (let index = 1; index < parts.length; index++) {\n    const parent = await lstat(join(root, ...parts.slice(0, index))).catch((error: NodeJS.ErrnoException) => {\n      if (error.code === \'ENOENT\') return null;\n      throw error;\n    });\n    if (parent === null) return null;\n    if (!parent.isDirectory()) throw new Error(\'RENDER_PATH_NOT_CONTAINED\');\n  }\n  let handle: Awaited<ReturnType<typeof open>>;\n  try {\n    handle = await open(\n      join(root, relative),\n      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,\n    );\n  } catch (error) {\n    if ((error as NodeJS.ErrnoException).code === \'ENOENT\') return null;\n    throw error;\n  }\n  try {\n    const stat = await handle.stat();\n    if (!stat.isFile() || stat.nlink !== 1 || stat.size > maxBytes || stat.size > budget.remaining)\n      throw new Error(\'RENDER_PATH_NOT_CONTAINED\');\n    // One spare byte detects growth after stat without reading an unbounded file.\n    const bytes = Buffer.alloc(stat.size + 1);\n    let length = 0;\n    for (;;) {\n      const { bytesRead } = await handle.read(bytes, length, bytes.length - length, length);\n      if (bytesRead === 0) break;\n      length += bytesRead;\n      if (length > stat.size) throw new Error(\'RENDER_PATH_NOT_CONTAINED\');\n    }\n    if (length !== stat.size) throw new Error(\'RENDER_PATH_NOT_CONTAINED\');\n    budget.remaining -= length;\n    return bytes.subarray(0, length);\n  } finally {\n    await handle.close();\n  }\n}\n\ntype InputBytes = {\n  projectedFiles: Record<string, Buffer>;\n  layerFiles: Record<RenderLayerPath, Buffer | null>;\n  sizes: Record<string, number>;\n};\n\nasync function readInputs(\n  projectRoot: string,\n  render: RenderDefinition,\n  budget: Budget,\n): Promise<InputBytes> {\n  const projectedFiles: Record<string, Buffer> = {};\n  const sizes: Record<string, number> = {};\n  for (const path of Object.keys(render.selectedProjectionSha256)) {\n    const bytes = await readContained(projectRoot, path, maxFileBytes, budget);\n    if (bytes === null) throw new Error(\'RENDER_INPUT_ABSENT\');\n    projectedFiles[path] = bytes;\n    sizes[path] = bytes.length;\n  }\n  const layerFiles = {} as Record<RenderLayerPath, Buffer | null>;\n  for (const path of Object.keys(render.layers) as RenderLayerPath[]) {\n    const bytes = Object.hasOwn(proj'... 34578 more characters,
+    expected: /[-]/u,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }
+
+test at test/sync.test.ts:504:1
+✖ sync reports measured render prerequisites beside a BMAD render definition only (2360.770125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'error' !== 'current'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/sync.test.ts:633:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'error',
+    expected: 'current',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+tests=1

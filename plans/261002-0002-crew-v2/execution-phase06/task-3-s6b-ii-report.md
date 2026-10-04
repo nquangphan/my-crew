@@ -68,3 +68,23 @@ Test workspace dùng Git thật qua helper owned và `executeTree` thật; `uv` 
 
 - PM chốt `BMAD_TRACKED_IN_CHECKOUT` (từ chối hay chấp nhận checkout track `_bmad`).
 - S6b-iii: thứ tự mở schema server cho `prerequisites` và nơi cấp `uvPath` của owner cho probe.
+
+## FIX1 (review `task-3-s6b-ii-review.md`)
+
+Commit `cf78d0f`. Mỗi mục có RED trước.
+
+| Mục | Sửa | Test |
+|---|---|---|
+| I1 | Prepare có render: ngay sau audit `before` (clone sạch nên mọi entry là tracked), entry `_bmad` hay `_bmad/**` → `BMAD_TRACKED_IN_CHECKOUT` trước vòng exclusion; `_bmad` không bị dời/thay, workspace `retained`, không `injected`/`render`/bản ghi `render-*`. Prepare không render giữ hành vi cũ | Fixture tách hai checkout: `owner` chỉ track `.claude` (materialize như cũ, `.claude` bị loại, không exclusion `_bmad`), `trackedOwner` track thêm `_bmad/legacy.toml` (bị từ chối, file còn nguyên trong clone và checkout, cleanup `deleted`); test prepare không render dùng `trackedOwner` để giữ phủ exclusion |
+| M1 | `registry.resolve` cho prerequisites nằm trong `try` | Registry bọc làm lần tra sau definition lỗi → slot vẫn `current`, definition giữ, không có `prerequisites` |
+| M2 | `ProbeRunner(file, args, {cwd})`; mọi lệnh probe chạy với cwd = `projectionRoot`. Chọn projection root vì `uv` đọc `.python-version`/`.venv` theo cwd và thư mục cha, projection root không có, tương đương workspace của dự án không ghim interpreter; install report đo theo máy nên không có workspace cụ thể | Runner giả ghi cwd của ba lệnh; runner mặc định chạy `uv` giả kiểm `pwd -P` |
+| M3 | `reclaimRenderStage`: stage đã vắng thì bỏ `remove`, chỉ dọn `.leader`; cleanup chốt `deleted` | Bản ghi `complete` của stage đã xóa → cleanup `deleted`, workspace đã thu hồi |
+| M4 | Probe in `sys.implementation.name` cùng phiên bản, chỉ nhận `cpython` ≥3.11; `version` ghi phần phiên bản | PyPy 3.11, GraalPy 3.11, thiếu implementation → `RENDER_PYTHON_UNSUPPORTED` |
+| M5 | Delimiter viết `\uE000`/`\uE001` | Test đọc source: không có ký tự private-use literal |
+
+| Bước | Kết quả | Log |
+|---|---|---|
+| RED | 8 fail đúng ngữ nghĩa (thiếu rejection I1, quarantine stage đã mất M3, slot `error` M1, cwd/implementation M2/M4, literal M5) | `task-3-s6b-ii-fix1-red.log` `8e1c8603…9b80` |
+| GREEN | `tsc` 0; executor + sync + isolation-render + isolation-workspace (`CREW_ISOLATION_SKIP_DISCOVERY=1`) + isolation-runtime + isolation + runtime-workspace + runtime-boundary + render-artifacts + workflow-manifest **113/113** | `task-3-s6b-ii-fix1-green.log` `d6738e06…a79d` |
+
+Slot nặng `owner=s6b-ii` + telemetry trước mọi lệnh; biome sạch; `crew-docs` generate (không đổi), `check --all`/`--staged` ok; không còn tiến trình của lát. Docs: `gateway-workflows.md` bước 15 và test, `gateway-host.md`, `assistant-workflows.md`. Các ⚠️ của review giữ cho PM ghi ledger (reconcile chưa có, cache probe, ràng buộc prerequisites ở server, BUSY khi `remove` cũng bận, upgrade Homebrew cần report mới).
