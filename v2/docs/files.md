@@ -363,13 +363,17 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
 | `web/e2e/app-router.spec.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/e2e/auth.spec.ts` | [web-data](flows/web-data.md) (test) |
+| `web/e2e/docs-assistant.spec.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/e2e/events.spec.ts` | [web-data](flows/web-data.md) (test) |
 | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
+| `web/e2e/support/owner-seed.ts` | [web-shell](flows/web-shell.md) (file) |
+| `web/e2e/ticket-routes.spec.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/e2e/tickets.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/index.html` | [web-shell](flows/web-shell.md) (file) |
 | `web/package.json` | [web-shell](flows/web-shell.md) (file) |
 | `web/playwright.config.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/pnpm-lock.yaml` | [web-shell](flows/web-shell.md) (file) |
+| `web/scripts/e2e-attachment-receivers.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/scripts/e2e-fixture.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/app-runtime.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/attachments/preview.tsx` | [web-attachments](flows/web-attachments.md) (file) |
@@ -386,6 +390,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/contracts/http.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/contracts/machines.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/contracts/tickets.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/docs-route.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/docs/links.ts` | [web-docs](flows/web-docs.md) (file) |
 | `web/src/docs/page.tsx` | [web-docs](flows/web-docs.md) (file) |
 | `web/src/docs/queries.ts` | [web-docs](flows/web-docs.md) (file) |
@@ -401,6 +406,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/router.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/shell.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
+| `web/src/ticket-routes.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/tickets/board.tsx` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/src/tickets/create-request-state.ts` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/src/tickets/create-request.tsx` | [web-tickets](flows/web-tickets.md) (file) |
@@ -429,6 +435,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/test/support/jsdom.d.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/support/tsx-loader.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/ticket-detail-dom.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+| `web/test/ticket-routes.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |

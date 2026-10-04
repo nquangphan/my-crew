@@ -1,6 +1,6 @@
 import { execFile } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { mkdtemp, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { Socket } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -12,6 +12,7 @@ import { promisify } from 'node:util';
 import react from '@vitejs/plugin-react';
 import { createServer as createViteServer, type ViteDevServer } from 'vite';
 import { buildApp } from '../../server/src/app.ts';
+import { loadAttachmentConfig } from '../../server/src/attachments/config.ts';
 import { bootstrapOwner } from '../../server/src/auth/bootstrap.ts';
 import { connectDb } from '../../server/src/db/client.ts';
 import { captureMigrations, migrate } from '../../server/src/db/migrate.ts';
@@ -23,6 +24,7 @@ import {
   type OwnedResource,
   withFixture,
 } from '../e2e/support/fixture.ts';
+import { createFixtureReceivers } from './e2e-attachment-receivers.ts';
 
 const execFileAsync = promisify(execFile);
 const webRoot = resolve(fileURLToPath(new URL('../', import.meta.url)));
@@ -145,6 +147,9 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
   let webReady = false;
   let apiOrigin = '';
   let webOrigin = '';
+  let attachmentScratchPath = '';
+  let attachmentScratchIdentity = '';
+  let attachmentScratchResource: OwnedResource | undefined;
   let containerResource: OwnedResource | undefined;
   let databaseResource: OwnedResource | undefined;
   let webResource: OwnedResource | undefined;
@@ -405,6 +410,8 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
       },
     });
     if (blocked) {
+      if (attachmentScratchResource)
+        results.push(unknown(attachmentScratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
       results.push(unknown(scratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
       phase = phase.startsWith('unknown:') ? phase : 'unknown';
       await persist();
@@ -414,6 +421,29 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
     }
     phase = 'stopped';
     await persist();
+    // Attachment storage goes first: the registry that records it lives in the main scratch.
+    if (attachmentScratchResource) {
+      const storageResult = await closeOwnedResource(attachmentScratchResource, {
+        readStartIdentity: async () => {
+          try {
+            const entry = await stat(attachmentScratchPath);
+            return String(entry.dev) + ':' + String(entry.ino);
+          } catch {
+            return null;
+          }
+        },
+        stop: async () => true,
+        confirmStopped: async () => true,
+        remove: createScratchRemoval(attachmentScratchPath, attachmentScratchIdentity),
+      });
+      results.push(storageResult);
+      if (storageResult.state === 'unknown') {
+        results.push(unknown(scratchResource, 'PREVIOUS_CLEANUP_UNKNOWN'));
+        phase = 'unknown:ATTACHMENT_SCRATCH_REMOVE';
+        await persist();
+        return results;
+      }
+    }
     const scratchResult = await closeOwnedResource(scratchResource, {
       readStartIdentity: async () => {
         try {
@@ -548,8 +578,39 @@ export async function startOwnedFixture(): Promise<FixtureHandle> {
       startIdentity: workerIdentity + ':web:' + String(webPort) + ':' + ownershipNonce,
     };
     await record(webResource);
+    // Owned attachment storage root (private, resolved path); removed with the other scratch on close.
+    attachmentScratchPath = await realpath(await mkdtemp(join(tmpdir(), 'crew-v2-web-attachments-')));
+    const attachmentStat = await stat(attachmentScratchPath);
+    attachmentScratchIdentity = String(attachmentStat.dev) + ':' + String(attachmentStat.ino);
+    attachmentScratchResource = {
+      kind: 'scratch',
+      id: attachmentScratchPath,
+      ownershipNonce,
+      startIdentity: attachmentScratchIdentity,
+    };
+    await record(attachmentScratchResource);
+    const attachmentConfig = loadAttachmentConfig({
+      CREW_V2_ATTACHMENT_STORAGE_ROOT: attachmentScratchPath,
+    });
+    const storageHostId = randomUUID().toLowerCase();
     app = await buildApp({
       db,
+      attachments: {
+        config: attachmentConfig,
+        storageHostId,
+        // Native Linux writer on Linux; otherwise the in-process closed-ACK fixture port. No extractor
+        // version is certified, so submissions with files stay 503 EXTRACTION_NOT_CONFIGURED as designed.
+        ...(process.platform === 'linux'
+          ? {}
+          : {
+              receivers: createFixtureReceivers({
+                db,
+                root: attachmentScratchPath,
+                storageHostId,
+                now: () => new Date(),
+              }),
+            }),
+      },
       publicOrigin: webOrigin,
       secureCookies: false,
       sessionEncryptionKey: randomBytes(32),

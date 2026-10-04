@@ -490,9 +490,13 @@ flows:
       - web/src/app-runtime.ts
       - web/src/router.tsx
       - web/src/shell.tsx
+      - web/src/ticket-routes.tsx
+      - web/src/docs-route.tsx
       - web/src/styles.css
       - web/scripts/e2e-fixture.ts
       - web/e2e/support/fixture.ts
+      - web/e2e/support/owner-seed.ts
+      - web/scripts/e2e-attachment-receivers.ts
       - web/package.json
       - web/pnpm-lock.yaml
       - web/tsconfig.json
@@ -504,6 +508,9 @@ flows:
       - web/test/fixture-lifecycle.test.ts
       - web/test/app-wiring.test.ts
       - web/e2e/app-router.spec.ts
+      - web/test/ticket-routes.test.ts
+      - web/e2e/ticket-routes.spec.ts
+      - web/e2e/docs-assistant.spec.ts
   web-data:
     title: Transport, phiên owner và đồng bộ sự kiện web Crew v2
     doc: docs/flows/web-data.md

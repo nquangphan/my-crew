@@ -50,6 +50,16 @@ test('withFixture giữ API, web và DB riêng suốt callback rồi đóng đú
           }),
       );
 
+      const storage = handle.resources.find(
+        (resource) => resource.kind === 'scratch' && resource.id.includes('crew-v2-web-attachments-'),
+      );
+      assert.ok(storage, 'Storage root của attachment phải nằm trong registry tài nguyên sở hữu');
+      assert.equal(existsSync(storage.id), true, 'Storage root phải tồn tại trong lúc fixture chạy');
+      const policy = await fetch(`${handle.apiOrigin}/v2/attachment-policy`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      assert.equal(policy.status, 401, 'Route attachment phải được mount (cần phiên owner), không phải 404');
+
       const page = await fetch(`${handle.webOrigin}/crew-v2/`, { signal: AbortSignal.timeout(10_000) });
       assert.equal(page.status, 200);
       const login = await fetch(`${handle.apiOrigin}/v2/auth/session`, {
@@ -83,6 +93,8 @@ test('withFixture giữ API, web và DB riêng suốt callback rồi đóng đú
       assert.deepEqual(second, first, 'close lặp phải idempotent');
       assert.ok(first.length >= handle.resources.length);
       assert.ok(first.every((result) => result.state === 'stopped' || result.state === 'removed'));
+      assert.equal(existsSync(storage.id), false, 'Storage root attachment phải được dọn cùng fixture');
+      assert.ok(first.some((result) => result.resourceId === storage.id && result.state === 'removed'));
       console.log('fixture-cleanup=' + JSON.stringify(first));
     });
   } catch (error) {

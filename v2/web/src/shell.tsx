@@ -1,6 +1,8 @@
+import { useQuery } from '@tanstack/react-query';
 import { Link, Outlet } from '@tanstack/react-router';
 import { type ReactNode, useSyncExternalStore } from 'react';
 import { useRuntime } from './app-runtime.ts';
+import { projectsQueryOptions } from './tickets/queries.ts';
 
 type PanelProps = { title: string; children: ReactNode; symbol: string; tone: 'loading' | 'error' | 'empty' };
 
@@ -39,6 +41,47 @@ export function EmptyPanel() {
     <StatePanel title="Chưa có dữ liệu" symbol="◇" tone="empty">
       Nội dung sẽ xuất hiện tại đây.
     </StatePanel>
+  );
+}
+
+function useAuthenticated(): boolean {
+  const { session } = useRuntime();
+  return (
+    useSyncExternalStore(
+      (listener) => session.subscribe(listener),
+      () => session.snapshot(),
+    ).state === 'authenticated'
+  );
+}
+
+function ProjectNav() {
+  const { client } = useRuntime();
+  const authenticated = useAuthenticated();
+  const projects = useQuery({ ...projectsQueryOptions(client), enabled: authenticated });
+  if (!authenticated) return <p className="nav-empty">Đăng nhập để xem dự án.</p>;
+  if (projects.isPending) return <p className="nav-empty">Đang tải dự án…</p>;
+  if (projects.error) return <p className="nav-empty">Không tải được danh sách dự án.</p>;
+  if (projects.data.length === 0) return <p className="nav-empty">Chưa có dự án để hiển thị.</p>;
+  const link = { className: 'nav-link', activeProps: { className: 'nav-link nav-link--active' } };
+  return (
+    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      {projects.data.map((project) => (
+        <li key={project.id}>
+          <p className="nav-heading">{project.name}</p>
+          <Link
+            {...link}
+            to="/projects/$projectId/tickets"
+            params={{ projectId: project.id }}
+            search={{ view: 'board' }}
+          >
+            Ticket
+          </Link>
+          <Link {...link} to="/projects/$projectId/docs" params={{ projectId: project.id }} search={{}}>
+            Tài liệu
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -81,7 +124,7 @@ export function Shell() {
         </nav>
         <nav aria-label="Điều hướng dự án">
           <p className="nav-heading">Dự án</p>
-          <p className="nav-empty">Chưa có dự án để hiển thị.</p>
+          <ProjectNav />
         </nav>
       </aside>
       <div className="workspace">

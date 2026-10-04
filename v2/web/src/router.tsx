@@ -8,11 +8,22 @@ import {
   useSearch,
 } from '@tanstack/react-router';
 import { useEffect, useSyncExternalStore } from 'react';
-import { type AppRuntime, authorizeRoute, parseLoginSearch, useRuntime } from './app-runtime.ts';
+import {
+  type AppRuntime,
+  authorizeRoute,
+  parseDocsSearch,
+  parseLoginSearch,
+  parseTicketsSearch,
+  useRuntime,
+} from './app-runtime.ts';
 import { LoginScreen } from './auth/login.tsx';
 import { SessionBoundary } from './auth/session-boundary.tsx';
+import { ComposeServicesProvider } from './compose/composer.tsx';
+import { ProjectDocsPage } from './docs-route.tsx';
 import { safeReturnPath } from './lib/session.ts';
 import { EmptyPanel, ErrorPanel, LoadingPanel, Shell } from './shell.tsx';
+import { ProjectTicketsPage, TicketPage } from './ticket-routes.tsx';
+import { TicketDraftStorageProvider } from './tickets/create-request.tsx';
 
 function GuestHome() {
   return (
@@ -45,10 +56,14 @@ function ProjectHome() {
 }
 
 function ProtectedLayout() {
-  const { session, pending, client } = useRuntime();
+  const { session, pending, client, composeServices } = useRuntime();
   return (
     <SessionBoundary session={session} pending={pending} client={client}>
-      <Outlet />
+      <ComposeServicesProvider services={composeServices}>
+        <TicketDraftStorageProvider storage={composeServices.storage}>
+          <Outlet />
+        </TicketDraftStorageProvider>
+      </ComposeServicesProvider>
     </SessionBoundary>
   );
 }
@@ -107,9 +122,26 @@ export function createAppRouter(runtime: AppRuntime) {
     path: '/projects/$projectId',
     component: ProjectHome,
   });
+  const projectTicketsRoute = createRoute({
+    getParentRoute: () => protectedRoute,
+    path: '/projects/$projectId/tickets',
+    validateSearch: parseTicketsSearch,
+    component: ProjectTicketsPage,
+  });
+  const projectDocsRoute = createRoute({
+    getParentRoute: () => protectedRoute,
+    path: '/projects/$projectId/docs',
+    validateSearch: parseDocsSearch,
+    component: ProjectDocsPage,
+  });
+  const ticketRoute = createRoute({
+    getParentRoute: () => protectedRoute,
+    path: '/tickets/$ticketId',
+    component: TicketPage,
+  });
   const routeTree = rootRoute.addChildren([
     loginRoute,
-    protectedRoute.addChildren([homeRoute, projectRoute]),
+    protectedRoute.addChildren([homeRoute, projectRoute, projectTicketsRoute, projectDocsRoute, ticketRoute]),
   ]);
   return createRouter({ routeTree, basepath: '/crew-v2/' });
 }

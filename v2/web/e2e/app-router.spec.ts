@@ -5,6 +5,7 @@
  */
 import { test as base, expect } from '@playwright/test';
 import { type FixtureHandle, withFixture } from './support/fixture.ts';
+import { seedOwnerTicket } from './support/owner-seed.ts';
 
 const test = base.extend<Record<never, never>, { crew: FixtureHandle }>({
   crew: [
@@ -72,4 +73,26 @@ test('router thật: guest chuyển login, quay về đúng path, stream trướ
   await expect(page.getByRole('heading', { name: 'Không gian làm việc', level: 1 })).toBeVisible();
   expect(new URL(page.url()).pathname).toBe('/crew-v2/');
   expect(page.url()).not.toContain('evil.example');
+});
+
+test('router thật: GET ticket của route deep link đứng sau catch-up /v2/events của phiên vừa xác minh', async ({
+  page,
+  crew,
+}) => {
+  const seeded = await seedOwnerTicket(crew, 'Ticket kiểm thứ tự GET');
+  const calls: string[] = [];
+  page.on('request', (request) => {
+    const { pathname } = new URL(request.url());
+    if (pathname.startsWith('/v2/')) calls.push(`${request.method()} ${pathname}`);
+  });
+  await page.goto(`${crew.webOrigin}/crew-v2/tickets/${seeded.ticketId}`);
+  await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+  await expect(page.getByRole('heading', { name: seeded.title, level: 1 })).toBeVisible();
+
+  const verified = calls.lastIndexOf('GET /v2/auth/session');
+  const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
+  const ticketGet = `GET /v2/tickets/${seeded.ticketId}`;
+  expect(afterLogin[0]).toBe('GET /v2/events');
+  expect(afterLogin.indexOf(ticketGet)).toBeGreaterThan(afterLogin.indexOf('GET /v2/events'));
 });
