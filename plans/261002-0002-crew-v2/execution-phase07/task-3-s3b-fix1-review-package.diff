@@ -1,0 +1,1006 @@
+d9216cc fix(v2-web): bản nháp form/bình luận lưu theo tab, không rò giữa ticket, chỉ đọc khi kết thúc
+ v2/docs/flows/web-tickets.md               |  18 ++--
+ v2/web/src/tickets/create-request-state.ts | 139 +++++++++++++++++++++++--
+ v2/web/src/tickets/create-request.tsx      |   3 +-
+ v2/web/src/tickets/detail.tsx              |  36 ++++---
+ v2/web/src/tickets/status.ts               |   6 +-
+ v2/web/test/create-request.test.ts         | 116 ++++++++++++++++++---
+ v2/web/test/ticket-detail-dom.test.ts      | 158 ++++++++++++++++++++++++++++-
+ v2/web/test/tickets.test.ts                |   6 ++
+ 8 files changed, 433 insertions(+), 49 deletions(-)
+diff --git a/v2/docs/flows/web-tickets.md b/v2/docs/flows/web-tickets.md
+index 39eca88..5889488 100644
+--- a/v2/docs/flows/web-tickets.md
++++ b/v2/docs/flows/web-tickets.md
+@@ -10,46 +10,50 @@ Flow này hiển thị ticket cho owner theo kiểu Jira: bảng theo trạng th
+ - `web/src/tickets/detail.tsx` → `TicketDetail({ ticketId, presentation })`: phần chi tiết dùng chung. Với `presentation: 'dialog'`, tiêu đề và mô tả ngắn là `Dialog.Title`/`Dialog.Description`; với `'page'` là `h1`/`p`.
+ - `web/src/tickets/board.tsx` → `TicketBoard`, `web/src/tickets/list.tsx` → `TicketList` và `web/src/tickets/requests.tsx` → `RequestList`: cùng nhận `{ filters, onFiltersChange, onOpenTicket(ticketId, trigger) }`. Cả ba có nút “Tạo yêu cầu”.
+ - `web/src/tickets/create-request.tsx` → `CreateRequestAction({ projectId?, onOpenTicket })` (nút và hộp thoại Radix) và `CreateRequestForm({ initialProjectId?, onCreated })`. Phần thuần nằm ở `web/src/tickets/create-request-state.ts`: `makeRequestSubmission`, `defaultRequestFields`, `workflowOptions`, `requestFormLocked`, `formDrafts`.
+ 
+ ## Các bước
+ 
+ 1. Router (do controller sở hữu) đọc search params, gọi `parseTicketFilters` để chỉ giữ `projectId`, `status`, `kind`, `level`, `rootId` hợp lệ, rồi truyền vào board, list hoặc view yêu cầu. Filter nằm trong URL nên đổi chế độ xem vẫn giữ nguyên filter. `TicketFilterBar` cho chọn trạng thái, loại và cấp (view yêu cầu ẩn ô cấp vì luôn là `request`); bỏ lọc theo `rootId` khi có.
+ 2. `web/src/tickets/queries.ts` → `useTicketList(client, filters)`: infinite query trên `queryKeys.tickets(filters)`. Mỗi trang gọi GET `/v2/tickets?…&cursor=<UUID>&limit=50` qua `OwnerClient` của app runtime và giải mã bằng `decodeTicketPage`. Trang tiếp theo chỉ được tải khi owner bấm “Tải thêm”, cho tới khi `nextCursor` là `null`. Nếu còn trang, giao diện ghi rõ “danh sách chưa đầy đủ”. Các trang được gộp bằng `mergeTicketPages`: ID trùng thì giữ revision mới hơn.
+ 3. `TicketBoard` chia ticket vào bảy cột theo `statusOrder`. Mỗi cột có biểu tượng chữ và nhãn từ `statusLabels`, nên trạng thái không chỉ dựa vào màu. Không có kéo thả: trạng thái chỉ đổi qua signal của producer. `TicketList` hiện cùng dữ liệu dạng bảng (tiêu đề, trạng thái, cấp, loại, phiên bản).
+ 4. Bấm thẻ hoặc dòng gọi `onOpenTicket(id, trigger)`. Caller giữ `{ ticketId, trigger }` và render một `TicketDialog`. Hộp thoại nằm trên view hiện tại, không đổi scroll hay viewport của view phía sau.
+-5. `TicketDetail` dùng `useTicket` (GET `/v2/tickets/:id`). `canonicalTicketId` đổi UUID sang chữ thường trước khi tạo query key và path, vì server và event journal dùng chữ thường. Nhờ vậy deep link chữ hoa vẫn được event làm mới và revision guard vẫn có tác dụng. `ticketQueryOptions` từ chối ID không phải UUID trước khi gọi mạng; `failureText` báo lỗi đó là “Đường dẫn ticket không hợp lệ.”, không đổ cho máy chủ (lỗi `local`/`aborted` có câu riêng). Response có revision cũ hơn bản trong cache bị bỏ qua (`newerTicket`). Khi đã có dữ liệu, refetch hoặc lỗi refetch không thay thế nội dung, nên event realtime không làm mất focus đang ở trong hộp thoại. Ticket `done`/`cancelled` hiện ghi chú chỉ xem và không có ô bình luận. `waitNotice` hiện `waitReason` ở mọi trạng thái khi producer có ghi (`final_result_pending` được ghi mà ticket không chuyển sang `needs_input`), dạng “Lý do chờ: …”. Chỉ khi `needs_input` mới thêm “Đang chờ bạn.”, nên hai câu không mâu thuẫn nhau. Phần thông tin hiện `repairCycles`/5, workflow đã ghim, skill, commit đã merge và các ID. Tệp đính kèm hiện bằng `TicketAttachments` dùng chung của flow `web-attachments` (GET `/v2/tickets/:id/attachments` và `/attachments/by-comment`). Liên kết tài liệu của ticket hiện và sửa bằng `TicketDocsLinksEditor` của flow `web-docs` (GET/PUT `/v2/tickets/:id/docs-links`), nhúng trong mục “Tệp và tài liệu liên quan”.
++5. `TicketDetail` dùng `useTicket` (GET `/v2/tickets/:id`). `canonicalTicketId` đổi UUID sang chữ thường trước khi tạo query key và path, vì server và event journal dùng chữ thường. Nhờ vậy deep link chữ hoa vẫn được event làm mới và revision guard vẫn có tác dụng. `ticketQueryOptions` từ chối ID không phải UUID trước khi gọi mạng; `failureText` báo lỗi đó là “Đường dẫn ticket không hợp lệ.”, không đổ cho máy chủ (lỗi `local`/`aborted` có câu riêng). Response có revision cũ hơn bản trong cache bị bỏ qua (`newerTicket`). Khi đã có dữ liệu, refetch hoặc lỗi refetch không thay thế nội dung, nên event realtime không làm mất focus đang ở trong hộp thoại. Ticket `done`/`cancelled` hiện ghi chú chỉ xem, không mở bình luận mới, và editor liên kết tài liệu nằm trong một `fieldset disabled` nên không sửa được. `waitNotice` hiện `waitReason` ở mọi trạng thái khi producer có ghi (`final_result_pending` được ghi mà ticket không chuyển sang `needs_input`), dạng “Lý do chờ: …”. Chỉ khi `needs_input` mới thêm “Đang chờ bạn.”, nên hai câu không mâu thuẫn nhau. Phần thông tin hiện `repairCycles`/5, workflow đã ghim, skill, commit đã merge và các ID. Tệp đính kèm hiện bằng `TicketAttachments` dùng chung của flow `web-attachments` (GET `/v2/tickets/:id/attachments` và `/attachments/by-comment`). Liên kết tài liệu của ticket hiện và sửa bằng `TicketDocsLinksEditor` của flow `web-docs` (GET/PUT `/v2/tickets/:id/docs-links`), nhúng trong mục “Tệp và tài liệu liên quan”.
+ 6. `ChildTickets` đọc GET `/v2/tickets/:rootId/graph` (`queryKeys.graph(rootId)`) và chỉ liệt kê con trực tiếp (`parentId === ticket.id`).
+ 7. `web/src/tickets/history.tsx` → `TicketHistory`: `fetchAllPages` đọc hết mọi trang `/comments` và `/decisions` (limit 100, cursor UUID). Nếu cursor lặp lại thì dừng với `PAGE_CURSOR_LOOP`. Sau đó `buildLegacyTimeline` sắp xếp theo `createdAt` rồi `id`, vì producer xếp theo UUID chứ không theo thời gian. Mỗi mục hiện loại, người thực hiện, giờ Asia/Ho_Chi_Minh (`formatTime`), nội dung; quyết định có thêm lý do và nguồn.
+ 8. Event `ticket.*`, `comment.created`, `decision.created` từ `EventSync` invalidate các prefix `ticket/tickets/graphs/comments/decisions` (flow `web-data`), nên board, list và hộp thoại đang mở cùng refetch.
+ 9. `RequestList` đọc GET `/v2/tickets?level=request&…` (`requestListFilters`) qua cùng `useTicketList`, rồi `requestRoots` kiểm lại cấu trúc để hàng sai cấu trúc không bị hiện thành yêu cầu gốc. Producer phân trang theo cấp, nên “Tải thêm” tới `nextCursor` null là đủ danh sách yêu cầu. Chọn một yêu cầu gọi `onOpenTicket`.
+ 10. “Tạo yêu cầu” mở hộp thoại có `CreateRequestForm`. Form tự giữ các field dự án (GET `/v2/projects`, đọc hết trang), loại, tiêu đề và workflow. Mô tả và tệp do `AttachmentComposer` (draft key `create-request`) quản lý. `makeRequestSubmission` map đúng `{projectId, parentId:null, level:'request', kind, title, description, mandatory:true, criteria:{workflowChoice}, inputs:{}, outputs:{}, skill:null, workflowPin:null, deployApprovalDecisionId:null}` với target `{purpose:'ticket', projectId, ticketId:null}`. Superpowers là mặc định, BMAD phải chọn rõ. Form ghi rõ chỉ máy chạy Claude Code có định nghĩa BMAD, máy dùng Codex chưa chạy được. Chưa chọn dự án thì chưa hiện composer.
+ 11. Khi composer rời `editing` (`sending`, `ambiguous`, `suspended`, `accepted`), `requestFormLocked` khóa mọi field của form, nên một yêu cầu chưa xác nhận chỉ được gửi lại với đúng key và body cũ (kể cả sau khi hết phiên rồi đăng nhập lại). Khi composer giao receipt, form xóa bản nháp, giữ dự án đang chọn, đóng hộp thoại và mở `TicketDialog` của `ticket.id` mà producer trả về.
+-12. Bản nháp nằm trong `formDrafts(session)`: một kho trong bộ nhớ cho mỗi session, giữ field yêu cầu và chữ bình luận theo ticket. Bản nháp còn nguyên khi đóng hộp thoại, đổi view, refetch realtime hay hết phiên rồi đăng nhập lại; nó bị xóa khi đăng xuất (`logging_out`/`guest`), cùng ranh giới Task2 xóa payload đang chờ. Chỉ “Bỏ bản nháp yêu cầu” hoặc “Bỏ bản nháp bình luận” (khi đang `editing`) mới xóa nội dung đã nhập. Tệp đã chọn được bỏ bằng nút “Bỏ bản nháp tệp” của composer.
+-13. Ticket chưa kết thúc có mục “Bình luận mới”: `AttachmentComposer` với target `{purpose:'comment', projectId, ticketId}` và draft key `comment:<ticketId>`. Receipt bình luận làm composer invalidate comments/attachments/ticket, nên timeline đọc lại.
++12. Bản nháp nằm trong `formDrafts(session, browserTabStorage())`: mỗi session có một kho, ghi đồng thời vào bộ nhớ và `sessionStorage` của tab (key `crew-v2:form-draft:create-request` và `crew-v2:form-draft:comment:<ticketId>`). Đây cũng là nơi composer giữ draft record và `PendingStore` giữ operation. Kho chỉ chứa nội dung owner nhập, không chứa credential; khi đọc lại, bản ghi field sai kiểu bị bỏ. Bản nháp còn nguyên khi đóng hộp thoại, đổi view, refetch realtime, tải lại trang hay hết phiên rồi đăng nhập lại. Vì field được lưu cùng lúc với lần gửi, sau khi tải lại trang thì field hiện ra khớp đúng body mà composer sẽ gửi lại, và bị khóa trong lúc operation chưa giải quyết. Bản nháp bị xóa (cả trong storage) khi đăng xuất (`logging_out`/`guest`), cùng ranh giới Task2 xóa payload đang chờ. Chỉ “Bỏ bản nháp yêu cầu” hoặc “Bỏ bản nháp bình luận” (khi đang `editing`) mới xóa nội dung đã nhập. Tệp đã chọn được bỏ bằng nút “Bỏ bản nháp tệp” của composer.
++13. Ticket chưa kết thúc có mục “Bình luận mới”: `AttachmentComposer` với target `{purpose:'comment', projectId, ticketId}` và draft key `comment:<ticketId>`. `CommentComposer` được render với `key={ticket.id}`, nên khi trang ticket đổi `ticketId` mà không remount thì bản nháp không đi theo sang ticket khác. Nếu ticket chuyển sang kết thúc qua realtime trong lúc bình luận đang `sending`/`ambiguous`/`suspended`, composer vẫn được giữ, kèm ghi chú, để owner gửi lại đúng nội dung cũ hoặc xem trạng thái. Khi composer về `editing`, mục này ẩn đi. Receipt bình luận làm composer invalidate comments/attachments/ticket, nên timeline đọc lại.
+ 
+ ## Dữ liệu
+ 
+ DTO lấy từ `web/src/contracts/tickets.ts` (Ticket, trang ticket, graph, comment, decision), không khai báo lại. `statusLabels` khớp chính xác bảy trạng thái của producer. `requestRoots` nhận ra yêu cầu gốc chỉ bằng `level === 'request' && id === rootId && parentId === null`, không dựa vào tiêu đề hay vị trí trang. Hooks nhận `OwnerClient` từ `useRuntime().client` của component gọi, nên `queries.ts` không phụ thuộc composition root và chạy được trong `node:test`.
+ 
+ Phần còn chờ producer được hiện rõ là chưa có dữ liệu, không suy ra từ `criteria` hay prose:
+ 
+ - Máy, model, độ khó, lượt chạy hiện tại và bằng chứng: chờ projection có kiểu của G1/G3.
+ - Lịch sử review, phương án dự phòng, sản phẩm, commit và đồng bộ tài liệu: chờ history projection G1/G3. Hiện timeline chỉ gồm bình luận và quyết định.
+ - Lịch sử đầy đủ: producer đã có GET `/v2/tickets/:id/history` (P-G1a) nhưng `web/src/contracts` chưa có decoder cho route này, nên timeline vẫn chỉ gồm bình luận và quyết định.
+ 
+-Bản nháp chỉ nằm trong bộ nhớ tab, không ghi vào storage. Tải lại trang sẽ mất phần chữ chưa gửi; yêu cầu đã gửi mà chưa xác nhận vẫn còn trong `PendingStore` của Task2.
++Giới hạn đã biết:
++
++- “Bỏ bản nháp yêu cầu/bình luận” mới chỉ xóa phần chữ. Interface S5a chưa cho phép form gọi bỏ trọn session/tệp/key của composer (đang chờ quyết định).
++- Kho bản nháp chỉ tự xóa khi nó đã được tạo trong lần tải trang hiện tại, tức là có view ticket đã mở trước khi đăng xuất.
++- Ticket đã kết thúc mà còn một bình luận chưa xác nhận từ trước khi tải trang: ô bình luận không hiện; gửi lại qua panel khôi phục của Task2.
+ 
+ ## Wiring cho controller
+ 
+ Sáu nơi mở ticket phải dùng chung `TicketDialog`/`TicketDetail` và query trong flow này: thẻ trên bảng (`board.tsx`), dòng trong danh sách (`list.tsx`), chọn yêu cầu (`requests.tsx`), node trên graph (Task4), link ticket liên quan trong docs (Task6) và link ticket trong Trợ lý (Task6). `TicketDetail` và `CreateRequestForm` gọi `AttachmentComposer`, nên app phải bọc vùng đã xác thực bằng `ComposeServicesProvider` (`{ client, pending, session, storage: sessionStorage }`); thiếu provider thì composer báo `COMPOSE_SERVICES_MISSING`. Router cần một route trang chi tiết dùng `TicketDetail presentation="page"` cho deep link/reload, và route board/list lưu filter trong search params. Container của mỗi view cần `data-focus-fallback` và `tabIndex={-1}` để làm đích trả focus dự phòng.
+ 
+ ## Flow liên quan
+ 
+ `web-data.md` sở hữu `OwnerClient`, query key, event invalidation và DTO. `web-shell.md` sở hữu app runtime, router và fixture. `server-tickets.md` định nghĩa các route đọc ticket, graph, comment và decision.
+ 
+ ## Tests
+ 
+-- `web/test/tickets.test.ts`: 22 test. Ngoài 16 test S3a còn có: filter `level` và `requestListFilters`; UUID chữ hoa được đổi sang chữ thường cho key, path và revision guard; `historyQueryOptions`; `failureText` tách lỗi local/aborted/máy chủ; `waitNotice`. Phần S3a gồm cho đủ 7 nhãn và biểu tượng riêng; `requestRoots` với hai gốc trùng tiêu đề, bước mồ côi, con bắt buộc, gốc giả và gốc done/cancelled; ID trùng lấy revision mới; nhóm theo trạng thái; filter chỉ giữ giá trị producer hỗ trợ; path danh sách và cursor UUID; giải mã và lỗi shape; `nextCursor` null dừng phân trang; đọc hết trang và chặn cursor lặp; timeline theo thời gian khi thứ tự UUID ngược; revision guard; từ chối ID sai trước khi gọi mạng; giờ Asia/Ho_Chi_Minh; nhãn người thực hiện; chọn đích trả focus. RED trên scaffold: 16/16 thất bại; GREEN 16/16.
+-- `web/test/create-request.test.ts`: 9 test. Phần thuần kiểm map chính xác của `makeRequestSubmission` (kể cả qua `submissionRequest`), mặc định Superpowers/code, ghi chú BMAD chỉ Claude Code, khóa field theo trạng thái composer, `formDrafts` giữ qua `expired` và xóa khi đăng xuất. Phần component (jsdom + RTL, client/session/pending thật của Task2 trên producer giả trong bộ nhớ) kiểm: tạo text-only đúng body, một ticket, mở `ticket.id`; BMAD kèm PNG có đúng ID tệp; mất response rồi hết phiên thì field bị khóa, đăng nhập lại gửi lại đúng key/body và chỉ tạo một ticket; đóng hộp thoại giữ field, chỉ “Bỏ bản nháp yêu cầu” mới xóa.
+-- `web/test/ticket-detail-dom.test.ts`: 7 test. Draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại, chỉ nút bỏ mới xóa; gửi bình luận tạo một comment và timeline đọc lại; ticket `done` không có ô bình luận; deep link UUID chữ hoa đọc bằng chữ thường và hiện “Lý do chờ” khi đang chạy; view yêu cầu đọc `level=request` và chỉ hiện gốc thật; chi tiết dùng `TicketAttachments` chung; hộp thoại nhúng `TicketDocsLinksEditor` và trang đã liên kết được đánh dấu. `web/test/support/dom-events.ts` gắn `Event`/`CustomEvent` của jsdom vào global, vì Radix dialog dispatch `CustomEvent` mà jsdom từ chối constructor của Node.
++- `web/test/tickets.test.ts`: 23 test (thêm nhãn `owner_input`). Ngoài 16 test S3a còn có: filter `level` và `requestListFilters`; UUID chữ hoa được đổi sang chữ thường cho key, path và revision guard; `historyQueryOptions`; `failureText` tách lỗi local/aborted/máy chủ; `waitNotice`. Phần S3a gồm cho đủ 7 nhãn và biểu tượng riêng; `requestRoots` với hai gốc trùng tiêu đề, bước mồ côi, con bắt buộc, gốc giả và gốc done/cancelled; ID trùng lấy revision mới; nhóm theo trạng thái; filter chỉ giữ giá trị producer hỗ trợ; path danh sách và cursor UUID; giải mã và lỗi shape; `nextCursor` null dừng phân trang; đọc hết trang và chặn cursor lặp; timeline theo thời gian khi thứ tự UUID ngược; revision guard; từ chối ID sai trước khi gọi mạng; giờ Asia/Ho_Chi_Minh; nhãn người thực hiện; chọn đích trả focus. RED trên scaffold: 16/16 thất bại; GREEN 16/16.
++- `web/test/create-request.test.ts`: 11 test (thêm: kho bản nháp lưu và đọc lại từ tab storage, bỏ dữ liệu hỏng; mất response rồi tải lại trang thì field khôi phục, bị khóa và khớp body gửi lại, chỉ một ticket). Phần thuần kiểm map chính xác của `makeRequestSubmission` (kể cả qua `submissionRequest`), mặc định Superpowers/code, ghi chú BMAD chỉ Claude Code, khóa field theo trạng thái composer, `formDrafts` giữ qua `expired` và xóa khi đăng xuất. Phần component (jsdom + RTL, client/session/pending thật của Task2 trên producer giả trong bộ nhớ) kiểm: tạo text-only đúng body, một ticket, mở `ticket.id`; BMAD kèm PNG có đúng ID tệp; mất response rồi hết phiên thì field bị khóa, đăng nhập lại gửi lại đúng key/body và chỉ tạo một ticket; đóng hộp thoại giữ field, chỉ “Bỏ bản nháp yêu cầu” mới xóa.
++- `web/test/ticket-detail-dom.test.ts`: 12 test (thêm: trang đổi `ticketId` không remount không mang bản nháp sang ticket khác; bình luận mất response rồi tải lại trang khớp body gửi lại; deep link chữ hoa dùng key chữ thường, invalidation chữ thường làm mới, revision cũ không ghi đè; editor liên kết tài liệu chỉ đọc trên ticket kết thúc; ticket kết thúc qua realtime vẫn giữ composer để gửi lại). Draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại, chỉ nút bỏ mới xóa; gửi bình luận tạo một comment và timeline đọc lại; ticket `done` không có ô bình luận; deep link UUID chữ hoa đọc bằng chữ thường và hiện “Lý do chờ” khi đang chạy; view yêu cầu đọc `level=request` và chỉ hiện gốc thật; chi tiết dùng `TicketAttachments` chung; hộp thoại nhúng `TicketDocsLinksEditor` và trang đã liên kết được đánh dấu. `web/test/support/dom-events.ts` gắn `Event`/`CustomEvent` của jsdom vào global, vì Radix dialog dispatch `CustomEvent` mà jsdom từ chối constructor của Node.
+ - `web/e2e/tickets.spec.ts` chạy trên API, PostgreSQL và Vite thật của fixture Task1, dữ liệu tạo qua API owner, không mock mạng. Bảng có đủ 7 cột, ba ticket (hai gốc trùng tiêu đề và một bước con). Hộp thoại mở đúng ticket, hiện mô tả nhiều dòng, ticket con, phần chưa có dữ liệu và timeline bình luận → quyết định → bình luận kèm lý do. Nền bị `aria-hidden`, Tab không thoát khỏi hộp thoại. Bình luận mới tạo trong lúc hộp thoại mở xuất hiện qua event thật mà focus vẫn ở nút Đóng. Escape trả focus về thẻ. Danh sách hiện cùng revision với bảng; mở từ dòng, đóng bằng X trả focus về dòng. Filter loại thu hẹp cả danh sách lẫn bảng. Bản nháp bình luận trong composer giữ nguyên giá trị và focus khi có event realtime, và vẫn còn khi đóng rồi mở lại hộp thoại. Test thứ hai mở “Tạo yêu cầu” từ bảng: dự án mặc định theo view, Superpowers được chọn sẵn, có ghi chú BMAD; đóng bằng Escape trả focus về nút, mở lại từ danh sách vẫn còn field; “Bỏ bản nháp yêu cầu” đưa form về mặc định. Gửi thật qua API chưa chạy được trong E2E: fixture Task1 ở HEAD chưa mount route attachment, nên phần này thuộc A3.
+diff --git a/v2/web/src/tickets/create-request-state.ts b/v2/web/src/tickets/create-request-state.ts
+index 9912aad..22213e0 100644
+--- a/v2/web/src/tickets/create-request-state.ts
++++ b/v2/web/src/tickets/create-request-state.ts
+@@ -1,20 +1,21 @@
+ /**
+  * Pure state of the “Tạo yêu cầu” form and the per-tab form drafts (request fields, ticket comment text).
+  *
+  * Invariants:
+  * - The form owns `RequestFormFields`; `makeRequestSubmission` maps them to exactly the strict producer
+  *   `CreateTicket` body. Nothing is read from previews or inferred from the description.
+  * - `criteria.workflowChoice` is the owner's root preference (`server/src/tickets/service.ts:141` defaults it
+  *   to Superpowers). It never replaces a run pin: `workflowPin` stays null here.
+- * - Drafts live in memory per session: kept across view changes, dialog close and re-authentication, wiped
+- *   when the owner logs out (the same boundary at which Task2 wipes pending payloads).
++ * - Drafts live per session in memory and in the tab storage the composer uses: kept across view changes,
++ *   dialog close, reload and re-authentication, wiped when the owner logs out (the boundary at which Task2
++ *   wipes pending payloads).
+  */
+ import type { ComposeDraft, ComposeSubmission } from '../compose/state.ts';
+ import type { Ticket } from '../contracts/tickets.ts';
+ import type { SessionController } from '../lib/session.ts';
+ 
+ export type RequestFormFields = {
+   projectId: string;
+   kind: Ticket['kind'];
+   title: string;
+   description: string;
+@@ -64,35 +65,151 @@ export const workflowOptions: readonly {
+     label: 'BMAD',
+     note: 'Chọn rõ khi cần. Hiện chỉ máy chạy Claude Code có định nghĩa BMAD; máy dùng Codex chưa chạy được BMAD.',
+   },
+ ];
+ 
+ /** Form fields are editable only while the shared composer is editing; otherwise the key/body is frozen. */
+ export function requestFormLocked(state: ComposeDraft['state']): boolean {
+   return state !== 'editing';
+ }
+ 
++export type DraftStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>;
++
++const draftPrefix = 'crew-v2:form-draft:';
++const requestKey = `${draftPrefix}create-request`;
++const commentPrefix = `${draftPrefix}comment:`;
++const kinds = new Set<string>(['code', 'research', 'docs', 'deploy']);
++const workflowChoices = new Set<string>(['superpowers', 'bmad']);
++
++/** Tab storage boundary: only a well-formed `RequestFormFields` record is restored. */
++function parseRequest(raw: string | null): RequestFormFields | null {
++  if (raw === null) return null;
++  try {
++    const value: unknown = JSON.parse(raw);
++    if (!value || typeof value !== 'object') return null;
++    const record = value as Record<string, unknown>;
++    if (
++      typeof record.projectId !== 'string' ||
++      typeof record.kind !== 'string' ||
++      !kinds.has(record.kind) ||
++      typeof record.title !== 'string' ||
++      typeof record.description !== 'string' ||
++      typeof record.workflowChoice !== 'string' ||
++      !workflowChoices.has(record.workflowChoice)
++    )
++      return null;
++    return {
++      projectId: record.projectId,
++      kind: record.kind as RequestFormFields['kind'],
++      title: record.title,
++      description: record.description,
++      workflowChoice: record.workflowChoice as RequestFormFields['workflowChoice'],
++    };
++  } catch {
++    return null;
++  }
++}
++
++/**
++ * Form drafts of one session, written through to the tab storage that also holds the composer's draft
++ * record and pending operation (`sessionStorage`). After a reload the fields therefore match the frozen
++ * body the composer will replay. Only owner-typed content is stored, never credentials. Storage failures
++ * (quota, privacy mode) degrade to memory only.
++ */
+ export class FormDrafts {
+-  request: RequestFormFields | null = null;
+-  readonly comments = new Map<string, string>();
++  readonly #storage: DraftStorage | null;
++  #request: RequestFormFields | null;
++  readonly #comments = new Map<string, string>();
++
++  constructor(storage: DraftStorage | null) {
++    this.#storage = storage;
++    this.#request = parseRequest(this.#read(requestKey));
++    for (const key of this.#keys())
++      if (key.startsWith(commentPrefix)) {
++        const text = this.#read(key);
++        if (text) this.#comments.set(key.slice(commentPrefix.length), text);
++      }
++  }
++
++  get request(): RequestFormFields | null {
++    return this.#request;
++  }
++
++  set request(next: RequestFormFields | null) {
++    this.#request = next;
++    this.#write(requestKey, next === null ? null : JSON.stringify(next));
++  }
++
++  comment(ticketId: string): string {
++    return this.#comments.get(ticketId) ?? '';
++  }
++
++  setComment(ticketId: string, text: string): void {
++    if (text === '') this.#comments.delete(ticketId);
++    else this.#comments.set(ticketId, text);
++    this.#write(`${commentPrefix}${ticketId}`, text === '' ? null : text);
++  }
+ 
+   clear(): void {
+-    this.request = null;
+-    this.comments.clear();
++    this.#request = null;
++    this.#comments.clear();
++    for (const key of this.#keys()) if (key.startsWith(draftPrefix)) this.#write(key, null);
++  }
++
++  #keys(): string[] {
++    const keys: string[] = [];
++    try {
++      const storage = this.#storage;
++      if (storage) for (let index = 0; index < storage.length; index++) keys.push(storage.key(index) ?? '');
++    } catch {
++      return [];
++    }
++    return keys;
++  }
++
++  #read(key: string): string | null {
++    try {
++      return this.#storage?.getItem(key) ?? null;
++    } catch {
++      return null;
++    }
++  }
++
++  #write(key: string, value: string | null): void {
++    try {
++      if (value === null) this.#storage?.removeItem(key);
++      else this.#storage?.setItem(key, value);
++    } catch {
++      // Memory copy stays authoritative for this page; nothing else to do.
++    }
+   }
+ }
+ 
+ type SessionSource = Pick<SessionController, 'subscribe' | 'snapshot'>;
+ const draftsBySession = new WeakMap<SessionSource, FormDrafts>();
+ 
+-/** The draft store of one session, cleared on logout (`logging_out`/`guest`), kept on `expired`. */
+-export function formDrafts(session: SessionSource): FormDrafts {
++/** The browser tab storage, or null where none exists (Node tests, blocked storage). */
++export function browserTabStorage(): DraftStorage | null {
++  try {
++    return globalThis.sessionStorage ?? null;
++  } catch {
++    return null;
++  }
++}
++
++/**
++ * The draft store of one session, cleared on logout (`logging_out`/`guest`, memory and tab storage), kept on
++ * `expired` so re-authentication resumes the same draft.
++ */
++export function formDrafts(session: SessionSource, storage: DraftStorage | null): FormDrafts {
+   const existing = draftsBySession.get(session);
+   if (existing) return existing;
+-  const drafts = new FormDrafts();
++  const drafts = new FormDrafts(storage);
+   draftsBySession.set(session, drafts);
+-  session.subscribe(() => {
++  const clearOnLogout = () => {
+     const state = session.snapshot().state;
+     if (state === 'logging_out' || state === 'guest') drafts.clear();
+-  });
++  };
++  session.subscribe(clearOnLogout);
++  clearOnLogout();
+   return drafts;
+ }
+diff --git a/v2/web/src/tickets/create-request.tsx b/v2/web/src/tickets/create-request.tsx
+index bc4c10a..1dc6f0e 100644
+--- a/v2/web/src/tickets/create-request.tsx
++++ b/v2/web/src/tickets/create-request.tsx
+@@ -13,20 +13,21 @@ import { AttachmentComposer } from '../compose/composer.tsx';
+ import {
+   type ComposeDraft,
+   type ComposeReceipt,
+   type ComposeSubmission,
+   codePoints,
+   submissionLimits,
+ } from '../compose/state.ts';
+ import { isUuid } from '../contracts/http.ts';
+ import type { Ticket } from '../contracts/tickets.ts';
+ import {
++  browserTabStorage,
+   defaultRequestFields,
+   formDrafts,
+   makeRequestSubmission,
+   type RequestFormFields,
+   requestFormLocked,
+   workflowOptions,
+ } from './create-request-state.ts';
+ import { failureText, projectsQueryOptions } from './queries.ts';
+ import { kindLabels } from './status.ts';
+ 
+@@ -46,21 +47,21 @@ const buttonStyle: CSSProperties = {
+ 
+ export type CreateRequestFormProps = {
+   /** Project preselected for a new draft (normally the current view's project). */
+   initialProjectId?: string;
+   /** Called once per confirmed create with the ticket ID returned by the producer. */
+   onCreated: (ticketId: string) => void;
+ };
+ 
+ export function CreateRequestForm({ initialProjectId, onCreated }: CreateRequestFormProps) {
+   const { client, session } = useRuntime();
+-  const drafts = formDrafts(session);
++  const drafts = formDrafts(session, browserTabStorage());
+   const initial = useRef<RequestFormFields | null>(null);
+   if (initial.current === null) {
+     const stored = drafts.request;
+     initial.current =
+       stored && (stored.projectId || !initialProjectId)
+         ? stored
+         : { ...(stored ?? defaultRequestFields()), projectId: initialProjectId ?? '' };
+   }
+   const latest = useRef<RequestFormFields>(initial.current);
+   const [fields, setFieldsState] = useState<RequestFormFields>(initial.current);
+diff --git a/v2/web/src/tickets/detail.tsx b/v2/web/src/tickets/detail.tsx
+index cb7692a..9dd6b7b 100644
+--- a/v2/web/src/tickets/detail.tsx
++++ b/v2/web/src/tickets/detail.tsx
+@@ -6,21 +6,21 @@
+  * missing, never derived from `criteria` keys or prose.
+  */
+ import * as Dialog from '@radix-ui/react-dialog';
+ import { type CSSProperties, type ReactNode, useMemo, useState } from 'react';
+ import { useRuntime } from '../app-runtime.ts';
+ import { TicketAttachments } from '../attachments/preview.tsx';
+ import { AttachmentComposer } from '../compose/composer.tsx';
+ import type { ComposeDraft, ComposeSubmission } from '../compose/state.ts';
+ import type { Ticket } from '../contracts/tickets.ts';
+ import { TicketDocsLinksEditor } from '../docs/ticket-links.tsx';
+-import { formDrafts } from './create-request-state.ts';
++import { browserTabStorage, formDrafts } from './create-request-state.ts';
+ import { TicketHistory } from './history.tsx';
+ import { failureText, useTicket, useTicketGraph } from './queries.ts';
+ import {
+   isTerminal,
+   kindLabels,
+   levelLabels,
+   statusIcons,
+   statusLabels,
+   statusOrder,
+   waitNotice,
+@@ -106,44 +106,52 @@ function ChildTickets({ ticket }: { ticket: Ticket }) {
+               {child.mandatory ? ' · Bắt buộc' : ''}
+             </li>
+           ))}
+         </ul>
+       )}
+     </section>
+   );
+ }
+ 
+ /**
+- * New comment through the shared Task5 composer. The text draft is kept per ticket for the session, so
+- * closing the dialog or a realtime refetch never loses it; only “Bỏ bản nháp bình luận” or a confirmed
+- * comment clears it.
++ * New comment through the shared Task5 composer. The text draft is kept per ticket for the session (memory
++ * and tab storage), so closing the dialog, a realtime refetch or a reload never loses it; only “Bỏ bản nháp
++ * bình luận” or a confirmed comment clears it. Rendered with `key={ticket.id}`: a draft never follows the
++ * view to another ticket. On a terminal ticket the composer stays mounted only while a comment is still
++ * sending or unconfirmed, so its resend/status remains reachable; a fresh comment is not offered.
+  */
+-function CommentComposer({ ticket }: { ticket: Ticket }) {
+-  const drafts = formDrafts(useRuntime().session);
+-  const [text, setText] = useState(() => drafts.comments.get(ticket.id) ?? '');
++function CommentComposer({ ticket, terminal }: { ticket: Ticket; terminal: boolean }) {
++  const drafts = formDrafts(useRuntime().session, browserTabStorage());
++  const [text, setText] = useState(() => drafts.comment(ticket.id));
+   const [state, setState] = useState<ComposeDraft['state']>('editing');
+   const submission = useMemo<ComposeSubmission>(
+     () => ({
+       kind: 'comment',
+       target: { purpose: 'comment', projectId: ticket.projectId, ticketId: ticket.id },
+       text,
+     }),
+     [ticket.projectId, ticket.id, text],
+   );
+   const write = (next: string) => {
+-    if (next === '') drafts.comments.delete(ticket.id);
+-    else drafts.comments.set(ticket.id, next);
++    drafts.setComment(ticket.id, next);
+     setText(next);
+   };
++  if (terminal && state === 'editing') return null;
+   return (
+     <section aria-labelledby={`comment-${ticket.id}`} style={{ display: 'grid', gap: '0.5rem' }}>
+       <h2 id={`comment-${ticket.id}`}>Bình luận mới</h2>
++      {terminal && (
++        <p role="note">
++          Ticket đã kết thúc. Bình luận đang chờ xác nhận chỉ có thể gửi lại đúng nội dung cũ hoặc xem trạng
++          thái.
++        </p>
++      )}
+       <AttachmentComposer
+         draftKey={`comment:${ticket.id}`}
+         submission={submission}
+         onSubmissionChange={(next) => {
+           if (next.kind === 'comment') write(next.text);
+         }}
+         onStateChange={setState}
+         onAccepted={() => write('')}
+       />
+       {state === 'editing' && text !== '' && (
+@@ -175,20 +183,21 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
+               Thử lại
+             </button>
+           </div>
+         )}
+       </article>
+     );
+   }
+   const ticket = query.data;
+   const pin = ticket.workflowPin;
+   const wait = waitNotice(ticket.status, ticket.waitReason);
++  const terminal = isTerminal(ticket.status);
+   return (
+     <article
+       style={stackStyle}
+       data-testid="ticket-detail"
+       data-ticket-id={ticket.id}
+       data-revision={ticket.revision}
+     >
+       <header style={{ display: 'grid', gap: '0.4rem' }}>
+         <span>
+           {levelLabels[ticket.level]} · {kindLabels[ticket.kind]}
+@@ -201,21 +210,21 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
+               Trạng thái: <StatusBadge status={ticket.status} /> · Phiên bản {ticket.revision}
+             </>
+           }
+         />
+       </header>
+       {query.error && (
+         <p role="status" style={noticeStyle}>
+           Đang hiển thị dữ liệu đã tải trước đó: {failureText(query.error)}
+         </p>
+       )}
+-      {isTerminal(ticket.status) && (
++      {terminal && (
+         <p role="note" style={noticeStyle}>
+           Ticket đã kết thúc ({statusLabels[ticket.status]}), chỉ xem.
+         </p>
+       )}
+       {wait !== null && (
+         <p role="note" style={noticeStyle}>
+           {wait}
+         </p>
+       )}
+       <section aria-labelledby={`description-${ticket.id}`}>
+@@ -249,22 +258,25 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
+           <Field label="Máy">{missing}</Field>
+           <Field label="Model">{missing}</Field>
+           <Field label="Độ khó">{missing}</Field>
+           <Field label="Lượt chạy">{missing}</Field>
+           <Field label="Bằng chứng">{missing}</Field>
+         </dl>
+       </section>
+       <ChildTickets ticket={ticket} />
+       <section aria-labelledby={`related-${ticket.id}`} style={{ display: 'grid', gap: '0.75rem' }}>
+         <h2 id={`related-${ticket.id}`}>Tệp và tài liệu liên quan</h2>
+-        <TicketDocsLinksEditor ticketId={ticket.id} />
++        {/* A terminal ticket is read-only: the disabled fieldset disables every control of the editor. */}
++        <fieldset disabled={terminal} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
++          <TicketDocsLinksEditor ticketId={ticket.id} />
++        </fieldset>
+         <TicketAttachments
+           ticketId={ticket.id}
+           client={runtime.client}
+           onUnauthorized={() => runtime.session.expire()}
+         />
+       </section>
+       <TicketHistory ticketId={ticket.id} />
+-      {!isTerminal(ticket.status) && <CommentComposer ticket={ticket} />}
++      <CommentComposer key={ticket.id} ticket={ticket} terminal={terminal} />
+     </article>
+   );
+ }
+diff --git a/v2/web/src/tickets/status.ts b/v2/web/src/tickets/status.ts
+index 1d61d18..d5c5e42 100644
+--- a/v2/web/src/tickets/status.ts
++++ b/v2/web/src/tickets/status.ts
+@@ -75,22 +75,26 @@ export function groupByStatus(tickets: readonly Ticket[]): Record<TicketStatus,
+   return groups;
+ }
+ 
+ export type Focusable = { readonly isConnected: boolean; focus(): void };
+ 
+ /** First candidate still attached to the document: trigger, then its view container, then main. */
+ export function pickReturnFocus<T extends Focusable>(candidates: readonly (T | null)[]): T | null {
+   return candidates.find((candidate): candidate is T => candidate?.isConnected === true) ?? null;
+ }
+ 
+-/** Codes the producer writes: `server/src/tickets/repair.ts:54`, `server/src/execution/attempts.ts:489`. */
++/**
++ * Codes the producer writes: `server/src/tickets/service.ts:420,486` (`owner_input`, `repair_limit`),
++ * `server/src/tickets/repair.ts:54`, `server/src/execution/attempts.ts:489`.
++ */
+ const waitReasonLabels: Readonly<Record<string, string>> = {
++  owner_input: 'Cần bạn trả lời hoặc quyết định.',
+   repair_limit: 'Đã sửa đủ 5 vòng nhưng vẫn chưa đạt, cần bạn quyết định.',
+   final_result_pending: 'Máy chưa xác nhận kết quả cuối.',
+ };
+ 
+ /** Label for the producer's `waitReason` code; an unknown code is shown verbatim, never reinterpreted. */
+ export function waitReasonLabel(reason: string): string {
+   return waitReasonLabels[reason] ?? `mã từ máy chủ “${reason}”.`;
+ }
+ 
+ /**
+diff --git a/v2/web/test/create-request.test.ts b/v2/web/test/create-request.test.ts
+index 3587590..378f6bc 100644
+--- a/v2/web/test/create-request.test.ts
++++ b/v2/web/test/create-request.test.ts
+@@ -107,56 +107,96 @@ function fakeSession(state: SessionSnapshot['state'] = 'authenticated') {
+       return () => listeners.delete(listener);
+     },
+     snapshot: () => snapshot,
+     set(next: SessionSnapshot['state']) {
+       snapshot = { ...snapshot, state: next };
+       for (const listener of listeners) listener();
+     },
+   };
+ }
+ 
++/** Tab storage double with the `Storage` members the draft store uses. */
++function tabStorage() {
++  const map = new Map<string, string>();
++  return {
++    map,
++    get length() {
++      return map.size;
++    },
++    key: (index: number) => [...map.keys()][index] ?? null,
++    getItem: (key: string) => map.get(key) ?? null,
++    setItem: (key: string, value: string) => void map.set(key, value),
++    removeItem: (key: string) => void map.delete(key),
++  };
++}
++
+ test('formDrafts giữ bản nháp qua hết phiên/đăng nhập lại, xóa khi đăng xuất, tách theo session', () => {
++  const storage = tabStorage();
+   const session = fakeSession();
+-  const drafts = formDrafts(session);
+-  assert.equal(formDrafts(session), drafts, 'một kho cho một session');
++  const drafts = formDrafts(session, storage);
++  assert.equal(formDrafts(session, storage), drafts, 'một kho cho một session');
+   drafts.request = { ...defaultRequestFields(projectId), title: 'Nháp' };
+-  drafts.comments.set('t1', 'bình luận nháp');
++  drafts.setComment('t1', 'bình luận nháp');
+   session.set('expired');
+   session.set('authenticated');
+   assert.equal(drafts.request?.title, 'Nháp');
+-  assert.equal(drafts.comments.get('t1'), 'bình luận nháp');
+-  const other = formDrafts(fakeSession());
+-  assert.notEqual(other, drafts);
+-  assert.equal(other.request, null);
++  assert.equal(drafts.comment('t1'), 'bình luận nháp');
+   session.set('logging_out');
+   assert.equal(drafts.request, null);
+-  assert.equal(drafts.comments.size, 0);
+-  drafts.comments.set('t2', 'x');
++  assert.equal(drafts.comment('t1'), '');
++  assert.equal(storage.map.size, 0, 'đăng xuất xóa cả bản lưu trong tab');
++  drafts.setComment('t2', 'x');
+   session.set('guest');
+-  assert.equal(drafts.comments.size, 0);
++  assert.equal(drafts.comment('t2'), '');
++});
++
++test('formDrafts lưu vào tab storage, phiên mới (tải lại trang) đọc lại đúng field; dữ liệu hỏng bị bỏ', () => {
++  const storage = tabStorage();
++  const before = formDrafts(fakeSession(), storage);
++  const fields: RequestFormFields = {
++    projectId,
++    kind: 'docs',
++    title: 'Tiêu đề có dấu',
++    description: 'Mô tả\nhai dòng',
++    workflowChoice: 'bmad',
++  };
++  before.request = fields;
++  before.setComment('t1', 'nháp bình luận');
++  for (const value of storage.map.values()) assert.doesNotMatch(value, /csrf|token|password/i);
++  const after = formDrafts(fakeSession(), storage);
++  assert.notEqual(after, before);
++  assert.deepEqual(after.request, fields);
++  assert.equal(after.comment('t1'), 'nháp bình luận');
++  after.setComment('t1', '');
++  assert.equal(formDrafts(fakeSession(), storage).comment('t1'), '');
++  for (const key of [...storage.map.keys()]) storage.map.set(key, '{"projectId":1,"kind":"epic"}');
++  assert.equal(formDrafts(fakeSession(), storage).request, null, 'field sai kiểu không được khôi phục');
+ });
+ 
+ // ---------------------------------------------------------------------------------------------------------
+ // Form component (jsdom + RTL, real Task2 client/session/pending over the in-memory producer)
+ // ---------------------------------------------------------------------------------------------------------
+ 
+ const closeDom = installDom();
+ // biome-ignore lint/correctness/useHookAtTopLevel: not a React hook; it binds jsdom event constructors.
+ useDomEventConstructors();
+ const { act, cleanup, fireEvent, render, screen } = await import('@testing-library/react');
+ const { createElement } = await import('react');
+ const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
+ const { ComposeServicesProvider } = await import('../src/compose/composer.tsx');
+ const { RuntimeContext } = await import('../src/app-runtime.ts');
+ const { CreateRequestAction, CreateRequestForm } = await import('../src/tickets/create-request.tsx');
+ 
+-afterEach(() => cleanup());
++afterEach(() => {
++  cleanup();
++  window.sessionStorage.clear();
++});
+ after(() => closeDom());
+ 
+ function project(id: string, name: string) {
+   return {
+     id,
+     key: name.slice(0, 4).toUpperCase(),
+     name,
+     repositoryUrl: null,
+     machineId: null,
+     checkoutPath: null,
+@@ -277,21 +317,21 @@ test('form tạo yêu cầu text-only: Superpowers mặc định, gửi đúng b
+   assert.equal(stored.level, 'request');
+   assert.equal(stored.parentId, null);
+   assert.equal(stored.projectId, projectId);
+   assert.equal(stored.description, 'Mô tả tiếng Việt có dấu: ảnh chụp màn hình.');
+   assert.deepEqual(stored.criteria, { workflowChoice: 'superpowers' });
+   assert.deepEqual(JSON.parse(ticketPosts(server)[0]?.body ?? '{}').selection.attachmentIds, []);
+   await act(async () => undefined);
+   assert.equal(titleInput().value, '', 'sau khi tạo, form bắt đầu bản nháp mới');
+   assert.equal(description().value, '');
+   assert.equal(projectSelect().value, projectId, 'giữ project đang chọn');
+-  assert.equal(formDrafts(env.session).request?.title ?? '', '');
++  assert.equal(formDrafts(env.session, window.sessionStorage).request?.title ?? '', '');
+ });
+ 
+ test('chọn BMAD rõ ràng kèm PNG: body có workflowChoice bmad và đúng ID tệp', async () => {
+   const server = serverWithProjects();
+   const env = await harness(server);
+   const created: string[] = [];
+   render(
+     providers(
+       env,
+       createElement(CreateRequestForm, { initialProjectId: projectId, onCreated: (id) => created.push(id) }),
+@@ -414,10 +454,62 @@ test('nút “Tạo yêu cầu”: đóng hộp thoại giữ field, chỉ “B
+   assert.equal(description().value, '');
+   assert.equal(radio(/Superpowers/).checked, true);
+   await change(titleInput(), 'Tạo xong mở ticket');
+   await act(async () => {
+     fireEvent.click(button(/Tạo ticket/));
+   });
+   await until(() => opened.length === 1, 'opened');
+   assert.equal(opened[0], (server.tickets[0] as { id: string }).id);
+   assert.equal(screen.queryByRole('dialog', { name: 'Tạo yêu cầu' }), null, 'đóng form, mở ticket');
+ });
++
++test('mất response rồi tải lại trang: field khôi phục, bị khóa và khớp từng byte body gửi lại', async () => {
++  const server = serverWithProjects();
++  const env = await harness(server);
++  render(
++    providers(
++      env,
++      createElement(CreateRequestForm, { initialProjectId: projectId, onCreated: () => undefined }),
++    ),
++  );
++  await formReady();
++  await change(projectSelect(), otherProjectId);
++  await change(kindSelect(), 'deploy');
++  await change(titleInput(), 'Triển khai bản vá');
++  await change(description(), 'Mô tả trước khi tải lại');
++  await act(async () => {
++    fireEvent.click(radio(/BMAD/));
++  });
++  server.dropAfterCommit = (call) => call.url === '/v2/attachment-submissions/tickets';
++  await act(async () => {
++    fireEvent.click(button(/Tạo ticket/));
++  });
++  await until(() => composeState() === 'ambiguous', 'ambiguous');
++  // Reload: new session/pending/client over the same tab storage; in-memory state is gone.
++  cleanup();
++  const reloaded = await harness(server, env.storage);
++  const created: string[] = [];
++  render(
++    providers(
++      reloaded,
++      createElement(CreateRequestForm, { initialProjectId: projectId, onCreated: (id) => created.push(id) }),
++    ),
++  );
++  await formReady();
++  await until(() => composeState() === 'ambiguous', 'ambiguous after reload');
++  for (const field of [titleInput(), projectSelect(), kindSelect(), radio(/BMAD/)])
++    assert.equal(field.disabled, true, `${field.tagName} khóa sau tải lại`);
++  const sent = JSON.parse(ticketPosts(server)[0]?.body ?? '{}').ticket;
++  assert.equal(projectSelect().value, sent.projectId);
++  assert.equal(kindSelect().value, sent.kind);
++  assert.equal(titleInput().value, sent.title);
++  assert.equal(description().value, sent.description);
++  assert.equal(radio(/BMAD/).checked, sent.criteria.workflowChoice === 'bmad');
++  await act(async () => {
++    fireEvent.click(button(/Gửi lại đúng yêu cầu cũ/));
++  });
++  await until(() => created.length === 1, 'created');
++  const posts = ticketPosts(server);
++  assert.equal(new Set(posts.map((call) => call.body)).size, 1);
++  assert.equal(new Set(posts.map((call) => call.headers.get('idempotency-key'))).size, 1);
++  assert.equal(server.tickets.length, 1);
++});
+diff --git a/v2/web/test/ticket-detail-dom.test.ts b/v2/web/test/ticket-detail-dom.test.ts
+index d31ef85..b3a3bb5 100644
+--- a/v2/web/test/ticket-detail-dom.test.ts
++++ b/v2/web/test/ticket-detail-dom.test.ts
+@@ -9,23 +9,28 @@ import { useDomEventConstructors } from './support/dom-events.ts';
+ 
+ const closeDom = installDom();
+ // biome-ignore lint/correctness/useHookAtTopLevel: not a React hook; it binds jsdom event constructors.
+ useDomEventConstructors();
+ const { act, cleanup, fireEvent, render, screen } = await import('@testing-library/react');
+ const { createElement, useState } = await import('react');
+ const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
+ const { ComposeServicesProvider } = await import('../src/compose/composer.tsx');
+ const { RuntimeContext } = await import('../src/app-runtime.ts');
+ const { TicketDialog } = await import('../src/tickets/dialog.tsx');
++const { TicketDetail } = await import('../src/tickets/detail.tsx');
++const { queryKeys, queryRoots } = await import('../src/lib/query-keys.ts');
+ const { RequestList } = await import('../src/tickets/requests.tsx');
+ 
+-afterEach(() => cleanup());
++afterEach(() => {
++  cleanup();
++  window.sessionStorage.clear();
++});
+ after(() => closeDom());
+ 
+ const ticketA = '66666666-6666-4666-8666-666666666666';
+ const ticketB = '77777777-7777-4777-8777-777777777777';
+ const ticketDone = '88888888-8888-4888-8888-888888888888';
+ 
+ function ticket(id: string, title: string, overrides: Partial<Ticket> = {}): Ticket {
+   return {
+     id,
+     projectId,
+@@ -75,49 +80,61 @@ function serverWithTickets(rows: Ticket[], attachments: Record<string, unknown[]
+       }
+     }
+     return base(url, init);
+   };
+   return { server, reads };
+ }
+ 
+ type Env = Awaited<ReturnType<typeof harness>>;
+ let openTicket: (id: string | null) => void = () => undefined;
+ 
+-function mount(env: Env) {
++let showPage: (id: string) => void = () => undefined;
++
++/** Mounts the dialog host, or with `page` the ticket page whose `ticketId` prop changes without remount. */
++function mount(env: Env, mode: 'dialog' | 'page' = 'dialog') {
+   const queryClient = new QueryClient({
+     defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
+   });
+   // Test runtime: only the members the ticket views read (`client`, `session`, `pending`).
+   const runtime = { client: env.client, session: env.session, pending: env.pending } as unknown as AppRuntime;
+   const services = {
+     client: env.client,
+     pending: env.pending,
+     session: env.session,
+     storage: env.storage,
+     createHasher: () => inlineHasher().hasher,
+   };
+   function Host() {
+     const [open, setOpen] = useState<string | null>(null);
+     openTicket = setOpen;
+     return createElement(TicketDialog, { ticketId: open, onClose: () => setOpen(null), returnFocus: null });
+   }
++  function Page() {
++    const [id, setId] = useState(ticketA);
++    showPage = setId;
++    return createElement(TicketDetail, { ticketId: id, presentation: 'page' });
++  }
+   render(
+     createElement(
+       RuntimeContext.Provider,
+       { value: runtime },
+       createElement(
+         QueryClientProvider,
+         { client: queryClient },
+-        createElement(ComposeServicesProvider, { services, children: createElement(Host) }),
++        createElement(ComposeServicesProvider, {
++          services,
++          children: createElement(mode === 'page' ? Page : Host),
++        }),
+       ),
+     ),
+   );
++  return queryClient;
+ }
+ 
+ async function until(predicate: () => boolean, label: string) {
+   await act(async () => {
+     await settle(predicate, label);
+   });
+ }
+ 
+ async function open(id: string | null) {
+   await act(async () => openTicket(id));
+@@ -157,41 +174,41 @@ test('draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại;
+   await until(() => commentBox() !== null, 'composer A again');
+   assert.equal(commentBox()?.value, 'nháp cho A');
+   await act(async () => {
+     fireEvent.click(screen.getByRole('button', { name: /Bỏ bản nháp bình luận/ }));
+   });
+   assert.equal(commentBox()?.value, '');
+   await open(null);
+   await open(ticketA);
+   await until(() => commentBox() !== null, 'composer A third');
+   assert.equal(commentBox()?.value, '', 'đã bỏ thì không khôi phục');
+-  assert.equal(formDrafts(env.session).comments.get(ticketB), 'nháp cho B');
++  assert.equal(formDrafts(env.session, window.sessionStorage).comment(ticketB), 'nháp cho B');
+ });
+ 
+ test('gửi bình luận qua composer chung: một comment, ô nhập trống và timeline đọc lại', async () => {
+   const { server, reads } = serverWithTickets([ticket(ticketA, 'Ticket A')]);
+   const env = await harness(server);
+   mount(env);
+   await open(ticketA);
+   await typeComment('Bình luận có dấu tiếng Việt');
+   const before = reads.filter((url) => url.startsWith(`/v2/tickets/${ticketA}/comments`)).length;
+   await act(async () => {
+     fireEvent.click(screen.getByRole('button', { name: /Gửi bình luận/ }));
+   });
+   await until(() => server.comments.length === 1, 'comment');
+   await until(() => commentBox()?.value === '', 'cleared');
+   await until(
+     () => reads.filter((url) => url.startsWith(`/v2/tickets/${ticketA}/comments`)).length > before,
+     'timeline refetch',
+   );
+   await until(() => (document.body.textContent ?? '').includes('Bình luận có dấu tiếng Việt'), 'timeline');
+-  assert.equal(formDrafts(env.session).comments.get(ticketA) ?? '', '');
++  assert.equal(formDrafts(env.session, window.sessionStorage).comment(ticketA), '');
+ });
+ 
+ test('ticket đã kết thúc chỉ xem: không có composer bình luận', async () => {
+   const { server } = serverWithTickets([ticket(ticketDone, 'Ticket xong', { status: 'done' })]);
+   const env = await harness(server);
+   mount(env);
+   await open(ticketDone);
+   assert.match(document.body.textContent ?? '', /chỉ xem/);
+   assert.equal(commentBox(), null);
+ });
+@@ -317,10 +334,141 @@ test('chi tiết trong hộp thoại nhúng editor liên kết tài liệu của
+     () =>
+       (screen.queryByRole('checkbox', { name: /huong-dan|Hướng dẫn/ }) as HTMLInputElement | null)
+         ?.checked === true,
+     'linked page checked',
+   );
+   assert.doesNotMatch(
+     document.querySelector('[data-testid="ticket-detail"]')?.textContent ?? '',
+     /Tài liệu liên quanChưa có dữ liệu/,
+   );
+ });
++
++test('trang ticket đổi ticketId mà không remount: chữ nháp của A không sang B', async () => {
++  const { server } = serverWithTickets([ticket(ticketA, 'Ticket A'), ticket(ticketB, 'Ticket B')]);
++  const env = await harness(server);
++  mount(env, 'page');
++  await until(() => document.querySelector(`[data-ticket-id="${ticketA}"]`) !== null, 'page A');
++  await typeComment('chỉ dành cho A');
++  await act(async () => showPage(ticketB));
++  await until(
++    () => document.querySelector(`[data-testid="ticket-detail"][data-ticket-id="${ticketB}"]`) !== null,
++    'page B',
++  );
++  await until(() => commentBox() !== null, 'composer B');
++  assert.equal(commentBox()?.value, '');
++  const drafts = formDrafts(env.session, window.sessionStorage);
++  assert.equal(drafts.comment(ticketB), '');
++  assert.equal(drafts.comment(ticketA), 'chỉ dành cho A');
++  await act(async () => showPage(ticketA));
++  await until(() => commentBox()?.value === 'chỉ dành cho A', 'A restored');
++});
++
++test('mất response bình luận rồi tải lại trang: ô nội dung khôi phục, khóa và khớp body gửi lại', async () => {
++  const { server } = serverWithTickets([ticket(ticketA, 'Ticket A')]);
++  const env = await harness(server);
++  mount(env);
++  await open(ticketA);
++  await typeComment('Bình luận trước khi tải lại');
++  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
++  await act(async () => {
++    fireEvent.click(screen.getByRole('button', { name: /Gửi bình luận/ }));
++  });
++  await until(() => document.querySelector('[data-compose-state="ambiguous"]') !== null, 'ambiguous');
++  cleanup();
++  const reloaded = await harness(server, env.storage);
++  mount(reloaded);
++  await open(ticketA);
++  await until(
++    () => document.querySelector('[data-compose-state="ambiguous"]') !== null,
++    'ambiguous after reload',
++  );
++  const posts = () => server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
++  assert.equal(commentBox()?.value, JSON.parse(posts()[0]?.body ?? '{}').text);
++  assert.equal(commentBox()?.readOnly, true);
++  await act(async () => {
++    fireEvent.click(screen.getByRole('button', { name: /Gửi lại đúng yêu cầu cũ/ }));
++  });
++  await until(() => server.comments.length === 1 && posts().length >= 2, 'replayed');
++  assert.equal(new Set(posts().map((call) => call.body)).size, 1);
++  assert.equal(new Set(posts().map((call) => call.headers.get('idempotency-key'))).size, 1);
++});
++
++test('deep link chữ hoa: cache theo key chữ thường, invalidation chữ thường làm mới, revision cũ không ghi đè', async () => {
++  const hexId = 'abcdef01-2345-4678-9abc-def012345678';
++  const row = ticket(hexId, 'Ticket hex', { revision: 1 });
++  const { server } = serverWithTickets([row]);
++  const env = await harness(server);
++  const cache = mount(env);
++  await open(hexId.toUpperCase());
++  assert.equal(cache.getQueryData<Ticket>(queryKeys.ticket(hexId))?.revision, 1);
++  assert.equal(cache.getQueryData(queryKeys.ticket(hexId.toUpperCase())), undefined);
++  const revision = () =>
++    document.querySelector('[data-testid="ticket-detail"]')?.getAttribute('data-revision');
++  Object.assign(row, { revision: 5, title: 'Ticket hex mới' });
++  await act(async () => {
++    await cache.invalidateQueries({ queryKey: queryRoots.ticket(hexId) });
++  });
++  await until(() => revision() === '5', 'refetched by lower-case invalidation');
++  Object.assign(row, { revision: 3, title: 'Bản cũ' });
++  await act(async () => {
++    await cache.invalidateQueries({ queryKey: queryRoots.ticket(hexId) });
++  });
++  await act(async () => undefined);
++  assert.equal(revision(), '5', 'revision guard giữ bản mới');
++  assert.doesNotMatch(document.body.textContent ?? '', /Bản cũ/);
++});
++
++test('ticket kết thúc: editor liên kết tài liệu chỉ đọc', async () => {
++  const snapshotId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
++  const { server } = serverWithTickets([ticket(ticketDone, 'Ticket xong', { status: 'done' })]);
++  const base = server.fetch;
++  const json = (body: unknown) =>
++    new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
++  server.fetch = async (url: string, init: RequestInit = {}) => {
++    if ((init.method ?? 'GET') === 'GET' && url.startsWith(`/v2/projects/${projectId}/docs/tree`))
++      return json({
++        projectId,
++        snapshotId,
++        sourceCommit: null,
++        auditState: 'verified',
++        contentClass: 'implemented',
++        pages: [{ path: 'docs/a.md', title: 'A', parentPath: null, contentClass: 'implemented' }],
++        links: [],
++        relatedTicketIds: [],
++      });
++    if ((init.method ?? 'GET') === 'GET' && url.startsWith(`/v2/tickets/${ticketDone}/docs-links`))
++      return json({ items: [], nextCursor: null });
++    return base(url, init);
++  };
++  const env = await harness(server);
++  mount(env);
++  await open(ticketDone);
++  await until(() => screen.queryAllByRole('checkbox').length > 0, 'editor');
++  const region = screen.getByRole('region', { name: 'Tài liệu liên kết với ticket' });
++  for (const control of region.querySelectorAll('input, button'))
++    assert.equal((control as HTMLInputElement).matches(':disabled'), true, control.outerHTML.slice(0, 60));
++});
++
++test('ticket chuyển sang kết thúc qua realtime khi bình luận chưa xác nhận: composer vẫn còn để gửi lại', async () => {
++  const row = ticket(ticketA, 'Ticket A', { status: 'running' });
++  const { server } = serverWithTickets([row]);
++  const env = await harness(server);
++  const cache = mount(env);
++  await open(ticketA);
++  await typeComment('gửi lúc sắp xong');
++  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
++  await act(async () => {
++    fireEvent.click(screen.getByRole('button', { name: /Gửi bình luận/ }));
++  });
++  await until(() => document.querySelector('[data-compose-state="ambiguous"]') !== null, 'ambiguous');
++  Object.assign(row, { status: 'done', revision: 2 });
++  await act(async () => {
++    await cache.invalidateQueries({ queryKey: queryRoots.ticket(ticketA) });
++  });
++  await until(() => /chỉ xem/.test(document.body.textContent ?? ''), 'terminal');
++  assert.ok(screen.getByRole('button', { name: /Gửi lại đúng yêu cầu cũ/ }));
++  await act(async () => {
++    fireEvent.click(screen.getByRole('button', { name: /Gửi lại đúng yêu cầu cũ/ }));
++  });
++  await until(() => server.comments.length === 1, 'resent');
++  await until(() => document.querySelector('[data-compose-state]') === null, 'composer gone once settled');
++});
+diff --git a/v2/web/test/tickets.test.ts b/v2/web/test/tickets.test.ts
+index 2394286..3c0272b 100644
+--- a/v2/web/test/tickets.test.ts
++++ b/v2/web/test/tickets.test.ts
+@@ -406,10 +406,16 @@ test('waitNotice hiện waitReason ở mọi trạng thái, chỉ nói “chờ
+ });
+ 
+ test('requestListFilters ép level request cho view yêu cầu, giữ filter producer khác', () => {
+   assert.deepEqual(requestListFilters({ projectId, status: 'done', level: 'step' }), {
+     projectId,
+     status: 'done',
+     level: 'request',
+   });
+   assert.deepEqual(requestListFilters({}), { level: 'request' });
+ });
++
++test('waitNotice có nhãn tiếng Việt cho owner_input', () => {
++  const notice = waitNotice('needs_input', 'owner_input') ?? '';
++  assert.doesNotMatch(notice, /owner_input/);
++  assert.match(notice, /^Đang chờ bạn\. Lý do chờ: /);
++});

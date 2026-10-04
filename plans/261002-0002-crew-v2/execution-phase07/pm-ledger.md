@@ -151,3 +151,5 @@ Task 6 S6docs: minor (deferred): M1 phân biệt 404 bằng text message mong ma
 19:20 S3b review `task-3-s3b-review.md`: Spec chưa trọn, Needs fixes, Important3 (I1 draft A sang B khi không remount; I2 field form không persist lệch body frozen sau reload; I3 không có bỏ trọn draft) /Minor6/⚠️9. FIX1/5 resume, nâng M1 owner_input, M2 test key, M3 docs-links read-only terminal, M6 không unmount composer khi đang gửi.
 Ruling: "Bỏ bản nháp" của S3b = discard() S5a (owner đã duyệt) + xóa field — bỏ trọn file/session/key — sai thì giữ file ngoài ý muốn.
 Task 3 S3b: minor (deferred): M4 tạo thành công không mở ticket khi trigger.current null (`create-request.tsx:246`); M5 root key `['v2','projects']` dùng chung shape riêng (`queries.ts:255`); focus sau tạo (Radix setTimeout vs focus trap) chưa test.
+
+19:50 S3b FIX1 `d9216cc`/`ed085e1`: I1/I2/M1/M2/M3/M6 sửa; I3 NEEDS_CONTEXT — cần API S5a. Ruling: chấp nhận API đề xuất `ComposerProps.onHandle?({discardDraft(): Promise<'discarded'|'blocked'|'unconfirmed'>})`, giao worker S5a; S3b dùng ở vòng sửa 2 — sai thì đổi tên API nhỏ. Scoped re-review phần đã sửa chạy song song.
