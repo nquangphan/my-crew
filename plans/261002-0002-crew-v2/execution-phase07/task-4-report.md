@@ -146,3 +146,63 @@ Kiểm chứng:
 | `crew-docs generate` + `check --all` (bản sao v2) | ok, generated không đổi | — |
 
 Rủi ro còn lại: khi node neo đổi chỗ, ReactFlow có thể vẽ một khung hình với vị trí mới trước khi viewport kịp dịch (dịch trong `useLayoutEffect`). Trạng thái cuối đã được đo đúng (≤ 1 px), còn chớp hình thì chưa đo.
+
+## Polish theo ảnh tham chiếu: TẠM DỪNG (chưa commit)
+
+PM yêu cầu dừng để owner duyệt design. Phần sửa dở để nguyên trong working tree, chưa commit.
+
+- Đã làm:
+  - RED semantic cho delta 3 (mật độ) và delta 7 (khung nhìn ban đầu 1:1): 3/3 test fail bằng assertion, log `task-4-polish-red-unit.log`.
+  - Đã đổi hằng layout trong `v2/web/src/graph/layout.ts`: `cardHeight` 56, `rowGap` 12, `columnGap` 44.
+  - Đã viết `initialViewport` (root cách mép trái 24px, giữa chiều cao khung, zoom 1).
+- Chưa làm:
+  - Nối `initialViewport` vào `ticket-map.tsx` thay cho `fitView` mặc định; bật `panOnScroll`.
+  - Thiết kế lại thẻ: tiêu đề ở trên, chấm màu trạng thái, dòng phụ, nền xám, bo 4px (delta 4/5/8).
+  - Cạnh cha vuông góc, nét xám 1px (delta 9).
+  - Delta 2/6/11 mà owner chốt sau: căn lại toàn cây khi có dữ liệu realtime có neo, dòng phụ có thời gian cập nhật, header trang kiểu modal.
+  - Sửa E2E, chụp lại ảnh, ảnh đặt cạnh ảnh tham chiếu.
+- File đã đổi:
+  - `v2/web/src/graph/layout.ts`
+  - `v2/web/test/graph.test.ts`
+  - `v2/web/test/graph-state.test.ts`
+  - `execution-phase07/task-4-polish-red-unit.log` (mới)
+- Trạng thái hiện tại: working tree đang ở giữa RED và GREEN. Hằng layout đã đổi nhưng component chưa đổi theo, nên một số unit/DOM/E2E cũ có thể lệch cho tới khi làm tiếp.
+- Delta 1 (dialog theme tối) cần sửa `v2/web/src/tickets/dialog.tsx` hoặc `v2/web/src/styles.css`; cả hai nằm ngoài license file của Task4, nên cần PM cấp quyền (NEEDS_CONTEXT). Bản sửa đề xuất:
+  - Trong `contentStyle`: thay `background: 'Canvas'`/`color: 'CanvasText'` bằng nền `#1c1f26`, chữ `#e7edf7`, viền `1px solid #3f3f46`, bo `0.5rem`, thêm `colorScheme: 'dark'`.
+  - Overlay: `rgb(0 0 0 / 0.6)`.
+  - Header: `Dialog.Title` đứng hàng đầu, kèm nút × cố định góc phải (`position: sticky; top: 0`) thay vì `float`.
+- Tài nguyên: không giữ heavy-slot lock hay manifest lock, không còn process hoặc container fixture nào do task này tạo.
+
+## Polish theo mockup owner duyệt (tiếp tục sau khi tạm dừng)
+
+Commit: `47bbfe9` (source/test/docs). Báo cáo, log và ảnh nằm ở commit kế tiếp. Design chuẩn là `ui-evidence/design-map-mockup.html`. Gate kiểm bằng parse JSON; hai lần gặp `heavyEligible=false` thì đợi tới khi đủ điều kiện mới chạy, không chạy khi chưa đủ.
+
+| Delta | Đã làm | RED trước |
+|---|---|---|
+| 3 mật độ | Theo mockup: thẻ 280×48, cột cách 56, hàng cách 10. Nút mở/thu gọn cao ≥ 24 px. Mục tạm dừng trước ghi 56/44/12 theo ngưỡng PM; mockup thay thế các số đó | Unit: `cardHeight 112` (`task-4-polish-red-unit.log` `7b1100f57a1f`) và hằng mockup (`task-4-polish-red-unit2.log` `4c2c50e1e5d7`) |
+| 7 khung nhìn đầu | Root mới mở 1:1 (`initialViewport`): root cách mép trái 24 px, nằm giữa khung; `panOnScroll`. “Vừa khung” giữ nguyên | DOM: `root cách mép trái 24px`; unit `initialViewport` |
+| 2 realtime | Mọi thay đổi cây (kể cả realtime) chạy `relayoutAround`: cha giữa các con, task liền bước, không chồng. Neo là thẻ đang focus, không có thì root. Bỏ `placeNewNodes` và 4 test của nó, vì không còn đường gọi | DOM: `root nằm giữa con đầu và con cuối sau khi căn lại`. E2E G1: root đứng yên sau ghi đồng thời, mỗi bước nằm giữa các task, không chồng |
+| 4/5/6/8 thẻ | Tiêu đề kèm chấm trạng thái (`aria-hidden`) ở dòng trên. Dòng phụ chỉ dùng trường producer: “Yêu cầu”/“Sửa”/cấp, workflow đã ghim, trạng thái bằng chữ. Nền `#1c1f23`, viền `#2b2f35`, bo 4; focus viền `#8ab4ff` 2 px | DOM: `tiêu đề trên, dòng phụ dưới; không bịa giờ/token` |
+| 9 cạnh | Ngoặc vuông 1 px `#3a3f46` cách cha 28 px; phụ thuộc nét đứt `#8ab4ff` có mũi tên; sửa chấm `#d4a72c` ghi “sửa vòng …” | CSS/SVG, xác minh bằng ảnh |
+| 11 header | Trang có breadcrumb “Dự án › Yêu cầu › gốc”. Khung kiểu modal: “Sơ đồ ticket”, “N ticket · bấm vào thẻ để xem chi tiết”, Bảng/Danh sách/Sơ đồ, các nút điều khiển, chú giải ở đáy. Khung chừa chỗ cho chú giải trong cửa sổ | DOM: chú giải/tiêu đề/phụ đề (cùng test thẻ); E2E kiểm khung và chú giải nằm trong cửa sổ |
+| 1 dialog tối | Theo quyền hẹp: `tickets/dialog.tsx` (nền `#17191c`, viền `#2b2f35`, `colorScheme: dark`, overlay 60%, × có viền 36 px) và `styles.css` (`.ticket-dialog`: `color-scheme: dark`, ô nhập tối). Không đổi hành vi focus/URL/Back | CSS, xác minh bằng ảnh; E2E dialog và spec lân cận xanh |
+
+Kiểm chứng:
+
+| Lệnh | Kết quả | Log |
+|---|---|---|
+| Biome 14 file | exit 0 | `task-4-polish-biome.log` `0f18cd18dc59` |
+| tsc | exit 0 | `task-4-polish-typecheck.log` `19eaf43821a7` |
+| Unit web đầy đủ | 290/290 | `task-4-polish-unit-full.log` `a05cb1363b25` |
+| Build (outDir scratch) | exit 0 | `task-4-polish-build.log` `621b687e5bb3` |
+| `ticket-map.spec.ts` hai lượt | 4/4, 4/4 | `task-4-polish-e2e-run1.log` `e4aaf5b94950`, `run2` `b88736e329d4` |
+| Spec lân cận `ticket-routes`, `app-router`, `tickets`, `compose` (dialog chung) | 13/13 | `task-4-polish-e2e-adjacent.log` `8c75422cb7ab` |
+| `crew-docs generate` + `check --all` | ok, generated không đổi | — |
+
+Ảnh chụp lại trong `ui-evidence/task-4/`, thêm `side-by-side-map-vs-mockup.png` và `side-by-side-dialog-vs-mockup.png`.
+
+Lệch so với mockup:
+- **Dòng phụ chưa có giờ (delta 6):** `Ticket` không có trường thời gian cập nhật, nên dòng phụ chưa hiện giờ, chỉ hiện cấp/workflow · trạng thái. Muốn có giờ cần producer và contract thêm trường (ví dụ `updatedAt`).
+- **Nhãn “sửa vòng” chưa có số thứ tự:** repair link chỉ có `cycleId`, không có số thứ tự vòng, nên nhãn ghi “sửa vòng <8 ký tự cycle>” chứ không đánh số 1, 2, 3.
+- **Bên trong dialog chưa theo màn 2:** dialog đã tối, nhưng header có chấm trạng thái và dòng phụ, ba ô Trạng thái/Máy·model/Cập nhật, tiêu đề mục nhỏ và nút “Gửi” xanh đều nằm trong `tickets/detail.tsx` cùng các component con. Phần này ngoài quyền hẹp; cần PM cấp quyền `detail.tsx` (và có thể `history.tsx`, `compose/composer.tsx`) nếu muốn khớp đủ.
+- **Thêm vài nút so với mockup:** “Thu gọn tất cả”, “+”, “−” và “Xem dạng danh sách” được giữ vì brief yêu cầu thanh điều khiển zoom truy cập được và dạng danh sách tương đương.

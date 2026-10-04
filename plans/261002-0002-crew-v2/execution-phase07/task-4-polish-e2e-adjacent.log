@@ -1,0 +1,39 @@
+
+Running 13 tests using 1 worker
+
+[1/13] [chromium] › e2e/app-router.spec.ts:26:1 › router thật: guest chuyển login, quay về đúng path, stream trước GET dữ liệu, returnTo ngoài bị bác, logout đóng stream
+[chromium] › e2e/app-router.spec.ts:26:1 › router thật: guest chuyển login, quay về đúng path, stream trước GET dữ liệu, returnTo ngoài bị bác, logout đóng stream
+{"level":30,"time":1791119030723,"pid":77349,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:63670"}
+
+[2/13] [chromium] › e2e/app-router.spec.ts:90:1 › router thật: GET ticket của route deep link đứng sau catch-up /v2/events của phiên vừa xác minh
+[3/13] [chromium] › e2e/compose.spec.ts:315:1 › A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt
+[chromium] › e2e/compose.spec.ts:315:1 › A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt
+{"level":30,"time":1791119034272,"pid":77636,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:64151"}
+
+[4/13] [chromium] › e2e/compose.spec.ts:393:1 › A5/A3 text-only: mất response sau commit → phiên hết hạn → đăng nhập lại → replay cùng key/body → một ticket
+[chromium] › e2e/compose.spec.ts:393:1 › A5/A3 text-only: mất response sau commit → phiên hết hạn → đăng nhập lại → replay cùng key/body → một ticket
+EVIDENCE ticket-replay {"posts":6,"droppedAfterCommit":[201,201,201,201]}
+
+[5/13] [chromium] › e2e/compose.spec.ts:459:1 › A5/A3 text-only: bình luận mất response → hết phiên → đăng nhập lại → replay cùng key → một bình luận
+[chromium] › e2e/compose.spec.ts:459:1 › A5/A3 text-only: bình luận mất response → hết phiên → đăng nhập lại → replay cùng key → một bình luận
+EVIDENCE comment-replay {"posts":6,"droppedAfterCommit":[201,201,201,201]}
+
+[6/13] [chromium] › e2e/compose.spec.ts:522:1 › A5 text-only: bỏ bản nháp khi chưa xác nhận hiện cảnh báo trùng, giữ khóa cũ và không mất ticket đã lưu
+[7/13] [chromium] › e2e/compose.spec.ts:574:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket
+[chromium] › e2e/compose.spec.ts:574:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket
+EVIDENCE files-503 {"posts":1,"responses":[{"status":503,"code":"EXTRACTION_NOT_CONFIGURED"}]}
+
+[8/13] [chromium] › e2e/ticket-routes.spec.ts:40:1 › deep link /tickets/<id>: guest quay về đúng trang sau đăng nhập, reload vẫn giữ trang, GET ticket sau catch-up
+[chromium] › e2e/ticket-routes.spec.ts:40:1 › deep link /tickets/<id>: guest quay về đúng trang sau đăng nhập, reload vẫn giữ trang, GET ticket sau catch-up
+{"level":30,"time":1791119065508,"pid":78602,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:64983"}
+
+[9/13] [chromium] › e2e/ticket-routes.spec.ts:68:1 › id không tồn tại hoặc không phải UUID hiện view không tìm thấy, không lộ dữ liệu
+[10/13] [chromium] › e2e/ticket-routes.spec.ts:81:1 › bảng/danh sách giữ view và bộ lọc trên URL, dialog dùng chung, nút quay lại từ trang ticket
+[11/13] [chromium] › e2e/ticket-routes.spec.ts:133:1 › đăng xuất xóa bản nháp: reload không mở ticket rồi logout; logout xong reload ở guest
+[12/13] [chromium] › e2e/tickets.spec.ts:256:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus
+[chromium] › e2e/tickets.spec.ts:256:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus
+{"level":30,"time":1791119070086,"pid":78856,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:49331"}
+
+[13/13] [chromium] › e2e/tickets.spec.ts:358:1 › “Tạo yêu cầu” trên bảng: form project/loại/tiêu đề/workflow, Superpowers mặc định, đóng vẫn giữ bản nháp
+  13 passed (48.9s)
+exit=0

@@ -1,0 +1,19 @@
+vite v8.3.2 building client environment for production...
+transforming...
+✓ 657 modules transformed.
+rendering chunks...
+computing gzip size...
+../../../../../../var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-task4/dist/assets/file-hash.worker-79drajTX.js     0.66 kB
+../../../../../../var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-task4/dist/index.html                              0.79 kB │ gzip:   0.48 kB
+../../../../../../var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-task4/dist/assets/index-DVW1z1oY.css               4.34 kB │ gzip:   1.57 kB
+../../../../../../var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-task4/dist/assets/ticket-map-route-DLioOiRN.css   15.41 kB │ gzip:   2.56 kB
+../../../../../../var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-task4/dist/assets/ticket-map-route-CrdsHfBJ.js   204.22 kB │ gzip:  66.02 kB
+../../../../../../var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-task4/dist/assets/index-D7ngbRE3.js              697.96 kB │ gzip: 216.86 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 157ms
+exit=0

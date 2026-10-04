@@ -1,0 +1,304 @@
+✔ đóng dialog giữ vùng đang xem (2.226916ms)
+✔ mở dialog chọn và focus node, không đổi viewport/expanded; di chuyển chỉ đổi viewport (0.129959ms)
+✔ mở/thu gọn: toggle giữ thứ tự ổn định, “Mở tất cả” khôi phục tất cả, không trùng (16.97725ms)
+✔ trạng thái sơ đồ lưu theo root trong tab storage; dữ liệu hỏng bị bỏ (0.398042ms)
+✔ search của route sơ đồ: UUID về chữ thường, UUID sai bị bỏ (không gây request hay mutation) (0.558375ms)
+✔ đóng dialog chỉ lùi history khi mục hiện tại do chính sơ đồ của root này push (19.519292ms)
+✖ sơ đồ: root và bước hiện mặc định, task ẩn có badge; nhãn truy cập có cấp, trạng thái chữ và phiên bản (99.39875ms)
+✔ mở/thu gọn: bố cục lại cả cây, task liền bước cha, node neo đứng yên trên màn hình (bước vừa bấm; focus hoặc root khi “tất cả”) (1083.324042ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ mở node bằng click mở TicketDetail chung; đóng giữ viewport, expanded và trả focus về node (94.879083ms)
+✖ realtime: refetch cả graph (GET cũ bị hủy), cây tự căn lại (cha giữa các con), root làm neo đứng yên, không fit (247.695792ms)
+✔ realtime với thẻ đang focus: thẻ đó làm neo, đứng yên trên màn hình (263.391917ms)
+✖ thẻ và khung theo mockup: tiêu đề + chấm trạng thái, dòng phụ “cấp · trạng thái”, viền focus, header kiểu modal, chú giải (33.337084ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ node biến mất khi dialog đang mở: đóng trả focus về khung sơ đồ (54.228042ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ bàn phím: mũi tên di chuyển focus giữa node theo cây; bảng quan hệ liệt kê đủ ID (22.640833ms)
+✔ dữ liệu graph hỏng: báo chẩn đoán, có “Tải lại” và danh sách thay thế giữ mọi node (13.433875ms)
+✔ mở bằng URL (reload) với ticket đã chọn: dialog hiện, đóng gọi onSelectTicket(null) (30.794ms)
+✔ khung sơ đồ đo lại chiều cao khi nội dung phía trên đổi cỡ (ResizeObserver), không chỉ khi resize cửa sổ (10.988875ms)
+✖ root mới (chưa có trạng thái): mở ở 1:1, root ở mép trái giữa khung, không dùng fitView; cuộn chuột là cuộn (10.657833ms)
+✔ root→hai bước song song→join: mọi cặp dependency giữ nguyên, không có chuỗi tự suy, task thu gọn vào hiddenEdges (1.07225ms)
+✔ mở một bước chỉ hiện đúng task của bước đó; cạnh liên bước vẫn ẩn tới khi mở đủ hai đầu; mở tất cả không còn cạnh ẩn (0.249042ms)
+✔ badge đếm quan hệ dependency/repair tới công việc đang thu gọn theo bước chứa nó (0.254125ms)
+✔ repair check→fix chu kỳ 1–5: cạnh repair riêng, cùng đầu mút với parent vẫn giữ cả hai, vòng repair/dependency không làm layout lặp (0.276584ms)
+✔ graph đọc từ ticket con vẫn chiếu cả root: rootId thừa kế từ node (0.092334ms)
+✔ kết quả không phụ thuộc thứ tự input: node, cạnh và vị trí giống nhau (0.173792ms)
+✔ layout trái→phải: cột theo độ sâu (320+100), anh em theo ID, cha nằm giữa cây con, hàng cách 24 (0.111209ms)
+✔ dữ liệu hỏng có diagnostic, không bỏ node mồ côi, không lặp vô hạn (0.185292ms)
+✔ thiếu root: diagnostic ROOT_MISSING, mọi node vẫn được chiếu và có vị trí (0.068458ms)
+✔ chuỗi cha rất sâu (20 000) không tràn stack ở chiếu và layout (67.0535ms)
+✔ 200 bước / 600 task: giữ mọi cặp dependency, layout xác định và trong ngân sách thời gian (7.327042ms)
+✔ giữ vị trí cũ khi có node mới; node mới đặt cạnh cha; chỉ “Sắp xếp lại” mới layout lại (0.362209ms)
+✔ node mới không đè thẻ đang hiện của bước khác (task realtime dưới bước trên khi bước dưới cũng mở) (0.195833ms)
+✔ mở bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ, task mới cạnh bước, không chồng nhau (0.16425ms)
+✔ mở tất cả 200 bước / 600 task bằng placeNewNodes: không chồng thẻ, trong ngân sách thời gian (7.601041ms)
+✔ mở tất cả: bố cục lại cả cây, task nằm liền bước cha, node neo (root) đứng yên trên màn hình (0.310125ms)
+✔ mở/thu gọn một bước: bước vừa bấm đứng yên trên màn hình, task của nó liền kề (0.1705ms)
+✔ quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID (0.15625ms)
+✔ điều hướng bàn phím: trái về cha, phải tới con đầu, lên/xuống theo cột (0.123208ms)
+✖ mật độ theo mockup owner duyệt: thẻ 280×48, hàng cách 10, cột cách 56, vẫn chạm được (0.550167ms)
+✔ khung nhìn ban đầu 1:1: root ở mép trái, giữa chiều cao khung, không fit toàn cây (0.038958ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 34
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2915.840792
+
+✖ failing tests:
+
+test at test/graph-state.test.ts:384:1
+✖ sơ đồ: root và bước hiện mặc định, task ẩn có badge; nhãn truy cập có cấp, trạng thái chữ và phiên bản (99.39875ms)
+  Error [TestingLibraryElementError]: Unable to find a label with the text of: 1 quan hệ tới công việc thu gọn
+  
+  Ignored nodes: comments, script, style
+  [36m<body>[39m
+    [36m<div>[39m
+      [36m<section[39m
+        [33maria-label[39m=[32m"Sơ đồ ticket"[39m
+        [33mdata-focus-fallback[39m=[32m""[39m
+        [33mdata-nodes[39m=[32m"3"[39m
+        [33mdata-testid[39m=[32m"ticket-map"[39m
+        [33mstyle[39m=[32m"display: grid; gap: 0.75rem; min-width: 0px;"[39m
+        [33mtabindex[39m=[32m"-1"[39m
+      [36m>[39m
+        [36m<p[39m
+          [33mstyle[39m=[32m"margin: 0px;"[39m
+        [36m>[39m
+          [0mBước đang làm: Bước A (Đang chạy), Bước B (Đang chạy).[0m
+        [36m</p>[39m
+        [36m<fieldset[39m
+          [33maria-label[39m=[32m"Điều khiển sơ đồ"[39m
+          [33mstyle[39m=[32m"display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0px; padding: 0px; border: medium; min-width: 0px;"[39m
+        [36m>[39m
+          [36m<button[39m
+            [33mstyle[39m=[32m"font: inherit; padding: 0.35rem 0.7rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mPhóng to[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mstyle[39m=[32m"font: inherit; padding: 0.35rem 0.7rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mThu nhỏ[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mstyle[39m=[32m"font: inherit; padding: 0.35rem 0.7rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mVừa khung[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mstyle[39m=[32m"font: inherit; padding: 0.35rem 0.7rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mSắp xếp lại[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mstyle[39m=[32m"font: inherit; padding: 0.35rem 0.7rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mMở tất cả[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33mstyle[39m=[32m"font: inherit; padding: 0.35rem 0.7rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mThu gọn tất cả[0m
+          [36m</button>[39m
+          [36m<button[39m
+            [33maria-pressed[39m=[32m"false"[39m
+            [33mstyle[39m=[32m"font: inherit; padding: 0.35rem 0.7rem; border-radius: 0.5rem; border: 1px solid; background: transparent; color: inherit; cursor: pointer;"[39m
+            [33mtype[39m=[32m"button"[39m
+          [36m>[39m
+            [0mXem dạng danh sách[0m
+          [36m</button>[39m
+        [36m</fieldset>[39m
+        [36m<div[39m
+          [33mstyle[39m=[32m"border: 1px solid rgba(148, 163, 184, 0.6); border-radius: 0.75rem; height: 752px;"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"react-flow dark"[39m
+            [33mdata-testid[39m=[32m"rf__wrapper"[39m
+            [33mrole[39m=[32m"application"[39m
+            [33mstyle[39m=[32m"width: 100%; height: 100%; overflow: hidden; position: relative; z-index: 0;"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"react-flow__renderer"[39m
+              [33mstyle[39m=[32m"position: absolute; width: 100%; height: 100%; top: 0px; left: 0px;"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"react-flow__pane draggable"[39m
+                [33mstyle[39m=[32m"position: absolute; width: 100%; height: 100%; top: 0px; left: 0px;"[39m
+              [36m>[39m
+                [36m<div[39m
+                  [33mclass[39m=[32m"react-flow__viewport xyflow__viewport react-flow__container"[39m
+                  [33mstyle[39m=[32m"transform: translate(170px,322px) scale(1);"[39m
+                [36m>[39m
+                  [36m<div[39m
+                    [33mclass[39m=[32m"react-flow__edges"[39m
+                  [36m>[39m
+                    [36m<svg[39m
+                      [33maria-hidden[39m=[32m"true"[39m
+                      [33mclass[39m=[32m"react-flow__marker"[39m
+                    [36m>[39m
+                      [36m<defs>[39m
+                        [36m<marker[39m
+                          [33mclass[39m=[32m"react-flow__arrowhead"[39m
+                          [33mid[39m=[32m"1__color=#e2e8f0&type=arrowclosed"[39m
+                          [33mmarkerHeight[39m=[32m"12.5"[39m
+                          [33mmarkerUnits[39m=[32m"strokeWidth"[39m
+                          [33mmarkerWidth[39m=[32m"12.5"[39m
+                          [33morient[39m=[32m"auto-start-reverse"[39m
+                          [33mrefX[39m=[32m"0"[39m
+                          [33mrefY[39m=[32m"0"[39m
+                          [33mviewBox[39m=[32m"-10 -10 20 20"[39m
+                        [36m>[39m
+                          [36m<polyline[39m
+                            [33mclass[39m=[32m"arrowclosed"[39m
+                            [33mpoints[39m=[32m"-5,-4 0,0 -5,4 -5,-4"[39m
+                            [33mstroke-linecap[39m=[32m"round"[39m
+                            [33mstroke-linejoin[39m=[32m"round"[39m
+                            [33mstyle[39m=[32m"stroke-width: 1; stroke: rgb(226, 232, 240); fill: rgb(226, 232, 240);"[39m
+                          [36m/>[39m
+                        [36m</marker>[39m
+                      [36m</defs>[39m
+                    [36m</svg>[39m
+                    [36m<svg[39m
+                      [33mstyle[39m=[32m"z-index: 0;"[39m
+                    [36m>[39m
+                      [36m<g[39m
+                        [33maria-label[39m=[32m"Bước A phải xong trước Bước B"[39m
+                        [33maria-roledescription[39m=[32m"edge"[39m
+                        [33mclass[39m=[32m"react-flow__edge react-flow__edge-dependency nopan inactive"[39m
+                        [33mdata-id[39m=[32m"dependency:0d0d0d0d-0000-4000-8000-000000000010:0d0d0d0d-0000-4000-8000-000000000011"[39m
+                        [33mdata-testid[39m=[32m"rf__edge-dependency:0d0d0d0d-0000-4000-8000-000000000010:0d0d0d0d-0000-4000-8000-000000000011"[39m
+                        [33mrole[39m=[32m"img"[39m
+                      [36m>[39m
+                        [36m<path[39m
+                          [33mclass[39m=[32m"react-flow__edge-path"[39m
+                          [33md[39m=[32m"M685,28.5 C796.9779554198058,28.5 252.0220445801943,96.5 364,96.5"[39m
+   ...
+      at Object.getElementError (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/config.js:37:19)
+      at getAllByLabelText (/Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/queries/label-text.js:111:38)
+      at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/node_modules/.pnpm/@testing-library+dom@10.4.2/node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:400:20)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at test/graph-state.test.ts:515:1
+✖ realtime: refetch cả graph (GET cũ bị hủy), cây tự căn lại (cha giữa các con), root làm neo đứng yên, không fit (247.695792ms)
+  AssertionError [ERR_ASSERTION]: root nằm giữa con đầu và con cuối sau khi căn lại
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:544:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/graph-state.test.ts:568:1
+✖ thẻ và khung theo mockup: tiêu đề + chấm trạng thái, dòng phụ “cấp · trạng thái”, viền focus, header kiểu modal, chú giải (33.337084ms)
+  AssertionError [ERR_ASSERTION]: tiêu đề trên, dòng phụ dưới; không bịa giờ/token
+  + actual - expected
+  
+  + []
+  - [
+  -   'Bước A',
+  -   'Bước · Đang chạy'
+  - ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:573:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'Bước A', 'Bước · Đang chạy' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph-state.test.ts:665:1
+✖ root mới (chưa có trạng thái): mở ở 1:1, root ở mép trái giữa khung, không dùng fitView; cuộn chuột là cuộn (10.657833ms)
+  AssertionError [ERR_ASSERTION]: root cách mép trái 24px
+  
+  170 !== 24
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:675:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 170,
+    expected: 24,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:554:1
+✖ mật độ theo mockup owner duyệt: thẻ 280×48, hàng cách 10, cột cách 56, vẫn chạm được (0.550167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   cardHeight: 56,
+  +   cardWidth: 320,
+  +   columnGap: 44,
+  +   rowGap: 12
+  -   cardHeight: 48,
+  -   cardWidth: 280,
+  -   columnGap: 56,
+  -   rowGap: 10
+    }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:555:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { cardWidth: 320, cardHeight: 56, rowGap: 12, columnGap: 44 },
+    expected: { cardWidth: 280, cardHeight: 48, rowGap: 10, columnGap: 56 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+exit=1
