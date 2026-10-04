@@ -44,6 +44,34 @@ const noticeStyle: CSSProperties = {
   borderRadius: '0.5rem',
 };
 const missing = 'Chưa có dữ liệu — máy chủ chưa cung cấp thông tin này.';
+// Presentation of the dark dialog in the owner-approved mockup (screen 2).
+const titleRowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 };
+const titleStyle: CSSProperties = { margin: 0, fontSize: 18, fontWeight: 600 };
+const sublineStyle: CSSProperties = { margin: 0, fontSize: 13, color: '#9aa0a6', overflowWrap: 'anywhere' };
+const headerStyle: CSSProperties = {
+  display: 'grid',
+  gap: 6,
+  paddingBottom: 16,
+  borderBottom: '1px solid #2b2f35',
+};
+const tilesStyle: CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))',
+  gap: 12,
+  margin: 0,
+  padding: 0,
+  listStyle: 'none',
+};
+const tileStyle: CSSProperties = {
+  display: 'grid',
+  gap: 4,
+  padding: '10px 12px',
+  background: '#1c1f23',
+  border: '1px solid #2b2f35',
+  borderRadius: 4,
+};
+const tileLabelStyle: CSSProperties = { fontSize: 11.5, color: '#9aa0a6' };
+const tileValueStyle: CSSProperties = { fontSize: 13, fontWeight: 500 };
 
 export function StatusBadge({ status }: { status: Ticket['status'] }) {
   return (
@@ -57,23 +85,78 @@ function Headings({
   presentation,
   title,
   description,
+  leading,
 }: {
   presentation: TicketDetailProps['presentation'];
   title: ReactNode;
   description: ReactNode;
+  /** Shown before the title on the same line (status dot). */
+  leading?: ReactNode;
 }) {
+  const row = (heading: ReactNode) =>
+    leading ? (
+      <div style={titleRowStyle}>
+        {leading}
+        {heading}
+      </div>
+    ) : (
+      heading
+    );
   if (presentation === 'dialog')
     return (
       <>
-        <Dialog.Title style={{ margin: 0 }}>{title}</Dialog.Title>
-        <Dialog.Description style={textStyle}>{description}</Dialog.Description>
+        {row(<Dialog.Title style={titleStyle}>{title}</Dialog.Title>)}
+        <Dialog.Description style={sublineStyle} data-detail-subline="">
+          {description}
+        </Dialog.Description>
       </>
     );
   return (
     <>
-      <h1 style={{ margin: 0 }}>{title}</h1>
-      <p style={textStyle}>{description}</p>
+      {row(<h1 style={{ margin: 0 }}>{title}</h1>)}
+      <p style={sublineStyle} data-detail-subline="">
+        {description}
+      </p>
     </>
+  );
+}
+
+/** Status dot of the map mockup; decoration only, the status is written in the “Trạng thái” tile. */
+const dotColors: Readonly<Record<Ticket['status'], string>> = {
+  done: '#3fb27f',
+  running: '#4c9aff',
+  needs_input: '#f0a24a',
+  paused: '#f0a24a',
+  pending: '#6b7280',
+  ready: '#6b7280',
+  cancelled: '#6b7280',
+};
+
+/** “loại · bước · gốc” from the shared whole-root graph query (same key as `ChildTickets`, no extra request). */
+function useTicketSubline(ticket: Ticket): string {
+  const graph = useTicketGraph(useRuntime().client, ticket.rootId);
+  const titleOf = (id: string | null) =>
+    id === null ? undefined : graph.data?.nodes.find((node) => node.id === id)?.title;
+  const step = ticket.level === 'task' ? titleOf(ticket.parentId) : undefined;
+  const root = ticket.id === ticket.rootId ? undefined : titleOf(ticket.rootId);
+  return [levelLabels[ticket.level], step, root].filter(Boolean).join(' · ');
+}
+
+function InfoTiles({ ticket }: { ticket: Ticket }) {
+  // “Cập nhật” is shown only with real data; the Ticket DTO has no update time yet, so it is omitted.
+  const tiles: [string, ReactNode, boolean][] = [
+    ['Trạng thái', `${statusLabels[ticket.status]} · Phiên bản ${ticket.revision}`, false],
+    ['Máy · model', 'Chưa có dữ liệu', true],
+  ];
+  return (
+    <ul aria-label="Thông tin nhanh" style={tilesStyle}>
+      {tiles.map(([label, value, muted]) => (
+        <li key={label} style={tileStyle}>
+          <span style={tileLabelStyle}>{label}</span>
+          <span style={{ ...tileValueStyle, color: muted ? '#9aa0a6' : '#e8e9eb' }}>{value}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -241,7 +324,20 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
       </article>
     );
   }
-  const ticket = query.data;
+  return <LoadedTicketDetail ticket={query.data} query={query} presentation={presentation} />;
+}
+
+function LoadedTicketDetail({
+  ticket,
+  query,
+  presentation,
+}: {
+  ticket: Ticket;
+  query: ReturnType<typeof useTicket>;
+  presentation: TicketDetailProps['presentation'];
+}) {
+  const runtime = useRuntime();
+  const subline = useTicketSubline(ticket);
   const pin = ticket.workflowPin;
   const wait = waitNotice(ticket.status, ticket.waitReason);
   const terminal = isTerminal(ticket.status);
@@ -252,20 +348,27 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
       data-ticket-id={ticket.id}
       data-revision={ticket.revision}
     >
-      <header style={{ display: 'grid', gap: '0.4rem' }}>
-        <span>
-          {levelLabels[ticket.level]} · {kindLabels[ticket.kind]}
-        </span>
+      <header style={headerStyle}>
         <Headings
           presentation={presentation}
           title={ticket.title}
-          description={
-            <>
-              Trạng thái: <StatusBadge status={ticket.status} /> · Phiên bản {ticket.revision}
-            </>
+          description={subline}
+          leading={
+            <span
+              aria-hidden="true"
+              data-status-dot={ticket.status}
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                flex: 'none',
+                background: dotColors[ticket.status],
+              }}
+            />
           }
         />
       </header>
+      <InfoTiles ticket={ticket} />
       {query.error && (
         <p role="status" style={noticeStyle}>
           Đang hiển thị dữ liệu đã tải trước đó: {failureText(query.error)}
@@ -295,6 +398,7 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
             <code>{ticket.rootId}</code>
           </Field>
           <Field label="Ticket cha">{ticket.parentId ? <code>{ticket.parentId}</code> : 'Không có'}</Field>
+          <Field label="Loại">{kindLabels[ticket.kind]}</Field>
           <Field label="Bắt buộc">{ticket.mandatory ? 'Có' : 'Không'}</Field>
           <Field label="Workflow đã ghim">
             {pin ? `${pin.workflow === 'bmad' ? 'BMAD' : 'Superpowers'} ${pin.version}` : 'Chưa ghim'}

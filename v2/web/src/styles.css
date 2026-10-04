@@ -320,3 +320,37 @@ a {
 .ticket-dialog a {
   color: #8ab4ff;
 }
+
+.ticket-dialog h2,
+.ticket-dialog h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9aa0a6;
+}
+
+.ticket-dialog button {
+  font: inherit;
+  font-size: 13px;
+  min-height: 36px;
+  padding: 8px 14px;
+  color: #e8e9eb;
+  background: transparent;
+  border: 1px solid #2b2f35;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Accent submit of the composer inside the dialog (mockup “Gửi”). */
+.ticket-dialog .compose-submit {
+  color: #ffffff;
+  background: #3b6fd4;
+  border-color: #3b6fd4;
+}
+
+.ticket-dialog .compose-submit:disabled {
+  color: #9aa0a6;
+  background: #262a30;
+  border-color: #2b2f35;
+  cursor: not-allowed;
+}

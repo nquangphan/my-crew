@@ -184,7 +184,7 @@ Object.defineProperties(elementProto, {
 (elementProto as unknown as { getBoundingClientRect: () => DOMRect }).getBoundingClientRect = () =>
   ({ x: 0, y: 0, top: 0, left: 0, right: 1024, bottom: 768, width: 1024, height: 768 }) as DOMRect;
 
-const { act, cleanup, fireEvent, render, screen } = await import('@testing-library/react');
+const { act, cleanup, fireEvent, render, screen, within } = await import('@testing-library/react');
 const { createElement, useState } = await import('react');
 const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
 const { ComposeServicesProvider } = await import('../src/compose/composer.tsx');
@@ -690,4 +690,27 @@ test('root mới (chưa có trạng thái): mở ở 1:1, root ở mép trái gi
     `root giữa khung: ${rootScreen.y} / ${height}`,
   );
   assert.deepEqual(storedView(storage)?.viewport, { x: Number(match?.[1]), y: Number(match?.[2]), zoom: 1 });
+});
+
+test('dialog mở từ sơ đồ theo màn 2: chấm trạng thái + tiêu đề, dòng phụ “loại · bước · gốc”, ô thông tin không bịa “Cập nhật”', async () => {
+  const graph = baseGraph();
+  const source = graphServer(graph);
+  await mountMap(source);
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở công việc của Bước A' })));
+  await until(() => nodeButton(taskA1) !== null, 'task A1');
+  await act(async () => fireEvent.click(nodeButton(taskA1) as HTMLButtonElement));
+  const dialog = await screen.findByRole('dialog', { name: 'Việc A1' });
+  await until(
+    () => dialog.querySelector('[data-detail-subline]')?.textContent?.includes('Bước A') === true,
+    'subline',
+  );
+  assert.equal(
+    dialog.querySelector('[data-detail-subline]')?.textContent,
+    'Công việc · Bước A · Yêu cầu gốc',
+  );
+  assert.equal(dialog.querySelector('[data-status-dot]')?.getAttribute('aria-hidden'), 'true');
+  const tiles = within(dialog).getByRole('list', { name: 'Thông tin nhanh' });
+  const text = [...tiles.querySelectorAll('li')].map((li) => li.textContent);
+  assert.deepEqual(text, ['Trạng tháiChờ thực hiện · Phiên bản 1', 'Máy · modelChưa có dữ liệu']);
+  assert.ok(!tiles.textContent?.includes('Cập nhật'), 'không có dữ liệu thời gian thì không hiện ô Cập nhật');
 });

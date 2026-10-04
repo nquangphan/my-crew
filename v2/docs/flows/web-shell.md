@@ -32,7 +32,7 @@
 |---|---|
 | `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web`. DevDependency chỉ dùng cho test component (owner duyệt): `jsdom` 30.1.1 và `@testing-library/react` 16.3.3; peer `@testing-library/dom` 10.4.2 được khai báo tường minh trong `devDependencies` |
 | `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/playwright.config.ts` | Base/proxy, HTML entry và browser runner một worker |
-| `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive; `styles.css` có thêm class `.ticket-dialog` (`color-scheme: dark`, ô nhập tối) cho hộp thoại ticket dùng chung |
+| `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive; `styles.css` có thêm class `.ticket-dialog` (`color-scheme: dark`, ô nhập, nút và tiêu đề mục tối; nút gửi `.compose-submit` màu nhấn) cho hộp thoại ticket dùng chung |
 | `v2/web/test/workspace.test.ts`, `v2/web/test/fixture-lifecycle.test.ts` | Ranh giới workspace và lifecycle; RED lịch sử và GREEN PostgreSQL/API/SIGTERM thật đã ghi trong báo cáo |
 | `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts` | Coordinator/handle fixture đã qua test lifecycle, typecheck và build thực |
 | `v2/web/scripts/e2e-attachment-receivers.ts`, `v2/web/e2e/support/owner-seed.ts`, `v2/web/test/attachment-receivers.test.ts`, `v2/web/test/fixture-scratch.test.ts` | Cổng writer upload cho host không phải Linux; seed project/ticket và snapshot tài liệu qua API owner thật cho e2e |

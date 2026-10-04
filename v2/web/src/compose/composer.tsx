@@ -476,7 +476,12 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
       )}
       {notice && <p aria-live="polite">{notice}</p>}
       <div style={{ display: 'flex', gap: '0.75rem' }}>
-        <button type="button" disabled={!view?.submittable || !authenticated} onClick={() => void submit()}>
+        <button
+          type="button"
+          className="compose-submit"
+          disabled={!view?.submittable || !authenticated}
+          onClick={() => void submit()}
+        >
           {state === 'sending'
             ? 'Đang gửi…'
             : retrying && !reentry

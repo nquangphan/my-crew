@@ -488,6 +488,11 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await expect(dialog).toBeVisible();
   await expect(dialog.getByTestId('ticket-detail')).toHaveAttribute('data-ticket-id', target.id);
   expect(new URL(page.url()).searchParams.get('ticket')).toBe(target.id);
+  // Screen 2 of the mockup: header (status dot, title, subline) and info tiles, before scrolling.
+  await expect(dialog.getByRole('list', { name: 'Thông tin nhanh' })).toBeVisible();
+  await page.waitForTimeout(300);
+  await shoot(page, 'dialog-header-from-map.png');
+  await sideBySide(page, 'dialog-header-from-map.png', 2, 'side-by-side-dialog-vs-mockup.png');
   const comment = `Bình luận từ sơ đồ ${randomUUID().slice(0, 8)}`;
   await dialog.getByRole('textbox', { name: 'Nội dung', exact: true }).fill(comment);
   await dialog.getByRole('button', { name: 'Gửi bình luận', exact: true }).click();
@@ -495,7 +500,6 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
     timeout: 15_000,
   });
   await shoot(page, 'dialog-open-from-map.png');
-  await sideBySide(page, 'dialog-open-from-map.png', 2, 'side-by-side-dialog-vs-mockup.png');
 
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
