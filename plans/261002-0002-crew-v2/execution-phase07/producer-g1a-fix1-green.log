@@ -1,0 +1,62 @@
+{"level":30,"time":1791089750536,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52840"}
+{"level":30,"time":1791089750931,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52843"}
+✔ HTTP persistence graph commands events docs reconnect restart and backup restore (1139.292583ms)
+ℹ {"realHttp":true,"port0":true,"prefix":6,"restartPool":true,"firstUrl":"http://127.0.0.1:52840","reopenedUrl":"http://127.0.0.1:52843","containerId":"c0f921291c69e21d760a5cb88ddd6892d46105bc69dc43976dc8552eca031abf","restoredName":"crew_v2_restore_02f0acd4494f4dd5907d395540e8772a","dumpBytes":74967}
+{"level":30,"time":1791089751510,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52854"}
+✔ HTTP ticket cached replay cannot race current binding or machine revocation across pools (412.648375ms)
+{"level":30,"time":1791089751913,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52861"}
+{"level":30,"time":1791089753018,"pid":21592,"hostname":"Phans-Mac-mini.local","reqId":"req-a","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+{"level":30,"time":1791089754037,"pid":21592,"hostname":"Phans-Mac-mini.local","reqId":"req-c","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+✔ real SSE current credential revocation and owner expiry close streams without future data (2414.887875ms)
+{"level":30,"time":1791089754378,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52881"}
+{"level":30,"time":1791089754614,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52885"}
+✔ HTTP default dispatch denies; reported evidence stays finalizing until trusted research test attestation (609.8085ms)
+{"level":30,"time":1791089754927,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52890"}
+✔ HTTP all machine ticket mutation families reject cached replay after rebind (408.739666ms)
+{"level":30,"time":1791089755341,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52896"}
+✔ HTTP fifth repair result remains fenced until confirmed physical stop (405.544208ms)
+{"level":30,"time":1791089755743,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52902"}
+✔ current credential and event scope share one snapshot across rebind and revocation (351.326958ms)
+{"level":50,"time":1791089756024,"pid":21592,"hostname":"Phans-Mac-mini.local","reqId":"req-1","code":"INTERNAL_ERROR","msg":"Lỗi API"}
+✔ buildApp composes without migrations or listener; unknown DB errors are generic503 (328.936667ms)
+{"level":30,"time":1791089756429,"pid":21592,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:52911"}
+HTTP oversized observed container=c0f921291c69e21d760a5cb88ddd6892d46105bc69dc43976dc8552eca031abf path=/v2/tickets bytes=1048587 status=413
+HTTP oversized observed container=c0f921291c69e21d760a5cb88ddd6892d46105bc69dc43976dc8552eca031abf path=/v2/docs/imports bytes=25165835 status=413
+✔ HTTP bounded docs upload exceeds ordinary1MiB and app shutdown closes real SSE (502.949625ms)
+✔ hierarchy rejects a task directly under a request and cross-project parent (109.963875ms)
+✔ concurrent opposite edges cannot create a dependency cycle (89.904667ms)
+✔ dependencies_ready refuses a step whose predecessor is unfinished (88.099583ms)
+✔ closed request and completed step reject new descendants (87.512625ms)
+✔ concurrent request completion and child creation cannot leave done root with pending child (91.339292ms)
+✔ dependency graph rejects adding edge once target is ready or running (89.933708ms)
+✔ máy cũ không nhận event commit sau khi scope đã đọc nhưng binding đổi (91.8925ms)
+✔ canonical JSON ổn định theo thứ tự key và từ chối dữ liệu không phải JSON (0.673625ms)
+✔ retry concurrent chỉ ghi một event và trả cùng body (77.649125ms)
+✔ rollback không để lại response hoặc cursor đã tiêu thụ (63.994292ms)
+✔ cursor được phát theo thứ tự commit của hai kết nối (70.302166ms)
+✔ scope máy chỉ nhận audience riêng, không nhận global hay project lạ (62.220167ms)
+✔ journal từ chối token/password lồng trong dữ liệu và event type lạ (58.899625ms)
+✔ response codec quyết định dữ liệu được lưu và giải mã khi replay (60.398ms)
+✔ SSE xác thực trước stream và nối lại sau restart từ Last-Event-ID (135.678667ms)
+✔ event read từ chối query lạ và cursor không hợp lệ (67.0475ms)
+✔ event read trả items và cursor cuối cùng của trang (71.679959ms)
+✔ GET /v2/tickets?level=request chỉ trả request root và phân trang ổn định theo id (152.776125ms)
+✔ GET /v2/tickets/:id/history trả timeline theo cursor, không lộ nội dung comment/decision (114.171917ms)
+✔ history áp dụng ACL của ticket và audience của event cho machine (103.108708ms)
+✔ GET /v2/tickets/:id/docs-links phân trang >20 theo keyset và không trùng/mất mục (110.282583ms)
+✔ GET /v2/events/latest trả cursor lớn nhất dạng chuỗi, an toàn với BigInt (81.153625ms)
+✔ GET /v2/events/latest chỉ dành cho owner: machine bị 403, không phiên bị 401 (79.018042ms)
+✔ hierarchy schema stores a request root and rejects self dependency (82.58325ms)
+✔ machine cannot record an owner answer to unlock a repair limit (88.400666ms)
+✔ docs links fail closed until a verified snapshot reader is supplied (80.229833ms)
+✔ ticket criteria rejects inherited-key payloads before persistence (79.37775ms)
+✔ comment during running is durable timeline data without changing execution status (85.790125ms)
+✔ ticket route rejects unknown JSON fields before mutation (123.817541ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9725.09425

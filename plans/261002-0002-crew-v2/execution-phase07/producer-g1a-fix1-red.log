@@ -1,0 +1,35 @@
+✔ GET /v2/tickets?level=request chỉ trả request root và phân trang ổn định theo id (272.66275ms)
+✔ GET /v2/tickets/:id/history trả timeline theo cursor, không lộ nội dung comment/decision (127.115708ms)
+✔ history áp dụng ACL của ticket và audience của event cho machine (119.70525ms)
+✔ GET /v2/tickets/:id/docs-links phân trang >20 theo keyset và không trùng/mất mục (118.849ms)
+✔ GET /v2/events/latest trả cursor lớn nhất dạng chuỗi, an toàn với BigInt (92.385875ms)
+✖ GET /v2/events/latest chỉ dành cho owner: machine bị 403, không phiên bị 401 (87.1575ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 5
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 954.375541
+
+✖ failing tests:
+
+test at v2/server/test/ticket-reads.test.ts:292:1
+✖ GET /v2/events/latest chỉ dành cho owner: machine bị 403, không phiên bị 401 (87.1575ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 403
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/ticket-reads.test.ts:303:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 403,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
