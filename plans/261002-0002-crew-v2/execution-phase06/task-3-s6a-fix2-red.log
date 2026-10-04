@@ -1,0 +1,72 @@
+✔ render executor refuses a non-BMAD definition without reserving or spawning anything (109.457042ms)
+✔ render executor runs the official uv argv once and returns the exact workflow render receipt (82.04425ms)
+✔ render executor leaves an existing byte-identical generation untouched on a second render (78.497875ms)
+✔ render executor never runs one operation twice (70.664708ms)
+✔ render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children (415.408666ms)
+✔ render executor halts when stdout does not name exactly the rendered workflow entry (614.907709ms)
+✔ render executor halts when the printed generation does not match its measured bytes (442.195583ms)
+✔ render executor refuses drifted workspace inputs before reserving or spawning (403.533291ms)
+✔ render executor binds the project root to the canonical workspace directory (76.114083ms)
+✔ render executor requires the recorded uv bytes before spawning (81.650417ms)
+✔ render executor refuses an inconsistent or unacceptable definition before spawning (74.987625ms)
+✔ render executor validates attempt and operation identifiers before any effect (68.597375ms)
+✔ render executor refuses unpinned files beside the renderer, skill and config before spawning (637.300833ms)
+✔ render executor refuses unpinned files that appear beside the renderer during the render (233.331542ms)
+✔ render executor tells owned-operation lock contention apart from operation reuse (84.413583ms)
+✔ render executor returns the log digest and a sanitized first line when a run halts (142.424834ms)
+✔ render executor accepts a symlinked uv by hashing and running the resolved executable (73.29075ms)
+✔ render executor requires a canonical owned-operation root before reserving a stage (68.353708ms)
+✖ render executor removes bracketed and home paths and credential values from the halt line (72.879667ms)
+✖ render executor detects a file added and removed beside the renderer during the render (80.213375ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 18
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4018.52475
+
+✖ failing tests:
+
+test at test/render-executor.test.ts:879:1
+✖ render executor removes bracketed and home paths and credential values from the halt line (72.879667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'error: Failed to inspect `/Users/owner/.local/share/uv/python/cpython-3.12` [/opt/homebrew/bin/uv] <~/cfg/uv.toml> {/tmp/x} (~owner/y) at {project-root}/_bmad/config.toml Authorization: Bearer abc.def token: s3cr3t api_key={redacted} password = hunter2 Sec'
+  - 'error: Failed to inspect `{path}` [{path}] <{path}> {{path}} ({path}) at {project-root}/_bmad/config.toml Authorization: Bearer {redacted} token: {redacted} api_key={redacted} password = {redacted} Secret:{redacted} done'
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:889:12
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:880:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'error: Failed to inspect `/Users/owner/.local/share/uv/python/cpython-3.12` [/opt/homebrew/bin/uv] <~/cfg/uv.toml> {/tmp/x} (~owner/y) at {project-root}/_bmad/config.toml Authorization: Bearer abc.def token: s3cr3t api_key={redacted} password = hunter2 Sec',
+    expected: 'error: Failed to inspect `{path}` [{path}] <{path}> {{path}} ({path}) at {project-root}/_bmad/config.toml Authorization: Bearer {redacted} token: {redacted} api_key={redacted} password = {redacted} Secret:{redacted} done',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:899:1
+✖ render executor detects a file added and removed beside the renderer during the render (80.213375ms)
+  AssertionError [ERR_ASSERTION]: _bmad/scripts
+  + actual - expected
+  
+  + false
+  - 'RENDER_ARTIFACT_MISMATCH'
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:911:14
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:354:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:902:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: 'RENDER_ARTIFACT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -65,3 +65,13 @@ Commit `d2ab486`. Mỗi mục có RED ngữ nghĩa trước: `task-3-s6a-fix1-re
 - **M2 — stage canonical.** Trước khi đặt chỗ, owned root phải bằng `realpath` của nó và path stage phải qua `lexicalPath`; nếu không → `RENDER_OPERATION_UNAVAILABLE`, không gọi thao tác nào.
 
 M4, M5, M7, M8 do PM ghi ledger cho S6b, không sửa ở đây.
+
+## Follow-up N2/N3/N4 (re-review `task-3-s6a-fix1-re-review.md`)
+
+Commit `10b2e64`. RED trước: `task-3-s6a-fix2-red.log` (`816042ad…d165`), 2 test mới fail bằng `AssertionError` (dòng đầu còn path trong backtick và credential; thêm-rồi-xóa trong `_bmad/scripts` vẫn ra receipt). GREEN `task-3-s6a-fix2-green.log` (`f534acc3…bfa2`): **69/69 pass** (executor, render-artifacts, workflow-manifest, sync), typecheck exit 0; biome sạch; crew-docs `generate` (không đổi), `check --all`, `check --staged` ok. Slot nặng giữ bằng `owner=s6a`; gate kiểm bằng parse JSON `heavyEligible`; một lần slot bận (`web-task4`), đã chờ nhả rồi mới chạy.
+
+- **N3 — lọc dòng đầu.** Mọi chuỗi `/…` hoặc `~/…`, `~user/…` bị thay bằng `{path}` bất kể ký tự đứng trước. Path dừng ở khoảng trắng, nháy, backtick hoặc ngoặc đóng. Path đã biết thành nhãn và giữ phần đuôi tương đối trong workspace. Che `Bearer …` và giá trị của trường tên chứa `token`/`secret`/`key`/`password` (không phân biệt hoa thường, dạng `name: value` hoặc `name=value`, kể cả giá trị trong nháy), cùng mọi `NAME=value`. Các đoạn đã xử lý được giữ sau delimiter thuộc vùng private-use; delimiter có sẵn trong output của child bị bỏ trước. Test dùng dòng lỗi kiểu `uv` có path trong backtick, `[…]`, `<~/…>`, `{…}`, `(~owner/…)`, `Bearer`, `token:`, `api_key=`, `password =`, `Secret:"…"`.
+- **N2 — TOCTOU closure.** Trước lần kiểm đầu, executor tạo `{root}/_bmad/render` nếu chưa có (chỉ sau khi `_bmad` là thư mục thật), để việc renderer tạo thư mục này không làm đổi `_bmad`. Sau đó executor ghi `dev:ino:mtimeNs:ctimeNs` của `_bmad`, `_bmad/scripts`, `_bmad/custom` (hoặc việc nó vắng) và mọi thư mục trong cây skill. Sau khi chạy, closure được kiểm lại và stamp phải không đổi, nếu không là `RENDER_ARTIFACT_MISMATCH`. Test: thêm rồi xóa `json.py` trong `_bmad/scripts`, `steps/`, thư mục skill, `_bmad`; tạo rồi xóa `_bmad/custom`. Đây là một lần ghi mới vào workspace (thư mục rỗng `_bmad/render`) trước khi spawn; renderer chính thức cũng tạo đúng thư mục này.
+- **N4 — docs.** Flow doc ghi rõ `argv[0]` là path đã resolve, không tự chứng minh gì; bằng chứng là `uvSha256` đo trên file được thực thi, server không được coi `argv[0]` là bằng chứng.
+
+N1 thuộc ruling S6b; N5, N6 PM ghi ledger.
