@@ -107,3 +107,5 @@ P-G2 `b39f2fb`/`09803aa` xong, chờ review. Ruling: owner conversations/message
 Producer P-G2: complete — b39f2fb (mount + by-comment). G2 vẫn PENDING cho A5 tới khi main.ts nối attachments (controller assembly, Linux host) và phase05 Task5 extractor certified.
 P-G2: minor (deferred): M1 uuidPattern chỉ nhận chữ thường cho storageHostId (`app.ts`) — lưu ý khi nối main.ts; M2 thiếu test buildApp({attachments}) throw trên non-Linux/root không private; M3 by-comment hai query READ COMMITTED có thể trả nhóm rỗng khi revoke chen giữa (`comment-refs.ts:43-50`); M4 thiếu assert machine bound 200/link thừa kế/Origin sai; M5 liveLinkIds đệ quy + IN-list không giới hạn (`comment-refs.ts:41`).
 7 mismatch fake web ↔ server chuyển cho S5a FIX2 (server là chuẩn).
+
+15:55 S5a FIX2 `8c5ce41` DONE (N1–N5, I5 DOM test jsdom 30.1.1 + @testing-library/react 16.3.3, 7 mismatch G2; 102/102). Harness delta controller: fixture `e2e-fixture.ts:551` cần truyền AttachmentAssembly (+receivers port trên macOS) để mở A5 text-only — controller task sau review. Scoped re-review FIX2 dispatched.

@@ -1,0 +1,2386 @@
+8c5ce41 fix(v2): composer khớp hợp đồng attachment và có test component thật
+ .../execution-phase07/task-5-s5a-fix2-biome.log    |   2 +
+ .../execution-phase07/task-5-s5a-fix2-build.log    |  10 +
+ .../execution-phase07/task-5-s5a-fix2-g2-red.log   | 167 ++++++++
+ .../task-5-s5a-fix2-green-final.log                |  71 ++++
+ .../execution-phase07/task-5-s5a-fix2-green-n.log  | 102 +++++
+ .../execution-phase07/task-5-s5a-fix2-green.log    |  71 ++++
+ .../execution-phase07/task-5-s5a-fix2-mutation.log |   8 +
+ .../execution-phase07/task-5-s5a-fix2-red.log      |  53 +++
+ .../task-5-s5a-fix2-unit-full.log                  | 110 ++++++
+ .../execution-phase07/task-5-s5a-report.md         |  42 ++
+ v2/docs/files.md                                   |   4 +
+ v2/docs/flows.yaml                                 |   4 +
+ v2/docs/flows/web-attachments.md                   |  13 +-
+ v2/docs/flows/web-shell.md                         |   2 +-
+ v2/web/package.json                                |   4 +-
+ v2/web/pnpm-lock.yaml                              | 440 +++++++++++++++++++++
+ v2/web/src/attachments/preview.tsx                 |  49 ++-
+ v2/web/src/attachments/queries.ts                  |  43 ++
+ v2/web/src/compose/composer.tsx                    |  18 +-
+ v2/web/src/compose/controller.ts                   | 172 ++++++--
+ v2/web/src/compose/state.ts                        |   2 +-
+ v2/web/test/compose-submit.test.ts                 | 213 +++++++++-
+ v2/web/test/compose.test.ts                        | 102 ++++-
+ v2/web/test/composer-dom.test.ts                   | 251 ++++++++++++
+ v2/web/test/support/compose-server.ts              |  73 +++-
+ v2/web/test/support/dom.ts                         |  28 ++
+ v2/web/test/support/jsdom.d.ts                     |   7 +
+ v2/web/test/support/tsx-loader.ts                  |  20 +
+ 28 files changed, 1995 insertions(+), 86 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/task-5-s5a-report.md b/plans/261002-0002-crew-v2/execution-phase07/task-5-s5a-report.md
+index 6fa8be7..37ac8c8 100644
+--- a/plans/261002-0002-crew-v2/execution-phase07/task-5-s5a-report.md
++++ b/plans/261002-0002-crew-v2/execution-phase07/task-5-s5a-report.md
+@@ -84,10 +84,52 @@ Quy trình: viết test cho mọi finding trước. API mới (`isActive`, `take
+ | Focused sau format | 44/44 | `task-5-s5a-fix1-green-focused-final.log` `c8e3cabdacb0f573d9f134a5379027a5af3a06d37bf075b2d3708c8abf8987bc` |
+ | Web unit không DB (compose + client/events/auth-recovery) sau format | 83/83 | `task-5-s5a-fix1-unit-full.log` `339c0c835167cded603a3ec1a53e46389463302e53f307732137a9aa344f7d56` |
+ | `tsc --noEmit && vite build` (outDir scratch) | exit 0 | `task-5-s5a-fix1-build.log` `e74f730f86730b781532cd2cfb660fd4263bed51c32e8b8fcfc14cb0b792fd83` |
+ 
+ Telemetry khi lấy slot: RED 5,238 GiB / pressure 1 / CPU idle 84,36% / đĩa 751 GiB; GREEN 4,968 / 1 / 85,76 / 751. Slot đã trả sau mỗi đợt. Không chạy container hay E2E. Docs `v2/docs/flows/web-attachments.md` cập nhật bước 5/4/7/9/10/11 và Tests. Manifest/generated không đổi (không có file mới), nên không cần manifest lock.
+ 
+ **Còn lại / cần quyết định:**
+ - `discard()` để owner bỏ bản nháp đang khóa: khóa cũ vẫn nằm trong `PendingStore`/panel; gửi nội dung mới sau đó có thể tạo thêm mục nếu yêu cầu cũ đã được lưu. Ledger ghi việc “bỏ request ambiguous” là quyết định UX của owner. Hiện composer chỉ cho bỏ ở trạng thái re-entry hoặc `SUBMITTED_ELSEWHERE`/`SUBMIT_UNCONFIRMED`, kèm cảnh báo; cần owner chốt.
+ - Tải lại trang sau khi 201 không giải mã được thì body đóng băng (chỉ nằm trong bộ nhớ) không còn. Draft bị khóa `SUBMITTED_ELSEWHERE` và receipt chỉ xem được ở danh sách.
+ - Các Minor M1–M4, M6, M7 chưa sửa (M7 đã sửa tham chiếu dòng trong docs).
++
++## 9. Vòng sửa 2 (re-review `task-5-s5a-fix1-re-review.md`: N1–N5, I5 DOM; khớp hợp đồng G2 theo `producer-g2-review.md`)
++
++**Owner đã quyết:** giữ `discard()` kèm cảnh báo có thể tạo bản trùng; thêm devDependency chỉ dùng cho test. Controller ủy quyền tôi sửa `v2/web/package.json` và lock.
++
++**Dependency (pin chính xác, `pnpm add -D --save-exact --ignore-workspace` trong `v2/web`):** `jsdom` **30.1.1**, `@testing-library/react` **16.3.3**. Peer bắt buộc `@testing-library/dom` **10.4.2** được pnpm tự cài, chỉ nằm trong `pnpm-lock.yaml`, không có trong `package.json`. `package.json` chỉ đổi đúng hai dòng (thứ tự cũ giữ nguyên); `pnpm install --frozen-lockfile` trả “Already up to date”. Không thêm `@types/jsdom`: kiểu tối thiểu nằm ở `test/support/jsdom.d.ts`. Cấu hình test: `test/support/dom.ts` dựng jsdom thành global và trả hàm đóng cửa sổ; `test/support/tsx-loader.ts` là module hook nạp `.tsx` bằng `transformWithOxc` của Vite. Repo đã có tiền lệ nạp JSX qua Vite SSR trong `app-wiring.test.ts`. Script `test` không đổi.
++
++| Mục | Test | RED trước khi sửa | Sửa |
++|---|---|---|---|
++| N1 | “panel khôi phục replay sau khi composer dựng lại…” | fail (`fix2-red.log`) | “Ours” xác định bằng `pending.get(id)` (`#ownsSubmit`). Controller subscribe `PendingStore`: khóa biến mất mà không có body thì vào `SUBMIT_UNCONFIRMED` rồi GET compose. Bấm gửi lúc đó chỉ chờ GET, không gửi gì. Op bị tombstone ngoài tầm controller thì chuyển sang `suspended` |
++| N2 | “nhả trạng thái chưa xác nhận… consent cũ không còn bị khóa” | fail | `#unlockUnconfirmed` xóa `#assistantRead`/`#lastSubmitId`/`#frozen` ở cả hai chỗ mở khóa |
++| N3 | “discard bị chặn khi đang gửi…” | fail | `discard` return khi `sending`; `discardable`/`showDiscard` loại `sending`. Bộ đếm `#generation`: kết quả về sau của draft đã bỏ không được gắn vào draft mới |
++| N4 | “discard bỏ lượt gửi còn mở và chỉ giữ khóa submit ở panel” | fail | `discard` abandon compose cũ (DELETE; nếu đã `submitted` thì đọc lại rồi dừng) và nhả khóa reserve/remove của lượt đó. Khóa submit giữ nguyên, đúng cảnh báo. Ghi chú: ở trạng thái được phép discard (re-entry hoặc khóa), tệp đã khóa nên thường không còn reserve/remove treo; phần dọn khóa là phòng thủ |
++| N5 | Bỏ tiền tố `I1:`…`I5 composer:` khỏi tên test | — | Đổi sang mô tả hành vi |
++| I5 DOM | `test/composer-dom.test.ts` (6 test, jsdom + RTL, component thật qua provider thật, producer giả) | “receipt… consent tắt” fail thật: consent của ý định cũ mang sang ý định mới. Năm test nối dây PASS ngay, nên mỗi điểm nối được chứng minh bằng đột biến (`fix2-mutation.log`): bỏ `preventDefault` khi paste, dragOver bỏ qua khóa, textarea không bao giờ `readOnly`, consent không bao giờ `disabled`, ẩn nút bỏ bản nháp, bỏ lý do máy chủ. Mỗi đột biến làm đúng test đó fail; control 6/6 | Reset consent khi giao receipt |
++
++**Khớp hợp đồng G2 (server là chuẩn), RED → GREEN (`fix2-g2-red.log`: 7 fail):**
++1. Thêm by-comment vào fake, cùng `commentAttachmentsQuery` + `groupTicketAttachments` (decoder `{items:[{commentId,attachments}],nextCursor}`). `TicketAttachments` hiện nhóm theo bình luận, phần còn lại là “Tệp của ticket và tệp kế thừa”.
++2. 503 `EXTRACTION_NOT_CONFIGURED`: Task2 đổi code thành `UNCONFIRMED` và giữ khóa. View thêm `errorMessage` (message của 5xx), composer hiện “Máy chủ báo: Chưa cấu hình xử lý tệp”; retry dùng cùng key. Có test controller và test DOM.
++3. Id lạ trong selection: fake trả 404 `NOT_FOUND` theo đúng thứ tự kiểm của `submissions.ts`. Composer đọc lại compose và đánh dấu `ATTACHMENT_MISSING` (đột biến bỏ refresh cho NOT_FOUND làm test fail).
++4. 403 `ORIGIN_INVALID` (làm mới phiên một lần, giữ khóa `suspended`, retry cùng key) và `OWNER_REQUIRED` (lần gửi đầu bị từ chối hẳn). Test ORIGIN ban đầu viết sai kỳ vọng, vì lỗi xảy ra ở bước mở compose chứ không phải submit; đã sửa để assert đúng hành vi giữ và tái dùng khóa.
++5. Login trả 200.
++6. Hết hạn: `SELECTION_CHANGED` khi compose hết hạn, `ATTACHMENT_COMPOSE_CLOSED` khi giữ chỗ và `ATTACHMENT_UPLOAD_EXPIRED` khi PUT. Ba test RED (`TIMEOUT:moved`). Sửa: `#refresh` coi compose `open` có `expiresAt` đã qua là đóng: nhả khóa submit chưa giải quyết (lượt mở đã hết hạn thì không thể commit) rồi chuyển tệp sang lượt mới. `#reserve` gặp `ATTACHMENT_COMPOSE_CLOSED` thì GET compose; `#upload` dừng khi tệp đã được chuyển đi. Mã lỗi hiển thị là `COMPOSE_EXPIRED`.
++7. 401 `SESSION_INVALID`: phiên hết hạn, đăng nhập lại (200) rồi gửi lại cùng khóa.
++
++**E2E `compose.spec.ts`: BLOCKED.** `web/scripts/e2e-fixture.ts:551` gọi `buildApp` không kèm `attachments`. Không sửa harness thì API của fixture không có route attachment, nên kể cả đường text-only cũng không chạy được. Handoff cho controller: fixture cần truyền `AttachmentAssembly` (`storageRoot`/`storageHostId`; trên macOS cần cả cổng `receivers`, vì mặc định đòi native Linux closed-ACK). Đường có tệp còn cần extractor đã được chứng nhận.
++
++| Lệnh (sole heavy slot, heap 384 MiB, watchdog Python) | Kết quả | Log, SHA-256 |
++|---|---|---|
++| RED N1–N4 + DOM (3 file) | 5 test fail theo assertion. Process DOM không tự exit (timer gc của React Query, cửa sổ jsdom còn mở) nên watchdog dừng ở 300 giây, log không có dòng tổng; đã sửa bằng `after(closeDom)` + `gcTime` vô hạn. Kiểm `ps`: không còn process `node --test` | `task-5-s5a-fix2-red.log` `40a575a487339662a1e9d609b638cf02cf61f07a983d21a1b35fb5a12369b7cb` |
++| Sau sửa N (trung gian) | 51/53: còn 2 lỗi trong test (thiếu `await discard()`, chờ sai điều kiện), đã sửa | `task-5-s5a-fix2-green-n.log` `0a2b00d1ce016b398cbd78d1a08e6aec7c9d334b14a9cf63bd04c97d5f3cb606` |
++| RED G2 | 63 test, 7 fail | `task-5-s5a-fix2-g2-red.log` `b0c84508c3301d2c8247be7a40a1775f716965c46a69b881498186b9d50c354e` |
++| GREEN (trước format) | 63/63 | `task-5-s5a-fix2-green.log` `655604db05599cc77ab33ca9035837ff0b9089e490d584730c0e8773e55181a7` |
++| Đột biến nối dây DOM + NOT_FOUND | control 6/6; 7 đột biến đều bị bắt | `task-5-s5a-fix2-mutation.log` `2e9c52a60342a2dc64718bcae6a717a57cf4746676176269ff5ded7853eed7dc` |
++| `biome check` 15 file (gồm `package.json`) | exit 0 | `task-5-s5a-fix2-biome.log` `21d462a13fb241168cefa03678f4c5d4cc99c5aba7ff821f96ed7931261108c2` |
++| `tsc --noEmit && vite build` | exit 0 | `task-5-s5a-fix2-build.log` `0b7ca9020da47675b38f806c4adcc31e209d0ae0a64340382ff2b459fc93da80` |
++| Focused sau format | 63/63 | `task-5-s5a-fix2-green-final.log` `af2eb8dad4593053d2720f3024fb41836ed8795ff506ba27bc96d736b7653b07` |
++| Web unit không DB (compose ×3 + client/events/auth-recovery) | 102/102 | `task-5-s5a-fix2-unit-full.log` `5c0e4ab13582bacd0c8d4350ab1ee2f67a75d6d5497b30f2e11673572ff04d76` |
++
++Telemetry khi lấy slot: 4,535 GiB / pressure 1 / CPU idle 82,16% / đĩa 751 GiB. Slot đã trả. Manifest lock giữ từ lúc đọc HEAD `31ced2b` tới khi commit, chỉ thêm hunk của tôi (4 file test vào flow `web-attachments`, cùng 4 dòng generated trong `files.md`). Docs: `web-attachments.md` cập nhật; `web-shell.md` thêm devDependency ở hàng `package.json` (R3).
++
++**Còn lại:** M1–M4 (M3 một phần, nhờ subscribe `PendingStore`), M6 chưa sửa; A5 blocked như trên.
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index e9a4d64..0089021 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -393,18 +393,22 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `web/src/tickets/dialog.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
+ | `web/src/tickets/history.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/list.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/queries.ts` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/src/tickets/status.ts` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/test/app-wiring.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/compose-submit.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/compose.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
++| `web/test/composer-dom.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
++| `web/test/support/dom.ts` | [web-attachments](flows/web-attachments.md) (test) |
++| `web/test/support/jsdom.d.ts` | [web-attachments](flows/web-attachments.md) (test) |
++| `web/test/support/tsx-loader.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |
+ | `web/vite.config.ts` | [web-shell](flows/web-shell.md) (file) |
+ <!-- crew-docs:files:end -->
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 8c7284c..512f533 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -543,12 +543,16 @@ flows:
+       - web/src/compose/state.ts
+       - web/src/compose/controller.ts
+       - web/src/compose/file-hash.ts
+       - web/src/compose/file-hash.worker.ts
+       - web/src/attachments/preview.tsx
+       - web/src/attachments/queries.ts
+     tests:
+       - web/test/compose.test.ts
+       - web/test/compose-submit.test.ts
+       - web/test/support/compose-server.ts
++      - web/test/composer-dom.test.ts
++      - web/test/support/dom.ts
++      - web/test/support/tsx-loader.ts
++      - web/test/support/jsdom.d.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/web-attachments.md b/v2/docs/flows/web-attachments.md
+index ff38c1e..6c4407c 100644
+--- a/v2/docs/flows/web-attachments.md
++++ b/v2/docs/flows/web-attachments.md
+@@ -1,47 +1,48 @@
+ # Composer chung và tệp đính kèm web Crew v2
+ 
+ ## Mục đích
+ 
+ Một composer dùng chung cho ba loại gửi: tạo ticket, bình luận ticket và tin nhắn cho Trợ lý. Composer nhận ảnh dán từ clipboard, tệp kéo thả và tệp chọn từ ô chọn tệp. Nó băm SHA-256 từng tệp, giữ chỗ và tải bytes lên lượt gửi (compose session) của máy chủ, rồi gửi nội dung cùng đúng danh sách tệp trong một yêu cầu nguyên tử. Mỗi ý định gửi chỉ có một khóa idempotency. Khi mất phản hồi, hết phiên hay tải lại trang, composer gửi lại đúng khóa và bytes cũ nên không tạo ticket, bình luận hay tệp trùng. Form của Task3/Task6 giữ đối tượng `ComposeSubmission`; composer chỉ sửa mô tả hoặc nội dung và quản lý tệp, lượt gửi và operation theo `draftKey`.
+ 
+-Trạng thái producer: các route attachment đã review (`server/src/attachments/routes.ts:344,453,461,685`) nhưng chưa được mount trong `buildApp` cho tới gate G2. Vì vậy flow này mới đạt mốc source S5a; nghiệm thu A5 trên API/PostgreSQL thật vẫn bị chặn.
++Trạng thái producer: `buildApp` mount route attachment khi được truyền `attachments` (`server/src/app.ts`, commit b39f2fb). `main.ts` production và fixture E2E Task1 (`web/scripts/e2e-fixture.ts`) chưa truyền cấu hình này. Vì vậy flow này mới đạt mốc source S5a; nghiệm thu A5 trên API/PostgreSQL thật vẫn bị chặn.
+ 
+ ## Điểm vào
+ 
+ - `web/src/compose/composer.tsx` → `AttachmentComposer(props: ComposerProps)`. Props gồm `draftKey`, `submission`, `onSubmissionChange`, `onStateChange` và `onAccepted`. App phải bọc composer trong `ComposeServicesProvider` (gồm `client`, `pending`, `session`, `storage` = `sessionStorage`) và `QueryClientProvider`, đặt bên trong vùng đã xác thực.
+-- `web/src/attachments/preview.tsx` → `TicketAttachments`: danh sách tệp của ticket (kể cả tệp kế thừa), xem trước an toàn và trạng thái trích xuất.
++- `web/src/attachments/preview.tsx` → `TicketAttachments`: tệp của ticket nhóm theo bình luận (projection `GET /v2/tickets/:id/attachments/by-comment`), phần còn lại là tệp của ticket hoặc tệp kế thừa, kèm xem trước an toàn và trạng thái trích xuất.
+ 
+ Hợp đồng cho Task3 S3b/Task6: form tạo đủ `CreateTicket` (project/kind/title/workflow), hoặc cấp `projectId`/`ticketId`, hoặc cấp `conversationId`/`clientMessageId` (tạo một lần cho mỗi ý định). Mỗi lần người dùng sửa, form truyền lại cùng một đối tượng submission. Form khóa các field của mình theo `onStateChange`: chỉ `editing` mới cho sửa. Khi khóa cũ chỉ còn tombstone (sau đăng xuất), composer báo `editing` để owner nhập lại đúng nội dung ban đầu. `onAccepted` được gọi đúng một lần cho mỗi receipt; sau đó composer bắt đầu bản nháp mới, còn form tự reset (ví dụ cấp `clientMessageId` mới).
+ 
+ ## Các bước
+ 
+ 1. `web/src/compose/state.ts` → `filesFromTransfer`: một luồng nhận tệp chung cho `clipboardData.items`, `dataTransfer` khi thả và `<input multiple>`. Khi dán, composer chỉ `preventDefault` nếu clipboard có tệp; phần chữ đi kèm được chèn tại con trỏ nên giữ được cả chữ lẫn ảnh. Dán chữ thường vẫn để trình duyệt xử lý. `localFileName` đặt tên ảnh dán không tên (hoặc tên chung `image.png`) thành `anh-dan-YYYYMMDD-HHmmss-n.png`, giờ theo Asia/Ho_Chi_Minh và đuôi theo MIME.
+ 2. `checkIntake` kiểm số tệp, dung lượng từng tệp, tổng dung lượng, đuôi tệp và tên tệp theo `GET /v2/attachment-policy` *trước khi* băm; không gắn cứng 25 MiB. Tệp lớn hơn ngân sách băm của trình duyệt (`clientHashBudgetBytes` = 256 MiB) bị báo `CLIENT_HASH_LIMIT` chứ không bị bỏ qua âm thầm. Tệp vi phạm vẫn nằm trong danh sách ở trạng thái lỗi và chặn gửi cho tới khi owner bỏ nó.
+ 3. `web/src/compose/file-hash.ts` → `createWorkerHasher` băm tuần tự từng tệp trong worker riêng `file-hash.worker.ts` bằng `crypto.subtle.digest`. Mỗi lần chỉ giữ bytes của một tệp trong một `ArrayBuffer`, không tạo bản sao base64, và bỏ tham chiếu sau khi băm. Hủy, bỏ tệp hay đóng composer sẽ `terminate` worker và gỡ listener. Tệp trùng hash và size với tệp đã chọn bị đánh dấu `DUPLICATE_LOCAL` để owner bỏ.
+ 4. `web/src/compose/controller.ts` → `ComposeController`: lượt gửi được mở lười, `POST /v2/attachment-compose` với đúng một trong ba target. Mọi bước làm đổi revision (giữ chỗ, bỏ tệp, bỏ lượt gửi) chạy trong một hàng đợi tuần tự, nên `expectedRevision` luôn là revision mà bước trước trả về. Mỗi bước là một `PendingOperation` của Task2 với intent cố định theo bản nháp và tệp; intent giữ chỗ còn gắn với compose session nó giữ chỗ vào. Khi kết quả chưa xác nhận, composer gửi lại đúng key/body, không tạo reservation mới.
+-5. Tải bytes dùng `OwnerClient.upload` (PUT octet-stream kèm CSRF, cùng upload ID). Composer không hiện phần trăm giả. Nếu lỗi transport, bận (`ATTACHMENT_UPLOAD_BUSY`) hoặc hết thời gian, composer `GET /v2/attachment-compose/:id`: trạng thái `ready` thắng; `receiving` thì chờ (1/2/4 giây) rồi gửi lại cùng bytes; `reserved` thì gửi lại; lỗi chắc chắn (sai nội dung, replay khác) thì đánh dấu lỗi. Sau 4 lần chưa xác nhận, tệp ở `unknown`; “Thử lại” đọc lại compose rồi chạy lại vòng chờ đó với cùng bytes. Server còn `receiving` mà tab không có bytes (tải lại trang) thì tệp thành `unknown`/`UPLOAD_RECEIVING` kèm nút “Thử lại”, không đứng mãi ở “Đang tải lên”.
++5. Tải bytes dùng `OwnerClient.upload` (PUT octet-stream kèm CSRF, cùng upload ID). Composer không hiện phần trăm giả. Nếu lỗi transport, bận (`ATTACHMENT_UPLOAD_BUSY`) hoặc hết thời gian, composer `GET /v2/attachment-compose/:id`: trạng thái `ready` thắng; `receiving` thì chờ (1/2/4 giây) rồi gửi lại cùng bytes; `reserved` thì gửi lại; lỗi chắc chắn (sai nội dung, replay khác) thì đánh dấu lỗi. Lượt gửi hết hạn (`expiresAt` đã qua) hoặc đã đóng, gặp qua `ATTACHMENT_COMPOSE_CLOSED`, `ATTACHMENT_UPLOAD_EXPIRED` hay `SELECTION_CHANGED` rồi GET compose: tệp được chuyển sang lượt mới và tải lại, khóa submit chưa giải quyết của lượt đó được nhả (lượt mở đã hết hạn thì không thể commit), lỗi hiện là `COMPOSE_EXPIRED`. Sau 4 lần chưa xác nhận, tệp ở `unknown`; “Thử lại” đọc lại compose rồi chạy lại vòng chờ đó với cùng bytes. Server còn `receiving` mà tab không có bytes (tải lại trang) thì tệp thành `unknown`/`UPLOAD_RECEIVING` kèm nút “Thử lại”, không đứng mãi ở “Đang tải lên”.
+ 6. GET compose là nguồn sự thật. Upload còn hoạt động mà client chưa biết được nhận về theo SHA và size, hoặc thêm vào danh sách. Một reserve/remove chưa xác nhận được coi là đã commit nếu có dòng khớp hoặc upload đã `abandoned`. Nó được coi là chưa commit nếu revision đã vượt `expectedRevision` mà không có dòng khớp. Nếu GET chưa chứng minh được, nút “Thử lại” gửi lại operation cũ. Selection luôn bằng toàn bộ upload còn hoạt động; tệp lỗi không bị lọc bỏ để gửi cho được.
+ 7. Bỏ tệp: composer hủy công việc cục bộ trước, rồi `DELETE /v2/attachment-compose/:id/uploads/:uploadId {expectedRevision}`. Khi gặp 409 `ATTACHMENT_SELECTION_STALE`, composer đọc lại compose và gửi DELETE mới theo revision mới. Một reservation đã bị từ chối hẳn có thể bị bỏ để giữ chỗ lại bằng cùng bytes. Đổi project hoặc đích gửi khi đang soạn sẽ `DELETE /v2/attachment-compose/:id` lượt cũ rồi chuyển tệp sang lượt mới; lượt cũ không bao giờ được dùng lại. Khi rời lượt cũ, các khóa reserve/remove chưa giải quyết của lượt đó được nhả, vì lượt cũ đã đóng hoặc không bao giờ được dùng lại; file đi qua pipeline với khóa mới của lượt mới.
+ 8. Gửi: `submissionRequest`/`freezeSubmission` kiểm target khớp body (`TARGET_MISMATCH`/`TARGET_INVALID`), tiêu đề 1–200 code point, mô tả ≤ 65536, text ≤ 32768, kind/level/workflow enum, và text với tệp không cùng rỗng (riêng ticket không cần tệp). Body được serialize một lần: ticket `POST /v2/attachment-submissions/tickets {ticket,selection,assistantRead}`, bình luận `POST /v2/tickets/:ticketId/attachment-comments {text,selection,assistantRead}`, tin nhắn `POST /v2/attachment-submissions/messages {conversationId,clientMessageId,text,selection,assistantRead}`. `kind`, `target`, `draftKey` hay callback không bao giờ vào body. Ticket không tệp vẫn mở lượt gửi với `attachmentIds: []`.
+-9. `assistantRead` chỉ là `selected-inputs` khi owner tự bật ô “Cho phép Trợ lý đọc các tệp đã chọn”; giá trị này không suy ra từ cấu hình. Trong lúc `sending`, `ambiguous` hay `suspended`, ô nội dung chỉ đọc, `setSubmission` bị từ chối và body đã đóng băng không đổi dù props hay realtime đổi. Retry dùng cùng `PendingOperation`. Body đã đóng băng (gồm `assistantRead`) được giữ trong bộ nhớ. Nếu khóa biến mất vì đã được gửi lại ở panel khôi phục, hoặc vì 201 không giải mã được, draft vẫn khóa (`ambiguous`) và composer gửi lại đúng body đó trên cùng lượt gửi; máy chủ trả lại receipt đã lưu, không tạo entity thứ hai. Lượt gửi đã `submitted` mà tab không còn khóa hay body (ví dụ tải lại trang sau khi panel đã gửi), hoặc lần gửi gặp 409 `COMPOSE_ALREADY_SUBMITTED`, thì draft bị khóa với `SUBMITTED_ELSEWHERE`: không chuyển file sang lượt mới, không cấp khóa mới. Chỉ khi owner bấm “Bỏ bản nháp này” (`discard`), bản nháp cục bộ mới bị xóa; khóa trong `PendingStore` vẫn hiện ở panel khôi phục.
++9. `assistantRead` chỉ là `selected-inputs` khi owner tự bật ô “Cho phép Trợ lý đọc các tệp đã chọn”; giá trị này không suy ra từ cấu hình. Trong lúc `sending`, `ambiguous` hay `suspended`, ô nội dung chỉ đọc, `setSubmission` bị từ chối và body đã đóng băng không đổi dù props hay realtime đổi. Retry dùng cùng `PendingOperation`. Body đã đóng băng (gồm `assistantRead`) được giữ trong bộ nhớ. Nếu khóa biến mất vì đã được gửi lại ở panel khôi phục, hoặc vì 201 không giải mã được, draft vẫn khóa (`ambiguous`) và composer gửi lại đúng body đó trên cùng lượt gửi; máy chủ trả lại receipt đã lưu, không tạo entity thứ hai. Khóa đang giữ mà biến mất khỏi `PendingStore` (panel replay sau khi composer được dựng lại) được phát hiện qua `PendingStore.subscribe`: không còn body thì draft vào `SUBMIT_UNCONFIRMED`, rồi GET compose đưa về `SUBMITTED_ELSEWHERE` hoặc mở khóa; bấm gửi lúc đó chỉ chờ GET, không gửi gì. Khi mở khóa, consent và key cũ cũng được xóa. Lượt gửi đã `submitted` mà tab không còn khóa hay body (ví dụ tải lại trang sau khi panel đã gửi), hoặc lần gửi gặp 409 `COMPOSE_ALREADY_SUBMITTED`, thì draft bị khóa với `SUBMITTED_ELSEWHERE`: không chuyển file sang lượt mới, không cấp khóa mới. Chỉ khi owner bấm “Bỏ bản nháp này” (`discard`, owner đã duyệt kèm cảnh báo có thể tạo bản trùng), bản nháp cục bộ mới bị xóa. `discard` bị chặn khi đang gửi; nó bỏ lượt gửi cũ nếu còn mở và nhả khóa reserve/remove của lượt đó. Riêng khóa submit vẫn hiện ở panel khôi phục. Kết quả của một lần gửi thuộc draft đã bỏ không bao giờ được gắn vào draft mới (bộ đếm thế hệ).
+ 10. Phiên hết hạn thì operation ở `suspended`; sau khi đăng nhập lại cùng owner, composer đọc lại compose và gửi lại cùng key. Tải lại tab: `sessionStorage` `crew-v2:compose:<draftKey>` chỉ giữ intent, compose ID, revision, tên/size/SHA/upload ID của tệp và key operation; không giữ chữ, bytes hay bí mật. Tệp chưa sẵn sàng phải được chọn lại đúng size và SHA (`NEEDS_RESELECT`/`RESELECT_MISMATCH`). Record còn giữ `assistantRead` đã đóng băng (không phải bí mật). Sau đăng xuất, Task2 chỉ giữ tombstone; composer không cấp key mới cho ý định đó mà yêu cầu nhập lại đúng nội dung rồi `PendingStore.resume` với khóa cũ. Trạng thái file lấy từ GET compose (kể cả khi lượt đã `submitted`, revision giữ đúng giá trị trong body cũ), còn consent lấy từ record và hiện ở dạng đã khóa. Nhập sai thì `IDEMPOTENCY_CONFLICT` trả về tombstone với khóa cũ. Owner cũng có lối thoát “Bỏ bản nháp này”.
+-11. Khi được chấp nhận, receipt được giải mã theo loại (`decodeComposeReceipt`), cache ticket/comment/attachment bị invalidate, bản nháp được xóa đúng một lần, `takeReceipt` trao receipt cho `onAccepted` đúng một lần, và `receiptSummary` chỉ nói máy chủ đã lưu gì, không bao giờ nói Trợ lý “đã đọc”.
++11. Khi được chấp nhận, receipt được giải mã theo loại (`decodeComposeReceipt`), cache ticket/comment/attachment bị invalidate, bản nháp được xóa đúng một lần, Lỗi 5xx (ví dụ 503 `EXTRACTION_NOT_CONFIGURED` khi máy chủ chưa có extractor) giữ khóa (`UNCONFIRMED`) và composer hiện kèm lý do máy chủ gửi về. 404 `NOT_FOUND` khi selection có tệp máy chủ không còn dẫn tới GET compose và đánh dấu tệp thiếu. 403 `ORIGIN_INVALID` làm mới phiên một lần rồi giữ khóa ở `suspended`; 403 `OWNER_REQUIRED` trên lần gửi đầu là từ chối hẳn. 401 (`UNAUTHENTICATED` hay `SESSION_INVALID`) đều làm phiên hết hạn và giữ khóa. `takeReceipt` trao receipt cho `onAccepted` đúng một lần, và `receiptSummary` chỉ nói máy chủ đã lưu gì, không bao giờ nói Trợ lý “đã đọc”.
+ 12. `web/src/attachments/queries.ts` → `fetchVerifiedBytes`: chỉ xem trước bytes đã được cấp quyền khi SHA-256 và size khớp record, và MIME theo magic bytes khớp MIME trong record hoặc manifest (không tin tên tệp hay content-type). Nội dung inline chỉ gồm ảnh PNG/JPEG và bản text đã xác minh (React escape, giới hạn 64 KiB ký tự, công thức/macro hiện nguyên văn). PDF/OOXML chỉ có link tải; không iframe/object HTML, SVG hay PDF cùng origin. Object URL bị thu hồi khi preview unmount. `summarizeExtraction` hiện trạng thái pending/running/complete/partial/encrypted/corrupt/unsupported/blocked/failed, các phần còn thiếu theo trang/trang tính/ô/dòng, kèm lời nhắc rằng byte đã xác minh không có nghĩa là mô hình đã đọc.
+ 
+ ## Dữ liệu
+ 
+ `DraftFile`, `ComposeSubmission`, `ComposeDraft` và `ComposeReceipt` đúng interface của brief Task5. `ComposeTarget` được suy từ decoder `ComposeSession` của Task2 (`web/src/contracts/attachments.ts`). Decoder `AssistantMessage` (`server/src/attachments/contracts.ts:270`) tạm nằm trong `state.ts` vì contracts Task2 chưa có; controller có thể chuyển nó vào `contracts/attachments.ts`. Danh sách `GET /v2/tickets/:id/attachments` là danh sách phẳng, không có `commentId` hay nhãn nguồn: UI liệt kê không nhóm và không suy luận nhóm từ thứ tự, chờ projection G2.
+ 
+ Lifetime: mỗi `draftKey` có một controller, bị `dispose` khi unmount (dừng worker, hủy upload, gỡ listener). File bytes chỉ nằm trong bộ nhớ. Key và body đã đóng băng nằm trong `PendingStore` của tab. Payload chứa field giống bí mật bị Task2 từ chối lưu (`SECRET_PAYLOAD`) và composer báo lỗi, không gửi.
+ 
+ ## Flow liên quan
+ 
+ `web-data.md` sở hữu `OwnerClient`, `PendingStore`, phiên owner và query keys. `server-attachments.md` định nghĩa compose/upload/submission và trích xuất. `web-shell.md` sở hữu wiring app nơi `ComposeServicesProvider` được gắn.
+ 
+ ## Tests
+ 
+ - `web/test/compose-submit.test.ts`: `freezeSubmission` cho cả ba loại với đúng path/body; target sai và giới hạn field bị chặn; selection rỗng hợp lệ cho ticket không tệp; bytes khớp `PendingStore.begin`; `canSubmit`. Controller chạy trên `OwnerClient`/`PendingStore` thật của Task2 với producer giả trong bộ nhớ (`web/test/support/compose-server.ts`): mất phản hồi sau commit thì form bị khóa, retry cùng key/body và chỉ có một ticket; hết phiên rồi đăng nhập lại giữ key và `clientMessageId`; tải lại tab giữ compose/key, không lưu chữ; đăng xuất chỉ còn tombstone và nhập lại đúng nội dung thì dùng khóa cũ; bình luận chỉ có ảnh.
+ - `web/test/compose.test.ts`: tên ảnh dán, giữ cả chữ lẫn ảnh khi dán, giới hạn policy, digest và worker (tuần tự, abort/dispose dừng worker và gỡ listener), reserve tuần tự theo revision, tệp lỗi và tệp trùng chặn gửi, DELETE kèm refetch khi 409, mất phản hồi reserve (GET nhận lại upload) và reserve chưa tới server (retry cùng key), PUT bận và lỗi transport, đổi project, chọn lại sau reload, cùng preview an toàn (magic bytes, SHA/MIME, 401) và tóm tắt trích xuất.
+ - Vòng sửa 1 (review I1–I5, M5): RED trước khi sửa: 11/44 test mới fail theo hành vi. Ví dụ, sau 201 không giải mã được, state về `editing`; tombstone có file thì file ở `unknown`; đổi project khi reserve chưa xác nhận thì `TIMEOUT:moved`; `receiving` thì `TIMEOUT:ready`/`uploading`; panel replay gửi body khác consent; các helper UI `pasteDecision`/`fileActions`/`composeLocks` sai. Sau khi sửa: GREEN 44/44, web unit không DB 83/83. Bốn test cho nhánh vốn đúng (SELECTION_CHANGED, PUT 401, nhả DELETE chưa commit, abandon gặp stale) được chứng minh có tác dụng bằng đột biến: mỗi đột biến làm đúng test đó fail. Hành vi UI của `composer.tsx` được kiểm qua các helper thuần; repo chưa có môi trường React/DOM test.
++- Vòng sửa 2 (re-review N1–N5, I5, khớp hợp đồng G2): fake producer được sửa cho đúng server (by-comment, 503 extraction, 404 id lạ, 403 Origin/owner, login 200, hết hạn, 401 `SESSION_INVALID`). RED trước khi sửa: 5 test N và consent DOM fail, rồi 7 test G2 fail. GREEN: focused 63/63, web unit không DB 102/102. Component test thật `web/test/composer-dom.test.ts` chạy trên jsdom và React Testing Library, nạp `.tsx` bằng hook `web/test/support/tsx-loader.ts` (Oxc của Vite) và `web/test/support/dom.ts`. Test phủ: paste gọi `preventDefault` và chèn tại caret, kéo thả khi khóa, `readOnly` và consent `checked`/`disabled`, chuỗi receipt → `onAccepted` → bản nháp mới (consent tắt), nhãn và trạng thái của nút gửi và nút bỏ bản nháp, lý do 503. Mỗi điểm nối dây có đột biến làm đúng test đó fail.
+ - Lượt đầu chạy 25/25 PASS vì source viết trước test. Kiểm tra đột biến cho thấy 3 trên 4 đột biến bị bắt. Đột biến còn lại phát hiện lỗi thật: reserve chưa xác nhận bị kẹt. Test mới cho lỗi này RED trên source cũ (`TIMEOUT:ready`), GREEN sau khi sửa. Kết quả cuối: focused 29/29, web unit không DB 68/68, `tsc` và `vite build` PASS.
+-- `web/e2e/compose.spec.ts` (A5 trên API/PostgreSQL thật) chưa có vì G2 chưa mount route attachment trong `buildApp`; kịch bản bị chặn, không tính là PASS.
++- `web/e2e/compose.spec.ts` (A5 trên API/PostgreSQL thật) chưa có: fixture Task1 gọi `buildApp` không kèm `attachments`, nên route attachment không có trên API của fixture; kịch bản bị chặn, không tính là PASS.
+diff --git a/v2/docs/flows/web-shell.md b/v2/docs/flows/web-shell.md
+index c948aa0..dfbdfc8 100644
+--- a/v2/docs/flows/web-shell.md
++++ b/v2/docs/flows/web-shell.md
+@@ -19,21 +19,21 @@
+ 
+ 1. Browser mở `/crew-v2/`; router mount `Shell` với sidebar, toolbar và outlet. Guest thấy nhãn “Bản minh họa”; chưa có danh sách dự án từ API.
+ 2. Panel dùng cả biểu tượng và chữ cho loading, error, empty. Skip link, landmark, focus-visible và reduced-motion hỗ trợ bàn phím; CSS chia layout desktop/tablet/mobile.
+ 3. Dev Vite chỉ proxy `/v2` khi caller cấp `CREW_V2_WEB_API_ORIGIN`; build production dự kiến dùng cùng origin. Khung Task1 không gọi API hay import app/schema/role runtime v1.
+ 4. Coordinator web giữ một owner cho container PostgreSQL18.6, logical DB, Fastify và Vite trên một web listener. Nó chụp migration 001–011 một lần, bootstrap owner trong DB riêng, rồi kiểm HTTP session thực. Cleanup hủy socket thuộc run, đặt deadline từng pha và xác minh exact identity trước stop/drop; trường hợp UNKNOWN giữ registry và tài nguyên để PM đối chiếu. MCP đã kiểm shell guest trên source UI này; literal zoom 200% còn giới hạn chứng cứ nêu dưới đây.
+ 
+ ## Files
+ 
+ | File | Vai trò |
+ |---|---|
+-| `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web` |
++| `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web`. DevDependency chỉ dùng cho test component (owner duyệt): `jsdom` 30.1.1 và `@testing-library/react` 16.3.3; peer `@testing-library/dom` 10.4.2 chỉ có trong lock |
+ | `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/playwright.config.ts` | Base/proxy, HTML entry và browser runner một worker |
+ | `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive |
+ | `v2/web/test/workspace.test.ts`, `v2/web/test/fixture-lifecycle.test.ts` | Ranh giới workspace và lifecycle; RED lịch sử và GREEN PostgreSQL/API/SIGTERM thật đã ghi trong báo cáo |
+ | `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts` | Coordinator/handle fixture đã qua test lifecycle, typecheck và build thực |
+ 
+ ## Dữ liệu
+ 
+ Mỗi lần mount có đúng một `AppRuntime`, nên một `QueryClient`, một phiên và một stream sự kiện; dữ liệu nhạy cảm không vào module-global state. Nội dung `/` và `/projects/$projectId` vẫn là bản minh họa phía sau đăng nhập, chưa đọc project/ticket/Assistant thật. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
+ 
+ ## Flow liên quan
+diff --git a/v2/web/package.json b/v2/web/package.json
+index 27a6de1..4738d42 100644
+--- a/v2/web/package.json
++++ b/v2/web/package.json
+@@ -23,13 +23,15 @@
+     "react-markdown": "10.1.0",
+     "remark-gfm": "4.0.1"
+   },
+   "devDependencies": {
+     "vite": "8.3.2",
+     "@vitejs/plugin-react": "6.1.1",
+     "typescript": "7.0.2",
+     "@types/react": "19.3.0",
+     "@types/react-dom": "19.3.0",
+     "@types/node": "26.6.3",
+-    "@playwright/test": "1.63.0"
++    "@playwright/test": "1.63.0",
++    "@testing-library/react": "16.3.3",
++    "jsdom": "30.1.1"
+   }
+ }
+diff --git a/v2/web/src/attachments/preview.tsx b/v2/web/src/attachments/preview.tsx
+index 162aacb..9d59560 100644
+--- a/v2/web/src/attachments/preview.tsx
++++ b/v2/web/src/attachments/preview.tsx
+@@ -3,22 +3,24 @@
+  * bytes, or authorized bytes whose SHA-256/MIME match the producer record) and verified text derivatives
+  * escaped by React with a size cap. PDF/OOXML/other originals are download links only: no iframe/object/embed
+  * of HTML, SVG or PDF from this origin, no markup interpretation, formulas and macros are shown as literal
+  * text. Object URLs are revoked when the preview unmounts.
+  */
+ import { useQuery } from '@tanstack/react-query';
+ import { useEffect, useState } from 'react';
+ import type { OwnerClient } from '../lib/api.ts';
+ import type { ByteFetch, Extraction, TicketAttachment } from './queries.ts';
+ import {
++  commentAttachmentsQuery,
+   extractionsQuery,
+   fetchVerifiedBytes,
++  groupTicketAttachments,
+   sniffRaster,
+   summarizeExtraction,
+   textPreviewMaxChars,
+   ticketAttachmentsQuery,
+ } from './queries.ts';
+ 
+ const browserFetch: ByteFetch = (input, init) => globalThis.fetch(input, init);
+ 
+ export function formatBytes(bytes: number): string {
+   if (bytes < 1024) return `${bytes} B`;
+@@ -247,33 +249,48 @@ export function TicketAttachments({
+   client,
+   fetch = browserFetch,
+   onUnauthorized,
+ }: {
+   ticketId: string;
+   client: OwnerClient;
+   fetch?: ByteFetch;
+   onUnauthorized?: () => void;
+ }) {
+   const query = useQuery(ticketAttachmentsQuery(client, ticketId));
+-  if (query.isPending) return <p aria-live="polite">Đang tải tệp đính kèm…</p>;
++  const byComment = useQuery(commentAttachmentsQuery(client, ticketId));
++  if (query.isPending || byComment.isPending) return <p aria-live="polite">Đang tải tệp đính kèm…</p>;
+   if (query.isError) return <p role="status">Không đọc được danh sách tệp đính kèm.</p>;
+   if (query.data.length === 0) return <p>Ticket chưa có tệp đính kèm.</p>;
++  const groups = byComment.isError
++    ? { comments: [], other: query.data }
++    : groupTicketAttachments(query.data, byComment.data);
++  const row = (item: TicketAttachment) => (
++    <AttachmentRow
++      key={item.linkId}
++      item={item}
++      client={client}
++      fetch={fetch}
++      onUnauthorized={onUnauthorized}
++    />
++  );
++  const list = { display: 'grid', gap: '0.5rem', paddingLeft: '1.25rem' } as const;
+   return (
+     <section aria-label="Tệp đính kèm" style={{ display: 'grid', gap: '0.5rem' }}>
+-      <p>
+-        Danh sách gồm cả tệp kế thừa từ ticket cha. Nhóm theo bình luận và nhãn nguồn request/step/bình luận
+-        sẽ có khi máy chủ cung cấp dữ liệu nguồn.
+-      </p>
+-      <ul style={{ display: 'grid', gap: '0.5rem', paddingLeft: '1.25rem' }}>
+-        {query.data.map((item) => (
+-          <AttachmentRow
+-            key={item.linkId}
+-            item={item}
+-            client={client}
+-            fetch={fetch}
+-            onUnauthorized={onUnauthorized}
+-          />
+-        ))}
+-      </ul>
++      {byComment.isError && (
++        <p role="status">Chưa đọc được nhóm tệp theo bình luận; đang hiện danh sách chung.</p>
++      )}
++      {groups.comments.map((group) => (
++        <section key={group.commentId} aria-label="Tệp của bình luận" data-comment-id={group.commentId}>
++          <h4 style={{ margin: 0 }}>Tệp của bình luận</h4>
++          <ul style={list}>{group.attachments.map(row)}</ul>
++        </section>
++      ))}
++      {groups.other.length > 0 && (
++        <section aria-label="Tệp của ticket và tệp kế thừa">
++          <h4 style={{ margin: 0 }}>Tệp của ticket và tệp kế thừa</h4>
++          <p style={{ margin: 0 }}>Nhãn nguồn request/step cho tệp kế thừa sẽ có khi máy chủ cung cấp.</p>
++          <ul style={list}>{groups.other.map(row)}</ul>
++        </section>
++      )}
+     </section>
+   );
+ }
+diff --git a/v2/web/src/attachments/queries.ts b/v2/web/src/attachments/queries.ts
+index 13118f1..296cf32 100644
+--- a/v2/web/src/attachments/queries.ts
++++ b/v2/web/src/attachments/queries.ts
+@@ -303,10 +303,53 @@ export function summarizeExtraction(extraction: Extraction): CoverageSummary {
+         reason: unit.reason,
+       })),
+     verified: extraction.verification === 'verified',
+     previewable: extraction.derivatives.filter(
+       (derivative) =>
+         derivative.verification === 'verified' &&
+         derivative.original.attachmentId === extraction.original.attachmentId,
+     ),
+   };
+ }
++
++// ---------------------------------------------------------------------------------------------------------
++// Comment-scoped refs (G2 projection)
++
++export const decodeCommentAttachmentGroup = obj({
++  commentId: uuid,
++  attachments: arr(decodeTicketAttachment),
++});
++export type CommentAttachmentGroup = Infer<typeof decodeCommentAttachmentGroup>;
++const decodeCommentAttachmentPage = page(decodeCommentAttachmentGroup);
++
++/**
++ * GET `/v2/tickets/:id/attachments/by-comment` (`attachments/comment-refs.ts`): comment-scoped live refs,
++ * keyset-paged by commentId. Inherited and route links never appear here, only in the flattened list.
++ */
++export function commentAttachmentsQuery(client: OwnerClient, ticketId: string) {
++  return {
++    queryKey: [...attachmentQueryKeys.ticket(ticketId), 'by-comment'] as const,
++    queryFn: ({ signal }: { signal?: AbortSignal }): Promise<CommentAttachmentGroup[]> =>
++      allPages(
++        client,
++        `/v2/tickets/${encodeURIComponent(ticketId)}/attachments/by-comment`,
++        decodeCommentAttachmentPage,
++        signal,
++      ),
++    retry: false,
++  };
++}
++
++/**
++ * Splits the flattened ticket list into the producer's comment groups and the remaining refs (the ticket's
++ * own files or ones inherited from ancestors). Grouping uses only the projection's linkIds.
++ */
++export function groupTicketAttachments(
++  flat: readonly TicketAttachment[],
++  groups: readonly CommentAttachmentGroup[],
++): { comments: CommentAttachmentGroup[]; other: TicketAttachment[] } {
++  const grouped = new Set(groups.flatMap((group) => group.attachments.map((ref) => ref.linkId)));
++  return {
++    comments: groups.filter((group) => group.attachments.length > 0),
++    other: flat.filter((ref) => !grouped.has(ref.linkId)),
++  };
++}
+diff --git a/v2/web/src/compose/composer.tsx b/v2/web/src/compose/composer.tsx
+index b2b99df..68081ec 100644
+--- a/v2/web/src/compose/composer.tsx
++++ b/v2/web/src/compose/composer.tsx
+@@ -119,20 +119,27 @@ const messages: Record<string, string> = {
+   COMPOSE_ALREADY_SUBMITTED: 'Lượt gửi này đã được dùng cho một nội dung khác.',
+   IDEMPOTENCY_CONFLICT:
+     'Nội dung khác yêu cầu cũ. Yêu cầu cũ vẫn được giữ; hãy nhập lại đúng nội dung ban đầu.',
+   SECRET_PAYLOAD: 'Nội dung có trường giống thông tin bí mật nên không được lưu hay gửi.',
+   UNAUTHENTICATED: 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục; yêu cầu vẫn giữ khóa cũ.',
+   SESSION_REQUIRED: 'Cần đăng nhập để tiếp tục; yêu cầu vẫn giữ khóa cũ.',
+   SESSION_ENDED: 'Phiên đăng nhập đã kết thúc; yêu cầu vẫn giữ khóa cũ.',
+   UNCONFIRMED: 'Chưa xác nhận kết quả. Gửi lại sẽ dùng đúng yêu cầu cũ.',
+   RESPONSE_SHAPE_INVALID: 'Máy chủ trả dữ liệu không đúng định dạng. Gửi lại sẽ nhận lại đúng kết quả cũ.',
+   UPLOAD_RECEIVING: 'Máy chủ vẫn đang nhận tệp này từ lần gửi trước. Thử lại để kiểm tra lại.',
++  NOT_FOUND: 'Máy chủ không còn một tệp trong lượt gửi. Bỏ tệp bị thiếu rồi gửi lại.',
++  ORIGIN_INVALID:
++    'Máy chủ không nhận nguồn gửi của tab này. Yêu cầu vẫn giữ khóa cũ; tải lại trang rồi thử lại.',
++  OWNER_REQUIRED: 'Phiên hiện tại không phải chủ sở hữu nên không được gửi.',
++  COMPOSE_EXPIRED: 'Lượt gửi đã hết hạn; tệp được chuyển sang lượt gửi mới.',
++  ATTACHMENT_UPLOAD_EXPIRED: 'Lượt tải tệp đã hết hạn.',
++  ATTACHMENT_COMPOSE_CLOSED: 'Lượt gửi đã đóng.',
+   SUBMIT_UNCONFIRMED: 'Chưa xác nhận lần gửi trước. Đang kiểm tra với máy chủ; nội dung vẫn khóa.',
+   SUBMITTED_ELSEWHERE:
+     'Lượt gửi này đã được máy chủ lưu nhưng tab này không còn kết quả. Xem ở danh sách; bỏ bản nháp nếu muốn soạn mới.',
+ };
+ 
+ function describe(code: string | null): string | null {
+   if (!code) return null;
+   return messages[code] ?? `Không thực hiện được (${code}).`;
+ }
+ 
+@@ -286,20 +293,22 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
+     if (receipt.kind === 'ticket') {
+       void queryClient.invalidateQueries({ queryKey: queryRoots.tickets });
+       void queryClient.invalidateQueries({ queryKey: queryRoots.ticket(receipt.ticket.id) });
+     } else if (receipt.kind === 'comment') {
+       const ticketId = receipt.comment.ticketId;
+       void queryClient.invalidateQueries({ queryKey: queryRoots.comments(ticketId) });
+       void queryClient.invalidateQueries({ queryKey: attachmentQueryKeys.ticket(ticketId) });
+       void queryClient.invalidateQueries({ queryKey: queryRoots.ticket(ticketId) });
+     }
+     latest.current.onAccepted(receipt);
++    // Consent belongs to one intent: the next draft starts without it.
++    setAllowRead(false);
+     controller.startNew();
+   }, [pendingReceipt, controller, queryClient]);
+ 
+   const [allowRead, setAllowRead] = useState(false);
+   const [notice, setNotice] = useState<string | null>(null);
+   const inputId = useId();
+   const textId = useId();
+   const consentId = useId();
+   const authenticated = sessionState === 'authenticated';
+   const reentry = view?.needsPayload ?? false;
+@@ -427,37 +436,42 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
+         </div>
+       )}
+       {!authenticated && <p role="status">Cần đăng nhập để gửi hoặc tải tệp.</p>}
+       {statusText[state] && <p aria-live="polite">{statusText[state]}</p>}
+       {reentry && (
+         <p role="status">
+           Yêu cầu cũ chưa được xác nhận và nội dung đã bị xóa khỏi trình duyệt khi đăng xuất. Nhập lại đúng
+           nội dung ban đầu để gửi bằng khóa cũ; không tạo yêu cầu mới.
+         </p>
+       )}
+-      {view?.errorCode && <p role="alert">{describe(view.errorCode)}</p>}
++      {view?.errorCode && (
++        <p role="alert">
++          {describe(view.errorCode)}
++          {view.errorMessage ? ` Máy chủ báo: ${view.errorMessage}.` : ''}
++        </p>
++      )}
+       {notice && <p aria-live="polite">{notice}</p>}
+       <div style={{ display: 'flex', gap: '0.75rem' }}>
+         <button type="button" disabled={!view?.submittable || !authenticated} onClick={() => void submit()}>
+           {state === 'sending'
+             ? 'Đang gửi…'
+             : retrying && !reentry
+               ? 'Gửi lại đúng yêu cầu cũ'
+               : submitLabels[submission.kind]}
+         </button>
+         {locks.showAbandon && (
+           <button type="button" disabled={!authenticated} onClick={() => void controller?.abandon()}>
+             Bỏ bản nháp tệp
+           </button>
+         )}
+         {locks.showDiscard && (
+-          <button type="button" onClick={() => controller?.discard()}>
++          <button type="button" onClick={() => void controller?.discard()}>
+             Bỏ bản nháp này
+           </button>
+         )}
+       </div>
+       {locks.showDiscard && (
+         <p>
+           Bỏ bản nháp chỉ xóa bản nháp trên trình duyệt; yêu cầu cũ vẫn nằm trong “Tiếp tục yêu cầu chưa xác
+           nhận”. Nếu yêu cầu cũ đã được máy chủ lưu, gửi một nội dung mới sẽ tạo thêm một mục khác.
+         </p>
+       )}
+diff --git a/v2/web/src/compose/controller.ts b/v2/web/src/compose/controller.ts
+index ccd19fb..27d14f6 100644
+--- a/v2/web/src/compose/controller.ts
++++ b/v2/web/src/compose/controller.ts
+@@ -54,20 +54,22 @@ import {
+   serializeDraftRecord,
+   submissionRequest,
+   targetKey,
+   validateSubmission,
+ } from './state.ts';
+ 
+ export type ComposeView = {
+   draft: ComposeDraft;
+   /** Last error code for the owner (validation, policy, transport or server code). */
+   errorCode: string | null;
++  /** Producer message behind an unconfirmed 5xx (for example why the server is not ready). */
++  errorMessage: string | null;
+   /** The submit key survives only as a payload-free tombstone (after logout): re-enter the same content. */
+   needsPayload: boolean;
+   /** Submit button state: new submit, retry of the frozen operation, or re-entry for a tombstone. */
+   submittable: boolean;
+   receipt: ComposeReceipt | null;
+   /** Consent frozen into the unresolved submit (re-entry must reproduce it); null when nothing is frozen. */
+   assistantRead: AssistantRead | null;
+   /** The owner may drop this local draft explicitly (re-entry or a submit that can no longer be resent). */
+   discardable: boolean;
+ };
+@@ -124,20 +126,26 @@ function delay(milliseconds: number, signal: AbortSignal): Promise<void> {
+ 
+ function errorCode(error: unknown): string {
+   if (error instanceof ApiFailure || error instanceof ComposeValidationError || error instanceof HashError)
+     return error.code;
+   if (error instanceof PendingSerializationError)
+     return error.message.replace('PENDING_NOT_SERIALIZABLE:', '');
+   if (error instanceof IntentUnresolvedError) return 'INTENT_UNRESOLVED';
+   return 'UNEXPECTED';
+ }
+ 
++/** Producer message behind an unconfirmed 5xx (the code itself is replaced by `UNCONFIRMED`). */
++function serverMessage(error: unknown): string | null {
++  if (!(error instanceof ApiFailure) || error.status === null || error.status < 500) return null;
++  return error.message && error.message !== error.code ? error.message : null;
++}
++
+ function isOperation(entry: PendingOperation | RecoveryTombstone | undefined): entry is PendingOperation {
+   return entry !== undefined && 'bodyJson' in entry;
+ }
+ 
+ /** `expectedRevision` of an unresolved reserve/remove (operation body or tombstone). */
+ function expectedRevisionOf(entry: PendingOperation | RecoveryTombstone): number | null {
+   if (!isOperation(entry)) return entry.expectedRevision;
+   try {
+     const body: unknown = JSON.parse(entry.bodyJson);
+     const value =
+@@ -189,21 +197,25 @@ export class ComposeController {
+   /** Consent frozen into the submit intent (persisted, non-secret). */
+   #assistantRead: AssistantRead | null = null;
+   /**
+    * The submit outcome is unknown and cannot be resent from this tab: `SUBMIT_UNCONFIRMED` (reload after
+    * the key vanished) or `SUBMITTED_ELSEWHERE` (the compose was submitted without a local key).
+    */
+   #lockReason: string | null = null;
+   #receiptTaken = false;
+   /** Key of the latest submit of this intent, kept while its outcome is not proven. */
+   #lastSubmitId: string | null = null;
++  /** Bumped by `startNew`; a send that finishes under an older generation no longer owns the draft. */
++  #generation = 0;
++  readonly #offPending: () => void;
+   #errorCode: string | null = null;
++  #errorMessage: string | null = null;
+   #receipt: ComposeReceipt | null = null;
+   #policy: Promise<AttachmentPolicy> | null = null;
+   #queue: Promise<unknown> = Promise.resolve();
+   #fileChain: Promise<unknown> = Promise.resolve();
+   #view: ComposeView | null = null;
+ 
+   constructor(options: ComposeControllerOptions) {
+     this.#options = options;
+     this.#client = options.client;
+     this.#pending = options.pending;
+@@ -239,39 +251,42 @@ export class ComposeController {
+         this.#draft.state = operation.state === 'suspended' ? 'suspended' : 'ambiguous';
+       } else if (this.#pending.tombstones().some((tombstone) => tombstone.id === operationId)) {
+         this.#tombstoneId = operationId;
+         this.#draft.state = 'suspended';
+       } else {
+         // The key was resolved elsewhere (accepted or rejected); GET compose decides which.
+         this.#lockReason = 'SUBMIT_UNCONFIRMED';
+         this.#draft.state = 'ambiguous';
+       }
+     }
++    this.#offPending = this.#pending.subscribe(() => this.#onPendingChange());
+   }
+ 
+   // ---- observation ------------------------------------------------------------------------------------
+ 
+   subscribe(listener: () => void): () => void {
+     this.#listeners.add(listener);
+     return () => this.#listeners.delete(listener);
+   }
+ 
+   /** Stable snapshot until the next change (safe for `useSyncExternalStore`). */
+   view(): ComposeView {
+     this.#view ??= Object.freeze({
+       draft: this.#draft,
+       errorCode: this.#errorCode,
++      errorMessage: this.#errorMessage,
+       needsPayload: this.#tombstoneId !== null,
+       submittable: this.#submittable(),
+       receipt: this.#receipt,
+       assistantRead: this.#assistantRead,
+-      discardable: this.#tombstoneId !== null || this.#lockReason !== null,
++      discardable:
++        this.#draft.state !== 'sending' && (this.#tombstoneId !== null || this.#lockReason !== null),
+     });
+     return this.#view;
+   }
+ 
+   /** In-memory bytes of a file selected in this tab (for local preview); null after reload. */
+   localFile(localId: string): File | null {
+     return this.#bytes.get(localId) ?? null;
+   }
+ 
+   /** True while a pipeline step for this file is running in this tab. */
+@@ -280,22 +295,30 @@ export class ComposeController {
+   }
+ 
+   /** The accepted receipt, handed out exactly once. */
+   takeReceipt(): ComposeReceipt | null {
+     if (!this.#receipt || this.#receiptTaken) return null;
+     this.#receiptTaken = true;
+     return this.#receipt;
+   }
+ 
+   /** Explicit owner decision to drop the local draft; unresolved keys stay in the PendingStore. */
+-  discard(): void {
++  async discard(): Promise<void> {
++    if (this.#draft.state === 'sending') return;
+     if (this.#tombstoneId === null && this.#lockReason === null) return;
++    const sessionId = this.#draft.sessionId;
++    if (sessionId !== null) {
++      // An open compose of the dropped draft is abandoned so it cannot be submitted or hold quota; a
++      // submitted one is left as is (the DELETE path reads it back and stops).
++      await this.#enqueue(() => this.#abandonSession()).catch(() => undefined);
++      this.#releaseSessionKeys(sessionId);
++    }
+     this.startNew();
+   }
+ 
+   // ---- form input -------------------------------------------------------------------------------------
+ 
+   /**
+    * Controlled submission update. Refused while a submit is frozen (sending/ambiguous/suspended/accepted),
+    * except re-entry of content for a tombstoned key. A changed target moves files to a new compose session.
+    */
+   setSubmission(next: ComposeSubmission): boolean {
+@@ -411,46 +434,49 @@ export class ComposeController {
+   }
+ 
+   // ---- submit -----------------------------------------------------------------------------------------
+ 
+   /**
+    * Freeze and send, or retry the frozen operation with the same key/bytes. `assistantRead` is part of the
+    * frozen body and only applies to a new submit.
+    */
+   async submit(assistantRead: AssistantRead): Promise<ComposeReceipt | null> {
+     if (this.#draft.state === 'sending' || this.#draft.state === 'accepted') return null;
+-    let operation: PendingOperation;
++    const generation = this.#generation;
++    let operation: PendingOperation | null;
+     try {
+       operation = await this.#submitOperation(assistantRead);
+     } catch (error) {
+       this.#fail(error);
+       return null;
+     }
++    if (operation === null || generation !== this.#generation) return null;
+     this.#lastSubmitId = operation.id;
+     this.#draft = { ...this.#draft, submitOperation: operation, state: 'sending' };
+-    this.#errorCode = null;
++    this.#setError(null);
+     this.#emit();
+     let value: unknown;
+     try {
+       value = await this.#client.mutate<unknown>(operation);
+     } catch (error) {
+-      await this.#afterSubmitFailure(operation, error);
++      if (generation === this.#generation) await this.#afterSubmitFailure(operation, error);
+       return null;
+     }
++    if (generation !== this.#generation) return null;
+     let receipt: ComposeReceipt;
+     try {
+       receipt = decodeComposeReceipt(this.#draft.submission.kind, value);
+     } catch {
+       // The server committed and the key is released: stay locked; resending the frozen body on the same
+       // compose replays the stored response instead of creating a second entity.
+       this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
+-      this.#errorCode = 'RESPONSE_SHAPE_INVALID';
++      this.#setError('RESPONSE_SHAPE_INVALID');
+       this.#emit();
+       return null;
+     }
+     this.#receipt = receipt;
+     this.#receiptTaken = false;
+     this.#tombstoneId = null;
+     this.#frozen = null;
+     this.#lockReason = null;
+     this.#draft = { ...this.#draft, submitOperation: null, state: 'accepted' };
+     this.#emit();
+@@ -477,81 +503,158 @@ export class ComposeController {
+     if (this.#draft.sessionId !== null)
+       await this.#enqueue(() => this.#abandonSession()).catch((error) => this.#fail(error));
+     this.startNew();
+   }
+ 
+   /** After the receipt was delivered: fresh intent, no files, no session. */
+   startNew(): void {
+     for (const abort of this.#aborts.values()) abort.abort(new ApiFailure(null, 'ABORTED', 'aborted'));
+     this.#aborts.clear();
+     this.#bytes.clear();
++    this.#generation++;
+     this.#intentId = this.#newId();
+     this.#sessionTarget = null;
+     this.#tombstoneId = null;
+     this.#frozen = null;
+     this.#assistantRead = null;
+     this.#lockReason = null;
+     this.#lastSubmitId = null;
+     this.#receipt = null;
+     this.#receiptTaken = false;
+-    this.#errorCode = null;
++    this.#setError(null);
+     this.#draft = {
+       submission: this.#draft.submission,
+       sessionId: null,
+       selectionRevision: null,
+       files: [],
+       submitOperation: null,
+       state: 'editing',
+     };
+     this.#emit();
+   }
+ 
+   /** Close: stop hashing (terminates the worker), abort uploads, drop listeners. Metadata stays persisted. */
+   dispose(): void {
+     this.#life.abort(new ApiFailure(null, 'ABORTED', 'aborted'));
+     for (const abort of this.#aborts.values()) abort.abort(new ApiFailure(null, 'ABORTED', 'aborted'));
+     this.#aborts.clear();
+     this.#bytes.clear();
+     this.#options.hasher.dispose();
++    this.#offPending();
+     this.#listeners.clear();
+   }
+ 
+   // ---- internals: submit ------------------------------------------------------------------------------
+ 
+-  async #submitOperation(assistantRead: AssistantRead): Promise<PendingOperation> {
++  async #submitOperation(assistantRead: AssistantRead): Promise<PendingOperation | null> {
+     const existing = this.#draft.submitOperation
+       ? this.#pending.get(this.#draft.submitOperation.id)
+       : undefined;
+     if (existing) return existing;
+     if (this.#tombstoneId !== null) {
+       // Re-entry must reproduce the original body, including the consent frozen with it.
+       const request = this.#request(this.#assistantRead ?? assistantRead);
+       return this.#pending.resume(this.#tombstoneId, request.body, 'tab');
+     }
+     if (this.#frozen) {
+       // The key vanished (replayed elsewhere or the reply was unreadable): the same body on the same
+       // compose replays the stored result; a new body would be a second intent.
+       return this.#beginSubmit(this.#frozen.path, JSON.parse(this.#frozen.bodyJson));
+     }
++    if (this.#lockReason === 'SUBMIT_UNCONFIRMED') {
++      // Nothing to resend from this tab: let GET compose settle the outcome first.
++      await this.#enqueue(() => this.#refresh()).catch((error) => this.#fail(error));
++      return null;
++    }
+     if (this.#lockReason !== null) throw new ComposeValidationError(this.#lockReason);
+-    if (this.#draft.state !== 'editing') throw new ComposeValidationError('SUBMIT_UNCONFIRMED');
++    if (this.#draft.state !== 'editing') {
++      // The frozen key vanished without a body in memory (resolved by the recovery panel after a reload
++      // or remount): GET compose decides between a locked submitted draft and a free editing draft.
++      this.#markVanished();
++      await this.#enqueue(() => this.#refresh()).catch((error) => this.#fail(error));
++      return null;
++    }
+     if (this.#draft.files.length === 0 && this.#draft.sessionId === null)
+       await this.#enqueue(() => this.#ensureSession());
+     await this.#queue;
+     if (!canSubmit(this.#draft)) throw new ComposeValidationError(this.#blocker());
+     const request = this.#request(assistantRead);
+     const operation = this.#beginSubmit(request.path, request.body);
+     this.#frozen = { path: operation.path, bodyJson: operation.bodyJson };
+     this.#assistantRead = assistantRead;
+     return operation;
+   }
+ 
++  #markVanished(): void {
++    this.#lockReason = 'SUBMIT_UNCONFIRMED';
++    this.#setError('SUBMIT_UNCONFIRMED');
++    this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
++    this.#emit();
++  }
++
++  /** The frozen submit key changed outside this controller (recovery panel replay, logout tombstone). */
++  #onPendingChange(): void {
++    const operation = this.#draft.submitOperation;
++    if (!operation || this.#draft.state === 'sending' || this.#pending.get(operation.id)) return;
++    if (this.#pending.tombstones().some((tombstone) => tombstone.id === operation.id)) {
++      this.#tombstoneId = operation.id;
++      this.#draft = { ...this.#draft, submitOperation: null, state: 'suspended' };
++      this.#emit();
++      return;
++    }
++    if (this.#frozen) {
++      // The same body can be resent on this compose to read the stored result.
++      this.#draft = { ...this.#draft, submitOperation: null };
++      this.#emit();
++      return;
++    }
++    this.#markVanished();
++    void this.#enqueue(() => this.#refresh()).catch((error) => this.#fail(error));
++  }
++
++  /** True when this tab still owns an unresolved submit for the draft. */
++  #ownsSubmit(): boolean {
++    const operation = this.#draft.submitOperation;
++    return (
++      (operation !== null && this.#pending.get(operation.id) !== undefined) ||
++      this.#tombstoneId !== null ||
++      this.#frozen !== null
++    );
++  }
++
++  /** Free the unresolved draft state after GET compose proved the frozen submit did not commit. */
++  #unlockUnconfirmed(): void {
++    this.#lockReason = null;
++    this.#setError(null);
++    this.#frozen = null;
++    this.#assistantRead = null;
++    this.#lastSubmitId = null;
++    this.#draft = { ...this.#draft, submitOperation: null, state: 'editing' };
++  }
++
++  /** Drop the submit key and frozen body of a compose that is proven unable to commit them. */
++  #releaseSubmit(): void {
++    const operationId = this.#draft.submitOperation?.id ?? this.#tombstoneId;
++    // Clear the draft first so the PendingStore listener does not read the rejection as a vanished key.
++    this.#tombstoneId = null;
++    this.#unlockUnconfirmed();
++    if (operationId) this.#pending.reject(operationId);
++  }
++
++  /** Reserve/remove keys of a compose this draft no longer uses. */
++  #releaseSessionKeys(sessionId: string): void {
++    for (const file of this.#draft.files) {
++      this.#resolve(this.#reserveIntent(file.localId, sessionId), 'reject');
++      if (file.uploadId) this.#resolve(this.#removeIntent(file.uploadId), 'reject');
++    }
++  }
++
+   #beginSubmit(path: string, body: unknown): PendingOperation {
+     try {
+       return this.#pending.begin({
+         intentId: this.#submitIntent(),
+         method: 'POST',
+         path,
+         body,
+         storage: 'tab',
+       });
+     } catch (error) {
+@@ -588,21 +691,21 @@ export class ComposeController {
+       this.#frozen = null;
+       this.#lockReason = 'SUBMITTED_ELSEWHERE';
+     } else {
+       // Proven rejection: the intent is free again.
+       this.#draft = { ...this.#draft, submitOperation: null, state: 'editing' };
+       this.#tombstoneId = null;
+       this.#frozen = null;
+       this.#assistantRead = null;
+       this.#lastSubmitId = null;
+     }
+-    this.#errorCode = code;
++    this.#setError(code, serverMessage(error));
+     this.#emit();
+     if (!kept && this.#draft.state === 'editing' && reconcileAfterSubmit.has(code))
+       await this.#enqueue(() => this.#refresh()).catch((failure) => this.#fail(failure));
+   }
+ 
+   #blocker(): string {
+     const files = this.#draft.files;
+     if (files.some((file) => file.state === 'failed' || file.state === 'unknown')) return 'FILES_NOT_READY';
+     if (files.some((file) => file.state !== 'ready')) return 'FILES_PENDING';
+     try {
+@@ -650,21 +753,21 @@ export class ComposeController {
+     return session.id;
+   }
+ 
+   async #retarget(): Promise<void> {
+     const key = this.#safeTargetKey(this.#draft.submission);
+     if (this.#draft.sessionId === null || key === null || key === this.#sessionTarget) return;
+     try {
+       await this.#abandonSession();
+     } catch {
+       // The old session is never reused; the server expires it by TTL.
+-      this.#errorCode = 'PREVIOUS_COMPOSE_KEPT';
++      this.#setError('PREVIOUS_COMPOSE_KEPT');
+     }
+     this.#detachFromSession('TARGET_CHANGED');
+   }
+ 
+   async #abandonSession(): Promise<void> {
+     const sessionId = this.#draft.sessionId;
+     if (sessionId === null) return;
+     for (let attempt = 0; attempt < 2; attempt++) {
+       try {
+         await this.#send(
+@@ -687,40 +790,36 @@ export class ComposeController {
+       }
+     }
+   }
+ 
+   /** Files leave the old session: in-memory files go through the pipeline again, others need reselect. */
+   #detachFromSession(code: string): void {
+     for (const abort of this.#aborts.values()) abort.abort(new ApiFailure(null, 'ABORTED', 'aborted'));
+     this.#aborts.clear();
+     // The old compose is closed or never reused: its unresolved reserve/remove keys can no longer matter.
+     const oldSession = this.#draft.sessionId;
+-    if (oldSession !== null)
+-      for (const file of this.#draft.files) {
+-        this.#resolve(this.#reserveIntent(file.localId, oldSession), 'reject');
+-        if (file.uploadId) this.#resolve(this.#removeIntent(file.uploadId), 'reject');
+-      }
++    if (oldSession !== null) this.#releaseSessionKeys(oldSession);
+     const files = this.#draft.files
+       .filter((file) => file.state !== 'removing')
+       .map((file): DraftFile => {
+         const bytes = this.#bytes.has(file.localId);
+         if (file.state === 'failed' && file.uploadId === null && file.sha256 === null) return file;
+         return {
+           ...file,
+           uploadId: null,
+           state: bytes ? 'selected' : 'failed',
+           errorCode: bytes ? null : 'NEEDS_RESELECT',
+         };
+       });
+     this.#sessionTarget = null;
+     this.#draft = { ...this.#draft, sessionId: null, selectionRevision: null, files };
+-    this.#errorCode ??= code;
++    if (this.#errorCode === null) this.#setError(code);
+     this.#emit();
+     for (const file of files) if (file.state === 'selected') this.#schedule(file.localId);
+   }
+ 
+   async #readCompose(sessionId: string) {
+     const value = await this.#client.get<unknown>(`/v2/attachment-compose/${sessionId}`, {
+       signal: this.#life.signal,
+     });
+     try {
+       return decodeComposeView(value);
+@@ -731,44 +830,42 @@ export class ComposeController {
+ 
+   /** GET compose: server state is authoritative for every upload; unconfirmed reserve/remove get resolved. */
+   async #refresh(): Promise<void> {
+     const sessionId = this.#draft.sessionId;
+     if (sessionId === null) return;
+     const view = await this.#readCompose(sessionId);
+     if (this.#draft.sessionId !== sessionId) return;
+     if (view.session.state === 'submitted') {
+       // Never move files to a new compose: either our frozen submit is replayed for its receipt, or the
+       // compose was submitted without a local key and the draft stays locked until the owner discards it.
+-      const ours =
+-        this.#draft.submitOperation !== null || this.#tombstoneId !== null || this.#frozen !== null;
+-      if (!ours) {
++      if (!this.#ownsSubmit()) {
+         this.#lockReason = 'SUBMITTED_ELSEWHERE';
+-        this.#errorCode = 'SUBMITTED_ELSEWHERE';
++        this.#setError('SUBMITTED_ELSEWHERE');
+         this.#draft = { ...this.#draft, submitOperation: null, state: 'ambiguous' };
+       }
+       this.#mergeFiles(view, false);
+       return;
+     }
+     if (view.session.state !== 'open') {
+-      if (this.#lockReason === 'SUBMIT_UNCONFIRMED') {
+-        this.#lockReason = null;
+-        this.#draft = { ...this.#draft, state: 'editing' };
+-      }
++      if (this.#lockReason === 'SUBMIT_UNCONFIRMED') this.#unlockUnconfirmed();
+       this.#detachFromSession('COMPOSE_CLOSED');
+       return;
+     }
+-    if (this.#lockReason === 'SUBMIT_UNCONFIRMED') {
+-      // The vanished key did not submit this still-open compose: it was rejected.
+-      this.#lockReason = null;
+-      this.#errorCode = null;
+-      this.#draft = { ...this.#draft, state: 'editing' };
++    if (Date.parse(view.session.expiresAt) <= this.#now().getTime()) {
++      // An expired open compose can no longer be submitted, and an earlier send would have made it
++      // `submitted`: any unresolved submit of it is proven not committed. Files move to a new compose.
++      this.#releaseSubmit();
++      this.#detachFromSession('COMPOSE_EXPIRED');
++      return;
+     }
++    // The vanished key did not submit this still-open compose: it was rejected.
++    if (this.#lockReason === 'SUBMIT_UNCONFIRMED') this.#unlockUnconfirmed();
+     this.#mergeFiles(view, true);
+   }
+ 
+   /** Server state is authoritative for every upload of the compose. */
+   #mergeFiles(view: { session: ComposeSession; attachments: Attachment[] }, open: boolean): void {
+     const revision = view.session.revision;
+     const byId = new Map(view.attachments.map((attachment) => [attachment.attachmentId, attachment]));
+     const files: DraftFile[] = [];
+     const claimed = new Set<string>();
+     for (const file of this.#draft.files) {
+@@ -960,20 +1057,26 @@ export class ComposeController {
+           return;
+         }
+         if (error instanceof ApiFailure && error.code === 'RESPONSE_SHAPE_INVALID') {
+           await this.#refresh();
+           return;
+         }
+         if (error instanceof ApiFailure && error.code === 'ATTACHMENT_SELECTION_STALE') {
+           await this.#refresh();
+           continue;
+         }
++        if (error instanceof ApiFailure && error.code === 'ATTACHMENT_COMPOSE_CLOSED') {
++          // Closed or expired: GET compose moves the files to a new compose and reschedules them.
++          await this.#refresh();
++          if (this.#draft.sessionId === sessionId) throw error;
++          return;
++        }
+         throw error;
+       }
+     }
+     this.#patch(localId, { state: 'failed', errorCode: 'ATTACHMENT_SELECTION_STALE' });
+   }
+ 
+   async #upload(localId: string, signal: AbortSignal): Promise<void> {
+     for (let attempt = 0; attempt <= uploadBackoff.length; attempt++) {
+       const file = this.#file(localId);
+       if (!file || file.uploadId === null || file.state === 'ready' || file.state === 'failed') return;
+@@ -998,20 +1101,22 @@ export class ComposeController {
+         this.#patch(localId, { state: 'unknown', errorCode: code });
+         return;
+       }
+       // Ready wins; receiving/busy waits and retries the same bytes on the same upload ID.
+       try {
+         await this.#enqueue(() => this.#refresh());
+       } catch (error) {
+         this.#patch(localId, { state: 'unknown', errorCode: errorCode(error) });
+         return;
+       }
++      // The compose expired or closed: the file was moved to a new compose and rescheduled.
++      if (signal.aborted) return;
+       const after = this.#file(localId);
+       if (!after || after.state === 'ready' || after.state === 'failed' || after.state === 'removing') return;
+       if (after.state === 'reserved' && definitiveUpload.has(code)) {
+         this.#patch(localId, { state: 'failed', errorCode: code });
+         return;
+       }
+       if (attempt === uploadBackoff.length) break;
+       try {
+         await this.#sleep(uploadBackoff[attempt] ?? 4000, signal);
+       } catch {
+@@ -1165,22 +1270,27 @@ export class ComposeController {
+     this.#setFiles(
+       this.#draft.files.map((file) => (file.localId === localId ? { ...file, ...patch } : file)),
+     );
+   }
+ 
+   #setFiles(files: DraftFile[]): void {
+     this.#draft = { ...this.#draft, files };
+     this.#emit();
+   }
+ 
++  #setError(code: string | null, message: string | null = null): void {
++    this.#errorCode = code;
++    this.#errorMessage = code === null ? null : message;
++  }
++
+   #fail(error: unknown): void {
+-    this.#errorCode = errorCode(error);
++    this.#setError(errorCode(error), serverMessage(error));
+     this.#emit();
+   }
+ 
+   #persist(): void {
+     const storage = this.#options.storage;
+     if (!storage) return;
+     try {
+       const draft = this.#draft;
+       if (
+         draft.state === 'accepted' ||
+diff --git a/v2/web/src/compose/state.ts b/v2/web/src/compose/state.ts
+index 98c1a58..8e320c9 100644
+--- a/v2/web/src/compose/state.ts
++++ b/v2/web/src/compose/state.ts
+@@ -664,14 +664,14 @@ export function composeLocks(
+   showAbandon: boolean;
+ } {
+   const unavailable = !context.ready || !context.authenticated;
+   const filesLocked = unavailable || view.state !== 'editing';
+   return {
+     textLocked: unavailable || (view.state !== 'editing' && !view.needsPayload),
+     filesLocked,
+     consentLocked: filesLocked || view.assistantRead !== null,
+     consent: view.assistantRead !== null ? view.assistantRead === 'selected-inputs' : context.localConsent,
+     reportedState: view.needsPayload ? 'editing' : view.state,
+-    showDiscard: view.discardable,
++    showDiscard: view.discardable && view.state !== 'sending',
+     showAbandon: view.state === 'editing' && !view.needsPayload && view.hasDraft,
+   };
+ }
+diff --git a/v2/web/test/compose-submit.test.ts b/v2/web/test/compose-submit.test.ts
+index 87f7d23..54dacd9 100644
+--- a/v2/web/test/compose-submit.test.ts
++++ b/v2/web/test/compose-submit.test.ts
+@@ -352,66 +352,64 @@ test('comment chỉ có ảnh ready: selection đúng mọi upload active, recei
+   assert.equal(receipt?.kind, 'comment');
+   const body = JSON.parse(
+     server.calls.find((call) => call.url.endsWith('/attachment-comments'))?.body ?? '{}',
+   );
+   assert.deepEqual(body.selection.attachmentIds, [env.controller.view().draft.files[0]?.uploadId]);
+   assert.equal(body.assistantRead, 'selected-inputs');
+   assert.ok(receipt);
+   assert.doesNotMatch(receiptSummary(receipt), /đã đọc|đã hiểu/i);
+ });
+ 
+-// ---- fix round 1 -----------------------------------------------------------------------------------------
+-
+-test('I1: 201 không giải mã được thì draft vẫn khóa; gửi lại đúng body cũ, không có entity thứ hai', async () => {
++test('201 không giải mã được thì draft vẫn khóa; gửi lại đúng body cũ, không có entity thứ hai', async () => {
+   const server = new FakeComposeServer();
+   const { controller } = await controllerFor(server, commentSubmission('nội dung gốc'));
+   server.corruptNext = (call) => call.url.endsWith('/attachment-comments');
+   assert.equal(await controller.submit('none'), null);
+   assert.equal(server.comments.length, 1, 'server đã commit');
+   assert.notEqual(controller.view().draft.state, 'editing', 'không mở khóa form khi server có thể đã commit');
+   assert.equal(controller.setSubmission(commentSubmission('owner sửa sau đó')), false);
+   assert.equal(controller.view().submittable, true);
+   const receipt = await controller.submit('selected-inputs');
+   assert.equal(receipt?.kind, 'comment');
+   const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+   assert.equal(posts.length, 2);
+   assert.equal(posts[1]?.body, posts[0]?.body, 'đúng body đã đóng băng, kể cả assistantRead');
+   assert.equal(server.comments.length, 1);
+   assert.equal(server.composes.size, 1);
+ });
+ 
+-test('I1: lượt gửi đã submitted mà op cục bộ đã mất thì khóa, không mở lượt mới, không tạo bản trùng', async () => {
++test('lượt gửi đã submitted mà op cục bộ đã mất thì khóa, không mở lượt mới, không tạo bản trùng', async () => {
+   const server = new FakeComposeServer();
+   const first = await controllerFor(server, commentSubmission('đã gửi ở panel'));
+   server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+   await first.controller.submit('none');
+   const operation = first.controller.view().draft.submitOperation;
+   assert.ok(operation);
+   // The recovery panel replays and accepts the operation; the key is released.
+   await first.client.mutate(operation);
+   assert.equal(first.pending.get(operation.id), undefined);
+   first.controller.dispose();
+   const reloaded = await controllerFor(server, commentSubmission(''), await harness(server, first.storage));
+   await reloaded.controller.reconcile();
+   assert.notEqual(reloaded.controller.view().draft.state, 'editing');
+   assert.equal(reloaded.controller.setSubmission(commentSubmission('nội dung khác')), false);
+   await reloaded.controller.submit('none');
+   await reloaded.controller.submit('none');
+   assert.equal(server.comments.length, 1);
+   assert.equal(server.composes.size, 1, 'không mở compose mới');
+   assert.equal(reloaded.controller.view().discardable, true, 'owner có lối thoát rõ ràng');
+-  reloaded.controller.discard();
++  await reloaded.controller.discard();
+   assert.equal(reloaded.controller.view().draft.state, 'editing');
+   assert.equal(reloaded.controller.view().draft.sessionId, null);
+ });
+ 
+-test('I2: nhập lại sau logout với file và consent selected-inputs gửi được bằng key cũ', async () => {
++test('nhập lại sau logout với file và consent selected-inputs gửi được bằng key cũ', async () => {
+   const server = new FakeComposeServer();
+   const env = await controllerFor(server, commentSubmission('kèm ảnh'));
+   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+   await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+   server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+   await env.controller.submit('selected-inputs');
+   const key = env.controller.view().draft.submitOperation?.id;
+   assert.ok(key);
+   env.pending.tombstoneAll();
+   env.controller.dispose();
+@@ -429,36 +427,36 @@ test('I2: nhập lại sau logout với file và consent selected-inputs gửi 
+   assert.equal(after.controller.view().needsPayload, true);
+   assert.equal(after.controller.setSubmission(commentSubmission('kèm ảnh')), true);
+   const receipt = await after.controller.submit('none');
+   assert.equal(receipt?.kind, 'comment');
+   const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+   assert.ok(posts.every((call) => call.headers.get('idempotency-key') === key));
+   assert.equal(JSON.parse(posts.at(-1)?.body ?? '{}').assistantRead, 'selected-inputs');
+   assert.equal(server.comments.length, 1);
+ });
+ 
+-test('I5: op được panel khôi phục replay thì composer gửi lại đúng body, nhận lại receipt cũ', async () => {
++test('op được panel khôi phục replay thì composer gửi lại đúng body, nhận lại receipt cũ', async () => {
+   const server = new FakeComposeServer();
+   const env = await controllerFor(server, commentSubmission('panel'));
+   server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+   await env.controller.submit('selected-inputs');
+   const operation = env.controller.view().draft.submitOperation;
+   assert.ok(operation);
+   await env.client.mutate(operation);
+   const receipt = await env.controller.submit('none');
+   assert.equal(receipt?.kind, 'comment');
+   const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+   assert.equal(new Set(posts.map((call) => call.body)).size, 1);
+   assert.equal(server.comments.length, 1);
+ });
+ 
+-test('I5: SELECTION_CHANGED khi gửi thì đọc lại compose, upload lạ trở thành file chặn/đúng selection', async () => {
++test('SELECTION_CHANGED khi gửi thì đọc lại compose, upload lạ trở thành file chặn/đúng selection', async () => {
+   const server = new FakeComposeServer();
+   const env = await controllerFor(server, commentSubmission('có chữ'));
+   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+   await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+   // Another tab reserved a second file on the same compose.
+   const compose = [...server.composes.values()][0];
+   assert.ok(compose);
+   server.uploads.set('aaaaaaaa-bbbb-4ccc-8ddd-999999999999', {
+     attachmentId: 'aaaaaaaa-bbbb-4ccc-8ddd-999999999999',
+     composeId: compose.id,
+@@ -470,17 +468,214 @@ test('I5: SELECTION_CHANGED khi gửi thì đọc lại compose, upload lạ tr
+   });
+   compose.revision++;
+   assert.equal(await env.controller.submit('none'), null);
+   assert.equal(env.controller.view().errorCode, 'SELECTION_CHANGED');
+   await settle(() => env.controller.view().draft.files.length === 2, 'refetched');
+   assert.equal(env.controller.view().draft.state, 'editing');
+   const receipt = await env.controller.submit('none');
+   assert.equal(receipt?.kind === 'comment' && receipt.attachmentIds.length, 2);
+ });
+ 
+-test('I5: takeReceipt trả receipt đúng một lần', async () => {
++test('takeReceipt trả receipt đúng một lần', async () => {
+   const server = new FakeComposeServer();
+   const env = await controllerFor(server, commentSubmission('một lần'));
+   await env.controller.submit('none');
+   assert.equal(env.controller.takeReceipt()?.kind, 'comment');
+   assert.equal(env.controller.takeReceipt(), null);
+ });
++
++test('panel khôi phục replay sau khi composer dựng lại: gửi lại không kẹt, chuyển sang khóa có lối thoát', async () => {
++  const server = new FakeComposeServer();
++  const first = await controllerFor(server, commentSubmission('dựng lại'));
++  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
++  await first.controller.submit('none');
++  first.controller.dispose();
++  const reloaded = await controllerFor(server, commentSubmission(''), await harness(server, first.storage));
++  const operation = reloaded.controller.view().draft.submitOperation;
++  assert.ok(operation, 'op vẫn còn sau reload');
++  await reloaded.client.mutate(operation);
++  await reloaded.controller.submit('none');
++  await settle(() => reloaded.controller.view().errorCode === 'SUBMITTED_ELSEWHERE', 'resolved');
++  assert.equal(reloaded.controller.view().discardable, true);
++  const before = server.calls.length;
++  await reloaded.controller.submit('none');
++  assert.equal(
++    server.calls.slice(before).filter((call) => call.method === 'POST').length,
++    0,
++    'không gửi gì thêm',
++  );
++  assert.equal(server.comments.length, 1);
++});
++
++test('nhả trạng thái chưa xác nhận khi lượt gửi còn mở thì consent cũ không còn bị khóa', async () => {
++  const server = new FakeComposeServer();
++  const first = await controllerFor(server, commentSubmission('consent cũ'));
++  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
++  await first.controller.submit('selected-inputs');
++  const operation = first.controller.view().draft.submitOperation;
++  assert.ok(operation);
++  first.controller.dispose();
++  const env = await harness(server, first.storage);
++  env.pending.reject(operation.id);
++  const reloaded = await controllerFor(server, commentSubmission('consent cũ'), env);
++  assert.equal(reloaded.controller.view().assistantRead, 'selected-inputs');
++  await reloaded.controller.reconcile();
++  assert.equal(reloaded.controller.view().draft.state, 'editing');
++  assert.equal(reloaded.controller.view().assistantRead, null);
++  await reloaded.controller.submit('none');
++  const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
++  assert.equal(JSON.parse(posts.at(-1)?.body ?? '{}').assistantRead, 'none');
++});
++
++test('discard bị chặn khi đang gửi; kết quả về sau vẫn thuộc draft đang gửi', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('đang gửi'));
++  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
++  await env.controller.submit('none');
++  env.pending.tombstoneAll();
++  env.controller.dispose();
++  const after = await controllerFor(
++    server,
++    commentSubmission('đang gửi'),
++    await harness(server, env.storage),
++  );
++  await after.controller.reconcile();
++  server.hold = (call) => call.url.endsWith('/attachment-comments');
++  const sending = after.controller.submit('none');
++  await settle(() => after.controller.view().draft.state === 'sending', 'sending');
++  assert.equal(after.controller.view().discardable, false);
++  await after.controller.discard();
++  assert.equal(after.controller.view().draft.state, 'sending');
++  server.hold = null;
++  server.release();
++  const receipt = await sending;
++  assert.equal(receipt?.kind, 'comment');
++  assert.equal(after.controller.view().draft.state, 'accepted');
++});
++
++test('discard bỏ lượt gửi còn mở và chỉ giữ khóa submit ở panel', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('bỏ'));
++  await env.controller.addFiles([pngFile('a.png', 3)], 'input');
++  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
++  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
++  await env.controller.submit('none');
++  const key = env.controller.view().draft.submitOperation?.id;
++  const sessionId = env.controller.view().draft.sessionId ?? '';
++  env.pending.tombstoneAll();
++  env.controller.dispose();
++  const after = await controllerFor(server, commentSubmission(''), await harness(server, env.storage));
++  await after.controller.reconcile();
++  assert.equal(after.controller.view().discardable, true);
++  await after.controller.discard();
++  assert.equal(server.composes.get(sessionId)?.state, 'abandoned', 'lượt gửi cũ được bỏ trên server');
++  assert.equal(after.controller.view().draft.sessionId, null);
++  assert.deepEqual(
++    after.pending.tombstones().map((tombstone) => tombstone.id),
++    [key],
++    'chỉ khóa submit còn ở panel',
++  );
++  assert.equal(after.pending.list().length, 0);
++});
++
++test('503 EXTRACTION_NOT_CONFIGURED khi gửi kèm tệp: giữ khóa, hiện lý do của máy chủ, gửi lại cùng key khi máy chủ sẵn sàng', async () => {
++  const server = new FakeComposeServer();
++  server.extractionConfigured = false;
++  const env = await controllerFor(server, commentSubmission('kèm tệp'));
++  await env.controller.addFiles([pngFile('a.png', 7)], 'input');
++  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
++  assert.equal(await env.controller.submit('none'), null);
++  const view = env.controller.view();
++  assert.equal(view.draft.state, 'ambiguous');
++  assert.equal(view.errorCode, 'UNCONFIRMED');
++  assert.match(view.errorMessage ?? '', /Chưa cấu hình xử lý tệp/);
++  const key = view.draft.submitOperation?.id;
++  assert.ok(key && env.pending.get(key), 'khóa không bị nhả');
++  server.extractionConfigured = true;
++  const receipt = await env.controller.submit('none');
++  assert.equal(receipt?.kind, 'comment');
++  const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
++  assert.ok(posts.every((call) => call.headers.get('idempotency-key') === key));
++  assert.equal(env.controller.view().errorMessage, null);
++});
++
++test('lượt gửi hết hạn: SELECTION_CHANGED dẫn tới lượt mới, tệp được tải lại, chỉ một bình luận', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('hết hạn'));
++  await env.controller.addFiles([pngFile('a.png', 8)], 'input');
++  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
++  const first = env.controller.view().draft.sessionId ?? '';
++  const compose = server.composes.get(first);
++  assert.ok(compose);
++  compose.expired = true;
++  assert.equal(await env.controller.submit('none'), null);
++  assert.equal(env.controller.view().errorCode, 'COMPOSE_EXPIRED', 'báo hết hạn thay vì lỗi lựa chọn chung');
++  await settle(
++    () =>
++      env.controller.view().draft.sessionId !== first &&
++      env.controller.view().draft.files[0]?.state === 'ready',
++    'moved',
++  );
++  assert.equal(env.controller.view().draft.state, 'editing');
++  const receipt = await env.controller.submit('none');
++  assert.equal(receipt?.kind, 'comment');
++  assert.equal(server.comments.length, 1);
++});
++
++test('selection chứa tệp máy chủ không còn: 404 NOT_FOUND, tệp bị đánh dấu thiếu và chặn gửi', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('mất tệp'));
++  await env.controller.addFiles([pngFile('a.png', 9)], 'input');
++  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
++  server.uploads.delete(env.controller.view().draft.files[0]?.uploadId ?? '');
++  assert.equal(await env.controller.submit('none'), null);
++  assert.equal(env.controller.view().errorCode, 'NOT_FOUND');
++  await settle(() => env.controller.view().draft.files[0]?.errorCode === 'ATTACHMENT_MISSING', 'missing');
++  assert.equal(env.controller.view().submittable, false);
++});
++
++test('403 ORIGIN_INVALID: làm mới phiên một lần, vẫn lỗi thì giữ khóa ở trạng thái tạm dừng và gửi lại cùng khóa', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('origin'));
++  server.originInvalid = true;
++  await env.controller.submit('none');
++  assert.equal(env.controller.view().errorCode, 'ORIGIN_INVALID');
++  assert.equal(env.controller.view().draft.state, 'editing', 'chưa gửi submit nào');
++  const kept = env.pending.list();
++  assert.equal(kept.length, 1);
++  assert.equal(kept[0]?.state, 'suspended');
++  assert.equal(
++    server.calls.filter((call) => call.method === 'GET' && call.url === '/v2/auth/session').length,
++    2,
++    'làm mới phiên đúng một lần',
++  );
++  server.originInvalid = false;
++  assert.equal((await env.controller.submit('none'))?.kind, 'comment');
++  const opens = server.calls.filter((call) => call.url === '/v2/attachment-compose');
++  assert.ok(opens.every((call) => call.headers.get('idempotency-key') === kept[0]?.id));
++  assert.equal(server.composes.size, 1);
++});
++
++test('403 OWNER_REQUIRED trên lần gửi đầu: bị từ chối hẳn, form mở lại, không giữ khóa', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('owner'));
++  server.ownerRequired = true;
++  await env.controller.submit('none');
++  assert.equal(env.controller.view().errorCode, 'OWNER_REQUIRED');
++  assert.equal(env.controller.view().draft.state, 'editing');
++  assert.equal(env.pending.list().length, 0);
++});
++
++test('401 SESSION_INVALID: phiên hết hạn, đăng nhập lại (200) rồi gửi lại cùng khóa', async () => {
++  const server = new FakeComposeServer();
++  const env = await controllerFor(server, commentSubmission('phiên'));
++  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
++  await env.controller.submit('none');
++  server.sessionInvalid = true;
++  await env.controller.submit('none');
++  assert.equal(env.session.snapshot().state, 'expired');
++  assert.equal(env.controller.view().draft.state, 'suspended');
++  server.sessionInvalid = false;
++  assert.equal(await env.session.login('mat-khau'), true);
++  assert.equal((await env.controller.submit('none'))?.kind, 'comment');
++  assert.equal(server.comments.length, 1);
++});
+diff --git a/v2/web/test/compose.test.ts b/v2/web/test/compose.test.ts
+index fab4e7f..2ea4c74 100644
+--- a/v2/web/test/compose.test.ts
++++ b/v2/web/test/compose.test.ts
+@@ -1,17 +1,19 @@
+ import assert from 'node:assert/strict';
+ import { createHash } from 'node:crypto';
+ import { test } from 'node:test';
+ import {
++  commentAttachmentsQuery,
+   describeLocator,
+   type Extraction,
+   fetchVerifiedBytes,
++  groupTicketAttachments,
+   sniffRaster,
+   summarizeExtraction,
+ } from '../src/attachments/queries.ts';
+ import { ComposeController } from '../src/compose/controller.ts';
+ import {
+   answerHashRequest,
+   createWorkerHasher,
+   digestFile,
+   type HashResponse,
+   type HashWorker,
+@@ -514,23 +516,21 @@ test('trạng thái trích xuất nêu phần thiếu theo trang/sheet/ô và kh
+     ['Trang 2', 'Trang tính “Q4”, vùng B2 (ẩn)'],
+   );
+   assert.doesNotMatch(JSON.stringify(summary), /đã đọc/i);
+   assert.equal(
+     describeLocator({ kind: 'docx', paragraph: 3, table: 1, row: 2, cell: 4 }),
+     'Bảng 1, hàng 2, ô 4',
+   );
+   assert.equal(describeLocator({ kind: 'unknown' }), 'Vị trí không xác định');
+ });
+ 
+-// ---- fix round 1 -----------------------------------------------------------------------------------------
+-
+-test('I3: đổi project khi reserve chưa xác nhận: op cũ được giải quyết, file lên compose mới', async () => {
++test('đổi project khi reserve chưa xác nhận: op cũ được giải quyết, file lên compose mới', async () => {
+   const env = await setup(ticketSubmission());
+   env.server.failBefore = (call) => call.method === 'POST' && call.url.endsWith('/uploads');
+   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+   await settle(env.allSettled, 'unknown');
+   assert.equal(env.files()[0]?.state, 'unknown');
+   const oldSession = env.controller.view().draft.sessionId;
+   assert.equal(env.controller.setSubmission(ticketSubmission(otherProject)), true);
+   await settle(
+     () => env.controller.view().draft.sessionId !== oldSession && env.files()[0]?.state === 'ready',
+     'moved',
+@@ -538,33 +538,33 @@ test('I3: đổi project khi reserve chưa xác nhận: op cũ được giải q
+   const next = env.controller.view().draft.sessionId ?? '';
+   assert.equal(env.server.composes.get(next)?.projectId, otherProject);
+   assert.equal([...env.server.uploads.values()].filter((upload) => upload.composeId === next).length, 1);
+   assert.equal(
+     env.pending.list().filter((operation) => operation.path.includes(oldSession ?? '-')).length,
+     0,
+     'không còn op reserve treo trên compose cũ',
+   );
+ });
+ 
+-test('I4: PUT còn receiving sau vòng chờ, Thử lại tiếp tục chờ rồi gửi cùng bytes tới khi ready', async () => {
++test('PUT còn receiving sau vòng chờ, Thử lại tiếp tục chờ rồi gửi cùng bytes tới khi ready', async () => {
+   const env = await setup(commentSubmission(''));
+   env.server.busyPuts = 6;
+   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+   await settle(env.allSettled, 'unknown');
+   assert.equal(env.files()[0]?.state, 'unknown');
+   await env.controller.retryFile(env.files()[0]?.localId ?? '');
+   await settle(() => env.files()[0]?.state === 'ready', 'ready');
+   const puts = env.server.calls.filter((call) => call.method === 'PUT');
+   assert.equal(new Set(puts.map((call) => call.url)).size, 1);
+ });
+ 
+-test('I4: reload khi server receiving và không còn bytes: có Thử lại, không đứng ở Đang tải lên', async () => {
++test('reload khi server receiving và không còn bytes: có Thử lại, không đứng ở Đang tải lên', async () => {
+   const server = new FakeComposeServer();
+   server.busyPuts = 50;
+   const first = await setup(commentSubmission(''), server);
+   await first.controller.addFiles([pngFile('a.png', 1)], 'input');
+   await settle(first.allSettled, 'unknown');
+   first.controller.dispose();
+   const env = await harness(server, first.storage);
+   const controller = new ComposeController({
+     draftKey: 'draft-files',
+     submission: commentSubmission(''),
+@@ -580,21 +580,21 @@ test('I4: reload khi server receiving và không còn bytes: có Thử lại, kh
+   assert.ok(file);
+   assert.equal(file.state, 'unknown');
+   assert.equal(file.errorCode, 'UPLOAD_RECEIVING');
+   assert.equal(fileActions(file, { hasBytes: false, active: false, locked: false }).retry, true);
+   const upload = [...server.uploads.values()][0];
+   if (upload) upload.state = 'ready';
+   await controller.retryFile(file.localId);
+   assert.equal(controller.view().draft.files[0]?.state, 'ready');
+ });
+ 
+-test('I5: PUT gặp 401 thì file unknown; đăng nhập lại rồi reconcile tải tiếp cùng upload', async () => {
++test('PUT gặp 401 thì file unknown; đăng nhập lại rồi reconcile tải tiếp cùng upload', async () => {
+   const env = await setup(commentSubmission(''));
+   env.server.failBefore = null;
+   const original = env.server.fetch;
+   let unauthorizedPut = true;
+   env.server.fetch = async (url, init) => {
+     if (unauthorizedPut && init?.method === 'PUT') {
+       unauthorizedPut = false;
+       return new Response(JSON.stringify({ error: { code: 'UNAUTHENTICATED', message: 'x' } }), {
+         status: 401,
+       });
+@@ -615,77 +615,77 @@ test('I5: PUT gặp 401 thì file unknown; đăng nhập lại rồi reconcile t
+   await controller.addFiles([pngFile('a.png', 1)], 'input');
+   await settle(() => controller.view().draft.files[0]?.state === 'unknown', 'unknown');
+   assert.equal(controller.view().draft.files[0]?.errorCode, 'UNAUTHENTICATED');
+   assert.equal(wrapped.session.snapshot().state, 'expired');
+   assert.equal(await wrapped.session.login('mat-khau'), true);
+   await controller.reconcile();
+   await settle(() => controller.view().draft.files[0]?.state === 'ready', 'ready');
+   assert.equal(env.server.uploads.size, 1);
+ });
+ 
+-test('I5: bỏ file khi DELETE chưa tới server: GET chứng minh chưa commit thì nhả key, DELETE lại theo revision mới', async () => {
++test('bỏ file khi DELETE chưa tới server: GET chứng minh chưa commit thì nhả key, DELETE lại theo revision mới', async () => {
+   const env = await setup(commentSubmission(''));
+   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+   await settle(() => env.files()[0]?.state === 'ready', 'ready');
+   env.server.failBefore = (call) => call.method === 'DELETE';
+   const localId = env.files()[0]?.localId ?? '';
+   await env.controller.removeFile(localId);
+   assert.equal(env.files()[0]?.state, 'removing');
+   const compose = [...env.server.composes.values()][0];
+   if (compose) compose.revision++;
+   await env.controller.reconcile();
+   assert.equal(env.pending.list().length, 0, 'op DELETE cũ được nhả nhờ GET compose');
+   await env.controller.retryFile(localId);
+   assert.equal(env.files().length, 0);
+   const deletes = env.server.calls.filter((call) => call.method === 'DELETE');
+   assert.notEqual(deletes[0]?.headers.get('idempotency-key'), deletes.at(-1)?.headers.get('idempotency-key'));
+ });
+ 
+-test('I5: abandon gặp ATTACHMENT_SELECTION_STALE thì đọc lại revision rồi bỏ lượt gửi', async () => {
++test('abandon gặp ATTACHMENT_SELECTION_STALE thì đọc lại revision rồi bỏ lượt gửi', async () => {
+   const env = await setup(commentSubmission(''));
+   await env.controller.addFiles([pngFile('a.png', 1)], 'input');
+   await settle(() => env.files()[0]?.state === 'ready', 'ready');
+   const sessionId = env.controller.view().draft.sessionId ?? '';
+   const compose = env.server.composes.get(sessionId);
+   if (compose) compose.revision++;
+   await env.controller.abandon();
+   assert.equal(env.server.composes.get(sessionId)?.state, 'abandoned');
+   const deletes = env.server.calls.filter((call) => call.method === 'DELETE');
+   assert.deepEqual(
+     deletes.map((call) => JSON.parse(call.body ?? '{}').expectedRevision),
+     [2, 3],
+   );
+   assert.equal(env.controller.view().draft.sessionId, null);
+   assert.equal(env.files().length, 0);
+ });
+ 
+-test('I5 composer: paste chỉ chặn khi có file, chèn chữ tại con trỏ; paste thường giữ nguyên', () => {
++test('paste chỉ chặn khi có file, chèn chữ tại con trỏ; paste thường giữ nguyên', () => {
+   const image = pngFile('image.png', 1);
+   assert.deepEqual(
+     pasteDecision({ files: [], text: 'chữ', value: 'ab', start: 1, end: 1, filesLocked: false }),
+     { prevent: false, nextValue: null, files: [] },
+   );
+   assert.deepEqual(
+     pasteDecision({ files: [image], text: 'XY', value: 'abcd', start: 1, end: 3, filesLocked: false }),
+     { prevent: true, nextValue: 'aXYd', files: [image] },
+   );
+   assert.deepEqual(
+     pasteDecision({ files: [image], text: '', value: 'abcd', start: null, end: null, filesLocked: false }),
+     { prevent: true, nextValue: null, files: [image] },
+   );
+   assert.deepEqual(
+     pasteDecision({ files: [image], text: 'XY', value: 'abcd', start: 0, end: 0, filesLocked: true }),
+     { prevent: false, nextValue: null, files: [] },
+   );
+ });
+ 
+-test('I5 composer: nút Thử lại/Chọn lại/Bỏ theo trạng thái file', () => {
++test('nút Thử lại/Chọn lại/Bỏ theo trạng thái file', () => {
+   const base = { localId: 'l', name: 'a.png', size: 1, sha256: null, uploadId: null, errorCode: null };
+   const open = { hasBytes: true, active: false, locked: false };
+   assert.equal(fileActions({ ...base, state: 'unknown' }, open).retry, true);
+   assert.equal(fileActions({ ...base, state: 'uploading' }, { ...open, active: true }).retry, false);
+   assert.equal(
+     fileActions({ ...base, state: 'uploading' }, open).retry,
+     true,
+     'uploading không có tiến trình',
+   );
+   assert.equal(
+@@ -696,21 +696,21 @@ test('I5 composer: nút Thử lại/Chọn lại/Bỏ theo trạng thái file',
+   assert.equal(fileActions({ ...base, state: 'failed', errorCode: 'NEEDS_RESELECT' }, open).reselect, true);
+   assert.equal(fileActions({ ...base, state: 'ready' }, open).remove, true);
+   assert.equal(fileActions({ ...base, state: 'removing' }, open).remove, false);
+   assert.deepEqual(fileActions({ ...base, state: 'unknown' }, { ...open, locked: true }), {
+     retry: false,
+     reselect: false,
+     remove: false,
+   });
+ });
+ 
+-test('I5 composer: khóa form, consent đóng băng và state báo cho form', () => {
++test('khóa form, consent đóng băng và state báo cho form', () => {
+   const view = {
+     state: 'editing' as const,
+     needsPayload: false,
+     assistantRead: null,
+     discardable: false,
+     hasDraft: true,
+   };
+   const ctx = { ready: true, authenticated: true, localConsent: true };
+   const editing = composeLocks(view, ctx);
+   assert.equal(editing.textLocked, false);
+@@ -731,10 +731,90 @@ test('I5 composer: khóa form, consent đóng băng và state báo cho form', ()
+   assert.equal(reentry.filesLocked, true);
+   assert.equal(reentry.consent, true);
+   assert.equal(reentry.consentLocked, true);
+   assert.equal(reentry.reportedState, 'editing');
+   assert.equal(reentry.showDiscard, true);
+   assert.equal(reentry.showAbandon, false);
+   const guest = composeLocks(view, { ...ctx, authenticated: false });
+   assert.equal(guest.textLocked, true);
+   assert.equal(guest.filesLocked, true);
+ });
++
++test('lượt gửi hết hạn khi đang giữ chỗ hoặc tải bytes: tệp chuyển sang lượt mới và sẵn sàng', async () => {
++  const env = await setup(commentSubmission(''));
++  await env.controller.addFiles([pngFile('a.png', 1)], 'input');
++  await settle(() => env.files()[0]?.state === 'ready', 'ready');
++  const first = env.controller.view().draft.sessionId ?? '';
++  const compose = env.server.composes.get(first);
++  assert.ok(compose);
++  compose.expired = true;
++  env.server.hold = (call) => call.method === 'PUT';
++  await env.controller.addFiles([pngFile('b.png', 2)], 'input');
++  await settle(
++    () => env.server.calls.some((call) => call.url.endsWith('/uploads') && call.method === 'POST'),
++    'reserve',
++  );
++  env.server.hold = null;
++  env.server.release();
++  await settle(
++    () =>
++      env.controller.view().draft.sessionId !== first &&
++      env.files().length === 2 &&
++      env.files().every((file) => file.state === 'ready'),
++    'moved',
++  );
++  assert.ok(
++    env.server.calls.some(
++      (call) => call.url.includes(first) && call.method === 'POST' && call.url.endsWith('/uploads'),
++    ),
++    'đã gặp ATTACHMENT_COMPOSE_CLOSED ở lượt cũ',
++  );
++});
++
++test('PUT gặp ATTACHMENT_UPLOAD_EXPIRED: tệp chuyển sang lượt mới và tải lại', async () => {
++  const env = await setup(commentSubmission(''));
++  env.server.hold = (call) => call.method === 'PUT';
++  await env.controller.addFiles([pngFile('a.png', 3)], 'input');
++  await settle(() => env.server.calls.some((call) => call.method === 'PUT'), 'put');
++  const first = env.controller.view().draft.sessionId ?? '';
++  const compose = env.server.composes.get(first);
++  assert.ok(compose);
++  compose.expired = true;
++  env.server.hold = null;
++  env.server.release();
++  await settle(
++    () => env.controller.view().draft.sessionId !== first && env.files()[0]?.state === 'ready',
++    'moved',
++  );
++});
++
++test('refs theo bình luận lấy từ projection máy chủ; refs còn lại là của ticket hoặc kế thừa', async () => {
++  const server = new FakeComposeServer();
++  const env = await harness(server);
++  const controller = new ComposeController({
++    draftKey: 'draft-groups',
++    submission: commentSubmission(''),
++    client: env.client,
++    pending: env.pending,
++    storage: env.storage,
++    hasher: inlineHasher().hasher,
++    loadPolicy: (signal) => env.client.get('/v2/attachment-policy', { signal }),
++    sleep: async () => undefined,
++  });
++  await controller.addFiles([pngFile('a.png', 4)], 'input');
++  await settle(() => controller.view().draft.files[0]?.state === 'ready', 'ready');
++  const receipt = await controller.submit('none');
++  assert.equal(receipt?.kind, 'comment');
++  const groups = await commentAttachmentsQuery(env.client, ticketId).queryFn({});
++  assert.equal(groups.length, 1);
++  assert.equal(groups[0]?.commentId, receipt?.kind === 'comment' ? receipt.comment.id : '');
++  const commentRef = groups[0]?.attachments[0];
++  assert.ok(commentRef);
++  const inherited = {
++    ...commentRef,
++    linkId: 'cccccccc-dddd-4eee-8fff-000000000001',
++    attachmentId: 'cccccccc-dddd-4eee-8fff-000000000002',
++  };
++  const grouped = groupTicketAttachments([inherited, commentRef], groups);
++  assert.deepEqual(grouped.comments, groups);
++  assert.deepEqual(grouped.other, [inherited]);
++});
+diff --git a/v2/web/test/composer-dom.test.ts b/v2/web/test/composer-dom.test.ts
+new file mode 100644
+index 0000000..c6a38a6
+--- /dev/null
++++ b/v2/web/test/composer-dom.test.ts
+@@ -0,0 +1,251 @@
++import assert from 'node:assert/strict';
++import { after, afterEach, test } from 'node:test';
++import type { ComposeReceipt, ComposeSubmission } from '../src/compose/state.ts';
++import {
++  FakeComposeServer,
++  harness,
++  inlineHasher,
++  pngFile,
++  projectId,
++  settle,
++  ticketId,
++} from './support/compose-server.ts';
++import { installDom } from './support/dom.ts';
++
++const closeDom = installDom();
++const { act, cleanup, fireEvent, render, screen } = await import('@testing-library/react');
++const { createElement, useState } = await import('react');
++const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
++const { AttachmentComposer, ComposeServicesProvider } = await import('../src/compose/composer.tsx');
++
++afterEach(() => cleanup());
++after(() => closeDom());
++
++const comment = (text: string): ComposeSubmission => ({
++  kind: 'comment',
++  target: { purpose: 'comment', projectId, ticketId },
++  text,
++});
++
++type Env = Awaited<ReturnType<typeof harness>>;
++
++function mount(env: Env, initial: ComposeSubmission, draftKey = 'dom') {
++  const events = {
++    states: [] as string[],
++    accepted: [] as ComposeReceipt[],
++    changes: [] as ComposeSubmission[],
++  };
++  function Host() {
++    const [submission, setSubmission] = useState(initial);
++    return createElement(AttachmentComposer, {
++      draftKey,
++      submission,
++      onSubmissionChange: (next: ComposeSubmission) => {
++        events.changes.push(next);
++        setSubmission(next);
++      },
++      onStateChange: (state: string) => events.states.push(state),
++      onAccepted: (receipt: ComposeReceipt) => events.accepted.push(receipt),
++    });
++  }
++  const queryClient = new QueryClient({
++    defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
++  });
++  const services = {
++    client: env.client,
++    pending: env.pending,
++    session: env.session,
++    storage: env.storage,
++    createHasher: () => inlineHasher().hasher,
++  };
++  render(
++    createElement(
++      QueryClientProvider,
++      { client: queryClient },
++      createElement(ComposeServicesProvider, { services, children: createElement(Host) }),
++    ),
++  );
++  return events;
++}
++
++const textarea = () => screen.getByLabelText('Nội dung') as HTMLTextAreaElement;
++const submitButton = (name: RegExp) => screen.getByRole('button', { name }) as HTMLButtonElement;
++const consent = () =>
++  screen.getByLabelText('Cho phép Trợ lý đọc các tệp đã chọn trong lượt gửi này') as HTMLInputElement;
++
++async function until(predicate: () => boolean, label: string) {
++  await act(async () => {
++    await settle(predicate, label);
++  });
++}
++
++async function ready(env: Env) {
++  await until(
++    () => document.querySelector('[data-compose-state]') !== null && env.session.isAuthenticated(),
++    'mount',
++  );
++  await act(async () => undefined);
++}
++
++function clipboard(files: File[], text: string) {
++  return {
++    items: [
++      ...(text ? [{ kind: 'string', type: 'text/plain', getAsFile: () => null }] : []),
++      ...files.map((file) => ({ kind: 'file', type: file.type, getAsFile: () => file })),
++    ],
++    files,
++    types: [...(text ? ['text/plain'] : []), ...(files.length ? ['Files'] : [])],
++    getData: (format: string) => (format === 'text/plain' ? text : ''),
++  };
++}
++
++test('dán ảnh kèm chữ: chặn mặc định, chèn chữ tại con trỏ và thêm tệp; dán chữ thường không bị chặn', async () => {
++  const env = await harness(new FakeComposeServer());
++  const events = mount(env, comment('abcd'));
++  await ready(env);
++  const area = textarea();
++  area.setSelectionRange(1, 3);
++  let notPrevented = true;
++  await act(async () => {
++    notPrevented = fireEvent.paste(area, { clipboardData: clipboard([pngFile('image.png', 1)], 'XY') });
++  });
++  assert.equal(notPrevented, false, 'paste có tệp gọi preventDefault');
++  const last = events.changes.at(-1);
++  assert.equal(last?.kind === 'comment' ? last.text : null, 'aXYd');
++  await until(() => document.querySelector('[data-state="ready"]') !== null, 'file ready');
++  assert.match(document.body.textContent ?? '', /anh-dan-/);
++  const changes = events.changes.length;
++  await act(async () => {
++    notPrevented = fireEvent.paste(textarea(), { clipboardData: clipboard([], 'chữ thường') });
++  });
++  assert.equal(notPrevented, true, 'paste chỉ có chữ để trình duyệt xử lý');
++  assert.equal(events.changes.length, changes);
++});
++
++test('kéo thả khi phiên hết hạn: không nhận tệp, ô nội dung chỉ đọc', async () => {
++  const env = await harness(new FakeComposeServer());
++  mount(env, comment('x'));
++  await ready(env);
++  const zone = screen.getByRole('region', { name: 'Soạn nội dung' });
++  const transfer = clipboard([pngFile('a.png', 2)], '');
++  assert.equal(fireEvent.dragOver(zone, { dataTransfer: transfer }), false, 'mở khóa thì nhận kéo thả');
++  await act(async () => env.session.expire());
++  assert.equal(fireEvent.dragOver(zone, { dataTransfer: transfer }), true, 'khóa thì không nhận kéo thả');
++  await act(async () => {
++    fireEvent.drop(zone, { dataTransfer: transfer });
++  });
++  assert.equal(document.querySelectorAll('[data-local-id]').length, 0);
++  assert.equal(textarea().readOnly, true);
++  assert.match(document.body.textContent ?? '', /Cần đăng nhập/);
++});
++
++test('consent và khóa form: chưa xác nhận thì nội dung chỉ đọc, consent đã đóng băng, nút gửi lại đúng yêu cầu cũ', async () => {
++  const server = new FakeComposeServer();
++  const env = await harness(server);
++  const events = mount(env, comment('kèm ảnh'));
++  await ready(env);
++  await act(async () => {
++    fireEvent.change(screen.getByLabelText('Đính kèm tệp'), { target: { files: [pngFile('a.png', 4)] } });
++  });
++  await until(() => document.querySelector('[data-state="ready"]') !== null, 'ready');
++  assert.equal(consent().checked, false, 'consent mặc định tắt');
++  assert.equal(consent().disabled, false);
++  await act(async () => {
++    fireEvent.click(consent());
++  });
++  assert.equal(consent().checked, true);
++  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
++  await act(async () => {
++    fireEvent.click(submitButton(/Gửi bình luận/));
++  });
++  await until(() => events.states.at(-1) === 'ambiguous', 'ambiguous');
++  assert.equal(textarea().readOnly, true);
++  assert.equal(consent().checked, true);
++  assert.equal(consent().disabled, true);
++  const retry = submitButton(/Gửi lại đúng yêu cầu cũ/);
++  assert.equal(retry.disabled, false);
++  assert.equal(JSON.parse(server.calls.at(-1)?.body ?? '{}').assistantRead, 'selected-inputs');
++});
++
++test('receipt được giao một lần rồi bắt đầu bản nháp mới với consent tắt', async () => {
++  const server = new FakeComposeServer();
++  const env = await harness(server);
++  const events = mount(env, comment('gửi một lần'));
++  await ready(env);
++  await act(async () => {
++    fireEvent.change(screen.getByLabelText('Đính kèm tệp'), { target: { files: [pngFile('a.png', 5)] } });
++  });
++  await until(() => document.querySelector('[data-state="ready"]') !== null, 'ready');
++  await act(async () => {
++    fireEvent.click(consent());
++  });
++  await act(async () => {
++    fireEvent.click(submitButton(/Gửi bình luận/));
++  });
++  await until(() => events.accepted.length === 1, 'accepted');
++  await act(async () => undefined);
++  assert.equal(events.accepted.length, 1);
++  assert.equal(events.accepted[0]?.kind, 'comment');
++  assert.ok(events.states.includes('accepted'));
++  assert.equal(events.states.at(-1), 'editing');
++  assert.equal(document.querySelectorAll('[data-local-id]').length, 0, 'draft mới không còn tệp');
++  assert.match(document.body.textContent ?? '', /Đã gửi bình luận kèm 1 tệp/);
++  await act(async () => {
++    fireEvent.change(screen.getByLabelText('Đính kèm tệp'), { target: { files: [pngFile('b.png', 6)] } });
++  });
++  await until(() => document.querySelector('[data-state="ready"]') !== null, 'ready2');
++  assert.equal(consent().checked, false, 'consent của ý định cũ không mang sang ý định mới');
++  assert.equal(server.comments.length, 1);
++});
++
++test('nút gửi theo nội dung; nhập lại sau logout có nút bỏ bản nháp kèm cảnh báo', async () => {
++  const server = new FakeComposeServer();
++  const env = await harness(server);
++  const events = mount(env, comment(''), 'dom-reentry');
++  await ready(env);
++  assert.equal(submitButton(/Gửi bình luận/).disabled, true, 'text và tệp cùng rỗng');
++  await act(async () => {
++    fireEvent.change(textarea(), { target: { value: 'có chữ' } });
++  });
++  assert.equal(submitButton(/Gửi bình luận/).disabled, false);
++  assert.equal(screen.queryByRole('button', { name: /Bỏ bản nháp này/ }), null);
++  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
++  await act(async () => {
++    fireEvent.click(submitButton(/Gửi bình luận/));
++  });
++  await until(() => events.states.at(-1) === 'ambiguous', 'ambiguous');
++  cleanup();
++  env.pending.tombstoneAll();
++  const after = await harness(server, env.storage);
++  const reentry = mount(after, comment(''), 'dom-reentry');
++  await ready(after);
++  await until(() => document.body.textContent?.includes('Nhập lại đúng nội dung') ?? false, 'reentry');
++  assert.equal(reentry.states.at(-1), 'editing', 'form được mở để nhập lại');
++  assert.equal(textarea().readOnly, false);
++  const discard = submitButton(/Bỏ bản nháp này/);
++  assert.equal(discard.disabled, false);
++  assert.match(document.body.textContent ?? '', /có thể tạo thêm|sẽ tạo thêm một mục khác/);
++  await act(async () => {
++    fireEvent.click(discard);
++  });
++  await until(() => screen.queryByRole('button', { name: /Bỏ bản nháp này/ }) === null, 'discarded');
++  assert.equal(document.body.textContent?.includes('Nhập lại đúng nội dung'), false);
++});
++
++test('máy chủ chưa sẵn sàng xử lý tệp: hiện lý do và nút gửi lại đúng yêu cầu cũ', async () => {
++  const server = new FakeComposeServer();
++  server.extractionConfigured = false;
++  const env = await harness(server);
++  const events = mount(env, comment('kèm tệp'), 'dom-503');
++  await ready(env);
++  await act(async () => {
++    fireEvent.change(screen.getByLabelText('Đính kèm tệp'), { target: { files: [pngFile('a.png', 7)] } });
++  });
++  await until(() => document.querySelector('[data-state="ready"]') !== null, 'ready');
++  await act(async () => {
++    fireEvent.click(submitButton(/Gửi bình luận/));
++  });
++  await until(() => events.states.at(-1) === 'ambiguous', 'ambiguous');
++  assert.match(screen.getByRole('alert').textContent ?? '', /Chưa cấu hình xử lý tệp/);
++  assert.equal(submitButton(/Gửi lại đúng yêu cầu cũ/).disabled, false);
++});
+diff --git a/v2/web/test/support/compose-server.ts b/v2/web/test/support/compose-server.ts
+index 490113a..fc1b549 100644
+--- a/v2/web/test/support/compose-server.ts
++++ b/v2/web/test/support/compose-server.ts
+@@ -24,20 +24,22 @@ type Upload = {
+   state: 'reserved' | 'receiving' | 'ready' | 'rejected' | 'abandoned';
+ };
+ type Compose = {
+   id: string;
+   purpose: 'ticket' | 'comment' | 'assistant_message';
+   projectId: string | null;
+   ticketId: string | null;
+   conversationId?: string;
+   revision: number;
+   state: 'open' | 'submitted' | 'abandoned';
++  /** Past `expiresAt`: the server rejects reserve, PUT and submission (`staging.ts:341,391`, `submissions.ts:133`). */
++  expired?: boolean;
+ };
+ export type Call = { method: string; url: string; headers: Headers; body: string | null };
+ type Reply = { status: number; body: unknown };
+ 
+ export class MemoryStorage implements TabStorage {
+   readonly map = new Map<string, string>();
+   getItem(key: string) {
+     return this.map.get(key) ?? null;
+   }
+   setItem(key: string, value: string) {
+@@ -91,56 +93,70 @@ export const policy = {
+     maxOutputBytes: 1,
+   },
+   supportedMime: ['image/png', 'application/pdf', 'text/plain'],
+   extractionCapabilities: ['text', 'vision'],
+ };
+ 
+ function sha(bytes: Uint8Array | string): string {
+   return createHash('sha256').update(bytes).digest('hex');
+ }
+ 
+-function error(status: number, code: string): Reply {
+-  return { status, body: { error: { code, message: code } } };
++function error(status: number, code: string, message = code): Reply {
++  return { status, body: { error: { code, message } } };
+ }
+ 
+ export class FakeComposeServer {
+   readonly calls: Call[] = [];
+   readonly composes = new Map<string, Compose>();
+   readonly uploads = new Map<string, Upload>();
+   readonly tickets: unknown[] = [];
+   readonly comments: unknown[] = [];
+   readonly messages: unknown[] = [];
+   readonly #receipts = new Map<string, { body: string; reply: Reply }>();
+   readonly #submissions = new Map<string, { hash: string; reply: Reply }>();
+   authenticated = true;
+   /** Commit the next matching request, then lose its response (transport error). */
+   dropAfterCommit: ((call: Call) => boolean) | null = null;
+   /** Fail matching request before commit with a transport error. */
+   failBefore: ((call: Call) => boolean) | null = null;
+   /** Commit the next matching request, then answer 201 with a body that does not match the contract. */
+   corruptNext: ((call: Call) => boolean) | null = null;
++  /** Server-side switches mirroring producer branches (`auth/routes.ts:43,47`, `auth/session.ts:116`). */
++  sessionInvalid = false;
++  originInvalid = false;
++  ownerRequired = false;
++  /** False: submissions with files answer 503 EXTRACTION_NOT_CONFIGURED (`submissions.ts:147`). */
++  extractionConfigured = true;
++  readonly #commentLinks: { ticketId: string; commentId: string; attachmentIds: string[] }[] = [];
++  /** Hold matching requests (before the producer sees them) until `release()`. */
++  hold: ((call: Call) => boolean) | null = null;
++  #held: (() => void)[] = [];
++  release(): void {
++    for (const resume of this.#held.splice(0)) resume();
++  }
+   /** While true every PUT content fails with a transport error before reaching the producer. */
+   blockPuts = false;
+   /** PUT content answers 409 ATTACHMENT_UPLOAD_BUSY this many times while the upload reads `receiving`. */
+   busyPuts = 0;
+ 
+   fetch = async (url: string, init: RequestInit = {}): Promise<Response> => {
+     const method = init.method ?? 'GET';
+     const body =
+       typeof init.body === 'string' ? init.body : init.body instanceof Blob ? await init.body.text() : null;
+     const call: Call = { method, url, headers: new Headers(init.headers), body };
+     this.calls.push(call);
+     if (this.failBefore?.(call)) {
+       this.failBefore = null;
+       throw new TypeError('fetch failed');
+     }
+     if (this.blockPuts && method === 'PUT') throw new TypeError('fetch failed');
++    if (this.hold?.(call)) await new Promise<void>((resume) => this.#held.push(resume));
+     const bytes = init.body instanceof Blob ? new Uint8Array(await init.body.arrayBuffer()) : null;
+     const reply = this.#handle(call, bytes);
+     if (this.corruptNext?.(call) && reply.status < 300) {
+       this.corruptNext = null;
+       return new Response(JSON.stringify({ unexpected: true }), {
+         status: reply.status,
+         headers: { 'content-type': 'application/json' },
+       });
+     }
+     if (this.dropAfterCommit?.(call)) {
+@@ -154,62 +170,96 @@ export class FakeComposeServer {
+   };
+ 
+   #handle(call: Call, bytes: Uint8Array | null): Reply {
+     const path = call.url;
+     if (path === '/v2/auth/session' && call.method === 'GET')
+       return this.authenticated
+         ? { status: 200, body: { owner: { id: 'owner' }, csrfToken: csrf } }
+         : error(401, 'UNAUTHENTICATED');
+     if (path === '/v2/auth/session' && call.method === 'POST') {
+       this.authenticated = true;
+-      return { status: 201, body: { owner: { id: 'owner' }, csrfToken: csrf } };
++      return { status: 200, body: { owner: { id: 'owner' }, csrfToken: csrf } };
+     }
+     if (!this.authenticated) return error(401, 'UNAUTHENTICATED');
++    if (this.sessionInvalid) return error(401, 'SESSION_INVALID');
+     if (call.method === 'GET') return this.#read(path);
++    if (this.ownerRequired) return error(403, 'OWNER_REQUIRED');
++    if (this.originInvalid) return error(403, 'ORIGIN_INVALID');
+     if (call.headers.get('x-csrf-token') !== csrf) return error(403, 'CSRF_INVALID');
+     if (call.method === 'PUT') return this.#put(path, bytes ?? new Uint8Array());
+     const key = call.headers.get('idempotency-key') ?? '';
+     const route = `${call.method}:${path}:${key}`;
+     const prior = this.#receipts.get(route);
+     if (prior) return prior.body === call.body ? prior.reply : error(409, 'IDEMPOTENCY_CONFLICT');
+     const reply = this.#mutate(call.method, path, JSON.parse(call.body ?? 'null'));
+     if (reply.status < 300) this.#receipts.set(route, { body: call.body ?? '', reply });
+     return reply;
+   }
+ 
+   #read(path: string): Reply {
+     if (path === '/v2/attachment-policy') return { status: 200, body: policy };
++    const byComment = /^\/v2\/tickets\/([^/?]+)\/attachments\/by-comment(?:\?(.*))?$/.exec(path);
++    if (byComment) return this.#byComment(byComment[1] ?? '', new URLSearchParams(byComment[2] ?? ''));
+     const match = /^\/v2\/attachment-compose\/([^/]+)$/.exec(path);
+     const compose = match ? this.composes.get(match[1] ?? '') : undefined;
+     if (!compose) return error(404, 'ATTACHMENT_NOT_FOUND');
+     return {
+       status: 200,
+       body: {
+         session: this.#session(compose),
+         attachments: [...this.uploads.values()]
+           .filter((upload) => upload.composeId === compose.id)
+           .map((upload) => this.#attachment(upload)),
+       },
+     };
+   }
+ 
++  /** GET `/v2/tickets/:id/attachments/by-comment` (`comment-refs.ts`): keyset by commentId. */
++  #byComment(ticket: string, query: URLSearchParams): Reply {
++    const limit = Number(query.get('limit') ?? 50);
++    const cursor = query.get('cursor');
++    const groups = this.#commentLinks
++      .filter((link) => link.ticketId === ticket && link.attachmentIds.length > 0)
++      .filter((link) => cursor === null || link.commentId > cursor)
++      .sort((a, b) => (a.commentId < b.commentId ? -1 : 1));
++    const items = groups.slice(0, limit).map((link) => ({
++      commentId: link.commentId,
++      attachments: link.attachmentIds.map((id, index) => {
++        const upload = this.uploads.get(id);
++        return {
++          linkId: `bbbbbbbb-cccc-4ddd-8eee-${String(index).padStart(4, '0')}${id.slice(-8)}`,
++          attachmentId: id,
++          sha256: upload?.sha256 ?? '0'.repeat(64),
++          ownerId: 'owner',
++          fileName: upload?.fileName ?? 'x',
++          mime: upload?.mime ?? null,
++          byteLength: upload?.byteLength ?? 0,
++        };
++      }),
++    }));
++    return {
++      status: 200,
++      body: { items, nextCursor: groups.length > limit ? (items.at(-1)?.commentId ?? null) : null },
++    };
++  }
++
+   #session(compose: Compose) {
+     return {
+       id: compose.id,
+       ownerId: 'owner',
+       purpose: compose.purpose,
+       projectId: compose.projectId,
+       ticketId: compose.ticketId,
+       ...(compose.conversationId ? { conversationId: compose.conversationId } : {}),
+       revision: compose.revision,
+       state: compose.state,
+-      expiresAt: '2026-10-05T00:00:00.000Z',
++      expiresAt: compose.expired ? '2000-01-01T00:00:00.000Z' : '2099-01-01T00:00:00.000Z',
+     };
+   }
+ 
+   #attachment(upload: Upload) {
+     return {
+       attachmentId: upload.attachmentId,
+       sha256: upload.sha256,
+       ownerId: 'owner',
+       composeSessionId: upload.composeId,
+       fileName: upload.fileName,
+@@ -226,20 +276,21 @@ export class FakeComposeServer {
+     const id = /^\/v2\/attachment-uploads\/([^/]+)\/content$/.exec(path)?.[1] ?? '';
+     const upload = this.uploads.get(id);
+     if (!upload) return error(404, 'ATTACHMENT_NOT_FOUND');
+     if (this.busyPuts > 0) {
+       this.busyPuts--;
+       upload.state = 'receiving';
+       if (this.busyPuts === 0) upload.state = 'ready';
+       return error(409, 'ATTACHMENT_UPLOAD_BUSY');
+     }
+     if (upload.state === 'ready') return { status: 200, body: this.#attachment(upload) };
++    if (this.composes.get(upload.composeId)?.expired) return error(409, 'ATTACHMENT_UPLOAD_EXPIRED');
+     if (upload.state !== 'reserved') return error(409, 'ATTACHMENT_UPLOAD_CONFLICT');
+     if (bytes.byteLength !== upload.byteLength || sha(bytes) !== upload.sha256)
+       return error(409, 'ATTACHMENT_REPLAY_MISMATCH');
+     upload.state = 'ready';
+     return { status: 201, body: this.#attachment(upload) };
+   }
+ 
+   #mutate(method: string, path: string, body: Record<string, unknown>): Reply {
+     if (method === 'POST' && path === '/v2/attachment-compose') {
+       const id = uuidFor(1);
+@@ -252,21 +303,21 @@ export class FakeComposeServer {
+         revision: 1,
+         state: 'open',
+       };
+       this.composes.set(id, compose);
+       return { status: 201, body: this.#session(compose) };
+     }
+     let match = /^\/v2\/attachment-compose\/([^/]+)\/uploads$/.exec(path);
+     if (method === 'POST' && match) {
+       const compose = this.composes.get(match[1] ?? '');
+       if (!compose) return error(404, 'ATTACHMENT_NOT_FOUND');
+-      if (compose.state !== 'open') return error(409, 'ATTACHMENT_COMPOSE_CLOSED');
++      if (compose.state !== 'open' || compose.expired) return error(409, 'ATTACHMENT_COMPOSE_CLOSED');
+       if (compose.revision !== body.expectedRevision) return error(409, 'ATTACHMENT_SELECTION_STALE');
+       const upload: Upload = {
+         attachmentId: uuidFor(2),
+         composeId: compose.id,
+         fileName: String(body.fileName),
+         mime: String(body.declaredMime),
+         byteLength: Number(body.byteLength),
+         sha256: String(body.sha256),
+         state: 'reserved',
+       };
+@@ -311,29 +362,30 @@ export class FakeComposeServer {
+           repairCycles: 0,
+           mergedCommit: null,
+         };
+         ticket.rootId = ticket.id;
+         delete (ticket as { deployApprovalDecisionId?: unknown }).deployApprovalDecisionId;
+         this.tickets.push(ticket);
+         return { ticket };
+       });
+     match = /^\/v2\/tickets\/([^/]+)\/attachment-comments$/.exec(path);
+     if (method === 'POST' && match)
+-      return this.#submit('comment', body, () => {
++      return this.#submit('comment', body, (ids) => {
+         const comment = {
+           id: uuidFor(4),
+           ticketId: match?.[1],
+           actor: { kind: 'owner', id: 'owner' },
+           text: body.text,
+           createdAt: '2026-10-04T03:00:00.000Z',
+         };
+         this.comments.push(comment);
++        this.#commentLinks.push({ ticketId: String(match?.[1]), commentId: comment.id, attachmentIds: ids });
+         return { comment };
+       });
+     if (method === 'POST' && path === '/v2/attachment-submissions/messages')
+       return this.#submit('assistant_message', body, (ids) => {
+         const message = {
+           id: uuidFor(5),
+           conversationId: body.conversationId,
+           ownerId: 'owner',
+           text: body.text,
+           attachmentIds: ids,
+@@ -355,28 +407,33 @@ export class FakeComposeServer {
+     const selection = body.selection as {
+       composeSessionId: string;
+       selectionRevision: number;
+       attachmentIds: string[];
+     };
+     const hash = sha(JSON.stringify(body));
+     const prior = this.#submissions.get(selection.composeSessionId);
+     if (prior) return prior.hash === hash ? prior.reply : error(409, 'COMPOSE_ALREADY_SUBMITTED');
+     const compose = this.composes.get(selection.composeSessionId);
+     if (!compose || compose.purpose !== purpose) return error(404, 'NOT_FOUND');
+-    if (compose.state !== 'open' || compose.revision !== selection.selectionRevision)
++    if (compose.state !== 'open' || compose.revision !== selection.selectionRevision || compose.expired)
+       return error(409, 'SELECTION_CHANGED');
++    const ids = [...selection.attachmentIds].sort();
++    for (const id of ids)
++      if (this.uploads.get(id)?.composeId !== compose.id)
++        return error(404, 'NOT_FOUND', 'Không tìm thấy tệp');
+     const active = [...this.uploads.values()].filter(
+       (upload) => upload.composeId === compose.id && upload.state !== 'abandoned',
+     );
+-    const ids = [...selection.attachmentIds].sort();
+     if (active.length !== ids.length || active.some((upload) => !ids.includes(upload.attachmentId)))
+       return error(409, 'SELECTION_CHANGED');
++    if (active.length > 0 && !this.extractionConfigured)
++      return error(503, 'EXTRACTION_NOT_CONFIGURED', 'Chưa cấu hình xử lý tệp');
+     if (active.some((upload) => upload.state !== 'ready')) return error(422, 'ATTACHMENT_NOT_READY');
+     const response = create(ids);
+     const reply = {
+       status: 201,
+       body: purpose === 'assistant_message' ? response : { ...response, attachmentIds: ids },
+     };
+     compose.state = 'submitted';
+     compose.revision++;
+     this.#submissions.set(compose.id, { hash, reply });
+     return reply;
+diff --git a/v2/web/test/support/dom.ts b/v2/web/test/support/dom.ts
+new file mode 100644
+index 0000000..7dfbdcd
+--- /dev/null
++++ b/v2/web/test/support/dom.ts
+@@ -0,0 +1,28 @@
++/**
++ * Test-only DOM: one jsdom window exposed as browser globals for React Testing Library, plus the `.tsx`
++ * loader. Call `installDom()` before importing React components.
++ */
++import { register } from 'node:module';
++import { JSDOM } from 'jsdom';
++
++let close: (() => void) | null = null;
++
++/** Installs the DOM once; returns a disposer that closes the window so the test process can exit. */
++export function installDom(): () => void {
++  if (close) return close;
++  register('./tsx-loader.ts', import.meta.url);
++  const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'http://127.0.0.1/crew-v2/' });
++  const window = dom.window as unknown as Record<string, unknown>;
++  for (const key of Object.getOwnPropertyNames(window)) {
++    if (key in globalThis) continue;
++    Object.defineProperty(globalThis, key, {
++      configurable: true,
++      get: () => window[key],
++    });
++  }
++  for (const key of ['window', 'document', 'navigator'])
++    Object.defineProperty(globalThis, key, { configurable: true, value: window[key] });
++  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
++  close = () => dom.window.close();
++  return close;
++}
+diff --git a/v2/web/test/support/jsdom.d.ts b/v2/web/test/support/jsdom.d.ts
+new file mode 100644
+index 0000000..5d3ec5b
+--- /dev/null
++++ b/v2/web/test/support/jsdom.d.ts
+@@ -0,0 +1,7 @@
++/** Minimal typing for the test-only `jsdom` dependency (the package ships no types). */
++declare module 'jsdom' {
++  export class JSDOM {
++    constructor(html?: string, options?: { url?: string });
++    readonly window: Window & typeof globalThis;
++  }
++}
+diff --git a/v2/web/test/support/tsx-loader.ts b/v2/web/test/support/tsx-loader.ts
+new file mode 100644
+index 0000000..2cc494b
+--- /dev/null
++++ b/v2/web/test/support/tsx-loader.ts
+@@ -0,0 +1,20 @@
++/**
++ * Test-only module hook: lets `node --test` import `.tsx` components by compiling them with the same Oxc
++ * transform Vite uses (automatic JSX runtime, TypeScript stripped). `.ts` files keep Node's own stripping.
++ */
++import { readFile } from 'node:fs/promises';
++import { fileURLToPath } from 'node:url';
++import { transformWithOxc } from 'vite';
++
++type LoadResult = { format: string; source: string; shortCircuit?: boolean };
++type NextLoad = (url: string, context: unknown) => Promise<LoadResult>;
++
++export async function load(url: string, context: unknown, next: NextLoad): Promise<LoadResult> {
++  if (!url.startsWith('file:') || !url.endsWith('.tsx')) return next(url, context);
++  const path = fileURLToPath(url);
++  const result = await transformWithOxc(await readFile(path, 'utf8'), path, {
++    lang: 'tsx',
++    jsx: { runtime: 'automatic' },
++  });
++  return { format: 'module', source: result.code, shortCircuit: true };
++}
