@@ -53,3 +53,8 @@ Task 2: minor (deferred): stream chỉ heartbeat bị proxy đóng sớm tính f
 Task 2: minor (deferred): logout DELETE lỗi mạng xóa local nhưng session server còn sống (`session.ts:276-284`).
 Task 2: minor (deferred): upload 5xx không retry/ambiguous — chấp nhận tới G2, cần ghi docs flow (`api.ts:217-248`).
 Ruling: ⚠️ listener-before-GET, focus refetch, login/expired vào router thuộc lượt controller wiring `main.tsx`/`router.tsx` sau khi Task2 khép; ⚠️ tab mới đọc journal từ 0 cần producer server "latest cursor" — đưa vào backlog phase07 producer G, không chặn Task2 — sai thì tab mới chậm với journal lớn.
+
+11:25 04/10 Task2 FIX1 `a69ea3b` scoped re-review `task-2-fix1-re-review.md`: I1 ADDRESSED; mới N1 Important (resume tombstone gặp 400/413/415 nhả key), N2/N3/N4 Minor. FIX2/5 resume implementer.
+Ruling: nâng N2 (mutate song song nhả key) và N4 (replay sau abort) vào FIX2 dù reviewer xếp Minor — cùng bất biến chống mutation trùng, nằm trong delta đang sửa — sai thì tốn thêm một ít diff ở vòng này.
+Task 2: minor (deferred): N3 nhãn "Tạm dừng vì hết phiên" cho operation giữ vì 403 khi phiên còn sống (`session-boundary.tsx:96-100`).
+Ruling: concern "không có cách bỏ request ambiguous" là quyết định UX của owner (chấp nhận rủi ro trùng) — hỏi owner khi tới UI composer/Task5, không chặn Task2.
