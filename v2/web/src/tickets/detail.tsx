@@ -13,7 +13,7 @@ import { AttachmentComposer } from '../compose/composer.tsx';
 import type { ComposeDraft, ComposeSubmission } from '../compose/state.ts';
 import type { Ticket } from '../contracts/tickets.ts';
 import { TicketDocsLinksEditor } from '../docs/ticket-links.tsx';
-import { formDrafts } from './create-request-state.ts';
+import { browserTabStorage, formDrafts } from './create-request-state.ts';
 import { TicketHistory } from './history.tsx';
 import { failureText, useTicket, useTicketGraph } from './queries.ts';
 import {
@@ -113,13 +113,15 @@ function ChildTickets({ ticket }: { ticket: Ticket }) {
 }
 
 /**
- * New comment through the shared Task5 composer. The text draft is kept per ticket for the session, so
- * closing the dialog or a realtime refetch never loses it; only “Bỏ bản nháp bình luận” or a confirmed
- * comment clears it.
+ * New comment through the shared Task5 composer. The text draft is kept per ticket for the session (memory
+ * and tab storage), so closing the dialog, a realtime refetch or a reload never loses it; only “Bỏ bản nháp
+ * bình luận” or a confirmed comment clears it. Rendered with `key={ticket.id}`: a draft never follows the
+ * view to another ticket. On a terminal ticket the composer stays mounted only while a comment is still
+ * sending or unconfirmed, so its resend/status remains reachable; a fresh comment is not offered.
  */
-function CommentComposer({ ticket }: { ticket: Ticket }) {
-  const drafts = formDrafts(useRuntime().session);
-  const [text, setText] = useState(() => drafts.comments.get(ticket.id) ?? '');
+function CommentComposer({ ticket, terminal }: { ticket: Ticket; terminal: boolean }) {
+  const drafts = formDrafts(useRuntime().session, browserTabStorage());
+  const [text, setText] = useState(() => drafts.comment(ticket.id));
   const [state, setState] = useState<ComposeDraft['state']>('editing');
   const submission = useMemo<ComposeSubmission>(
     () => ({
@@ -130,13 +132,19 @@ function CommentComposer({ ticket }: { ticket: Ticket }) {
     [ticket.projectId, ticket.id, text],
   );
   const write = (next: string) => {
-    if (next === '') drafts.comments.delete(ticket.id);
-    else drafts.comments.set(ticket.id, next);
+    drafts.setComment(ticket.id, next);
     setText(next);
   };
+  if (terminal && state === 'editing') return null;
   return (
     <section aria-labelledby={`comment-${ticket.id}`} style={{ display: 'grid', gap: '0.5rem' }}>
       <h2 id={`comment-${ticket.id}`}>Bình luận mới</h2>
+      {terminal && (
+        <p role="note">
+          Ticket đã kết thúc. Bình luận đang chờ xác nhận chỉ có thể gửi lại đúng nội dung cũ hoặc xem trạng
+          thái.
+        </p>
+      )}
       <AttachmentComposer
         draftKey={`comment:${ticket.id}`}
         submission={submission}
@@ -182,6 +190,7 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
   const ticket = query.data;
   const pin = ticket.workflowPin;
   const wait = waitNotice(ticket.status, ticket.waitReason);
+  const terminal = isTerminal(ticket.status);
   return (
     <article
       style={stackStyle}
@@ -208,7 +217,7 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
           Đang hiển thị dữ liệu đã tải trước đó: {failureText(query.error)}
         </p>
       )}
-      {isTerminal(ticket.status) && (
+      {terminal && (
         <p role="note" style={noticeStyle}>
           Ticket đã kết thúc ({statusLabels[ticket.status]}), chỉ xem.
         </p>
@@ -256,7 +265,10 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
       <ChildTickets ticket={ticket} />
       <section aria-labelledby={`related-${ticket.id}`} style={{ display: 'grid', gap: '0.75rem' }}>
         <h2 id={`related-${ticket.id}`}>Tệp và tài liệu liên quan</h2>
-        <TicketDocsLinksEditor ticketId={ticket.id} />
+        {/* A terminal ticket is read-only: the disabled fieldset disables every control of the editor. */}
+        <fieldset disabled={terminal} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+          <TicketDocsLinksEditor ticketId={ticket.id} />
+        </fieldset>
         <TicketAttachments
           ticketId={ticket.id}
           client={runtime.client}
@@ -264,7 +276,7 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
         />
       </section>
       <TicketHistory ticketId={ticket.id} />
-      {!isTerminal(ticket.status) && <CommentComposer ticket={ticket} />}
+      <CommentComposer key={ticket.id} ticket={ticket} terminal={terminal} />
     </article>
   );
 }

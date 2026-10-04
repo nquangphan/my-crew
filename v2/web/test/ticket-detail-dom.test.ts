@@ -16,9 +16,14 @@ const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query
 const { ComposeServicesProvider } = await import('../src/compose/composer.tsx');
 const { RuntimeContext } = await import('../src/app-runtime.ts');
 const { TicketDialog } = await import('../src/tickets/dialog.tsx');
+const { TicketDetail } = await import('../src/tickets/detail.tsx');
+const { queryKeys, queryRoots } = await import('../src/lib/query-keys.ts');
 const { RequestList } = await import('../src/tickets/requests.tsx');
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  window.sessionStorage.clear();
+});
 after(() => closeDom());
 
 const ticketA = '66666666-6666-4666-8666-666666666666';
@@ -82,7 +87,10 @@ function serverWithTickets(rows: Ticket[], attachments: Record<string, unknown[]
 type Env = Awaited<ReturnType<typeof harness>>;
 let openTicket: (id: string | null) => void = () => undefined;
 
-function mount(env: Env) {
+let showPage: (id: string) => void = () => undefined;
+
+/** Mounts the dialog host, or with `page` the ticket page whose `ticketId` prop changes without remount. */
+function mount(env: Env, mode: 'dialog' | 'page' = 'dialog') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
   });
@@ -100,6 +108,11 @@ function mount(env: Env) {
     openTicket = setOpen;
     return createElement(TicketDialog, { ticketId: open, onClose: () => setOpen(null), returnFocus: null });
   }
+  function Page() {
+    const [id, setId] = useState(ticketA);
+    showPage = setId;
+    return createElement(TicketDetail, { ticketId: id, presentation: 'page' });
+  }
   render(
     createElement(
       RuntimeContext.Provider,
@@ -107,10 +120,14 @@ function mount(env: Env) {
       createElement(
         QueryClientProvider,
         { client: queryClient },
-        createElement(ComposeServicesProvider, { services, children: createElement(Host) }),
+        createElement(ComposeServicesProvider, {
+          services,
+          children: createElement(mode === 'page' ? Page : Host),
+        }),
       ),
     ),
   );
+  return queryClient;
 }
 
 async function until(predicate: () => boolean, label: string) {
@@ -164,7 +181,7 @@ test('draft bình luận giữ theo từng ticket khi đóng/mở hộp thoại;
   await open(ticketA);
   await until(() => commentBox() !== null, 'composer A third');
   assert.equal(commentBox()?.value, '', 'đã bỏ thì không khôi phục');
-  assert.equal(formDrafts(env.session).comments.get(ticketB), 'nháp cho B');
+  assert.equal(formDrafts(env.session, window.sessionStorage).comment(ticketB), 'nháp cho B');
 });
 
 test('gửi bình luận qua composer chung: một comment, ô nhập trống và timeline đọc lại', async () => {
@@ -184,7 +201,7 @@ test('gửi bình luận qua composer chung: một comment, ô nhập trống v�
     'timeline refetch',
   );
   await until(() => (document.body.textContent ?? '').includes('Bình luận có dấu tiếng Việt'), 'timeline');
-  assert.equal(formDrafts(env.session).comments.get(ticketA) ?? '', '');
+  assert.equal(formDrafts(env.session, window.sessionStorage).comment(ticketA), '');
 });
 
 test('ticket đã kết thúc chỉ xem: không có composer bình luận', async () => {
@@ -323,4 +340,135 @@ test('chi tiết trong hộp thoại nhúng editor liên kết tài liệu của
     document.querySelector('[data-testid="ticket-detail"]')?.textContent ?? '',
     /Tài liệu liên quanChưa có dữ liệu/,
   );
+});
+
+test('trang ticket đổi ticketId mà không remount: chữ nháp của A không sang B', async () => {
+  const { server } = serverWithTickets([ticket(ticketA, 'Ticket A'), ticket(ticketB, 'Ticket B')]);
+  const env = await harness(server);
+  mount(env, 'page');
+  await until(() => document.querySelector(`[data-ticket-id="${ticketA}"]`) !== null, 'page A');
+  await typeComment('chỉ dành cho A');
+  await act(async () => showPage(ticketB));
+  await until(
+    () => document.querySelector(`[data-testid="ticket-detail"][data-ticket-id="${ticketB}"]`) !== null,
+    'page B',
+  );
+  await until(() => commentBox() !== null, 'composer B');
+  assert.equal(commentBox()?.value, '');
+  const drafts = formDrafts(env.session, window.sessionStorage);
+  assert.equal(drafts.comment(ticketB), '');
+  assert.equal(drafts.comment(ticketA), 'chỉ dành cho A');
+  await act(async () => showPage(ticketA));
+  await until(() => commentBox()?.value === 'chỉ dành cho A', 'A restored');
+});
+
+test('mất response bình luận rồi tải lại trang: ô nội dung khôi phục, khóa và khớp body gửi lại', async () => {
+  const { server } = serverWithTickets([ticket(ticketA, 'Ticket A')]);
+  const env = await harness(server);
+  mount(env);
+  await open(ticketA);
+  await typeComment('Bình luận trước khi tải lại');
+  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Gửi bình luận/ }));
+  });
+  await until(() => document.querySelector('[data-compose-state="ambiguous"]') !== null, 'ambiguous');
+  cleanup();
+  const reloaded = await harness(server, env.storage);
+  mount(reloaded);
+  await open(ticketA);
+  await until(
+    () => document.querySelector('[data-compose-state="ambiguous"]') !== null,
+    'ambiguous after reload',
+  );
+  const posts = () => server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+  assert.equal(commentBox()?.value, JSON.parse(posts()[0]?.body ?? '{}').text);
+  assert.equal(commentBox()?.readOnly, true);
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Gửi lại đúng yêu cầu cũ/ }));
+  });
+  await until(() => server.comments.length === 1 && posts().length >= 2, 'replayed');
+  assert.equal(new Set(posts().map((call) => call.body)).size, 1);
+  assert.equal(new Set(posts().map((call) => call.headers.get('idempotency-key'))).size, 1);
+});
+
+test('deep link chữ hoa: cache theo key chữ thường, invalidation chữ thường làm mới, revision cũ không ghi đè', async () => {
+  const hexId = 'abcdef01-2345-4678-9abc-def012345678';
+  const row = ticket(hexId, 'Ticket hex', { revision: 1 });
+  const { server } = serverWithTickets([row]);
+  const env = await harness(server);
+  const cache = mount(env);
+  await open(hexId.toUpperCase());
+  assert.equal(cache.getQueryData<Ticket>(queryKeys.ticket(hexId))?.revision, 1);
+  assert.equal(cache.getQueryData(queryKeys.ticket(hexId.toUpperCase())), undefined);
+  const revision = () =>
+    document.querySelector('[data-testid="ticket-detail"]')?.getAttribute('data-revision');
+  Object.assign(row, { revision: 5, title: 'Ticket hex mới' });
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: queryRoots.ticket(hexId) });
+  });
+  await until(() => revision() === '5', 'refetched by lower-case invalidation');
+  Object.assign(row, { revision: 3, title: 'Bản cũ' });
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: queryRoots.ticket(hexId) });
+  });
+  await act(async () => undefined);
+  assert.equal(revision(), '5', 'revision guard giữ bản mới');
+  assert.doesNotMatch(document.body.textContent ?? '', /Bản cũ/);
+});
+
+test('ticket kết thúc: editor liên kết tài liệu chỉ đọc', async () => {
+  const snapshotId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const { server } = serverWithTickets([ticket(ticketDone, 'Ticket xong', { status: 'done' })]);
+  const base = server.fetch;
+  const json = (body: unknown) =>
+    new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+  server.fetch = async (url: string, init: RequestInit = {}) => {
+    if ((init.method ?? 'GET') === 'GET' && url.startsWith(`/v2/projects/${projectId}/docs/tree`))
+      return json({
+        projectId,
+        snapshotId,
+        sourceCommit: null,
+        auditState: 'verified',
+        contentClass: 'implemented',
+        pages: [{ path: 'docs/a.md', title: 'A', parentPath: null, contentClass: 'implemented' }],
+        links: [],
+        relatedTicketIds: [],
+      });
+    if ((init.method ?? 'GET') === 'GET' && url.startsWith(`/v2/tickets/${ticketDone}/docs-links`))
+      return json({ items: [], nextCursor: null });
+    return base(url, init);
+  };
+  const env = await harness(server);
+  mount(env);
+  await open(ticketDone);
+  await until(() => screen.queryAllByRole('checkbox').length > 0, 'editor');
+  const region = screen.getByRole('region', { name: 'Tài liệu liên kết với ticket' });
+  for (const control of region.querySelectorAll('input, button'))
+    assert.equal((control as HTMLInputElement).matches(':disabled'), true, control.outerHTML.slice(0, 60));
+});
+
+test('ticket chuyển sang kết thúc qua realtime khi bình luận chưa xác nhận: composer vẫn còn để gửi lại', async () => {
+  const row = ticket(ticketA, 'Ticket A', { status: 'running' });
+  const { server } = serverWithTickets([row]);
+  const env = await harness(server);
+  const cache = mount(env);
+  await open(ticketA);
+  await typeComment('gửi lúc sắp xong');
+  server.dropAfterCommit = (call) => call.url.endsWith('/attachment-comments');
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Gửi bình luận/ }));
+  });
+  await until(() => document.querySelector('[data-compose-state="ambiguous"]') !== null, 'ambiguous');
+  Object.assign(row, { status: 'done', revision: 2 });
+  await act(async () => {
+    await cache.invalidateQueries({ queryKey: queryRoots.ticket(ticketA) });
+  });
+  await until(() => /chỉ xem/.test(document.body.textContent ?? ''), 'terminal');
+  assert.ok(screen.getByRole('button', { name: /Gửi lại đúng yêu cầu cũ/ }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Gửi lại đúng yêu cầu cũ/ }));
+  });
+  await until(() => server.comments.length === 1, 'resent');
+  await until(() => document.querySelector('[data-compose-state]') === null, 'composer gone once settled');
 });

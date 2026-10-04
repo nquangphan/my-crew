@@ -114,25 +114,62 @@ function fakeSession(state: SessionSnapshot['state'] = 'authenticated') {
   };
 }
 
+/** Tab storage double with the `Storage` members the draft store uses. */
+function tabStorage() {
+  const map = new Map<string, string>();
+  return {
+    map,
+    get length() {
+      return map.size;
+    },
+    key: (index: number) => [...map.keys()][index] ?? null,
+    getItem: (key: string) => map.get(key) ?? null,
+    setItem: (key: string, value: string) => void map.set(key, value),
+    removeItem: (key: string) => void map.delete(key),
+  };
+}
+
 test('formDrafts giữ bản nháp qua hết phiên/đăng nhập lại, xóa khi đăng xuất, tách theo session', () => {
+  const storage = tabStorage();
   const session = fakeSession();
-  const drafts = formDrafts(session);
-  assert.equal(formDrafts(session), drafts, 'một kho cho một session');
+  const drafts = formDrafts(session, storage);
+  assert.equal(formDrafts(session, storage), drafts, 'một kho cho một session');
   drafts.request = { ...defaultRequestFields(projectId), title: 'Nháp' };
-  drafts.comments.set('t1', 'bình luận nháp');
+  drafts.setComment('t1', 'bình luận nháp');
   session.set('expired');
   session.set('authenticated');
   assert.equal(drafts.request?.title, 'Nháp');
-  assert.equal(drafts.comments.get('t1'), 'bình luận nháp');
-  const other = formDrafts(fakeSession());
-  assert.notEqual(other, drafts);
-  assert.equal(other.request, null);
+  assert.equal(drafts.comment('t1'), 'bình luận nháp');
   session.set('logging_out');
   assert.equal(drafts.request, null);
-  assert.equal(drafts.comments.size, 0);
-  drafts.comments.set('t2', 'x');
+  assert.equal(drafts.comment('t1'), '');
+  assert.equal(storage.map.size, 0, 'đăng xuất xóa cả bản lưu trong tab');
+  drafts.setComment('t2', 'x');
   session.set('guest');
-  assert.equal(drafts.comments.size, 0);
+  assert.equal(drafts.comment('t2'), '');
+});
+
+test('formDrafts lưu vào tab storage, phiên mới (tải lại trang) đọc lại đúng field; dữ liệu hỏng bị bỏ', () => {
+  const storage = tabStorage();
+  const before = formDrafts(fakeSession(), storage);
+  const fields: RequestFormFields = {
+    projectId,
+    kind: 'docs',
+    title: 'Tiêu đề có dấu',
+    description: 'Mô tả\nhai dòng',
+    workflowChoice: 'bmad',
+  };
+  before.request = fields;
+  before.setComment('t1', 'nháp bình luận');
+  for (const value of storage.map.values()) assert.doesNotMatch(value, /csrf|token|password/i);
+  const after = formDrafts(fakeSession(), storage);
+  assert.notEqual(after, before);
+  assert.deepEqual(after.request, fields);
+  assert.equal(after.comment('t1'), 'nháp bình luận');
+  after.setComment('t1', '');
+  assert.equal(formDrafts(fakeSession(), storage).comment('t1'), '');
+  for (const key of [...storage.map.keys()]) storage.map.set(key, '{"projectId":1,"kind":"epic"}');
+  assert.equal(formDrafts(fakeSession(), storage).request, null, 'field sai kiểu không được khôi phục');
 });
 
 // ---------------------------------------------------------------------------------------------------------
@@ -149,7 +186,10 @@ const { ComposeServicesProvider } = await import('../src/compose/composer.tsx');
 const { RuntimeContext } = await import('../src/app-runtime.ts');
 const { CreateRequestAction, CreateRequestForm } = await import('../src/tickets/create-request.tsx');
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  window.sessionStorage.clear();
+});
 after(() => closeDom());
 
 function project(id: string, name: string) {
@@ -284,7 +324,7 @@ test('form tạo yêu cầu text-only: Superpowers mặc định, gửi đúng b
   assert.equal(titleInput().value, '', 'sau khi tạo, form bắt đầu bản nháp mới');
   assert.equal(description().value, '');
   assert.equal(projectSelect().value, projectId, 'giữ project đang chọn');
-  assert.equal(formDrafts(env.session).request?.title ?? '', '');
+  assert.equal(formDrafts(env.session, window.sessionStorage).request?.title ?? '', '');
 });
 
 test('chọn BMAD rõ ràng kèm PNG: body có workflowChoice bmad và đúng ID tệp', async () => {
@@ -420,4 +460,56 @@ test('nút “Tạo yêu cầu”: đóng hộp thoại giữ field, chỉ “B�
   await until(() => opened.length === 1, 'opened');
   assert.equal(opened[0], (server.tickets[0] as { id: string }).id);
   assert.equal(screen.queryByRole('dialog', { name: 'Tạo yêu cầu' }), null, 'đóng form, mở ticket');
+});
+
+test('mất response rồi tải lại trang: field khôi phục, bị khóa và khớp từng byte body gửi lại', async () => {
+  const server = serverWithProjects();
+  const env = await harness(server);
+  render(
+    providers(
+      env,
+      createElement(CreateRequestForm, { initialProjectId: projectId, onCreated: () => undefined }),
+    ),
+  );
+  await formReady();
+  await change(projectSelect(), otherProjectId);
+  await change(kindSelect(), 'deploy');
+  await change(titleInput(), 'Triển khai bản vá');
+  await change(description(), 'Mô tả trước khi tải lại');
+  await act(async () => {
+    fireEvent.click(radio(/BMAD/));
+  });
+  server.dropAfterCommit = (call) => call.url === '/v2/attachment-submissions/tickets';
+  await act(async () => {
+    fireEvent.click(button(/Tạo ticket/));
+  });
+  await until(() => composeState() === 'ambiguous', 'ambiguous');
+  // Reload: new session/pending/client over the same tab storage; in-memory state is gone.
+  cleanup();
+  const reloaded = await harness(server, env.storage);
+  const created: string[] = [];
+  render(
+    providers(
+      reloaded,
+      createElement(CreateRequestForm, { initialProjectId: projectId, onCreated: (id) => created.push(id) }),
+    ),
+  );
+  await formReady();
+  await until(() => composeState() === 'ambiguous', 'ambiguous after reload');
+  for (const field of [titleInput(), projectSelect(), kindSelect(), radio(/BMAD/)])
+    assert.equal(field.disabled, true, `${field.tagName} khóa sau tải lại`);
+  const sent = JSON.parse(ticketPosts(server)[0]?.body ?? '{}').ticket;
+  assert.equal(projectSelect().value, sent.projectId);
+  assert.equal(kindSelect().value, sent.kind);
+  assert.equal(titleInput().value, sent.title);
+  assert.equal(description().value, sent.description);
+  assert.equal(radio(/BMAD/).checked, sent.criteria.workflowChoice === 'bmad');
+  await act(async () => {
+    fireEvent.click(button(/Gửi lại đúng yêu cầu cũ/));
+  });
+  await until(() => created.length === 1, 'created');
+  const posts = ticketPosts(server);
+  assert.equal(new Set(posts.map((call) => call.body)).size, 1);
+  assert.equal(new Set(posts.map((call) => call.headers.get('idempotency-key'))).size, 1);
+  assert.equal(server.tickets.length, 1);
 });

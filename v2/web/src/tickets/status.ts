@@ -82,8 +82,12 @@ export function pickReturnFocus<T extends Focusable>(candidates: readonly (T | n
   return candidates.find((candidate): candidate is T => candidate?.isConnected === true) ?? null;
 }
 
-/** Codes the producer writes: `server/src/tickets/repair.ts:54`, `server/src/execution/attempts.ts:489`. */
+/**
+ * Codes the producer writes: `server/src/tickets/service.ts:420,486` (`owner_input`, `repair_limit`),
+ * `server/src/tickets/repair.ts:54`, `server/src/execution/attempts.ts:489`.
+ */
 const waitReasonLabels: Readonly<Record<string, string>> = {
+  owner_input: 'Cần bạn trả lời hoặc quyết định.',
   repair_limit: 'Đã sửa đủ 5 vòng nhưng vẫn chưa đạt, cần bạn quyết định.',
   final_result_pending: 'Máy chưa xác nhận kết quả cuối.',
 };

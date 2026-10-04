@@ -413,3 +413,9 @@ test('requestListFilters ép level request cho view yêu cầu, giữ filter pro
   });
   assert.deepEqual(requestListFilters({}), { level: 'request' });
 });
+
+test('waitNotice có nhãn tiếng Việt cho owner_input', () => {
+  const notice = waitNotice('needs_input', 'owner_input') ?? '';
+  assert.doesNotMatch(notice, /owner_input/);
+  assert.match(notice, /^Đang chờ bạn\. Lý do chờ: /);
+});

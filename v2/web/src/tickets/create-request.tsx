@@ -20,6 +20,7 @@ import {
 import { isUuid } from '../contracts/http.ts';
 import type { Ticket } from '../contracts/tickets.ts';
 import {
+  browserTabStorage,
   defaultRequestFields,
   formDrafts,
   makeRequestSubmission,
@@ -53,7 +54,7 @@ export type CreateRequestFormProps = {
 
 export function CreateRequestForm({ initialProjectId, onCreated }: CreateRequestFormProps) {
   const { client, session } = useRuntime();
-  const drafts = formDrafts(session);
+  const drafts = formDrafts(session, browserTabStorage());
   const initial = useRef<RequestFormFields | null>(null);
   if (initial.current === null) {
     const stored = drafts.request;
