@@ -1,0 +1,1031 @@
+963dc31 fix(gateway): đóng schema render của definition và không nuốt lỗi toàn vẹn
+ .../execution-phase06/task-s3b-report.md           |  56 +++++
+ v2/docs/flows/gateway-host.md                      |   2 +-
+ v2/docs/flows/server-gateway.md                    |   8 +-
+ v2/gateway/src/sync/gateway-sync.ts                |  25 ++-
+ .../install-report-vector.json                     | 248 +++++++++++++++++++++
+ v2/gateway/test/sync.test.ts                       | 201 +++++++++++++++++
+ v2/server/src/gateway/contracts.ts                 |  26 ++-
+ v2/server/src/gateway/service.ts                   |   4 +
+ v2/server/test/gateway.test.ts                     | 133 ++++++++++-
+ 9 files changed, 693 insertions(+), 10 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase06/task-s3b-report.md b/plans/261002-0002-crew-v2/execution-phase06/task-s3b-report.md
+index c30f06d..03a9da6 100644
+--- a/plans/261002-0002-crew-v2/execution-phase06/task-s3b-report.md
++++ b/plans/261002-0002-crew-v2/execution-phase06/task-s3b-report.md
+@@ -47,10 +47,66 @@ Slot `$TMPDIR/crew-v2-heavy-slot.lock` (owner=s3b) giữ từ 03:09:41Z đến s
+ | `v2/gateway/src/commands/contracts.ts` | `ca79be05e5051f3dd264f587cfcbc986bb35850c46618c945c8465327ccf1be3` |
+ | `v2/server/test/gateway.test.ts` | `6c7ffcedb2a06b5f91e747fea56e5416eda63e90ad69ec1294012ccb902260b2` |
+ | `v2/gateway/test/sync.test.ts` | `b63daa668cc1cf581108bf5f69d140e9b3b53f521369fbcff381f65d37d49a82` |
+ 
+ ## Self-review
+ 
+ - Không sửa `body_hash`/`same()` pin comparison, migration, route, DTO công khai khác. Heartbeat schema vẫn đóng, test có khẳng định.
+ - Giới hạn đã biết: server không tự dựng lại `skills`/`render` từ bytes, chỉ chứng minh chúng gắn với pin qua hash do gateway tạo (gateway đã được xác thực bằng machine token; một gateway gian vẫn có thể gửi skills tùy ý kèm hash khớp). Thuộc về tin cậy máy, nằm ngoài S3b; consumer S4 nên chỉ đọc definition từ slot `state=current`.
+ - `render` chỉ được ràng buộc là object (giới hạn bởi body limit Fastify); chưa kiểm cấu trúc bên trong vì S4/A5.1 mới tiêu thụ.
+ - Phase03-owner review vẫn bắt buộc theo memo.
++
++---
++
++# Fix round 1/5 (I1, M1, M2, M3)
++
++**Status: DONE.** Node v24.21.0. Slot nặng giữ từ lúc lấy (gate lần đầu đã đạt: pressure 1, available 4.57 GiB, idle 79.8%, disk 753 GiB), trả sau cleanup. PG `postgres:18.6` riêng, 256m/1 CPU/pids 64 (inspect 268435456/1000000000/64), loopback ngẫu nhiên; dừng bằng `docker stop`, `docker ps -a --filter name=` rỗng, không còn `node --test` (`task-s3b-fix1-cleanup.log`, `task-s3b-fix1-resource.log`). NODE_OPTIONS=--max-old-space-size=384.
++
++## Sửa gì
++
++- **I1** `server/src/gateway/contracts.ts`: `renderSchema` đóng theo `RenderDefinition` (source, projection đầy đủ, `selectedProjectionSha256` map path -> digest tối đa 2000, `layers` chỉ 7 path chính thức, mỗi giá trị digest hoặc null, không trường lạ). Hình dạng sai là 400 ở schema nên `canonicalJson(undefined)` không còn chạm được.
++- **M1** `gateway/src/sync/gateway-sync.ts`: `definition()` chỉ nuốt `WORKFLOW_DEFINITION_UNAVAILABLE`. Lỗi khác làm slot thành `state:'error'`, `installed:null`, `lastError.code='DEFINITION_FAILED'`, message chứa mã lỗi chỉ khi khớp `^[A-Z][A-Z0-9_]{0,63}$`, ngược lại ghi `UNKNOWN` (không lộ đường dẫn).
++- **M2** `server/src/gateway/service.ts`: slot bị hạ vì definition nhận `lastError={code:'DEFINITION_MISMATCH', message:'Definition workflow không khớp pin đã cài'}` (không ghi đè lastError sẵn có).
++- **M3** File mới `v2/gateway/test/fixtures/workflow-definitions/install-report-vector.json` (sinh bằng `createWorkflowManifest(...).loadDefinition` thật trên fixture official: Superpowers claude và BMAD claude có `render`). Test gateway so sánh output hiện tại với file (cờ `CREW_UPDATE_DEFINITION_VECTOR=1` để sinh lại); test server đọc đúng file này và đòi `accepted=true`, lưu nguyên bản.
++
++## Test bao phủ mới
++
++| Test | Phủ |
++|---|---|
++| server `render sai hình dạng ... không bao giờ 500` | 13 biến thể (`{}`, thiếu source/projection/layers, trường lạ, null, mảng, chuỗi, digest sai, layer path lạ, layer digest sai, source/projection sai kiểu) đều 400; render đúng hình nhưng thuộc pin khác là 200 `accepted=false` |
++| server `từ chối definition lệch pin` (mở rộng) | `lastError.code === DEFINITION_MISMATCH` cho cả 4 loại mismatch |
++| server `golden vector chung` | definition thật của gateway (Superpowers + BMAD render) được nhận và lưu nguyên; đổi 1 layer digest trong render thì `accepted=false` |
++| gateway `golden vector` | output `loadDefinition` thật khớp byte với JSON committed, BMAD có `render`, Superpowers không |
++| gateway `integrity failure ... error slot` | `WORKFLOW_SKILL_MISMATCH` -> error + `DEFINITION_FAILED` kèm mã; lỗi lạ -> `UNKNOWN` không lộ `/secret/path`; `WORKFLOW_DEFINITION_UNAVAILABLE` -> vẫn `current` không trường |
++
++## RED (nguồn ở c184944, chỉ tests mới)
++
++Server `gateway.test.ts`: 27 test, 25 pass, **2 fail** (render sai hình dạng; thiếu `DEFINITION_MISMATCH`), exit 1. Gateway `sync.test.ts`: 8 test, 7 pass, **1 fail** (integrity failure bị nuốt), exit 1. Golden vector (cả hai phía) pass ngay vì công thức đã tương thích; đây là guard hồi quy, không phải RED. Log: `task-s3b-fix1-red-server.log`, `task-s3b-fix1-red-gateway.log`. Dựng RED bằng cách chép 3 file nguồn sang scratch, `git show HEAD:` đưa về c184944, chạy, chép nguyên bản lại (không stash/revert Git).
++
++## GREEN
++
++| Lệnh | Kết quả |
++|---|---|
++| `node --test --test-concurrency=1 --test-timeout=60000 v2/server/test/gateway.test.ts v2/server/test/model-certification.test.ts v2/server/test/model-pool.test.ts` (PG riêng) | 40/40 pass, exit 0 |
++| `node --test --test-timeout=120000 test/sync.test.ts test/workflow-manifest.test.ts test/render-artifacts.test.ts` (trong v2/gateway) | 46/46 pass, exit 0 |
++| gateway `pnpm exec tsc --noEmit` | exit 0 |
++| server scoped strict tsc (cùng 3 file .d.ts + service.ts, contracts.ts, test/gateway.test.ts) | exit 0 |
++| Biome 2.5.14 `check` trên src/gateway, server test, gateway sync/commands, sync.test.ts | exit 0, 12 warning, toàn bộ là 12 warning cũ của các test có sẵn (`noExplicitAny`/`noNonNullAssertion` ở các test trước), code mới 0 |
++| docs mirror (`git archive` + overlay) | `generate` unchanged, `check --all` ok, `check --staged` ok |
++
++Log: `task-s3b-fix1-green-server.log`, `task-s3b-fix1-green-gateway.log`, `task-s3b-fix1-tsc-*.log`, `task-s3b-fix1-biome.log`.
++
++## SHA256 sau fix
++
++| File | SHA256 |
++|---|---|
++| `v2/server/src/gateway/service.ts` | `f142cef646cfbde81b8fddb3db372c5448ec032986eba6a4769e1a6d60d385a6` |
++| `v2/server/src/gateway/contracts.ts` | `ddecd7c260d1d04e21cd99e8e2638f2b4a15f43106d85faadba1e9647c130313` |
++| `v2/gateway/src/sync/gateway-sync.ts` | `6fced9c8d9be1d8ec2b120a4527443b9b0466a9397783130597dbbfe59c5dbec` |
++| `v2/server/test/gateway.test.ts` | `5daa049b0c7e86986644fc11338d47ff3fb4b7c9c666ed38e9d707cd82e32ac4` |
++| `v2/gateway/test/sync.test.ts` | `49e2ded875a594d4dd0f62543d018113bdc0481cdb87a2e218b6c44cce74a987` |
++| `v2/gateway/test/fixtures/workflow-definitions/install-report-vector.json` | `1bd0a6df9a39d4c6d90e02f5f214b694c72d57a859896c3780880484aa2228d1` |
++
++## Ghi chú
++
++- File mới duy nhất: `install-report-vector.json` (fixture test, thuộc cùng nhóm fixtures của flow gateway-host; `check --all` ok). Helper sinh vector nằm trong `sync.test.ts`, không có support module mới.
++- Flow docs cập nhật: `server-gateway.md`, `gateway-host.md`.
+diff --git a/v2/docs/flows/gateway-host.md b/v2/docs/flows/gateway-host.md
+index 497e94b..c41d7be 100644
+--- a/v2/docs/flows/gateway-host.md
++++ b/v2/docs/flows/gateway-host.md
+@@ -30,21 +30,21 @@ Các API dưới đây là nền tảng Task 2; `GatewayHost` hiện chưa tự
+ 5. `gateway/src/journal/http-operations.ts` → `HttpOperationJournal.prepare`, `recordResponse`, `replay`: canonical body theo key UTF-16, body SHA-256, method/route/phase/key được fsync trước send. Mỗi logical operation/phase có UUID key riêng; input đổi dưới cùng ID bị từ chối, finalize không dùng key result. Restart replay cùng route/body/key; response ghi durable và immutable. Field body mang tên token/password/secret bị từ chối; transport nhận deep-frozen body, không có credential trong log. Consumer vẫn phải giữ credential ngoài body và query server sau ambiguous reply.
+ 6. `gateway/src/resources/registry.ts`, `gateway/src/resources/native-resources.c` → `ResourceRegistry.reserveOwnedPath`, `createAndAttest`, `registerProcess`, `cleanup`: reserve UUID trước tạo directory exclusive bằng `mkdirat`/directory FD, callback chỉ xây dữ liệu trong path do host sở hữu, sau đó kiểm device/inode/UID/type và fsync identity; `linkCount` của directory chỉ là snapshot quan sát, vì output runtime hoặc partial delete có thể đổi số này. Regular file vẫn bắt buộc `st_nlink === 1` ở scan và ngay trước unlink để chặn hardlink alias. Crash trước attest giữ reservation chưa được quyền xóa. Layout lưu identity root/objects/quarantine qua restart; process ownership riêng gắn exact launch/start identity. Cleanup cần mọi process của run có stopped proof, không retention/other-run reference và không abort. Native reopen FD `O_NOFOLLOW`, so identity và scan không theo symlink/foreign mount/hardlink, `renameatx_np(RENAME_EXCL)` sang quarantine, so lại identity rồi mới `unlinkat` qua FD. Parent/symlink/hardlink/mismatch hoặc lỗi native giữ resource với lỗi sanitized. Restart sau rename trước record update chỉ nhận lại cùng inode trong quarantine khi path objects thiếu và parent identity khớp; abort sau quarantine giữ bytes để retry. Crash sau delete trước durable receipt giữ lỗi/missing proof để xử lý thủ công, không bịa ownership từ path đã biến mất.
+ 7. `gateway/src/telemetry/capacity.ts`, `gateway/src/telemetry/macos-provider.ts` → `DispatchCapacity.sampleAndDecide`, `MacOsTelemetryProvider.sample`: sample mới cho mỗi implement/review/fix; `os.loadavg`, `availableParallelism`, `vm_stat`, `sysctl kern.memorystatus_vm_pressure_level`, `statfs` và process registry. Tuổi monotonic/wall quá 15 giây, thiếu sample, pressure warn/critical, RAM <2 GiB, disk <5 GiB, load/CPU >1, vượt min(configured/request max jobs) hoặc ownership key trùng đều chờ. Capacity chỉ là advisory để phase06 lưu rationale/decision, không tự claim.
+ 
+ ### Đồng bộ, command bridge và retirement (Task 5)
+ 
+ `GatewayConnection` giữ boot CAS và heartbeat body/sequence/key bền vững qua mất reply; boot ID khác
+ bắt buộc reconcile. `GatewayEventPump` dùng SSE làm tín hiệu thức dậy, fallback poll `/v2/events` và chỉ
+ commit cursor sau reconcile thành công. `GatewaySync` đọc desired trước command, lưu từng command theo
+ machine/ID trước cursor; nguồn hoặc projection lỗi giữ received, báo partial và retry backoff có base tối đa 60 giây và jitter 0,75–1,25 (trần thực 75 giây).
+-Khi `SyncOptions.definitions` được cấp (thường là `createWorkflowManifest(registry)`), mỗi projection vừa báo `current` được gắn thêm `definition` `{sha256, skills, customizationSha256}` (kèm `render` nếu BMAD claude có) do `loadDefinition` trả; definition không có sẵn (BMAD ngoài claude, lỗi đọc) thì slot vẫn `current` nhưng không có trường này, không làm hỏng report. Không cấp `definitions` thì report giữ nguyên hình dạng cũ. Mỗi report mới có ID riêng; report mất reply dùng đúng body/key cũ. Revision bị thay thế hoàn tất command cũ
++Khi `SyncOptions.definitions` được cấp (thường là `createWorkflowManifest(registry)`), mỗi projection vừa báo `current` được gắn thêm `definition` `{sha256, skills, customizationSha256}` (kèm `render` nếu BMAD claude có) do `loadDefinition` trả; definition không có sẵn (BMAD ngoài claude, lỗi đọc) thì slot vẫn `current` nhưng không có trường này. Chỉ `WORKFLOW_DEFINITION_UNAVAILABLE` được bỏ qua; lỗi khác (ví dụ `WORKFLOW_SKILL_MISMATCH`) đưa slot sang `error` với `DEFINITION_FAILED` và mã lỗi đã lọc. Không cấp `definitions` thì report giữ nguyên hình dạng cũ. Mỗi report mới có ID riêng; report mất reply dùng đúng body/key cũ. Revision bị thay thế hoàn tất command cũ
+ với SUPERSEDED; revision mới dùng command mới. Namespace sync_models thuộc consumer riêng.
+ Config và command là hai GET riêng: command có revision cao hơn snapshot phải chờ pass mới;
+ chỉ revision thấp hơn desired hiện hành mới được SUPERSEDED.
+ 
+ `HttpOperationJournal.retryTransient` giữ nguyên `replay` và response đầu bất biến trong
+ `http-operations`; `http-retries` chứa từng attempt/response bổ sung. Chỉ 500/502/503/504 được gửi lại,
+ mỗi lần gọi tối đa một send, cùng route/body/key gốc; lịch chờ durable tăng tới 60 giây. Attempt mất
+ reply giữ nguyên qua reopen; response thành công settle một lần. Lỗi HTTP không chứng minh chưa có tác động;
+ actual server receipt dưới cùng key quyết định kết quả. Khi report pending thuộc boot cũ, trước hết replay đúng key; chỉ response BOOT_RETIRED đã xác nhận và tuple boot mới khác mới cho phép pass sau tạo report ID mới từ cache được verify lại. Operation/report cũ vẫn bất biến; reply ambiguous hoặc 503 không đi nhánh thay report. Không tạo mutation key mới để né lỗi.
+ 
+diff --git a/v2/docs/flows/server-gateway.md b/v2/docs/flows/server-gateway.md
+index 08842d8..ffa0f25 100644
+--- a/v2/docs/flows/server-gateway.md
++++ b/v2/docs/flows/server-gateway.md
+@@ -45,21 +45,23 @@ server cho phép; authority production mặc định vẫn từ chối đến ph
+ 6. `POST /v2/gateway/install-reports` replay reportId/hash đã commit trước current boot/config check,
+    không đổi status/applied khi replay. Report mới phải đúng current boot và config revision. So toàn
+    bộ SourcePin (kể cả sourceUrl/provenance) và ProjectionPin/derivation; slot current lệch pin được
+    ghi mismatch. Chỉ cả hai source và mọi desired projection khác null đúng mới advance applied.
+    Partial/error giữ revision/appliedAt cũ, nhưng ghi per-slot status mới. Raw lastError được thay bằng
+    mã/thông báo cố định cả khi lưu report. Slot projection của install report (không phải heartbeat) có
+    thể mang thêm `definition` `{sha256, skills, customizationSha256, render?}`: server chỉ nhận khi slot
+    `current` đúng pin mong muốn và `sha256` bằng SHA-256 canonical của `{source, projection, skills,
+    customizationSha256, render|null}` (render nếu có phải cùng source/projection). Hợp lệ thì lưu nguyên
+    bản vào `gateway_applied.workflow_status[...].projections[runtime].definition` và report; không hợp lệ
+-   thì bỏ definition, slot thành `mismatch`, report không accepted. Thiếu `definition` vẫn như trước;
++   thì bỏ definition, slot thành `mismatch` kèm `lastError` `DEFINITION_MISMATCH`, report không accepted.
++   `render` được schema đóng theo `RenderDefinition` (source, projection, selectedProjectionSha256, 7 layer
++   path nullable digest) nên hình dạng sai là 400, không bao giờ 500. Thiếu `definition` vẫn như trước;
+    `body_hash` và so khớp pin không đổi. `latest_report_id` là pointer nội bộ có FK cùng máy; không
+    chọn current report bằng timestamp/UUID. Receipt và report không TTL, DB chặn update/delete.
+ 7. `POST /v2/gateway/attempts/:id/projection` kiểm current binding, active guard, exact fence/process
+    dưới khóa entity trước cached response. Row companion cùng attempt/cùng pin replay bất biến;
+    đổi pair 409. Row mới gọi `GatewayProjectionPolicy.authorize(tx,{attemptId,actor})`, mặc định
+    `SELECTION_NOT_CONFIGURED` 503. Selection trả về phải khớp payload command và scope dispatch
+    decision đúng ticket, report accepted cùng máy/revision, domain Pin của attempt và projection.
+    Policy phase06 phải chứng minh authority tại claim và current config/report lúc claim; report
+    lịch sử đơn lẻ không cấp quyền. Config đổi sau claim được phép vẫn giữ cặp đã được authorizer
+    xác nhận. Private fixture lưu proof trong bảng test, không có bypass production.
+@@ -100,21 +102,23 @@ metadata-only events; `server-identity` cấp bearer/session/project scope; `ser
+ process identity, fence và guard; `server-docs-view` ghép route với default dispatch/final/projection deny.
+ Host sync/launcher ở các task tiếp theo tiêu thụ DTO, không được biến heartbeat thành stop proof.
+ 
+ ## Tests
+ 
+ `pnpm --dir v2/server test --test-file <absolute gateway.test.ts>` dùng đúng một test file trong runner,
+ container PostgreSQL18.6 riêng và logical DB prefix7. Tests chứng minh boot CAS race, retired immutable
+ replay, receipt thứ tự/hash/server clock, config CAS/Origin/CSRF/URL/schema, command ACK/cursor,
+ partial/failed slots, exact source/projection/derivation, report/config/boot cũ, default selection deny,
+ DB-backed claim proof, null runtime, stale fence và giữ pair sau update; definition cộng thêm được lưu
+-nguyên bản, thiếu definition vẫn accepted, definition lệch pin/skills/customization/render bị từ chối. HTTP race giữ event_cursor,
++nguyên bản, thiếu definition vẫn accepted, definition lệch pin/skills/customization/render bị từ chối, render sai hình dạng là 400. Golden vector chung
++`gateway/test/fixtures/workflow-definitions/install-report-vector.json` (sinh bởi `loadDefinition` thật, gồm BMAD
++render) được server nhận. HTTP race giữ event_cursor,
+ rotate token/expire session giữa prehandler và mutation, xác nhận cached response bị chặn ở cả năm
+ machine family. Close/reopen pool và pg_dump/pg_restore xác nhận durable receipts. Diễn tập backup
+ prefix6, restore6, migrate7, restore7 giữ receipt và checksum; fixture drop đúng logical DB trong finally,
+ runner dừng đúng container đã tạo, không dùng 5432/55432 hoặc shared DB. Covering server suite,
+ server typecheck và Biome kiểm tra sau batch cuối.
+ 
+ Consumer Task 5 ở gateway dùng machineTransport và HttpOperationJournal cho boot/heartbeat/ACK/report/
+ companion. GatewaySync persist command/cursor/report trước network, retry partial trên cùng command với report
+ mới và xử lý SUPERSEDED bất biến. TicketCommandBridge dùng scoped005 read trước RELEASE/retirement; fresh
+ claim và companion phải được actual stored command/decision authority chấp thuận. Actual DB prefix8 tests
+diff --git a/v2/gateway/src/sync/gateway-sync.ts b/v2/gateway/src/sync/gateway-sync.ts
+index 9e9a4e9..f1038bd 100644
+--- a/v2/gateway/src/sync/gateway-sync.ts
++++ b/v2/gateway/src/sync/gateway-sync.ts
+@@ -119,28 +119,29 @@ export class GatewaySync {
+     await mutate(
+       this.options.http,
+       `${this.key(record.command.id)}:completed`,
+       `/v2/gateway/commands/${record.command.id}/ack`,
+       'gateway-completed',
+       { phase: 'completed', result: record.completion },
+     );
+     record.done = true;
+     await this.store.put(this.key(record.command.id), record);
+   }
+-  // Definition lookup is additive: an unavailable definition (for example BMAD outside claude) must not
+-  // fail an otherwise exact install, so the slot is reported without it.
++  // Definition lookup is additive: only an explicit "unavailable" (for example BMAD outside claude) is
++  // skipped. Any other failure is an integrity problem and must surface instead of being swallowed.
+   private async definition(source: SourcePin, pin: ProjectionPin): Promise<WorkflowDefinition | null> {
+     if (!this.options.definitions) return null;
+     try {
+       return await this.options.definitions.loadDefinition(source, pin);
+-    } catch {
+-      return null;
++    } catch (error) {
++      if ((error as Error)?.message === 'WORKFLOW_DEFINITION_UNAVAILABLE') return null;
++      throw error;
+     }
+   }
+   private async process(record: SyncRecord, config: GatewayConfig | null) {
+     if (record.completion) return this.complete(record, record.completion);
+     if ((this.options.now ?? Date.now)() < record.retryAt) return;
+     await mutate(
+       this.options.http,
+       `${this.key(record.command.id)}:received`,
+       `/v2/gateway/commands/${record.command.id}/ack`,
+       'gateway-received',
+@@ -199,21 +200,35 @@ export class GatewaySync {
+               );
+               if (!audit) throw new Error('PROJECTION_UNAVAILABLE');
+               const built = await this.options.registry.deriveProjection(
+                 desired.source,
+                 runtime,
+                 audit.recipe,
+               );
+               if (!same(built, pin)) throw new Error('PROJECTION_MISMATCH');
+             }
+             results[name].projections[runtime] = slot(pin);
+-            const definition = await this.definition(desired.source, pin);
++            let definition: WorkflowDefinition | null;
++            try {
++              definition = await this.definition(desired.source, pin);
++            } catch (error) {
++              const code = (error as Error)?.message;
++              results[name].projections[runtime] = {
++                ...slot(),
++                state: 'error',
++                lastError: {
++                  code: 'DEFINITION_FAILED',
++                  message: `Không tạo được definition workflow (${/^[A-Z][A-Z0-9_]{0,63}$/.test(code) ? code : 'UNKNOWN'})`,
++                },
++              };
++              continue;
++            }
+             if (definition) results[name].projections[runtime].definition = definition;
+           } catch {
+             results[name].projections[runtime] = {
+               ...slot(),
+               state: 'error',
+               lastError: { code: 'PROJECTION_INSTALL_FAILED', message: 'Không cài được projection đã ghim' },
+             };
+           }
+         }
+       }
+diff --git a/v2/gateway/test/fixtures/workflow-definitions/install-report-vector.json b/v2/gateway/test/fixtures/workflow-definitions/install-report-vector.json
+new file mode 100644
+index 0000000..4841940
+--- /dev/null
++++ b/v2/gateway/test/fixtures/workflow-definitions/install-report-vector.json
+@@ -0,0 +1,248 @@
++{
++  "superpowers": {
++    "source": {
++      "name": "superpowers",
++      "version": "6.4.2",
++      "sourceRevision": "8ca22dba9a94f28898bbce59f2537ff4d87c747d",
++      "sourceUrl": "https://codeload.github.com/obra/superpowers/tar.gz/8ca22dba9a94f28898bbce59f2537ff4d87c747d",
++      "payloadSha256": "29714b2c4c727ecc6600f9e5982a0dcbb829860ba79626f1941a0f233e85331a",
++      "packageIntegrity": null,
++      "sourceManifestSha256": "e5cf239cc4fd5757338fb435de881d6246948cd1d902fa21b4498a63d5a10dc2",
++      "sourceTreeSha256": "76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46"
++    },
++    "projection": {
++      "runtime": "claude",
++      "sourceTreeSha256": "76972851ae1f527b6e323866cf9562d6f07f0b44af656e7f453224699507ac46",
++      "manifestSha256": "b87eaf7d6404ed4fd92650e98d3f20a3060a18de6a3192781de4f1f2871b0347",
++      "derivation": {
++        "tool": "crew-reviewed-official-layout-copy",
++        "version": "1",
++        "options": [
++          "claude-plugin-dir"
++        ],
++        "layoutSchema": "superpowers-claude-plugin-v1",
++        "policySha256": "552a23187fa99ddefb9a4c82fccf2b653e5e9e8f13bfd0a9eecf6913cf8eb4aa"
++      },
++      "treeSha256": "2cc167b34d987b4c87b8b311434cad0131213d53dbdf5552f4c7d9e3de70d3f4"
++    },
++    "definition": {
++      "sha256": "c08ed3454430187fad303e797a085b65fbb79fcd5fc03bd335012bd5f02c072c",
++      "skills": [
++        {
++          "path": "skills/brainstorming/SKILL.md",
++          "sha256": "a32d2255354775aa124855aa7100cf276bea096fff4ebb3a0edf57be216e6c72"
++        },
++        {
++          "path": "skills/diagnosing-superpowers/SKILL.md",
++          "sha256": "5a652f8132cc901eb5ca61f89157839f87a2f20aed037fc7a2b51051bc37cd19"
++        },
++        {
++          "path": "skills/dispatching-parallel-agents/SKILL.md",
++          "sha256": "1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c"
++        },
++        {
++          "path": "skills/executing-plans/SKILL.md",
++          "sha256": "f38e8f2ddcf079f65493adc713c1fed78421dfaf5f4dbf6b3a6b2b1d95466e71"
++        },
++        {
++          "path": "skills/finishing-a-development-branch/SKILL.md",
++          "sha256": "8db5a922b242dd4e1bf824cb91c13b3e8d8e8a86d6ceaf7f0774eb9cce909d65"
++        },
++        {
++          "path": "skills/receiving-code-review/SKILL.md",
++          "sha256": "091df1629510af1b92fc4abd6f96732ebedb4cb2c0f3457e8f2740b0504a2438"
++        },
++        {
++          "path": "skills/requesting-code-review/SKILL.md",
++          "sha256": "cfcee1b06774e7c0517f1e09be1a11f2d5680257072723e709ddbcf7e08b795a"
++        },
++        {
++          "path": "skills/subagent-driven-development/SKILL.md",
++          "sha256": "8dde5589ee083fb4999106d116f01c8fdaf3116a8a9813fdedeb80329de49046"
++        },
++        {
++          "path": "skills/systematic-debugging/SKILL.md",
++          "sha256": "808fc5717aa88ad65efff312b11c186294d3e6ee301afb584e2f86599b137787"
++        },
++        {
++          "path": "skills/test-driven-development/SKILL.md",
++          "sha256": "64b03fce4aee5a97a93160cea8111f3ba13a17b7c001db4bd5836d67fd10705d"
++        },
++        {
++          "path": "skills/using-git-worktrees/SKILL.md",
++          "sha256": "8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd"
++        },
++        {
++          "path": "skills/using-superpowers/SKILL.md",
++          "sha256": "82c5c8866ad7f5dd4440ce66bd7806ba48a2f13771beae5cf112e53f08fe36ba"
++        },
++        {
++          "path": "skills/verification-before-completion/SKILL.md",
++          "sha256": "2befe7fc55bcadaa3d97dd9e8efeb633d2561c0ebe74c5a8b17c4d9e7e4520b3"
++        },
++        {
++          "path": "skills/writing-plans/SKILL.md",
++          "sha256": "a6c67c1900064347c2a329990dd3c555657c51c3ec53b259a08aa01a2c26139a"
++        },
++        {
++          "path": "skills/writing-skills/SKILL.md",
++          "sha256": "bbdfe742f853562e643a3d40d64476359d47881e39cef80a189283fa26d11ab9"
++        }
++      ],
++      "customizationSha256": "71cd7cce695084b77d9dc4c930256ad3c8c99bf895617b080f54c0750e9434b6"
++    }
++  },
++  "bmad": {
++    "source": {
++      "name": "bmad",
++      "version": "6.12.0",
++      "sourceRevision": "05bfbd46d00766ec88eb9b42e76be2c575d64d7b",
++      "sourceUrl": "https://registry.npmjs.org/bmad-method/-/bmad-method-6.12.0.tgz",
++      "payloadSha256": "ac05c93f0b3c4256bb4072e6e1ff181eaad6cc0a64a27a63893bfb2b0b64aed2",
++      "packageIntegrity": "sha512-gbbHo32TxCPwo4Yy70kqykFRwN5UdYqfnDKTsKAsF9m5qtLeoiCgEawj/LuzLBHLrYA0WTOyL/XWtXpgyDonMQ==",
++      "sourceManifestSha256": "bf966209b9abf05b2585a1225f6c176d1aaa9f0262248282adc5bad6b78bef68",
++      "sourceTreeSha256": "45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317"
++    },
++    "projection": {
++      "runtime": "claude",
++      "sourceTreeSha256": "45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317",
++      "manifestSha256": "687c56530f4d361e387fff4698fa723d8fe6672107cedd44074faeafb8faf064",
++      "derivation": {
++        "tool": "bmad-official-package-local-installer",
++        "version": "6.12.0",
++        "options": [
++          "frozen-dependencies",
++          "bmm",
++          "claude-code",
++          "no-shims",
++          "generated-metadata-v1"
++        ],
++        "layoutSchema": "bmad-claude-v1",
++        "policySha256": "a0ac56ece4b964da4e5481cd16f75dfb74d05425ef0b5c33bfb176e82926bd26"
++      },
++      "treeSha256": "b06aad254b848ba568e559d8778c7a73b25896f076b5022230a6403d4ea5b4ea"
++    },
++    "definition": {
++      "sha256": "1b09b8abde870f370e933fa67f226359de892a9626f6a8199adf856b07eb48d8",
++      "skills": [
++        {
++          "path": ".claude/skills/bmad-build/compile-epic-context.md",
++          "sha256": "6793b15ae85766cee529e6b349e45f2c6ec9e3212019611c29e8c77b4dc4b924"
++        },
++        {
++          "path": ".claude/skills/bmad-build/references/claims-check.md",
++          "sha256": "50ea17cb89a78ef815286dde2dabfd09f1dc9841d07a10857f88b39ab7b9bd2a"
++        },
++        {
++          "path": ".claude/skills/bmad-build/references/deletion-check.md",
++          "sha256": "0f1f124e4e957147e89164a272b10bedc694ad0d9ad2618c8610ac74ee9cb0da"
++        },
++        {
++          "path": ".claude/skills/bmad-build/review-prompts/edge-case-hunter.md",
++          "sha256": "8fc046af1cbf4ecc928207cec75e29c3c260adb86cc7da77537ade3b3a3b9448"
++        },
++        {
++          "path": ".claude/skills/bmad-build/review-prompts/verification-gap.md",
++          "sha256": "45ab0b8c4c56c5c055c97a293a8591a67e256d0b1a2058ce1f093cd866be8d03"
++        },
++        {
++          "path": ".claude/skills/bmad-build/spec-template.md",
++          "sha256": "e217325964857ebd90a9508bf171eddc2c4ad1b0b9b32a119775ac5c015695fd"
++        },
++        {
++          "path": ".claude/skills/bmad-build/step-01-clarify-and-route.md",
++          "sha256": "1e8095b08e9e9c57d9b24678b524e07d0b6bbb5af72ba213622f12a1c7d909cc"
++        },
++        {
++          "path": ".claude/skills/bmad-build/step-02-plan.md",
++          "sha256": "5c999430f818f58fc5e4f64309a1b0f81358ce0ddcfbd3f44b25d56279ef25d8"
++        },
++        {
++          "path": ".claude/skills/bmad-build/step-03-implement.md",
++          "sha256": "15fd02d2f655d4102c515134ed6aa40cd055bd9d811e49d529512f8f36d09b03"
++        },
++        {
++          "path": ".claude/skills/bmad-build/step-04-review.md",
++          "sha256": "f6b3f3fa5d3af0b324db2efee9351d4c348bdc0dfa4dad6c058eb4fd37921333"
++        },
++        {
++          "path": ".claude/skills/bmad-build/step-05-present.md",
++          "sha256": "551e0847e2ebb64575180a5dacca5786b9b9d7825dcd986e1b3b58442eaf713a"
++        },
++        {
++          "path": ".claude/skills/bmad-build/step-oneshot.md",
++          "sha256": "241fa52e227c048a5d8e4428bef0f153267475f697640899deb218b58ebfd378"
++        },
++        {
++          "path": ".claude/skills/bmad-build/sync-sprint-status.md",
++          "sha256": "7ff44d21f5d813f4993780271eec8df2fce1373f525ff80e595b7c10618c4c36"
++        },
++        {
++          "path": ".claude/skills/bmad-build/workflow.md",
++          "sha256": "481ff00ef349a9c7845feca02bbfd5722b1e318ccabac858355da6c90c2d8a39"
++        }
++      ],
++      "customizationSha256": "ec93eb9f2c89427af37172f257a5b3439c7561352ece1e7937b3da57ae726c90",
++      "render": {
++        "source": {
++          "name": "bmad",
++          "version": "6.12.0",
++          "sourceRevision": "05bfbd46d00766ec88eb9b42e76be2c575d64d7b",
++          "sourceUrl": "https://registry.npmjs.org/bmad-method/-/bmad-method-6.12.0.tgz",
++          "payloadSha256": "ac05c93f0b3c4256bb4072e6e1ff181eaad6cc0a64a27a63893bfb2b0b64aed2",
++          "packageIntegrity": "sha512-gbbHo32TxCPwo4Yy70kqykFRwN5UdYqfnDKTsKAsF9m5qtLeoiCgEawj/LuzLBHLrYA0WTOyL/XWtXpgyDonMQ==",
++          "sourceManifestSha256": "bf966209b9abf05b2585a1225f6c176d1aaa9f0262248282adc5bad6b78bef68",
++          "sourceTreeSha256": "45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317"
++        },
++        "projection": {
++          "runtime": "claude",
++          "sourceTreeSha256": "45227836f9983671126b31255cab949aeb61611a959d1042f7a2ca679f8f9317",
++          "manifestSha256": "687c56530f4d361e387fff4698fa723d8fe6672107cedd44074faeafb8faf064",
++          "derivation": {
++            "tool": "bmad-official-package-local-installer",
++            "version": "6.12.0",
++            "options": [
++              "frozen-dependencies",
++              "bmm",
++              "claude-code",
++              "no-shims",
++              "generated-metadata-v1"
++            ],
++            "layoutSchema": "bmad-claude-v1",
++            "policySha256": "a0ac56ece4b964da4e5481cd16f75dfb74d05425ef0b5c33bfb176e82926bd26"
++          },
++          "treeSha256": "b06aad254b848ba568e559d8778c7a73b25896f076b5022230a6403d4ea5b4ea"
++        },
++        "selectedProjectionSha256": {
++          ".claude/skills/bmad-build/SKILL.md": "1cdf5406965ba24236d2375739d839699eb56b619834490539d1bd3d5111f890",
++          ".claude/skills/bmad-build/compile-epic-context.md": "6793b15ae85766cee529e6b349e45f2c6ec9e3212019611c29e8c77b4dc4b924",
++          ".claude/skills/bmad-build/customize.toml": "0ee9b033a40640420d1dc3411de7428146d00bf8c1409c9a9cfe6c1743cd53b9",
++          ".claude/skills/bmad-build/references/claims-check.md": "50ea17cb89a78ef815286dde2dabfd09f1dc9841d07a10857f88b39ab7b9bd2a",
++          ".claude/skills/bmad-build/references/deletion-check.md": "0f1f124e4e957147e89164a272b10bedc694ad0d9ad2618c8610ac74ee9cb0da",
++          ".claude/skills/bmad-build/review-prompts/edge-case-hunter.md": "8fc046af1cbf4ecc928207cec75e29c3c260adb86cc7da77537ade3b3a3b9448",
++          ".claude/skills/bmad-build/review-prompts/verification-gap.md": "45ab0b8c4c56c5c055c97a293a8591a67e256d0b1a2058ce1f093cd866be8d03",
++          ".claude/skills/bmad-build/spec-template.md": "e217325964857ebd90a9508bf171eddc2c4ad1b0b9b32a119775ac5c015695fd",
++          ".claude/skills/bmad-build/step-01-clarify-and-route.md": "1e8095b08e9e9c57d9b24678b524e07d0b6bbb5af72ba213622f12a1c7d909cc",
++          ".claude/skills/bmad-build/step-02-plan.md": "5c999430f818f58fc5e4f64309a1b0f81358ce0ddcfbd3f44b25d56279ef25d8",
++          ".claude/skills/bmad-build/step-03-implement.md": "15fd02d2f655d4102c515134ed6aa40cd055bd9d811e49d529512f8f36d09b03",
++          ".claude/skills/bmad-build/step-04-review.md": "f6b3f3fa5d3af0b324db2efee9351d4c348bdc0dfa4dad6c058eb4fd37921333",
++          ".claude/skills/bmad-build/step-05-present.md": "551e0847e2ebb64575180a5dacca5786b9b9d7825dcd986e1b3b58442eaf713a",
++          ".claude/skills/bmad-build/step-oneshot.md": "241fa52e227c048a5d8e4428bef0f153267475f697640899deb218b58ebfd378",
++          ".claude/skills/bmad-build/sync-sprint-status.md": "7ff44d21f5d813f4993780271eec8df2fce1373f525ff80e595b7c10618c4c36",
++          ".claude/skills/bmad-build/workflow.md": "481ff00ef349a9c7845feca02bbfd5722b1e318ccabac858355da6c90c2d8a39",
++          "_bmad/scripts/config_utils.py": "48afe2bc18a29201e343cce3703be1e70df9c83ee74eeb68e57ef8ef42e8c651",
++          "_bmad/scripts/render_skill.py": "8496d0d8b449d64c21b42a9aab3b13fc8a813a430c0695ffd84ad75bb1da7942"
++        },
++        "layers": {
++          "_bmad/config.toml": "84c6d6ee6a0e58596a8b387e54e9385f26c4d3b91b4eab021a90e7425579c128",
++          "_bmad/config.user.toml": "e26ca0f6114ac8c72cf24f81ee9188b41cd5e333273d145c93dafd6697c48938",
++          "_bmad/custom/config.toml": "c7ba15f21a8b5c785912a12ca3bedfa7de6f1d7af1c5bdf5e2366249d229fe19",
++          "_bmad/custom/config.user.toml": "0d04bd495c39c39cf947bd75fe33ccdda877e2e85425eec1df3484b8c7a35dbc",
++          "_bmad/custom/bmad-build.toml": null,
++          "_bmad/custom/bmad-build.user.toml": null,
++          ".claude/skills/bmad-build/customize.toml": "0ee9b033a40640420d1dc3411de7428146d00bf8c1409c9a9cfe6c1743cd53b9"
++        }
++      }
++    }
++  }
++}
+diff --git a/v2/gateway/test/sync.test.ts b/v2/gateway/test/sync.test.ts
+index c045b75..f27fc58 100644
+--- a/v2/gateway/test/sync.test.ts
++++ b/v2/gateway/test/sync.test.ts
+@@ -1,15 +1,29 @@
+ import assert from 'node:assert/strict';
+ import { randomUUID } from 'node:crypto';
++import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
+ import test from 'node:test';
++import { createWorkflowManifest } from '../src/assistant/workflow-manifest.ts';
+ import { HttpOperationJournal } from '../src/journal/http-operations.ts';
+ import { GatewaySync } from '../src/sync/gateway-sync.ts';
++import { type ProjectionPin, projectionTreeHash, type SourcePin } from '../src/workflows/pins.ts';
++import type { WorkflowRegistry } from '../src/workflows/registry.ts';
++import {
++  manifest,
++  manifestHash,
++  parseArchive,
++  type TreeFile,
++  validateFiles,
++  writeTree,
++} from '../src/workflows/stage.ts';
+ import { bridgeRoot, workflowFixture } from './support/bridge-fixture.ts';
+ 
+ test('sync persists partial report and retries same command only missing slot after reconnect/lost ACK', async () => {
+   const owned = await bridgeRoot(),
+     f = await workflowFixture(owned.root);
+   let clock = 0,
+     fail = true,
+     drop = true;
+   const command = {
+     id: randomUUID(),
+@@ -479,10 +493,197 @@ test('sync carries the workflow definition on current projections only, and omit
+     for (const runtime of ['codex', 'api']) {
+       assert.equal(results.bmad.projections[runtime].state, 'current');
+       assert.equal('definition' in results.bmad.projections[runtime], false);
+     }
+     assert.equal('definition' in results.superpowers.source, false);
+   } finally {
+     await w.close();
+     await owned.cleanup();
+   }
+ });
++
++// Shared golden vector: the server install-report test reads this exact file, so a definition produced
++// by the real gateway adapter is proven acceptable to the server digest check (and vice versa).
++const vectorUrl = new URL('./fixtures/workflow-definitions/install-report-vector.json', import.meta.url);
++const fixtureUrl = new URL('./fixtures/', import.meta.url);
++
++async function realDefinitionVectors() {
++  const audits = JSON.parse(await readFile(new URL('workflows/official-audits.json', fixtureUrl), 'utf8'));
++  const builds = JSON.parse(
++    await readFile(new URL('workflow-builder/real-projections.json', fixtureUrl), 'utf8'),
++  );
++  const root = await realpath(await mkdtemp(join(tmpdir(), 'crew-sync-vector-')));
++  try {
++    // Superpowers: official archive bytes with the audited claude projection layout.
++    const spSource = audits.superpowers.source.pin as SourcePin;
++    const spAudit = audits.superpowers.projections.claude;
++    const spFiles = await parseArchive(
++      await readFile(new URL('workflows/superpowers-6.4.2.tgz', fixtureUrl)),
++      audits.superpowers.source.executables,
++    );
++    const spProjected = validateFiles(
++      spAudit.mappings.flatMap((mapping: { from: string; to: string }) =>
++        spFiles
++          .filter((file) => file.path === mapping.from || file.path.startsWith(`${mapping.from}/`))
++          .map((file) => ({
++            ...file,
++            path: `${mapping.to}${file.path.slice(mapping.from.length)}`,
++            body: Buffer.from(file.body),
++          })),
++      ),
++    );
++    await writeTree(join(root, 'sp-source'), spFiles);
++    await writeTree(join(root, 'sp-projection'), spProjected);
++    const spResolver: Pick<WorkflowRegistry, 'resolve'> = {
++      resolve: async () => ({
++        sourceRoot: join(root, 'sp-source'),
++        projectionRoot: join(root, 'sp-projection'),
++        manifest: { source: manifest(spFiles), projection: manifest(spProjected) },
++      }),
++    };
++    const spProjection = spAudit.expected as ProjectionPin;
++
++    // BMAD: official bytes plus the generated config layers; definition carries the render tier.
++    const bmadSource = audits.bmad.source.pin as SourcePin;
++    const bmadFixture = JSON.parse(
++      await readFile(new URL('workflow-definitions/bmad-claude-projection.json', fixtureUrl), 'utf8'),
++    ) as {
++      official: { path: string; from: string; mode: number }[];
++      generated: { path: string; body: string }[];
++    };
++    const bmadArchive = await parseArchive(
++      await readFile(new URL('workflows/bmad-6.12.0.tgz', fixtureUrl)),
++      audits.bmad.source.executables,
++    );
++    const byPath = new Map(bmadArchive.map((file) => [file.path, file]));
++    const bmadFiles: TreeFile[] = validateFiles([
++      ...bmadFixture.official.map((entry) => {
++        const file = byPath.get(entry.from);
++        assert(file && file.type === 'file', `missing official ${entry.from}`);
++        return {
++          path: entry.path,
++          type: 'file' as const,
++          mode: entry.mode === 0o755 ? (0o755 as const) : (0o644 as const),
++          body: Buffer.from(file.body),
++        };
++      }),
++      ...bmadFixture.generated.map((entry) => ({
++        path: entry.path,
++        type: 'file' as const,
++        mode: 0o644 as const,
++        body: Buffer.from(entry.body),
++      })),
++    ]);
++    const bmadManifest = manifest(bmadFiles);
++    const base = {
++      runtime: 'claude' as const,
++      sourceTreeSha256: bmadSource.sourceTreeSha256,
++      manifestSha256: manifestHash(bmadManifest),
++      derivation: builds.bmad.claude.expected.derivation as ProjectionPin['derivation'],
++    };
++    const bmadProjection: ProjectionPin = { ...base, treeSha256: projectionTreeHash(base) };
++    await writeTree(join(root, 'bmad-projection'), bmadFiles);
++    const bmadResolver: Pick<WorkflowRegistry, 'resolve'> = {
++      resolve: async () => ({
++        sourceRoot: join(root, 'bmad-source-not-materialized'),
++        projectionRoot: join(root, 'bmad-projection'),
++        manifest: { source: manifest(bmadArchive), projection: bmadManifest },
++      }),
++    };
++    return {
++      superpowers: {
++        source: spSource,
++        projection: spProjection,
++        definition: await createWorkflowManifest(spResolver).loadDefinition(spSource, spProjection),
++      },
++      bmad: {
++        source: bmadSource,
++        projection: bmadProjection,
++        definition: await createWorkflowManifest(bmadResolver).loadDefinition(bmadSource, bmadProjection),
++      },
++    };
++  } finally {
++    await rm(root, { recursive: true, force: true });
++  }
++}
++
++test('gateway definition adapter output matches the committed golden vector the server verifies', async () => {
++  const vector = await realDefinitionVectors();
++  assert.ok(vector.bmad.definition.render, 'BMAD claude vector carries the render tier');
++  assert.equal(vector.superpowers.definition.render, undefined);
++  const text = `${JSON.stringify(vector, null, 2)}\n`;
++  if (process.env.CREW_UPDATE_DEFINITION_VECTOR === '1') await writeFile(vectorUrl, text);
++  assert.equal(
++    await readFile(vectorUrl, 'utf8'),
++    text,
++    'definition vector drifted from loadDefinition output',
++  );
++});
++
++test('sync reports an integrity failure of the definition loader as an error slot, never silently current', async () => {
++  const owned = await bridgeRoot(),
++    w = await workflowFixture(owned.root);
++  await w.install();
++  const command = {
++    id: randomUUID(),
++    machineId: randomUUID(),
++    type: 'sync_workflows',
++    payload: { configRevision: 1 },
++    state: 'queued',
++    result: null,
++    cursor: '1',
++  };
++  let report: import('../src/commands/contracts.ts').InstallReport | undefined;
++  const http = await HttpOperationJournal.open(owned.root, async (req) => {
++    if (req.phase === 'install-report') {
++      report = req.canonicalBody as typeof report;
++      return { status: 200, body: { accepted: false, appliedRevision: 0 } };
++    }
++    return { status: 200, body: command };
++  });
++  const sync = await GatewaySync.open(owned.root, {
++    machineId: command.machineId,
++    bootId: randomUUID(),
++    bootGeneration: '1',
++    registry: w.registry,
++    http,
++    recipes: w.projections,
++    definitions: {
++      async loadDefinition(source, projection) {
++        if (source.name === 'superpowers' && projection.runtime === 'claude')
++          throw new Error('WORKFLOW_SKILL_MISMATCH');
++        if (source.name === 'bmad' && projection.runtime === 'claude') throw new Error('boom: /secret/path');
++        throw new Error('WORKFLOW_DEFINITION_UNAVAILABLE');
++      },
++    },
++    read: async (route) =>
++      route === '/v2/gateway/config'
++        ? { revision: 1, desired: w.desired, maxJobs: 1, enabled: true }
++        : { items: [command], nextCursor: '1' },
++    archive: async () => {
++      throw new Error('HEALTHY_CACHE_MUST_NOT_DOWNLOAD');
++    },
++  });
++  try {
++    await sync.reconcile();
++    assert.ok(report);
++    const sp = report.results.superpowers.projections;
++    assert.equal(sp.claude.state, 'error');
++    assert.equal(sp.claude.installed, null);
++    assert.equal(sp.claude.lastError?.code, 'DEFINITION_FAILED');
++    assert.match(sp.claude.lastError?.message ?? '', /WORKFLOW_SKILL_MISMATCH/);
++    assert.equal('definition' in sp.claude, false);
++    // Unknown error text is never echoed (could carry paths); it is reported as UNKNOWN.
++    const bmad = report.results.bmad.projections.claude;
++    assert.equal(bmad.state, 'error');
++    assert.match(bmad.lastError?.message ?? '', /UNKNOWN/);
++    assert.doesNotMatch(bmad.lastError?.message ?? '', /secret/);
++    // Explicitly unavailable definitions stay current without the field.
++    assert.equal(sp.codex.state, 'current');
++    assert.equal('definition' in sp.codex, false);
++  } finally {
++    await sync.close();
++    await http.close();
++    await w.close();
++    await owned.cleanup();
++  }
++});
+diff --git a/v2/server/src/gateway/contracts.ts b/v2/server/src/gateway/contracts.ts
+index c233b1b..2166e6a 100644
+--- a/v2/server/src/gateway/contracts.ts
++++ b/v2/server/src/gateway/contracts.ts
+@@ -217,30 +217,54 @@ const slotSchema = (pin: unknown) =>
+   });
+ const statusSchema = (projectionSlot: unknown) =>
+   objectSchema({
+     source: slotSchema(sourceSchema),
+     projections: objectSchema(Object.fromEntries(runtimes.map((runtime) => [runtime, projectionSlot]))),
+   });
+ const inventorySchema = (projectionSlot: unknown) => {
+   const status = statusSchema(projectionSlot);
+   return objectSchema({ bmad: status, superpowers: status });
+ };
++// Mirrors the gateway RenderDefinition: pinned source/projection, selected projection hashes, seven layers.
++const renderLayerPaths = [
++  '_bmad/config.toml',
++  '_bmad/config.user.toml',
++  '_bmad/custom/config.toml',
++  '_bmad/custom/config.user.toml',
++  '_bmad/custom/bmad-build.toml',
++  '_bmad/custom/bmad-build.user.toml',
++  '.claude/skills/bmad-build/customize.toml',
++];
++const renderSchema = objectSchema({
++  source: sourceSchema,
++  projection: projectionSchema,
++  selectedProjectionSha256: {
++    type: 'object',
++    maxProperties: 2000,
++    propertyNames: { minLength: 1, maxLength: 1024 },
++    additionalProperties: digestSchema,
++  },
++  layers: objectSchema(
++    Object.fromEntries(renderLayerPaths.map((path) => [path, nullable(digestSchema)])),
++    [],
++  ),
++});
+ const definitionSchema = objectSchema(
+   {
+     sha256: digestSchema,
+     skills: {
+       type: 'array',
+       maxItems: 2000,
+       items: objectSchema({ path: { type: 'string', minLength: 1, maxLength: 1024 }, sha256: digestSchema }),
+     },
+     customizationSha256: digestSchema,
+-    render: { type: 'object' },
++    render: renderSchema,
+   },
+   ['sha256', 'skills', 'customizationSha256'],
+ );
+ const heartbeatInventorySchema = inventorySchema(slotSchema(projectionSchema));
+ const reportInventorySchema = inventorySchema(
+   (() => {
+     const slot = slotSchema(projectionSchema);
+     return { ...slot, properties: { ...slot.properties, definition: definitionSchema } };
+   })(),
+ );
+diff --git a/v2/server/src/gateway/service.ts b/v2/server/src/gateway/service.ts
+index 109bfe8..95d3789 100644
+--- a/v2/server/src/gateway/service.ts
++++ b/v2/server/src/gateway/service.ts
+@@ -310,20 +310,24 @@ export async function saveInstallReport(
+       if (pin && (slot.state !== 'current' || !same(slot.installed, pin))) {
+         accepted = false;
+         if (slot.state === 'current') slot.state = 'mismatch';
+       }
+       if (!pin && slot.state === 'current') slot.state = 'mismatch';
+       if (slot.definition && !definitionMatches(slot, wanted.source, pin, reported.source.installed)) {
+         // An unprovable definition is never stored, so a lookup can only see one tied to the exact pin.
+         delete slot.definition;
+         accepted = false;
+         if (slot.state === 'current') slot.state = 'mismatch';
++        slot.lastError ??= {
++          code: 'DEFINITION_MISMATCH',
++          message: 'Definition workflow không khớp pin đã cài',
++        };
+       }
+     }
+   }
+   const previous = await readGatewayApplied(tx, machineId);
+   const appliedRevision = accepted ? config.revision : (previous?.revision ?? 0);
+   const appliedAt = accepted ? now : previous?.appliedAt ? new Date(previous.appliedAt) : null;
+   await tx`insert into gateway_applied(machine_id,revision,inventory,workflow_status,applied_at,latest_report_id) values(${machineId},${appliedRevision},${tx.json(json(status))},${tx.json(json(status))},${appliedAt},${input.reportId}) on conflict(machine_id) do update set revision=excluded.revision,inventory=excluded.inventory,workflow_status=excluded.workflow_status,applied_at=excluded.applied_at,latest_report_id=excluded.latest_report_id`;
+   const response: InstallReportResponse = { accepted, appliedRevision, workflows: status };
+   await tx`insert into gateway_install_reports(id,machine_id,boot_generation,config_revision,body_hash,report,response,received_at) values(${input.reportId},${machineId},${input.bootGeneration},${input.configRevision},${bodyHash},${tx.json(json({ ...input, results: status }))},${tx.json(json(response))},${now})`;
+   await event(tx, machineId, 'gateway.install.reported', {
+diff --git a/v2/server/test/gateway.test.ts b/v2/server/test/gateway.test.ts
+index 7e00ee1..97ac5fc 100644
+--- a/v2/server/test/gateway.test.ts
++++ b/v2/server/test/gateway.test.ts
+@@ -1,17 +1,19 @@
+ import assert from 'node:assert/strict';
+ import { spawnSync } from 'node:child_process';
+ import { createHash, randomUUID } from 'node:crypto';
++import { readFile } from 'node:fs/promises';
+ import test from 'node:test';
+ import postgres from 'postgres';
+ import { connectDb } from '../src/db/client.ts';
+ import { captureMigrations, migrate } from '../src/db/migrate.ts';
++import type { ProjectionPin, SourcePin } from '../src/gateway/contracts.ts';
+ import { canonicalJson } from '../src/journal/canonical.ts';
+ import { validateEventInput } from '../src/journal/event-contracts.ts';
+ import { databaseFixture } from './support/db.ts';
+ import { openPeerDb } from './support/execution.ts';
+ import {
+   bootId,
+   countExecutionRows,
+   gatewayFixture,
+   heartbeat,
+   inventory,
+@@ -229,21 +231,21 @@ function definitionFor(workflow: 'bmad' | 'superpowers', render?: Record<string,
+   const pinned = { source: source(workflow), projection: projection(workflow) };
+   return {
+     sha256: createHash('sha256')
+       .update(canonicalJson({ ...pinned, skills, customizationSha256, render: render ?? null }))
+       .digest('hex'),
+     skills,
+     customizationSha256,
+     ...(render ? { render } : {}),
+   };
+ }
+-type ReportedSlot = { state: string; definition?: unknown };
++type ReportedSlot = { state: string; definition?: unknown; lastError?: { code: string } | null };
+ const slotOf = (inventory: unknown, workflow: string, runtime: string): ReportedSlot => {
+   const status = (inventory as Record<string, { projections: Record<string, ReportedSlot> }>)[workflow];
+   assert.ok(status, workflow);
+   const slot = status.projections[runtime];
+   assert.ok(slot, runtime);
+   return slot;
+ };
+ const withDefinition = (bootId: string, definition: unknown) => {
+   const next = report(bootId, '1');
+   (next.results.superpowers.projections.codex as { definition?: unknown }).definition = definition;
+@@ -324,20 +326,21 @@ test('gateway install report từ chối definition lệch pin đã cài và kh
+         })(),
+       };
+       for (const [name, definition] of Object.entries(cases)) {
+         const result = await f.machine.post('/v2/gateway/install-reports', withDefinition(a, definition));
+         assert.equal(result.statusCode, 200, `${name}: ${result.text}`);
+         const body = result.json<{ accepted: boolean; appliedRevision: number; workflows: unknown }>();
+         assert.equal(body.accepted, false, name);
+         assert.equal(body.appliedRevision, 1, name);
+         const slot = slotOf(body.workflows, 'superpowers', 'codex');
+         assert.equal(slot.state, 'mismatch', name);
++        assert.equal(slot.lastError?.code, 'DEFINITION_MISMATCH', name);
+         assert.equal('definition' in slot, false, name);
+         const [applied] = await db`select workflow_status from gateway_applied`;
+         assert.equal('definition' in slotOf(applied?.workflow_status, 'superpowers', 'codex'), false, name);
+       }
+     } finally {
+       await f.close();
+     }
+   }));
+ 
+ test('gateway install report: definition không thay đổi so khớp pin và schema vẫn đóng', async () =>
+@@ -372,20 +375,148 @@ test('gateway install report: definition không thay đổi so khớp pin và sc
+         );
+       const beat = heartbeat(a, '1', '1');
+       (beat.inventory.superpowers.projections.codex as { definition?: unknown }).definition =
+         definitionFor('superpowers');
+       assert.equal((await f.machine.post('/v2/gateway/heartbeat', beat)).statusCode, 400);
+     } finally {
+       await f.close();
+     }
+   }));
+ 
++test('gateway install report: render sai hình dạng bị schema đóng chặn, không bao giờ 500', async () =>
++  databaseFixture(7)(async (db) => {
++    const f = await gatewayFixture(db);
++    try {
++      const a = randomUUID();
++      await f.machine.post('/v2/gateway/boots', { bootId: a, previousGeneration: '0' });
++      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
++      const valid = {
++        source: source('superpowers'),
++        projection: projection('superpowers'),
++        selectedProjectionSha256: { 'a.md': '1'.repeat(64) },
++        layers: { '_bmad/config.toml': '2'.repeat(64), '_bmad/config.user.toml': null },
++      };
++      const variants: Record<string, unknown> = {
++        'render rỗng': {},
++        'thiếu projection': { source: valid.source, selectedProjectionSha256: {}, layers: {} },
++        'thiếu source': { projection: valid.projection, selectedProjectionSha256: {}, layers: {} },
++        'thiếu layers': { ...valid, layers: undefined },
++        'trường lạ': { ...valid, extra: true },
++        null: null,
++        mảng: [],
++        chuỗi: 'render',
++        'digest sai': { ...valid, selectedProjectionSha256: { 'a.md': 'xyz' } },
++        'layer path lạ': { ...valid, layers: { 'not/a/layer.toml': null } },
++        'layer digest sai': { ...valid, layers: { '_bmad/config.toml': 'xyz' } },
++        'source không phải object': { ...valid, source: 'x' },
++        'projection thiếu field': { ...valid, projection: { runtime: 'codex' } },
++      };
++      for (const [name, render] of Object.entries(variants)) {
++        const result = await f.machine.post(
++          '/v2/gateway/install-reports',
++          withDefinition(a, { ...definitionFor('superpowers'), render }),
++        );
++        assert.equal(result.statusCode, 400, `${name}: ${result.text}`);
++      }
++      // Hình dạng đúng nhưng thuộc pin khác: 200 với accepted=false, không phải 500.
++      const foreign = { ...valid, source: source('bmad') };
++      const wrongPin = await f.machine.post(
++        '/v2/gateway/install-reports',
++        withDefinition(a, definitionFor('superpowers', foreign)),
++      );
++      assert.equal(wrongPin.statusCode, 200, wrongPin.text);
++      assert.equal(wrongPin.json().accepted, false);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('gateway install report chấp nhận definition do gateway thật tạo (golden vector chung, gồm BMAD render)', async () =>
++  databaseFixture(7)(async (db) => {
++    const vector = JSON.parse(
++      await readFile(
++        new URL(
++          '../../gateway/test/fixtures/workflow-definitions/install-report-vector.json',
++          import.meta.url,
++        ),
++        'utf8',
++      ),
++    ) as Record<
++      'bmad' | 'superpowers',
++      { source: SourcePin; projection: ProjectionPin; definition: unknown }
++    >;
++    assert.ok((vector.bmad.definition as { render?: unknown }).render);
++    const f = await gatewayFixture(db);
++    try {
++      const a = randomUUID();
++      await f.machine.post('/v2/gateway/boots', { bootId: a, previousGeneration: '0' });
++      const desired = Object.fromEntries(
++        (['bmad', 'superpowers'] as const).map((name) => [
++          name,
++          {
++            source: vector[name].source,
++            projections: { claude: vector[name].projection, codex: null, api: null },
++          },
++        ]),
++      );
++      const config = await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, {
++        ...nextConfig,
++        desired,
++      });
++      assert.equal(config.statusCode, 200, config.text);
++      const current = <T>(installed: T, definition?: unknown) => ({
++        state: 'current',
++        installed,
++        lastError: null,
++        observedAt: '2026-10-01T00:00:00.000Z',
++        ...(definition ? { definition } : {}),
++      });
++      const missing = { state: 'missing', installed: null, lastError: null, observedAt: null };
++      const results = Object.fromEntries(
++        (['bmad', 'superpowers'] as const).map((name) => [
++          name,
++          {
++            source: current(vector[name].source),
++            projections: {
++              claude: current(vector[name].projection, vector[name].definition),
++              codex: missing,
++              api: missing,
++            },
++          },
++        ]),
++      );
++      const body = { ...report(a, '1'), results };
++      const accepted = await f.machine.post('/v2/gateway/install-reports', body);
++      assert.equal(accepted.statusCode, 200, accepted.text);
++      assert.equal(accepted.json().accepted, true);
++      const [stored] = await db`select workflow_status from gateway_applied`;
++      for (const name of ['bmad', 'superpowers'])
++        assert.deepEqual(
++          slotOf(stored?.workflow_status, name, 'claude').definition,
++          vector[name as 'bmad'].definition,
++        );
++      // Một byte đổi trong render hoặc skills làm digest không còn khớp.
++      const tampered = structuredClone(body);
++      tampered.reportId = randomUUID();
++      const bmadDefinition = (
++        tampered.results.bmad.projections.claude as unknown as {
++          definition: { render: { layers: Record<string, string | null> } };
++        }
++      ).definition;
++      bmadDefinition.render.layers['_bmad/config.toml'] = 'f'.repeat(64);
++      const rejected = await f.machine.post('/v2/gateway/install-reports', tampered);
++      assert.equal(rejected.json().accepted, false);
++    } finally {
++      await f.close();
++    }
++  }));
++
+ test('gateway management command cursor, ACK mất phản hồi/gửi lại không hạ trạng thái completed', async () =>
+   databaseFixture(7)(async (db) => {
+     const f = await gatewayFixture(db);
+     try {
+       await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
+       const first = await f.machine.get('/v2/gateway/commands?after=0');
+       assert.equal(first.statusCode, 200, first.text);
+       const command = first.json<{ items: { id: string; cursor: string }[]; nextCursor: string }>().items[0];
+       assert.ok(command);
+       assert.equal(command.cursor, '1');

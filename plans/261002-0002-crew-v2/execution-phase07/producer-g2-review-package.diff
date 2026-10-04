@@ -1,0 +1,893 @@
+b39f2fb feat(v2): mount route tệp đính kèm vào buildApp và projection tệp theo bình luận
+ v2/docs/files.md                          |   2 +
+ v2/docs/flows.yaml                        |   2 +
+ v2/docs/flows/server-attachments.md       |   7 +
+ v2/docs/flows/server-docs-view.md         |   2 +
+ v2/server/src/app.ts                      |  78 ++++++
+ v2/server/src/attachments/comment-refs.ts |  53 +++++
+ v2/server/src/attachments/routes.ts       |  36 ++-
+ v2/server/test/attachment-mount.test.ts   | 384 ++++++++++++++++++++++++++++++
+ 8 files changed, 551 insertions(+), 13 deletions(-)
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index e07afde..594a012 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -167,20 +167,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/scripts/docs-import.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
+ | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
+ | `server/src/assistant/authority.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/contracts.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/inbox.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/routes.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/store.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/attachments/access.ts` | [server-attachments](flows/server-attachments.md) (file) |
++| `server/src/attachments/comment-refs.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/extract/csv.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/docx.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/formats.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/image.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/index.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/pdf.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/text.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/verify.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+@@ -258,20 +259,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/tickets/docs-links.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
+ | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/assistant-authority.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-mutations.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/assistant-orchestration.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
++| `server/test/attachment-mount.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-access.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-api.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test), [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-formats.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+ | `server/test/attachments-grants.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-messages.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-ooxml.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+ | `server/test/attachments-pdf-image.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+ | `server/test/attachments-routing.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 9849c63..44c26e3 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -315,34 +315,36 @@ flows:
+       - server/test/model-secret.test.ts
+       - server/test/support/model-certification.ts
+       - server/test/support/model-http.ts
+       - server/test/support/model-observer.ts
+   server-attachments:
+     title: Storage và staging attachment Crew v2
+     doc: docs/flows/server-attachments.md
+     entrypoints: []
+     files:
+       - server/src/attachments/access.ts
++      - server/src/attachments/comment-refs.ts
+       - server/src/attachments/config.ts
+       - server/src/attachments/contracts.ts
+       - server/src/attachments/grants.ts
+       - server/src/attachments/messages.ts
+       - server/src/attachments/receivers.ts
+       - server/src/attachments/references.ts
+       - server/src/attachments/routes.ts
+       - server/src/attachments/routing.ts
+       - server/src/attachments/snapshots.ts
+       - server/src/attachments/staging.ts
+       - server/src/attachments/storage.ts
+       - server/src/attachments/submissions.ts
+       - server/migrations/009_attachments.sql
+     tests:
++      - server/test/attachment-mount.test.ts
+       - server/test/attachment-event.test.ts
+       - server/test/attachments-access.test.ts
+       - server/test/attachments-api.test.ts
+       - server/test/attachments-events.unit.test.ts
+       - server/test/attachments-grants.test.ts
+       - server/test/attachments-messages.test.ts
+       - server/test/attachments-routing.test.ts
+       - server/test/attachments-snapshots.test.ts
+       - server/test/attachments-staging.test.ts
+       - server/test/attachments-storage.test.ts
+diff --git a/v2/docs/flows/server-attachments.md b/v2/docs/flows/server-attachments.md
+index 7423164..15ad78b 100644
+--- a/v2/docs/flows/server-attachments.md
++++ b/v2/docs/flows/server-attachments.md
+@@ -21,20 +21,23 @@ Owner giữ original trước khi tạo ticket, comment hoặc gửi inbox. Mỗ
+ 3. Stream không giữ SQL transaction. Storage băm/đếm bytes và giới hạn từng write 64 KiB. Staging kiểm magic và text decoding trước publication, heartbeat theo policy/generation và max wall; abort không tạo callback publish sau terminal. Nếu upstream stream còn một `next` chưa settle, operation chưa ACK và chưa có stop proof.
+ 4. Sau stage file sync/close + directory sync, publication tạo hard-link độc quyền rồi sync directory và unlink stage. Destination đã có chỉ được replay nếu cùng inode của chính stage; checksum bằng nhau không chứng minh ownership. Intent local giữ key/generation/hash/length/nonce; derivative bắt buộc có callback ghi GC journal trước bytes.
+ 5. Managed receiver chờ mọi work/FD/control connection settle, đóng private socket rồi mới ghi/fsync closed ACK. Ready mutation kiểm lại compose, upload generation, receiver, abort flag và exact closed proof. `attachment.changed` chỉ có `{attachmentId,state,extraction}`; draft chưa có live link có project/ticket/audience null. Event contract chưa đăng ký khiến ready transaction rollback; original/intent vẫn được giữ.
+ 6. PUT ready replay băm toàn bộ body và kiểm original hiện hữu; bytes khác trả conflict. Replay dùng accepted uploadMaxWallMs và kiểm caller abort/deadline trước success, cả khi iterator hoặc verify đang chờ. Deadline trả ATTACHMENT_UPLOAD_TIMEOUT409, không STOP/ACK/quota release. Registry replay theo DB/upload giữ pending next/return/verify cùng cleanup identity; request có thể timeout nhưng lượt tiếp theo BUSY tới actual teardown. Closure thiếu/thất bại giữ unknown/BUSY. Timer/listener được clear, late bytes không được nhận thành success. Validator chạy cho mọi decoded text, gồm EOF prefix và decoder flush; one-byte control bị415 trước publication, vẫn giữ empty/ASCII/tabLFCR/splitUTF16. Abandon giữ quota và bytes, gửi abort cho receiver; cleanup tương lai chỉ được release quota khi terminal deleted + stop/ownership proof. Original từng có `linked_at` không được automatic GC trong phase05.
+ 7. SQL009 thêm inbox/messages/routes, immutable snapshots/manifests/receipts, scoped authorizations/grants/sessions, extraction/derivatives/GC và dispatch input pins cho task sau. Trigger009 trên actual legacy `comments` lấy root → affected descendants → input revisions; một INSERT bump mỗi descendant đúng một lần, lazy base1→2. Rollback comment cũng rollback counters; event consumer không bump lại.
+ 8. Submit chạy trong caller journal mutator Tx; integration phải đặt `authorizeSubmission`/routing factory `authorize` vào `Mutator.context.authorize` trước cached replay. Owner actor/scope hiện hành được kiểm lại cả trong service trước per-compose/per-route receipt; UUID target sai trả400 trước scope SQL và cached response. Normalized body giữ complete ticket hoặc text/target, revision, sorted unique UUID và assistantRead mặc định none. Same body/new key trả exact immutable response; changed body/permission trả409, không cấp thêm authorization, tạo target/event hoặc đổi quota. Receipt của lượt đã submit được kiểm trước fresh open-selection admission. Bound linker chỉ dùng trong wrapper đã khóa owner quota, root/affected tickets theo UUID, project/input rồi compose/uploads; caller không inject request callback hoặc dummy count.
+ 9. Fresh selection phải khớp purpose/project/ticket/conversation, open revision/expiry và toàn bộ active upload set. Chỉ abandoned bị loại; reserved/receiving/rejected/missing/deleting/deleted không thể lén bỏ khỏi tập. Tất cả selected phải ready+durable và có matching closed receiver/stop proof theo receiver ID, generation, writer instance; readonly BlobStore.verify xác minh original thật trước INSERT. Không mutation filesystem trong Tx. Link/comment/event/receipt cùng commit; trigger009 là writer duy nhất tăng inherited comment input, linker không bump lần hai. `linked_at` và `quota_released_at` được latch cùng Tx và giữ nguyên khi replay. Selected files mặc định503 nếu thiếu trusted queuePolicy; policy/version/hash và verify callback được capture lúc tạo factory. Job chỉ pending dưới unique original/version/config, chưa chứng minh extraction hoàn tất.
+ 10. Inbox conversation tạo qua owner idempotent mutation. Message giữ client UUID riêng và canonical conversation/text/sorted original IDs+hashes/permission, nên reconnect compose/key khác trả immutable response cũ; compose khác chưa dùng giữ open, không tạo thêm quyền hoặc giữ thêm bytes. Message commit không tạo ticket. Một `assistant.message.created` chỉ `{messageId,inputRevision}` với project/ticket/audience null; text/path/bytes không vào event. Selected-inputs tạo owner authorization exact originals, target ticket/message, submitted-inputs, allowOriginal=false, expiry24h; không tạo grant/read session/delivery proof. Message text/client/hash bất biến; bổ sung nội dung cần message mới.
+ 11. Message routing/scope/reply decision có bảng riêng. Owner explicit routing có thể dùng null snapshot/grant/receipt nhưng body phải pin ticket đầy đủ và expectedRouteRevision. Machine hoặc scope/reply thiếu trusted decision authority mặc định503; machine còn cần matching current grant/snapshot/all-selected receipt, authority phải xác minh lifecycle thật. Routing mặc định INPUT_ROUTING_NOT_CONFIGURED; configured authority xác minh persisted decision target/input revision/actor/body digest và current project binding trước replay. Initial route tạo ticket thật và links cùng original UUID. Correction khóa sorted old/new roots/targets/projects rồi input/message, CAS revision, từ chối active/uncertain/finalizing attempts kể cả lease hết hạn và running/unknown read sessions. Thiếu retirement bridge trả ROUTE_CORRECTION_NOT_CONFIGURED; bridge phải dùng actual ticket service authority, không direct workflow update. Old route/links/grants revoke cùng Tx, counter message và affected old tickets tăng; immutable snapshots cũ stale qua revision, không update/delete snapshot. Audit/originals giữ lại. Replay route trả receipt tại lúc chấp nhận (revokedAt=null), không biến historical receipt thành quyền đọc hiện hành. Consumer chưa có authorized Assistant designation nên không tự phát attachment.input.changed với audience giả; ticket.created dùng scope ticket thật.
+ 
++12. Production mount: `server/src/app.ts` → `buildApp` nhận optional `attachments` (`AttachmentAssembly`: config, `storageHostId` UUID, `extractorVersion?`, `receivers?`). Có assembly thì dựng `createFileBlobStore` (không persistIntent vì route owner không ghi derivative), receiver Linux native từ `readLocalWriterIdentity` (máy khác Linux lỗi khởi động, không fallback), `createStageServices`, `createAttachmentSubmissions` với ticket factory thật và `createMessageServices`, rồi mount `registerAttachmentRoutes`. Không assembly thì route storage không được mount (404). `registerInputScopeRoutes` luôn mount; mọi port chưa có producer vắng mặt và fail closed: execution gate machine409 ATTACHMENT_EXECUTION_NOT_CONFIGURED, manifest/receipt Task6 409 INPUT_SERVICES_NOT_CONFIGURED, conversation/message409 khi thiếu storage, routing503 INPUT_ROUTING_NOT_CONFIGURED, correction503, selection/Assistant default deny, machine scope/reply decision503. Không có `extractorVersion` đã chứng nhận thì submission có tệp trả503 EXTRACTION_NOT_CONFIGURED; text-only vẫn chạy. `receivers` chỉ là port writer cho test macOS; production không truyền.
++13. `server/src/attachments/comment-refs.ts` → `readCommentAttachmentGroups`: projection additive `GET /v2/tickets/:id/attachments/by-comment?limit=&cursor=` trả `{items:[{commentId,attachments:TicketAttachmentRef[]}],nextCursor}`. ACL giống danh sách phẳng: current credential, owner hoặc machine đúng project, ticket lạ404. Chỉ link sống (`liveLinkIds`) có `comment_id` thuộc chính ticket; link thừa kế/route không mang commentId nên chỉ nằm ở danh sách phẳng. Nhóm theo commentId tăng dần (cursor UUID là commentId cuối trang), refs trong nhóm theo linkId. DTO ref dùng chung `ticketAttachmentRef` với `GET /v2/tickets/:id/attachments`; không đổi migration 001–011 hay DTO cũ.
++
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/009_attachments.sql` | Schema cả phase05, identity/retention/quota invariants và legacy comment fanout |
+ | `server/src/attachments/contracts.ts` | Shared storage, coverage, snapshot, inbox, grant, receipt và authority types |
+ | `server/src/attachments/config.ts` | Policy giới hạn/hash/freeze, không default HOME |
+ | `server/src/attachments/storage.ts` | Private ownership marker, durable intent, exclusive publish/read/remove |
+ | `server/src/attachments/receivers.ts` | Linux birth identity, private abort control, terminal ACK/native gone proof |
+ | `server/src/attachments/staging.ts` | Compose, reserve, receive, heartbeat/CAS, replay và abandon |
+@@ -42,33 +45,37 @@ Owner giữ original trước khi tạo ticket, comment hoặc gửi inbox. Mỗ
+ | `server/test/attachments-storage.test.ts` | Pure config/storage và native process birth/proof tests |
+ | `server/test/attachments-staging.test.ts` | DB reserve/stream/replay/quota/CAS/abort/event/R1/backup-restore regressions |
+ | `server/test/attachment-event.test.ts` | Exact metadata và scope attachment.changed, không bytes/path/content |
+ | `server/src/attachments/submissions.ts` | Atomic ticket/comment consumer, exact selection, receipt và quota latch |
+ | `server/src/attachments/messages.ts` | Conversation/client UUID, immutable message receipt và decision authority |
+ | `server/src/attachments/routing.ts` | Current routing authorization, decision pin, CAS và retirement/revoke |
+ | `server/test/attachments-submissions.test.ts` | Real originals, selection/replay/accounting/rollback/receiver closure và pre-cache guard |
+ | `server/test/attachments-messages.test.ts` | Inbox UUID concurrency, all-null event, consent và future bridge default deny |
+ | `server/test/attachments-routing.test.ts` | Actual ticket retirement, CAS, claim-in-use, rollback và pre-cache decision digest |
+ | `server/test/attachments-events.unit.test.ts` | Exact message/input metadata event producer schemas do PM serialize |
++| `server/src/attachments/comment-refs.ts` | DTO ref ticket dùng chung và projection commentId→refs theo trang |
++| `server/test/attachment-mount.test.ts` | buildApp thật: owner policy/upload/download/list/CSRF/ACL, port chưa có fail closed, projection theo comment |
+ 
+ Checkpoint parser Task5 mở rộng `SourceLocator`: ảnh có transform nguồn/normalized cùng orientation/rotation/reflection; DOCX và sheet có `SourceComponent` cho image, unsupported-visual, calculated-value, comment hoặc external. Đây là provenance typed cho parser, không là chứng nhận model đọc hiểu hoặc production corpus. SQL009 và authority hiện hành không đổi.
+ 
+ ## Dữ liệu
+ 
+ Original dùng `uploads/<uuid>/original`, stage có generation và receiver UUID. Derivative dùng attachment/extraction/derivative UUID riêng; `.owner.json`, `.operation.<receiver>.json`, `.intent.<stage>.json`, `.closed.<receiver>.json` là private0600 metadata, không trả trong wire attachment. `ownership_nonce`, accepted policy/hash, receiver row và stop proof giữ provenance; quota là tổng expected bytes với latch `quota_released_at IS NULL`, không checksum refcount. Once-linked retention không bị xóa bởi revoke link.
+ 
+ ## Flow liên quan
+ 
+ `server-platform` cấp migration prefix/checksum/fixture riêng; `server-journal` cấp mutator/idempotency/event validation; `server-identity` và `server-tickets` cấp project/target/root. Task 2–7 nối atomic submit, quyền/grants/snapshot, extractor và recovery. Controller duy nhất sửa app/manifests/Git; ownership bổ sung Task1 cho whitelist `attachment.changed` và regression metadata đã được PM giao riêng. Native process-kill receiver recovery nhiều process thuộc Task 7; test birth identity riêng chưa chứng nhận toàn pipeline.
+ 
+ ## Tests
+ 
++Mount production: `node --test v2/server/test/attachment-mount.test.ts` với PostgreSQL riêng qua `databaseFixture(11)`; buildApp dùng factory thật, chỉ writer là fixture port macOS. Test chứng minh 401/403 CSRF/404 cross-project và machine chưa bind, 409/503 của port vắng và projection ổn định qua phân trang.
++
+ Pure run: `node --test v2/server/test/attachments-storage.test.ts`. Native run cùng file trong immutable Node24.12.0 Linux container riêng, network none, read-only repo, tmpfs và resource bounds; macOS fixture port chỉ chứng minh terminal protocol, không cấp native gone proof. DB tests chỉ được chạy `databaseFixture(9)` sau actual008 được PM review READY/checksum, event metadata đã đăng ký. Cuối task chạy một covering qua `pnpm --dir v2/server test --test-file <absolute-wrapper.test.mjs>` với đúng 24 file test server đã review ở candidate d249a82 và ba file test Task1, typecheck và Biome sau final production change; report ghi commands/exits/counts/checksums/resource cleanup. Khi gate008 chưa READY, chưa công bố DB/integration hoàn tất.
+ 
+ Actual008 đã độc lập SPEC+QUALITY READY tại candidate d249a82, checksum `d268ddab0d2ec93584135dbddb21917627cd56bbf625dec02945a16e15255f8f`. Test Task1 dùng actual PostgreSQL private runner, migration009 pinned `fe0f888dd1a095f44561152d8c19a8237167a54343049065e7756df700975a2a`. Native driver chạy immutable Linux Node24.12.0 trong namespace network của đúng private PG container, chỉ proxy loopback random để kiểm actual receiver lifecycle. Đây là connectivity của test có kiểm soát; không phải extraction sandbox hoặc certification. Driver kiểm birth identity DB, heartbeat, socket abort khi producer đang chờ, ACK chỉ sau terminal, replay ACK sau local map release và quota còn giữ. Backup `pg_dump -Fc`/restore prefix008→009 và prefix009 giữ marker, legacy ticket, reserved identity và checksum; deliberate test-owned drift bị từ chối. Fault sau publication giữ blob/intent nhưng vẫn ghi terminal close ACK.
+ 
+ FIX1/5 đáp ứng hai P2 của review f58f27d: actual PostgreSQL regressions kiểm saved wall policy khác currentconfig, stalled/caller-abort/verification/noncooperative cleanup;29 control một byte và EOF UTF8/UTF16 dở dang bị từ chối, receiver terminal/quota giữ/original chưa có. Probe Linux privatePG có exact birth/ACK và cùng EOF/replay cases, dùng immutable Nodeimage/resource bounds; các artifact nằm execution-phase05/task-1-fix1-*. Original report/evidence giữ nguyên; báo cáo FIX1 riêng, không suy timeout thành process STOP hoặc chứng nhận recovery Task7.
+ 
+ Task2a producer f6d3728 và additive010 đã independent READY:010 chỉ đổi comments_text_check length0..32768, legacy appendComment vẫn reject empty và giữ whitespace. Consumer Task2b verification dùng readonly f58:v2 + exact ec3/f6 six/228f9e4 three overlays + own consumer paths, actual private PG18.6 prefix10 và pinned001–010. Evidence launcher kiểm TCP SQL sẵn sàng trước feature vì reviewed baseline runner có socket startup race57P03; không sửa baseline runner/fixture. Test claim-in-use chỉ tạo durable attempt qua actual claim API với test-owned authorization, không launch process/provider hoặc chứng nhận runtime. Final explicit ticket/dependency/completion/repair/producer/consumer/event cover, strict types và scoped Biome nằm task-2b report; không import unfinished peer tests. R2 manifest/Git/full independent consumer review do PM serialize.
+ 
+ Task2b FIX1/5 sau review6150254: fresh submission chỉ nhận `stop_proof.kind=closed-ack` với ACK digest khớp receiver closed hiện hành, đồng thời giữ ready/durable, receiver ID/generation/writer instance và original hash/byte verification. `process-gone`, `native-process-gone` và discriminator lạ đều bị422 trước tạo links/receipt/job hoặc release quota. Producer native proveStopped hiện chỉ ghi stop proof, chưa tạo closed/publication-ready transition; recovery đó cần Task7 review riêng. Regression dùng reserve/receive thật trên PostgreSQL prefix10, chỉ tamper discriminator để kiểm fail-closed rồi phục hồi ACK thực đã capture để kiểm positive. Final focused producer/submission cover, strict types, Biome và receipt cleanup được ghi riêng trong FIX1 report, không cộng với original51 cover.
+ 
+diff --git a/v2/docs/flows/server-docs-view.md b/v2/docs/flows/server-docs-view.md
+index b5b4560..b04d0f6 100644
+--- a/v2/docs/flows/server-docs-view.md
++++ b/v2/docs/flows/server-docs-view.md
+@@ -15,20 +15,22 @@ Cung cấp cây tài liệu, trang nguyên trạng, tìm kiếm Unicode và API
+ 1. `server/src/app.ts` → `buildApp`: tạo Fastify với AJV giữ trường dư để schema từ chối, body thường tối đa 1 MiB, credential log được redaction; `ApiError` giữ status/code, lỗi JSON/schema trả 400, body quá lớn 413, lỗi DB không nhận diện trả 503 chung. Callback dispatch/final verification mặc định `denyDispatch`/`denyFinalResult`; authority được caller cung cấp rõ ràng, không có biến môi trường bật bypass.
+ 2. `server/src/docs/routes.ts` → `registerDocsRoutes`: tree/page ở `/v2/projects/:id/docs/tree|page`, search ở `/v2/docs/search`; query chỉ nhận trường khai báo, snapshot UUID phải thuộc đúng project. Import `POST /v2/docs/imports` cần owner/Origin/CSRF; sync `POST /v2/projects/:id/docs/sync` cần máy đúng project/attempt/fence, callback `authorizeDocsSync(tx)` chạy trước response cached. Hai upload có giới hạn JSON 24 MiB; các giới hạn decoded/file/project của producer vẫn giữ nguyên.
+ 3. `server/src/docs/read.ts` → `readDocsTree`, `readDocsPage`: kiểm tra project và máy chưa bị thu hồi trong transaction read-only repeatable-read. Mặc định chọn snapshot có `received_at,id` mới nhất; snapshot tường minh không vượt project. Tree dùng trang tổ tiên thật gần nhất, ưu tiên `index.md` trong thư mục; giữ link/import occurrence. Page decode UTF-8 strict từ bytea, giữ CRLF, BOM và NUL, SHA lấy từ byte gốc; API trả JSON text, không thực thi/render Markdown. `relatedTicketIds` tối đa 20 và chỉ trong project đã được phép.
+ 4. `server/src/docs/search.ts` → `searchDocs`: query 1–256 ký tự, giới hạn 1–100; dùng SQL tham số với `websearch_to_tsquery('simple',q)` và GIN rank trên prefix 8192 ký tự. Luôn bổ sung literal ILIKE trên `search_text` đầy đủ, escape `%`, `_`, `\`; query chứa NUL dùng cùng `projectStorageText` của producer. Snippet là string projection thuần tối đa 240 code point, không chèn HTML highlight và không tuyên bố bỏ dấu. Cursor base64url chứa score/project/snapshot/path và hash query/filter, được kiểm tra kiểu string UUID và path bằng validPath trước bind SQL; thứ tự score DESC rồi project/snapshot/path giữ tie ổn định. Chỉ tìm snapshot mới nhất mỗi project nếu chưa chọn snapshot tường minh. Transaction có budget monotonic 2000 ms; set_config statement_timeout transaction-local trước scope/query và giảm theo thời gian còn lại trước từng truy vấn tiếp theo. PostgreSQL cancellation 57014 hoặc budget cạn trả ApiError SEARCH_DEADLINE_EXCEEDED 503, rollback và không trả items rỗng như thành công.
+ 5. `server/src/docs/read.ts` → `readProjectDocsState`, `docsSourceReader`, `docsCompletionReader`: state `missing` khi chưa có snapshot, `unverified`/`invalid` theo audit, `current` chỉ khi snapshot verified và commit khác null khớp `expected_commit`, còn lại `stale`. Composite project/snapshot/path kiểm tra ticket links. Completion dùng pointer latest verified checkout snapshot, commit và receipt cùng project/merged commit, sáu trang chuẩn implemented cùng tất cả flow docs được manifest yêu cầu. Aggregate mixed được chấp nhận khi phần chuẩn implemented đủ; artifact không thay trang chuẩn. Producer 006 chưa tạo verified authority nên đường production tiếp tục fail closed tới phần 08.
+ 6. `server/src/app.ts` → `buildApp`: nối `createExecutionAuthority`, guard rebind `assertNoActiveProjectExecution`, source/completion readers, project docs state và current credential reader vào route factory. Ticket mutation giữ thứ tự root/ticket/project/machine và recheck trước replay. SSE recheck credential cùng scope/event trong mỗi transaction snapshot; session hết hạn hoặc token thu hồi đóng stream. `preClose` đóng socket SSE trước Fastify chờ shutdown.
+ 7. `server/src/main.ts` → `main`: chỉ chạy khi file được gọi trực tiếp; `CREW_V2_PORT` mặc định entrypoint là 8792, bind `127.0.0.1`. Không auto-migrate/start host agent; config producer độc lập giữ mặc định 8788 nếu được gọi trực tiếp ngoài main. Signal đóng listener/SSE và pool. Import module không tạo side effect.
+ 
+ 8. `server/src/app.ts` → `buildApp`: ghép `registerGatewayRoutes` cho namespace007; AppOptions nhận optional GatewayProjectionPolicy do composition phase06 cấp, mặc định SELECTION_NOT_CONFIGURED. ServerOptions/DispatchPermit và hai default deny execution/final giữ nguyên; không auto-migrate007. Gateway mutation recheck actual credential dưới khóa machine/entity trước cache. Flow `server-gateway` mô tả boot/config/report/command/projection.
+ 
++9. `server/src/app.ts` → `buildApp`: AppOptions nhận optional `attachments` (`AttachmentAssembly`) để dựng storage/receiver/stage/submission/message thật và mount `registerAttachmentRoutes`; `registerInputScopeRoutes` luôn mount với port chưa có producer để mặc định deny. Assembly lỗi (storageHostId sai, không Linux, root không private) làm buildApp thất bại trước khi tạo Fastify. `main.ts` chưa truyền assembly nên route storage chưa có trên entrypoint; chi tiết ở flow `server-attachments`.
++
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/src/app.ts`, `server/src/main.ts` | Route composition và entrypoint loopback |
+ | `server/src/docs/read.ts` | Tree/page, source/completion reader và docs state |
+ | `server/src/docs/search.ts` | FTS/literal fallback, scoped cursor, plain snippet |
+ | `server/src/docs/routes.ts` | Docs endpoints và bounded upload |
+ | `server/test/support/http.ts` | Bootstrap/login cookie-CSRF qua Node fetch, port 0, identity replay qua restart |
+ | `server/test/docs-read.test.ts` | Unicode/raw bytes/audit/class, full-prefix fallback, tree/source references và completion fixture |
+diff --git a/v2/server/src/app.ts b/v2/server/src/app.ts
+index 7b8e93c..726fcd0 100644
+--- a/v2/server/src/app.ts
++++ b/v2/server/src/app.ts
+@@ -1,11 +1,22 @@
+ import Fastify, { type FastifyInstance, LogController } from 'fastify';
++import type { AttachmentConfig } from './attachments/config.ts';
++import { createMessageServices } from './attachments/messages.ts';
++import {
++  createReceiverRegistry,
++  type ManagedReceiverRegistry,
++  readLocalWriterIdentity,
++} from './attachments/receivers.ts';
++import { registerAttachmentRoutes, registerInputScopeRoutes } from './attachments/routes.ts';
++import { createStageServices } from './attachments/staging.ts';
++import { createFileBlobStore } from './attachments/storage.ts';
++import { createAttachmentSubmissions } from './attachments/submissions.ts';
+ import { authenticateCurrentCredential, createAuthenticator, registerAuthRoutes } from './auth/routes.ts';
+ import { credentialResponseCodec } from './auth/session.ts';
+ import { docsCompletionReader, docsSourceReader, readProjectDocsState } from './docs/read.ts';
+ import { registerDocsRoutes } from './docs/routes.ts';
+ import {
+   assertNoActiveProjectExecution,
+   createExecutionAuthority,
+   denyDispatch,
+   denyFinalResult,
+ } from './execution/attempts.ts';
+@@ -14,32 +25,86 @@ import type { GatewayProjectionPolicy } from './gateway/contracts.ts';
+ import { registerGatewayRoutes } from './gateway/routes.ts';
+ import { createMutator } from './journal/mutation.ts';
+ import { registerEventRoutes } from './journal/routes.ts';
+ import type { ModelRouteOptions } from './models/contracts.ts';
+ import { registerModelRoutes } from './models/routes.ts';
+ import type { ServerOptions } from './platform/contracts.ts';
+ import { ApiError } from './platform/errors.ts';
+ import { registerProjectRoutes } from './projects/routes.ts';
+ import { projectEventScope } from './projects/service.ts';
+ import { registerTicketRoutes } from './tickets/routes.ts';
++import { createTicketServices } from './tickets/service.ts';
++/**
++ * Durable attachment storage for the owner HTTP surface. Absent: storage routes
++ * are not mounted; input-scope routes stay mounted and fail closed.
++ */
++export type AttachmentAssembly = {
++  config: AttachmentConfig;
++  /** Stable UUID of the Linux storage host shared by every writer process. */
++  storageHostId: string;
++  /** Certified extractor version; absent → submissions with files 503 EXTRACTION_NOT_CONFIGURED. */
++  extractorVersion?: string;
++  /** Upload writer port. Default: native Linux closed-ACK registry (startup fails elsewhere). */
++  receivers?: ManagedReceiverRegistry;
++};
+ export type AppOptions = Omit<ServerOptions, 'authorizeDispatch' | 'verifyFinalResult'> &
+   Partial<Pick<ServerOptions, 'authorizeDispatch' | 'verifyFinalResult'>> & {
+     gatewayProjectionPolicy?: GatewayProjectionPolicy;
+     modelVerifiers?: ModelRouteOptions;
++    attachments?: AttachmentAssembly;
++  };
++const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
++async function assembleAttachments(db: ServerOptions['db'], now: () => Date, input: AttachmentAssembly) {
++  if (!uuidPattern.test(input.storageHostId)) throw new Error('ATTACHMENT_STORAGE_HOST_INVALID');
++  if (input.extractorVersion !== undefined && !input.extractorVersion.trim())
++    throw new Error('EXTRACTION_POLICY_INVALID');
++  const { config } = input;
++  // No persistIntent: owner routes never write extraction blobs; the extraction
++  // worker assembly must supply its own journaled intent writer.
++  const store = await createFileBlobStore({ root: config.storageRoot });
++  const receivers =
++    input.receivers ??
++    createReceiverRegistry({
++      db,
++      storageRoot: config.storageRoot,
++      storageHostId: input.storageHostId,
++      now,
++      identity: await readLocalWriterIdentity(input.storageHostId),
++    });
++  const stage = createStageServices({ db, store, receivers, now, config });
++  const queuePolicy = input.extractorVersion
++    ? { extractorVersion: input.extractorVersion, configSha256: config.policySha256 }
++    : undefined;
++  return {
++    config,
++    store,
++    stage,
++    submissions: createAttachmentSubmissions({
++      store,
++      stage,
++      tickets: createTicketServices,
++      queuePolicy,
++      now,
++    }),
++    messages: createMessageServices({ store, queuePolicy, now }),
+   };
++}
+ /** Compose routes only. Caller owns database migration, listener and pool shutdown. */
+ export async function buildApp(input: AppOptions): Promise<FastifyInstance> {
+   const options: ServerOptions = Object.freeze({
+     ...input,
+     authorizeDispatch: input.authorizeDispatch ?? denyDispatch,
+     verifyFinalResult: input.verifyFinalResult ?? denyFinalResult,
+   });
++  const attachments = input.attachments
++    ? await assembleAttachments(options.db, options.now, input.attachments)
++    : undefined;
+   const app = Fastify({
+     ajv: { customOptions: { removeAdditional: false } },
+     logController: new LogController({ disableRequestLogging: true }),
+     logger: {
+       redact: [
+         'req.headers.authorization',
+         'req.headers.cookie',
+         'req.headers.x-csrf-token',
+         'req.body.password',
+         'req.body.secret',
+@@ -73,16 +138,29 @@ export async function buildApp(input: AppOptions): Promise<FastifyInstance> {
+   registerProjectRoutes(app, options, deps, assertNoActiveProjectExecution, readProjectDocsState);
+   registerTicketRoutes(app, options, deps, {
+     execution: createExecutionAuthority(),
+     docsCompletion: docsCompletionReader,
+     docsSource: docsSourceReader,
+   });
+   registerExecutionRoutes(app, options, deps, { docsCompletion: docsCompletionReader });
+   registerDocsRoutes(app, options, deps);
+   registerGatewayRoutes(app, options, deps, input.gatewayProjectionPolicy);
+   registerModelRoutes(app, options, deps, input.modelVerifiers);
++  // Machine execution gate, input manifests (Task6), Assistant/selection
++  // authorities and message routing are not produced yet: defaults deny.
++  if (attachments)
++    registerAttachmentRoutes(app, options, deps, {
++      stage: attachments.stage,
++      submissions: attachments.submissions,
++      store: attachments.store,
++      config: attachments.config,
++    });
++  registerInputScopeRoutes(app, options, deps, {
++    store: attachments?.store,
++    messages: attachments?.messages,
++  });
+   registerEventRoutes(app, options, deps, projectEventScope, (db, request) =>
+     authenticateCurrentCredential(db, request, options.now()),
+   );
+   await app.ready();
+   return app;
+ }
+diff --git a/v2/server/src/attachments/comment-refs.ts b/v2/server/src/attachments/comment-refs.ts
+new file mode 100644
+index 0000000..957b564
+--- /dev/null
++++ b/v2/server/src/attachments/comment-refs.ts
+@@ -0,0 +1,53 @@
++import type { Id, Tx } from '../platform/contracts.ts';
++import { liveLinkIds } from './access.ts';
++
++export type TicketAttachmentRef = {
++  linkId: Id;
++  attachmentId: Id;
++  sha256: string;
++  ownerId: 'owner';
++  fileName: string;
++  mime: string | null;
++  byteLength: number;
++};
++export type CommentAttachmentGroup = { commentId: Id; attachments: TicketAttachmentRef[] };
++export type Page<T> = { items: T[]; nextCursor: Id | null };
++
++/** Same DTO as the flattened ticket list; callers select link_id/id/expected_sha256/file_name/detected_mime/expected_bytes. */
++export function ticketAttachmentRef(row: Record<string, unknown>): TicketAttachmentRef {
++  return {
++    linkId: String(row.link_id),
++    attachmentId: String(row.id),
++    sha256: String(row.expected_sha256),
++    ownerId: 'owner',
++    fileName: String(row.file_name),
++    mime: row.detected_mime === null ? null : String(row.detected_mime),
++    byteLength: Number(row.expected_bytes),
++  };
++}
++
++/**
++ * Live comment-scoped refs of one ticket grouped by commentId. Caller has already
++ * authorized the ticket scope inside `tx`. Groups are keyset-paged by commentId
++ * (UUID order, matching other UUID cursors); refs inside a group are ordered by
++ * linkId. Inherited and route links never carry comment_id, so they stay only in
++ * the flattened list.
++ */
++export async function readCommentAttachmentGroups(
++  tx: Tx,
++  ticketId: Id,
++  page: { limit: number; cursor: Id | null },
++): Promise<Page<CommentAttachmentGroup>> {
++  const live = await liveLinkIds(tx, ticketId);
++  if (!live.length) return { items: [], nextCursor: null };
++  const comments =
++    await tx`select distinct l.comment_id from attachment_links l join comments c on c.id=l.comment_id and c.ticket_id=l.ticket_id where l.ticket_id=${ticketId} and l.id in ${tx(live)} and (${page.cursor}::uuid is null or l.comment_id>${page.cursor}::uuid) order by l.comment_id limit ${page.limit + 1}`;
++  const ids = comments.slice(0, page.limit).map((row) => String(row.comment_id));
++  if (!ids.length) return { items: [], nextCursor: null };
++  const rows =
++    await tx`select l.comment_id,l.id as link_id,u.id,u.expected_sha256,u.file_name,u.detected_mime,u.expected_bytes from attachment_links l join attachment_uploads u on u.id=l.attachment_id where l.ticket_id=${ticketId} and l.id in ${tx(live)} and l.comment_id in ${tx(ids)} order by l.comment_id,l.id`;
++  const groups = new Map<Id, TicketAttachmentRef[]>(ids.map((id) => [id, []]));
++  for (const row of rows) groups.get(String(row.comment_id))?.push(ticketAttachmentRef(row));
++  const items = ids.map((commentId) => ({ commentId, attachments: groups.get(commentId) ?? [] }));
++  return { items, nextCursor: comments.length > page.limit ? (ids.at(-1) ?? null) : null };
++}
+diff --git a/v2/server/src/attachments/routes.ts b/v2/server/src/attachments/routes.ts
+index 30d6a06..e5b10ed 100644
+--- a/v2/server/src/attachments/routes.ts
++++ b/v2/server/src/attachments/routes.ts
+@@ -7,20 +7,21 @@ import type { CreateTicket } from '../tickets/contracts.ts';
+ import { requireProjectScope } from '../tickets/service.ts';
+ import {
+   type AttachmentExecutionGate,
+   assertAttachmentExecutionCurrent,
+   authorizeAttachment,
+   denyAttachmentExecution,
+   liveLinkIds,
+   notFound,
+   readAuthorizedManifest,
+ } from './access.ts';
++import { readCommentAttachmentGroups, ticketAttachmentRef } from './comment-refs.ts';
+ import type { AttachmentConfig } from './config.ts';
+ import type {
+   AssistantInputAuthority,
+   AssistantReadReceipt,
+   AttemptReadContext,
+   BlobHandle,
+   BlobStore,
+   ComposeTarget,
+   InputManifest,
+   InputReceipt,
+@@ -489,33 +490,40 @@ export function registerAttachmentRoutes(
+         { limit, cursor } = page(request.query);
+       return options.db.begin(async (tx) => {
+         await authenticateCurrentCredential(tx, request, options.now());
+         const [t] = await tx`select project_id from tickets where id=${request.params.id}`;
+         if (!t) notFound();
+         await requireProjectScope(tx, String(t.project_id), actor);
+         const ids = await liveLinkIds(tx, request.params.id);
+         if (!ids.length) return { items: [], nextCursor: null };
+         const rows =
+           await tx`select l.id as link_id,u.id,u.expected_sha256,u.file_name,u.detected_mime,u.expected_bytes from attachment_links l join attachment_uploads u on u.id=l.attachment_id where l.id in ${tx(ids)} and (${cursor}::uuid is null or l.id>${cursor}::uuid) order by l.id limit ${limit + 1}`;
+-        const items = rows.slice(0, limit).map((r) => ({
+-          linkId: String(r.link_id),
+-          attachmentId: String(r.id),
+-          sha256: String(r.expected_sha256),
+-          ownerId: 'owner',
+-          fileName: r.file_name,
+-          mime: r.detected_mime,
+-          byteLength: Number(r.expected_bytes),
+-        }));
++        const items = rows.slice(0, limit).map(ticketAttachmentRef);
+         return { items, nextCursor: rows.length > limit ? items.at(-1)?.linkId : null };
+       });
+     },
+   );
++  app.get<{ Params: { id: string }; Querystring: { limit?: string; cursor?: string } }>(
++    '/v2/tickets/:id/attachments/by-comment',
++    { schema: { params: params('/v2/tickets/:id/attachments/by-comment'), querystring: pagination } },
++    async (request) => {
++      const actor = await deps.auth.authenticate(request);
++      const query = page(request.query);
++      return options.db.begin(async (tx) => {
++        await authenticateCurrentCredential(tx, request, options.now());
++        const [t] = await tx`select project_id from tickets where id=${request.params.id}`;
++        if (!t) notFound();
++        await requireProjectScope(tx, String(t.project_id), actor);
++        return readCommentAttachmentGroups(tx, request.params.id, query);
++      });
++    },
++  );
+   const download = (machine: boolean, derivative: boolean) => {
+     const path = machine
+       ? '/v2/machine/attachments/:id/content'
+       : derivative
+         ? '/v2/attachments/:id/derivatives/:derivativeId/content'
+         : '/v2/attachments/:id/content';
+     const query = machine
+       ? object({ ...context.properties, derivativeId: uuid, manifestId: uuid }, context.required)
+       : object({}, []);
+     app.get<{ Params: { id: string; derivativeId?: string }; Querystring: Record<string, string> }>(
+@@ -644,25 +652,27 @@ export function registerAttachmentRoutes(
+       await assertAttachmentExecutionCurrent(tx, a, b.context);
+     },
+     false,
+   );
+ }
+ 
+ export function registerInputScopeRoutes(
+   app: FastifyInstance,
+   options: ServerOptions,
+   deps: RouteDependencies,
++  // Absent ports stay fail-closed: selection/assistant default-deny, routing503,
++  // route correction503, messages409 INPUT_SERVICES_NOT_CONFIGURED, storage503.
+   ports: {
+-    selection: PreclaimSelectionAuthority;
+-    assistant: AssistantInputAuthority;
+-    routing: InputRoutingAuthority;
+-    retire: RouteRetirementAuthority;
++    selection?: PreclaimSelectionAuthority;
++    assistant?: AssistantInputAuthority;
++    routing?: InputRoutingAuthority;
++    retire?: RouteRetirementAuthority;
+     store?: BlobStore;
+     messages?: ReturnType<typeof createMessageServices>;
+   },
+ ): void {
+   const json = jsonRoutes(app, options, deps),
+     assistant = ports.assistant ?? denyAssistantInput,
+     select = ports.selection ?? denyPreclaimSelection;
+   const messageServices = ports.messages;
+   const messages = () => {
+     if (!messageServices)
+diff --git a/v2/server/test/attachment-mount.test.ts b/v2/server/test/attachment-mount.test.ts
+new file mode 100644
+index 0000000..96683ef
+--- /dev/null
++++ b/v2/server/test/attachment-mount.test.ts
+@@ -0,0 +1,384 @@
++import assert from 'node:assert/strict';
++import { randomBytes, randomUUID } from 'node:crypto';
++import test from 'node:test';
++import type { FastifyInstance } from 'fastify';
++import { buildApp } from '../src/app.ts';
++import { bootstrapOwner } from '../src/auth/bootstrap.ts';
++import type { Db } from '../src/platform/contracts.ts';
++import { attachmentFixture, sha } from './support/attachments.ts';
++import { databaseFixture } from './support/db.ts';
++import { inputTicket } from './support/tickets.ts';
++
++const origin = 'http://localhost:5182';
++type Selection = { composeSessionId: string; selectionRevision: number; attachmentIds: string[] };
++type Ref = {
++  linkId: string;
++  attachmentId: string;
++  sha256: string;
++  ownerId: 'owner';
++  fileName: string;
++  mime: string | null;
++  byteLength: number;
++};
++
++// Production buildApp with the real stage/submission/message factories. Only the
++// upload writer port is the macOS fixture registry: the native registry requires
++// Linux /proc identity and is exercised by the attachment staging suite.
++async function mountedApp(db: Db, assembly: { storage: boolean; extractorVersion?: string }) {
++  const password = randomBytes(24).toString('hex');
++  await bootstrapOwner(db, password);
++  const base = await attachmentFixture(db);
++  let app: FastifyInstance | undefined;
++  try {
++    app = await buildApp({
++      db,
++      publicOrigin: origin,
++      secureCookies: false,
++      sessionEncryptionKey: randomBytes(32),
++      now: () => new Date(),
++      ...(assembly.storage
++        ? {
++            attachments: {
++              config: base.config,
++              storageHostId: randomUUID(),
++              receivers: base.receivers,
++              extractorVersion: assembly.extractorVersion,
++            },
++          }
++        : {}),
++    });
++    const login = await app.inject({
++      method: 'POST',
++      url: '/v2/auth/session',
++      payload: { password },
++      headers: { origin },
++    });
++    assert.equal(login.statusCode, 200, login.body);
++    const cookie = login.headers['set-cookie']?.toString().split(';')[0] ?? '';
++    const ownerHeaders = { cookie, origin, 'x-csrf-token': login.json<{ csrfToken: string }>().csrfToken };
++    const mounted = app;
++    const owner = (method: 'POST' | 'DELETE', url: string, payload: unknown) =>
++      mounted.inject({
++        method,
++        url,
++        payload: JSON.stringify(payload),
++        headers: { ...ownerHeaders, 'idempotency-key': randomUUID(), 'content-type': 'application/json' },
++      });
++    const get = (url: string, headers: Record<string, string> = { cookie }) =>
++      mounted.inject({ method: 'GET', url, headers });
++    const upload = (attachmentId: string, bytes: Buffer, headers: Record<string, string> = ownerHeaders) =>
++      mounted.inject({
++        method: 'PUT',
++        url: `/v2/attachment-uploads/${attachmentId}/content`,
++        payload: bytes,
++        headers: { ...headers, 'content-type': 'application/octet-stream' },
++      });
++    async function ready(target: Record<string, unknown>, files: Buffer[]): Promise<Selection> {
++      const compose = await owner('POST', '/v2/attachment-compose', target);
++      assert.equal(compose.statusCode, 201, compose.body);
++      const id = compose.json<{ id: string; revision: number }>().id;
++      let revision = compose.json<{ revision: number }>().revision;
++      const attachmentIds: string[] = [];
++      for (const [index, bytes] of files.entries()) {
++        const reserved = await owner('POST', `/v2/attachment-compose/${id}/uploads`, {
++          expectedRevision: revision,
++          fileName: `input-${index}.txt`,
++          declaredMime: 'text/plain',
++          byteLength: bytes.length,
++          sha256: sha(bytes),
++        });
++        assert.equal(reserved.statusCode, 201, reserved.body);
++        const body = reserved.json<{ attachment: { attachmentId: string }; selectionRevision: number }>();
++        revision = body.selectionRevision;
++        const put = await upload(body.attachment.attachmentId, bytes);
++        assert.equal(put.statusCode, 201, put.body);
++        attachmentIds.push(body.attachment.attachmentId);
++      }
++      return { composeSessionId: id, selectionRevision: revision, attachmentIds };
++    }
++    async function comment(ticketId: string, files: Buffer[], text = 'ghi chú') {
++      const selection = await ready({ purpose: 'comment', projectId: base.project.id, ticketId }, files);
++      const created = await owner('POST', `/v2/tickets/${ticketId}/attachment-comments`, {
++        text,
++        selection,
++        assistantRead: 'none',
++      });
++      return { created, selection };
++    }
++    const close = async () => {
++      try {
++        await mounted.close();
++      } finally {
++        await base.close();
++      }
++    };
++    return { app: mounted, base, cookie, ownerHeaders, owner, get, upload, ready, comment, close };
++  } catch (error) {
++    await app?.close();
++    await base.close();
++    throw error;
++  }
++}
++
++test('attachment mount: buildApp serves owner policy, upload, download and lists with session, CSRF and ACL', async () => {
++  await databaseFixture(11)(async (db) => {
++    const f = await mountedApp(db, { storage: true, extractorVersion: 'mount-test-extractor' });
++    try {
++      assert.equal((await f.get('/v2/attachment-policy', {})).statusCode, 401);
++      const policy = await f.get('/v2/attachment-policy');
++      assert.equal(policy.statusCode, 200, policy.body);
++      assert.ok(!policy.body.includes(f.base.root));
++      assert.equal(policy.json<{ maxFileBytes: number }>().maxFileBytes, f.base.config.maxFileBytes);
++
++      const bytes = Buffer.from('mounted bytes');
++      const target = { purpose: 'comment', projectId: f.base.project.id, ticketId: f.base.a.id };
++      const compose = await f.owner('POST', '/v2/attachment-compose', target);
++      assert.equal(compose.statusCode, 201, compose.body);
++      const composeId = compose.json<{ id: string }>().id;
++      const reserved = await f.owner('POST', `/v2/attachment-compose/${composeId}/uploads`, {
++        expectedRevision: compose.json<{ revision: number }>().revision,
++        fileName: 'mounted.txt',
++        declaredMime: 'text/plain',
++        byteLength: bytes.length,
++        sha256: sha(bytes),
++      });
++      assert.equal(reserved.statusCode, 201, reserved.body);
++      const attachmentId = reserved.json<{ attachment: { attachmentId: string } }>().attachment.attachmentId;
++      const noCsrf = await f.upload(attachmentId, bytes, { cookie: f.cookie, origin });
++      assert.equal(noCsrf.statusCode, 403, noCsrf.body);
++      assert.equal((await f.upload(attachmentId, bytes)).statusCode, 201);
++      assert.equal((await f.upload(attachmentId, bytes)).statusCode, 200);
++      const read = await f.get(`/v2/attachment-compose/${composeId}`);
++      assert.equal(read.statusCode, 200, read.body);
++      assert.deepEqual(
++        read
++          .json<{ attachments: { attachmentId: string; state: string }[] }>()
++          .attachments.map((a) => [a.attachmentId, a.state]),
++        [[attachmentId, 'ready']],
++      );
++      const download = await f.get(`/v2/attachments/${attachmentId}/content`);
++      assert.equal(download.statusCode, 200, download.body);
++      assert.equal(download.body, bytes.toString());
++      assert.equal(download.headers['cache-control'], 'private, no-store');
++      assert.match(String(download.headers['content-disposition']), /^attachment;/);
++      assert.equal((await f.get(`/v2/attachments/${attachmentId}/content`, {})).statusCode, 401);
++
++      const submitted = await f.owner('POST', `/v2/tickets/${f.base.a.id}/attachment-comments`, {
++        text: '',
++        selection: {
++          composeSessionId: composeId,
++          selectionRevision: reserved.json<{ selectionRevision: number }>().selectionRevision,
++          attachmentIds: [attachmentId],
++        },
++        assistantRead: 'none',
++      });
++      assert.equal(submitted.statusCode, 201, submitted.body);
++      const list = await f.get(`/v2/tickets/${f.base.a.id}/attachments`);
++      assert.equal(list.statusCode, 200, list.body);
++      assert.deepEqual(
++        list.json<{ items: Ref[] }>().items.map((r) => ({ ...r, linkId: 'x' })),
++        [
++          {
++            linkId: 'x',
++            attachmentId,
++            sha256: sha(bytes),
++            ownerId: 'owner',
++            fileName: 'mounted.txt',
++            mime: 'text/plain',
++            byteLength: bytes.length,
++          },
++        ],
++      );
++
++      const machine = await f.owner('POST', '/v2/machines', { name: 'unbound' });
++      assert.equal(machine.statusCode, 201, machine.body);
++      const bearer = { authorization: `Bearer ${machine.json<{ token: string }>().token}` };
++      assert.equal((await f.get(`/v2/tickets/${f.base.a.id}/attachments`, bearer)).statusCode, 404);
++      assert.equal((await f.get(`/v2/attachments/${attachmentId}/content`, bearer)).statusCode, 403);
++      const other = await f.owner('POST', '/v2/projects', {
++        key: `P${randomUUID().slice(0, 8).toUpperCase()}`,
++        name: 'Khác',
++        repositoryUrl: null,
++      });
++      assert.equal(other.statusCode, 201, other.body);
++      const crossProject = await f.owner('POST', '/v2/attachment-compose', {
++        purpose: 'comment',
++        projectId: other.json<{ id: string }>().id,
++        ticketId: f.base.a.id,
++      });
++      assert.equal(crossProject.statusCode, 404, crossProject.body);
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('attachment mount: default production assembly keeps unproduced input ports fail-closed', async () => {
++  await databaseFixture(11)(async (db) => {
++    const bare = await mountedApp(db, { storage: false });
++    try {
++      assert.equal((await bare.get('/v2/attachment-policy')).statusCode, 404);
++      const conversation = await bare.owner('POST', '/v2/attachment-conversations', {});
++      assert.equal(conversation.statusCode, 409, conversation.body);
++      assert.equal(conversation.json().error.code, 'INPUT_SERVICES_NOT_CONFIGURED');
++      const route = await bare.owner('POST', `/v2/attachment-messages/${randomUUID()}/route`, {
++        expectedInputRevision: '1',
++        expectedRouteRevision: 0,
++        decisionId: randomUUID(),
++        ticket: inputTicket(bare.base.project.id, 'request'),
++      });
++      assert.equal(route.statusCode, 503, route.body);
++      assert.equal(route.json().error.code, 'INPUT_ROUTING_NOT_CONFIGURED');
++    } finally {
++      await bare.close();
++    }
++  });
++  await databaseFixture(11)(async (db) => {
++    const f = await mountedApp(db, { storage: true });
++    try {
++      const conversation = await f.owner('POST', '/v2/attachment-conversations', {});
++      assert.equal(conversation.statusCode, 201, conversation.body);
++      const conversationId = conversation.json<{ conversationId: string }>().conversationId;
++      const textOnly = await f.ready(
++        { purpose: 'assistant_message', projectId: null, ticketId: null, conversationId },
++        [],
++      );
++      const message = await f.owner('POST', '/v2/attachment-submissions/messages', {
++        conversationId,
++        clientMessageId: randomUUID(),
++        text: 'xin chào',
++        selection: textOnly,
++        assistantRead: 'none',
++      });
++      assert.equal(message.statusCode, 201, message.body);
++      const messageId = message.json<{ id: string }>().id;
++      const messages = await f.get(`/v2/attachment-conversations/${conversationId}/messages`);
++      assert.equal(messages.statusCode, 200, messages.body);
++      assert.deepEqual(
++        messages.json<{ items: { id: string }[] }>().items.map((m) => m.id),
++        [messageId],
++      );
++      const route = await f.owner('POST', `/v2/attachment-messages/${messageId}/route`, {
++        expectedInputRevision: '1',
++        expectedRouteRevision: 0,
++        decisionId: randomUUID(),
++        ticket: inputTicket(f.base.project.id, 'request'),
++      });
++      assert.equal(route.statusCode, 503, route.body);
++      assert.equal(route.json().error.code, 'INPUT_ROUTING_NOT_CONFIGURED');
++
++      const { created } = await f.comment(f.base.a.id, [Buffer.from('no extractor')]);
++      assert.equal(created.statusCode, 503, created.body);
++      assert.equal(created.json().error.code, 'EXTRACTION_NOT_CONFIGURED');
++
++      const machine = await f.owner('POST', '/v2/machines', { name: 'gateway' });
++      assert.equal(machine.statusCode, 201, machine.body);
++      const manifest = await f.app.inject({
++        method: 'POST',
++        url: '/v2/machine/attachment-manifests',
++        payload: JSON.stringify({
++          context: {
++            projectId: f.base.project.id,
++            ticketId: f.base.a.id,
++            attemptId: randomUUID(),
++            fence: '1',
++            processInstanceId: randomUUID(),
++            bindingRevision: 1,
++          },
++          decisionId: randomUUID(),
++          required: [],
++          inputRevision: '1',
++          snapshotId: randomUUID(),
++          snapshotSha256: '0'.repeat(64),
++        }),
++        headers: {
++          authorization: `Bearer ${machine.json<{ token: string }>().token}`,
++          'idempotency-key': randomUUID(),
++          'content-type': 'application/json',
++        },
++      });
++      assert.equal(manifest.statusCode, 409, manifest.body);
++      assert.equal(manifest.json().error.code, 'INPUT_SERVICES_NOT_CONFIGURED');
++    } finally {
++      await f.close();
++    }
++  });
++});
++
++test('attachment mount: comment projection groups live refs by commentId in stable pages with ticket ACL', async () => {
++  await databaseFixture(11)(async (db) => {
++    const f = await mountedApp(db, { storage: true, extractorVersion: 'mount-test-extractor' });
++    try {
++      const first = await f.comment(f.base.a.id, [Buffer.from('một'), Buffer.from('hai')]);
++      const second = await f.comment(f.base.a.id, [Buffer.from('ba')]);
++      const sibling = await f.comment(f.base.b.id, [Buffer.from('bốn')]);
++      const revoked = await f.comment(f.base.a.id, [Buffer.from('năm')]);
++      for (const c of [first, second, sibling, revoked])
++        assert.equal(c.created.statusCode, 201, c.created.body);
++      const textOnly = await f.owner('POST', `/v2/tickets/${f.base.a.id}/comments`, { text: 'chỉ chữ' });
++      assert.equal(textOnly.statusCode, 201, textOnly.body);
++      const commentId = (c: typeof first) => c.created.json<{ comment: { id: string } }>().comment.id;
++      await db`update attachment_links set revoked_at=now() where comment_id=${commentId(revoked)}`;
++
++      const url = `/v2/tickets/${f.base.a.id}/attachments/by-comment`;
++      const all = await f.get(url);
++      assert.equal(all.statusCode, 200, all.body);
++      const body = all.json<{
++        items: { commentId: string; attachments: Ref[] }[];
++        nextCursor: string | null;
++      }>();
++      const expected = [first, second].sort((x, y) => commentId(x).localeCompare(commentId(y)));
++      assert.deepEqual(
++        body.items.map((g) => [g.commentId, g.attachments.map((r) => r.attachmentId).sort()]),
++        expected.map((c) => [commentId(c), [...c.selection.attachmentIds].sort()]),
++      );
++      for (const group of body.items) {
++        const links = group.attachments.map((r) => r.linkId);
++        assert.deepEqual(links, [...links].sort());
++        for (const ref of group.attachments) {
++          assert.equal(ref.ownerId, 'owner');
++          assert.match(ref.sha256, /^[0-9a-f]{64}$/);
++        }
++      }
++      assert.equal(body.nextCursor, null);
++      assert.deepEqual((await f.get(url)).json(), body);
++
++      const page1 = (await f.get(`${url}?limit=1`)).json<{
++        items: { commentId: string }[];
++        nextCursor: string;
++      }>();
++      assert.deepEqual(
++        page1.items.map((g) => g.commentId),
++        [body.items[0]?.commentId],
++      );
++      assert.equal(page1.nextCursor, body.items[0]?.commentId);
++      const page2 = (await f.get(`${url}?limit=1&cursor=${page1.nextCursor}`)).json<{
++        items: { commentId: string }[];
++        nextCursor: string | null;
++      }>();
++      assert.deepEqual(
++        page2.items.map((g) => g.commentId),
++        [body.items[1]?.commentId],
++      );
++      assert.equal(page2.nextCursor, null);
++
++      const siblingGroups = (await f.get(`/v2/tickets/${f.base.b.id}/attachments/by-comment`)).json<{
++        items: { commentId: string }[];
++      }>();
++      assert.deepEqual(
++        siblingGroups.items.map((g) => g.commentId),
++        [commentId(sibling)],
++      );
++
++      assert.equal((await f.get(url, {})).statusCode, 401);
++      assert.equal((await f.get(`${url}?limit=0`)).statusCode, 400);
++      assert.equal((await f.get(`/v2/tickets/${randomUUID()}/attachments/by-comment`)).statusCode, 404);
++      const machine = await f.owner('POST', '/v2/machines', { name: 'unbound' });
++      assert.equal(machine.statusCode, 201, machine.body);
++      const bearer = { authorization: `Bearer ${machine.json<{ token: string }>().token}` };
++      assert.equal((await f.get(url, bearer)).statusCode, 404);
++    } finally {
++      await f.close();
++    }
++  });
++});

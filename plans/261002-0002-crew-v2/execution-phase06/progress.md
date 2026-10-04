@@ -123,3 +123,6 @@ Ruling 11:35: S3b sửa thêm `v2/server/src/gateway/contracts.ts` (schema đón
 11:50 04/10 S3b review `task-s3b-review.md`: Spec ✅, phase03-owner chấp thuận có điều kiện I1, Needs fixes (Important1/Minor3/⚠️4). FIX1/5 resume implementer: I1 schema render đóng; nâng M1 (catch nuốt lỗi toàn vẹn), M2 (lastError DEFINITION_MISMATCH), M3 (vector chung gateway↔server).
 Ruling: nâng M1–M3 vào FIX1 — M1 giấu lỗi toàn vẹn, M3 chặn rủi ro mọi install bị từ chối vĩnh viễn khi nối production, M2 rẻ — sai thì thêm chút diff.
 Ruling (hợp đồng cho S4): đọc definition (số ít, theo S3b) chỉ từ slot `state=current` và so pin của slot, không suy từ appliedRevision; definition gồm cả `render` trong dữ liệu băm. Production chưa nối `SyncOptions.definitions` — host assembly (T7) phải cấp `createWorkflowManifest(registry)`; ghi vào checklist T7.
+
+15:00 S3b FIX1 `963dc31` (I1 render đóng 13 biến thể→400, M1 DEFINITION_FAILED, M2 DEFINITION_MISMATCH, M3 vector chung) → scoped re-review. S2/T2-C `3fddbeb`/`40d20c7` DONE (187/187, regression 102/102) → full independent security review.
+Ruling S2 concern: port ghi captured target theo Tx để verify kiểm membership root (chữ ký verify frozen không mang ticket IDs) — chấp nhận nếu review không thấy cấp quyền; request_hash chưa ràng targetSha256 → yêu cầu bắt buộc B3 transport (cùng ⚠️ B2a).

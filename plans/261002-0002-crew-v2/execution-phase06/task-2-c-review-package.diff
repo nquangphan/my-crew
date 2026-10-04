@@ -1,0 +1,2102 @@
+3fddbeb feat(v2): resolver Actor persisted và ProjectOrchestrationPort thật cho Trợ lý
+ v2/docs/files.md                                   |   2 +
+ v2/docs/flows.yaml                                 |   2 +
+ v2/docs/flows/server-assistant.md                  |  14 +-
+ v2/docs/flows/server-tickets.md                    |  10 +-
+ v2/server/src/assistant/authority.ts               |  92 +++-
+ v2/server/src/assistant/orchestration.ts           | 301 ++++++++++
+ v2/server/src/tickets/assistant-access.ts          |   2 +-
+ v2/server/src/tickets/decisions.ts                 |   8 +-
+ v2/server/src/tickets/dependencies.ts              |   3 +-
+ v2/server/src/tickets/service.ts                   |  79 +--
+ v2/server/test/assistant-authority.test.ts         |  83 ++-
+ v2/server/test/assistant-mutations.test.ts         |  30 +-
+ .../test/assistant-orchestration-port.test.ts      | 604 +++++++++++++++++++++
+ v2/server/test/support/assistant.ts                | 197 +++++--
+ 14 files changed, 1316 insertions(+), 111 deletions(-)
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 594a012..e9a4d64 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -164,20 +164,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/migrations/010_attachment_comment_text.sql` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/migrations/011_assistant.sql` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/package.json` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/docs-import.ts` | [server-docs-import](flows/server-docs-import.md) (điểm vào) |
+ | `server/scripts/test-db-signals.mjs` | [server-platform](flows/server-platform.md) (file) |
+ | `server/scripts/test-db.ts` | [server-platform](flows/server-platform.md) (file) |
+ | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
+ | `server/src/assistant/authority.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/contracts.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/inbox.ts` | [server-assistant](flows/server-assistant.md) (file) |
++| `server/src/assistant/orchestration.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/routes.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/store.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/attachments/access.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/comment-refs.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/extract/csv.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/docx.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/formats.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/image.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+@@ -256,20 +257,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/tickets/decisions.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/dependencies.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/deploy.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/docs-links.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
+ | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/assistant-authority.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-mutations.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
++| `server/test/assistant-orchestration-port.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-orchestration.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachment-mount.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-access.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-api.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test), [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-formats.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+ | `server/test/attachments-grants.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 44c26e3..8c7284c 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -447,25 +447,27 @@ flows:
+       - gateway/test/support/runtime-typecheck.json
+       - gateway/test/support/runtime-workspace.ts
+   server-assistant:
+     title: Trợ lý, workflow và work inbox bền vững Crew v2
+     doc: docs/flows/server-assistant.md
+     entrypoints: []
+     files:
+       - server/src/assistant/authority.ts
+       - server/src/assistant/contracts.ts
+       - server/src/assistant/inbox.ts
++      - server/src/assistant/orchestration.ts
+       - server/src/assistant/routes.ts
+       - server/src/assistant/store.ts
+       - server/migrations/011_assistant.sql
+     tests:
+       - server/test/assistant-authority.test.ts
++      - server/test/assistant-orchestration-port.test.ts
+       - server/test/assistant-store.test.ts
+       - server/test/support/assistant.ts
+   assistant-workflows:
+     title: Định nghĩa workflow chính thức và pin bất biến
+     doc: docs/flows/assistant-workflows.md
+     entrypoints:
+       - gateway/src/assistant/workflow-manifest.ts
+     files:
+       - gateway/src/assistant/render-artifacts.ts
+     tests:
+diff --git a/v2/docs/flows/server-assistant.md b/v2/docs/flows/server-assistant.md
+index b6f0238..8843bb7 100644
+--- a/v2/docs/flows/server-assistant.md
++++ b/v2/docs/flows/server-assistant.md
+@@ -1,47 +1,53 @@
+ # Kho bền vững của Trợ lý
+ 
+ ## Mục đích
+ 
+ Phase06/T1 lưu inbox, lượt Trợ lý và các chứng từ điều phối trong PostgreSQL. Inbox tích lũy khi máy offline hoặc chưa designation; chỉ fence hiện hành mới claim hoặc ACK. Paid budget mặc định bằng 0. Lượt chưa biết đã dừng hay chưa giữ quyền chiếm chỗ, không tự giải phóng theo TTL.
+ 
+ ## Điểm vào
+ 
+ `assistant/inbox.ts` cung cấp `enqueueWork`, `ingestEvents`, `reconcileWork`, `claimWork`, `ackWork`. `assistant/store.ts` kiểm fence và cấp generation trong transaction. `assistant/contracts.ts` khai báo DTO và runtime schema strict cho toàn bộ DTO serializable, kể cả dữ liệu lồng trong routing tool/event/result, workflow, assessment, capacity và chứng từ R1–R4. Function port không có JSON schema. T1 chưa đăng ký route, driver, admission hoặc lời gọi model.
+ 
+-Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant/config`, strict policy và `preferred:null`. Factory chưa được ghép vào app production. `createPersistedAssistantActorResolver` kiểm scope/fence nhưng luôn từ chối admission hiện hành bằng503; không biến receipt UNVERIFIED thành Actor.
++Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant/config`, strict policy và `preferred:null`. Factory chưa được ghép vào app production. `createPersistedAssistantActorResolver({verifierBuildSha256})` cấp Actor dương chỉ từ hàng persisted; build hash verifier phải được ghim lúc assembly (hex64 thường, sai thì factory ném lỗi).
++
++`assistant/orchestration.ts` → `createProjectOrchestrationPort({tickets,resolver})` là `ProjectOrchestrationPort` thật trên các entry scoped của `server-tickets` (`createTicket`, `decision`, `dependency`, `signal`); `command` luôn 503 `ORCHESTRATION_COMMAND_NOT_RELEASED`. `createPersistedOrchestrationAuthority(resolver)` là authority đi kèm; dùng trần ngoài port thì thiếu target nên luôn 403. App production chưa inject resolver/port, nên mọi entry scoped vẫn trả503 và hôm nay chưa có receipt PASS nào.
+ 
+ ## Các bước
+ 
+ 1. Ingestion khóa `event_cursor` rồi monitor, đọc event đã commit theo trang 200, chèn work và tiến cursor trong cùng transaction. Rollback giữ cả work và cursor ở trạng thái trước đó. Event duplicate vẫn cho cursor tiến; work đã claim/ACK không bị ghi đè.
+ 2. `assistant.message.created` và message `attachment.input.changed` đọc revision từ message009. Ticket `attachment.input.changed`, `attachment.changed` đọc counter009 của đích. `comment.created` đọc cây con hiện tại và revision của từng descendant; không tăng counter thêm lần nữa. Ticket lifecycle `ticket.created/changed`, `dependency.added`, `decision.created`, `repair.recorded`, command và attempt events tạo work cursor riêng với `input_revision=null`. Event khác chỉ tiến cursor.
+ 3. Input wake khử trùng trên `(target_kind,target_id,input_revision)` khi revision khác null. `reconcileWork` quét revision message/ticket thực để bù wake mất, dùng cùng khóa dedup và giữ logical key/source cursor ban đầu. Các hàm này không tạo turn hay quyền inference.
+ 4. Ticket claim/ACK khóa event cursor và root trước các khóa authority. Message bắt đầu ở authority và không khóa root về sau. Guard calibration, machine, config, designation, turn và generation hiện hành đều phải khớp exact TurnFence. Trước cả replay, message work phải cùng message/conversation của turn; ticket work cần scope của chính turn còn hạn, đúng root/project, kể cả descendant. Message turn chỉ nhận root scope khi có route chưa revoke tới cùng root/project; monitor turn không message cần explicit root scope. Discovery toàn hệ thống không cấp turn quyền toàn hệ thống. Claim chỉ nhận reserved/running; ACK nhận running/finalizing/stopped. Uncertain bị giữ lại. Replay cùng fence không tăng attempts hoặc sửa ACK terminal.
+ 5. `allocateAssistantGeneration(tx)` khóa guard chung và tăng bigint monitor bằng UPDATE RETURNING, không reset hoặc wrap. Caller admission T2 phải bind giá trị với đúng normal turn hoặc calibration launch trong cùng transaction thành công; đọc/cấp generation tự nó không cấp quyền.
+ 6. SQL011 bảo vệ liên kết conversation/message, một turn sống, chứng từ bất biến, scope cụ thể, hex64 effect và ordinal hành động persist trong target identity. R1 tách challenge/certification và measured routing receipt khỏi certificate workflow008. R2 giữ thứ tự tool call và kết quả terminal. R3 chỉ nối derived authorization đúng route với parent còn hiệu lực, không tăng expiry/allowOriginal hoặc mở rộng reference original.
+ 7. R4 hook trên INSERT attempt kiểm launch đúng command/machine/process, chưa hết hạn hoặc retired, rồi bind attempt và active reservation nguyên tử. Release attempt cần stopped và finalized. Unclaimed release cần retirement cùng proof never-authorized hoặc launch đóng với exact identity và stop/journal chứng từ. Guard release kiểm cả INSERT và UPDATE bằng constraint deferred: terminal row có proof hợp lệ vẫn được insert/restore, row thiếu proof bị rollback. UUID artifact không chứng minh đã dừng.
+ 8. Owner chọn machine còn hiệu lực bằng cookie, Origin, CSRF và Idempotency-Key. PUT dùng machine UUID chuẩn chữ thường cho identity nội bộ, giữ nguyên request body để journal hash/replay. Thứ tự khóa: journal/event cursor → calibration guard → machines theo thứ tự → config → designation → live turns khi đổi máy → exact owner session FOR SHARE. Sau mọi lần chờ, statement riêng kiểm revoke/expiry bằng `clock_timestamp()`, trước cached reply hoặc mutation. Session lock giữ tới commit để serialize revocation.
+-9. Mutation mới kiểm config CAS; replay không tạo designation mới. Policy update cùng machine giữ designation và live turn. Đổi máy khi idle retire identity cũ; turn chưa stopped hoặc calibration active trả409 và không retire một phần. Metadata không tạo grant, turn, command hoặc quyền inference. Positive admission, direct input/doc reads, G1/G2 và retirement runtime vẫn chờ producer tiếp theo.
++9. Mutation mới kiểm config CAS; replay không tạo designation mới. Policy update cùng machine giữ designation và live turn. Đổi máy khi idle retire identity cũ; turn chưa stopped hoặc calibration active trả409 và không retire một phần. Metadata không tạo grant, turn, command hoặc quyền inference. Direct input/doc reads, G2 và retirement runtime vẫn chờ producer tiếp theo.
++10. Resolver: kiểm fence/scope như cũ (scope thiếu404, fence lệch409, scope hết hạn409 đo bằng `clock_timestamp()`). Turn chưa có `admission_id` giữ503 `ASSISTANT_ADMISSION_NOT_CONFIGURED`. Turn đã admit phải có read session của chính admission (`read_session_id`), session `reserved/running`, cùng máy designation, process instance, designation revision, selection, policy receipt và snapshot input của scope. Selection dẫn tới policy receipt `PASS`, chưa revoke, cùng `deployment_id` của config và đúng verifier đã ghim, cùng máy; capability receipt của selection còn hiệu lực. Session, selection và receipt khóa FOR SHARE rồi mới đo hạn bằng `clock_timestamp()`. Mọi lệch trả403 `ASSISTANT_ADMISSION_DENIED`, không fallback. Thành công trả `{kind:'machine', id: designation.machine_id}` đóng băng.
++11. Port chụp actor/proof/payload đồng bộ trước mọi await rồi gọi entry scoped; entry khóa root → ticket theo thứ tự → project trước verify. Authority: resolver; actor gọi phải đúng máy designation (403 `ORCHESTRATION_ACTOR_MISMATCH`); action phải nằm trong `scope.actions` (403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`); `operationId` phải là row `assistant_tool_operations` `pending` của cùng turn (404 `ASSISTANT_OPERATION_NOT_FOUND`) trên snapshot input của scope (409 `ASSISTANT_OPERATION_STALE`), row này khóa FOR UPDATE. Ticket đích, cha hoặc predecessor phải thuộc đúng `scope.root_ticket_id` và project; ngoài gốc hoặc scope message không có root trả404. Tạo request mới chỉ với scope message và quyết định `routing` của message ghi trong chính Tx (`xmin` = transaction hiện hành) với body đúng `{operationId,scopeId,ticketSha256}` bằng hash CreateTicket, cùng snapshot, input revision hiện hành, actor máy A và `sha256` khớp; thiếu hoặc lệch trả403 `ORCHESTRATION_ROUTING_DECISION_REQUIRED`. Dependency không có cột actor: provenance là row tool operation (turn → designation → máy A) cộng journal actor A của mutation. Transport tương lai phải resolve proof → scope trước mọi truy vấn ticket để không lộ sự tồn tại.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/011_assistant.sql` | Persistence Assistant và ràng buộc R1–R4 |
+ | `server/src/assistant/contracts.ts` | Hợp đồng typed nhập từ producer đã có |
+ | `server/src/assistant/store.ts` | Fence và generation persistence |
+ | `server/src/assistant/inbox.ts` | Cursor, reconciliation, claim và ACK |
+-| `server/src/assistant/authority.ts` | Designation/CAS và resolver mặc định từ chối |
++| `server/src/assistant/authority.ts` | Designation/CAS và resolver Actor từ admission/receipt persisted |
++| `server/src/assistant/orchestration.ts` | `ProjectOrchestrationPort` thật và authority persisted (scope/operation/membership/routing decision) |
+ | `server/src/assistant/routes.ts` | Owner config routes và credential lock |
+ | `server/test/assistant-store.test.ts` | PostgreSQL constraints, durable inbox và backup/restore |
+ | `server/test/assistant-authority.test.ts` | Fastify inject/auth thật, config CAS, lock races và UUID casing |
+-| `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử |
++| `server/test/assistant-orchestration-port.test.ts` | Port thật trên PostgreSQL: Actor A, admission/receipt deny, operation, scope action, membership, routing decision, generic 404, command503 |
++| `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử, gồm `seedAdmittedTurn` (receipt PASS của verifier fixture) và `seedToolOperation` |
+ 
+ ## Dữ liệu
+ 
+ Migrations001–010 giữ nguyên. SQL011 lưu config/designation/monitor/guard, routing certification, turns/selections/scopes, inbox, workflows/gates/questions/answers, assessments/dispatches, capacity/reservations, interventions/operation IDs, text/budget/route/retirement/launch/tool/doc receipts. Khóa ngoại dùng bảng thực và ON DELETE RESTRICT; các vòng phụ thuộc được kiểm deferred trong transaction.
+ 
+ Constraint identity deferred gắn selection với exact key của policy/capability receipts và machine designation của turn; không yêu cầu fixture UNVERIFIED trở thành PASS. Assessment snapshot phải thuộc chính ticket; dispatch command/step/assessment/decision cùng ticket và workflow run cùng root. Capacity receipt giữ exact ticket/kind/boot/ownership của request; reservation giữ machine/ticket của command và ownership của receipt. Ownership so sánh nguyên JSON array có thứ tự như DTO, không tự diễn giải thành set/sort. Những check này bảo vệ liên kết các hàng, không thay producer telemetry, canonical hash, approval hoặc admission.
+ 
+ `request_sha256` và `receipt_sha256` là SHA256 lowercase hex64 của toàn bộ DTO CapacityRequest/CapacityReceipt qua `canonicalJson`, không bao gồm hash tự thân hoặc linkage `receipt_id` ngoài DTO. Trusted producer T4 tính tại insert; T5 tiêu thụ. Hash không chứng nhận telemetry hay cấp admission. Consent producer phải kiểm identity/hash/current scope trước tạo linkage; artifact UUID chưa có registry generic trong001–010 nên trusted producer T2/native phải xác minh artifact và stop proof thực. Thiếu producer thì mặc định từ chối; fixture UNVERIFIED không phải production certificate.
+ 
+ Schema reject trường ngoài DTO, discriminator lạ, hash/UUID lỗi, số revision không an toàn và decimal bigint vượt 9223372036854775807. SourcePin/ProjectionPin dùng schema exported của producer hiện có. CreateTicket/SourceRef phản ánh shape type/route accepted; serialized CreateTicket bắt buộc workflowPin nullable, còn ticket HTTP route cũ có thể bỏ field và producer chuẩn hóa. Chỉ criteria/inputs/outputs/payload/result là JSON record theo đúng DTO producer; schema kiểm JSON đệ quy và cấm prototype keys, producer vẫn kiểm safeTicketJson/depth và business authority. Consumer phải cấu hình validator không xóa field dư, không ép kiểu hoặc chèn default.
+diff --git a/v2/docs/flows/server-tickets.md b/v2/docs/flows/server-tickets.md
+index 03f5026..e8d4f92 100644
+--- a/v2/docs/flows/server-tickets.md
++++ b/v2/docs/flows/server-tickets.md
+@@ -8,33 +8,33 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d
+ 
+ - `server/src/tickets/routes.ts` → `registerTicketRoutes`: tạo, đọc, nối phụ thuộc, gửi tín hiệu hợp lệ, bình luận, quyết định, repair result và liên kết docs.
+ - `server/src/tickets/service.ts` → `createTicketServices`: gắn các reader/authority bất biến theo ứng dụng; mặc định từ chối cổng chưa được tích hợp.
+ - `server/src/tickets/dependencies.ts` → `addDependency`, `readGraph`: lưu DAG và trả dữ liệu sơ đồ thực tế.
+ 
+ ## Các bước
+ 
+ 1. `server/src/tickets/service.ts` → `createTicket` kiểm tra quyền dự án, ba cấp cha con, workflow pin của cha rồi chèn ticket. Sau khi khóa root, service đọc lại root/cha và từ chối tạo con nếu một trong hai đã hoàn tất hoặc hủy. Request tự trỏ `root_id` và mặc định chọn Superpowers trong criteria nếu chưa chọn. Event `ticket.created` chỉ mang revision/trạng thái.
+ 2. `server/src/tickets/dependencies.ts` → `addDependency` khóa root trước khi kiểm tra hai đầu cạnh và duyệt CTE đệ quy theo predecessor. Hai transaction thêm cạnh ngược chiều không thể cùng commit. Không sửa dependency của ticket đã `ready`, `running` hoặc kết thúc; Task 5 còn kiểm tra lại predecessor khi claim.
+ 3. `server/src/tickets/decisions.ts` → `appendComment`, `recordDecision` lưu nội dung trong bảng riêng và phát event chỉ chứa ID metadata. Legacy appendComment giữ nguyên: chấp nhận whitespace, từ chối chuỗi rỗng. Factory bổ sung appendAttachmentComment với callback commentAttachments do controller inject và giữ bất biến lúc tạo factory; thiếu callback từ chối trước INSERT. Method mới yêu cầu text tối đa32768 và text.trim có nội dung hoặc requested attachmentIds không rỗng. Callback xác minh actual ready set sau INSERT, trước một comment.created event trong cùng caller Tx; callback lỗi rollback comment/links/event và fanout009. Không dùng allowEmpty/count/dummy space, không nối consumer qua generic route. Nguồn quyết định phải là ticket/owner decision/artifact đã ghi nhận trong cùng gốc, hoặc trang docs được reader xác minh. Máy không thể ghi owner answer hoặc approval.
+-4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction. Trước khi có stop proof, ticket vẫn `running`; nếu stop proof đã có, callback có thể finalize ngay thành `needs_input`. Event `ticket.changed` lấy trạng thái và revision từ row sau callback, khớp DB/response. Lõi chung `prepareSignal` khóa root rồi ticket, so revision, kiểm predecessor `done` cho `dependencies_ready` và tra quyết định tiếp tục vòng sửa cho `resume`; `persistSignal` cập nhật row và phát event. Root lock nối tuần tự completion với việc thêm con. Khi finalize vòng sửa thứ năm, lý do `repair_limit` được giữ nguyên.
++4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction. Trước khi có stop proof, ticket vẫn `running`; nếu stop proof đã có, callback có thể finalize ngay thành `needs_input`. Event `ticket.changed` lấy trạng thái và revision từ row sau callback, khớp DB/response. Generic `prepareSignal` khóa root rồi ticket theo ACL; lõi chung `checkSignal` so revision, kiểm predecessor `done` cho `dependencies_ready` và tra quyết định tiếp tục vòng sửa cho `resume`; `persistSignal` cập nhật row và phát event. Root lock nối tuần tự completion với việc thêm con. Khi finalize vòng sửa thứ năm, lý do `repair_limit` được giữ nguyên.
+ 5. `server/src/tickets/deploy.ts` → `deployTicketFingerprint`, `readDeployAuthorization` chứng minh provenance của từng hành động deploy. Owner tạo request deploy chỉ cấp quyền cho chính request đó, không cấp quyền thừa kế cho hậu duệ. Máy không tạo request deploy gốc và mọi deploy child do máy tạo phải có approval owner khớp SHA-256 canonical của toàn bộ input có ý nghĩa, gắn đúng root; đổi title, target hoặc body đều bị từ chối. Quyết định được gắn vào một ticket. Gate thực thi Task 5 phải đọc cùng hàm này trước khi chạy deploy.
+ 6. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; deploy root do owner tạo tự có quyền, mọi deploy child cần approval đúng ticket kể cả khi owner trực tiếp tạo child. Bước/công việc khác đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge.
+ 7. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 lưu cycle đang chờ duyệt và thời điểm, lý do `repair_limit`, gọi authority lưu ý định/command dừng. Nếu host đã xác nhận dừng, authority có thể finalize ngay thành `needs_input`; bản ghi repair chỉ cập nhật counter/reason/revision, không ghi đè status bằng snapshot `running` cũ. `owner_answer` phải cùng cycle, ghi sau thất bại; `resume` tiêu quyết định một lần dưới khóa root/step, giữ counter 5.
+ 8. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
+ 
+ 8. `server/src/tickets/authorization.ts` → `authorizeTicketMutation`: Mọi ticket mutation create/dependencies/signals/comments/decisions/repair-results/docs-links có authorize(tx) trước cached replay; helper khóa root/ticket/project rồi kiểm tra machine hiện hành dưới FOR SHARE. Rebind/thu hồi commit trước guard khiến replay scoped 404. App nối execution authority và docs source/completion readers. HTTP acceptance kiểm tra mọi family, race hai pool và lần repair thứ năm giữ guard đến physical stop.
+ 
+-9. `server/src/tickets/service.ts` → `assistantCreateTicket(tx,actor,proof,input)` là entry riêng dành cho machine Trợ lý, dùng optional authority bất biến tại factory. Generic ACL giữ nguyên. Entry chụp input/actor/proof trước await, kiểm descriptor/prototype của cả object và array mà không chạy getter/iterator, rồi SHA-256 canonical tuple `['crew-v2:orchestration-target:1','create_ticket',exactSubmittedCreateTicket]` trước default và pin kế thừa. UUID identity được canonicalize riêng; payload/hash giữ spelling gốc. Khóa root → parent → project trước verify; token runtime private, cùng Tx/actor/action/hash/root/project và chỉ tiêu một lần. Shared create core giữ hierarchy/pin/closed/deploy và audit actorA. Thiếu authority trả503; owner không dùng entry này. Production resolver vẫn deny, chưa nối current input/fence/routing decision; thành công test qua trust port riêng không chứng nhận production admission.
++9. `server/src/tickets/service.ts` → `assistantCreateTicket(tx,actor,proof,input)` là entry riêng dành cho machine Trợ lý, dùng optional authority bất biến tại factory. Generic ACL giữ nguyên. Entry chụp input/actor/proof trước await, kiểm descriptor/prototype của cả object và array mà không chạy getter/iterator, rồi SHA-256 canonical tuple `['crew-v2:orchestration-target:1','create_ticket',exactSubmittedCreateTicket]` trước default và pin kế thừa. UUID identity được canonicalize riêng; payload/hash giữ spelling gốc. Khóa root → parent → project trước verify; token runtime private, cùng Tx/actor/action/hash/root/project và chỉ tiêu một lần. Shared create core giữ hierarchy/pin/closed/deploy và audit actorA. Thiếu authority trả503; owner không dùng entry này. Authority thật là `ProjectOrchestrationPort` của `server-assistant` (resolver persisted + membership/routing decision); app production chưa inject nên các entry này vẫn trả503.
+ 
+-Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Prepare kiểm tập target không rỗng bằng guard tường minh trước khi đọc root/project.
++Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Prepare kiểm tập target không rỗng bằng guard tường minh trước khi đọc root/project. Mọi lỗi lệch phạm vi trong prefix và persist dùng chung `invalidScope` (403 `ORCHESTRATION_SCOPE_INVALID`).
+ 
+-10. `server/src/tickets/service.ts` → `assistantSignalTicket(tx,actor,proof,ticketId,signal,expectedRevision)` là entry scoped cho tín hiệu của Trợ lý, chỉ nhận `dependencies_ready` hoặc `wait_owner`; `resume`, `start`, `passed` và mọi giá trị khác bị 400 `VALIDATION` trước khi đọc DB. Entry chụp actor/proof/payload trước await, hash tuple `['crew-v2:orchestration-target:1','signal',{ticketId,signal,expectedRevision}]` theo đúng spelling gửi lên, rồi dùng lõi `prepareSignal` không áp generic ACL máy (authority quyết định), khóa root → ticket → project trước verify. Thiếu authority trả503. `wait_owner` trên ticket `running` luôn bị 409 `EXECUTION_PROOF_REQUIRED` trước verify, kể cả khi app có execution authority: entry không gọi `requestTerminalIntent`, không tạo command, không đổi `attempts.terminal_intent` và không dùng owner tổng hợp. `wait_owner` trên ticket chưa chạy chuyển `needs_input` với `owner_input` (giữ `repair_limit` nếu đang có) và không bao giờ tiêu quyết định tiếp tục vòng sửa. Sau verify, token private chỉ cho `persistSignal` ghi một lần cho đúng Tx/operation/ticket/signal. Generic route `/v2/tickets/:id/signals` vẫn giữ ACL máy bound.
++10. `server/src/tickets/service.ts` → `assistantSignalTicket(tx,actor,proof,ticketId,signal,expectedRevision)` là entry scoped cho tín hiệu của Trợ lý, chỉ nhận `dependencies_ready` hoặc `wait_owner`; `resume`, `start`, `passed` và mọi giá trị khác bị 400 `VALIDATION` trước khi đọc DB. Entry chụp actor/proof/payload trước await, hash tuple `['crew-v2:orchestration-target:1','signal',{ticketId,signal,expectedRevision}]` theo đúng spelling gửi lên, rồi đi qua cùng prefix `access.prepare` của decision/dependency: không áp generic ACL máy (authority quyết định), khóa root → ticket → project và kiểm lại dưới khóa rằng ticket và root cùng gốc, cùng dự án (lệch thì 403 `ORCHESTRATION_SCOPE_INVALID` trước verify). Sau đó lõi `checkSignal` dùng chung với generic so revision và kiểm predecessor. Thiếu authority trả503. `wait_owner` trên ticket `running` luôn bị 409 `EXECUTION_PROOF_REQUIRED` trước verify, kể cả khi app có execution authority: entry không gọi `requestTerminalIntent`, không tạo command, không đổi `attempts.terminal_intent` và không dùng owner tổng hợp. `wait_owner` trên ticket chưa chạy chuyển `needs_input` với `owner_input` (giữ `repair_limit` nếu đang có) và không bao giờ tiêu quyết định tiếp tục vòng sửa. `access.authorize` gọi verify một lần; `persistSignal` tiêu scope bằng `consumeAssistantScope` một lần cho đúng Tx/operation/ticket/signal. Generic route `/v2/tickets/:id/signals` vẫn giữ ACL máy bound.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/004_tickets.sql` | Bảng ticket, DAG, timeline, evidence, repair và liên kết docs |
+ | `server/migrations/010_attachment_comment_text.sql` | Forward-only text0..32768 cho attachment-only comment; giữ NOT NULL và trigger009 |
+ | `server/src/tickets/contracts.ts` | Hợp đồng ticket và callback authority/reader |
+ | `server/src/tickets/service.ts` | Tạo ticket, scope, tín hiệu và factory |
+ | `server/src/tickets/dependencies.ts` | Cạnh phụ thuộc và sơ đồ |
+@@ -64,11 +64,11 @@ Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/a
+ ## Flow liên quan
+ 
+ `server-platform` cấp DB và transaction; `server-journal` cấp mutation idempotent và event; `server-identity` cấp scope máy/dự án. Task 5 nối execution authority để kiểm chứng attempt/fence và hoàn tất ý định dừng; Task 7 nối reader snapshot docs đã xác minh. Hai dependency này mặc định chặn khi chưa được nối.
+ 
+ ## Tests
+ 
+ `pnpm --dir v2/server test` chạy PostgreSQL container riêng với DB prefix `crew_v2_test_`. Các bài test kiểm tra cây ba cấp, cạnh đối nghịch đồng thời, completion tranh chấp với tạo con, trạng thái dependency sau khi ready, deploy child dưới owner root vẫn cần approval đúng title/body, bằng chứng code/research/docs, owner answer theo cycle, 5 vòng repair, stale fence, schema event và route từ chối field dư. `server/test/attempts.test.ts` còn kiểm tra lần sửa thứ năm đến sau stop proof: ticket giữ `needs_input`, `repair_limit` và revision tăng. `pnpm --dir v2/server typecheck` và Biome kiểm tra kiểu/định dạng.
+ 
+ Task05/2a chỉ cung cấp producer, chưa consumer selection/submission. Actual PostgreSQL10 regression dùng StageServices tạo original ready thật và test-owned linker; linker này không là implementation Task2b. Trigger009 là writer input revision duy nhất, producer không tăng lần hai. Baseline004 comments_text_check yêu cầu text dài ít nhất1; actual prefix9 đã bắt23514 ở empty INSERT trước linker. Theo ruling PM, migration010 chỉ thay constraint bằng text0..32768, giữ NOT NULL/maximum/trigger009 và bytes001–009. Forward9→10, prefix checksum, existing comments, backup/restore và drift phải được kiểm trước producer review. Legacy API vẫn reject empty; không suy requested IDs thành ready originals hoặc thay empty bằng whitespace. Source kiểm thử ghim f58:v2 + ba FIX1 file được review tại ec02ac0 và own producer/010, không import source model/gateway đang sửa. Consumer Task2b chỉ được chạy sau independent review cả producer và010.
+ 
+-B1 có semantic RED39 (12 pass/27 fail), FIX1 targeted RED8 (1 pass/7 fail) rồi một final actual run63/63 (47 scoped B1 +16 existing create/deploy/dependencies), không cộng các lượt. Scoped strict/import closure dùng external skipLibCheck và Biome exit0; không suy full-server typecheck đạt. Independent full review và scoped FIX1 re-review khép UUID case/array accessor findings. B2–B5, HTTP assistant actions và positive persisted authority vẫn pending.
++B1 có semantic RED39 (12 pass/27 fail), FIX1 targeted RED8 (1 pass/7 fail) rồi một final actual run63/63 (47 scoped B1 +16 existing create/deploy/dependencies), không cộng các lượt. Scoped strict/import closure dùng external skipLibCheck và Biome exit0; không suy full-server typecheck đạt. Independent full review và scoped FIX1 re-review khép UUID case/array accessor findings. HTTP assistant actions chưa được mở.
+diff --git a/v2/server/src/assistant/authority.ts b/v2/server/src/assistant/authority.ts
+index d3c90b6..20dad1a 100644
+--- a/v2/server/src/assistant/authority.ts
++++ b/v2/server/src/assistant/authority.ts
+@@ -1,14 +1,14 @@
+ import { randomUUID } from 'node:crypto';
+ import type { Actor, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+-import type { AssistantConfig, AssistantPolicy, OrchestrationProof } from './contracts.ts';
++import type { AssistantConfig, AssistantPolicy, OrchestrationProof, Sha256 } from './contracts.ts';
+ import { assertAssistantId, assertCurrentTurnFence, assertTurnFence } from './store.ts';
+ 
+ export type AssistantConfigChange = {
+   expectedRevision: number;
+   machineId: Id;
+   preferred: null;
+   policy: AssistantPolicy;
+ };
+ 
+ function ownerOnly(actor: Actor): void {
+@@ -99,31 +99,101 @@ export async function setAssistantConfig(
+     await tx`insert into assistant_designations(id,owner_id,machine_id,revision)
+       values(${designationId},'owner',${input.machineId},${revision})`;
+   }
+   await tx`update assistant_config set designation_id=${designationId},revision=revision+1,
+     preferred_model=null,policy=${tx.json(input.policy)} where singleton=true`;
+   return readAssistantConfig(tx, actor);
+ }
+ 
+ /** Internal T3 seam; callers lock any root/tickets/projects before resolving authority. */
+ export type PersistedAssistantActorResolver = (tx: Tx, proof: OrchestrationProof) => Promise<Actor>;
++export type PersistedAssistantActorResolverDependencies = {
++  /** Build hash of the routing verifier pinned at assembly; receipts from any other verifier deny. */
++  verifierBuildSha256: Sha256;
++};
++
++const admissionDenied = () =>
++  new ApiError('ASSISTANT_ADMISSION_DENIED', 403, 'Admission Trợ lý không hợp lệ');
+ 
+ /**
+- * Slice A supplies current-identity diagnostics, never admission authority.
+- * No injected boolean/callback can turn relational fixture receipts into permission.
+- * A measured input/session authority must be reviewed before a positive implementation.
++ * Positive Actor only from persisted rows in this deployment: current fence and
++ * scope, the turn's admitted read session, and a current PASS policy receipt
++ * issued by the pinned verifier. A turn without admission stays 503; every
++ * mismatch is 403 with no fallback. Expiry is measured by `clock_timestamp()`
++ * after the authority rows are locked, never by the transaction start time.
+  */
+-export function createPersistedAssistantActorResolver(): PersistedAssistantActorResolver {
++export function createPersistedAssistantActorResolver(
++  deps: PersistedAssistantActorResolverDependencies,
++): PersistedAssistantActorResolver {
++  const verifierBuildSha256: unknown = deps?.verifierBuildSha256;
++  if (typeof verifierBuildSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(verifierBuildSha256))
++    throw new Error('ASSISTANT_VERIFIER_PIN_INVALID');
+   return async (tx, proof) => {
+     assertTurnFence(proof.fence);
+     assertAssistantId(proof.scopeId);
+     assertAssistantId(proof.operationId);
+-    const [scope] = await tx`select turn_id from assistant_scopes where id=${proof.scopeId}`;
+-    if (!scope || scope.turn_id !== proof.fence.turnId)
++    const fence = { ...proof.fence };
++    const scopeId = proof.scopeId;
++    const [scope] = await tx`select turn_id from assistant_scopes where id=${scopeId}`;
++    if (!scope || scope.turn_id !== fence.turnId)
+       throw new ApiError('ASSISTANT_SCOPE_NOT_FOUND', 404, 'Không tìm thấy phạm vi Trợ lý');
+-    await assertCurrentTurnFence(tx, proof.fence, 'claim');
+-    const [current] = await tx`select id from assistant_scopes where id=${proof.scopeId}
+-      and turn_id=${proof.fence.turnId} and expires_at>clock_timestamp()`;
++    // Locks guard, machine, config, designation, turn and monitor, then rechecks the exact fence.
++    await assertCurrentTurnFence(tx, fence, 'claim');
++    const [current] = await tx`select input_snapshot_id from assistant_scopes where id=${scopeId}
++      and turn_id=${fence.turnId} and expires_at>clock_timestamp()`;
+     if (!current) throw new ApiError('ASSISTANT_SCOPE_STALE', 409, 'Phạm vi Trợ lý đã hết hạn');
+-    throw new ApiError('ASSISTANT_ADMISSION_NOT_CONFIGURED', 503, 'Chưa cấu hình admission Trợ lý');
++    const [turn] = await tx`select t.admission_id,t.read_session_id,t.model_selection_id,d.machine_id
++      from assistant_turns t join assistant_designations d on d.id=t.designation_id where t.id=${fence.turnId}`;
++    if (!turn) throw new ApiError('ASSISTANT_TURN_STALE', 409, 'Lượt Trợ lý không còn quyền hiện hành');
++    if (turn.admission_id === null)
++      throw new ApiError('ASSISTANT_ADMISSION_NOT_CONFIGURED', 503, 'Chưa cấu hình admission Trợ lý');
++    const [session] =
++      await tx`select id,state,machine_id,process_instance_id,designation_revision,model_selection_id,
++      policy_receipt_id,snapshot_id from attachment_assistant_sessions where admission_id=${turn.admission_id} for share`;
++    const [selection] = session
++      ? await tx`select id,policy_receipt_id,probe_receipt_id from assistant_model_selections
++        where id=${turn.model_selection_id} and turn_id=${fence.turnId} for share`
++      : [];
++    const [receipt] = selection
++      ? await tx`select status,revoked_at,deployment_id,verifier_build_sha256,machine_id
++        from assistant_policy_receipts where id=${selection.policy_receipt_id} for share`
++      : [];
++    const [capability] = receipt
++      ? await tx`select id from routing_capability_receipts where id=${selection?.probe_receipt_id}
++        and certification_receipt_id=${selection?.policy_receipt_id} for share`
++      : [];
++    // Every expiry is measured after the rows above are locked.
++    const [clock] = session
++      ? await tx`select
++          (select expires_at>clock_timestamp() from attachment_assistant_sessions where id=${session.id}) as session_current,
++          (select expires_at>clock_timestamp() from assistant_policy_receipts where id=${selection?.policy_receipt_id ?? null}) as receipt_current,
++          (select expires_at>clock_timestamp() from routing_capability_receipts where id=${capability?.id ?? null}) as capability_current,
++          (select deployment_id from assistant_config where singleton=true) as deployment_id`
++      : [];
++    if (
++      !session ||
++      !selection ||
++      !receipt ||
++      !capability ||
++      !clock ||
++      session.id !== turn.read_session_id ||
++      !['reserved', 'running'].includes(String(session.state)) ||
++      clock.session_current !== true ||
++      session.machine_id !== turn.machine_id ||
++      session.process_instance_id !== fence.processInstanceId ||
++      Number(session.designation_revision) !== fence.designationRevision ||
++      session.model_selection_id !== selection.id ||
++      session.policy_receipt_id !== selection.policy_receipt_id ||
++      session.snapshot_id !== current.input_snapshot_id ||
++      receipt.status !== 'PASS' ||
++      receipt.revoked_at !== null ||
++      clock.receipt_current !== true ||
++      clock.capability_current !== true ||
++      receipt.deployment_id !== clock.deployment_id ||
++      receipt.verifier_build_sha256 !== verifierBuildSha256 ||
++      receipt.machine_id !== turn.machine_id
++    )
++      throw admissionDenied();
++    const actor: Actor = { kind: 'machine', id: String(turn.machine_id) };
++    return Object.freeze(actor);
+   };
+ }
+diff --git a/v2/server/src/assistant/orchestration.ts b/v2/server/src/assistant/orchestration.ts
+new file mode 100644
+index 0000000..bc1064f
+--- /dev/null
++++ b/v2/server/src/assistant/orchestration.ts
+@@ -0,0 +1,301 @@
++import { digest } from '../attachments/submissions.ts';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { Actor, Id, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { immutableSnapshot, invalidScope, orchestrationTargetHash } from '../tickets/assistant-access.ts';
++import type { CreateTicket, DecisionInput, TicketServiceDependencies } from '../tickets/contracts.ts';
++import { createTicketServices } from '../tickets/service.ts';
++import type { PersistedAssistantActorResolver } from './authority.ts';
++import type {
++  OrchestrationAction,
++  OrchestrationProof,
++  ProjectOrchestrationAuthority,
++  ProjectOrchestrationPort,
++} from './contracts.ts';
++
++type AssistantSignal = 'dependencies_ready' | 'wait_owner';
++type Target =
++  | { action: 'create_ticket'; payload: CreateTicket }
++  | { action: 'decision'; payload: { ticketId: Id; input: DecisionInput } }
++  | { action: 'dependency'; payload: { ticketId: Id; predecessorId: Id; expectedRevision: number } }
++  | { action: 'signal'; payload: { ticketId: Id; signal: AssistantSignal; expectedRevision: number } };
++type Binding = {
++  target: Target;
++  targetSha256: string;
++  actor: Actor;
++  proof: OrchestrationProof;
++  used: boolean;
++};
++type ScopeRow = {
++  rootTicketId: Id | null;
++  messageId: Id | null;
++  projectId: Id | null;
++  inputSnapshotId: Id;
++};
++
++const notFound = () => new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++const routingRequired = () =>
++  new ApiError('ORCHESTRATION_ROUTING_DECISION_REQUIRED', 403, 'Thiếu quyết định định tuyến cho yêu cầu mới');
++const nullableId = (value: unknown): Id | null => (value === null ? null : String(value));
++
++function sameIdentity(binding: Binding, actor: Actor, proof: OrchestrationProof): boolean {
++  try {
++    return (
++      canonicalJson(actor) === canonicalJson(binding.actor) &&
++      canonicalJson(proof) === canonicalJson(binding.proof)
++    );
++  } catch {
++    return false;
++  }
++}
++
++// A new root exists only through the router's persisted routing decision written
++// in this same transaction for this exact operation, scope and CreateTicket hash.
++async function verifyNewRoot(
++  tx: Tx,
++  scope: ScopeRow,
++  proof: OrchestrationProof,
++  actor: Actor,
++  targetSha256: string,
++): Promise<void> {
++  if (!scope.messageId) throw routingRequired();
++  const decisions = await tx`select d.*,m.input_revision as current_revision
++    from attachment_message_decisions d join attachment_messages m on m.id=d.message_id
++    where d.message_id=${scope.messageId} and d.kind='routing' and d.xmin=pg_current_xact_id()::xid
++    order by d.id`;
++  const body = canonicalJson({
++    operationId: proof.operationId,
++    scopeId: proof.scopeId,
++    ticketSha256: targetSha256,
++  });
++  const matched = decisions.some((row) => {
++    const stored = {
++      messageId: String(row.message_id),
++      inputRevision: String(row.input_revision),
++      snapshotId: nullableId(row.snapshot_id),
++      grantId: nullableId(row.grant_id),
++      receiptId: nullableId(row.receipt_id),
++      kind: 'routing',
++      body: row.body,
++      actor,
++    };
++    return (
++      canonicalJson(row.body) === body &&
++      row.snapshot_id === scope.inputSnapshotId &&
++      String(row.input_revision) === String(row.current_revision) &&
++      row.actor_kind === actor.kind &&
++      row.actor_id === actor.id &&
++      digest(stored) === row.sha256
++    );
++  });
++  if (!matched) throw routingRequired();
++}
++
++// Every existing target ticket must sit in the scope's exact root (and project).
++// Callers already hold the root, ticket and project locks from the shared prefix.
++async function verifyMembership(tx: Tx, scope: ScopeRow, ticketIds: readonly Id[]): Promise<void> {
++  if (!scope.rootTicketId) throw notFound();
++  for (const id of ticketIds) {
++    const [row] = await tx`select root_id,project_id from tickets where id=${id.toLowerCase()}`;
++    if (
++      !row ||
++      row.root_id !== scope.rootTicketId ||
++      (scope.projectId !== null && row.project_id !== scope.projectId)
++    )
++      throw notFound();
++  }
++}
++
++async function verifyTarget(
++  tx: Tx,
++  scope: ScopeRow,
++  binding: Binding,
++  actor: Actor,
++  targetSha256: string,
++): Promise<void> {
++  const { target } = binding;
++  if (target.action === 'create_ticket') {
++    const input = target.payload;
++    if (input.parentId === null) {
++      if (scope.projectId !== null && input.projectId.toLowerCase() !== scope.projectId) throw notFound();
++      return verifyNewRoot(tx, scope, binding.proof, actor, targetSha256);
++    }
++    return verifyMembership(tx, scope, [input.parentId]);
++  }
++  if (target.action === 'dependency')
++    return verifyMembership(tx, scope, [target.payload.ticketId, target.payload.predecessorId]);
++  return verifyMembership(tx, scope, [target.payload.ticketId]);
++}
++
++function persistedAuthority(resolver: PersistedAssistantActorResolver) {
++  const resolve = resolver;
++  const bindings = new WeakMap<Tx, Binding>();
++  const authority: ProjectOrchestrationAuthority = Object.freeze({
++    async verify(
++      tx: Tx,
++      actor: Actor,
++      proof: OrchestrationProof,
++      action: OrchestrationAction,
++      targetSha256: string,
++    ): Promise<void> {
++      const binding = bindings.get(tx);
++      if (
++        !binding ||
++        binding.used ||
++        binding.target.action !== action ||
++        binding.targetSha256 !== targetSha256 ||
++        !sameIdentity(binding, actor, proof)
++      )
++        throw invalidScope();
++      binding.used = true;
++      const resolved = await resolve(tx, binding.proof);
++      if (binding.actor.kind !== 'machine' || binding.actor.id !== resolved.id)
++        throw new ApiError('ORCHESTRATION_ACTOR_MISMATCH', 403, 'Máy gọi không phải máy Trợ lý hiện hành');
++      const [scope] = await tx`select root_ticket_id,message_id,project_id,actions,input_snapshot_id
++        from assistant_scopes where id=${binding.proof.scopeId}`;
++      if (!scope) throw new ApiError('ASSISTANT_SCOPE_NOT_FOUND', 404, 'Không tìm thấy phạm vi Trợ lý');
++      if (!Array.isArray(scope.actions) || !scope.actions.includes(action))
++        throw new ApiError('ORCHESTRATION_ACTION_NOT_IN_SCOPE', 403, 'Hành động ngoài phạm vi Trợ lý');
++      const [operation] = await tx`select turn_id,state,input_snapshot_id from assistant_tool_operations
++        where operation_id=${binding.proof.operationId} for update`;
++      if (!operation || operation.turn_id !== binding.proof.fence.turnId || operation.state !== 'pending')
++        throw new ApiError('ASSISTANT_OPERATION_NOT_FOUND', 404, 'Không tìm thấy thao tác Trợ lý');
++      if (operation.input_snapshot_id !== scope.input_snapshot_id)
++        throw new ApiError('ASSISTANT_OPERATION_STALE', 409, 'Thao tác Trợ lý không cùng input của phạm vi');
++      await verifyTarget(
++        tx,
++        {
++          rootTicketId: nullableId(scope.root_ticket_id),
++          messageId: nullableId(scope.message_id),
++          projectId: nullableId(scope.project_id),
++          inputSnapshotId: String(scope.input_snapshot_id),
++        },
++        binding,
++        resolved,
++        targetSha256,
++      );
++    },
++  });
++  // Records the port's own captured call so verify can check target membership;
++  // it grants nothing: every permission still comes from persisted rows above.
++  async function withTarget<R>(
++    tx: Tx,
++    actor: Actor,
++    proof: OrchestrationProof,
++    target: Target,
++    run: () => Promise<R>,
++  ): Promise<R> {
++    if (bindings.has(tx)) throw invalidScope();
++    bindings.set(tx, {
++      target,
++      targetSha256: orchestrationTargetHash(target.action, target.payload),
++      actor,
++      proof,
++      used: false,
++    });
++    try {
++      return await run();
++    } finally {
++      bindings.delete(tx);
++    }
++  }
++  return { authority, withTarget };
++}
++
++/**
++ * Persisted A2 authority. Membership needs the exact captured target, so only the
++ * port of this module can supply it; a bare verify call always fails closed.
++ */
++export function createPersistedOrchestrationAuthority(
++  resolver: PersistedAssistantActorResolver,
++): ProjectOrchestrationAuthority {
++  return persistedAuthority(resolver).authority;
++}
++
++export type ProjectOrchestrationPortDependencies = {
++  tickets?: Omit<TicketServiceDependencies, 'assistant'>;
++  resolver: PersistedAssistantActorResolver;
++};
++
++/**
++ * Real G1 port over the scoped ticket writers. Each call snapshots its arguments
++ * synchronously, then the writer locks root → sorted tickets → project before the
++ * persisted authority verifies. `command` stays unreleased until execution owns it.
++ */
++export function createProjectOrchestrationPort(
++  deps: ProjectOrchestrationPortDependencies,
++): ProjectOrchestrationPort {
++  const { authority, withTarget } = persistedAuthority(deps.resolver);
++  const services = createTicketServices({ ...deps.tickets, assistant: authority });
++  return Object.freeze({
++    async createTicket(tx: Tx, actor: Actor, proof: OrchestrationProof, input: CreateTicket) {
++      const call = immutableSnapshot({ actor, proof, input });
++      return withTarget(tx, call.actor, call.proof, { action: 'create_ticket', payload: call.input }, () =>
++        services.assistantCreateTicket(tx, call.actor, call.proof, call.input),
++      );
++    },
++    async decision(tx: Tx, actor: Actor, proof: OrchestrationProof, ticketId: Id, input: DecisionInput) {
++      const call = immutableSnapshot({ actor, proof, ticketId, input });
++      return withTarget(
++        tx,
++        call.actor,
++        call.proof,
++        { action: 'decision', payload: { ticketId: call.ticketId, input: call.input } },
++        () => services.assistantRecordDecision(tx, call.actor, call.proof, call.ticketId, call.input),
++      );
++    },
++    async dependency(
++      tx: Tx,
++      actor: Actor,
++      proof: OrchestrationProof,
++      ticketId: Id,
++      predecessorId: Id,
++      expectedRevision: number,
++    ) {
++      const call = immutableSnapshot({ actor, proof, ticketId, predecessorId, expectedRevision });
++      const payload = {
++        ticketId: call.ticketId,
++        predecessorId: call.predecessorId,
++        expectedRevision: call.expectedRevision,
++      };
++      return withTarget(tx, call.actor, call.proof, { action: 'dependency', payload }, () =>
++        services.assistantAddDependency(
++          tx,
++          call.actor,
++          call.proof,
++          payload.ticketId,
++          payload.predecessorId,
++          payload.expectedRevision,
++        ),
++      );
++    },
++    async command(): Promise<never> {
++      throw new ApiError('ORCHESTRATION_COMMAND_NOT_RELEASED', 503, 'Lệnh điều phối chưa được phát hành');
++    },
++    async signal(
++      tx: Tx,
++      actor: Actor,
++      proof: OrchestrationProof,
++      ticketId: Id,
++      signal: AssistantSignal,
++      expectedRevision: number,
++    ) {
++      const call = immutableSnapshot({ actor, proof, ticketId, signal, expectedRevision });
++      const payload = {
++        ticketId: call.ticketId,
++        signal: call.signal,
++        expectedRevision: call.expectedRevision,
++      };
++      return withTarget(tx, call.actor, call.proof, { action: 'signal', payload }, () =>
++        services.assistantSignalTicket(
++          tx,
++          call.actor,
++          call.proof,
++          payload.ticketId,
++          payload.signal,
++          payload.expectedRevision,
++        ),
++      );
++    },
++  });
++}
+diff --git a/v2/server/src/tickets/assistant-access.ts b/v2/server/src/tickets/assistant-access.ts
+index 0da8910..1062c95 100644
+--- a/v2/server/src/tickets/assistant-access.ts
++++ b/v2/server/src/tickets/assistant-access.ts
+@@ -134,21 +134,21 @@ export function createAssistantAccess(authority?: ProjectOrchestrationAuthority)
+   return {
+     async prepare<T>(
+       tx: Tx,
+       operation: CapturedAssistantOperation<T>,
+       ticketIds: readonly Id[],
+     ): Promise<PreparedAssistantTarget<T>> {
+       if (!captures.has(operation)) throw invalidScope();
+       if (!verify) throw new ApiError('ORCHESTRATION_UNAVAILABLE', 503, 'Chưa có nguồn xác minh điều phối');
+       const payload = operation.payload as { ticketId?: unknown; predecessorId?: unknown };
+       const submitted =
+-        operation.action === 'decision'
++        operation.action === 'decision' || operation.action === 'signal'
+           ? [payload.ticketId]
+           : operation.action === 'dependency'
+             ? [payload.ticketId, payload.predecessorId]
+             : [];
+       if (!submitted.length || submitted.some((id) => typeof id !== 'string' || !uuid.test(id)))
+         throw new ApiError('VALIDATION', 400, 'Định danh điều phối không hợp lệ');
+       const ids = [...new Set((submitted as string[]).map((id) => id.toLowerCase()))].sort();
+       if (
+         ticketIds.some((id) => typeof id !== 'string' || !uuid.test(id)) ||
+         canonicalJson(ids) !== canonicalJson([...new Set(ticketIds.map((id) => id.toLowerCase()))].sort())
+diff --git a/v2/server/src/tickets/decisions.ts b/v2/server/src/tickets/decisions.ts
+index 1b63445..797bd0c 100644
+--- a/v2/server/src/tickets/decisions.ts
++++ b/v2/server/src/tickets/decisions.ts
+@@ -5,33 +5,33 @@ import type { Actor, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import type {
+   AssistantTargetTicket,
+   PreparedAssistantTarget,
+   VerifiedAssistantScope,
+ } from './assistant-access.ts';
+ import {
+   captureAssistantOperation,
+   consumeAssistantScope,
+   createAssistantAccess,
++  invalidScope,
++  uuid,
+ } from './assistant-access.ts';
+ import type {
+   AppendAttachmentComment,
+   Comment,
+   CommentAttachmentLinker,
+   DecisionInput,
+   DocsSourceReader,
+   SourceRef,
+ } from './contracts.ts';
+ import { requireTicket, safeTicketJson } from './service.ts';
+ 
+-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+-
+ export async function appendComment(tx: Tx, ticketId: Id, text: string, actor: Actor): Promise<Comment> {
+   if (typeof text !== 'string' || text.length < 1 || text.length > 32768)
+     throw new ApiError('VALIDATION', 400, 'Bình luận không hợp lệ');
+   const ticket = await requireTicket(tx, ticketId, actor);
+   const id = randomUUID();
+   const [row] = await tx`insert into comments(id,ticket_id,actor_kind,actor_id,text)
+     values(${id},${ticketId},${actor.kind},${actor.id},${text}) returning created_at`;
+   if (!row) throw new Error('COMMENT_INSERT_FAILED');
+   await appendEvent(tx, {
+     type: 'comment.created',
+@@ -177,21 +177,21 @@ async function persistDecision(
+   if (permission) {
+     const operation = permission.prepared.operation;
+     if (
+       operation.action !== 'decision' ||
+       operation.actor !== actor ||
+       operation.payload.input !== input ||
+       operation.payload.ticketId !== ticketId ||
+       !permission.prepared.tickets.includes(ticket) ||
+       ticket.id !== ticketId.toLowerCase()
+     )
+-      throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
++      throw invalidScope();
+     consumeAssistantScope(tx, permission.scope, operation, permission.prepared);
+   }
+   const id = randomUUID();
+   await tx`insert into decisions(id,ticket_id,actor_kind,actor_id,kind,content,rationale,sources,scope,created_at)
+     values(${id},${ticketId},${actor.kind},${actor.id},${input.kind},${input.content},${input.rationale},
+       ${tx.json(input.sources)},${tx.json(input.scope as never)},clock_timestamp())`;
+   await appendEvent(tx, {
+     type: 'decision.created',
+     projectId: ticket.projectId,
+     ticketId,
+@@ -228,16 +228,16 @@ export function createAssistantDecisionRecorder(
+     tx: Tx,
+     actor: Actor,
+     proof: OrchestrationProof,
+     ticketId: Id,
+     input: DecisionInput,
+   ): Promise<Id> => {
+     const operation = captureAssistantOperation(actor, proof, 'decision', { ticketId, input });
+     const payload = operation.payload;
+     const prepared = await access.prepare(tx, operation, [payload.ticketId]);
+     const [ticket] = prepared.tickets;
+-    if (!ticket) throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
++    if (!ticket) throw invalidScope();
+     await prepareDecision(tx, ticket, payload.input, operation.actor, readSource);
+     const scope = await access.authorize(tx, prepared);
+     return persistDecision(tx, ticket, payload.ticketId, payload.input, operation.actor, { prepared, scope });
+   };
+ }
+diff --git a/v2/server/src/tickets/dependencies.ts b/v2/server/src/tickets/dependencies.ts
+index 8f56785..919eaf0 100644
+--- a/v2/server/src/tickets/dependencies.ts
++++ b/v2/server/src/tickets/dependencies.ts
+@@ -1,19 +1,20 @@
+ import type { OrchestrationProof, ProjectOrchestrationAuthority } from '../assistant/contracts.ts';
+ import { appendEvent } from '../journal/events.ts';
+ import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import type { PreparedAssistantTarget, VerifiedAssistantScope } from './assistant-access.ts';
+ import {
+   captureAssistantOperation,
+   consumeAssistantScope,
+   createAssistantAccess,
++  invalidScope,
+ } from './assistant-access.ts';
+ import type { Dependency, RepairLink, Ticket } from './contracts.ts';
+ import { mapTicket, requireTicket } from './service.ts';
+ 
+ type DependencyPayload = { ticketId: Id; predecessorId: Id; expectedRevision: number };
+ type DependencyState = {
+   root: { status: unknown } | undefined;
+   ticket: { revision: unknown; status: unknown } | undefined;
+   projectId: Id;
+ };
+@@ -78,21 +79,21 @@ async function persistDependency(
+   permission?: DependencyPermission,
+ ): Promise<Dependency> {
+   if (permission) {
+     const operation = permission.prepared.operation;
+     if (
+       operation.action !== 'dependency' ||
+       operation.payload.ticketId !== ticketId ||
+       operation.payload.predecessorId !== predecessorId ||
+       permission.prepared.projectId !== projectId
+     )
+-      throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
++      throw invalidScope();
+     consumeAssistantScope(tx, permission.scope, operation, permission.prepared);
+   }
+   try {
+     await tx`insert into dependencies(ticket_id,predecessor_id) values (${ticketId},${predecessorId})`;
+   } catch (error) {
+     if (error && typeof error === 'object' && 'code' in error && error.code === '23505')
+       throw new ApiError('DEPENDENCY_EXISTS', 409, 'Phụ thuộc đã tồn tại');
+     throw error;
+   }
+   const [updated] = await tx`update tickets set revision=revision+1 where id=${ticketId} returning revision`;
+diff --git a/v2/server/src/tickets/service.ts b/v2/server/src/tickets/service.ts
+index 0cfcf00..00fce1a 100644
+--- a/v2/server/src/tickets/service.ts
++++ b/v2/server/src/tickets/service.ts
+@@ -1,21 +1,23 @@
+ import { randomUUID } from 'node:crypto';
+ import type { Signal } from '../../../src/ticket-policy.ts';
+ import { transition } from '../../../src/ticket-policy.ts';
+ import { samePin } from '../../../src/workflow-policy.ts';
+ import type { OrchestrationProof } from '../assistant/contracts.ts';
+ import { appendEvent } from '../journal/events.ts';
+ import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+-import type { CapturedAssistantOperation } from './assistant-access.ts';
++import type { PreparedAssistantTarget, VerifiedAssistantScope } from './assistant-access.ts';
+ import {
+   captureAssistantOperation,
++  consumeAssistantScope,
++  createAssistantAccess,
+   immutableSnapshot,
+   invalidScope,
+   orchestrationTargetHash,
+   uuid,
+ } from './assistant-access.ts';
+ import { readCompletionFacts } from './completion.ts';
+ import type {
+   AppendAttachmentComment,
+   CreateTicket,
+   Ticket,
+@@ -327,59 +329,63 @@ function scopedTicketCreator(verify: TicketServiceDependencies['assistant']) {
+ 
+ type AssistantSignal = 'dependencies_ready' | 'wait_owner';
+ type SignalPayload = { ticketId: Id; signal: AssistantSignal; expectedRevision: number };
+ type PreparedSignal = Readonly<{
+   tx: Tx;
+   ticket: Ticket;
+   signal: Signal;
+   continuationDecisionId: Id | null;
+ }>;
+ type SignalOutcome = { next: Ticket['status']; waitReason: string | null; mergedCommit: string | null };
++type SignalPermission = {
++  target: PreparedAssistantTarget<SignalPayload>;
++  scope: VerifiedAssistantScope<SignalPayload>;
++};
+ 
+ const executionSignals: ReadonlySet<Signal> = new Set<Signal>([
+   'start',
+   'pause_confirmed',
+   'cancel_confirmed',
+   'reconciled_stopped',
+   'passed',
+ ]);
+ const assistantSignals: ReadonlySet<unknown> = new Set<AssistantSignal>(['dependencies_ready', 'wait_owner']);
+-// Module-private: only the scoped writer, after authority verification, can mark
+-// a prepared signal as persistable for its captured operation, once.
+-const verifiedSignals = new WeakMap<PreparedSignal, CapturedAssistantOperation<SignalPayload>>();
+ 
+ function validateSignalRevision(expectedRevision: number): void {
+   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
+     throw new ApiError('VALIDATION', 400, 'Revision không hợp lệ');
+ }
+ 
+-// Shared CAS core for generic and scoped signals. Locks the root, then the target;
+-// scoped callers lock the project next and only then enter their authority.
+-// `actor` applies the generic ticket ACL; scoped callers pass null because the
+-// orchestration authority, not machine binding, decides access.
++// Generic signal prefix: locks the root, then the target under the generic ticket ACL.
+ async function prepareSignal(
+   tx: Tx,
+   ticketId: Id,
+   signal: Signal,
+   expectedRevision: number,
+-  actor: Actor | null,
++  actor: Actor,
+ ): Promise<PreparedSignal> {
+   const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
+   if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+   await tx`select id from tickets where id=${scope.root_id} for update`;
+-  let ticket: Ticket;
+-  if (actor) ticket = await requireTicket(tx, ticketId, actor, true);
+-  else {
+-    const [row] = await tx`select * from tickets where id=${ticketId} for update`;
+-    if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+-    ticket = mapTicket(row);
+-  }
++  const ticket = await requireTicket(tx, ticketId, actor, true);
++  return checkSignal(tx, ticket, signal, expectedRevision);
++}
++
++// Shared CAS core for generic and scoped signals; the caller already holds the
++// root and target locks (scoped callers also hold the project lock).
++async function checkSignal(
++  tx: Tx,
++  ticket: Ticket,
++  signal: Signal,
++  expectedRevision: number,
++): Promise<PreparedSignal> {
++  const ticketId = ticket.id;
+   if (ticket.revision !== expectedRevision)
+     throw new ApiError('REVISION_CONFLICT', 409, 'Ticket đã thay đổi');
+   if (signal === 'dependencies_ready') {
+     const [pending] = await tx`select 1 from dependencies d join tickets p on p.id=d.predecessor_id
+       where d.ticket_id=${ticketId} and p.status<>'done' limit 1`;
+     if (pending) throw new ApiError('DEPENDENCIES_NOT_READY', 409, 'Phụ thuộc chưa hoàn thành');
+   }
+   let continuationDecisionId: Id | null = null;
+   if (signal === 'resume' && ticket.repairCycles === 5) {
+     const [limit] = await tx`select repair_limit_cycle_id,repair_limit_at,repair_limit_consumed_decision_id
+@@ -412,35 +418,35 @@ function signalTransition(ticket: Ticket, signal: Signal): Pick<SignalOutcome, '
+   }
+   const waitReason =
+     next === 'needs_input' ? (ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input') : null;
+   return { next, waitReason };
+ }
+ 
+ async function persistSignal(
+   tx: Tx,
+   prepared: PreparedSignal,
+   outcome: SignalOutcome,
+-  operation?: CapturedAssistantOperation<SignalPayload>,
++  permission?: SignalPermission,
+ ): Promise<Ticket> {
+   if (prepared.tx !== tx) throw invalidScope();
+-  if (operation) {
+-    const verified = verifiedSignals.get(prepared);
+-    verifiedSignals.delete(prepared);
++  if (permission) {
++    const operation = permission.target.operation;
+     if (
+-      verified !== operation ||
+       operation.action !== 'signal' ||
+-      operation.targetSha256 !== orchestrationTargetHash('signal', operation.payload) ||
+       operation.payload.ticketId.toLowerCase() !== prepared.ticket.id ||
+       operation.payload.signal !== prepared.signal ||
++      permission.target.tickets.length !== 1 ||
++      permission.target.tickets[0]?.id !== prepared.ticket.id ||
+       prepared.continuationDecisionId !== null
+     )
+       throw invalidScope();
++    consumeAssistantScope(tx, permission.scope, operation, permission.target);
+   }
+   const { ticket, continuationDecisionId } = prepared;
+   const [row] = await tx`update tickets set status=${outcome.next}, revision=revision+1,
+     merged_commit=${outcome.mergedCommit}, wait_reason=${outcome.waitReason},
+     repair_limit_cycle_id=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_cycle_id end,
+     repair_limit_at=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_at end,
+     repair_limit_consumed_decision_id=coalesce(${continuationDecisionId}::uuid,repair_limit_consumed_decision_id)
+     where id=${ticket.id} returning *`;
+   if (!row) throw new Error('TICKET_UPDATE_FAILED');
+   await appendEvent(tx, {
+@@ -499,22 +505,23 @@ async function signalTicketWithDependencies(
+     mergedCommit = facts.mergedCommit;
+   }
+   if (signal === 'cancel_confirmed' && !internal)
+     throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận dừng tiến trình');
+   return persistSignal(tx, prepared, { next, waitReason, mergedCommit });
+ }
+ 
+ // Scoped A→B signal. Only dependencies_ready and wait_owner on a ticket that is not
+ // running: stopping a running process needs an execution terminal intent bound to
+ // this Actor, so that branch fails closed instead of borrowing an owner intent.
++// Shares the B2a prefix: root → ticket → project locks with recheck, one-use scope.
+ function createAssistantSignalWriter(authority?: TicketServiceDependencies['assistant']) {
+-  const verify = authority?.verify.bind(authority);
++  const access = createAssistantAccess(authority);
+   return async (
+     tx: Tx,
+     actor: Actor,
+     proof: OrchestrationProof,
+     ticketId: Id,
+     signal: AssistantSignal,
+     expectedRevision: number,
+   ): Promise<Ticket> => {
+     // Actor, proof and payload are captured synchronously, before any DB or producer wait.
+     const operation = captureAssistantOperation<SignalPayload>(actor, proof, 'signal', {
+@@ -523,36 +530,36 @@ function createAssistantSignalWriter(authority?: TicketServiceDependencies['assi
+       expectedRevision,
+     });
+     const payload = operation.payload;
+     if (
+       typeof payload.ticketId !== 'string' ||
+       !uuid.test(payload.ticketId) ||
+       !assistantSignals.has(payload.signal)
+     )
+       throw new ApiError('VALIDATION', 400, 'Tín hiệu điều phối không hợp lệ');
+     validateSignalRevision(payload.expectedRevision);
+-    if (!verify) throw new ApiError('ORCHESTRATION_UNAVAILABLE', 503, 'Chưa có nguồn xác minh điều phối');
+-    const prepared = await prepareSignal(
+-      tx,
+-      payload.ticketId,
+-      payload.signal,
+-      payload.expectedRevision,
+-      null,
+-    );
+-    const [project] = await tx`select id from projects where id=${prepared.ticket.projectId} for update`;
+-    if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
++    const target = await access.prepare(tx, operation, [payload.ticketId]);
++    const [locked] = target.tickets;
++    if (!locked) throw invalidScope();
++    const [row] = await tx`select * from tickets where id=${locked.id}`;
++    if (!row) throw invalidScope();
++    const prepared = await checkSignal(tx, mapTicket(row), payload.signal, payload.expectedRevision);
+     if (payload.signal === 'wait_owner' && prepared.ticket.status === 'running')
+       throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận thực thi');
+     const outcome = signalTransition(prepared.ticket, payload.signal);
+-    await verify(tx, operation.actor, operation.proof, 'signal', operation.targetSha256);
+-    verifiedSignals.set(prepared, operation);
+-    return persistSignal(tx, prepared, { ...outcome, mergedCommit: prepared.ticket.mergedCommit }, operation);
++    const scope = await access.authorize(tx, target);
++    return persistSignal(
++      tx,
++      prepared,
++      { ...outcome, mergedCommit: prepared.ticket.mergedCommit },
++      { target, scope },
++    );
+   };
+ }
+ 
+ export function createTicketServices(deps: TicketServiceDependencies = {}) {
+   const immutable: Readonly<TicketServiceDependencies> = Object.freeze({
+     docsCompletion: deps.docsCompletion,
+     docsSource: deps.docsSource,
+     commentAttachments: deps.commentAttachments,
+     execution: deps.execution ? Object.freeze({ ...deps.execution }) : undefined,
+   });
+diff --git a/v2/server/test/assistant-authority.test.ts b/v2/server/test/assistant-authority.test.ts
+index 125393a..7ff9cdf 100644
+--- a/v2/server/test/assistant-authority.test.ts
++++ b/v2/server/test/assistant-authority.test.ts
+@@ -5,21 +5,21 @@ import { setTimeout as delay } from 'node:timers/promises';
+ import Fastify from 'fastify';
+ import { createPersistedAssistantActorResolver } from '../src/assistant/authority.ts';
+ import type { AssistantPolicy } from '../src/assistant/contracts.ts';
+ import { registerAssistantRoutes } from '../src/assistant/routes.ts';
+ import { bootstrapOwner } from '../src/auth/bootstrap.ts';
+ import { createAuthenticator, registerAuthRoutes } from '../src/auth/routes.ts';
+ import { credentialResponseCodec, sha256 } from '../src/auth/session.ts';
+ import { createMutator } from '../src/journal/mutation.ts';
+ import type { Db, RouteDependencies, ServerOptions, Tx } from '../src/platform/contracts.ts';
+ import { ApiError } from '../src/platform/errors.ts';
+-import { assistantFixture } from './support/assistant.ts';
++import { assistantFixture, fixtureVerifierBuildSha256 } from './support/assistant.ts';
+ import { databaseFixture } from './support/db.ts';
+ 
+ const withDatabase = databaseFixture(11);
+ const policy: AssistantPolicy = {
+   maxJobs: 1,
+   telemetryMaxAgeMs: 15000,
+   maxLoadPerCpu: 1,
+   minMemoryBytes: '4294967296',
+   minDiskBytes: '8589934592',
+   maxTurnsPerRun: 1,
+@@ -309,21 +309,23 @@ test('assistant authority kiểm session hiện hành trước cached reply', as
+   }));
+ 
+ // Catches current SQL fixture identity being mistaken for measured admission authority.
+ test('assistant authority resolver không cấp Actor từ receipt UNVERIFIED hoặc scope hết hạn', async () =>
+   withDatabase(async (db) => {
+     const f = await assistantFixture(db);
+     try {
+       const { conversation, message } = await f.submitMessage();
+       const fence = await f.seedTurn(conversation.id, message.id);
+       const proof = { fence, scopeId: randomUUID(), operationId: randomUUID() };
+-      const resolveActor = createPersistedAssistantActorResolver();
++      const resolveActor = createPersistedAssistantActorResolver({
++        verifierBuildSha256: fixtureVerifierBuildSha256,
++      });
+       await assert.rejects(
+         db.begin((tx) => resolveActor(tx, proof)),
+         (e: unknown) => e instanceof ApiError && e.code === 'ASSISTANT_SCOPE_NOT_FOUND',
+       );
+       const snapshotId = randomUUID();
+       await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+         values(${snapshotId},'message',${message.id},1,0,'{}',${'a'.repeat(64)})`;
+       const scope = async (seconds: number) => {
+         const id = randomUUID();
+         await db`insert into assistant_scopes(id,turn_id,message_id,actions,tool_names,input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
+@@ -353,20 +355,97 @@ test('assistant authority resolver không cấp Actor từ receipt UNVERIFIED ho
+       await db`update machines set revoked_at=now() where id=(select machine_id from assistant_designations where id=${fence.designationId})`;
+       await assert.rejects(
+         db.begin((tx) => resolveActor(tx, { ...proof, scopeId: currentScope })),
+         { code: 'ASSISTANT_TURN_STALE' },
+       );
+     } finally {
+       await f.close();
+     }
+   }));
+ 
++test('assistant authority resolver requires a valid pinned verifier build at assembly', () => {
++  for (const verifierBuildSha256 of [undefined, '', 'F'.repeat(64), 'f'.repeat(63), 42])
++    assert.throws(
++      () =>
++        createPersistedAssistantActorResolver({
++          verifierBuildSha256: verifierBuildSha256 as unknown as string,
++        }),
++      /ASSISTANT_VERIFIER_PIN_INVALID/,
++    );
++});
++
++async function admittedScope(db: Db, sessionExpiresInSeconds = 300) {
++  const f = await assistantFixture(db);
++  const { conversation } = await f.submitMessage();
++  const seeded = await f.seedAdmittedTurn({
++    conversationId: conversation.id,
++    messageId: null,
++    target: { kind: 'ticket', id: f.request.id },
++    sessionExpiresInSeconds,
++  });
++  const scopeId = randomUUID();
++  await db`insert into assistant_scopes(id,turn_id,root_ticket_id,project_id,actions,tool_names,input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
++    values(${scopeId},${seeded.fence.turnId},${f.request.id},${f.project.id},'["decision"]','[]',${seeded.snapshotId},
++    ${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
++  return { f, seeded, proof: { fence: seeded.fence, scopeId, operationId: randomUUID() } };
++}
++
++// Catches a stubbed or fallback resolver: only persisted admitted rows yield the designation machine.
++test('assistant authority resolver returns the designation machine for an admitted PASS turn', async () =>
++  withDatabase(async (db) => {
++    const { f, seeded, proof } = await admittedScope(db);
++    try {
++      const actor = await db.begin((tx) =>
++        createPersistedAssistantActorResolver({ verifierBuildSha256: fixtureVerifierBuildSha256 })(tx, proof),
++      );
++      assert.deepEqual(actor, { kind: 'machine', id: seeded.machineId });
++      assert.ok(Object.isFrozen(actor));
++    } finally {
++      await f.close();
++    }
++  }));
++
++// Catches session expiry measured at transaction start (now()) instead of after the locks.
++test('assistant authority resolver measures session expiry with clock_timestamp after locking', async () =>
++  withDatabase(async (db) => {
++    const { f, proof } = await admittedScope(db, 3);
++    try {
++      const resolveActor = createPersistedAssistantActorResolver({
++        verifierBuildSha256: fixtureVerifierBuildSha256,
++      });
++      const witness = await db
++        .begin(async (tx) => {
++          const [before] =
++            await tx`select now()<expires_at as open, expires_at from attachment_assistant_sessions`;
++          await tx`select pg_sleep_until(${before?.expires_at}::timestamptz + interval '50 milliseconds')`;
++          const [after] = await tx`select now()<expires_at as start_open,
++            clock_timestamp()>=expires_at as clock_expired from attachment_assistant_sessions`;
++          let code: string | null = null;
++          try {
++            await resolveActor(tx, proof);
++          } catch (error) {
++            code = error instanceof ApiError ? error.code : 'UNEXPECTED';
++          }
++          return { open: before?.open, ...after, code };
++        })
++        .then((value) => ({ ...value }));
++      assert.deepEqual(witness, {
++        open: true,
++        start_open: true,
++        clock_expired: true,
++        code: 'ASSISTANT_ADMISSION_DENIED',
++      });
++    } finally {
++      await f.close();
++    }
++  }));
++
+ // Catches competing owners both committing, unnecessary designation churn, or unsafe live reassignment.
+ test('assistant authority concurrent CAS, idle reassignment và live turn giữ nguyên authority', async () =>
+   withDatabase(async (db) => {
+     const f = await fixture(db);
+     try {
+       const a = await f.machine(),
+         b = await f.machine();
+       const input = { expectedRevision: 1, machineId: a.machineId, preferred: null, policy };
+       const responses = await Promise.all([f.put(input), f.put({ ...input, machineId: b.machineId })]);
+       assert.deepEqual(responses.map((r) => r.statusCode).sort(), [200, 409]);
+diff --git a/v2/server/test/assistant-mutations.test.ts b/v2/server/test/assistant-mutations.test.ts
+index 5d74cf0..5ac132b 100644
+--- a/v2/server/test/assistant-mutations.test.ts
++++ b/v2/server/test/assistant-mutations.test.ts
+@@ -8,21 +8,21 @@ import type {
+   ProjectOrchestrationAuthority,
+ } from '../src/assistant/contracts.ts';
+ import { bootstrapOwner } from '../src/auth/bootstrap.ts';
+ import { provisionMachine } from '../src/auth/machine.ts';
+ import { createAuthenticator } from '../src/auth/routes.ts';
+ import { docsSourceReader } from '../src/docs/read.ts';
+ import { canonicalJson } from '../src/journal/canonical.ts';
+ import { createMutator, mutate } from '../src/journal/mutation.ts';
+ import type { Actor, Db, Tx } from '../src/platform/contracts.ts';
+ import { ApiError } from '../src/platform/errors.ts';
+-import { bindProject } from '../src/projects/service.ts';
++import { bindProject, createProject } from '../src/projects/service.ts';
+ import type { DecisionInput, DocsSourceReader, TicketServiceDependencies } from '../src/tickets/contracts.ts';
+ import { registerTicketRoutes } from '../src/tickets/routes.ts';
+ import { createTicketServices } from '../src/tickets/service.ts';
+ import { databaseFixture } from './support/db.ts';
+ import { importWithKey, legacyBundle, validDocs } from './support/docs.ts';
+ import { inputTicket, owner, ticketFixture } from './support/tickets.ts';
+ 
+ const withDatabase = databaseFixture(11);
+ const clone = <T>(value: T): T => JSON.parse(canonicalJson(value));
+ const hash = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
+@@ -1039,10 +1039,38 @@ test('B2b-i scoped signal and dependency edge serialize on the root before verif
+       release();
+     }
+     const [signalled, added] = await Promise.allSettled([signal, dependency]);
+     assert.equal(signalled.status, 'fulfilled');
+     assert.equal(added.status, 'rejected');
+     assert.equal((added as PromiseRejectedResult).reason.code, 'REVISION_CONFLICT');
+     assert.equal((await db`select * from dependencies`).length, 0);
+     const ticket = await f.read(f.a.id);
+     assert.deepEqual([ticket.status, ticket.revision], ['ready', 2]);
+   }));
++
++// Catches the scoped signal skipping the shared root/project recheck under lock:
++// a ticket whose stored project or root disagrees with its locked root is denied
++// before authority, exactly like decisions and dependencies.
++for (const drift of ['project', 'root'] as const) {
++  test(`scoped signal rechecks ${drift} under the shared prefix before authority`, async () =>
++    withDatabase(async (db) => {
++      const f = await fixture(db);
++      if (drift === 'project') {
++        const other = await f.mutation('other-project', (tx) =>
++          createProject(tx, {
++            key: `Q${randomUUID().slice(0, 8).toUpperCase()}`,
++            name: 'Other',
++            repositoryUrl: null,
++          }),
++        );
++        await db`update projects set machine_id=${f.machines.b.machine.id},checkout_path='/tmp/b2a-test-only-2',
++          binding_revision=2 where id=${other.id}`;
++        await db`update tickets set project_id=${other.id} where id=${f.a.id}`;
++      } else await db`update tickets set root_id=${f.b.id} where id=${f.a.id}`;
++      const before = await f.state();
++      await assert.rejects(() => f.run('signal', signalPayload(f.a.id, 'wait_owner')), {
++        code: 'ORCHESTRATION_SCOPE_INVALID',
++      });
++      assert.equal(f.trust.observed.length, 0);
++      assert.deepEqual(await f.state(), before);
++    }));
++}
+diff --git a/v2/server/test/assistant-orchestration-port.test.ts b/v2/server/test/assistant-orchestration-port.test.ts
+new file mode 100644
+index 0000000..58003d7
+--- /dev/null
++++ b/v2/server/test/assistant-orchestration-port.test.ts
+@@ -0,0 +1,604 @@
++import assert from 'node:assert/strict';
++import { createHash, randomUUID } from 'node:crypto';
++import test from 'node:test';
++import Fastify from 'fastify';
++import { createPersistedAssistantActorResolver } from '../src/assistant/authority.ts';
++import type { OrchestrationAction, OrchestrationProof, TurnFence } from '../src/assistant/contracts.ts';
++import {
++  createPersistedOrchestrationAuthority,
++  createProjectOrchestrationPort,
++} from '../src/assistant/orchestration.ts';
++import { digest } from '../src/attachments/submissions.ts';
++import { bootstrapOwner } from '../src/auth/bootstrap.ts';
++import { provisionMachine } from '../src/auth/machine.ts';
++import { createAuthenticator } from '../src/auth/routes.ts';
++import type { CreateCommand } from '../src/execution/contracts.ts';
++import { canonicalJson } from '../src/journal/canonical.ts';
++import { createMutator, mutate } from '../src/journal/mutation.ts';
++import type { Actor, Db, Id, Tx } from '../src/platform/contracts.ts';
++import { ApiError } from '../src/platform/errors.ts';
++import type { CreateTicket, DecisionInput } from '../src/tickets/contracts.ts';
++import { registerTicketRoutes } from '../src/tickets/routes.ts';
++import { createTicketServices } from '../src/tickets/service.ts';
++import { assistantFixture, fixtureVerifierBuildSha256 } from './support/assistant.ts';
++import { databaseFixture } from './support/db.ts';
++import { inputTicket, owner } from './support/tickets.ts';
++
++const withDatabase = databaseFixture(11);
++const hash = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
++const createHashFor = (input: CreateTicket) =>
++  hash(['crew-v2:orchestration-target:1', 'create_ticket', input]);
++const otherVerifier = createHash('sha256').update('crew-v2:test-only-other-verifier').digest('hex');
++const allActions: OrchestrationAction[] = ['create_ticket', 'decision', 'dependency', 'signal', 'command'];
++const decisionInput = (changes: Partial<DecisionInput> = {}): DecisionInput => ({
++  kind: 'assessment',
++  content: 'Đánh giá qua port thật',
++  rationale: 'Nguồn trong cùng cây',
++  sources: [],
++  scope: {},
++  ...changes,
++});
++type Admission = Omit<
++  Parameters<Awaited<ReturnType<typeof assistantFixture>>['seedAdmittedTurn']>[0],
++  'conversationId' | 'messageId' | 'target' | 'machineId'
++>;
++
++// Real persisted rows only: admitted turn, PASS receipt of the pinned fixture verifier,
++// scope and pending tool operation. No test-trust authority or allowlist exists here.
++async function portFixture(
++  db: Db,
++  options: {
++    scope?: 'root' | 'message';
++    actions?: OrchestrationAction[];
++    admission?: Admission | 'none';
++    verifierBuildSha256?: string;
++  } = {},
++) {
++  const f = await assistantFixture(db);
++  const machines = await f.mutation(randomUUID(), async (tx) => ({
++    a: await provisionMachine(tx, 'Assistant A'),
++    b: await provisionMachine(tx, 'Bound B'),
++  }));
++  const a: Actor = { kind: 'machine', id: machines.a.machine.id };
++  const b: Actor = { kind: 'machine', id: machines.b.machine.id };
++  await db`update projects set machine_id=${b.id},checkout_path='/tmp/s2-test-only',binding_revision=2 where id=${f.project.id}`;
++  const submitted = await f.submitMessage();
++  const kind = options.scope ?? 'root';
++  const messageId = kind === 'message' ? submitted.message.id : null;
++  let fence: TurnFence;
++  let snapshotId: Id;
++  let policyReceiptId: Id | null = null;
++  if (options.admission === 'none') {
++    fence = await f.seedTurn(submitted.conversation.id, messageId);
++    snapshotId = randomUUID();
++    await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++      values(${snapshotId},${kind === 'root' ? 'ticket' : 'message'},${kind === 'root' ? f.request.id : submitted.message.id},1,0,'{}',${'c'.repeat(64)})`;
++  } else {
++    const seeded = await f.seedAdmittedTurn({
++      conversationId: submitted.conversation.id,
++      messageId,
++      target:
++        kind === 'root'
++          ? { kind: 'ticket', id: f.request.id }
++          : { kind: 'message', id: submitted.message.id },
++      machineId: a.id,
++      ...options.admission,
++    });
++    fence = seeded.fence;
++    snapshotId = seeded.snapshotId as Id;
++    policyReceiptId = seeded.policyReceiptId;
++  }
++  const scopeId = randomUUID();
++  await db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,
++    scope_sha256,owner_authorization_id,expires_at)
++    values(${scopeId},${fence.turnId},${kind === 'root' ? f.request.id : null},${messageId},${kind === 'root' ? f.project.id : null},
++    ${db.json(options.actions ?? allActions)},'[]',${snapshotId},${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
++  const resolver = createPersistedAssistantActorResolver({
++    verifierBuildSha256: options.verifierBuildSha256 ?? fixtureVerifierBuildSha256,
++  });
++  const port = createProjectOrchestrationPort({ resolver });
++  const run = async <T>(
++    call: (tx: Tx, proof: OrchestrationProof, actor: Actor) => Promise<T>,
++    opts: {
++      actor?: Actor;
++      operationId?: Id;
++      before?: (tx: Tx, proof: OrchestrationProof) => Promise<void>;
++    } = {},
++  ) => {
++    const actor = opts.actor ?? a;
++    const key = randomUUID();
++    const result = await mutate(
++      db,
++      { actor, route: 'test-only:assistant-port', key, body: {} },
++      async (tx) => {
++        const operationId =
++          opts.operationId ?? (await f.seedToolOperation(tx, { turnId: fence.turnId, snapshotId }));
++        const proof: OrchestrationProof = { fence, scopeId, operationId };
++        await opts.before?.(tx, proof);
++        const value = await call(tx, proof, actor);
++        // Journal responses must be JSON objects; the frozen dependency port returns void.
++        return { status: 201, body: { value: (value ?? null) as unknown } };
++      },
++    );
++    return { value: result.body.value, key };
++  };
++  // Stand-in for the B4 router: the routing decision row it writes in the same Tx.
++  const routingDecision = async (sql: Db | Tx, proof: OrchestrationProof, ticketSha256: string) => {
++    const [message] =
++      await sql`select input_revision from attachment_messages where id=${submitted.message.id}`;
++    const input = {
++      messageId: submitted.message.id,
++      inputRevision: String(message?.input_revision),
++      snapshotId,
++      grantId: null,
++      receiptId: null,
++      kind: 'routing',
++      body: { operationId: proof.operationId, scopeId: proof.scopeId, ticketSha256 },
++    };
++    await sql`insert into attachment_message_decisions(id,message_id,input_revision,snapshot_id,grant_id,receipt_id,actor_kind,actor_id,kind,body,sha256)
++      values(${randomUUID()},${input.messageId},${input.inputRevision},${snapshotId},null,null,'machine',${a.id},'routing',
++      ${sql.json(input.body)},${digest({ ...input, actor: a })})`;
++  };
++  const state = async () => ({
++    tickets:
++      await db`select id,revision,status,wait_reason,created_actor_kind,created_actor_id from tickets order by id`,
++    decisions: await db`select * from decisions order by id`,
++    dependencies: await db`select * from dependencies order by ticket_id,predecessor_id`,
++    events: await db`select cursor,type from events order by cursor`,
++    commands: await db`select * from commands order by id`,
++    idempotency:
++      await db`select route,key from idempotency where route='test-only:assistant-port' order by key`,
++  });
++  return {
++    ...f,
++    machines,
++    assistantA: a,
++    boundB: b,
++    fence,
++    snapshotId,
++    scopeId,
++    policyReceiptId,
++    message: submitted.message,
++    resolver,
++    port,
++    run,
++    routingDecision,
++    state,
++  };
++}
++
++test('S2 admitted PASS turn creates A→B child through the real port with actor A audit', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const input = inputTicket(f.project.id, 'step', f.request.id);
++      const { value, key } = await f.run((tx, proof, actor) => f.port.createTicket(tx, actor, proof, input));
++      const created = value as { id: Id; rootId: Id; projectId: Id };
++      assert.equal(created.rootId, f.request.id);
++      const [row] = await db`select t.created_actor_kind,t.created_actor_id,p.machine_id from tickets t
++        join projects p on p.id=t.project_id where t.id=${created.id}`;
++      assert.deepEqual(
++        { ...row },
++        { created_actor_kind: 'machine', created_actor_id: f.assistantA.id, machine_id: f.boundB.id },
++      );
++      const [journal] = await db`select actor_kind,actor_id from idempotency where key=${key}`;
++      assert.deepEqual({ ...journal }, { actor_kind: 'machine', actor_id: f.assistantA.id });
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 decision, dependency and signal go through the real port with actor A audit', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const decision = await f.run((tx, proof, actor) =>
++        f.port.decision(tx, actor, proof, f.a.id, decisionInput()),
++      );
++      const [row] =
++        await db`select actor_kind,actor_id,ticket_id from decisions where id=${decision.value as Id}`;
++      assert.deepEqual({ ...row }, { actor_kind: 'machine', actor_id: f.assistantA.id, ticket_id: f.a.id });
++      await f.run((tx, proof, actor) => f.port.dependency(tx, actor, proof, f.a.id, f.b.id, 1));
++      assert.equal((await db`select * from dependencies where ticket_id=${f.a.id}`).length, 1);
++      const signalled = await f.run((tx, proof, actor) =>
++        f.port.signal(tx, actor, proof, f.b.id, 'dependencies_ready', 1),
++      );
++      assert.equal((signalled.value as { status: string }).status, 'ready');
++      const journals = await db`select actor_id from idempotency where route='test-only:assistant-port'`;
++      assert.deepEqual(
++        journals.map((journal) => journal.actor_id),
++        [f.assistantA.id, f.assistantA.id, f.assistantA.id],
++      );
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 port snapshots caller arguments synchronously before any authority wait', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const input = decisionInput();
++      const { value } = await f.run(async (tx, proof, actor) => {
++        const mutableActor = { ...actor };
++        const mutableProof = { ...proof, fence: { ...proof.fence } };
++        const pending = f.port.decision(tx, mutableActor, mutableProof, f.a.id, input);
++        input.content = 'Caller changed after call';
++        mutableActor.id = f.boundB.id;
++        mutableProof.operationId = randomUUID();
++        return pending;
++      });
++      const [row] = await db`select content,actor_id from decisions where id=${value as Id}`;
++      assert.deepEqual({ ...row }, { content: 'Đánh giá qua port thật', actor_id: f.assistantA.id });
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 turn without admission stays 503 and preserves state', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db, { admission: 'none' });
++    try {
++      const before = await f.state();
++      await assert.rejects(
++        () =>
++          f.run((tx, proof, actor) =>
++            f.port.createTicket(tx, actor, proof, inputTicket(f.project.id, 'step', f.request.id)),
++          ),
++        { code: 'ASSISTANT_ADMISSION_NOT_CONFIGURED', status: 503 },
++      );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++const admissionDenials: Record<
++  string,
++  {
++    admission?: Admission;
++    verifierBuildSha256?: string;
++    tamper?: (db: Db, f: Awaited<ReturnType<typeof portFixture>>) => Promise<void>;
++  }
++> = {
++  'receipt UNVERIFIED': { admission: { receiptStatus: 'UNVERIFIED' } },
++  'receipt FAIL': { admission: { receiptStatus: 'FAIL' } },
++  'receipt expired': { admission: { receiptExpiresInSeconds: -60 } },
++  'receipt revoked': {
++    tamper: async (db, f) => {
++      await db`update assistant_policy_receipts set revoked_at=now() where id=${f.policyReceiptId}`;
++    },
++  },
++  'receipt from another deployment': {
++    // Simulates an imported row: bypass identity triggers/FKs only to place a foreign deployment ID.
++    tamper: async (db, f) => {
++      await db.begin(async (tx) => {
++        await tx`set local session_replication_role = replica`;
++        await tx`update assistant_policy_receipts set deployment_id=${randomUUID()} where id=${f.policyReceiptId}`;
++      });
++    },
++  },
++  'receipt signed by another verifier': { admission: { verifierBuildSha256: otherVerifier } },
++  'assembly pinned to another verifier': { verifierBuildSha256: otherVerifier },
++  'session expired': {
++    tamper: async (db) => {
++      await db`update attachment_assistant_sessions set expires_at=clock_timestamp()-interval '1 second'`;
++    },
++  },
++  'session other process instance': {
++    tamper: async (db) => {
++      await db`update attachment_assistant_sessions set process_instance_id=${randomUUID()}`;
++    },
++  },
++  'session other designation revision': {
++    tamper: async (db) => {
++      await db`update attachment_assistant_sessions set designation_revision=2`;
++    },
++  },
++  'session no longer live': {
++    tamper: async (db) => {
++      await db`update attachment_assistant_sessions set state='unknown'`;
++    },
++  },
++};
++
++for (const [name, variant] of Object.entries(admissionDenials)) {
++  test(`S2 admission denies ${name} with 403 and preserves state`, async () =>
++    withDatabase(async (db) => {
++      const f = await portFixture(db, {
++        admission: variant.admission,
++        verifierBuildSha256: variant.verifierBuildSha256,
++      });
++      try {
++        await variant.tamper?.(db, f);
++        const before = await f.state();
++        await assert.rejects(
++          () =>
++            f.run((tx, proof, actor) =>
++              f.port.createTicket(tx, actor, proof, inputTicket(f.project.id, 'step', f.request.id)),
++            ),
++          { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
++        );
++        assert.deepEqual(await f.state(), before);
++      } finally {
++        await f.close();
++      }
++    }));
++}
++
++test('S2 operation must be a pending row of this turn on the scope input', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const before = await f.state();
++      const decide = (operationId: Id) =>
++        f.run((tx, proof, actor) => f.port.decision(tx, actor, proof, f.a.id, decisionInput()), {
++          operationId,
++        });
++      await assert.rejects(() => decide(randomUUID()), {
++        code: 'ASSISTANT_OPERATION_NOT_FOUND',
++        status: 404,
++      });
++      const completed = await f.seedToolOperation(db, {
++        turnId: f.fence.turnId,
++        snapshotId: f.snapshotId,
++        state: 'completed',
++      });
++      await assert.rejects(() => decide(completed), { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 });
++      const otherSnapshot = randomUUID();
++      await db`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++        values(${otherSnapshot},'ticket',${f.request.id},1,0,'{}',${'e'.repeat(64)})`;
++      const stale = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: otherSnapshot });
++      await assert.rejects(() => decide(stale), { code: 'ASSISTANT_OPERATION_STALE', status: 409 });
++      assert.deepEqual(await f.state(), before);
++      // A pending operation committed earlier on the scope input still authorizes.
++      const pending = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
++      await decide(pending);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 action outside the persisted scope actions is denied', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db, { actions: ['decision'] });
++    try {
++      const before = await f.state();
++      await assert.rejects(
++        () =>
++          f.run((tx, proof, actor) =>
++            f.port.createTicket(tx, actor, proof, inputTicket(f.project.id, 'step', f.request.id)),
++          ),
++        { code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE', status: 403 },
++      );
++      await assert.rejects(
++        () => f.run((tx, proof, actor) => f.port.signal(tx, actor, proof, f.a.id, 'wait_owner', 1)),
++        { code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE', status: 403 },
++      );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 new root requires the same-Tx routing decision for the exact CreateTicket hash', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db, { scope: 'message' });
++    try {
++      const input = inputTicket(f.project.id, 'request');
++      const create = (before?: (tx: Tx, proof: OrchestrationProof) => Promise<void>, operationId?: Id) =>
++        f.run((tx, proof, actor) => f.port.createTicket(tx, actor, proof, input), { before, operationId });
++      const before = await f.state();
++      await assert.rejects(() => create(), { code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED', status: 403 });
++      await assert.rejects(
++        () => create((tx, proof) => f.routingDecision(tx, proof, createHashFor({ ...input, title: 'Khác' }))),
++        { code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED', status: 403 },
++      );
++      const committed = await f.seedToolOperation(db, { turnId: f.fence.turnId, snapshotId: f.snapshotId });
++      await f.routingDecision(
++        db,
++        { fence: f.fence, scopeId: f.scopeId, operationId: committed },
++        createHashFor(input),
++      );
++      await assert.rejects(() => create(undefined, committed), {
++        code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED',
++        status: 403,
++      });
++      const after = await f.state();
++      assert.deepEqual(after, before);
++      const { value } = await create((tx, proof) => f.routingDecision(tx, proof, createHashFor(input)));
++      const created = value as { id: Id; rootId: Id; level: string };
++      assert.deepEqual([created.rootId, created.level], [created.id, 'request']);
++      const [row] = await db`select created_actor_kind,created_actor_id from tickets where id=${created.id}`;
++      assert.deepEqual({ ...row }, { created_actor_kind: 'machine', created_actor_id: f.assistantA.id });
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 root scope cannot create a new root without a message routing decision', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const before = await f.state();
++      await assert.rejects(
++        () =>
++          f.run((tx, proof, actor) =>
++            f.port.createTicket(tx, actor, proof, inputTicket(f.project.id, 'request')),
++          ),
++        { code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED', status: 403 },
++      );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 message scope without a root cannot write existing tickets', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db, { scope: 'message' });
++    try {
++      const before = await f.state();
++      await assert.rejects(
++        () => f.run((tx, proof, actor) => f.port.decision(tx, actor, proof, f.a.id, decisionInput())),
++        { code: 'NOT_FOUND', status: 404 },
++      );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 tickets outside the scope root are not found', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const otherRoot = await f.mutation(randomUUID(), (tx) =>
++        f.services.createTicket(tx, inputTicket(f.project.id, 'request'), owner),
++      );
++      const otherChild = await f.mutation(randomUUID(), (tx) =>
++        f.services.createTicket(tx, inputTicket(f.project.id, 'step', otherRoot.id), owner),
++      );
++      const before = await f.state();
++      await assert.rejects(
++        () => f.run((tx, proof, actor) => f.port.decision(tx, actor, proof, otherChild.id, decisionInput())),
++        { code: 'NOT_FOUND', status: 404 },
++      );
++      await assert.rejects(
++        () =>
++          f.run((tx, proof, actor) =>
++            f.port.createTicket(tx, actor, proof, inputTicket(f.project.id, 'step', otherRoot.id)),
++          ),
++        { code: 'NOT_FOUND', status: 404 },
++      );
++      await assert.rejects(
++        () => f.run((tx, proof, actor) => f.port.signal(tx, actor, proof, otherChild.id, 'wait_owner', 1)),
++        { code: 'NOT_FOUND', status: 404 },
++      );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 caller actor other than the designation machine is denied despite a valid proof', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const before = await f.state();
++      for (const actor of [f.boundB, { kind: 'machine', id: f.assistantA.id.toUpperCase() } as Actor])
++        await assert.rejects(
++          () =>
++            f.run((tx, proof, caller) => f.port.decision(tx, caller, proof, f.a.id, decisionInput()), {
++              actor,
++            }),
++          { code: 'ORCHESTRATION_ACTOR_MISMATCH', status: 403 },
++        );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 generic ticket routes stay 404 for machine A while its admitted turn is live', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    await bootstrapOwner(db, 'test-only-owner-password');
++    const app = Fastify({ ajv: { customOptions: { removeAdditional: false } } });
++    const options = {
++      db,
++      publicOrigin: 'http://localhost',
++      secureCookies: false,
++      sessionEncryptionKey: Buffer.alloc(32),
++      now: () => new Date(),
++      authorizeDispatch: async () => {
++        throw new Error('NO_DISPATCH');
++      },
++      verifyFinalResult: async () => {
++        throw new Error('NO_FINALIZATION');
++      },
++    };
++    app.setErrorHandler((error, _request, reply) => {
++      if (error instanceof ApiError) return reply.status(error.status).send({ error: { code: error.code } });
++      return reply.status(500).send({ error: { code: 'UNEXPECTED' } });
++    });
++    registerTicketRoutes(app, options, {
++      auth: createAuthenticator(db, options),
++      mutator: createMutator(db),
++    });
++    try {
++      const before = await f.state();
++      const requests = [
++        { url: '/v2/tickets', payload: inputTicket(f.project.id, 'step', f.request.id) },
++        { url: `/v2/tickets/${f.a.id}/decisions`, payload: decisionInput() },
++        {
++          url: `/v2/tickets/${f.a.id}/dependencies`,
++          payload: { predecessorId: f.b.id, expectedRevision: 1 },
++        },
++        { url: `/v2/tickets/${f.a.id}/signals`, payload: { signal: 'wait_owner', expectedRevision: 1 } },
++      ];
++      for (const request of requests) {
++        const response = await app.inject({
++          method: 'POST',
++          url: request.url,
++          headers: { authorization: `Bearer ${f.machines.a.token}`, 'idempotency-key': randomUUID() },
++          payload: request.payload,
++        });
++        assert.equal(response.statusCode, 404, `${request.url} ${response.body}`);
++        assert.equal(response.json().error.code, 'NOT_FOUND');
++      }
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await app.close();
++      await f.close();
++    }
++  }));
++
++test('S2 command stays unreleased with 503 and writes nothing', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const before = await f.state();
++      const command: CreateCommand = { machineId: f.boundB.id, ticketId: f.a.id, type: 'start', payload: {} };
++      await assert.rejects(() => f.run((tx, proof, actor) => f.port.command(tx, actor, proof, command)), {
++        code: 'ORCHESTRATION_COMMAND_NOT_RELEASED',
++        status: 503,
++      });
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('S2 bare persisted authority without the port target fails closed', async () =>
++  withDatabase(async (db) => {
++    const f = await portFixture(db);
++    try {
++      const authority = createPersistedOrchestrationAuthority(f.resolver);
++      const services = createTicketServices({ assistant: authority });
++      const before = await f.state();
++      await assert.rejects(
++        () =>
++          f.run((tx, proof, actor) =>
++            authority.verify(
++              tx,
++              actor,
++              proof,
++              'decision',
++              hash(['crew-v2:orchestration-target:1', 'decision', {}]),
++            ),
++          ),
++        { code: 'ORCHESTRATION_SCOPE_INVALID', status: 403 },
++      );
++      await assert.rejects(
++        () =>
++          f.run((tx, proof, actor) =>
++            services.assistantRecordDecision(tx, actor, proof, f.a.id, decisionInput()),
++          ),
++        { code: 'ORCHESTRATION_SCOPE_INVALID', status: 403 },
++      );
++      assert.deepEqual(await f.state(), before);
++    } finally {
++      await f.close();
++    }
++  }));
+diff --git a/v2/server/test/support/assistant.ts b/v2/server/test/support/assistant.ts
+index 23c074d..ffd3d6a 100644
+--- a/v2/server/test/support/assistant.ts
++++ b/v2/server/test/support/assistant.ts
+@@ -480,20 +480,124 @@ export function assistantContractSamples(): Record<string, unknown[]> {
+         generation: '1',
+         journalSha256: hash,
+         stopEvidenceId: id,
+       })),
+     ],
+   };
+ }
+ 
+ // These helpers exercise accepted 009 producers. They do not implement
+ // admission, HTTP clients, routing certification, or production authority.
++/** Pinned verifier build of fixture receipts; production pins its own build hash. */
++export const fixtureVerifierBuildSha256 = createHash('sha256')
++  .update('crew-v2:test-only-routing-verifier')
++  .digest('hex');
++
++type TurnRowsInput = {
++  conversationId: Id;
++  messageId: Id | null;
++  machineId?: Id;
++  selectionModelId?: string;
++  receiptMachineId?: Id;
++  receiptStatus?: 'PASS' | 'FAIL' | 'UNVERIFIED';
++  verifierBuildSha256?: string;
++  receiptExpiresInSeconds?: number;
++  admission?: { target: { kind: 'ticket' | 'message'; id: Id }; sessionExpiresInSeconds: number };
++};
++
++// Explicit test-only SQL rows. Defaults reproduce the unadmitted UNVERIFIED turn.
++async function insertTurnRows(tx: Tx, input: TurnRowsInput) {
++  const { allocateAssistantGeneration } = await import('../../src/assistant/store.ts');
++  const machineId = input.machineId ?? randomUUID(),
++    designationId = randomUUID(),
++    turnId = randomUUID();
++  const selectionId = randomUUID(),
++    challengeId = randomUUID(),
++    receiptId = randomUUID(),
++    probeId = randomUUID();
++  const processInstanceId = randomUUID();
++  const status = input.receiptStatus ?? 'UNVERIFIED';
++  const receiptSeconds = input.receiptExpiresInSeconds ?? 300;
++  const [config] = await tx`select deployment_id from assistant_config where singleton=true`;
++  const key = {
++    machineId: input.receiptMachineId ?? machineId,
++    runtime: 'api',
++    providerId: 'fixture',
++    modelId: 'no-inference',
++  };
++  const context = {
++    deploymentId: String(config?.deployment_id),
++    machineId: key.machineId,
++    key,
++    binarySha256: 'a'.repeat(64),
++    policySha256: 'b'.repeat(64),
++    observerSha256: 'c'.repeat(64),
++    osVersion: 'fixture-only',
++  };
++  const contextHash = createHash('sha256').update(canonicalJson(context)).digest('hex');
++  if (!input.machineId)
++    await tx`insert into machines(id,name,token_hash) values(${machineId},'fixture-assistant',${createHash('sha256').update(machineId).digest('hex')})`;
++  await tx`insert into assistant_designations(id,owner_id,machine_id,revision) values(${designationId},'owner',${machineId},1)`;
++  await tx`update assistant_config set designation_id=${designationId} where singleton=true`;
++  await tx`insert into routing_certification_challenges(id,deployment_id,context,nonce_hash,expires_at,budgets,fixture_sha256,state,receipt_id)
++    values(${challengeId},${config?.deployment_id},${tx.json(context)},${'d'.repeat(64)},now()+interval '5 minutes',
++    ${tx.json({ maxTurns: 1, maxTools: 1, maxCostUsd: 0, maxMs: 1000 })},${'e'.repeat(64)},
++    ${status === 'PASS' ? 'verified' : 'failed'},${status === 'PASS' ? receiptId : null})`;
++  await tx`insert into assistant_policy_receipts(id,deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,
++    binary_sha256,policy_sha256,probe_context_sha256,status,evidence_ids,expires_at)
++    values(${receiptId},${config?.deployment_id},${challengeId},${input.verifierBuildSha256 ?? 'f'.repeat(64)},${key.machineId},${tx.json(key)},'fixture-only',
++    ${context.binarySha256},${context.policySha256},${contextHash},${status},'[]',now()+${receiptSeconds}*interval '1 second')`;
++  await tx`insert into routing_capability_receipts(id,certification_receipt_id,model_key,context_sha256,capabilities,received_at,expires_at)
++    values(${probeId},${receiptId},${tx.json(key)},${contextHash},'[]',
++    now()-${input.admission ? 600 : 0}*interval '1 second',now()+${input.admission ? receiptSeconds : 240}*interval '1 second')`;
++  let admission: { snapshotId: Id; sessionId: Id; admissionId: Id } | null = null;
++  if (input.admission) {
++    const { target, sessionExpiresInSeconds } = input.admission;
++    const snapshotId = randomUUID(),
++      authorizationId = randomUUID(),
++      grantId = randomUUID(),
++      sessionId = randomUUID(),
++      admissionId = randomUUID();
++    const snapshotSha256 = createHash('sha256').update(snapshotId).digest('hex');
++    await tx`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
++      values(${snapshotId},${target.kind},${target.id},1,0,'{}',${snapshotSha256})`;
++    await tx`insert into attachment_submission_authorizations(id,target_kind,target_id,originals,authorization_sha256,expires_at)
++      values(${authorizationId},${target.kind},${target.id},'[]',${'a'.repeat(64)},now()+interval '10 minutes')`;
++    await tx`insert into attachment_assistant_grants(id,authorization_id,target_kind,target_id,originals,input_revision,route_revision,
++      designation_id,designation_revision,machine_id,snapshot_id,snapshot_sha256,expires_at)
++      values(${grantId},${authorizationId},${target.kind},${target.id},'[]',1,0,${designationId},1,${machineId},
++      ${snapshotId},${snapshotSha256},now()+interval '10 minutes')`;
++    await tx`insert into attachment_assistant_sessions(id,grant_id,snapshot_id,snapshot_sha256,designation_revision,machine_id,runtime,
++      model_key,model_selection_id,policy_receipt_id,process_instance_id,admission_id,admitted_at,model_config_revision,
++      source_enabled_at_admission,state,expires_at)
++      values(${sessionId},${grantId},${snapshotId},${snapshotSha256},1,${machineId},'api',${canonicalJson(key)},${selectionId},
++      ${receiptId},${processInstanceId},${admissionId},now(),1,true,'running',
++      clock_timestamp()+${sessionExpiresInSeconds}*interval '1 second')`;
++    admission = { snapshotId, sessionId, admissionId };
++  }
++  const generation = await allocateAssistantGeneration(tx);
++  await tx`insert into assistant_turns(id,conversation_id,message_id,designation_id,designation_revision,generation,process_instance_id,
++    model_selection_id,admission_id,read_session_id,state)
++    values(${turnId},${input.conversationId},${input.messageId},${designationId},1,${generation},${processInstanceId},${selectionId},
++    ${admission?.admissionId ?? null},${admission?.sessionId ?? null},'running')`;
++  await tx`insert into assistant_model_selections(id,turn_id,model_key,model_config_revision,probe_receipt_id,policy_receipt_id,required,rationale)
++    values(${selectionId},${turnId},${tx.json({ ...key, modelId: input.selectionModelId ?? key.modelId })},1,${probeId},${receiptId},'[]','Fixture SQL không cấp authority production')`;
++  const fence: TurnFence = { turnId, designationId, designationRevision: 1, generation, processInstanceId };
++  return {
++    fence,
++    machineId,
++    policyReceiptId: receiptId,
++    snapshotId: admission?.snapshotId ?? null,
++    sessionId: admission?.sessionId ?? null,
++  };
++}
++
+ export async function assistantFixture(db: Db) {
+   const attachments = await attachmentFixture(db);
+   const messages = createMessageServices({ store: attachments.store, now: attachments.clock.now });
+   async function seedWorkflowRows() {
+     const runId = randomUUID(),
+       stepId = randomUUID();
+     await db`insert into workflow_runs(id,root_ticket_id,source,projection,definition_sha256,customization_sha256,path,revision)
+       values(${runId},${attachments.request.id},'{}','{}',${'a'.repeat(64)},${'b'.repeat(64)},'bounded',1)`;
+     await db`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,acceptance,output_kinds,gate_ids,ownership_keys,role)
+       values(${stepId},${runId},${attachments.a.id},'fixture-only','SKILL.md',${'a'.repeat(64)},'[]','[]','[]','[]','["fixture.txt"]','implement')`;
+@@ -628,66 +732,67 @@ export async function assistantFixture(db: Db) {
+         },
+       };
+     },
+     async seedTurn(
+       conversationId: Id,
+       messageId: Id | null,
+       options: { selectionModelId?: string; receiptMachineId?: Id } = {},
+     ): Promise<TurnFence> {
+       // Explicit test-only persisted rows. UNVERIFIED routing receipts never
+       // demonstrate admission or a production certification implementation.
+-      const { allocateAssistantGeneration } = await import('../../src/assistant/store.ts');
+-      return db.begin(async (tx) => {
+-        const machineId = randomUUID(),
+-          designationId = randomUUID(),
+-          turnId = randomUUID();
+-        const selectionId = randomUUID(),
+-          challengeId = randomUUID(),
+-          receiptId = randomUUID(),
+-          probeId = randomUUID();
+-        const processInstanceId = randomUUID();
+-        const [config] = await tx`select deployment_id from assistant_config where singleton=true`;
+-        const key = {
+-          machineId: options.receiptMachineId ?? machineId,
+-          runtime: 'api',
+-          providerId: 'fixture',
+-          modelId: 'no-inference',
+-        };
+-        const context = {
+-          deploymentId: String(config?.deployment_id),
+-          machineId: key.machineId,
+-          key,
+-          binarySha256: 'a'.repeat(64),
+-          policySha256: 'b'.repeat(64),
+-          observerSha256: 'c'.repeat(64),
+-          osVersion: 'fixture-only',
+-        };
+-        const contextHash = createHash('sha256').update(canonicalJson(context)).digest('hex');
+-        await tx`insert into machines(id,name,token_hash) values(${machineId},'fixture-assistant',${createHash('sha256').update(machineId).digest('hex')})`;
+-        await tx`insert into assistant_designations(id,owner_id,machine_id,revision) values(${designationId},'owner',${machineId},1)`;
+-        await tx`update assistant_config set designation_id=${designationId} where singleton=true`;
+-        await tx`insert into routing_certification_challenges(id,deployment_id,context,nonce_hash,expires_at,budgets,fixture_sha256,state)
+-          values(${challengeId},${config?.deployment_id},${tx.json(context)},${'d'.repeat(64)},now()+interval '5 minutes',
+-          ${tx.json({ maxTurns: 1, maxTools: 1, maxCostUsd: 0, maxMs: 1000 })},${'e'.repeat(64)},'failed')`;
+-        await tx`insert into assistant_policy_receipts(id,deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,
+-          binary_sha256,policy_sha256,probe_context_sha256,status,evidence_ids,expires_at)
+-          values(${receiptId},${config?.deployment_id},${challengeId},${'f'.repeat(64)},${key.machineId},${tx.json(key)},'fixture-only',
+-          ${context.binarySha256},${context.policySha256},${contextHash},'UNVERIFIED','[]',now()+interval '5 minutes')`;
+-        await tx`insert into routing_capability_receipts(id,certification_receipt_id,model_key,context_sha256,capabilities,received_at,expires_at)
+-          values(${probeId},${receiptId},${tx.json(key)},${contextHash},'[]',now(),now()+interval '4 minutes')`;
+-        const generation = await allocateAssistantGeneration(tx);
+-        await tx`insert into assistant_turns(id,conversation_id,message_id,designation_id,designation_revision,generation,process_instance_id,model_selection_id,state)
+-          values(${turnId},${conversationId},${messageId},${designationId},1,${generation},${processInstanceId},${selectionId},'running')`;
+-        await tx`insert into assistant_model_selections(id,turn_id,model_key,model_config_revision,probe_receipt_id,policy_receipt_id,required,rationale)
+-          values(${selectionId},${turnId},${tx.json({ ...key, modelId: options.selectionModelId ?? key.modelId })},1,${probeId},${receiptId},'[]','Fixture SQL không cấp authority production')`;
+-        return { turnId, designationId, designationRevision: 1, generation, processInstanceId };
+-      });
++      return db.begin(
++        async (tx) => (await insertTurnRows(tx, { conversationId, messageId, ...options })).fence,
++      );
++    },
++    /**
++     * Test-only admitted turn: input grant, read session and a PASS policy receipt
++     * signed by the fixture verifier constant in this deployment. Production
++     * assembly has no such rows until live certification issues them.
++     */
++    async seedAdmittedTurn(input: {
++      conversationId: Id;
++      messageId: Id | null;
++      target: { kind: 'ticket' | 'message'; id: Id };
++      machineId?: Id;
++      receiptStatus?: 'PASS' | 'FAIL' | 'UNVERIFIED';
++      verifierBuildSha256?: string;
++      receiptExpiresInSeconds?: number;
++      sessionExpiresInSeconds?: number;
++    }) {
++      return db.begin((tx) =>
++        insertTurnRows(tx, {
++          conversationId: input.conversationId,
++          messageId: input.messageId,
++          machineId: input.machineId,
++          receiptStatus: input.receiptStatus ?? 'PASS',
++          verifierBuildSha256: input.verifierBuildSha256 ?? fixtureVerifierBuildSha256,
++          receiptExpiresInSeconds: input.receiptExpiresInSeconds,
++          admission: {
++            target: input.target,
++            sessionExpiresInSeconds: input.sessionExpiresInSeconds ?? 300,
++          },
++        }),
++      );
++    },
++    /** Test-only stand-in for the tools route row written before the port call. */
++    async seedToolOperation(
++      sql: Db | Tx,
++      input: { turnId: Id; snapshotId: Id; state?: 'pending' | 'completed' | 'rejected' },
++    ): Promise<Id> {
++      const operationId = randomUUID();
++      const state = input.state ?? 'pending';
++      await sql`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,request_hash,input_snapshot_id,state,response)
++        values(${operationId},${input.turnId},
++          (select coalesce(max(client_sequence),0)+1 from assistant_tool_operations where turn_id=${input.turnId}),
++          ${`fixture-${operationId}`},${createHash('sha256').update(operationId).digest('hex')},${input.snapshotId},${state},
++          ${state === 'pending' ? null : sql.json({ fixture: true })})`;
++      return operationId;
+     },
+     async submitMessage(text = 'Yêu cầu cần xử lý sau khi máy kết nối lại') {
+       const conversation = await attachments.mutation(randomUUID(), (tx) =>
+         messages.createConversation(tx, owner),
+       );
+       const selection = await attachments.readyCompose(
+         {
+           purpose: 'assistant_message',
+           projectId: null,
+           ticketId: null,
