@@ -188,3 +188,7 @@ Ruling sản phẩm: mã 503 cấu hình xác định (EXTRACTION_NOT_CONFIGURED
 A5 text-only + A3 text-only (create/comment/recovery): ĐẠT trên API/PG thật — 62fd150. A5/A3 đầy đủ còn: file thành công (phase05 extractor certified), group theo comment/history/question (G3), attempt/model (G1b), graph/pause/cancel (A3 phần còn lại).
 Important assertion gộp vào Task2 follow-up (resume implementer Task2): 503 cấu hình dừng retry giữ key, siết assertion 1 POST + HTTP code, Date header, /v2/events/latest, warmUp sleep.
 A5/A3 E2E: minor (deferred): host dò URL .vite/deps (harness Task1); đếm attachment_uploads theo owner; đếm DB theo title toàn DB; evidence chỉ stdout.
+
+01:25 Task2 follow-up `c4ab472` review `task-2-followup-review.md`: Spec ✅, Approved, Minor3. 409 INPUT_SERVICES_NOT_CONFIGURED giữ key đúng; latest→catch-up không mất event; 401 latest → expired.
+Task 2 follow-up: complete — c4ab472. Important assertion A5/A3 E2E (1 POST + HTTP 503 code) đã đóng.
+Task 2 follow-up: minor (deferred): m1 cờ lỗi cấu hình chỉ ở memory (mất sau reload); m2 assert invalidate ['v2'] nằm trong if (app-wiring.test); m3 GET/upload 503 cấu hình đổi kind 'http'→'configuration' — ghi vào web-data.md cho Task5/G2.
