@@ -1,0 +1,453 @@
+✔ assistant authority owner chỉ định một máy, CAS và replay không tạo designation trùng (480.878125ms)
+✔ assistant authority từ chối máy tự chỉ định, target sai và body ngoài slice (301.164ms)
+✔ assistant authority kiểm session hiện hành trước cached reply (289.90825ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-kmGUME
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-kmGUME nonceSha256=174b811ed568f6b9611060148f1377c7a2e4c897917c29bf3826757cdbecb345
+attachment DB scratch identity dev=16777231 ino=220487669 uid=501 pid=33553
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-kmGUME
+✔ assistant authority resolver không cấp Actor từ receipt UNVERIFIED hoặc scope hết hạn (238.329708ms)
+✔ assistant authority resolver requires a valid pinned verifier build at assembly (0.230333ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nFVFvF
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nFVFvF nonceSha256=f92eb5e6d3b9201778ac56d677718c304346b9eb2e737d10a17834b5b541da69
+attachment DB scratch identity dev=16777231 ino=220487676 uid=501 pid=33553
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nFVFvF
+✔ assistant authority resolver returns the designation machine for an admitted PASS turn (231.360791ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-iJSNxN
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-iJSNxN nonceSha256=e1cd5f55686c1e1d28a7bd03ba2638cfa07fd87ecad73b1c184dbb22bfa2ac0d
+attachment DB scratch identity dev=16777231 ino=220487683 uid=501 pid=33553
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-iJSNxN
+✔ assistant authority resolver measures session expiry with clock_timestamp after locking (3311.605458ms)
+✔ assistant authority concurrent CAS, idle reassignment và live turn giữ nguyên authority (339.978542ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-C1lR1Q
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-C1lR1Q nonceSha256=95986db2d9673558dc05fbfdf28277d95dca299e32459da1065b15b4d1bdecf0
+attachment DB scratch identity dev=16777231 ino=220487690 uid=501 pid=33553
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-C1lR1Q
+✔ assistant authority live turn chặn reassignment và không thả guard bằng config (357.860917ms)
+A1 lock witness waiting=117 blocker=116 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for fresh
+✔ assistant authority A1 fresh/guard/revoked trong lock wait bị từ chối (285.242166ms)
+A1 lock witness waiting=121 blocker=120 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/guard
+✔ assistant authority A1 fresh/guard/expired trong lock wait bị từ chối (394.394084ms)
+A1 lock witness waiting=125 blocker=124 query=machines
+A1 revoke committed before releasing machine for fresh
+✔ assistant authority A1 fresh/machine/revoked trong lock wait bị từ chối (310.948875ms)
+A1 lock witness waiting=129 blocker=128 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/machine
+✔ assistant authority A1 fresh/machine/expired trong lock wait bị từ chối (407.940375ms)
+A1 lock witness waiting=133 blocker=132 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for replay
+✔ assistant authority A1 replay/guard/revoked trong lock wait bị từ chối (312.452083ms)
+A1 lock witness waiting=137 blocker=136 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true replay/guard
+✔ assistant authority A1 replay/guard/expired trong lock wait bị từ chối (404.485959ms)
+A1 lock witness waiting=141 blocker=140 query=machines
+A1 revoke committed before releasing machine for replay
+✔ assistant authority A1 replay/machine/revoked trong lock wait bị từ chối (309.070208ms)
+A1 lock witness waiting=145 blocker=144 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true replay/machine
+✔ assistant authority A1 replay/machine/expired trong lock wait bị từ chối (406.815209ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Kulij4
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Kulij4 nonceSha256=b2a8abe1f206af3e69e4ae54b53bd8ad9d2f799062b456c3f85bc49e850d043e
+attachment DB scratch identity dev=16777231 ino=220487703 uid=501 pid=33553
+A1 lock witness waiting=149 blocker=148 query=assistant_turns
+A1 turn expiry witness expired=true transaction_predates_expiry=true
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Kulij4
+✔ assistant authority A1 turn/expired sau mọi authority lock bị từ chối (1391.490042ms)
+A1 credential lock witness waiting=153 blocker=152
+✔ assistant authority A1 fresh giữ credential lock đến mutation commit (318.555875ms)
+A1 credential lock witness waiting=157 blocker=156
+✔ assistant authority A1 replay giữ credential lock đến mutation commit (289.316292ms)
+✔ assistant authority A2 uppercase designation và revoked target dùng cùng identity (276.200875ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-7L9YJ4
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-7L9YJ4 nonceSha256=17a8919bb3b7a42a3774c8cdde6ae964567a64db8da72231d2ea724eb7e3dbd7
+attachment DB scratch identity dev=16777231 ino=220487711 uid=501 pid=33553
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-7L9YJ4
+✔ assistant authority A2 đổi casing cùng máy không retire designation hoặc live turn (335.964459ms)
+✔ B2a decision scoped A→B verifies exact authority and preserves actual audit/journal (196.6495ms)
+✔ B2a decision rejects missing authority and atomically preserves state (169.061375ms)
+✔ B2a decision rejects owner authority and atomically preserves state (174.583875ms)
+✔ B2a decision rejects actor authority and atomically preserves state (184.677958ms)
+✔ B2a decision rejects operation authority and atomically preserves state (181.142667ms)
+✔ B2a decision rejects action authority and atomically preserves state (169.394709ms)
+✔ B2a decision rejects hash authority and atomically preserves state (182.870208ms)
+✔ B2a decision rejects root authority and atomically preserves state (183.344917ms)
+✔ B2a decision rejects project authority and atomically preserves state (171.875458ms)
+✔ B2a decision rejects tx authority and atomically preserves state (169.187708ms)
+✔ B2a decision prefix locks root, canonical sorted tickets and project before verify (182.769875ms)
+✔ B2a decision snapshots input actor proof before first await and during deferred verify (181.121584ms)
+✔ B2a decision captures factory authority and denies cross-Tx token reuse (185.63725ms)
+✔ B2a decision uppercase identities retain exact submitted hash and reject lowercase replay (177.518542ms)
+✔ B2a dependency scoped A→B verifies exact authority and preserves actual audit/journal (177.676375ms)
+✔ B2a dependency rejects missing authority and atomically preserves state (163.961417ms)
+✔ B2a dependency rejects owner authority and atomically preserves state (181.4325ms)
+✔ B2a dependency rejects actor authority and atomically preserves state (177.143583ms)
+✔ B2a dependency rejects operation authority and atomically preserves state (173.751166ms)
+✔ B2a dependency rejects action authority and atomically preserves state (175.462833ms)
+✔ B2a dependency rejects hash authority and atomically preserves state (174.511708ms)
+✔ B2a dependency rejects root authority and atomically preserves state (177.482125ms)
+✔ B2a dependency rejects project authority and atomically preserves state (175.475375ms)
+✔ B2a dependency rejects tx authority and atomically preserves state (170.226042ms)
+✔ B2a dependency prefix locks root, canonical sorted tickets and project before verify (181.832542ms)
+✔ B2a dependency snapshots input actor proof before first await and during deferred verify (170.926334ms)
+✔ B2a dependency captures factory authority and denies cross-Tx token reuse (179.128916ms)
+✔ B2a dependency uppercase identities retain exact submitted hash and reject lowercase replay (173.04225ms)
+✔ B2a real machine-authenticated generic decision/dependency routes keep A→B ACL (321.1935ms)
+✔ B2a dependency preserves revision invariant (170.491292ms)
+✔ B2a dependency preserves self invariant (168.089417ms)
+✔ B2a dependency preserves cross-root invariant (166.1835ms)
+✔ B2a dependency preserves duplicate invariant (186.093292ms)
+✔ B2a dependency preserves cycle invariant (188.201209ms)
+✔ B2a dependency preserves closed invariant (172.694416ms)
+✔ B2a dependency preserves ready invariant (165.123708ms)
+✔ B2a dependency preserves running invariant (174.508792ms)
+✔ B2a dependency preserves missing invariant (174.632417ms)
+✔ B2a concurrent opposite dependency requests cannot commit a cycle (187.55675ms)
+✔ B2a decision preserves owner-answer invariant (167.464584ms)
+✔ B2a decision preserves owner-approval invariant (168.998ms)
+✔ B2a decision preserves empty-content invariant (173.617209ms)
+✔ B2a decision preserves long-content invariant (186.023917ms)
+✔ B2a decision preserves empty-rationale invariant (167.058042ms)
+✔ B2a decision preserves long-rationale invariant (161.901792ms)
+✔ B2a decision preserves too-many-sources invariant (169.407ms)
+✔ B2a decision preserves unsafe-scope invariant (181.274625ms)
+✔ B2a decision preserves cross-root-source invariant (161.331833ms)
+✔ B2a decision preserves bad-locator invariant (172.593625ms)
+✔ B2a decision preserves missing-docs-reader invariant (166.828166ms)
+✔ B2a decision supports actual same-root ticket owner decision and reported artifact sources (184.670084ms)
+✔ B2a docs source validation completes before verify and is not repeated after verification (208.4235ms)
+✔ B2a decision rejects array getter before user code or authority (168.16675ms)
+✔ B2a decision rejects array iterator before user code or authority (159.84075ms)
+✔ B2a decision rejects array prototype before user code or authority (174.165417ms)
+✔ B2b-i real machine-authenticated generic signal route keeps A→B ACL (275.472459ms)
+✔ B2b-i signal without orchestration authority is unavailable and preserves revision (166.44175ms)
+✔ B2b-i signal rejects owner authority and atomically preserves state (169.535166ms)
+✔ B2b-i signal rejects actor authority and atomically preserves state (161.916167ms)
+✔ B2b-i signal rejects operation authority and atomically preserves state (179.4585ms)
+✔ B2b-i signal rejects action authority and atomically preserves state (180.638291ms)
+✔ B2b-i signal rejects hash authority and atomically preserves state (172.781708ms)
+✔ B2b-i signal rejects root authority and atomically preserves state (172.42025ms)
+✔ B2b-i signal rejects project authority and atomically preserves state (173.682666ms)
+✔ B2b-i signal rejects tx authority and atomically preserves state (177.622792ms)
+✔ B2b-i dependencies_ready requires done predecessors, then readies with exact audit and event (184.938375ms)
+✔ B2b-i wait_owner on pending moves to needs_input for owner input (158.959292ms)
+✔ B2b-i wait_owner on ready moves to needs_input for owner input (170.247375ms)
+✔ B2b-i wait_owner on running ticket fails closed without synthetic owner command (174.209167ms)
+✔ B2b-i signal stale revision conflicts and preserves state (175.854958ms)
+✔ B2b-i scoped signal rejects resume as invalid input (170.515541ms)
+✔ B2b-i scoped signal rejects start as invalid input (163.907792ms)
+✔ B2b-i scoped signal rejects passed as invalid input (168.738041ms)
+✔ B2b-i scoped wait_owner on repair-limit ticket never consumes owner continuation (185.674584ms)
+✔ B2b-i scoped signal and dependency edge serialize on the root before verify (411.613125ms)
+✔ scoped signal rechecks project under the shared prefix before authority (187.846292ms)
+✔ scoped signal rechecks root under the shared prefix before authority (189.9535ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-aYIrsI
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-aYIrsI nonceSha256=a982978d01f2ed7c7d3aca48daa73f60f301480b12846c4ce2e1e73f62e82729
+attachment DB scratch identity dev=16777231 ino=220487720 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-aYIrsI
+✔ S2 admitted PASS turn creates A→B child through the real port with actor A audit (242.262542ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9njj7f
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9njj7f nonceSha256=2a75cbc604de35804df5aebb0ebe66125873ffd68405cb470730c2d3ea231512
+attachment DB scratch identity dev=16777231 ino=220487727 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9njj7f
+✖ S2 decision, dependency and signal go through the real port with actor A audit (201.228ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Zs9AXM
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Zs9AXM nonceSha256=c73da9b9896f2cf5aa244e85d23532cf27cdcb7a1666af026d83571c9b61f630
+attachment DB scratch identity dev=16777231 ino=220487734 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Zs9AXM
+✖ S2 port snapshots caller arguments synchronously before any authority wait (217.281959ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-5nurgO
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-5nurgO nonceSha256=ed4d453004be8709f035c461540aaf7594c474cd3cb45eab5e2d0594050effed
+attachment DB scratch identity dev=16777231 ino=220487741 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-5nurgO
+✔ S2 turn without admission stays 503 and preserves state (233.481916ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KPgFJ8
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KPgFJ8 nonceSha256=d9f6e2f55a3ca360578ed5bb0bcb47bb966301feff7c2037837b5e5e43067439
+attachment DB scratch identity dev=16777231 ino=220487748 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KPgFJ8
+✔ S2 admission denies receipt UNVERIFIED with 403 and preserves state (216.321042ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Mg8mis
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Mg8mis nonceSha256=99c8c4227771f3e7280d1da745d46f7f6836fa471e2394488b064e176178aae1
+attachment DB scratch identity dev=16777231 ino=220487755 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Mg8mis
+✔ S2 admission denies receipt FAIL with 403 and preserves state (220.311458ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VekflO
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VekflO nonceSha256=3cc76d0a57833b1c4d95597e8af8e85d3f6d228c644f9483b96eda7e39b10976
+attachment DB scratch identity dev=16777231 ino=220487762 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-VekflO
+✔ S2 admission denies receipt expired with 403 and preserves state (235.246958ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XpIJgj
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XpIJgj nonceSha256=db632aaadd5984c251f3682d94d4a976b602dfffb1252892a1df2b676f81980a
+attachment DB scratch identity dev=16777231 ino=220487769 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XpIJgj
+✔ S2 admission denies receipt revoked with 403 and preserves state (233.806292ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Dvb4mM
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Dvb4mM nonceSha256=cca63612372320a69293264814f28e22e1360f4de264a5a8fb402f7860d0b744
+attachment DB scratch identity dev=16777231 ino=220487776 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Dvb4mM
+✔ S2 admission denies receipt from another deployment with 403 and preserves state (244.811291ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fD4s2e
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fD4s2e nonceSha256=3a67a7edbf91e235822533ec61ffa3aa2ad0cec4fcb0904c98dadeced0bb9a13
+attachment DB scratch identity dev=16777231 ino=220487783 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-fD4s2e
+✔ S2 admission denies receipt signed by another verifier with 403 and preserves state (262.154208ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jDgbNf
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jDgbNf nonceSha256=df6399089ded8162357512cb2720b302d21e4385812eb1ec4eb5ce659e67f2ed
+attachment DB scratch identity dev=16777231 ino=220487790 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jDgbNf
+✔ S2 admission denies assembly pinned to another verifier with 403 and preserves state (248.899458ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-35f1wX
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-35f1wX nonceSha256=e6de66863348b95d3b7c3666f60c9d9288a7d3d864b11358418a5356b4a0d5f9
+attachment DB scratch identity dev=16777231 ino=220487797 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-35f1wX
+✔ S2 admission denies session expired with 403 and preserves state (232.702ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-81IlZq
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-81IlZq nonceSha256=d9a0a94c87e4bde99da0d6013c6da1ffc91e1250e192ba1159ea412e18a38a13
+attachment DB scratch identity dev=16777231 ino=220487804 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-81IlZq
+✔ S2 admission denies session other process instance with 403 and preserves state (254.995458ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-arWnfF
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-arWnfF nonceSha256=28800165b6ef5c6f54bf7e3019655bd070976c19874d2a30f7c12a074cda03ff
+attachment DB scratch identity dev=16777231 ino=220487811 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-arWnfF
+✔ S2 admission denies session other designation revision with 403 and preserves state (252.339667ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-89WT5z
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-89WT5z nonceSha256=6be86d1e998b19eeddaad7a6aa5274b7084c1af88c00034d3651fdee9108b2c9
+attachment DB scratch identity dev=16777231 ino=220487818 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-89WT5z
+✔ S2 admission denies session no longer live with 403 and preserves state (230.86625ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dPGWJ1
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dPGWJ1 nonceSha256=bb7e65edf0331bb6e070f063a4964b638cecb08d4ed0c52936c16f4d75472582
+attachment DB scratch identity dev=16777231 ino=220487825 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dPGWJ1
+✖ S2 operation must be a pending row of this turn on the scope input (227.014583ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-iT1Z18
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-iT1Z18 nonceSha256=05d83e977e03dea1bb5648d89cd1fade770d1070db76bbac02265e4515aa1656
+attachment DB scratch identity dev=16777231 ino=220487832 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-iT1Z18
+✖ S2 action outside the persisted scope actions is denied (232.366083ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-voRXzq
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-voRXzq nonceSha256=4f2fc54519f39516d46379581eb7f751dc982633c17bfb1897018b60233e633e
+attachment DB scratch identity dev=16777231 ino=220487839 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-voRXzq
+✔ S2 new root requires the same-Tx routing decision for the exact CreateTicket hash (261.061166ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-O7JKm3
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-O7JKm3 nonceSha256=f9aca60ccc047c81e21a63085a004e1122d6e3f95817953ad5539ec029c82ef3
+attachment DB scratch identity dev=16777231 ino=220487846 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-O7JKm3
+✔ S2 root scope cannot create a new root without a message routing decision (222.466084ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-h31Hf3
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-h31Hf3 nonceSha256=004cb67df9560198697b22f9612932d1975dabb026b7c1c48656c59194980db8
+attachment DB scratch identity dev=16777231 ino=220487853 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-h31Hf3
+✔ S2 message scope without a root cannot write existing tickets (229.347875ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zt7Cgn
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zt7Cgn nonceSha256=0acd36788a1f1b8e0111d447fd4c4341a3132633086f00e0c918077a37741c9b
+attachment DB scratch identity dev=16777231 ino=220487860 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zt7Cgn
+✔ S2 tickets outside the scope root are not found (275.53825ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-LC5eAl
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-LC5eAl nonceSha256=88c6274abe6bf8ce57ffd6a51a960b05447082bf1f551a6eb2aa24724d4a2773
+attachment DB scratch identity dev=16777231 ino=220487867 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-LC5eAl
+✖ S2 caller actor other than the designation machine is denied despite a valid proof (214.50075ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-cHX7C8
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-cHX7C8 nonceSha256=65a22c87bcaaf430903a302955a9db3ae7bccab2810bc2e853920885aeceeb27
+attachment DB scratch identity dev=16777231 ino=220487874 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-cHX7C8
+✔ S2 generic ticket routes stay 404 for machine A while its admitted turn is live (386.001ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-eVUELW
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-eVUELW nonceSha256=993192271aca262914a53cfcaf501b2cb4aba67ff262888c5bbc130ca96a3438
+attachment DB scratch identity dev=16777231 ino=220487881 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-eVUELW
+✔ S2 command stays unreleased with 503 and writes nothing (210.702542ms)
+attachment DB container 7e0bd56e5c301b2db9cfa19eb284b4cbd8683426fcaee4f894f4efcc7d2c8426 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Pv4u5w
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Pv4u5w nonceSha256=c023b20d6886d63251579cb09a0a7ae5daa1f8609c19ce6571968e51b38a57bf
+attachment DB scratch identity dev=16777231 ino=220487888 uid=501 pid=35534
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Pv4u5w
+✖ S2 bare persisted authority without the port target fails closed (209.532834ms)
+ℹ tests 124
+ℹ suites 0
+ℹ pass 118
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 31434.234875
+
+✖ failing tests:
+
+test at v2/server/test/assistant-orchestration-port.test.ts:172:1
+✖ S2 decision, dependency and signal go through the real port with actor A audit (201.228ms)
+  Error [ApiError]: Không tìm thấy ticket
+      at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:160:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:237:22)
+      at async withTarget (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:193:14)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:21
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:176:24 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:197:1
+✖ S2 port snapshots caller arguments synchronously before any authority wait (217.281959ms)
+  Error [ApiError]: Không tìm thấy ticket
+      at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:160:25)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:237:22)
+      at async withTarget (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:193:14)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:21
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:202:25 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:309:1
+✖ S2 operation must be a pending row of this turn on the scope input (227.014583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  -   code: 'ASSISTANT_OPERATION_NOT_FOUND',
+      status: 404
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:318:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy ticket
+        at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:160:25)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:237:22)
+        at async withTarget (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:193:14)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:21
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:339:1
+✖ S2 action outside the persisted scope actions is denied (232.366083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:351:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy ticket
+        at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:160:25)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Object.assistantSignalTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:540:20)
+        at async withTarget (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:193:14)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:21
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:461:1
+✖ S2 caller actor other than the designation machine is denied despite a valid proof (214.50075ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'ORCHESTRATION_ACTOR_MISMATCH',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:467:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy ticket
+        at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:160:25)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:237:22)
+        at async withTarget (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:193:14)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:21
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ORCHESTRATION_ACTOR_MISMATCH', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:544:1
+✖ S2 bare persisted authority without the port target fails closed (209.532834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND',
+  +   status: 404
+  -   code: 'ORCHESTRATION_SCOPE_INVALID',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:558:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy ticket
+        at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:160:25)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:237:22)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:21
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'ORCHESTRATION_SCOPE_INVALID', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }

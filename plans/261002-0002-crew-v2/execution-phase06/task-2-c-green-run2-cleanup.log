@@ -1,0 +1,6 @@
+# cleanup 2026-10-04T04:19:20Z
+test_databases_left=0
+stopped c9098955be4df85fccf14fd692478e905ee9f23089e3255cdccc326e4a318b04
+ps_after=[]
+inspect=no such object
+node_test_procs=0

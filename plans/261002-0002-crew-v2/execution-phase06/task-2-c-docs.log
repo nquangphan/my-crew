@@ -1,0 +1,11 @@
+HEAD=963dc31aa870961fad3dfc23e2b1b5a48940fb95 overlay=14 files
+ 14 files changed, 1316 insertions(+), 111 deletions(-)
+unchanged docs/index.md
+unchanged docs/files.md
+generate exit=0
+A  server/src/assistant/orchestration.ts
+A  server/test/assistant-orchestration-port.test.ts
+crew-docs check --all: ok
+check-all exit=0
+crew-docs check --staged: ok
+check-staged exit=0

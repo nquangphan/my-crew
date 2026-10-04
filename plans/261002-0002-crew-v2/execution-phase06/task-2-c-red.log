@@ -1,0 +1,1158 @@
+✔ assistant authority owner chỉ định một máy, CAS và replay không tạo designation trùng (439.940625ms)
+✔ assistant authority từ chối máy tự chỉ định, target sai và body ngoài slice (300.378208ms)
+✔ assistant authority kiểm session hiện hành trước cached reply (327.336458ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Tk33J8
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Tk33J8 nonceSha256=013591c351e4b76b2b356fb44ccb36e4c9511192d179f0983ecb4f84375d02e3
+attachment DB scratch identity dev=16777231 ino=220471135 uid=501 pid=44725
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Tk33J8
+✔ assistant authority resolver không cấp Actor từ receipt UNVERIFIED hoặc scope hết hạn (225.96425ms)
+✖ assistant authority resolver requires a valid pinned verifier build at assembly (0.396417ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MbwZ5s
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MbwZ5s nonceSha256=7bc3d9dded6b446ecfbe7ae1ee8f995aa3e41bb30d8d6b97dae5f242eab06217
+attachment DB scratch identity dev=16777231 ino=220471143 uid=501 pid=44725
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MbwZ5s
+✖ assistant authority resolver returns the designation machine for an admitted PASS turn (220.823917ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-OBKsLT
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-OBKsLT nonceSha256=2a335372d58c7faff5e3832b569e2370f3ec8955a270019924ad0224ed985eb0
+attachment DB scratch identity dev=16777231 ino=220471150 uid=501 pid=44725
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-OBKsLT
+✖ assistant authority resolver measures session expiry with clock_timestamp after locking (3304.55075ms)
+✔ assistant authority concurrent CAS, idle reassignment và live turn giữ nguyên authority (378.554708ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yBpLys
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yBpLys nonceSha256=15b689eb4ffddc2bae0ac3e2ddf9fc99973b1d2b855f717de943f9093ca8286e
+attachment DB scratch identity dev=16777231 ino=220471169 uid=501 pid=44725
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yBpLys
+✔ assistant authority live turn chặn reassignment và không thả guard bằng config (364.032792ms)
+A1 lock witness waiting=116 blocker=115 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for fresh
+✔ assistant authority A1 fresh/guard/revoked trong lock wait bị từ chối (291.246291ms)
+A1 lock witness waiting=120 blocker=119 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/guard
+✔ assistant authority A1 fresh/guard/expired trong lock wait bị từ chối (418.425875ms)
+A1 lock witness waiting=124 blocker=123 query=machines
+A1 revoke committed before releasing machine for fresh
+✔ assistant authority A1 fresh/machine/revoked trong lock wait bị từ chối (317.57775ms)
+A1 lock witness waiting=128 blocker=127 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true fresh/machine
+✔ assistant authority A1 fresh/machine/expired trong lock wait bị từ chối (409.065542ms)
+A1 lock witness waiting=132 blocker=131 query=assistant_calibration_guard
+A1 revoke committed before releasing guard for replay
+✔ assistant authority A1 replay/guard/revoked trong lock wait bị từ chối (324.625625ms)
+A1 lock witness waiting=136 blocker=135 query=assistant_calibration_guard
+A1 expiry witness expired=true transaction_predates_expiry=true replay/guard
+✔ assistant authority A1 replay/guard/expired trong lock wait bị từ chối (426.329875ms)
+A1 lock witness waiting=140 blocker=139 query=machines
+A1 revoke committed before releasing machine for replay
+✔ assistant authority A1 replay/machine/revoked trong lock wait bị từ chối (329.130375ms)
+A1 lock witness waiting=144 blocker=143 query=machines
+A1 expiry witness expired=true transaction_predates_expiry=true replay/machine
+✔ assistant authority A1 replay/machine/expired trong lock wait bị từ chối (403.028ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qKR69n
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qKR69n nonceSha256=6008fd5b59cc41d39ecc2d0810a9a6c7f05b2dca8d0ad824d7e41bd9682660cf
+attachment DB scratch identity dev=16777231 ino=220471190 uid=501 pid=44725
+A1 lock witness waiting=148 blocker=147 query=assistant_turns
+A1 turn expiry witness expired=true transaction_predates_expiry=true
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-qKR69n
+✔ assistant authority A1 turn/expired sau mọi authority lock bị từ chối (1379.108792ms)
+A1 credential lock witness waiting=152 blocker=151
+✔ assistant authority A1 fresh giữ credential lock đến mutation commit (328.479ms)
+A1 credential lock witness waiting=156 blocker=155
+✔ assistant authority A1 replay giữ credential lock đến mutation commit (304.951416ms)
+✔ assistant authority A2 uppercase designation và revoked target dùng cùng identity (294.709833ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-kYKXkp
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-kYKXkp nonceSha256=dd843e4da743b145d1fc7f5790b15b4bff3eaef3cf35a630eed0bd70b99cf7b3
+attachment DB scratch identity dev=16777231 ino=220473474 uid=501 pid=44725
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-kYKXkp
+✔ assistant authority A2 đổi casing cùng máy không retire designation hoặc live turn (353.178625ms)
+✔ B2a decision scoped A→B verifies exact authority and preserves actual audit/journal (206.151208ms)
+✔ B2a decision rejects missing authority and atomically preserves state (180.417208ms)
+✔ B2a decision rejects owner authority and atomically preserves state (198.617458ms)
+✔ B2a decision rejects actor authority and atomically preserves state (188.577625ms)
+✔ B2a decision rejects operation authority and atomically preserves state (188.937042ms)
+✔ B2a decision rejects action authority and atomically preserves state (188.127167ms)
+✔ B2a decision rejects hash authority and atomically preserves state (172.7445ms)
+✔ B2a decision rejects root authority and atomically preserves state (169.706667ms)
+✔ B2a decision rejects project authority and atomically preserves state (171.650459ms)
+✔ B2a decision rejects tx authority and atomically preserves state (176.760708ms)
+✔ B2a decision prefix locks root, canonical sorted tickets and project before verify (190.424541ms)
+✔ B2a decision snapshots input actor proof before first await and during deferred verify (185.670791ms)
+✔ B2a decision captures factory authority and denies cross-Tx token reuse (183.391625ms)
+✔ B2a decision uppercase identities retain exact submitted hash and reject lowercase replay (178.281083ms)
+✔ B2a dependency scoped A→B verifies exact authority and preserves actual audit/journal (188.90275ms)
+✔ B2a dependency rejects missing authority and atomically preserves state (166.065625ms)
+✔ B2a dependency rejects owner authority and atomically preserves state (178.649292ms)
+✔ B2a dependency rejects actor authority and atomically preserves state (218.811042ms)
+✔ B2a dependency rejects operation authority and atomically preserves state (167.452417ms)
+✔ B2a dependency rejects action authority and atomically preserves state (167.645375ms)
+✔ B2a dependency rejects hash authority and atomically preserves state (174.714ms)
+✔ B2a dependency rejects root authority and atomically preserves state (186.482541ms)
+✔ B2a dependency rejects project authority and atomically preserves state (169.342625ms)
+✔ B2a dependency rejects tx authority and atomically preserves state (168.2995ms)
+✔ B2a dependency prefix locks root, canonical sorted tickets and project before verify (190.65475ms)
+✔ B2a dependency snapshots input actor proof before first await and during deferred verify (175.471542ms)
+✔ B2a dependency captures factory authority and denies cross-Tx token reuse (177.355ms)
+✔ B2a dependency uppercase identities retain exact submitted hash and reject lowercase replay (198.584167ms)
+✔ B2a real machine-authenticated generic decision/dependency routes keep A→B ACL (326.157ms)
+✔ B2a dependency preserves revision invariant (173.488542ms)
+✔ B2a dependency preserves self invariant (164.392458ms)
+✔ B2a dependency preserves cross-root invariant (181.376833ms)
+✔ B2a dependency preserves duplicate invariant (185.73525ms)
+✔ B2a dependency preserves cycle invariant (208.02675ms)
+✔ B2a dependency preserves closed invariant (174.983167ms)
+✔ B2a dependency preserves ready invariant (208.256375ms)
+✔ B2a dependency preserves running invariant (198.37675ms)
+✔ B2a dependency preserves missing invariant (172.759333ms)
+✔ B2a concurrent opposite dependency requests cannot commit a cycle (184.398209ms)
+✔ B2a decision preserves owner-answer invariant (172.914291ms)
+✔ B2a decision preserves owner-approval invariant (206.286959ms)
+✔ B2a decision preserves empty-content invariant (180.9705ms)
+✔ B2a decision preserves long-content invariant (173.685042ms)
+✔ B2a decision preserves empty-rationale invariant (163.69025ms)
+✔ B2a decision preserves long-rationale invariant (219.103458ms)
+✔ B2a decision preserves too-many-sources invariant (242.25675ms)
+✔ B2a decision preserves unsafe-scope invariant (202.808083ms)
+✔ B2a decision preserves cross-root-source invariant (173.934917ms)
+✔ B2a decision preserves bad-locator invariant (182.968166ms)
+✔ B2a decision preserves missing-docs-reader invariant (201.632083ms)
+✔ B2a decision supports actual same-root ticket owner decision and reported artifact sources (184.462375ms)
+✔ B2a docs source validation completes before verify and is not repeated after verification (206.315791ms)
+✔ B2a decision rejects array getter before user code or authority (174.879833ms)
+✔ B2a decision rejects array iterator before user code or authority (181.395209ms)
+✔ B2a decision rejects array prototype before user code or authority (188.155459ms)
+✔ B2b-i real machine-authenticated generic signal route keeps A→B ACL (250.776ms)
+✔ B2b-i signal without orchestration authority is unavailable and preserves revision (170.501125ms)
+✔ B2b-i signal rejects owner authority and atomically preserves state (169.339875ms)
+✔ B2b-i signal rejects actor authority and atomically preserves state (177.260708ms)
+✔ B2b-i signal rejects operation authority and atomically preserves state (168.440542ms)
+✔ B2b-i signal rejects action authority and atomically preserves state (171.545584ms)
+✔ B2b-i signal rejects hash authority and atomically preserves state (170.061167ms)
+✔ B2b-i signal rejects root authority and atomically preserves state (190.071833ms)
+✔ B2b-i signal rejects project authority and atomically preserves state (176.672541ms)
+✔ B2b-i signal rejects tx authority and atomically preserves state (164.218167ms)
+✔ B2b-i dependencies_ready requires done predecessors, then readies with exact audit and event (189.317958ms)
+✔ B2b-i wait_owner on pending moves to needs_input for owner input (173.494667ms)
+✔ B2b-i wait_owner on ready moves to needs_input for owner input (181.216ms)
+✔ B2b-i wait_owner on running ticket fails closed without synthetic owner command (168.159417ms)
+✔ B2b-i signal stale revision conflicts and preserves state (172.352042ms)
+✔ B2b-i scoped signal rejects resume as invalid input (182.273458ms)
+✔ B2b-i scoped signal rejects start as invalid input (187.258709ms)
+✔ B2b-i scoped signal rejects passed as invalid input (175.997542ms)
+✔ B2b-i scoped wait_owner on repair-limit ticket never consumes owner continuation (173.7865ms)
+✔ B2b-i scoped signal and dependency edge serialize on the root before verify (409.293334ms)
+✖ scoped signal rechecks project under the shared prefix before authority (194.274167ms)
+✖ scoped signal rechecks root under the shared prefix before authority (175.66975ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t8agq6
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t8agq6 nonceSha256=780052e46c51fda2c94a90beb7f42570fc5f8eea9abe225ad2c2f16e632d0d28
+attachment DB scratch identity dev=16777231 ino=220473525 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-t8agq6
+✖ S2 admitted PASS turn creates A→B child through the real port with actor A audit (237.628ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sZg1EP
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sZg1EP nonceSha256=a3ebc9fd7f55714234fd9ec3a97788aede5663555c18f733713a6a95ac12fa82
+attachment DB scratch identity dev=16777231 ino=220473532 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sZg1EP
+✖ S2 decision, dependency and signal go through the real port with actor A audit (228.713709ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sbJ4E9
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sbJ4E9 nonceSha256=57bcc7c138657acc502bc2754ec46d16e0dce310c487ed262362aa3547d49d4c
+attachment DB scratch identity dev=16777231 ino=220473540 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sbJ4E9
+✖ S2 port snapshots caller arguments synchronously before any authority wait (220.223791ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-38hTGK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-38hTGK nonceSha256=0b8712593e26707f85a63b8ccc7a8fe5fb8669cb40e5ad08574660d53d0fbf75
+attachment DB scratch identity dev=16777231 ino=220473547 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-38hTGK
+✖ S2 turn without admission stays 503 and preserves state (221.051334ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KOQYyO
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KOQYyO nonceSha256=a2d866607cf5fd1cc188e075a4b6e5bc57f3e53953cf8fc0cd39525079c8994e
+attachment DB scratch identity dev=16777231 ino=220473554 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-KOQYyO
+✖ S2 admission denies receipt UNVERIFIED with 403 and preserves state (227.19875ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jS2bgX
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jS2bgX nonceSha256=025d00ba133bf61d9b9a159436e5808968bd9a498a360a61306b090f4c442d83
+attachment DB scratch identity dev=16777231 ino=220473561 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jS2bgX
+✖ S2 admission denies receipt FAIL with 403 and preserves state (219.182792ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RvsbFO
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RvsbFO nonceSha256=8d83974eb93acd3f8a2ecc652ac1bbae4d8ecc95a14c3455574123aaf43996f6
+attachment DB scratch identity dev=16777231 ino=220473568 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RvsbFO
+✖ S2 admission denies receipt expired with 403 and preserves state (210.29175ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Jzci3o
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Jzci3o nonceSha256=1ce940f26b3106ca7c686327be54fd8554c5f9a5a1bdefbd0297af4ddf674f50
+attachment DB scratch identity dev=16777231 ino=220473575 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Jzci3o
+✖ S2 admission denies receipt revoked with 403 and preserves state (226.658041ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-48Kg3k
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-48Kg3k nonceSha256=77c52507b94d3be088708feb94d3dd2846cd499ab2faa8392bf2042687b316be
+attachment DB scratch identity dev=16777231 ino=220473582 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-48Kg3k
+✖ S2 admission denies receipt from another deployment with 403 and preserves state (230.296542ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-b1e6iM
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-b1e6iM nonceSha256=13610c6107a943057db05ae327ad77966b9d88e162a9e1e5c5660363baf34cb4
+attachment DB scratch identity dev=16777231 ino=220473589 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-b1e6iM
+✖ S2 admission denies receipt signed by another verifier with 403 and preserves state (216.585917ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dBU2zb
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dBU2zb nonceSha256=c48f8ec13cec39848de6c92769e85bc8d5fbd995e3b9d59c9e7ab0308e5f9e2a
+attachment DB scratch identity dev=16777231 ino=220473601 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dBU2zb
+✖ S2 admission denies assembly pinned to another verifier with 403 and preserves state (210.435667ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-chRHqN
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-chRHqN nonceSha256=bd4bfde6159eb9a74de6c89cb322f287853d09bea428a8dd1b47c5681535995d
+attachment DB scratch identity dev=16777231 ino=220473609 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-chRHqN
+✖ S2 admission denies session expired with 403 and preserves state (213.205625ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Fe8c80
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Fe8c80 nonceSha256=aa6a83e41cf199fe7da91bc27c877f754878abfeab91dd5010a16367087fc743
+attachment DB scratch identity dev=16777231 ino=220473616 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Fe8c80
+✖ S2 admission denies session other process instance with 403 and preserves state (212.84425ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0mWbRP
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0mWbRP nonceSha256=01cc841ad93b39a1b4556534ae9d2abd3764ac5abe0edbb985312bf364b8ca06
+attachment DB scratch identity dev=16777231 ino=220473623 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0mWbRP
+✖ S2 admission denies session other designation revision with 403 and preserves state (216.762042ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-urlmAk
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-urlmAk nonceSha256=8dffbccf2553db48c1a72bb4f6cee7ebd7bbe7bfadee7cc88d6df7a408c4399e
+attachment DB scratch identity dev=16777231 ino=220473630 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-urlmAk
+✖ S2 admission denies session no longer live with 403 and preserves state (253.5385ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pmeEzO
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pmeEzO nonceSha256=c971a8f81c6ea9db434d9c0a9187bdf2990dd2acf030b6d66f4277d08fa98799
+attachment DB scratch identity dev=16777231 ino=220473643 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pmeEzO
+✖ S2 operation must be a pending row of this turn on the scope input (225.234041ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZjU9fC
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZjU9fC nonceSha256=2286a2cdf200332626a935c973eecf5d44e713b64322a7f3640f3b80fb527cb0
+attachment DB scratch identity dev=16777231 ino=220473651 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZjU9fC
+✖ S2 action outside the persisted scope actions is denied (215.089333ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-wGjh6V
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-wGjh6V nonceSha256=0d0c8ea6a175034aacf4cdffcb6befc6f5a1a54d9c8fc714f9d2029c4261cef8
+attachment DB scratch identity dev=16777231 ino=220473658 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-wGjh6V
+✖ S2 new root requires the same-Tx routing decision for the exact CreateTicket hash (211.877291ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Y4RuIN
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Y4RuIN nonceSha256=5d5dbe57a500c26bdfc623c9d693304ea89d42f223e187d9613b859ed547d770
+attachment DB scratch identity dev=16777231 ino=220473665 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Y4RuIN
+✖ S2 root scope cannot create a new root without a message routing decision (228.957292ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pXS50S
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pXS50S nonceSha256=a4260d6c96395212cccf39507592bbe181b39b5e4bcaf81e40ccb692603b266a
+attachment DB scratch identity dev=16777231 ino=220473674 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pXS50S
+✖ S2 message scope without a root cannot write existing tickets (259.0355ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-40HJtU
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-40HJtU nonceSha256=fa699d8475bf8ac755f95d9ee70d6a30eb0ce7e5ff0707b9417d4b2278628fc5
+attachment DB scratch identity dev=16777231 ino=220473684 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-40HJtU
+✖ S2 tickets outside the scope root are not found (209.974542ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lgJNKn
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lgJNKn nonceSha256=55d412e34400f6e637664cad2c509870c142288453a930e128e03e04d23017fe
+attachment DB scratch identity dev=16777231 ino=220473692 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lgJNKn
+✖ S2 caller actor other than the designation machine is denied despite a valid proof (205.033125ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DoVbJb
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DoVbJb nonceSha256=7a0ccbc11bec72b9e5f7f864a346f6c974f2217ae8222dd39975f7ee71801377
+attachment DB scratch identity dev=16777231 ino=220473699 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DoVbJb
+✔ S2 generic ticket routes stay 404 for machine A while its admitted turn is live (374.349042ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rIh5pZ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rIh5pZ nonceSha256=e1ba612ce2f33e6694212b2768ae8d05c77dd77ebafda9102478b802a91a699f
+attachment DB scratch identity dev=16777231 ino=220473706 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rIh5pZ
+✖ S2 command stays unreleased with 503 and writes nothing (208.595333ms)
+attachment DB container 548e9d26dcd4be5fd5e2faef1837b9759d5094764241c48c408ad60a1ca61e61 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PvGjTd
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PvGjTd nonceSha256=a12082a78dcb56f97d3dda4288c88bc9fab3da571253de0fe426b10d628d7723
+attachment DB scratch identity dev=16777231 ino=220473713 uid=501 pid=47395
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PvGjTd
+✖ S2 bare persisted authority without the port target fails closed (209.282541ms)
+ℹ tests 124
+ℹ suites 0
+ℹ pass 95
+ℹ fail 29
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 31811.188208
+
+✖ failing tests:
+
+test at v2/server/test/assistant-authority.test.ts:365:1
+✖ assistant authority resolver requires a valid pinned verifier build at assembly (0.396417ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception.
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-authority.test.ts:367:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /ASSISTANT_VERIFIER_PIN_INVALID/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-authority.test.ts:393:1
+✖ assistant authority resolver returns the designation machine for an admitted PASS turn (220.823917ms)
+  Error [ApiError]: Chưa cấu hình admission Trợ lý
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/authority.ts:130:11
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-authority.test.ts:397:21
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    code: 'ASSISTANT_ADMISSION_NOT_CONFIGURED',
+    status: 503,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-authority.test.ts:408:1
+✖ assistant authority resolver measures session expiry with clock_timestamp after locking (3304.55075ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      clock_expired: true,
+  +   code: 'ASSISTANT_ADMISSION_NOT_CONFIGURED',
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+      open: true,
+      start_open: true
+    }
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-authority.test.ts:431:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { open: true, start_open: true, clock_expired: true, code: 'ASSISTANT_ADMISSION_NOT_CONFIGURED' },
+    expected: { open: true, start_open: true, clock_expired: true, code: 'ASSISTANT_ADMISSION_DENIED' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:1054:3
+✖ scoped signal rechecks project under the shared prefix before authority (194.274167ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:1066:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ORCHESTRATION_SCOPE_INVALID' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:1054:3
+✖ scoped signal rechecks root under the shared prefix before authority (175.66975ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:1066:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ORCHESTRATION_SCOPE_INVALID' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:154:1
+✖ S2 admitted PASS turn creates A→B child through the real port with actor A audit (237.628ms)
+  Error [ApiError]: Chưa có nguồn xác minh điều phối
+      at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+      at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:159:71
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:159:30 {
+    code: 'ORCHESTRATION_UNAVAILABLE',
+    status: 503,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:172:1
+✖ S2 decision, dependency and signal go through the real port with actor A audit (228.713709ms)
+  Error [ApiError]: Chưa có nguồn xác minh điều phối
+      at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:141:26)
+      at Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:236:35)
+      at Object.decision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:28:16)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:177:16
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20) {
+    code: 'ORCHESTRATION_UNAVAILABLE',
+    status: 503,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:197:1
+✖ S2 port snapshots caller arguments synchronously before any authority wait (220.223791ms)
+  Error [ApiError]: Chưa có nguồn xác minh điều phối
+      at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:141:26)
+      at Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:236:35)
+      at Object.decision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:28:16)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:205:32
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20) {
+    code: 'ORCHESTRATION_UNAVAILABLE',
+    status: 503,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:218:1
+✖ S2 turn without admission stays 503 and preserves state (221.051334ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  -   code: 'ASSISTANT_ADMISSION_NOT_CONFIGURED',
+      status: 503
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:223:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:226:20
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_NOT_CONFIGURED', status: 503 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies receipt UNVERIFIED with 403 and preserves state (227.19875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies receipt FAIL with 403 and preserves state (219.182792ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies receipt expired with 403 and preserves state (210.29175ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies receipt revoked with 403 and preserves state (226.658041ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies receipt from another deployment with 403 and preserves state (230.296542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies receipt signed by another verifier with 403 and preserves state (216.585917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies assembly pinned to another verifier with 403 and preserves state (210.435667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies session expired with 403 and preserves state (213.205625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies session other process instance with 403 and preserves state (212.84425ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies session other designation revision with 403 and preserves state (216.762042ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:286:3
+✖ S2 admission denies session no longer live with 403 and preserves state (253.5385ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_ADMISSION_DENIED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:295:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:298:22
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ASSISTANT_ADMISSION_DENIED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:309:1
+✖ S2 operation must be a pending row of this turn on the scope input (225.234041ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ASSISTANT_OPERATION_NOT_FOUND',
+  -   status: 404
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:318:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:141:26)
+        at Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:236:35)
+        at Object.decision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:28:16)
+        at f.run.operationId.operationId (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:315:44)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20),
+    expected: { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:339:1
+✖ S2 action outside the persisted scope actions is denied (215.089333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:344:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:347:20
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:361:1
+✖ S2 new root requires the same-Tx routing decision for the exact CreateTicket hash (211.877291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:369:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at f.run.before.before (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:367:44)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:396:1
+✖ S2 root scope cannot create a new root without a message routing decision (228.957292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:401:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.assistantCreateTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:306:13)
+        at Object.createTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:26:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:404:20
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ORCHESTRATION_ROUTING_DECISION_REQUIRED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:414:1
+✖ S2 message scope without a root cannot write existing tickets (259.0355ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'NOT_FOUND',
+  -   status: 404
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:419:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:141:26)
+        at Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:236:35)
+        at Object.decision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:28:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:420:50
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20),
+    expected: { code: 'NOT_FOUND', status: 404 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:429:1
+✖ S2 tickets outside the scope root are not found (209.974542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'NOT_FOUND',
+  -   status: 404
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:440:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:141:26)
+        at Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:236:35)
+        at Object.decision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:28:16)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:441:50
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20),
+    expected: { code: 'NOT_FOUND', status: 404 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:461:1
+✖ S2 caller actor other than the designation machine is denied despite a valid proof (205.033125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ORCHESTRATION_ACTOR_MISMATCH',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:467:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at Object.prepare (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/assistant-access.ts:141:26)
+        at Object.assistantRecordDecision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/decisions.ts:236:35)
+        at Object.decision (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:28:16)
+        at f.run.actor.actor (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:469:49)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20),
+    expected: { code: 'ORCHESTRATION_ACTOR_MISMATCH', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:528:1
+✖ S2 command stays unreleased with 503 and writes nothing (208.595333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  -   code: 'ORCHESTRATION_COMMAND_NOT_RELEASED',
+      status: 503
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:534:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at unavailable (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:9:27)
+        at Object.command (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:32:13)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:535:50
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ORCHESTRATION_COMMAND_NOT_RELEASED', status: 503 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:544:1
+✖ S2 bare persisted authority without the port target fails closed (209.282541ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'ORCHESTRATION_UNAVAILABLE',
+  +   status: 503
+  -   code: 'ORCHESTRATION_SCOPE_INVALID',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:551:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Chưa có nguồn xác minh điều phối
+        at unavailable (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:9:27)
+        at Object.verify (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:15:13)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:554:23
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:107:27
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:103:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ORCHESTRATION_SCOPE_INVALID', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
