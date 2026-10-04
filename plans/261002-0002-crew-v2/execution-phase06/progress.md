@@ -101,3 +101,11 @@ Ruling: chấp nhận A1–A7 của memo làm ruling PM (B2b tách i/ii, `comman
 Ruling: thứ tự slice S1 → S3 (song song S1) → S2 → S3b → S4 → S5 → S6 theo memo mục B. Owner chỉ cần được thông báo: máy dự án cần `uv`; S6 chạy uv thật cần slot nặng.
 Dispatch song song: S1 (T2-B2b-i, server tickets) và S3 (T3-D2, gateway) — ownership tách biệt, slot nặng điều phối bằng `$TMPDIR/crew-v2-heavy-slot.lock`.
 Ruling 10:15: S3 được sửa riêng test `v2/gateway/test/render-artifacts.test.ts:570-577` (giữ bất biến inspection tách khỏi adapter BMAD, đổi assert theo A5.1 — không xoá test, không chạm render-artifacts.ts) — A5.1 làm test cũ đỏ có chủ đích — sai thì mất một assert phân tách cần khôi phục.
+
+10:40 04/10 T3-D2 full independent review `task-3-d2-review.md`: Spec ✅, Quality Approved, Critical0/Important0/Minor3.
+Ruling: BMAD definition chỉ nhận runtime `claude` (khác → WORKFLOW_DEFINITION_UNAVAILABLE) là phạm vi chủ ý của D2 — layer path D1 cố định `.claude/…`; BMAD trên Codex cần slice riêng định nghĩa layer path Codex trước khi S4 admit — sai thì project chọn BMAD+Codex sẽ chờ thay vì chạy. S3b/S4 không được giả định BMAD codex có definition.
+Ruling: Superpowers `sha256` đổi so với T3 được chấp nhận — chưa có consumer persisted (reviewer kiểm v2/gateway/src, v2/server/src).
+Task 3 D2: complete — 57601b9.
+Task 3 D2: minor (deferred): script `_bmad/scripts/*.py` chọn không kiểm `entry.type`, symlink trả errno thô thay WORKFLOW_SKILL_MISMATCH (`workflow-manifest.ts:186`).
+Task 3 D2: minor (deferred): adapter chưa áp giới hạn D1 (≤128 file, tên ≤512, acceptedBmadSourceTree, size) — nên export validator thuần từ D1 (`workflow-manifest.ts:166-206`); nên làm trong S6 trước receipt.
+Task 3 D2: minor (deferred): ghi chú BMAD chỉ claude — đã khép bằng ruling trên.
