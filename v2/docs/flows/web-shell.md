@@ -6,13 +6,16 @@
 
 ## Điểm vào
 
-- `v2/web/src/main.tsx` tạo React root, QueryClient và router trong một lần mount của browser app.
-- `v2/web/src/router.tsx` khai báo root outlet và trang guest/project preview.
+- `v2/web/src/main.tsx` tạo React root, một `AppRuntime` (QueryClient, phiên, `PendingStore`, `OwnerClient`, `EventSync`) và router trong một lần mount của browser app.
+- `v2/web/src/app-runtime.ts` → `createAppRuntime`: dựng runtime và gọi `wireSession` ngay lúc dựng, trước mọi subscriber React.
+- `v2/web/src/router.tsx` khai báo root `Shell`, route `/login` và nhóm route được bảo vệ (`/`, `/projects/$projectId`) bọc bởi `SessionBoundary`.
 - `v2/web/vite.config.ts` đặt base `/crew-v2/` và nhận API origin loopback qua `CREW_V2_WEB_API_ORIGIN` cho chế độ dev.
 - `v2/web/e2e/support/fixture.ts` khai báo `withFixture`, resource và cleanup. Coordinator đã qua test lifecycle PostgreSQL/API, active request shutdown và SIGTERM child thật (5/5); lượt MCP cuối đã kiểm shell guest, UI không đổi trong FIX1.
 - `v2/web/scripts/e2e-fixture.ts --preview` giữ cùng fixture vật lý trong process cho browser MCP và nhận lệnh `close` sau khi tab đã đóng. Origin, nonce và registry không chứa credential được in trước khi điều hướng.
 
 ## Các bước
+
+0. Wiring phiên: `createAppRuntime` đăng ký `wireSession` trước khi React render nên khi phiên thành `authenticated`, `EventSync.start` chạy (và gửi request catch-up) trước khi view được bảo vệ kịp GET dữ liệu đầu tiên. Route được bảo vệ chạy `authorizeRoute` trong `beforeLoad`: đợi `bootstrap`, rồi guest/expired bị chuyển tới `/login?returnTo=<path nội bộ>`. `returnTo` đi qua `safeReturnPath`, chỉ nhận path `/crew-v2/` nên URL ngoài hay `..` về `/crew-v2/`. Đăng nhập thành công đẩy history tới path đã kiểm. Nếu phiên hết hạn khi đang ở route được bảo vệ, `SessionBoundary` hiện màn hình đăng nhập lại tại chỗ. Nút “Đăng xuất” ở toolbar gọi `SessionController.logout`, xóa cache và đóng stream. Query mặc định `retry: false` vì `OwnerClient.get` đã tự retry; `refetchOnWindowFocus` và `refetchOnReconnect` bật.
 
 1. Browser mở `/crew-v2/`; router mount `Shell` với sidebar, toolbar và outlet. Guest thấy nhãn “Bản minh họa”; chưa có danh sách dự án từ API.
 2. Panel dùng cả biểu tượng và chữ cho loading, error, empty. Skip link, landmark, focus-visible và reduced-motion hỗ trợ bàn phím; CSS chia layout desktop/tablet/mobile.
@@ -25,13 +28,13 @@
 |---|---|
 | `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web` |
 | `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/playwright.config.ts` | Base/proxy, HTML entry và browser runner một worker |
-| `v2/web/src/main.tsx`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive |
+| `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive |
 | `v2/web/test/workspace.test.ts`, `v2/web/test/fixture-lifecycle.test.ts` | Ranh giới workspace và lifecycle; RED lịch sử và GREEN PostgreSQL/API/SIGTERM thật đã ghi trong báo cáo |
 | `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts` | Coordinator/handle fixture đã qua test lifecycle, typecheck và build thực |
 
 ## Dữ liệu
 
-Task 1 chưa đọc project/ticket/Assistant thật. `QueryClient` có một instance cho mỗi lần mount browser app; dữ liệu nhạy cảm không vào module-global state. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
+Từ bước wiring, `QueryClient` có một instance cho mỗi runtime của app; `/` và `/projects/$projectId` vẫn là nội dung minh họa phía sau đăng nhập. Phần dưới là ghi chú lịch sử của Task 1. Task 1 chưa đọc project/ticket/Assistant thật. `QueryClient` có một instance cho mỗi lần mount browser app; dữ liệu nhạy cảm không vào module-global state. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
 
 ## Flow liên quan
 
@@ -40,3 +43,5 @@ Task 1 chưa đọc project/ticket/Assistant thật. `QueryClient` có một ins
 ## Tests
 
 Workspace RED đầu tiên exit 1 bằng assertion thiếu `package.json`, sau scaffold workspace 1/1 PASS. Lifecycle RED trên deny scaffold có 3 assertion thất bại đúng hành vi thiếu callback/identity/STOP. Preview SIGTERM child từng RED thực: tài nguyên cleanup nhưng process không tự exit; đã GREEN. Review FIX1 phát hiện request gửi dở có thể giữ `close()` chờ vô hạn; test HTTP thật RED với `ACTIVE_REQUEST_CLOSE_DEADLINE`, sau sửa hủy socket thuộc fixture và deadline cleanup thì GREEN. Lượt final sau format đạt lifecycle 5/5 trên PostgreSQL18.6/API/web listener thật: POST login, GET session trực tiếp và qua proxy `/v2`, close lặp, active request, SIGTERM child exit0/cleanup; hai case UNKNOWN là unit policy. Scoped Biome và strict typecheck sau FIX1 exit0; web build 150 modules và workspace 1/1 thuộc freeze UI trước FIX1, vì FIX1 chỉ đổi harness/test. Exact container ID, image digest, DB, cổng, process, scratch và STOP độc lập, cùng raw logs có hash của FIX1, được ghi trong báo cáo Phase07. Preview Playwright MCP cuối trên source UI đã xác nhận Enter skip link chuyển focus vào `MAIN#main-content`, error console 0, viewport thật 1280/390/640 px đều không tràn. Viewport 640px là kiểm tra bố cục tương đương; literal browser zoom 200% chưa đo được vì shortcut không đổi zoom metrics. Fixture preview đã đóng và exact resource biến mất. FIX2 bổ sung guard sau stat để không khởi chạy rm sau REMOVE timeout; focused unit RED/GREEN và scoped Biome đã có. Full lifecycle6 và strict typecheck trên freeze FIX2 chưa chạy do resource gate, independent scoped FIX2 review chưa hoàn tất. Đây là checkpoint source, chưa nghiệm thu đầy đủ Task1; các trang nghiệp vụ Task2–8 nằm ngoài nghiệm thu shell này.
+
+`web/test/app-wiring.test.ts` nạp `app-runtime.ts` qua Vite SSR (Node không đọc được JSX trong `session-boundary.tsx`) và kiểm: stream catch-up đi trước GET dữ liệu đầu tiên, query không retry mặc định, route chưa xác thực bị chuyển tới login kèm return path nội bộ, URL ngoài bị loại, logout và hết phiên xóa cache và dừng stream. Hai spec `auth.spec.ts` và `events.spec.ts` của flow web-data vẫn mount `SessionBoundary` vào root `#task2-harness` và ẩn app thật; vì app thật nay có form đăng nhập nên chúng chỉ tìm ô “Mật khẩu” trong root đó. Một lượt E2E tạm trên router thật (không giữ trong repo) đã kiểm guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=…`, đăng nhập quay về đúng path, stream khởi động, đăng xuất, và `returnTo` là URL ngoài rơi về `/crew-v2/`.

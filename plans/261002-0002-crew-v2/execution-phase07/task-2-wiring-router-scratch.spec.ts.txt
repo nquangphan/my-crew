@@ -1,0 +1,41 @@
+import { test as base, expect } from '@playwright/test';
+import { type FixtureHandle, withFixture } from './support/fixture.ts';
+
+const test = base.extend<Record<never, never>, { crew: FixtureHandle }>({
+  crew: [
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires an object pattern.
+    async ({}, use) => {
+      await withFixture(async (handle) => {
+        await use(handle);
+      });
+    },
+    { scope: 'worker', timeout: 180_000 },
+  ],
+});
+
+test('real router: guest redirect, login, return, logout', async ({ page, crew }) => {
+  const calls: string[] = [];
+  page.on('request', (r) => {
+    const p = new URL(r.url()).pathname;
+    if (p.startsWith('/v2/')) calls.push(`${r.method()} ${p}`);
+  });
+  await page.goto(`${crew.webOrigin}/crew-v2/projects/abc?x=1`);
+  await expect(page.getByRole('heading', { name: 'Đăng nhập Crew' })).toBeVisible();
+  const url = new URL(page.url());
+  console.log('LOGIN_URL', url.pathname + url.search);
+  expect(url.pathname).toBe('/crew-v2/login');
+  await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Dự án' })).toBeVisible();
+  expect(new URL(page.url()).pathname + new URL(page.url()).search).toBe('/crew-v2/projects/abc?x=1');
+  await expect.poll(() => calls.some((c) => c.startsWith('GET /v2/events'))).toBe(true);
+  // hostile return target falls back to root after login
+  await page.getByRole('button', { name: 'Đăng xuất' }).click();
+  await expect(page.getByRole('heading', { name: 'Đăng nhập Crew' })).toBeVisible();
+  await page.goto(`${crew.webOrigin}/crew-v2/login?returnTo=${encodeURIComponent('https://evil.example/')}`);
+  await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Không gian làm việc', level: 1 })).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe('/crew-v2/');
+  console.log('CALLS', calls.join(' | '));
+});

@@ -358,6 +358,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/playwright.config.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/pnpm-lock.yaml` | [web-shell](flows/web-shell.md) (file) |
 | `web/scripts/e2e-fixture.ts` | [web-shell](flows/web-shell.md) (file) |
+| `web/src/app-runtime.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/auth/login.tsx` | [web-data](flows/web-data.md) (file) |
 | `web/src/auth/session-boundary.tsx` | [web-data](flows/web-data.md) (điểm vào) |
 | `web/src/contracts/attachments.ts` | [web-data](flows/web-data.md) (file) |
@@ -374,6 +375,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/router.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/shell.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
+| `web/test/app-wiring.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |

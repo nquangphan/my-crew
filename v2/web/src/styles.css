@@ -148,6 +148,21 @@ a {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+.toolbar__action {
+  flex: none;
+  min-height: 2.25rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid #5571a4;
+  border-radius: 0.55rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.toolbar__action:hover {
+  background: #263956;
+}
 .preview-label {
   flex: none;
   padding: 0.35rem 0.65rem;

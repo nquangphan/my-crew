@@ -1,5 +1,6 @@
 import { Link, Outlet } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
+import { type ReactNode, useSyncExternalStore } from 'react';
+import { useRuntime } from './app-runtime.ts';
 
 type PanelProps = { title: string; children: ReactNode; symbol: string; tone: 'loading' | 'error' | 'empty' };
 
@@ -41,6 +42,20 @@ export function EmptyPanel() {
   );
 }
 
+function LogoutButton() {
+  const { session } = useRuntime();
+  const snapshot = useSyncExternalStore(
+    (listener) => session.subscribe(listener),
+    () => session.snapshot(),
+  );
+  if (snapshot.state !== 'authenticated') return null;
+  return (
+    <button type="button" className="toolbar__action" onClick={() => void session.logout()}>
+      Đăng xuất
+    </button>
+  );
+}
+
 export function Shell() {
   return (
     <div className="app-shell">
@@ -73,6 +88,7 @@ export function Shell() {
         <header className="toolbar">
           <div className="toolbar__title">Không gian làm việc</div>
           <span className="preview-label">Bản minh họa</span>
+          <LogoutButton />
         </header>
         <main id="main-content" className="workspace__main" tabIndex={-1}>
           <Outlet />

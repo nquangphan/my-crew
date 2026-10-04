@@ -138,7 +138,7 @@ test('SSE thật: catch-up rồi stream Last-Event-ID, event làm stale query, h
       });
   });
   await mountHarness(page, crew);
-  await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
+  await page.locator('#task2-harness').getByLabel('Mật khẩu').fill(crew.ownerPassword);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await expect(page.getByTestId('protected')).toBeVisible();
   await expect.poll(() => observe(page).then((value) => value.status)).toBe('live');
@@ -181,7 +181,7 @@ test('SSE thật: catch-up rồi stream Last-Event-ID, event làm stale query, h
   expect(await observe(page).then((value) => value.state)).toBe('expired');
   const afterExpiry = requests.length;
 
-  await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
+  await page.locator('#task2-harness').getByLabel('Mật khẩu').fill(crew.ownerPassword);
   await page.getByRole('button', { name: 'Đăng nhập lại', exact: true }).click();
   await expect(page.getByTestId('protected')).toBeVisible();
   await expect.poll(() => observe(page).then((value) => value.status)).toBe('live');

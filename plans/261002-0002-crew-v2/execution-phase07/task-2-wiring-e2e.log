@@ -1,0 +1,12 @@
+
+Running 3 tests using 1 worker
+
+{"level":30,"time":1791084133951,"pid":24629,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:61266"}
+  ✓  1 [chromium] › e2e/auth.spec.ts:162:1 › A2: mất response → phiên hết hạn → đăng nhập lại cùng owner → replay đúng key/body → một project/receipt (942ms)
+  ✓  2 [chromium] › e2e/auth.spec.ts:274:1 › logout chỉ giữ tombstone; payload khác cùng key bị 409 và giữ tombstone; secret không vào sessionStorage (521ms)
+{"level":30,"time":1791084137716,"pid":24878,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:61682"}
+{"level":30,"time":1791084140060,"pid":24878,"hostname":"Phans-Mac-mini.local","reqId":"req-6","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+  ✓  3 [chromium] › e2e/events.spec.ts:125:1 › SSE thật: catch-up rồi stream Last-Event-ID, event làm stale query, hết phiên đóng stream và nối lại sau reauth (3.7s)
+
+  3 passed (10.1s)
+exit=0

@@ -1,0 +1,70 @@
+✔ the event stream starts before the first protected GET (119.672625ms)
+✔ query defaults disable retry because OwnerClient.get retries itself, and keep focus/reconnect refetch (0.903333ms)
+✔ an unauthenticated protected route is sent to login with an internal return path (1.008ms)
+✔ the login return route accepts only internal /crew-v2/ paths (0.096333ms)
+✔ logout wipes the query cache and closes the event stream (21.34525ms)
+✔ session expiry stops the stream and drops the cache so the route boundary asks for re-authentication (0.583916ms)
+✔ bootstrapping → authenticated / guest / bootstrap-unavailable (16.118458ms)
+✔ login là POST {password} không CSRF/key, mật khẩu 1–4096, 429 không tự thử lại (0.70425ms)
+✔ owner khác sau reauth không được authenticated (0.441375ms)
+✔ mất response → 401 khi gửi lại → reauth cùng owner → replay đúng key/body với CSRF mới (3.581ms)
+✔ logout: DELETE kèm CSRF, đóng phiên, chỉ giữ tombstone không payload (1.398875ms)
+✔ nhập lại payload khác → 409 giữ tombstone và cùng key; payload đúng thì accepted (1.140166ms)
+✔ reload tab: operation tab giữ key/body ở trạng thái ambiguous, operation memory thành tombstone (0.435959ms)
+✔ đóng form secret chuyển operation memory thành tombstone và xóa secret (1.402333ms)
+✔ serializer từ chối memory operation, secret, token và hash của secret (0.38175ms)
+✔ return route chỉ nhận path nội bộ /crew-v2/ (0.417958ms)
+✔ logout với CSRF cũ làm mới CSRF rồi DELETE lại để server thu hồi phiên (0.468917ms)
+✔ GET chỉ gọi same-origin /v2/ kèm cookie và từ chối path ngoài (16.880083ms)
+✔ không mutation hoặc upload trước khi có phiên (0.964916ms)
+✔ mutation JSON gửi CSRF, Idempotency-Key = operation.id và đúng bodyJson đã freeze (0.638417ms)
+✔ upload bytes thô gửi CSRF, octet-stream, không Idempotency-Key (0.362709ms)
+✔ 503 không phải JSON thành ApiFailure, GET thử lại tối đa 3 lần (0.502125ms)
+✔ AbortError khi mutation đang gửi → ambiguous, không đổi key, không tự gửi lại (0.308875ms)
+✔ hai lần thử lại sau lỗi transport/503 giữ cùng key và cùng body (0.991791ms)
+✔ lỗi transport hết lượt → Chưa xác nhận, operation vẫn ambiguous với cùng key (0.719375ms)
+✔ 401 khi gửi → phiên expired, khóa write, operation suspended giữ nguyên key/body (1.099292ms)
+✔ IDEMPOTENCY_CONFLICT giữ operation; lỗi 400 là từ chối cuối cho phép key mới (2.225166ms)
+✔ GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ qua (0.392958ms)
+✔ decoder từ chối thiếu field, sai primitive và field lạ chưa review (0.371083ms)
+✔ 403 CSRF_INVALID trên operation ambiguous không nhả key; làm mới CSRF rồi replay đúng key/body (0.990542ms)
+✔ 403 CSRF_INVALID mà làm mới phiên nhận 401 → expired, operation suspended giữ key (0.618792ms)
+✔ 403 ORIGIN_INVALID lặp lại sau một lần làm mới → dừng, operation suspended giữ key (0.620833ms)
+✔ 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không nhả key; 400 theo body vẫn là terminal (0.922792ms)
+✔ payload nhập lại cho tombstone bị 400/413/404 → trở về tombstone, không nhả key cũ (0.468042ms)
+✔ hai lượt mutate song song trên cùng operation: lượt sau bị chặn, không gửi request (3.0345ms)
+✔ caller abort trước khi làm mới CSRF hoặc trong lúc làm mới → không replay, giữ key (0.505292ms)
+✔ cursor bigint không bị làm tròn (3.88075ms)
+✔ SSE parser: CRLF/CR/LF, multiline, comment, tách chunk giữa UTF-8 và CRLF (1.928417ms)
+✔ SSE parser đóng khi frame vượt 1MiB hoặc UTF-8 hỏng (64.170333ms)
+✔ invalidations: ticket đánh stale detail/graph/list/attention; type lạ invalidation rộng trong scope (0.296209ms)
+✔ catch-up đọc /v2/events?after=&limit=100 tới rỗng rồi stream với Last-Event-ID; dedup trùng/out-of-order (22.230917ms)
+✔ frame hỏng đóng stream, resync qua GET và dừng sau số lần giới hạn (2.603042ms)
+✔ frame có event name khác type trong data bị coi là hỏng (1.060709ms)
+✔ phiên hết hạn (401) đóng stream và báo session expire (1.426375ms)
+✔ reconnect invalidation rộng; invalidation lỗi khi mất kết nối vẫn chờ và thử lại (3.449334ms)
+{"level":30,"time":1791083967292,"pid":17556,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:58581"}
+fixture-identities={"containerName":"crew-v2-web-2c0708f9-65f2-4554-aa37-968f4aa7426f","containerImageDigest":"sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280","dbPort":58221,"dbName":"crew_v2_test_29e9e66d2daa4743a9b5f05f43c75d62","apiOrigin":"http://127.0.0.1:58581","webOrigin":"http://127.0.0.1:58579","registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-H3MrRn/registry.json","resources":[{"kind":"scratch","id":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-H3MrRn","ownershipNonce":"2c0708f9-65f2-4554-aa37-968f4aa7426f","startIdentity":"16777231:220452703"},{"kind":"container","id":"f37f6cc086ec2da2dda0d41f586cffad2af418181703f05fe34e5f6b801745fe","ownershipNonce":"2c0708f9-65f2-4554-aa37-968f4aa7426f","startIdentity":"f37f6cc086ec2da2dda0d41f586cffad2af418181703f05fe34e5f6b801745fe:2026-10-04T03:19:25.804353426Z"},{"kind":"database","id":"crew_v2_test_29e9e66d2daa4743a9b5f05f43c75d62","ownershipNonce":"2c0708f9-65f2-4554-aa37-968f4aa7426f","startIdentity":"f37f6cc086ec2da2dda0d41f586cffad2af418181703f05fe34e5f6b801745fe:16385"},{"kind":"listener","id":"web:58579","ownershipNonce":"2c0708f9-65f2-4554-aa37-968f4aa7426f","startIdentity":"17556:Sun Oct  4 10:19:25 2026:web:58579:2c0708f9-65f2-4554-aa37-968f4aa7426f"},{"kind":"listener","id":"api:58581","ownershipNonce":"2c0708f9-65f2-4554-aa37-968f4aa7426f","startIdentity":"17556:Sun Oct  4 10:19:25 2026:api:58581:2c0708f9-65f2-4554-aa37-968f4aa7426f"}]}
+fixture-cleanup=[{"resourceId":"api:58581","state":"stopped","reason":null},{"resourceId":"web:58579","state":"stopped","reason":null},{"resourceId":"crew_v2_test_29e9e66d2daa4743a9b5f05f43c75d62","state":"removed","reason":null},{"resourceId":"f37f6cc086ec2da2dda0d41f586cffad2af418181703f05fe34e5f6b801745fe","state":"removed","reason":null},{"resourceId":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-H3MrRn","state":"removed","reason":null}]
+✔ withFixture giữ API, web và DB riêng suốt callback rồi đóng đúng tài nguyên (2039.898167ms)
+✔ unit: identity lạ giữ UNKNOWN và không gọi stop/remove (0.329584ms)
+✔ unit: STOP chưa xác minh giữ UNKNOWN và không remove (0.086875ms)
+scratch-timeout-ready={"scratchPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-fix2-z8C2Hp","registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-fix2-z8C2Hp/registry.json","startIdentity":"16777231:220452733"}
+scratch-timeout-own-cleanup={"scratchPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-fix2-z8C2Hp","absent":true}
+✔ unit: scratch REMOVE hết hạn rồi stat trả trễ phải giữ registry (254.363584ms)
+{"level":30,"time":1791083969596,"pid":17556,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:58955"}
+active-request-ready={"registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-YyYsfn/registry.json","apiOrigin":"http://127.0.0.1:58955","resources":[{"kind":"scratch","id":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-YyYsfn","ownershipNonce":"711d10ef-53fe-45fe-8587-eb22c86cdb8a","startIdentity":"16777231:220452735"},{"kind":"container","id":"d6f1ee62835b7f53a9cb904e14dfed97e1a47711453dda69ffbdfc6dfae5fbc7","ownershipNonce":"711d10ef-53fe-45fe-8587-eb22c86cdb8a","startIdentity":"d6f1ee62835b7f53a9cb904e14dfed97e1a47711453dda69ffbdfc6dfae5fbc7:2026-10-04T03:19:28.081603178Z"},{"kind":"database","id":"crew_v2_test_761423cc3dd241be93b540044db5c300","ownershipNonce":"711d10ef-53fe-45fe-8587-eb22c86cdb8a","startIdentity":"d6f1ee62835b7f53a9cb904e14dfed97e1a47711453dda69ffbdfc6dfae5fbc7:16385"},{"kind":"listener","id":"web:58953","ownershipNonce":"711d10ef-53fe-45fe-8587-eb22c86cdb8a","startIdentity":"17556:Sun Oct  4 10:19:25 2026:web:58953:711d10ef-53fe-45fe-8587-eb22c86cdb8a"},{"kind":"listener","id":"api:58955","ownershipNonce":"711d10ef-53fe-45fe-8587-eb22c86cdb8a","startIdentity":"17556:Sun Oct  4 10:19:25 2026:api:58955:711d10ef-53fe-45fe-8587-eb22c86cdb8a"}]}
+active-request-cleanup=[{"resourceId":"api:58955","state":"stopped","reason":null},{"resourceId":"web:58953","state":"stopped","reason":null},{"resourceId":"crew_v2_test_761423cc3dd241be93b540044db5c300","state":"removed","reason":null},{"resourceId":"d6f1ee62835b7f53a9cb904e14dfed97e1a47711453dda69ffbdfc6dfae5fbc7","state":"removed","reason":null},{"resourceId":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-YyYsfn","state":"removed","reason":null}]
+✔ request đang gửi dở không được giữ fixture close vô hạn hoặc xóa asset khi STOP chưa rõ (1938.332667ms)
+interrupt-ready={"childPid":18034,"processRecord":"17508 Sun Oct  4 10:19:29 2026","registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-ydrIsk/registry.json","resources":[{"kind":"scratch","id":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-ydrIsk","ownershipNonce":"4f735986-ab08-419d-bf20-a8ced4856edc","startIdentity":"16777231:220452755"},{"kind":"container","id":"89ec27de8357788334822355f67f0d39c0e0d1d6439dee59392310ac6354452b","ownershipNonce":"4f735986-ab08-419d-bf20-a8ced4856edc","startIdentity":"89ec27de8357788334822355f67f0d39c0e0d1d6439dee59392310ac6354452b:2026-10-04T03:19:30.189859304Z"},{"kind":"database","id":"crew_v2_test_f39b1d85cf304f8393d5e2cdda6999ff","ownershipNonce":"4f735986-ab08-419d-bf20-a8ced4856edc","startIdentity":"89ec27de8357788334822355f67f0d39c0e0d1d6439dee59392310ac6354452b:16385"},{"kind":"listener","id":"web:59333","ownershipNonce":"4f735986-ab08-419d-bf20-a8ced4856edc","startIdentity":"18034:Sun Oct  4 10:19:29 2026:web:59333:4f735986-ab08-419d-bf20-a8ced4856edc"},{"kind":"listener","id":"api:59334","ownershipNonce":"4f735986-ab08-419d-bf20-a8ced4856edc","startIdentity":"18034:Sun Oct  4 10:19:29 2026:api:59334:4f735986-ab08-419d-bf20-a8ced4856edc"}]}
+interrupt-cleanup=[{"resourceId":"api:59334","state":"stopped","reason":null},{"resourceId":"web:59333","state":"stopped","reason":null},{"resourceId":"crew_v2_test_f39b1d85cf304f8393d5e2cdda6999ff","state":"removed","reason":null},{"resourceId":"89ec27de8357788334822355f67f0d39c0e0d1d6439dee59392310ac6354452b","state":"removed","reason":null},{"resourceId":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-ydrIsk","state":"removed","reason":null}]
+✔ SIGTERM trên preview child đóng đúng run và xác minh STOP trước khi thoát (2165.4475ms)
+✔ web v2 có package độc lập, base riêng và không nhập source v1 (101.925042ms)
+ℹ tests 52
+ℹ suites 0
+ℹ pass 52
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6658.792792

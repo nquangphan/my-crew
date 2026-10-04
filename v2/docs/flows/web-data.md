@@ -2,7 +2,7 @@
 
 ## Mục đích
 
-Lớp dữ liệu của `v2/web` gửi mọi request owner tới `/v2/` cùng origin. Nó giữ phiên đăng nhập và mã CSRF trong bộ nhớ, giữ nguyên khóa gửi lại cho mutation chưa xác nhận, và dùng event journal để đánh dấu query cũ. Login/reauth và panel “Tiếp tục yêu cầu chưa xác nhận” thuộc flow này. Controller nối các thành phần vào router/shell ở bước sau.
+Lớp dữ liệu của `v2/web` gửi mọi request owner tới `/v2/` cùng origin. Nó giữ phiên đăng nhập và mã CSRF trong bộ nhớ, giữ nguyên khóa gửi lại cho mutation chưa xác nhận, và dùng event journal để đánh dấu query cũ. Login/reauth và panel “Tiếp tục yêu cầu chưa xác nhận” thuộc flow này. `web/src/app-runtime.ts` và router nối các thành phần này (xem `web-shell.md`).
 
 ## Điểm vào
 
@@ -25,7 +25,7 @@ Lớp dữ liệu của `v2/web` gửi mọi request owner tới `/v2/` cùng or
 
 `web/src/contracts/*.ts` mirror DTO producer tại HEAD: Session/Event (`server/src/platform/contracts.ts:13`, `auth/routes.ts:141`), Ticket/Dependency/RepairLink/graph/comment/decision (`tickets/contracts.ts:8-47`, `service.ts:28`), docs tree/page/search (`docs/read.ts:9,21`, `search.ts:8`), Machine/Project/model sources desired+applied/pool (`auth/machine.ts:7`, `projects/service.ts:13`, `models/config.ts:108`, `models/contracts.ts:40`) và attachment (`attachments/contracts.ts:28-56`, chưa mount production tới G2). Decoder runtime từ chối field thiếu, sai primitive và field lạ; field bổ sung chỉ được nhận khi khai báo `additive` sau review. Gateway status chưa có decoder vì DTO còn chờ G4.
 
-Lifetime: mỗi app có một `SessionController` và một `EventSync`; cache bị xóa khi phiên kết thúc; `PendingStore` sống theo tab; mỗi request có `AbortController` riêng. Password, CSRF, token máy và secret API không vào query cache, logger hay storage. Query key luôn bắt đầu bằng `'v2'`. Khi nối wiring, controller nên tắt retry mặc định của TanStack Query cho các query dùng `OwnerClient.get`, vì client đã tự retry tối đa 3 lần.
+Lifetime: mỗi app có một `SessionController` và một `EventSync`; cache bị xóa khi phiên kết thúc; `PendingStore` sống theo tab; mỗi request có `AbortController` riêng. Password, CSRF, token máy và secret API không vào query cache, logger hay storage. Query key luôn bắt đầu bằng `'v2'`. Runtime của app tắt retry mặc định của TanStack Query vì `OwnerClient.get` đã tự retry tối đa 3 lần.
 
 ## Flow liên quan
 

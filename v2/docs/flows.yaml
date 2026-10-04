@@ -475,6 +475,7 @@ flows:
     entrypoints:
       - web/src/main.tsx
     files:
+      - web/src/app-runtime.ts
       - web/src/router.tsx
       - web/src/shell.tsx
       - web/src/styles.css
@@ -489,6 +490,7 @@ flows:
     tests:
       - web/test/workspace.test.ts
       - web/test/fixture-lifecycle.test.ts
+      - web/test/app-wiring.test.ts
   web-data:
     title: Transport, phiên owner và đồng bộ sự kiện web Crew v2
     doc: docs/flows/web-data.md

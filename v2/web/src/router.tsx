@@ -1,4 +1,17 @@
-import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
+import {
+  createRootRoute,
+  createRoute,
+  createRouter,
+  Outlet,
+  redirect,
+  useRouter,
+  useSearch,
+} from '@tanstack/react-router';
+import { useEffect, useSyncExternalStore } from 'react';
+import { type AppRuntime, authorizeRoute, parseLoginSearch, useRuntime } from './app-runtime.ts';
+import { LoginScreen } from './auth/login.tsx';
+import { SessionBoundary } from './auth/session-boundary.tsx';
+import { safeReturnPath } from './lib/session.ts';
 import { EmptyPanel, ErrorPanel, LoadingPanel, Shell } from './shell.tsx';
 
 function GuestHome() {
@@ -31,16 +44,73 @@ function ProjectHome() {
   );
 }
 
-const rootRoute = createRootRoute({ component: Shell });
-const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: GuestHome });
-const projectRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/projects/$projectId',
-  component: ProjectHome,
-});
-const routeTree = rootRoute.addChildren([homeRoute, projectRoute]);
+function ProtectedLayout() {
+  const { session, pending, client } = useRuntime();
+  return (
+    <SessionBoundary session={session} pending={pending} client={client}>
+      <Outlet />
+    </SessionBoundary>
+  );
+}
 
-export function createAppRouter() {
+function LoginRoute() {
+  const { session } = useRuntime();
+  const router = useRouter();
+  const { returnTo } = useSearch({ from: '/login' });
+  const snapshot = useSyncExternalStore(
+    (listener) => session.subscribe(listener),
+    () => session.snapshot(),
+  );
+  const authenticated = snapshot.state === 'authenticated';
+  useEffect(() => {
+    void session.bootstrap();
+  }, [session]);
+  useEffect(() => {
+    if (authenticated) router.history.replace(safeReturnPath(returnTo));
+  }, [authenticated, returnTo, router]);
+  if (authenticated || snapshot.state === 'bootstrapping') return <LoadingPanel />;
+  return (
+    <section className="page-stack" aria-labelledby="login-heading">
+      <div className="page-intro">
+        <h1 id="login-heading">Đăng nhập</h1>
+      </div>
+      <LoginScreen
+        session={session}
+        mode={snapshot.state === 'expired' ? 'reauth' : 'login'}
+        returnTo={returnTo}
+        onAuthenticated={(path) => router.history.push(path)}
+      />
+    </section>
+  );
+}
+
+export function createAppRouter(runtime: AppRuntime) {
+  const rootRoute = createRootRoute({ component: Shell });
+  const loginRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/login',
+    validateSearch: parseLoginSearch,
+    component: LoginRoute,
+  });
+  const protectedRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    id: 'protected',
+    beforeLoad: async ({ location }) => {
+      const access = await authorizeRoute(runtime.session, location);
+      if (!access.allowed) throw redirect({ to: '/login', search: { returnTo: access.returnTo } });
+    },
+    component: ProtectedLayout,
+  });
+  const homeRoute = createRoute({ getParentRoute: () => protectedRoute, path: '/', component: GuestHome });
+  const projectRoute = createRoute({
+    getParentRoute: () => protectedRoute,
+    path: '/projects/$projectId',
+    component: ProjectHome,
+  });
+  const routeTree = rootRoute.addChildren([
+    loginRoute,
+    protectedRoute.addChildren([homeRoute, projectRoute]),
+  ]);
   return createRouter({ routeTree, basepath: '/crew-v2/' });
 }
 

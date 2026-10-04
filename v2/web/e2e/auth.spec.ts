@@ -138,7 +138,7 @@ async function mountHarness(page: Page, crew: FixtureHandle): Promise<void> {
 }
 
 async function login(page: Page, password: string, button: 'Đăng nhập' | 'Đăng nhập lại'): Promise<void> {
-  await page.getByLabel('Mật khẩu').fill(password);
+  await page.locator('#task2-harness').getByLabel('Mật khẩu').fill(password);
   await page.getByRole('button', { name: button, exact: true }).click();
 }
 
@@ -170,7 +170,7 @@ test('A2: mất response → phiên hết hạn → đăng nhập lại cùng ow
 
   await login(page, `sai-${randomUUID()}`, 'Đăng nhập');
   await expect(page.getByRole('alert')).toContainText('Mật khẩu không đúng');
-  await expect(page.getByLabel('Mật khẩu')).toHaveValue('');
+  await expect(page.locator('#task2-harness').getByLabel('Mật khẩu')).toHaveValue('');
   await login(page, crew.ownerPassword, 'Đăng nhập');
   await expect(page.getByTestId('protected')).toBeVisible();
 

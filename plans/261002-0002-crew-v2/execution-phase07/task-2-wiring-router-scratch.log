@@ -1,0 +1,9 @@
+
+Running 1 test using 1 worker
+
+{"level":30,"time":1791083988997,"pid":18732,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:59744"}
+LOGIN_URL /crew-v2/login?returnTo=%2Fcrew-v2%2Fprojects%2Fabc%3Fx%3D1
+CALLS GET /v2/auth/session | POST /v2/auth/session | GET /v2/auth/session | GET /v2/events | GET /v2/events/stream | DELETE /v2/auth/session | GET /v2/auth/session | POST /v2/auth/session | GET /v2/auth/session | GET /v2/events | GET /v2/events/stream
+  ✓  1 [chromium] › e2e/zz-wiring-router.spec.ts:16:1 › real router: guest redirect, login, return, logout (765ms)
+
+  1 passed (3.6s)
