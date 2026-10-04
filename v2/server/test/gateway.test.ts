@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import postgres from 'postgres';
 import { connectDb } from '../src/db/client.ts';
 import { captureMigrations, migrate } from '../src/db/migrate.ts';
+import type { ProjectionPin, SourcePin } from '../src/gateway/contracts.ts';
 import { canonicalJson } from '../src/journal/canonical.ts';
 import { validateEventInput } from '../src/journal/event-contracts.ts';
 import { databaseFixture } from './support/db.ts';
@@ -236,7 +238,7 @@ function definitionFor(workflow: 'bmad' | 'superpowers', render?: Record<string,
     ...(render ? { render } : {}),
   };
 }
-type ReportedSlot = { state: string; definition?: unknown };
+type ReportedSlot = { state: string; definition?: unknown; lastError?: { code: string } | null };
 const slotOf = (inventory: unknown, workflow: string, runtime: string): ReportedSlot => {
   const status = (inventory as Record<string, { projections: Record<string, ReportedSlot> }>)[workflow];
   assert.ok(status, workflow);
@@ -331,6 +333,7 @@ test('gateway install report từ chối definition lệch pin đã cài và kh�
         assert.equal(body.appliedRevision, 1, name);
         const slot = slotOf(body.workflows, 'superpowers', 'codex');
         assert.equal(slot.state, 'mismatch', name);
+        assert.equal(slot.lastError?.code, 'DEFINITION_MISMATCH', name);
         assert.equal('definition' in slot, false, name);
         const [applied] = await db`select workflow_status from gateway_applied`;
         assert.equal('definition' in slotOf(applied?.workflow_status, 'superpowers', 'codex'), false, name);
@@ -374,6 +377,134 @@ test('gateway install report: definition không thay đổi so khớp pin và sc
       (beat.inventory.superpowers.projections.codex as { definition?: unknown }).definition =
         definitionFor('superpowers');
       assert.equal((await f.machine.post('/v2/gateway/heartbeat', beat)).statusCode, 400);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('gateway install report: render sai hình dạng bị schema đóng chặn, không bao giờ 500', async () =>
+  databaseFixture(7)(async (db) => {
+    const f = await gatewayFixture(db);
+    try {
+      const a = randomUUID();
+      await f.machine.post('/v2/gateway/boots', { bootId: a, previousGeneration: '0' });
+      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
+      const valid = {
+        source: source('superpowers'),
+        projection: projection('superpowers'),
+        selectedProjectionSha256: { 'a.md': '1'.repeat(64) },
+        layers: { '_bmad/config.toml': '2'.repeat(64), '_bmad/config.user.toml': null },
+      };
+      const variants: Record<string, unknown> = {
+        'render rỗng': {},
+        'thiếu projection': { source: valid.source, selectedProjectionSha256: {}, layers: {} },
+        'thiếu source': { projection: valid.projection, selectedProjectionSha256: {}, layers: {} },
+        'thiếu layers': { ...valid, layers: undefined },
+        'trường lạ': { ...valid, extra: true },
+        null: null,
+        mảng: [],
+        chuỗi: 'render',
+        'digest sai': { ...valid, selectedProjectionSha256: { 'a.md': 'xyz' } },
+        'layer path lạ': { ...valid, layers: { 'not/a/layer.toml': null } },
+        'layer digest sai': { ...valid, layers: { '_bmad/config.toml': 'xyz' } },
+        'source không phải object': { ...valid, source: 'x' },
+        'projection thiếu field': { ...valid, projection: { runtime: 'codex' } },
+      };
+      for (const [name, render] of Object.entries(variants)) {
+        const result = await f.machine.post(
+          '/v2/gateway/install-reports',
+          withDefinition(a, { ...definitionFor('superpowers'), render }),
+        );
+        assert.equal(result.statusCode, 400, `${name}: ${result.text}`);
+      }
+      // Hình dạng đúng nhưng thuộc pin khác: 200 với accepted=false, không phải 500.
+      const foreign = { ...valid, source: source('bmad') };
+      const wrongPin = await f.machine.post(
+        '/v2/gateway/install-reports',
+        withDefinition(a, definitionFor('superpowers', foreign)),
+      );
+      assert.equal(wrongPin.statusCode, 200, wrongPin.text);
+      assert.equal(wrongPin.json().accepted, false);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('gateway install report chấp nhận definition do gateway thật tạo (golden vector chung, gồm BMAD render)', async () =>
+  databaseFixture(7)(async (db) => {
+    const vector = JSON.parse(
+      await readFile(
+        new URL(
+          '../../gateway/test/fixtures/workflow-definitions/install-report-vector.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ) as Record<
+      'bmad' | 'superpowers',
+      { source: SourcePin; projection: ProjectionPin; definition: unknown }
+    >;
+    assert.ok((vector.bmad.definition as { render?: unknown }).render);
+    const f = await gatewayFixture(db);
+    try {
+      const a = randomUUID();
+      await f.machine.post('/v2/gateway/boots', { bootId: a, previousGeneration: '0' });
+      const desired = Object.fromEntries(
+        (['bmad', 'superpowers'] as const).map((name) => [
+          name,
+          {
+            source: vector[name].source,
+            projections: { claude: vector[name].projection, codex: null, api: null },
+          },
+        ]),
+      );
+      const config = await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, {
+        ...nextConfig,
+        desired,
+      });
+      assert.equal(config.statusCode, 200, config.text);
+      const current = <T>(installed: T, definition?: unknown) => ({
+        state: 'current',
+        installed,
+        lastError: null,
+        observedAt: '2026-10-01T00:00:00.000Z',
+        ...(definition ? { definition } : {}),
+      });
+      const missing = { state: 'missing', installed: null, lastError: null, observedAt: null };
+      const results = Object.fromEntries(
+        (['bmad', 'superpowers'] as const).map((name) => [
+          name,
+          {
+            source: current(vector[name].source),
+            projections: {
+              claude: current(vector[name].projection, vector[name].definition),
+              codex: missing,
+              api: missing,
+            },
+          },
+        ]),
+      );
+      const body = { ...report(a, '1'), results };
+      const accepted = await f.machine.post('/v2/gateway/install-reports', body);
+      assert.equal(accepted.statusCode, 200, accepted.text);
+      assert.equal(accepted.json().accepted, true);
+      const [stored] = await db`select workflow_status from gateway_applied`;
+      for (const name of ['bmad', 'superpowers'])
+        assert.deepEqual(
+          slotOf(stored?.workflow_status, name, 'claude').definition,
+          vector[name as 'bmad'].definition,
+        );
+      // Một byte đổi trong render hoặc skills làm digest không còn khớp.
+      const tampered = structuredClone(body);
+      tampered.reportId = randomUUID();
+      const bmadDefinition = (
+        tampered.results.bmad.projections.claude as unknown as {
+          definition: { render: { layers: Record<string, string | null> } };
+        }
+      ).definition;
+      bmadDefinition.render.layers['_bmad/config.toml'] = 'f'.repeat(64);
+      const rejected = await f.machine.post('/v2/gateway/install-reports', tampered);
+      assert.equal(rejected.json().accepted, false);
     } finally {
       await f.close();
     }

@@ -1,0 +1,54 @@
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-e1Zzk8","device":"16777231","inode":"220443212","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-e1Zzk8","device":"16777231","inode":"220443212","uid":501,"deleted":true}
+✔ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (1787.087041ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-X1FzaH","device":"16777231","inode":"220443401","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-X1FzaH","device":"16777231","inode":"220443401","uid":501,"deleted":true}
+✔ sync superseded command completes immutable failure and new command installs new revision (1545.591917ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-dpXqLS","device":"16777231","inode":"220443585","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-dpXqLS","device":"16777231","inode":"220443585","uid":501,"deleted":true}
+✔ sync lost report/reopen preserves report key and retries only unavailable declared projection (1549.158375ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-zTrYOV","device":"16777231","inode":"220443763","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-zTrYOV","device":"16777231","inode":"220443763","uid":501,"deleted":true}
+✔ sync verifies cached source bytes even when every desired projection is null (1433.7045ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-GRD3vW","device":"16777231","inode":"220443929","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-GRD3vW","device":"16777231","inode":"220443929","uid":501,"deleted":true}
+✔ sync defers command ahead of desired snapshot, then applies after reopen without false supersession (1514.471417ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-mZE1sH","device":"16777231","inode":"220444105","uid":501}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-QK8Z5L","device":"16777231","inode":"220444257","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-QK8Z5L","device":"16777231","inode":"220444257","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-4JXcK6","device":"16777231","inode":"220444278","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-4JXcK6","device":"16777231","inode":"220444278","uid":501,"deleted":true}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-mZE1sH","device":"16777231","inode":"220444105","uid":501,"deleted":true}
+✔ sync carries the workflow definition on current projections only, and omits it when unavailable (1703.74875ms)
+✔ gateway definition adapter output matches the committed golden vector the server verifies (1551.269ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-IwU3v3","device":"16777231","inode":"220444765","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-IwU3v3","device":"16777231","inode":"220444765","uid":501,"deleted":true}
+✖ sync reports an integrity failure of the definition loader as an error slot, never silently current (1474.539834ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 7
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12652.51175
+
+✖ failing tests:
+
+test at test/sync.test.ts:622:1
+✖ sync reports an integrity failure of the definition loader as an error slot, never silently current (1474.539834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'current' !== 'error'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/sync.test.ts:670:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'current',
+    expected: 'error',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+EXIT=1

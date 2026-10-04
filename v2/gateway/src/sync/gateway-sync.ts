@@ -126,14 +126,15 @@ export class GatewaySync {
     record.done = true;
     await this.store.put(this.key(record.command.id), record);
   }
-  // Definition lookup is additive: an unavailable definition (for example BMAD outside claude) must not
-  // fail an otherwise exact install, so the slot is reported without it.
+  // Definition lookup is additive: only an explicit "unavailable" (for example BMAD outside claude) is
+  // skipped. Any other failure is an integrity problem and must surface instead of being swallowed.
   private async definition(source: SourcePin, pin: ProjectionPin): Promise<WorkflowDefinition | null> {
     if (!this.options.definitions) return null;
     try {
       return await this.options.definitions.loadDefinition(source, pin);
-    } catch {
-      return null;
+    } catch (error) {
+      if ((error as Error)?.message === 'WORKFLOW_DEFINITION_UNAVAILABLE') return null;
+      throw error;
     }
   }
   private async process(record: SyncRecord, config: GatewayConfig | null) {
@@ -206,7 +207,21 @@ export class GatewaySync {
               if (!same(built, pin)) throw new Error('PROJECTION_MISMATCH');
             }
             results[name].projections[runtime] = slot(pin);
-            const definition = await this.definition(desired.source, pin);
+            let definition: WorkflowDefinition | null;
+            try {
+              definition = await this.definition(desired.source, pin);
+            } catch (error) {
+              const code = (error as Error)?.message;
+              results[name].projections[runtime] = {
+                ...slot(),
+                state: 'error',
+                lastError: {
+                  code: 'DEFINITION_FAILED',
+                  message: `Không tạo được definition workflow (${/^[A-Z][A-Z0-9_]{0,63}$/.test(code) ? code : 'UNKNOWN'})`,
+                },
+              };
+              continue;
+            }
             if (definition) results[name].projections[runtime].definition = definition;
           } catch {
             results[name].projections[runtime] = {

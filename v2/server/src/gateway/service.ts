@@ -317,6 +317,10 @@ export async function saveInstallReport(
         delete slot.definition;
         accepted = false;
         if (slot.state === 'current') slot.state = 'mismatch';
+        slot.lastError ??= {
+          code: 'DEFINITION_MISMATCH',
+          message: 'Definition workflow không khớp pin đã cài',
+        };
       }
     }
   }

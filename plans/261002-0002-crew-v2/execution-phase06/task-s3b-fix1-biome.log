@@ -1,0 +1,190 @@
+v2/gateway/test/sync.test.ts:38:19 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    36 │   };
+    37 │   const config = { revision: 1, desired: f.desired, maxJobs: 2, enabled: true };
+  > 38 │   const requests: any[] = [];
+       │                   ^^^
+    39 │   const receipts = new Map<string, any>();
+    40 │   let appliedRevision = 0;
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:39:36 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    37 │   const config = { revision: 1, desired: f.desired, maxJobs: 2, enabled: true };
+    38 │   const requests: any[] = [];
+  > 39 │   const receipts = new Map<string, any>();
+       │                                    ^^^
+    40 │   let appliedRevision = 0;
+    41 │   const read = async (route: string) =>
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:46:39 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    44 │     requests.push(structuredClone(req));
+    45 │     if (receipts.has(req.idempotencyKey)) return receipts.get(req.idempotencyKey);
+  > 46 │     const body = req.canonicalBody as any;
+       │                                       ^^^
+    47 │     let result: import('../src/journal/http-operations.ts').HttpResponse;
+    48 │     if (req.route.endsWith('/ack')) {
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:56:13 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    54 │     } else {
+    55 │       const accepted = Object.values(body.results).every(
+  > 56 │         (w: any) =>
+       │             ^^^
+    57 │           w.source.state === 'current' &&
+    58 │           Object.values(w.projections).every((s: any) => s.state === 'current'),
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:58:50 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    56 │         (w: any) =>
+    57 │           w.source.state === 'current' &&
+  > 58 │           Object.values(w.projections).every((s: any) => s.state === 'current'),
+       │                                                  ^^^
+    59 │       );
+    60 │       if (accepted) appliedRevision = 1;
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:80:29 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    78 │     now: () => clock,
+    79 │     random: () => 0,
+  > 80 │     archive: async (source: any) => {
+       │                             ^^^
+    81 │       if (source.name === 'bmad' && fail) throw new Error('DOWNLOAD_FAILED');
+    82 │       return f.sources.find((x) => x.source.name === source.name)!.stream();
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:82:14 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    80 │     archive: async (source: any) => {
+    81 │       if (source.name === 'bmad' && fail) throw new Error('DOWNLOAD_FAILED');
+  > 82 │       return f.sources.find((x) => x.source.name === source.name)!.stream();
+       │              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    83 │     },
+    84 │   };
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+     80  80 │       archive: async (source: any) => {
+     81  81 │         if (source.name === 'bmad' && fail) throw new Error('DOWNLOAD_FAILED');
+     82     │ - ······return·f.sources.find((x)·=>·x.source.name·===·source.name)!.stream();
+         82 │ + ······return·f.sources.find((x)·=>·x.source.name·===·source.name)?.stream();
+     83  83 │       },
+     84  84 │     };
+  
+
+v2/gateway/test/sync.test.ts:131:18 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    129 │     },
+    130 │   ];
+  > 131 │   const reports: any[] = [];
+        │                  ^^^
+    132 │   const read = async (route: string) =>
+    133 │     route === '/v2/gateway/config'
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:137:36 lint/suspicious/noExplicitAny ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Unexpected any. Specify a different type.
+  
+    135 │       : { items: commands, nextCursor: String(commands.length) };
+    136 │   const http = await HttpOperationJournal.open(owned.root, async (req) => {
+  > 137 │     const b = req.canonicalBody as any;
+        │                                    ^^^
+    138 │     if (req.route.endsWith('install-reports')) {
+    139 │       reports.push(b);
+  
+  i any disables many type checking rules. Its use should be avoided.
+  
+
+v2/gateway/test/sync.test.ts:146:15 lint/style/noNonNullAssertion ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    144 │       return { status: 200, body: { accepted: true, appliedRevision: 2 } };
+    145 │     }
+  > 146 │     const c = commands.find((c) => req.route.includes(c.id))!;
+        │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    147 │     if (b.phase === 'completed') {
+    148 │       c.state = 'completed';
+  
+
+v2/gateway/test/sync.test.ts:161:27 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    159 │     read,
+    160 │     recipes: f.projections,
+  > 161 │     archive: async (s) => f.sources.find((f) => f.source.name === s.name)!.stream(),
+        │                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    162 │   });
+    163 │   try {
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    159 159 │       read,
+    160 160 │       recipes: f.projections,
+    161     │ - ····archive:·async·(s)·=>·f.sources.find((f)·=>·f.source.name·===·s.name)!.stream(),
+        161 │ + ····archive:·async·(s)·=>·f.sources.find((f)·=>·f.source.name·===·s.name)?.stream(),
+    162 162 │     });
+    163 163 │     try {
+  
+
+v2/gateway/test/sync.test.ts:383:7 lint/style/noNonNullAssertion  FIXABLE  ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ! Forbidden non-null assertion.
+  
+    381 │         : { items: [command], nextCursor: '2' },
+    382 │     archive: async (source: import('../src/host/status.ts').SourcePin) =>
+  > 383 │       f.sources.find((item) => item.source.name === source.name)!.stream(),
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    384 │   };
+    385 │   let sync = await GatewaySync.open(owned.root, options);
+  
+  i Unsafe fix: Replace with optional chain operator ?. This operator includes runtime checks, so it is safer than the compile-only non-null assertion operator
+  
+    381 381 │           : { items: [command], nextCursor: '2' },
+    382 382 │       archive: async (source: import('../src/host/status.ts').SourcePin) =>
+    383     │ - ······f.sources.find((item)·=>·item.source.name·===·source.name)!.stream(),
+        383 │ + ······f.sources.find((item)·=>·item.source.name·===·source.name)?.stream(),
+    384 384 │     };
+    385 385 │     let sync = await GatewaySync.open(owned.root, options);
+  
+
+Checked 10 files in 32ms. No fixes applied.
+Found 12 warnings.
+EXIT=0

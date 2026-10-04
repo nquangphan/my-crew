@@ -52,7 +52,9 @@ server cho phép; authority production mặc định vẫn từ chối đến ph
    `current` đúng pin mong muốn và `sha256` bằng SHA-256 canonical của `{source, projection, skills,
    customizationSha256, render|null}` (render nếu có phải cùng source/projection). Hợp lệ thì lưu nguyên
    bản vào `gateway_applied.workflow_status[...].projections[runtime].definition` và report; không hợp lệ
-   thì bỏ definition, slot thành `mismatch`, report không accepted. Thiếu `definition` vẫn như trước;
+   thì bỏ definition, slot thành `mismatch` kèm `lastError` `DEFINITION_MISMATCH`, report không accepted.
+   `render` được schema đóng theo `RenderDefinition` (source, projection, selectedProjectionSha256, 7 layer
+   path nullable digest) nên hình dạng sai là 400, không bao giờ 500. Thiếu `definition` vẫn như trước;
    `body_hash` và so khớp pin không đổi. `latest_report_id` là pointer nội bộ có FK cùng máy; không
    chọn current report bằng timestamp/UUID. Receipt và report không TTL, DB chặn update/delete.
 7. `POST /v2/gateway/attempts/:id/projection` kiểm current binding, active guard, exact fence/process
@@ -107,7 +109,9 @@ container PostgreSQL18.6 riêng và logical DB prefix7. Tests chứng minh boot 
 replay, receipt thứ tự/hash/server clock, config CAS/Origin/CSRF/URL/schema, command ACK/cursor,
 partial/failed slots, exact source/projection/derivation, report/config/boot cũ, default selection deny,
 DB-backed claim proof, null runtime, stale fence và giữ pair sau update; definition cộng thêm được lưu
-nguyên bản, thiếu definition vẫn accepted, definition lệch pin/skills/customization/render bị từ chối. HTTP race giữ event_cursor,
+nguyên bản, thiếu definition vẫn accepted, definition lệch pin/skills/customization/render bị từ chối, render sai hình dạng là 400. Golden vector chung
+`gateway/test/fixtures/workflow-definitions/install-report-vector.json` (sinh bởi `loadDefinition` thật, gồm BMAD
+render) được server nhận. HTTP race giữ event_cursor,
 rotate token/expire session giữa prehandler và mutation, xác nhận cached response bị chặn ở cả năm
 machine family. Close/reopen pool và pg_dump/pg_restore xác nhận durable receipts. Diễn tập backup
 prefix6, restore6, migrate7, restore7 giữ receipt và checksum; fixture drop đúng logical DB trong finally,

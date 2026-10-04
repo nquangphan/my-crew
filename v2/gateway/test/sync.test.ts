@@ -1,8 +1,22 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
+import { createWorkflowManifest } from '../src/assistant/workflow-manifest.ts';
 import { HttpOperationJournal } from '../src/journal/http-operations.ts';
 import { GatewaySync } from '../src/sync/gateway-sync.ts';
+import { type ProjectionPin, projectionTreeHash, type SourcePin } from '../src/workflows/pins.ts';
+import type { WorkflowRegistry } from '../src/workflows/registry.ts';
+import {
+  manifest,
+  manifestHash,
+  parseArchive,
+  type TreeFile,
+  validateFiles,
+  writeTree,
+} from '../src/workflows/stage.ts';
 import { bridgeRoot, workflowFixture } from './support/bridge-fixture.ts';
 
 test('sync persists partial report and retries same command only missing slot after reconnect/lost ACK', async () => {
@@ -482,6 +496,193 @@ test('sync carries the workflow definition on current projections only, and omit
     }
     assert.equal('definition' in results.superpowers.source, false);
   } finally {
+    await w.close();
+    await owned.cleanup();
+  }
+});
+
+// Shared golden vector: the server install-report test reads this exact file, so a definition produced
+// by the real gateway adapter is proven acceptable to the server digest check (and vice versa).
+const vectorUrl = new URL('./fixtures/workflow-definitions/install-report-vector.json', import.meta.url);
+const fixtureUrl = new URL('./fixtures/', import.meta.url);
+
+async function realDefinitionVectors() {
+  const audits = JSON.parse(await readFile(new URL('workflows/official-audits.json', fixtureUrl), 'utf8'));
+  const builds = JSON.parse(
+    await readFile(new URL('workflow-builder/real-projections.json', fixtureUrl), 'utf8'),
+  );
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'crew-sync-vector-')));
+  try {
+    // Superpowers: official archive bytes with the audited claude projection layout.
+    const spSource = audits.superpowers.source.pin as SourcePin;
+    const spAudit = audits.superpowers.projections.claude;
+    const spFiles = await parseArchive(
+      await readFile(new URL('workflows/superpowers-6.4.2.tgz', fixtureUrl)),
+      audits.superpowers.source.executables,
+    );
+    const spProjected = validateFiles(
+      spAudit.mappings.flatMap((mapping: { from: string; to: string }) =>
+        spFiles
+          .filter((file) => file.path === mapping.from || file.path.startsWith(`${mapping.from}/`))
+          .map((file) => ({
+            ...file,
+            path: `${mapping.to}${file.path.slice(mapping.from.length)}`,
+            body: Buffer.from(file.body),
+          })),
+      ),
+    );
+    await writeTree(join(root, 'sp-source'), spFiles);
+    await writeTree(join(root, 'sp-projection'), spProjected);
+    const spResolver: Pick<WorkflowRegistry, 'resolve'> = {
+      resolve: async () => ({
+        sourceRoot: join(root, 'sp-source'),
+        projectionRoot: join(root, 'sp-projection'),
+        manifest: { source: manifest(spFiles), projection: manifest(spProjected) },
+      }),
+    };
+    const spProjection = spAudit.expected as ProjectionPin;
+
+    // BMAD: official bytes plus the generated config layers; definition carries the render tier.
+    const bmadSource = audits.bmad.source.pin as SourcePin;
+    const bmadFixture = JSON.parse(
+      await readFile(new URL('workflow-definitions/bmad-claude-projection.json', fixtureUrl), 'utf8'),
+    ) as {
+      official: { path: string; from: string; mode: number }[];
+      generated: { path: string; body: string }[];
+    };
+    const bmadArchive = await parseArchive(
+      await readFile(new URL('workflows/bmad-6.12.0.tgz', fixtureUrl)),
+      audits.bmad.source.executables,
+    );
+    const byPath = new Map(bmadArchive.map((file) => [file.path, file]));
+    const bmadFiles: TreeFile[] = validateFiles([
+      ...bmadFixture.official.map((entry) => {
+        const file = byPath.get(entry.from);
+        assert(file && file.type === 'file', `missing official ${entry.from}`);
+        return {
+          path: entry.path,
+          type: 'file' as const,
+          mode: entry.mode === 0o755 ? (0o755 as const) : (0o644 as const),
+          body: Buffer.from(file.body),
+        };
+      }),
+      ...bmadFixture.generated.map((entry) => ({
+        path: entry.path,
+        type: 'file' as const,
+        mode: 0o644 as const,
+        body: Buffer.from(entry.body),
+      })),
+    ]);
+    const bmadManifest = manifest(bmadFiles);
+    const base = {
+      runtime: 'claude' as const,
+      sourceTreeSha256: bmadSource.sourceTreeSha256,
+      manifestSha256: manifestHash(bmadManifest),
+      derivation: builds.bmad.claude.expected.derivation as ProjectionPin['derivation'],
+    };
+    const bmadProjection: ProjectionPin = { ...base, treeSha256: projectionTreeHash(base) };
+    await writeTree(join(root, 'bmad-projection'), bmadFiles);
+    const bmadResolver: Pick<WorkflowRegistry, 'resolve'> = {
+      resolve: async () => ({
+        sourceRoot: join(root, 'bmad-source-not-materialized'),
+        projectionRoot: join(root, 'bmad-projection'),
+        manifest: { source: manifest(bmadArchive), projection: bmadManifest },
+      }),
+    };
+    return {
+      superpowers: {
+        source: spSource,
+        projection: spProjection,
+        definition: await createWorkflowManifest(spResolver).loadDefinition(spSource, spProjection),
+      },
+      bmad: {
+        source: bmadSource,
+        projection: bmadProjection,
+        definition: await createWorkflowManifest(bmadResolver).loadDefinition(bmadSource, bmadProjection),
+      },
+    };
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+test('gateway definition adapter output matches the committed golden vector the server verifies', async () => {
+  const vector = await realDefinitionVectors();
+  assert.ok(vector.bmad.definition.render, 'BMAD claude vector carries the render tier');
+  assert.equal(vector.superpowers.definition.render, undefined);
+  const text = `${JSON.stringify(vector, null, 2)}\n`;
+  if (process.env.CREW_UPDATE_DEFINITION_VECTOR === '1') await writeFile(vectorUrl, text);
+  assert.equal(
+    await readFile(vectorUrl, 'utf8'),
+    text,
+    'definition vector drifted from loadDefinition output',
+  );
+});
+
+test('sync reports an integrity failure of the definition loader as an error slot, never silently current', async () => {
+  const owned = await bridgeRoot(),
+    w = await workflowFixture(owned.root);
+  await w.install();
+  const command = {
+    id: randomUUID(),
+    machineId: randomUUID(),
+    type: 'sync_workflows',
+    payload: { configRevision: 1 },
+    state: 'queued',
+    result: null,
+    cursor: '1',
+  };
+  let report: import('../src/commands/contracts.ts').InstallReport | undefined;
+  const http = await HttpOperationJournal.open(owned.root, async (req) => {
+    if (req.phase === 'install-report') {
+      report = req.canonicalBody as typeof report;
+      return { status: 200, body: { accepted: false, appliedRevision: 0 } };
+    }
+    return { status: 200, body: command };
+  });
+  const sync = await GatewaySync.open(owned.root, {
+    machineId: command.machineId,
+    bootId: randomUUID(),
+    bootGeneration: '1',
+    registry: w.registry,
+    http,
+    recipes: w.projections,
+    definitions: {
+      async loadDefinition(source, projection) {
+        if (source.name === 'superpowers' && projection.runtime === 'claude')
+          throw new Error('WORKFLOW_SKILL_MISMATCH');
+        if (source.name === 'bmad' && projection.runtime === 'claude') throw new Error('boom: /secret/path');
+        throw new Error('WORKFLOW_DEFINITION_UNAVAILABLE');
+      },
+    },
+    read: async (route) =>
+      route === '/v2/gateway/config'
+        ? { revision: 1, desired: w.desired, maxJobs: 1, enabled: true }
+        : { items: [command], nextCursor: '1' },
+    archive: async () => {
+      throw new Error('HEALTHY_CACHE_MUST_NOT_DOWNLOAD');
+    },
+  });
+  try {
+    await sync.reconcile();
+    assert.ok(report);
+    const sp = report.results.superpowers.projections;
+    assert.equal(sp.claude.state, 'error');
+    assert.equal(sp.claude.installed, null);
+    assert.equal(sp.claude.lastError?.code, 'DEFINITION_FAILED');
+    assert.match(sp.claude.lastError?.message ?? '', /WORKFLOW_SKILL_MISMATCH/);
+    assert.equal('definition' in sp.claude, false);
+    // Unknown error text is never echoed (could carry paths); it is reported as UNKNOWN.
+    const bmad = report.results.bmad.projections.claude;
+    assert.equal(bmad.state, 'error');
+    assert.match(bmad.lastError?.message ?? '', /UNKNOWN/);
+    assert.doesNotMatch(bmad.lastError?.message ?? '', /secret/);
+    // Explicitly unavailable definitions stay current without the field.
+    assert.equal(sp.codex.state, 'current');
+    assert.equal('definition' in sp.codex, false);
+  } finally {
+    await sync.close();
+    await http.close();
     await w.close();
     await owned.cleanup();
   }

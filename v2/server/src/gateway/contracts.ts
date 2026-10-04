@@ -224,6 +224,30 @@ const inventorySchema = (projectionSlot: unknown) => {
   const status = statusSchema(projectionSlot);
   return objectSchema({ bmad: status, superpowers: status });
 };
+// Mirrors the gateway RenderDefinition: pinned source/projection, selected projection hashes, seven layers.
+const renderLayerPaths = [
+  '_bmad/config.toml',
+  '_bmad/config.user.toml',
+  '_bmad/custom/config.toml',
+  '_bmad/custom/config.user.toml',
+  '_bmad/custom/bmad-build.toml',
+  '_bmad/custom/bmad-build.user.toml',
+  '.claude/skills/bmad-build/customize.toml',
+];
+const renderSchema = objectSchema({
+  source: sourceSchema,
+  projection: projectionSchema,
+  selectedProjectionSha256: {
+    type: 'object',
+    maxProperties: 2000,
+    propertyNames: { minLength: 1, maxLength: 1024 },
+    additionalProperties: digestSchema,
+  },
+  layers: objectSchema(
+    Object.fromEntries(renderLayerPaths.map((path) => [path, nullable(digestSchema)])),
+    [],
+  ),
+});
 const definitionSchema = objectSchema(
   {
     sha256: digestSchema,
@@ -233,7 +257,7 @@ const definitionSchema = objectSchema(
       items: objectSchema({ path: { type: 'string', minLength: 1, maxLength: 1024 }, sha256: digestSchema }),
     },
     customizationSha256: digestSchema,
-    render: { type: 'object' },
+    render: renderSchema,
   },
   ['sha256', 'skills', 'customizationSha256'],
 );

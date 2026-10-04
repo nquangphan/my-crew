@@ -1,0 +1,83 @@
+✔ gateway migration 007 có prefix riêng và checksum replay (152.7455ms)
+{"level":30,"time":1791083885809,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56669"}
+✔ gateway boot và heartbeat dùng auth thật, giữ execution namespace bất biến (494.30075ms)
+{"level":30,"time":1791083886231,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56675"}
+✔ gateway config CAS, URL allowlist, CSRF và schema đóng (385.859917ms)
+{"level":30,"time":1791083886615,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56683"}
+✔ gateway boot CAS giữ lịch sử, receipt bất biến và trạng thái hiện tại (402.301916ms)
+{"level":30,"time":1791083887030,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56692"}
+✔ gateway install report xác nhận exact source/projection và giữ applied qua partial, retired replay (413.199917ms)
+{"level":30,"time":1791083887415,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56698"}
+✔ gateway install report lưu definition cộng thêm nguyên bản, thiếu definition vẫn được nhận (364.010417ms)
+{"level":30,"time":1791083887778,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56704"}
+✔ gateway install report từ chối definition lệch pin đã cài và không lưu definition đó (368.69725ms)
+{"level":30,"time":1791083888141,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56710"}
+✔ gateway install report: definition không thay đổi so khớp pin và schema vẫn đóng (374.67375ms)
+{"level":30,"time":1791083888518,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56717"}
+✔ gateway install report: render sai hình dạng bị schema đóng chặn, không bao giờ 500 (350.775666ms)
+{"level":30,"time":1791083888873,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56723"}
+✔ gateway install report chấp nhận definition do gateway thật tạo (golden vector chung, gồm BMAD render) (366.787542ms)
+{"level":30,"time":1791083889234,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56729"}
+✔ gateway management command cursor, ACK mất phản hồi/gửi lại không hạ trạng thái completed (351.137667ms)
+{"level":30,"time":1791083889585,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56735"}
+✔ gateway projection production fail-closed trước khi tạo companion (376.146ms)
+{"level":30,"time":1791083889955,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56740"}
+✔ gateway projection server selection bắt buộc, row bất biến, replay cùng pin sau update (412.303458ms)
+{"level":30,"time":1791083890366,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56746"}
+✔ gateway fresh claim từ chối report cũ, config tắt, thiếu decision, payload đổi trước RELEASE (420.07375ms)
+{"level":30,"time":1791083890793,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56752"}
+{"level":30,"time":1791083890986,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56755"}
+✔ gateway receipt tồn tại qua close/reopen pool, auth revoked/rotated không đọc cached response (473.69825ms)
+{"level":30,"time":1791083891269,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56762"}
+✔ gateway machine scope không làm lỏng project ACL, status offline không nhả execution guard (408.168333ms)
+{"level":30,"time":1791083891676,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56769"}
+✔ gateway install report exact derivation/source payload, partial runtime, stale config và sanitization (373.186583ms)
+gateway-owned-fixture {"containerId":"6c945d72453bec72863833f31904898535547ff485bc0d424df56dc388c0c4d1","port":"56394","source":"crew_v2_test_90e1abdb6c3a4d4bbd2fe880f897dce8"}
+{"level":30,"time":1791083892283,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56779"}
+{"level":30,"time":1791083892711,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56784"}
+✔ gateway migration007 FK/CHECK/UNIQUE và backup6→restore→migrate7→restore receipts (984.866125ms)
+✔ gateway event metadata từ chối secrets, trường dư và audience sai (0.365416ms)
+{"level":30,"time":1791083893038,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56788"}
+✔ gateway inventory từ chối URL có credential trước khi lưu (331.919ms)
+{"level":30,"time":1791083893386,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56796"}
+✔ gateway cùng transaction recheck actual token trước cached boots/heartbeat/report/ack/projection (487.899667ms)
+{"level":30,"time":1791083893852,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56812"}
+✔ gateway owner session expire giữa prehandler và cached config vẫn từ chối (354.610167ms)
+{"level":30,"time":1791083894226,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56821"}
+✔ gateway authorization tại claim giữ pair khi update xảy ra trước insert companion (417.736625ms)
+{"level":30,"time":1791083894620,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56828"}
+✔ gateway heartbeat ngoài thứ tự và replay đồng thời (333.911084ms)
+{"level":30,"time":1791083894962,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56835"}
+✔ gateway fresh claim từ chối projection null và report partial mới nhất dù có applied cũ (394.776458ms)
+{"level":30,"time":1791083895347,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56841"}
+✔ gateway ACK nhận nested/string details, từ chối secret/path (332.471958ms)
+{"level":30,"time":1791083895699,"pid":12781,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56849"}
+✔ gateway mọi desired runtime khác null đều bắt buộc trước advance applied (366.506167ms)
+model-fixture-container {"containerId":"6c945d72453bec72863833f31904898535547ff485bc0d424df56dc388c0c4d1","url":"postgres://postgres@127.0.0.1:56394/crew_v2_test"}
+{"level":30,"time":1791083896603,"pid":13656,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56862"}
+✔ model certification production route never trusts host surface PASS or exposes test challenge issue (675.696708ms)
+✔ model challenge actual 008 attempt insert hook binds A and never authorizes B; trusted fake observer is isolated to test DB (621.128417ms)
+✔ FIX1 R4 actual 005 insert rejects retired install boot and rolls back before current boot report (652.898292ms)
+✔ model pool migration creates separate config and immutable report authority (116.053667ms)
+model owned fixture 6c945d72453bec72863833f31904898535547ff485bc0d424df56dc388c0c4d1 postgres://postgres@127.0.0.1:56394/crew_v2_test
+model-fixture-container {"containerId":"6c945d72453bec72863833f31904898535547ff485bc0d424df56dc388c0c4d1","url":"postgres://postgres@127.0.0.1:56394/crew_v2_test"}
+✔ model pool owner CAS sync and machine desired config are real authenticated HTTP (462.124208ms)
+✔ api provider explicit nonempty unique models and canonical endpoint policy reject unsafe inputs (396.4715ms)
+✔ model report shared order historical immutable replay and production host PASS stays unverified (454.681583ms)
+✔ model pool requires accepted exact workflow pair and rejects cross-machine inventory declaration (386.601292ms)
+✔ sync_models completion requires accepted exact applied revision and cannot bypass through generic 007 ACK (380.746959ms)
+✔ model source events reject secret metadata and wrong audience without leaking inventory (0.450291ms)
+✔ model HTTP cached mutation rechecks actual token after authentication before journal cache (358.564541ms)
+✔ fake provider HTTP observer can prove only probe protocol; pool remains unavailable without isolation certificate (376.439958ms)
+model-backup-owned {"containerId":"6c945d72453bec72863833f31904898535547ff485bc0d424df56dc388c0c4d1","port":"56394","sourceDb":"crew_v2_test_9176f7bb1e5646eaa5c7ae6e9b7fa45f","restoredName":"crew_v2_test_08fd72dea86c4e578841a7aee774079b"}
+model-backup-cleaned {"sourceDb":"crew_v2_test_9176f7bb1e5646eaa5c7ae6e9b7fa45f","restoredName":"crew_v2_test_08fd72dea86c4e578841a7aee774079b"}
+✔ model pool prefix7 backup restore migrate8 restores immutable reports and rejects checksum or FK drift (1023.572042ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16866.3425
+EXIT=0
