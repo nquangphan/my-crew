@@ -558,5 +558,18 @@ flows:
       - web/test/support/dom.ts
       - web/test/support/tsx-loader.ts
       - web/test/support/jsdom.d.ts
+  web-docs:
+    title: Không gian tài liệu chỉ đọc trên web Crew v2
+    doc: docs/flows/web-docs.md
+    entrypoints:
+      - web/src/docs/space.tsx
+    files:
+      - web/src/docs/page.tsx
+      - web/src/docs/search.tsx
+      - web/src/docs/links.ts
+      - web/src/docs/queries.ts
+    tests:
+      - web/test/docs-links.test.ts
+      - web/test/docs-space-dom.test.ts
 shared: {}
 unassigned: []
