@@ -1,0 +1,321 @@
+4998044 feat(v2): nguồn runtime cho retry workflow và isSourceEnabled cho admission
+ .../execution-phase07/producer-g4w-report.md       | 27 ++++++++++++++
+ v2/docs/flows/server-gateway.md                    | 11 +++++-
+ v2/server/src/gateway/contracts.ts                 |  5 ++-
+ v2/server/src/gateway/routes.ts                    |  3 +-
+ v2/server/src/gateway/service.ts                   | 20 +++++++++-
+ v2/server/test/gateway-owner-read.test.ts          | 43 ++++++++++++++++++++++
+ 6 files changed, 103 insertions(+), 6 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/producer-g4w-report.md b/plans/261002-0002-crew-v2/execution-phase07/producer-g4w-report.md
+new file mode 100644
+index 0000000..a0619f9
+--- /dev/null
++++ b/plans/261002-0002-crew-v2/execution-phase07/producer-g4w-report.md
+@@ -0,0 +1,27 @@
++# Producer G4w - ba switch nguồn runtime
++
++BASE: ab4750713f5adb1736032222c8a2ce89eb768cb1.
++
++## Quyết định lưu trữ (đính chính tiền đề)
++Ba switch desired Claude/Codex/API **đã tồn tại** từ migration 008: bảng `model_source_configs` (`enabled jsonb` ba khóa boolean, CAS `revision`), owner `PUT/GET /v2/machines/:id/model-sources` (desired tách khỏi `applied` từ `model_source_applied`), command `sync_models`, và gateway `v2/gateway/src/models` đã áp `enabled[runtime]` (inventory/reporter/credential bỏ qua nguồn OFF, không đụng attempt đang chạy). Thêm `sources` vào config gateway sẽ tạo hai authority cho cùng một thứ, nên KHÔNG thêm; không cần migration, không sửa gateway-sync.ts. Pool SQL (008) đã đòi `gc.enabled` và `mc.enabled->>runtime`.
++
++## Phần thật sự còn thiếu, đã làm
++- `isSourceEnabled(tx, machineId, runtime)` (gateway/service.ts, đọc thuần, chưa nối admission): false nếu chưa có gateway config hoặc `enabled` của máy tắt; nếu có `model_source_configs` thì theo `enabled[runtime]`; **quy tắc tương thích**: máy chưa có source config (cấu hình cũ) suy mọi nguồn từ cờ `enabled` của máy (tức true).
++- Retry `POST /v2/gateway/machines/:id/workflows/retry` nhận thêm `runtime?: claude|codex|api` (additive); có `runtime` mà nguồn OFF hoặc máy tắt → 409 `CONFIG_DISABLED` (không xếp command); không có `runtime` giữ hành vi cũ.
++- Docs: v2/docs/flows/server-gateway.md; `crew-docs generate` unchanged, `check --all` ok.
++
++## RED/GREEN
++RED ngữ nghĩa (scaffold giữ hành vi cũ: chỉ cờ máy): 1 test mới fail do assertion deep-equal [true,false,false] (log `/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T//crew-v2-g4w/red.log`, lần đầu fail do setup 007 thiếu bảng nên đã sửa fixture lên 008, không tính RED). GREEN: gateway-owner-read + gateway + model-pool = 46/46 pass, exit 0. tsc: lỗi sẵn có chỉ ở attachments/pdf (thiếu pdf-lib), 0 lỗi ở gateway. Biome sạch.
++
++## Hash (12 ký tự đầu sha256)
++
++
++## Tài nguyên / dọn dẹp
++Slot nặng lấy/trả bằng mkdir/rm -rf. PG postgres:18.6 `crew-v2-test-257e5bc7-32c1-44d3-be19-facaace0775e` 256m/1CPU/pids64, loopback 54296; `docker rm -f` rồi lọc docker ps -a: 0 dòng. Scratch `/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T//crew-v2-g4w` (log).
++
++(Hash bên dưới tính trước commit.)
++- addfddf2fad5  v2/server/src/gateway/contracts.ts
++- 7947f8d36926  v2/server/src/gateway/routes.ts
++- 323c3155214e  v2/server/src/gateway/service.ts
++- c7500c4645c5  v2/server/test/gateway-owner-read.test.ts
++- c670d178599c  v2/docs/flows/server-gateway.md
+diff --git a/v2/docs/flows/server-gateway.md b/v2/docs/flows/server-gateway.md
+index f567fd4..b1cd030 100644
+--- a/v2/docs/flows/server-gateway.md
++++ b/v2/docs/flows/server-gateway.md
+@@ -75,22 +75,29 @@ server cho phép; authority production mặc định vẫn từ chối đến ph
+    mỗi workflow có `source` và ba `projections` gồm `desired` (config hiện hành), `installed` và `state` của
+    report mới nhất, `verdict` (`match|mismatch|not_installed|installing|error|not_desired`) và
+    `versionMismatch` của source. Verdict luôn so với desired hiện tại, không suy từ `appliedConfigRevision`,
+    nên pin cũ sau khi desired đổi thành `mismatch`. `definition` (slot `current`) chỉ được trả khi khớp đúng
+    pin desired và digest canonical (cùng `definitionMatches` lúc nhận report), nếu không là null. Kèm
+    `latestReport` `{reportId,configRevision,accepted,receivedAt}` để phân biệt partial và `official`
+    (version, revision, URL được phép). Server không giữ digest pin chuẩn; pin đầy đủ chỉ có khi đã nằm trong
+    desired hoặc được máy báo cài.
+ 10. Owner `POST /v2/gateway/machines/:id/workflows/retry` `{expectedRevision}` (CSRF + Idempotency-Key,
+     cùng khóa máy với PUT config) xếp thêm `sync_workflows {configRevision}` cho đúng revision hiện hành,
+-    dùng khi PUT config no-op. Chưa cấu hình 409 `CONFIG_NOT_CONFIGURED`, revision lệch 409
+-    `CONFIG_REVISION_CONFLICT`, config `enabled=false` 409 `CONFIG_DISABLED` (không xếp command). Nếu đã có
++    dùng khi PUT config no-op. Body có thể thêm `runtime` (`claude|codex|api`). Chưa cấu hình 409
++    `CONFIG_NOT_CONFIGURED`, revision lệch 409 `CONFIG_REVISION_CONFLICT`, 409 `CONFIG_DISABLED` (không xếp
++    command) khi `enabled=false` của máy, hoặc khi có `runtime` mà nguồn đó đang OFF (`isSourceEnabled`).
++    Ba switch nguồn desired (Claude, Codex, API) KHÔNG nằm trong config gateway: chúng đã có sẵn ở
++    `PUT/GET /v2/machines/:id/model-sources` (flow server-models; `enabled{claude,codex,api}` + CAS revision,
++    desired tách khỏi `applied` do gateway báo, gateway áp qua `sync_models`). `isSourceEnabled(tx, machineId,
++    runtime)` (service.ts) là hàm đọc thuần cho admission: cờ `enabled` của máy là công tắc tổng, rồi tới
++    switch nguồn; máy chưa có source config (cấu hình cũ) suy mọi nguồn từ cờ máy. Tắt một nguồn chỉ chặn
++    admission mới, không hủy attempt đã admitted. Admission chưa gọi hàm này (việc của T4). Nếu đã có
+     command sync `queued`, hoặc `received` chưa quá 5 phút (`RECEIVED_COMMAND_LEASE_MS`, gateway giữ record
+     cục bộ và retry tối đa 75 giây mỗi lần) cho revision đó thì trả lại command ấy với `created:false`; `received`
+     quá hạn coi là bị bỏ, retry xếp command mới. Owner `GET /v2/gateway/machines/:id/commands?before&limit`
+     (default 50, max 100) đọc lịch sử command mới nhất trước kèm `result` đã làm sạch, `nextBefore` null khi
+     hết. Chưa có: đọc key credential đang active (chờ Keychain phase04).
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+diff --git a/v2/server/src/gateway/contracts.ts b/v2/server/src/gateway/contracts.ts
+index 79aeb82..61fbbb4 100644
+--- a/v2/server/src/gateway/contracts.ts
++++ b/v2/server/src/gateway/contracts.ts
+@@ -192,21 +192,24 @@ export type WorkflowCatalogue = {
+ export const toDomainPin = (source: SourcePin): Pin => ({
+   workflow: source.name,
+   version: source.version,
+   revision: source.sourceRevision,
+   checksum: source.sourceTreeSha256,
+ });
+ 
+ export const retrySchema = {
+   type: 'object',
+   additionalProperties: false,
+-  properties: { expectedRevision: { type: 'integer', minimum: 1, maximum: 2147483646 } },
++  properties: {
++    expectedRevision: { type: 'integer', minimum: 1, maximum: 2147483646 },
++    runtime: { enum: ['claude', 'codex', 'api'] },
++  },
+   required: ['expectedRevision'],
+ } as const;
+ export const workflows: Workflow[] = ['bmad', 'superpowers'];
+ export const runtimes: Runtime[] = ['claude', 'codex', 'api'];
+ export const uuidSchema = { type: 'string', format: 'uuid' } as const;
+ export const digestSchema = { type: 'string', pattern: '^[0-9a-f]{64}$' } as const;
+ export const counterSchema = { type: 'string', pattern: '^[1-9][0-9]{0,18}$' } as const;
+ export const cursorSchema = { type: 'string', pattern: '^(0|[1-9][0-9]{0,18})$' } as const;
+ const shortString = { type: 'string', minLength: 1, maxLength: 200 } as const;
+ const timestamp = { type: 'string', format: 'date-time', maxLength: 40 } as const;
+diff --git a/v2/server/src/gateway/routes.ts b/v2/server/src/gateway/routes.ts
+index 6147e47..309e923 100644
+--- a/v2/server/src/gateway/routes.ts
++++ b/v2/server/src/gateway/routes.ts
+@@ -3,20 +3,21 @@ import { authenticateCurrentCredential } from '../auth/routes.ts';
+ import type { Actor, Id, RouteDependencies, ServerOptions, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import { readWorkflowCatalogue } from './catalogue.ts';
+ import type {
+   ConfigInput,
+   GatewayAck,
+   GatewayHeartbeat,
+   GatewayProjectionPolicy,
+   InstallReport,
+   ProjectionInput,
++  Runtime,
+ } from './contracts.ts';
+ import {
+   ackSchema,
+   configSchema,
+   cursorSchema,
+   heartbeatSchema,
+   installReportSchema,
+   objectSchema,
+   projectionInputSchema,
+   retrySchema,
+@@ -185,21 +186,21 @@ export function registerGatewayRoutes(
+     },
+   );
+   app.get<{ Params: { id: Id } }>(
+     '/v2/gateway/machines/:id/workflows',
+     { schema: { params: idParams, querystring: objectSchema({}) } },
+     async (request) => {
+       const actor = await deps.auth.requireOwner(request, { csrf: false });
+       return read(request, actor, (tx) => readWorkflowCatalogue(tx, request.params.id));
+     },
+   );
+-  app.post<{ Params: { id: Id }; Body: { expectedRevision: number } }>(
++  app.post<{ Params: { id: Id }; Body: { expectedRevision: number; runtime?: Runtime } }>(
+     '/v2/gateway/machines/:id/workflows/retry',
+     { schema: { params: idParams, body: retrySchema } },
+     async (request, reply) => {
+       const actor = await deps.auth.requireOwner(request, { csrf: true });
+       return write(request, reply, actor, request.params.id, (tx) =>
+         requestWorkflowRetry(tx, request.params.id, request.body, options.now()),
+       );
+     },
+   );
+   app.get<{ Params: { id: Id }; Querystring: { before?: string; limit?: string } }>(
+diff --git a/v2/server/src/gateway/service.ts b/v2/server/src/gateway/service.ts
+index 50450be..51c27f1 100644
+--- a/v2/server/src/gateway/service.ts
++++ b/v2/server/src/gateway/service.ts
+@@ -16,20 +16,21 @@ import type {
+   GatewayCommand,
+   GatewayConfig,
+   GatewayHeartbeat,
+   GatewayProjectionPolicy,
+   GatewayStatus,
+   InstallReport,
+   InstallReportResponse,
+   ProjectionInput,
+   ProjectionPin,
+   ProjectionSlotStatus,
++  Runtime,
+   SourcePin,
+   Workflow,
+   WorkflowInventory,
+   WorkflowRetryResult,
+ } from './contracts.ts';
+ import { runtimes, toDomainPin, workflows } from './contracts.ts';
+ 
+ const same = (left: unknown, right: unknown) => canonicalJson(left) === canonicalJson(right);
+ const hash = (body: unknown) => createHash('sha256').update(canonicalJson(body)).digest('hex');
+ const json = (body: unknown) => JSON.parse(canonicalJson(body));
+@@ -168,20 +169,34 @@ export async function readGatewayConfig(tx: Tx, machineId: Id): Promise<GatewayC
+ export async function readGatewayApplied(tx: Tx, machineId: Id): Promise<GatewayApplied | null> {
+   const [row] = await tx`select * from gateway_applied where machine_id=${machineId}`;
+   return row
+     ? {
+         revision: Number(row.revision),
+         workflows: row.workflow_status as WorkflowInventory,
+         appliedAt: row.applied_at ? (row.applied_at as Date).toISOString() : null,
+       }
+     : null;
+ }
++/**
++ * Desired state of one runtime source (claude, codex, api) for fresh admission. Pure read of authority
++ * already stored: the machine-wide gateway `enabled` flag is a master switch, then the per-source switch
++ * in `model_source_configs`. A machine with no source config yet (older config) derives every source from
++ * the master flag, so existing machines keep their previous behaviour. An OFF source never cancels an
++ * attempt that was already admitted; callers use this only for new admission.
++ */
++export async function isSourceEnabled(tx: Tx, machineId: Id, runtime: Runtime): Promise<boolean> {
++  if (!runtimes.includes(runtime)) return false;
++  const [row] =
++    await tx`select g.enabled as master, (m.enabled->>${runtime}) as source from gateway_configs g left join model_source_configs m on m.machine_id=g.machine_id where g.machine_id=${machineId}`;
++  if (row?.master !== true) return false;
++  return row.source == null ? true : row.source === 'true';
++}
+ async function event(tx: Tx, machineId: Id, type: string, data: Record<string, unknown>): Promise<void> {
+   await appendEvent(tx, { type, projectId: null, ticketId: null, audienceMachineId: machineId, data });
+ }
+ export async function writeGatewayConfig(
+   tx: Tx,
+   machineId: Id,
+   input: ConfigInput,
+   now: Date,
+ ): Promise<GatewayConfig> {
+   validateDesired(input);
+@@ -484,27 +499,28 @@ export async function listMachineCommands(
+  */
+ export const RECEIVED_COMMAND_LEASE_MS = 5 * 60_000;
+ /**
+  * Owner retry/reinstall intent for the current desired revision. Config PUT is a no-op when desired is
+  * unchanged, so this queues one more sync_workflows for the same revision. A queued command, or a received one still
+  * inside the lease, is returned instead of stacking duplicates. A disabled config fails closed.
+  */
+ export async function requestWorkflowRetry(
+   tx: Tx,
+   machineId: Id,
+-  input: { expectedRevision: number },
++  input: { expectedRevision: number; runtime?: Runtime },
+   now: Date,
+ ): Promise<WorkflowRetryResult> {
+   const config = await readGatewayConfig(tx, machineId);
+   if (!config) fail('CONFIG_NOT_CONFIGURED');
+   if (config.revision !== input.expectedRevision) fail('CONFIG_REVISION_CONFLICT');
+-  if (!config.enabled) fail('CONFIG_DISABLED');
++  if (input.runtime ? !(await isSourceEnabled(tx, machineId, input.runtime)) : !config.enabled)
++    fail('CONFIG_DISABLED');
+   const staleBefore = new Date(now.getTime() - RECEIVED_COMMAND_LEASE_MS);
+   const [open] =
+     await tx`select * from gateway_commands where machine_id=${machineId} and type='sync_workflows' and (state='queued' or (state='received' and received_at>${staleBefore})) and (payload->>'configRevision')::int=${config.revision} order by cursor desc limit 1`;
+   if (open) return { created: false, configRevision: config.revision, command: mapCommand(open) };
+   const [cursor] = await tx`update gateway_command_cursor set value=value+1 where singleton returning value`;
+   const commandId = randomUUID();
+   const [row] =
+     await tx`insert into gateway_commands(id,machine_id,type,payload,state,created_at,cursor) values(${commandId},${machineId},'sync_workflows',${tx.json({ configRevision: config.revision })},'queued',${now},${cursor?.value}) returning *`;
+   await event(tx, machineId, 'gateway.command.created', { commandId, type: 'sync_workflows' });
+   return {
+diff --git a/v2/server/test/gateway-owner-read.test.ts b/v2/server/test/gateway-owner-read.test.ts
+index b000f8a..64b0f59 100644
+--- a/v2/server/test/gateway-owner-read.test.ts
++++ b/v2/server/test/gateway-owner-read.test.ts
+@@ -1,14 +1,15 @@
+ import assert from 'node:assert/strict';
+ import { createHash, randomUUID } from 'node:crypto';
+ import test from 'node:test';
+ import type { ConfigInput, WorkflowCatalogue, WorkflowRetryResult } from '../src/gateway/contracts.ts';
++import { isSourceEnabled } from '../src/gateway/service.ts';
+ import { canonicalJson } from '../src/journal/canonical.ts';
+ import { databaseFixture } from './support/db.ts';
+ import { gatewayFixture, heartbeat, nextConfig, projection, report, source } from './support/gateway.ts';
+ 
+ const skills = [{ path: 'skills/brainstorming/SKILL.md', sha256: 'a1'.repeat(32) }];
+ function definitionFor(workflow: 'bmad' | 'superpowers') {
+   const customizationSha256 = 'c3'.repeat(32);
+   const pinned = { source: source(workflow), projection: projection(workflow) };
+   return {
+     sha256: createHash('sha256')
+@@ -336,10 +337,52 @@ test('retry workflow: config enabled=false bị từ chối CONFIG_DISABLED và
+       const [before] = await db`select count(*)::int as n from gateway_commands`;
+       const denied = await f.owner.post(retry, { expectedRevision: 2 });
+       assert.equal(denied.statusCode, 409);
+       assert.equal(code(denied), 'CONFIG_DISABLED');
+       const [after] = await db`select count(*)::int as n from gateway_commands`;
+       assert.equal(after?.n, before?.n);
+     } finally {
+       await f.close();
+     }
+   }));
++
++test('nguồn runtime: isSourceEnabled suy từ cờ máy khi chưa có source config, rồi theo từng switch; retry CONFIG_DISABLED theo runtime', async () =>
++  databaseFixture(8)(async (db) => {
++    const f = await gatewayFixture(db);
++    try {
++      const retry = `/v2/gateway/machines/${f.machineId}/workflows/retry`;
++      const enabledOf = (runtime: 'claude' | 'codex' | 'api') =>
++        db.begin((tx) => isSourceEnabled(tx as never, f.machineId, runtime));
++      assert.equal(await enabledOf('claude'), false, 'chưa có gateway config thì không nguồn nào ON');
++      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
++      for (const runtime of ['claude', 'codex', 'api'] as const)
++        assert.equal(await enabledOf(runtime), true, `${runtime} suy từ enabled=true của config cũ`);
++      const put = await f.owner.put(`/v2/machines/${f.machineId}/model-sources`, {
++        expectedRevision: 0,
++        enabled: { claude: true, codex: false, api: false },
++        apiProviders: [],
++      });
++      assert.equal(put.statusCode, 200, put.text);
++      assert.deepEqual(
++        [await enabledOf('claude'), await enabledOf('codex'), await enabledOf('api')],
++        [true, false, false],
++      );
++      const [before] = await db`select count(*)::int as n from gateway_commands`;
++      const off = await f.owner.post(retry, { expectedRevision: 1, runtime: 'codex' });
++      assert.equal(off.statusCode, 409);
++      assert.equal(code(off), 'CONFIG_DISABLED');
++      const [after] = await db`select count(*)::int as n from gateway_commands`;
++      assert.equal(after?.n, before?.n, 'OFF không xếp command');
++      const on = await f.owner.post(retry, { expectedRevision: 1, runtime: 'claude' });
++      assert.equal(on.statusCode, 200, on.text);
++      assert.equal((await f.owner.post(retry, { expectedRevision: 1 })).statusCode, 200);
++      assert.equal((await f.owner.post(retry, { expectedRevision: 1, runtime: 'gpt' })).statusCode, 400);
++      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, {
++        ...nextConfig,
++        expectedRevision: 1,
++        enabled: false,
++      });
++      assert.equal(await enabledOf('claude'), false, 'cờ máy tắt thắng switch nguồn');
++    } finally {
++      await f.close();
++    }
++  }));
