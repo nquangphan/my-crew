@@ -195,3 +195,6 @@ PM cập nhật R2 type trong phase-06 thêm `truncated:boolean` cho kind catalo
 Task 2 B3a: minor (deferred): R1 test cùng máy A dùng lại operationId ở turn khác (cần fixture turn thứ hai); R2 nhãn stale khi đọc latestSnapshotId verified mà có import mới hơn chưa verified — ruling sau; R4 test ask_owner từ scope message chưa route.
 
 02:15 B3b `97737a1` DONE_WITH_CONCERNS (14/14 vs fake node:http, regression 4/4). Vi phạm TDD: không có RED (module chưa tồn tại khi viết test). Journal riêng `<root>/assistant-tools` (một writer mỗi thư mục). Review sẽ đánh giá độc lập test.
+
+02:30 B3b review `task-2-slice-b3b-review.md`: Needs fixes, Important3 (I1 mọi 4xx đóng vĩnh viễn kể cả 401/408/429; I2 mã stale không xảy ra, fake lệch mã thật; I3 đếm attempt lệch, unavailable khi chưa gửi) /Minor6. FIX1/5 resume, RED bắt buộc; nâng M1, M2, M4. Re-release hẹp http-operations.ts (phase03) chỉ phần đếm attempt nếu bắt buộc.
+Task 2 B3b: minor (deferred): M3 pending journal phát lại vĩnh viễn, chưa có GET poll (B3 route GET); M5 journal assistant-tools không GC; M6 hai client cùng root bị khóa, lỗi chưa rõ.
