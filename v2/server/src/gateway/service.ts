@@ -478,9 +478,15 @@ export async function listMachineCommands(
   return { items, nextBefore: rows.length > limit ? (items.at(-1)?.cursor ?? null) : null };
 }
 /**
+ * A received command that never completed is treated as abandoned after this long. The gateway keeps
+ * received commands in its local store and retries with backoff of at most 75s per attempt, so 5 minutes
+ * covers a slow install while a lost local store cannot block retry forever.
+ */
+export const RECEIVED_COMMAND_LEASE_MS = 5 * 60_000;
+/**
  * Owner retry/reinstall intent for the current desired revision. Config PUT is a no-op when desired is
- * unchanged, so this queues one more sync_workflows for the same revision. An unfinished command for that
- * revision is returned instead of stacking duplicates.
+ * unchanged, so this queues one more sync_workflows for the same revision. A queued command, or a received one still
+ * inside the lease, is returned instead of stacking duplicates. A disabled config fails closed.
  */
 export async function requestWorkflowRetry(
   tx: Tx,
@@ -491,8 +497,10 @@ export async function requestWorkflowRetry(
   const config = await readGatewayConfig(tx, machineId);
   if (!config) fail('CONFIG_NOT_CONFIGURED');
   if (config.revision !== input.expectedRevision) fail('CONFIG_REVISION_CONFLICT');
+  if (!config.enabled) fail('CONFIG_DISABLED');
+  const staleBefore = new Date(now.getTime() - RECEIVED_COMMAND_LEASE_MS);
   const [open] =
-    await tx`select * from gateway_commands where machine_id=${machineId} and type='sync_workflows' and state<>'completed' and (payload->>'configRevision')::int=${config.revision} order by cursor desc limit 1`;
+    await tx`select * from gateway_commands where machine_id=${machineId} and type='sync_workflows' and (state='queued' or (state='received' and received_at>${staleBefore})) and (payload->>'configRevision')::int=${config.revision} order by cursor desc limit 1`;
   if (open) return { created: false, configRevision: config.revision, command: mapCommand(open) };
   const [cursor] = await tx`update gateway_command_cursor set value=value+1 where singleton returning value`;
   const commandId = randomUUID();

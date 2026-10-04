@@ -49,3 +49,10 @@ Slot nặng lấy lúc telemetry heavyEligible (5.04GiB, pressure 1, idle 76.8%)
 - Đọc key credential active: chờ phase04 Keychain, chưa làm.
 - Digest pin chuẩn (payload/tree/projection) server không có; web chỉ dùng pin đã nằm trong desired hoặc máy đã báo cài. Nếu muốn nút "cài bản chuẩn" từ trống cần nguồn pin tin cậy (gateway hoặc bảng seed), cần quyết định riêng.
 - Owner đọc command/attempt thực thi ticket (G5) không thuộc slice này; chỉ đọc command máy gateway.
+
+## Follow-up sau review (I1, M1)
+
+- I1: command `received` chỉ chặn retry khi còn trong `RECEIVED_COMMAND_LEASE_MS = 5 phút` (hằng mới, không có hằng ack/lease sẵn có; gateway retry backoff tối đa 75 giây và giữ record cục bộ, 5 phút đủ cho cài chậm). `queued` luôn được coi là mở; `received` quá hạn thì retry xếp command mới.
+- M1: `enabled=false` trả 409 `CONFIG_DISABLED`, không xếp command (config chỉ có một cờ `enabled` cho cả máy, không có cờ riêng từng nguồn/runtime). Thứ tự kiểm: chưa cấu hình, revision lệch, disabled.
+- RED trên mã trước sửa: 8 test, 6 pass, 2 fail (hai test mới, đúng hành vi). GREEN: `gateway-owner-read.test.ts` + `gateway.test.ts` 35/35 exit 0; tsc gateway sạch, Biome sạch.
+- Postgres 18.6 mới, 256m/1CPU/pids64, loopback ngẫu nhiên; đã stop, dọn, trả slot. Gate dùng parse JSON.

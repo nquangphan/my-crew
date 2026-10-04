@@ -83,8 +83,10 @@ server cho phép; authority production mặc định vẫn từ chối đến ph
 10. Owner `POST /v2/gateway/machines/:id/workflows/retry` `{expectedRevision}` (CSRF + Idempotency-Key,
     cùng khóa máy với PUT config) xếp thêm `sync_workflows {configRevision}` cho đúng revision hiện hành,
     dùng khi PUT config no-op. Chưa cấu hình 409 `CONFIG_NOT_CONFIGURED`, revision lệch 409
-    `CONFIG_REVISION_CONFLICT`; nếu đã có command sync chưa completed cho revision đó thì trả lại command
-    ấy với `created:false`, không xếp chồng. Owner `GET /v2/gateway/machines/:id/commands?before&limit`
+    `CONFIG_REVISION_CONFLICT`, config `enabled=false` 409 `CONFIG_DISABLED` (không xếp command). Nếu đã có
+    command sync `queued`, hoặc `received` chưa quá 5 phút (`RECEIVED_COMMAND_LEASE_MS`, gateway giữ record
+    cục bộ và retry tối đa 75 giây mỗi lần) cho revision đó thì trả lại command ấy với `created:false`; `received`
+    quá hạn coi là bị bỏ, retry xếp command mới. Owner `GET /v2/gateway/machines/:id/commands?before&limit`
     (default 50, max 100) đọc lịch sử command mới nhất trước kèm `result` đã làm sạch, `nextBefore` null khi
     hết. Chưa có: đọc key credential đang active (chờ Keychain phase04).
 

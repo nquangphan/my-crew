@@ -290,3 +290,56 @@ test('owner đọc lịch sử command máy kèm result, mới nhất trước, 
       await f.close();
     }
   }));
+
+test('retry workflow: command received quá hạn không chặn retry, còn trẻ thì vẫn trả lại command đang chạy', async () =>
+  databaseFixture(7)(async (db) => {
+    const f = await gatewayFixture(db);
+    try {
+      const retry = `/v2/gateway/machines/${f.machineId}/workflows/retry`;
+      await f.machine.post('/v2/gateway/boots', { bootId: randomUUID(), previousGeneration: '0' });
+      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
+      const first = (await f.machine.get('/v2/gateway/commands')).json<{ items: { id: string }[] }>()
+        .items[0];
+      assert.ok(first);
+      assert.equal(
+        (await f.machine.post(`/v2/gateway/commands/${first.id}/ack`, { phase: 'received' })).statusCode,
+        200,
+      );
+      const young = (await f.owner.post(retry, { expectedRevision: 1 })).json<WorkflowRetryResult>();
+      assert.equal(young.created, false);
+      assert.equal(young.command.id, first.id);
+      await db`update gateway_commands set received_at=now()-interval '10 minutes' where id=${first.id}`;
+      const stale = await f.owner.post(retry, { expectedRevision: 1 });
+      assert.equal(stale.statusCode, 200, stale.text);
+      const body = stale.json<WorkflowRetryResult>();
+      assert.equal(body.created, true);
+      assert.notEqual(body.command.id, first.id);
+      const [count] = await db`select count(*)::int as n from gateway_commands`;
+      assert.equal(count?.n, 2);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('retry workflow: config enabled=false bị từ chối CONFIG_DISABLED và không xếp command', async () =>
+  databaseFixture(7)(async (db) => {
+    const f = await gatewayFixture(db);
+    try {
+      const retry = `/v2/gateway/machines/${f.machineId}/workflows/retry`;
+      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
+      const off = await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, {
+        ...nextConfig,
+        expectedRevision: 1,
+        enabled: false,
+      });
+      assert.equal(off.statusCode, 200, off.text);
+      const [before] = await db`select count(*)::int as n from gateway_commands`;
+      const denied = await f.owner.post(retry, { expectedRevision: 2 });
+      assert.equal(denied.statusCode, 409);
+      assert.equal(code(denied), 'CONFIG_DISABLED');
+      const [after] = await db`select count(*)::int as n from gateway_commands`;
+      assert.equal(after?.n, before?.n);
+    } finally {
+      await f.close();
+    }
+  }));
