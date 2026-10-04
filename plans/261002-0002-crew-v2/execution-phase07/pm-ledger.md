@@ -210,3 +210,5 @@ S7basic: minor (deferred): Minor3 E2E yêu cầu IndexedDB/CacheStorage rỗng s
 04:55 S7basic FIX2 `3b202e9` re-review `task-7-s7basic-fix2-re-review.md`: Approved, 3/3 ADDRESSED.
 Task 7 S7basic: complete — 3b202e9 (333468a + 2f94ed3 + 3b202e9). A7basic ĐẠT trên API/PG thật (đăng ký máy → tạo project → bind → reload; stale 409 hai tab; rebind 409 khi active/uncertain).
 S7basic: minor (deferred): test tombstone chỉ phủ form máy (dự án/gắn máy dùng cùng mã); FakeServer so body thô thay vì canonicalJson, không kiểm schema/auth; máy mồ côi khi 2xx lỗi format vẫn "Đang dùng" tới khi có route thu hồi.
+
+05:10 OWNER: push 174 commit lên origin/codex/crew-v2-server (0c35a43..5e852b5, pre-push ok). Owner duyệt thứ tự quota còn lại: Task4 → G4 phần đọc → S6 hoặc T4; dừng dispatch ở quota còn 5%.
