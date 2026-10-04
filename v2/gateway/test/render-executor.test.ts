@@ -213,22 +213,30 @@ type ExecuteCall = { id: string; cwd: string; command: string[]; timeoutSeconds:
  * fails; a timeout is a receipt with `timedOut` and signal exit code; `remove` deletes only that
  * stage identity. The child itself is the scripted `behaviour`, never a real process.
  */
+// `NativeHelper.run` rejects with the promisified execFile error, whose `code` is the exit status.
+function helperExit(code: number): Error {
+  return Object.assign(new Error(`Command failed with exit code ${code}`), { code });
+}
+
 class FakeOperations implements RenderOperations {
   readonly root: string;
   readonly calls: string[] = [];
   readonly executions: ExecuteCall[] = [];
   behaviour: (call: ExecuteCall) => Promise<ChildResult>;
+  /** Another owned operation holds `.operations.guard`: the helper exits 20 for every action. */
+  busy = false;
   constructor(root: string, behaviour: (call: ExecuteCall) => Promise<ChildResult>) {
     this.root = root;
     this.behaviour = behaviour;
   }
   async absent(parent: 'stages' | 'sources' | 'projections' | 'quarantine' | 'receipts', id: string) {
     this.calls.push(`absent:${parent}:${id}`);
-    if (await lstat(join(this.root, parent, id)).catch(() => null))
-      throw new Error('OPERATION_HELPER_FAILED');
+    if (this.busy) throw helperExit(20);
+    if (await lstat(join(this.root, parent, id)).catch(() => null)) throw helperExit(22);
   }
   async create(id: string): Promise<OwnedIdentity> {
     this.calls.push(`create:${id}`);
+    if (this.busy) throw helperExit(20);
     const path = join(this.root, 'stages', id);
     await mkdir(path, { mode: 0o700 });
     const s = await lstat(path);
@@ -364,8 +372,12 @@ async function withHarness(run: (h: Harness) => Promise<void>, files = projected
   }
 }
 
-function halted(outcome: RenderOutcome, reason: string): void {
-  assert.deepEqual(outcome, { halt: true, reason });
+/** A halt carries log diagnostics exactly when an execution log exists to measure. */
+function halted(outcome: RenderOutcome, reason: string, logged = false): void {
+  assert(!('receipt' in outcome), JSON.stringify(outcome));
+  assert.equal(outcome.reason, reason);
+  assert.equal(outcome.halt, true);
+  assert.equal('log' in outcome, logged, `${reason} log diagnostics`);
 }
 
 function expectedArgv(projectRoot: string, uvPath: string): string[] {
@@ -525,18 +537,18 @@ test('render executor never runs one operation twice', async () => {
 });
 
 test('render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children', async () => {
-  const cases: [ChildResult, string, boolean][] = [
-    [{ kind: 'exit', exitCode: 1, stdout: 'HALT: config missing\n' }, 'RENDER_EXIT_NONZERO', true],
-    [{ kind: 'exit', exitCode: 2, stdout: '' }, 'RENDER_EXIT_NONZERO', true],
-    [{ kind: 'exit', exitCode: 127, stdout: '' }, 'RENDER_UV_UNAVAILABLE', true],
-    [{ kind: 'timeout' }, 'RENDER_TIMED_OUT', true],
-    [{ kind: 'fork' }, 'RENDER_LIFETIME_UNKNOWN', false],
-    [{ kind: 'helper-failure' }, 'RENDER_OPERATION_UNAVAILABLE', false],
+  const cases: [ChildResult, string, boolean, boolean][] = [
+    [{ kind: 'exit', exitCode: 1, stdout: 'HALT: config missing\n' }, 'RENDER_EXIT_NONZERO', true, true],
+    [{ kind: 'exit', exitCode: 2, stdout: '' }, 'RENDER_EXIT_NONZERO', true, true],
+    [{ kind: 'exit', exitCode: 127, stdout: '' }, 'RENDER_UV_UNAVAILABLE', true, true],
+    [{ kind: 'timeout' }, 'RENDER_TIMED_OUT', true, true],
+    [{ kind: 'fork' }, 'RENDER_LIFETIME_UNKNOWN', false, true],
+    [{ kind: 'helper-failure' }, 'RENDER_OPERATION_UNAVAILABLE', false, false],
   ];
-  for (const [result, reason, reclaimed] of cases) {
+  for (const [result, reason, reclaimed, logged] of cases) {
     await withHarness(async (h) => {
       h.operations.behaviour = async () => result;
-      halted(await h.render(), reason);
+      halted(await h.render(), reason, logged);
       assert.equal(h.operations.executions.length, 1, reason);
       const stage = join(h.operations.root, 'stages', `render-${operationIds[0]}`);
       // A stage is reclaimed only when the primitive proved the child closed.
@@ -563,7 +575,7 @@ test('render executor halts when stdout does not name exactly the rendered workf
         const result = await officialRender(officialArgv(call.command));
         return { kind: 'exit', exitCode: result.exitCode, stdout: variant(result.stdout) };
       };
-      halted(await h.render(), 'RENDER_STDOUT_MISMATCH');
+      halted(await h.render(), 'RENDER_STDOUT_MISMATCH', true);
     });
   }
 });
@@ -578,7 +590,7 @@ test('render executor halts when the printed generation does not match its measu
       await writeTree(forged, await readTreeFiles(real));
       return { kind: 'exit', exitCode: 0, stdout: `read and follow ${forged}/workflow.md\n` };
     };
-    halted(await h.render(), 'RENDER_ARTIFACT_MISMATCH');
+    halted(await h.render(), 'RENDER_ARTIFACT_MISMATCH', true);
   });
   const tamper: [string, (generation: string) => Promise<void>][] = [
     ['changed output', (g) => writeFile(join(g, 'workflow.md'), 'Changed.\n')],
@@ -608,7 +620,8 @@ test('render executor halts when the printed generation does not match its measu
         return { kind: 'exit', ...result };
       };
       const outcome = await h.render();
-      assert.deepEqual(outcome, { halt: true, reason: 'RENDER_ARTIFACT_MISMATCH' }, label);
+      assert.equal('reason' in outcome && outcome.reason, 'RENDER_ARTIFACT_MISMATCH', label);
+      halted(outcome, 'RENDER_ARTIFACT_MISMATCH', true);
     });
   }
 });
@@ -656,7 +669,8 @@ test('render executor refuses drifted workspace inputs before reserving or spawn
     await withHarness(async (h) => {
       await edit(h.projectRoot);
       const outcome = await h.render();
-      assert.deepEqual(outcome, { halt: true, reason: 'RENDER_INPUT_MISMATCH' }, label);
+      assert.equal('reason' in outcome && outcome.reason, 'RENDER_INPUT_MISMATCH', label);
+      halted(outcome, 'RENDER_INPUT_MISMATCH');
       assert.deepEqual(h.operations.calls, [], label);
     });
   }
@@ -687,8 +701,14 @@ test('render executor requires the recorded uv bytes before spawning', async () 
   await withHarness(async (h) => {
     halted(await h.render({}, { ...h.uv, sha256: '0'.repeat(64) }), 'RENDER_UV_UNAVAILABLE');
     halted(await h.render({}, { ...h.uv, path: join(h.base, 'bin', 'missing-uv') }), 'RENDER_UV_UNAVAILABLE');
-    await symlink(h.uv.path, join(h.base, 'bin', 'uv-link'));
-    halted(await h.render({}, { ...h.uv, path: join(h.base, 'bin', 'uv-link') }), 'RENDER_UV_UNAVAILABLE');
+    await mkdir(join(h.base, 'bin', 'uv-dir'));
+    halted(await h.render({}, { ...h.uv, path: join(h.base, 'bin', 'uv-dir') }), 'RENDER_UV_UNAVAILABLE');
+    // Bounded read: an oversized executable is refused from its size, before hashing.
+    const huge = join(h.base, 'bin', 'uv-huge');
+    const handle = await open(huge, 'w');
+    await handle.truncate(256 * 1024 * 1024 + 1);
+    await handle.close();
+    halted(await h.render({}, { ...h.uv, path: huge }), 'RENDER_UV_UNAVAILABLE');
     halted(await h.render({}, { ...h.uv, path: 'uv' }), 'RENDER_REQUEST_INVALID');
     halted(await h.render({}, { ...h.uv, version: '' }), 'RENDER_REQUEST_INVALID');
     assert.deepEqual(h.operations.calls, []);
@@ -725,5 +745,133 @@ test('render executor validates attempt and operation identifiers before any eff
     ])
       halted(await h.render(overrides), 'RENDER_REQUEST_INVALID');
     assert.deepEqual(h.operations.calls, []);
+  });
+});
+
+test('render executor refuses unpinned files beside the renderer, skill and config before spawning', async () => {
+  const edits: [string, (root: string) => Promise<void>][] = [
+    ['shadowing module in scripts', (root) => writeFile(join(root, '_bmad/scripts/json.py'), 'import os\n')],
+    [
+      'bytecode cache in scripts',
+      async (root) => {
+        await mkdir(join(root, '_bmad/scripts/__pycache__'));
+        await writeFile(join(root, '_bmad/scripts/__pycache__/re.cpython-312.pyc'), 'x');
+      },
+    ],
+    [
+      'symlink in scripts',
+      async (root) => {
+        await writeFile(join(root, 'outside.py'), 'print(1)\n');
+        await symlink('../../outside.py', join(root, '_bmad/scripts/typing.py'));
+      },
+    ],
+    ['extra file in skill directory', (root) => writeFile(join(root, skillRoot, 'notes.txt'), 'x\n')],
+    [
+      'extra nested file in skill directory',
+      (root) => writeFile(join(root, skillRoot, 'steps/helper.py'), 'x\n'),
+    ],
+    ['unknown file in _bmad', (root) => writeFile(join(root, '_bmad/other.toml'), 'x = 1\n')],
+    ['unknown directory in _bmad', (root) => mkdir(join(root, '_bmad/core'))],
+    [
+      'unknown file in _bmad/custom',
+      async (root) => {
+        await mkdir(join(root, '_bmad/custom'));
+        await writeFile(join(root, '_bmad/custom/.gitignore'), '*\n');
+      },
+    ],
+    [
+      'render directory is a symlink',
+      async (root) => {
+        await mkdir(join(root, 'elsewhere'));
+        await symlink('../elsewhere', join(root, '_bmad/render'));
+      },
+    ],
+  ];
+  for (const [label, edit] of edits) {
+    await withHarness(async (h) => {
+      await edit(h.projectRoot);
+      const outcome = await h.render();
+      assert.equal('reason' in outcome && outcome.reason, 'RENDER_INPUT_MISMATCH', label);
+      assert.deepEqual(h.operations.calls, [], label);
+    });
+  }
+});
+
+test('render executor refuses unpinned files that appear beside the renderer during the render', async () => {
+  for (const relative of ['_bmad/scripts/json.py', `${skillRoot}/extra.txt`, '_bmad/extra.toml']) {
+    await withHarness(async (h) => {
+      h.operations.behaviour = async (call) => {
+        const result = await officialRender(officialArgv(call.command));
+        await writeFile(join(h.projectRoot, relative), 'x\n');
+        return { kind: 'exit', ...result };
+      };
+      halted(await h.render(), 'RENDER_ARTIFACT_MISMATCH', true);
+    });
+  }
+});
+
+test('render executor tells owned-operation lock contention apart from operation reuse', async () => {
+  await withHarness(async (h) => {
+    h.operations.busy = true;
+    halted(await h.render({ operationId: operationIds[2] }), 'RENDER_OPERATION_BUSY');
+    h.operations.busy = false;
+    assert('receipt' in (await h.render({ operationId: operationIds[2] })));
+    halted(await h.render({ operationId: operationIds[2] }), 'RENDER_OPERATION_REUSED');
+    assert.equal(h.operations.executions.length, 1);
+  });
+});
+
+test('render executor returns the log digest and a sanitized first line when a run halts', async () => {
+  await withHarness(async (h) => {
+    const stdout =
+      `HALT: config missing at ${h.projectRoot}/_bmad/config.toml HOME=/Users/owner/secret ` +
+      `seen /Users/owner/.ssh/id_ed25519 caf\u00e9 ${'x'.repeat(400)}\nsecond line /Users/owner\n`;
+    h.operations.behaviour = async () => ({ kind: 'exit', exitCode: 1, stdout });
+    const outcome = await h.render();
+    halted(outcome, 'RENDER_EXIT_NONZERO', true);
+    assert('log' in outcome && outcome.log);
+    assert.equal(outcome.log.sha256, sha256(stdout));
+    assert.equal(
+      outcome.log.firstLine,
+      `HALT: config missing at {project-root}/_bmad/config.toml HOME={redacted} seen {path} caf? ${'x'.repeat(400)}`.slice(
+        0,
+        256,
+      ),
+    );
+    assert.doesNotMatch(outcome.log.firstLine, /Users|owner|secret|second/);
+  });
+  await withHarness(async (h) => {
+    h.operations.behaviour = async () => ({ kind: 'fork' });
+    const outcome = await h.render();
+    halted(outcome, 'RENDER_LIFETIME_UNKNOWN', true);
+    assert.deepEqual('log' in outcome && outcome.log, { sha256: sha256(''), firstLine: '' });
+  });
+});
+
+test('render executor accepts a symlinked uv by hashing and running the resolved executable', async () => {
+  await withHarness(async (h) => {
+    const link = join(h.base, 'bin', 'uv-link');
+    await symlink(h.uv.path, link);
+    const outcome = await h.render({}, { ...h.uv, path: link });
+    assert('receipt' in outcome, JSON.stringify(outcome));
+    assert.equal(outcome.receipt.data.witness.uvPath, link);
+    assert.deepEqual(outcome.receipt.data.witness.argv, expectedArgv(h.projectRoot, h.uv.path));
+    assert.deepEqual(h.operations.executions[0].command.slice(-8), expectedArgv(h.projectRoot, h.uv.path));
+  });
+});
+
+test('render executor requires a canonical owned-operation root before reserving a stage', async () => {
+  await withHarness(async (h) => {
+    const alias = join(h.base, 'ops-alias');
+    await symlink(h.operations.root, alias);
+    const operations = new FakeOperations(alias, officialChild);
+    const outcome = await createRenderExecutor({ operations, uv: h.uv, clock: () => new Date() }).render({
+      definition: structuredClone(h.definition),
+      projectRoot: h.projectRoot,
+      attemptId,
+      operationId: operationIds[0],
+    });
+    halted(outcome, 'RENDER_OPERATION_UNAVAILABLE');
+    assert.deepEqual(operations.calls, []);
   });
 });

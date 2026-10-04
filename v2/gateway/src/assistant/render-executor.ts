@@ -1,5 +1,6 @@
+import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { lstat, mkdir, open, readdir, readFile, realpath, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, open, readdir, realpath, writeFile } from 'node:fs/promises';
 import { join, posix } from 'node:path';
 import { canonicalJson, hash } from '../journal/atomic-records.ts';
 import type { ExecutionReceipt, OwnedIdentity, OwnedOperations } from '../workflows/operations.ts';
@@ -58,6 +59,7 @@ export type RenderHaltReason =
   | 'RENDER_INPUT_MISMATCH'
   | 'RENDER_UV_UNAVAILABLE'
   | 'RENDER_OPERATION_REUSED'
+  | 'RENDER_OPERATION_BUSY'
   | 'RENDER_OPERATION_UNAVAILABLE'
   | 'RENDER_LIFETIME_UNKNOWN'
   | 'RENDER_TIMED_OUT'
@@ -66,7 +68,11 @@ export type RenderHaltReason =
   | 'RENDER_ARTIFACT_MISMATCH'
   | 'RENDER_CLEANUP_FAILED'
   | 'RENDER_UNEXPECTED_FAILURE';
-export type RenderOutcome = { receipt: WorkflowRenderReceipt } | { halt: true; reason: RenderHaltReason };
+/** Present on a halt once an execution log exists: its digest and a sanitized first line. */
+export type RenderLogDiagnostics = { sha256: string; firstLine: string };
+export type RenderOutcome =
+  | { receipt: WorkflowRenderReceipt }
+  | { halt: true; reason: RenderHaltReason; log?: RenderLogDiagnostics };
 
 const skillRoot = '.claude/skills/bmad-build';
 const rendererPath = '_bmad/scripts/render_skill.py';
@@ -78,14 +84,22 @@ const entrySuffix = '/workflow.md';
 const maxFileBytes = 16 * 1024 * 1024;
 const maxSnapshotBytes = 32 * 1024 * 1024;
 const maxLogBytes = 64 * 1024;
-const maxGenerationEntries = 512;
-const maxGenerationDepth = 32;
+const maxTreeEntries = 512;
+const maxTreeDepth = 32;
+const maxUvBytes = 256 * 1024 * 1024;
+// The owned executor caps every file it lets the child write at 64 MiB (RLIMIT_FSIZE).
+const maxDigestLogBytes = 64 * 1024 * 1024;
+const maxFirstLine = 256;
+// `render_skill.py` puts its own directory first on `sys.path`; nothing else may sit beside it.
+const scriptNames = ['config_utils.py', 'render_skill.py'];
 
 class RenderHalt extends Error {
   readonly reason: RenderHaltReason;
-  constructor(reason: RenderHaltReason) {
+  readonly log: RenderLogDiagnostics | undefined;
+  constructor(reason: RenderHaltReason, log?: RenderLogDiagnostics) {
     super(reason);
     this.reason = reason;
+    this.log = log;
   }
 }
 
@@ -237,20 +251,120 @@ function outputNames(render: RenderDefinition): string[] {
     .filter((name) => posix.basename(name) !== 'SKILL.md');
 }
 
-async function listGeneration(
-  generation: string,
-  prefix: string,
-  depth: number,
-  found: string[],
-): Promise<void> {
-  if (depth > maxGenerationDepth) throw new Error('RENDER_GENERATION_SHAPE');
-  for (const entry of await readdir(join(generation, prefix), { withFileTypes: true })) {
+/** Lists regular files under `root` (itself a real directory); any symlink or special file throws. */
+async function listFiles(root: string, prefix = '', depth = 0, found: string[] = []): Promise<string[]> {
+  if (depth > maxTreeDepth) throw new Error('RENDER_TREE_SHAPE');
+  if (depth === 0) await realDirectory(root);
+  for (const entry of await readdir(join(root, prefix), { withFileTypes: true })) {
     const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
-    if (found.length >= maxGenerationEntries) throw new Error('RENDER_GENERATION_SHAPE');
-    if (entry.isDirectory()) await listGeneration(generation, relative, depth + 1, found);
+    if (found.length >= maxTreeEntries) throw new Error('RENDER_TREE_SHAPE');
+    if (entry.isDirectory()) await listFiles(root, relative, depth + 1, found);
     else if (entry.isFile()) found.push(relative);
-    else throw new Error('RENDER_GENERATION_SHAPE');
+    else throw new Error('RENDER_TREE_SHAPE');
   }
+  return found;
+}
+
+async function realDirectory(path: string): Promise<void> {
+  const stat = await lstat(path);
+  if (!stat.isDirectory()) throw new Error('RENDER_TREE_SHAPE');
+}
+
+function sameSet(actual: readonly string[], expected: readonly string[]): boolean {
+  const wanted = new Set(expected);
+  return actual.length === wanted.size && actual.every((name) => wanted.has(name));
+}
+
+/**
+ * The executable closure around the renderer equals the pinned projection: `_bmad/scripts` holds
+ * exactly the two pinned scripts, `_bmad/` only `scripts`, `render`, `custom` and declared config
+ * layers, `_bmad/custom` only declared layers, and the skill directory exactly the selected files.
+ * Generations under `_bmad/render` are measured separately.
+ */
+async function checkClosure(projectRoot: string, render: RenderDefinition): Promise<void> {
+  const present = (Object.keys(render.layers) as RenderLayerPath[]).filter(
+    (path) => render.layers[path] !== null,
+  );
+  const allowed = new Map<string, 'directory' | 'file'>([
+    ['scripts', 'directory'],
+    ['render', 'directory'],
+    ['custom', 'directory'],
+  ]);
+  for (const path of present) {
+    const name = path.slice('_bmad/'.length);
+    if (path.startsWith('_bmad/') && !name.includes('/')) allowed.set(name, 'file');
+  }
+  const bmad = join(projectRoot, '_bmad');
+  await realDirectory(bmad);
+  for (const entry of await readdir(bmad, { withFileTypes: true })) {
+    const kind = entry.isDirectory() ? 'directory' : entry.isFile() ? 'file' : 'other';
+    if (allowed.get(entry.name) !== kind) throw new Error('RENDER_CLOSURE_MISMATCH');
+  }
+  if (!sameSet(await listFiles(join(bmad, 'scripts')), scriptNames))
+    throw new Error('RENDER_CLOSURE_MISMATCH');
+  const custom = await lstat(join(bmad, 'custom')).catch(() => null);
+  if (custom !== null) {
+    const declared = present.filter((path) => path.startsWith('_bmad/custom/')).map((path) => path.slice(13));
+    for (const name of await listFiles(join(bmad, 'custom')))
+      if (!declared.includes(name)) throw new Error('RENDER_CLOSURE_MISMATCH');
+  }
+  const selected = Object.keys(render.selectedProjectionSha256)
+    .filter((path) => path.startsWith(`${skillRoot}/`))
+    .map((path) => path.slice(skillRoot.length + 1));
+  if (!sameSet(await listFiles(join(projectRoot, skillRoot)), selected))
+    throw new Error('RENDER_CLOSURE_MISMATCH');
+}
+
+/** SHA-256 of a single-link regular file read without following a final symlink, within `maxBytes`. */
+async function digestFile(path: string, maxBytes: number): Promise<{ sha256: string; head: Buffer }> {
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size > maxBytes) throw new Error('RENDER_FILE_UNBOUNDED');
+    const digest = createHash('sha256');
+    const chunk = Buffer.alloc(1024 * 1024);
+    let head = Buffer.alloc(0);
+    let length = 0;
+    for (;;) {
+      const { bytesRead } = await handle.read(chunk, 0, chunk.length, length);
+      if (bytesRead === 0) break;
+      length += bytesRead;
+      if (length > stat.size) throw new Error('RENDER_FILE_UNBOUNDED');
+      if (head.length < 4096)
+        head = Buffer.concat([head, chunk.subarray(0, Math.min(bytesRead, 4096 - head.length))]);
+      digest.update(chunk.subarray(0, bytesRead));
+    }
+    if (length !== stat.size) throw new Error('RENDER_FILE_UNBOUNDED');
+    return { sha256: digest.digest('hex'), head };
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * First log line safe to hand to the server or owner: known host paths become labels, `NAME=value`
+ * assignments lose their value, any other absolute path becomes `{path}`, then printable ASCII only.
+ */
+function sanitizeFirstLine(head: Buffer, labels: readonly [string, string][]): string {
+  const newline = head.indexOf(0x0a);
+  let line = new TextDecoder('utf-8').decode(newline < 0 ? head : head.subarray(0, newline));
+  for (const [value, label] of [...labels].sort((a, b) => b[0].length - a[0].length))
+    line = line.split(value).join(label);
+  line = line.replace(/\b([A-Za-z_][A-Za-z0-9_]*)=\S*/g, '$1={redacted}');
+  line = line.replace(/(^|[\s'"(:,=])\/[^\s'"]*/g, '$1{path}');
+  return [...line]
+    .map((character) => (/^[\x20-\x7e]$/.test(character) ? character : '?'))
+    .join('')
+    .slice(0, maxFirstLine);
+}
+
+/** `NativeHelper.run` rejects with the execFile error; its numeric `code` is the helper exit status. */
+function helperFailure(error: unknown, existing: RenderHaltReason): RenderHaltReason {
+  const code = (error as { code?: unknown } | null)?.code;
+  if (code === 22) return existing;
+  // 20: another owned operation holds `.operations.guard` (flock LOCK_NB).
+  if (code === 20) return 'RENDER_OPERATION_BUSY';
+  return 'RENDER_OPERATION_UNAVAILABLE';
 }
 
 function policy(stage: string, projectRoot: string): string {
@@ -347,19 +461,22 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
 
     // Refuse drifted inputs before reserving anything or spawning.
     await guard('RENDER_INPUT_MISMATCH', async () => {
+      await checkClosure(projectRoot, render);
       const inputs = await readInputs(projectRoot, render, { remaining: maxSnapshotBytes });
       validateRenderDefinition(render, inputs.sizes);
       if (!inputsMatch(render, inputs)) throw new Error('RENDER_INPUT_DRIFT');
     });
 
-    await guard('RENDER_UV_UNAVAILABLE', async () => {
-      const stat = await lstat(uv.path);
-      if (!stat.isFile() || hash(await readFile(uv.path)) !== uv.sha256)
+    // A package-manager symlink is accepted: the resolved file is hashed (bounded) and executed.
+    const uvExecutable = await guard('RENDER_UV_UNAVAILABLE', async () => {
+      const resolved = await realpath(uv.path);
+      if (!lexicalPath(resolved) || (await digestFile(resolved, maxUvBytes)).sha256 !== uv.sha256)
         throw new Error('RENDER_UV_IDENTITY');
+      return resolved;
     });
 
     const argv = [
-      uv.path,
+      uvExecutable,
       'run',
       '--no-cache',
       `${projectRoot}/${rendererPath}`,
@@ -370,13 +487,23 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
     ];
     const stageName = `render-${operationId}`;
     const stage = join(operations.root, 'stages', stageName);
-    await guard('RENDER_OPERATION_REUSED', async () => {
+    // The stage is quoted into the sandbox profile, which matches canonical paths only.
+    await guard('RENDER_OPERATION_UNAVAILABLE', async () => {
+      if (!lexicalPath(stage) || (await realpath(operations.root)) !== operations.root)
+        throw new Error('RENDER_STAGE_NOT_CANONICAL');
+    });
+    try {
       await operations.absent('receipts', `${stageName}.json`);
       await operations.absent('stages', stageName);
-    });
-    const identity: OwnedIdentity = await guard('RENDER_OPERATION_UNAVAILABLE', () =>
-      operations.create(stageName),
-    );
+    } catch (error) {
+      halt(helperFailure(error, 'RENDER_OPERATION_REUSED'));
+    }
+    let identity: OwnedIdentity;
+    try {
+      identity = await operations.create(stageName);
+    } catch (error) {
+      halt(helperFailure(error, 'RENDER_OPERATION_UNAVAILABLE'));
+    }
     const reclaim = () => operations.remove('stages', stageName, identity);
     const policyPath = join(stage, 'render.sb');
     try {
@@ -410,23 +537,46 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
       );
     } catch (error) {
       // Child closure is unproven: the stage stays for owned-operation reconciliation.
-      halt(
+      throw new RenderHalt(
         error instanceof Error && error.message === 'EXECUTOR_LIFETIME_UNKNOWN'
           ? 'RENDER_LIFETIME_UNKNOWN'
           : 'RENDER_OPERATION_UNAVAILABLE',
+        await diagnostics(),
       );
     }
     const endedAt = clock().toISOString();
+    // Measured before any reclaim so a halt can still name what the child printed.
+    const log = await diagnostics();
 
     let result: WorkflowRenderReceipt;
     try {
       result = await measure(receipt);
     } catch (error) {
       await reclaim().catch(() => undefined);
-      throw error;
+      throw new RenderHalt(error instanceof RenderHalt ? error.reason : 'RENDER_UNEXPECTED_FAILURE', log);
     }
-    await guard('RENDER_CLEANUP_FAILED', reclaim);
+    try {
+      await reclaim();
+    } catch {
+      throw new RenderHalt('RENDER_CLEANUP_FAILED', log);
+    }
     return result;
+
+    async function diagnostics(): Promise<RenderLogDiagnostics | undefined> {
+      try {
+        const { sha256, head } = await digestFile(join(stage, 'execution.log'), maxDigestLogBytes);
+        const labels: [string, string][] = [
+          [projectRoot, '{project-root}'],
+          [stage, '{stage}'],
+          [operations.root, '{operations}'],
+          [uvExecutable, '{uv}'],
+          [uv.path, '{uv}'],
+        ];
+        return { sha256, firstLine: sanitizeFirstLine(head, labels) };
+      } catch {
+        return undefined;
+      }
+    }
 
     async function measure(execution: ExecutionReceipt): Promise<WorkflowRenderReceipt> {
       if (execution.timedOut) halt('RENDER_TIMED_OUT');
@@ -460,10 +610,10 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
       });
 
       const inspection = await guard('RENDER_ARTIFACT_MISMATCH', async () => {
+        await checkClosure(projectRoot, render);
         const relative = generationPath.slice(projectRoot.length + 1);
         const names = outputNames(render);
-        const listed: string[] = [];
-        await listGeneration(generationPath, '', 0, listed);
+        const listed = await listFiles(generationPath);
         const expected = new Set(['manifest.json', ...names]);
         if (listed.length !== expected.size || listed.some((name) => !expected.has(name)))
           throw new Error('RENDER_GENERATION_SHAPE');
@@ -526,10 +676,8 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
       try {
         return { receipt: await produce(request) };
       } catch (error) {
-        return {
-          halt: true,
-          reason: error instanceof RenderHalt ? error.reason : 'RENDER_UNEXPECTED_FAILURE',
-        };
+        if (!(error instanceof RenderHalt)) return { halt: true, reason: 'RENDER_UNEXPECTED_FAILURE' };
+        return { halt: true, reason: error.reason, ...(error.log ? { log: error.log } : {}) };
       }
     },
   };
