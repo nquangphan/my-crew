@@ -1,21 +1,22 @@
 /**
  * The three relation kinds of the map (owner-approved mockup), distinguishable without colour: parent links are
- * square 1px grey brackets 28px from the parent, dependencies are dashed blue with an arrow and the text “phải
- * xong trước”, repair links are dotted amber curves labelled “sửa vòng <cycle>”. A repair link usually joins the
- * same check step and fix task as a parent link, so it bows away from the bracket instead of hiding behind it.
+ * square 1px grey brackets 28px from the parent; dependencies (dashed blue, arrow, “phải xong trước”) and repair
+ * links (dotted amber, “sửa vòng <cycle>”) are short orthogonal runs beside the cards (`sideRoutes`), never
+ * diagonals across a column. Labels are placed by `placeEdgeLabels` so they never overlap; a label without room
+ * is omitted and the relation stays readable through the edge's accessible label and the relations panel.
  */
-import {
-  BaseEdge,
-  type Edge,
-  EdgeLabelRenderer,
-  type EdgeProps,
-  getBezierPath,
-  getSmoothStepPath,
-} from '@xyflow/react';
+import { BaseEdge, type Edge, EdgeLabelRenderer, type EdgeProps, getSmoothStepPath } from '@xyflow/react';
 import type { CSSProperties } from 'react';
+import type { Point } from './layout.ts';
 import type { MapEdge } from './project.ts';
 
-export type TicketEdgeData = { cycleId?: string };
+export type TicketEdgeData = {
+  cycleId?: string;
+  /** Orthogonal route in flow coordinates (dependency/repair). */
+  points?: Point[];
+  /** Top-left corner of the label when it is shown. */
+  label?: Point | null;
+};
 export type TicketFlowEdge = Edge<TicketEdgeData, MapEdge['kind']>;
 
 export const edgeColors = { parent: '#3a3f46', dependency: '#8ab4ff', repair: '#d4a72c' } as const;
@@ -24,22 +25,26 @@ const labelStyle: CSSProperties = {
   pointerEvents: 'none',
   padding: '0 3px',
   fontSize: 11,
+  lineHeight: '14px',
   background: '#17191c',
   whiteSpace: 'nowrap',
 };
 /** Horizontal run from the parent to the vertical trunk of its bracket. */
 const bracketRun = 28;
-/** How far the repair curve bows below the straight line between its endpoints. */
-const repairBow = 56;
 
-function Label({ x, y, text, color }: { x: number; y: number; text: string; color: string }) {
+function Label({ at, text, color }: { at: Point; text: string; color: string }) {
   return (
     <EdgeLabelRenderer>
-      <span style={{ ...labelStyle, color, transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}>
-        {text}
-      </span>
+      <span style={{ ...labelStyle, color, transform: `translate(${at.x}px, ${at.y}px)` }}>{text}</span>
     </EdgeLabelRenderer>
   );
+}
+
+function routePath(props: EdgeProps<TicketFlowEdge>): string {
+  const points = props.data?.points;
+  if (points && points.length > 1)
+    return points.map((p, index) => `${index === 0 ? 'M' : 'L'} ${p.x},${p.y}`).join(' ');
+  return `M ${props.sourceX},${props.sourceY} L ${props.targetX},${props.targetY}`;
 }
 
 export function ParentEdge(props: EdgeProps<TicketFlowEdge>) {
@@ -48,36 +53,33 @@ export function ParentEdge(props: EdgeProps<TicketFlowEdge>) {
 }
 
 export function DependencyEdge(props: EdgeProps<TicketFlowEdge>) {
-  const [path, labelX, labelY] = getBezierPath(props);
+  const label = props.data?.label;
   return (
     <>
       <BaseEdge
-        path={path}
+        path={routePath(props)}
         markerEnd={props.markerEnd}
         style={{ stroke: edgeColors.dependency, strokeWidth: 1, strokeDasharray: '4 3' }}
       />
-      <Label x={labelX} y={labelY} text="phải xong trước" color={edgeColors.dependency} />
+      {label && <Label at={label} text="phải xong trước" color={edgeColors.dependency} />}
     </>
   );
 }
 
+export function repairLabel(cycleId: string | undefined): string {
+  return `sửa vòng ${cycleId?.slice(0, 8) ?? 'không rõ'}`;
+}
+
 export function RepairEdge(props: EdgeProps<TicketFlowEdge>) {
-  const { sourceX, sourceY, targetX, targetY } = props;
-  const controlX = (sourceX + targetX) / 2;
-  const controlY = Math.max(sourceY, targetY) + repairBow;
-  const path = `M ${sourceX},${sourceY} Q ${controlX},${controlY} ${targetX},${targetY}`;
-  // Midpoint of the quadratic curve (t = 0.5).
-  const labelX = (sourceX + 2 * controlX + targetX) / 4;
-  const labelY = (sourceY + 2 * controlY + targetY) / 4;
-  const cycle = props.data?.cycleId?.slice(0, 8) ?? 'không rõ';
+  const label = props.data?.label;
   return (
     <>
       <BaseEdge
-        path={path}
+        path={routePath(props)}
         markerEnd={props.markerEnd}
         style={{ stroke: edgeColors.repair, strokeWidth: 2, strokeDasharray: '2 3' }}
       />
-      <Label x={labelX} y={labelY} text={`sửa vòng ${cycle}`} color={edgeColors.repair} />
+      {label && <Label at={label} text={repairLabel(props.data?.cycleId)} color={edgeColors.repair} />}
     </>
   );
 }

@@ -22,50 +22,63 @@ const sourceLabels = {
   owner_decision: 'Quyết định của bạn',
 };
 
+// Presentation of the dark ticket dialog mockup (screen 2): monospace time column, then the description.
 const listStyle: CSSProperties = {
   listStyle: 'none',
   margin: 0,
   padding: 0,
   display: 'grid',
-  gap: '0.75rem',
+  gap: 6,
+  fontSize: 13,
 };
 const entryStyle: CSSProperties = {
-  borderLeft: '3px solid currentColor',
-  paddingLeft: '0.75rem',
   display: 'grid',
-  gap: '0.25rem',
+  gridTemplateColumns: 'max-content minmax(0, 1fr)',
+  columnGap: 12,
+  rowGap: 2,
 };
+const timeStyle: CSSProperties = {
+  fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace",
+  color: '#9aa0a6',
+  whiteSpace: 'nowrap',
+};
+const bodyStyle: CSSProperties = { display: 'grid', gap: 2, minWidth: 0 };
 const textStyle: CSSProperties = { margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
+const noteStyle: CSSProperties = { ...textStyle, fontSize: 12.5, color: '#9aa0a6' };
 
 function Entry({ entry }: { entry: TimelineEntry }) {
   const heading = entry.source === 'comment' ? 'Bình luận' : `Quyết định · ${decisionLabels[entry.kind]}`;
   return (
     <li style={entryStyle} data-testid="timeline-entry" data-entry-id={entry.id} data-source={entry.source}>
-      <div>
-        <strong>{heading}</strong> · <span>{actorLabel(entry.actor)}</span> ·{' '}
-        <time dateTime={entry.createdAt}>{formatTime(entry.createdAt)}</time>
+      <time style={timeStyle} dateTime={entry.createdAt}>
+        {formatTime(entry.createdAt)}
+      </time>
+      <div style={bodyStyle}>
+        <div>
+          <strong>{heading}</strong> · <span>{actorLabel(entry.actor)}</span>
+        </div>
+        {entry.source === 'comment' ? (
+          <p style={textStyle}>{entry.text}</p>
+        ) : (
+          <>
+            <p style={textStyle}>{entry.content}</p>
+            <p style={textStyle}>
+              <span>Lý do: </span>
+              {entry.rationale}
+            </p>
+            {entry.sources.length > 0 && (
+              <ul aria-label="Nguồn">
+                {entry.sources.map((source) => (
+                  <li key={`${source.kind}:${source.id}:${source.path ?? ''}:${source.locator ?? ''}`}>
+                    {sourceLabels[source.kind]} <code>{source.path ?? source.id}</code>
+                    {source.locator ? ` (${source.locator})` : ''}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
       </div>
-      {entry.source === 'comment' ? (
-        <p style={textStyle}>{entry.text}</p>
-      ) : (
-        <>
-          <p style={textStyle}>{entry.content}</p>
-          <p style={textStyle}>
-            <span>Lý do: </span>
-            {entry.rationale}
-          </p>
-          {entry.sources.length > 0 && (
-            <ul aria-label="Nguồn">
-              {entry.sources.map((source) => (
-                <li key={`${source.kind}:${source.id}:${source.path ?? ''}:${source.locator ?? ''}`}>
-                  {sourceLabels[source.kind]} <code>{source.path ?? source.id}</code>
-                  {source.locator ? ` (${source.locator})` : ''}
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
     </li>
   );
 }
@@ -75,7 +88,7 @@ export function TicketHistory({ ticketId }: { ticketId: string }) {
   return (
     <section aria-labelledby={`history-${ticketId}`} style={{ display: 'grid', gap: '0.75rem' }}>
       <h2 id={`history-${ticketId}`}>Lịch sử</h2>
-      <p style={textStyle}>
+      <p style={noteStyle}>
         Gồm bình luận và quyết định đã ghi nhận. Review, phương án dự phòng, sản phẩm, commit và đồng bộ tài
         liệu sẽ hiện khi máy chủ cung cấp lịch sử đầy đủ.
       </p>

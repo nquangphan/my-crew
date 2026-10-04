@@ -25,9 +25,29 @@ export const maxTicketDocPaths = 100;
 const noticeStyle: CSSProperties = {
   margin: 0,
   padding: '0.6rem 0.8rem',
-  border: '1px solid currentColor',
-  borderRadius: '0.5rem',
+  border: '1px solid #2b2f35',
+  borderRadius: 4,
 };
+// Linked pages as bordered chips (dark ticket dialog mockup); a selected page has the accent border.
+const chipsStyle: CSSProperties = {
+  listStyle: 'none',
+  margin: 0,
+  padding: 0,
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 8,
+};
+const chipStyle = (selected: boolean): CSSProperties => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  minHeight: 32,
+  padding: '6px 10px',
+  fontSize: 13,
+  border: `1px solid ${selected ? '#8ab4ff' : '#2b2f35'}`,
+  borderRadius: 4,
+  cursor: 'pointer',
+});
 
 function saveFailureText(error: unknown): string {
   if (error instanceof ApiFailure) {
@@ -163,10 +183,10 @@ function Editor({
           một phiên bản.
         </p>
       )}
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      <ul style={chipsStyle}>
         {tree.data.pages.map((page) => (
           <li key={page.path}>
-            <label>
+            <label style={chipStyle(selected.has(page.path))}>
               <input
                 type="checkbox"
                 checked={selected.has(page.path)}

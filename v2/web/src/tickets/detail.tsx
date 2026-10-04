@@ -46,7 +46,7 @@ const noticeStyle: CSSProperties = {
 const missing = 'Chưa có dữ liệu — máy chủ chưa cung cấp thông tin này.';
 // Presentation of the dark dialog in the owner-approved mockup (screen 2).
 const titleRowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 };
-const titleStyle: CSSProperties = { margin: 0, fontSize: 18, fontWeight: 600 };
+const titleStyle: CSSProperties = { margin: 0, fontSize: 18, fontWeight: 600, color: '#e8e9eb' };
 const sublineStyle: CSSProperties = { margin: 0, fontSize: 13, color: '#9aa0a6', overflowWrap: 'anywhere' };
 const headerStyle: CSSProperties = {
   display: 'grid',
@@ -279,9 +279,12 @@ function TerminalDocsLinks({ ticketId }: { ticketId: string }) {
       ) : rows.length === 0 ? (
         <p style={{ margin: 0 }}>Không có tài liệu liên kết.</p>
       ) : (
-        <ul style={{ margin: 0 }}>
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {rows.map((row) => (
-            <li key={`${row.snapshotId}:${row.path}`}>
+            <li
+              key={`${row.snapshotId}:${row.path}`}
+              style={{ padding: '6px 10px', fontSize: 13, border: '1px solid #2b2f35', borderRadius: 4 }}
+            >
               <code>{row.path}</code>
             </li>
           ))}
@@ -369,6 +372,8 @@ function LoadedTicketDetail({
         />
       </header>
       <InfoTiles ticket={ticket} />
+      {/* The machine/model tile carries the missing run data; the rest of the run is reported once here. */}
+      <p style={{ ...sublineStyle, marginTop: -8 }}>Độ khó, lượt chạy và bằng chứng: {missing}</p>
       {query.error && (
         <p role="status" style={noticeStyle}>
           Đang hiển thị dữ liệu đã tải trước đó: {failureText(query.error)}
@@ -408,16 +413,6 @@ function LoadedTicketDetail({
           <Field label="Commit đã merge">
             {ticket.mergedCommit ? <code>{ticket.mergedCommit}</code> : 'Chưa có'}
           </Field>
-        </dl>
-      </section>
-      <section aria-labelledby={`run-${ticket.id}`}>
-        <h2 id={`run-${ticket.id}`}>Thực thi hiện tại</h2>
-        <dl style={gridStyle}>
-          <Field label="Máy">{missing}</Field>
-          <Field label="Model">{missing}</Field>
-          <Field label="Độ khó">{missing}</Field>
-          <Field label="Lượt chạy">{missing}</Field>
-          <Field label="Bằng chứng">{missing}</Field>
         </dl>
       </section>
       <ChildTickets ticket={ticket} />

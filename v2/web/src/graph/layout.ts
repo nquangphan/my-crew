@@ -122,25 +122,6 @@ export function neighbourInDirection(
 
 export type Viewport = { x: number; y: number; zoom: number };
 
-/**
- * Any change of the visible tree (owner expand/collapse, realtime data): lay the whole tree out again, so every
- * parent sits between its children and every task beside its step, and move the viewport by the anchor's
- * displacement so the anchor stays exactly where it was on screen. Without an anchor present in both layouts
- * the viewport is unchanged.
- */
-export function relayoutAround(
-  previous: Readonly<Record<string, Point>>,
-  input: MapProjection,
-  anchor: string | null,
-  viewport: Viewport,
-): { positions: Record<string, Point>; viewport: Viewport } {
-  const positions = layoutHierarchy(input);
-  const from = anchor === null ? undefined : previous[anchor];
-  const to = anchor === null ? undefined : positions[anchor];
-  if (!from || !to) return { positions, viewport };
-  return { positions, viewport: followAnchor(from, to, viewport) };
-}
-
 /** Viewport that keeps a node moved from `from` to `to` (flow coordinates) at the same screen position. */
 export function followAnchor(from: Point, to: Point, viewport: Viewport): Viewport {
   return {
@@ -154,4 +135,144 @@ export function followAnchor(from: Point, to: Point, viewport: Viewport): Viewpo
 export function initialViewport(root: Point | undefined, frameHeight: number): Viewport {
   if (!root) return { x: 24, y: 24, zoom: 1 };
   return { x: 24 - root.x, y: frameHeight / 2 - (root.y + cardHeight / 2), zoom: 1 };
+}
+
+export type Frame = { width: number; height: number };
+
+/**
+ * Anchor of a realtime relayout, i.e. what the owner is looking at: the focused card if it is inside the frame,
+ * otherwise the card whose centre is nearest the frame centre, otherwise the root. Only cards present before
+ * and after the change qualify. Positions are flow coordinates of the layout the owner was looking at.
+ */
+export function chooseRealtimeAnchor(input: {
+  positions: Readonly<Record<string, Point>>;
+  viewport: Viewport;
+  frame: Frame;
+  focusedId: string | null;
+  rootId: string;
+  present: ReadonlySet<string>;
+}): string | null {
+  const { positions, viewport, frame, focusedId, rootId, present } = input;
+  const centre = (id: string) => {
+    const at = positions[id] as Point;
+    return {
+      x: (at.x + cardWidth / 2) * viewport.zoom + viewport.x,
+      y: (at.y + cardHeight / 2) * viewport.zoom + viewport.y,
+    };
+  };
+  const inView = (id: string) => {
+    const point = centre(id);
+    return point.x >= 0 && point.x <= frame.width && point.y >= 0 && point.y <= frame.height;
+  };
+  const candidates = Object.keys(positions).filter((id) => present.has(id));
+  if (focusedId !== null && candidates.includes(focusedId) && inView(focusedId)) return focusedId;
+  let best: { id: string; distance: number } | null = null;
+  for (const id of candidates.filter(inView).sort()) {
+    const point = centre(id);
+    const distance = Math.hypot(point.x - frame.width / 2, point.y - frame.height / 2);
+    if (!best || distance < best.distance) best = { id, distance };
+  }
+  if (best) return best.id;
+  return present.has(rootId) && positions[rootId] ? rootId : null;
+}
+
+/** Orthogonal route of a dependency/repair edge, plus where its label would sit. */
+export type SideRoute = { points: Point[]; label: Point };
+const laneStep = 6;
+const maxLanes = 6;
+
+/**
+ * Short orthogonal routes like the mockup, never diagonal across a column: within one column the edge leaves
+ * and enters on the right edges and runs down the gap to the right; across columns it runs down the gap
+ * between the two columns. Overlapping vertical runs in one gap get separate lanes (6px apart).
+ */
+export function sideRoutes(
+  edges: readonly { id: string; source: string; target: string; kind: string }[],
+  positions: Readonly<Record<string, Point>>,
+): Record<string, SideRoute> {
+  type Run = { id: string; gap: number; top: number; bottom: number; s: Point; t: Point };
+  const runs: Run[] = [];
+  for (const edge of [...edges].sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    const s = positions[edge.source];
+    const t = positions[edge.target];
+    if (!s || !t) continue;
+    const gap = s.x === t.x ? s.x + cardWidth : Math.min(s.x, t.x) + cardWidth;
+    const sy = s.y + cardHeight / 2;
+    const ty = t.y + cardHeight / 2;
+    runs.push({ id: edge.id, gap, top: Math.min(sy, ty), bottom: Math.max(sy, ty), s, t });
+  }
+  const lanesByGap = new Map<number, number[]>();
+  const routes: Record<string, SideRoute> = {};
+  for (const run of runs.sort((a, b) => a.gap - b.gap || a.top - b.top || (a.id < b.id ? -1 : 1))) {
+    const lanes = lanesByGap.get(run.gap) ?? [];
+    let lane = lanes.findIndex((bottom) => bottom < run.top);
+    if (lane < 0) lane = lanes.length < maxLanes ? lanes.length : lanes.indexOf(Math.min(...lanes));
+    lanes[lane] = run.bottom;
+    lanesByGap.set(run.gap, lanes);
+    const x = run.gap + 10 + lane * laneStep;
+    const sy = run.s.y + cardHeight / 2;
+    const ty = run.t.y + cardHeight / 2;
+    const sameColumn = run.s.x === run.t.x;
+    const startX = sameColumn || run.s.x < run.t.x ? run.s.x + cardWidth : run.s.x;
+    const endX = sameColumn || run.t.x < run.s.x ? run.t.x + cardWidth : run.t.x;
+    routes[run.id] = {
+      points: [
+        { x: startX, y: sy },
+        { x, y: sy },
+        { x, y: ty },
+        { x: endX, y: ty },
+      ],
+      label: { x: x + 4, y: (sy + ty) / 2 },
+    };
+  }
+  return routes;
+}
+
+export type LabelBox = { id: string; x: number; y: number; width: number; height: number };
+const labelHeight = 14;
+const labelStep = 16;
+
+/**
+ * Visible edge labels without overlaps: labels of the focused card are always shown (moved down until free of
+ * other labels); any other label is shown only where it covers neither a card nor another label (it may slide
+ * up or down a little), otherwise it is left to the edge's accessible label.
+ */
+export function placeEdgeLabels(
+  labels: readonly { id: string; at: Point; text: string; endpoints: readonly string[] }[],
+  positions: Readonly<Record<string, Point>>,
+  focusedId: string | null,
+): LabelBox[] {
+  const cards = Object.values(positions).map((at) => ({
+    x: at.x,
+    y: at.y,
+    width: cardWidth,
+    height: cardHeight,
+  }));
+  const hit = (a: Omit<LabelBox, 'id'>, b: Omit<LabelBox, 'id'>) =>
+    a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  const placed: LabelBox[] = [];
+  const own = (label: (typeof labels)[number]) => focusedId !== null && label.endpoints.includes(focusedId);
+  const ordered = [...labels].sort(
+    (a, b) => Number(own(b)) - Number(own(a)) || a.at.y - b.at.y || (a.id < b.id ? -1 : 1),
+  );
+  for (const label of ordered) {
+    const width = label.text.length * 6 + 6;
+    const box = (dy: number) => ({
+      x: label.at.x,
+      y: label.at.y - labelHeight / 2 + dy,
+      width,
+      height: labelHeight,
+    });
+    if (own(label)) {
+      let dy = 0;
+      while (placed.some((other) => hit(box(dy), other))) dy += labelStep;
+      placed.push({ id: label.id, ...box(dy) });
+      continue;
+    }
+    const offset = [0, labelStep, -labelStep, 2 * labelStep, -2 * labelStep].find(
+      (dy) => !cards.some((card) => hit(box(dy), card)) && !placed.some((other) => hit(box(dy), other)),
+    );
+    if (offset !== undefined) placed.push({ id: label.id, ...box(offset) });
+  }
+  return placed;
 }

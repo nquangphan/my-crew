@@ -12,6 +12,7 @@ Flow này cho owner đọc tài liệu của một dự án: cây trang, nội d
 - `web/src/docs/links.ts` → `resolveDocLink(...)`: hàm thuần biến một `href` thành trang trong snapshot, liên kết ngoài hoặc liên kết bị chặn kèm lý do.
 - `web/src/docs/queries.ts`: hook đọc tree, page, search, trạng thái tài liệu của dự án và docs-links của ticket.
 - `web/src/docs/ticket-links.tsx` → `TicketDocsLinksEditor({ ticketId })`: sửa các trang tài liệu gắn với một ticket. `TicketDetail` nhúng bằng `<TicketDocsLinksEditor ticketId={ticket.id} />`; chưa nhúng vì `web/src/tickets/*` đang do S3b sửa.
+- `web/src/docs/ticket-links.tsx`: trong hộp thoại ticket, các trang hiện dạng chip có viền `#2b2f35`; trang đang chọn có viền `#8ab4ff`. Chỉ đổi trình bày, hành vi lưu liên kết không đổi.
 
 ## Các bước
 

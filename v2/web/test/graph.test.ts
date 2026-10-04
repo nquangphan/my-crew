@@ -1,15 +1,19 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Dependency, RepairLink, Ticket, TicketGraph } from '../src/contracts/tickets.ts';
+import type { LabelBox } from '../src/graph/layout.ts';
 import {
   cardHeight,
   cardWidth,
+  chooseRealtimeAnchor,
   columnGap,
+  followAnchor,
   initialViewport,
   layoutHierarchy,
   neighbourInDirection,
-  relayoutAround,
+  placeEdgeLabels,
   rowGap,
+  sideRoutes,
 } from '../src/graph/layout.ts';
 import {
   canonicalEdges,
@@ -419,36 +423,139 @@ test('mở tất cả: bố cục lại cả cây, task nằm liền bước cha
   const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
   const view = { x: 37, y: -120, zoom: 0.8 };
   const expanded = projectGraph(graph, root, new Set(expandableIds(graph)));
-  const result = relayoutAround(collapsed, expanded, root, view);
-  assert.deepEqual(result.positions, layoutHierarchy(expanded), 'bố cục toàn bộ như Sắp xếp lại');
-  assert.deepEqual(tasksBesideParents(expanded, result.positions), []);
-  assert.deepEqual(overlaps(result.positions), []);
+  const positions = layoutHierarchy(expanded);
+  assert.deepEqual(tasksBesideParents(expanded, positions), []);
+  assert.deepEqual(overlaps(positions), []);
+  const moved = followAnchor(
+    collapsed[root] as { x: number; y: number },
+    positions[root] as { x: number; y: number },
+    view,
+  );
   const before = screen(collapsed[root], view);
-  const after = screen(result.positions[root], result.viewport);
+  const after = screen(positions[root], moved);
   assert.ok(Math.abs(after.x - before.x) <= 1e-6 && Math.abs(after.y - before.y) <= 1e-6, 'root đứng yên');
-  assert.equal(result.viewport.zoom, view.zoom);
+  assert.equal(moved.zoom, view.zoom);
 });
 
-test('mở/thu gọn một bước: bước vừa bấm đứng yên trên màn hình, task của nó liền kề', () => {
-  const graph = forkJoin();
-  const view = { x: 0, y: 0, zoom: 1.3 };
-  const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
-  const open = projectGraph(graph, root, new Set([id(10)]));
-  const opened = relayoutAround(collapsed, open, id(10), view);
-  assert.deepEqual(tasksBesideParents(open, opened.positions), []);
-  const s0 = screen(collapsed[id(10)], view);
-  const s1 = screen(opened.positions[id(10)], opened.viewport);
-  assert.ok(Math.abs(s1.x - s0.x) <= 1e-6 && Math.abs(s1.y - s0.y) <= 1e-6, 'bước 10 đứng yên khi mở');
-  const closed = relayoutAround(
-    opened.positions,
-    projectGraph(graph, root, new Set()),
-    id(10),
-    opened.viewport,
+const viewOf = (x: number, y: number, zoom = 1) => ({ x, y, zoom });
+const frame = { width: 1000, height: 600 };
+
+test('neo realtime: thẻ focus chỉ khi còn trong khung; không thì thẻ gần tâm khung; không có gì thì root', () => {
+  const positions = { a: { x: 0, y: 0 }, b: { x: 0, y: 300 }, c: { x: 336, y: 1000 }, r: { x: -400, y: 0 } };
+  const present = new Set(Object.keys(positions));
+  // View centred around b: b is in view, a too; focus on c which is far below the frame.
+  const view = viewOf(100, 100);
+  assert.equal(
+    chooseRealtimeAnchor({ positions, viewport: view, frame, focusedId: 'a', rootId: 'r', present }),
+    'a',
   );
-  const s2 = screen(closed.positions[id(10)], closed.viewport);
-  assert.ok(Math.abs(s2.x - s0.x) <= 1e-6 && Math.abs(s2.y - s0.y) <= 1e-6, 'bước 10 đứng yên khi thu gọn');
-  const missing = relayoutAround(collapsed, open, id(999), view);
-  assert.deepEqual(missing.viewport, view, 'neo không có ở cả hai bố cục thì viewport giữ nguyên');
+  assert.equal(
+    chooseRealtimeAnchor({ positions, viewport: view, frame, focusedId: 'c', rootId: 'r', present }),
+    'b',
+    'thẻ focus ngoài khung bị bỏ; lấy thẻ gần tâm (500,300) nhất',
+  );
+  assert.equal(
+    chooseRealtimeAnchor({
+      positions,
+      viewport: viewOf(5000, 5000),
+      frame,
+      focusedId: null,
+      rootId: 'r',
+      present,
+    }),
+    'r',
+    'không thẻ nào trong khung thì root',
+  );
+  assert.equal(
+    chooseRealtimeAnchor({
+      positions,
+      viewport: view,
+      frame,
+      focusedId: 'a',
+      rootId: 'r',
+      present: new Set(['b', 'r']),
+    }),
+    'b',
+    'thẻ không còn trong cây mới không được làm neo',
+  );
+});
+
+test('cạnh phụ thuộc/sửa: đoạn vuông góc bám mép phải thẻ, thân dọc nằm trong khe cột, khoảng chồng tách làn', () => {
+  const graph = forkJoin();
+  const projection = projectGraph(graph, root, new Set(expandableIds(graph)));
+  const positions = layoutHierarchy(projection);
+  const extra = projection.edges.filter((edge) => edge.kind !== 'parent');
+  const routes = sideRoutes(extra, positions);
+  assert.equal(Object.keys(routes).length, extra.length);
+  const verticals = new Map<string, { x: number; top: number; bottom: number }>();
+  for (const edge of extra) {
+    const route = routes[edge.id];
+    assert.ok(route, edge.id);
+    const pts = route?.points ?? [];
+    const first = pts[0] as { x: number; y: number };
+    const last = pts[pts.length - 1] as { x: number; y: number };
+    const s = positions[edge.source] as { x: number; y: number };
+    const t = positions[edge.target] as { x: number; y: number };
+    // Same column: both ends on the right edges. Across columns: through the gap between the two columns.
+    const sameColumn = s.x === t.x;
+    const left = Math.min(s.x, t.x) + cardWidth;
+    assert.equal(first.x, sameColumn || s.x < t.x ? s.x + cardWidth : s.x, 'đầu nguồn ở mép phía khe');
+    assert.equal(last.x, sameColumn || t.x < s.x ? t.x + cardWidth : t.x, 'đầu đích ở mép phía khe');
+    for (let k = 1; k < pts.length; k++)
+      assert.ok(pts[k]?.x === pts[k - 1]?.x || pts[k]?.y === pts[k - 1]?.y, `${edge.id} không có đoạn chéo`);
+    const trunk = pts[1] as { x: number; y: number };
+    const right = sameColumn ? Math.max(first.x, last.x) : left;
+    assert.ok(trunk.x > right && trunk.x < right + columnGap, `${edge.id} thân dọc trong khe cột`);
+    verticals.set(edge.id, { x: trunk.x, top: Math.min(first.y, last.y), bottom: Math.max(first.y, last.y) });
+  }
+  const list = [...verticals.entries()];
+  for (let i = 0; i < list.length; i++)
+    for (let j = i + 1; j < list.length; j++) {
+      const [ia, a] = list[i] as [string, { x: number; top: number; bottom: number }];
+      const [ib, b] = list[j] as [string, { x: number; top: number; bottom: number }];
+      if (a.top < b.bottom && b.top < a.bottom && Math.abs(a.x - b.x) < cardWidth)
+        assert.notEqual(a.x, b.x, `${ia} và ${ib} chồng khoảng nhưng cùng làn`);
+    }
+});
+
+function labelsOf(graph: TicketGraph) {
+  const projection = projectGraph(graph, root, new Set(expandableIds(graph)));
+  const positions = layoutHierarchy(projection);
+  const extra = projection.edges.filter((edge) => edge.kind !== 'parent');
+  const routes = sideRoutes(extra, positions);
+  const labels = extra.map((edge) => ({
+    id: edge.id,
+    at: routes[edge.id]?.label ?? { x: 0, y: 0 },
+    text: edge.kind === 'repair' ? `sửa vòng ${edge.cycleId?.slice(0, 8)}` : 'phải xong trước',
+    endpoints: [edge.source, edge.target],
+  }));
+  return { positions, labels };
+}
+
+test('nhãn cạnh không đè nhau và không đè thẻ, trừ nhãn của thẻ đang focus', () => {
+  const free = labelsOf(forkJoin());
+  assert.ok(placeEdgeLabels(free.labels, free.positions, null).length > 0, 'có nhãn hiện khi còn chỗ trống');
+  const { positions, labels } = labelsOf(repairCycles());
+  const hit = (a: { x: number; y: number; width: number; height: number }, b: typeof a) =>
+    a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+  for (const focused of [null, id(20)]) {
+    const shown = placeEdgeLabels(labels, positions, focused);
+    for (let i = 0; i < shown.length; i++)
+      for (let j = i + 1; j < shown.length; j++)
+        assert.ok(!hit(shown[i] as LabelBox, shown[j] as LabelBox), `${shown[i]?.id} đè ${shown[j]?.id}`);
+    for (const box of shown) {
+      const own = labels.find((label) => label.id === box.id)?.endpoints ?? [];
+      if (focused !== null && own.includes(focused)) continue;
+      for (const [key, at] of Object.entries(positions))
+        assert.ok(
+          !hit(box, { x: at.x, y: at.y, width: cardWidth, height: cardHeight }),
+          `${box.id} đè thẻ ${key}`,
+        );
+    }
+  }
+  const focusedShown = placeEdgeLabels(labels, positions, id(20)).map((box) => box.id);
+  for (const label of labels)
+    assert.ok(focusedShown.includes(label.id), `thẻ focus hiện đủ nhãn: ${label.id}`);
 });
 
 test('quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID', () => {

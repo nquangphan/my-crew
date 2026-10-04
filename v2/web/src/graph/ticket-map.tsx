@@ -42,12 +42,16 @@ import { levelLabels, mergeTicketPages, requestRoots, statusIcons, statusLabels 
 import {
   cardHeight,
   cardWidth,
+  chooseRealtimeAnchor,
   followAnchor,
   initialViewport,
   layoutHierarchy,
   type MapDirection,
   neighbourInDirection,
   type Point,
+  placeEdgeLabels,
+  type SideRoute,
+  sideRoutes,
 } from './layout.ts';
 import {
   expandableIds,
@@ -72,7 +76,7 @@ import {
   toggleMapExpanded,
   writeMapView,
 } from './state.ts';
-import { edgeColors, edgeLabel, type TicketFlowEdge, ticketEdgeTypes } from './ticket-edge.tsx';
+import { edgeColors, edgeLabel, repairLabel, type TicketFlowEdge, ticketEdgeTypes } from './ticket-edge.tsx';
 import { statusDotColors, type TicketFlowNode, TicketNode, type TicketNodeActions } from './ticket-node.tsx';
 
 export type TicketMapProps = {
@@ -301,37 +305,31 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, vie
 
   // Positions follow the projection as derived state (updated during render, React's pattern for state that
   // tracks inputs). Every change of the visible tree is laid out again (parents always between their children,
-  // tasks beside their step), and the viewport then follows one anchor so it stays still on screen: the clicked
-  // step for expand/collapse, the focused card for “tất cả” and for realtime data, otherwise the root.
+  // tasks beside their step); the viewport then follows one anchor so it stays still on screen, chosen after
+  // commit (it needs the live viewport): the clicked step for expand/collapse, the focused card or root for
+  // “tất cả”, and for realtime data what the owner is looking at (`chooseRealtimeAnchor`).
   // “Sắp xếp lại” lays out without an anchor.
   const [layout, setLayout] = useState<{
     projection: MapProjection | null;
     run: number;
     seq: number;
     positions: Record<string, Point>;
-    anchor: { seq: number; id: string; from: Point } | null;
-  }>({ projection: null, run: 0, seq: 0, positions: {}, anchor: null });
+    previous: Record<string, Point>;
+    reason: 'initial' | 'owner' | 'realtime';
+    requested: string | null;
+  }>({ projection: null, run: 0, seq: 0, positions: {}, previous: {}, reason: 'initial', requested: null });
   let positions = layout.positions;
   if (projection && (layout.projection !== projection || layout.run !== relayout.run)) {
     const requested = layout.run !== relayout.run;
     positions = layoutHierarchy(projection);
-    const wanted =
-      layout.projection === null
-        ? []
-        : requested
-          ? relayout.anchor === null
-            ? []
-            : [relayout.anchor, projection.rootId]
-          : [view.focusedTicketId, projection.rootId];
-    const anchorId = wanted.find((id): id is string => !!id && !!layout.positions[id] && !!positions[id]);
-    const seq = layout.seq + 1;
     setLayout({
       projection,
       run: relayout.run,
-      seq,
+      seq: layout.seq + 1,
       positions,
-      anchor:
-        anchorId === undefined ? null : { seq, id: anchorId, from: layout.positions[anchorId] as Point },
+      previous: layout.positions,
+      reason: layout.projection === null ? 'initial' : requested ? 'owner' : 'realtime',
+      requested: requested ? relayout.anchor : null,
     });
   }
   const positionsRef = useRef(positions);
@@ -343,18 +341,59 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, vie
     setView((current) => moveMapViewport(current, viewport));
   }, []);
 
-  // Keep the anchor still on screen: shift the viewport by its displacement, once per layout.
+  // Keep the anchor still on screen: shift the viewport by its displacement, once per layout. While the owner
+  // is dragging the shift is held back and applied when the gesture ends, so the map never jumps under the hand.
   const anchoredSeq = useRef(0);
+  const dragging = useRef(false);
+  const heldShift = useRef<{ dx: number; dy: number } | null>(null);
   useLayoutEffect(() => {
-    const anchor = layout.anchor;
-    if (!anchor || anchoredSeq.current === anchor.seq) return;
-    anchoredSeq.current = anchor.seq;
-    const to = layout.positions[anchor.id];
-    if (!to) return;
-    void flow
-      .setViewport(followAnchor(anchor.from, to, flow.getViewport()))
-      .then(() => saveViewport(flow.getViewport()));
-  }, [layout, flow, saveViewport]);
+    if (anchoredSeq.current === layout.seq || layout.reason === 'initial' || !layout.projection) return;
+    anchoredSeq.current = layout.seq;
+    const { previous, positions: next, projection: shown } = layout;
+    const present = new Set(Object.keys(next).filter((id) => previous[id]));
+    const viewNow = flow.getViewport();
+    const box = frame?.getBoundingClientRect();
+    const anchor =
+      layout.reason === 'owner'
+        ? layout.requested === null
+          ? null
+          : ([layout.requested, shown.rootId].find((id) => present.has(id)) ?? null)
+        : chooseRealtimeAnchor({
+            positions: previous,
+            viewport: viewNow,
+            frame: { width: box?.width || 0, height: box?.height || 0 },
+            focusedId: view.focusedTicketId,
+            rootId: shown.rootId,
+            present,
+          });
+    const from = anchor === null ? undefined : previous[anchor];
+    const to = anchor === null ? undefined : next[anchor];
+    if (!from || !to) return;
+    if (dragging.current) {
+      const held = heldShift.current ?? { dx: 0, dy: 0 };
+      heldShift.current = { dx: held.dx + (to.x - from.x), dy: held.dy + (to.y - from.y) };
+      return;
+    }
+    void flow.setViewport(followAnchor(from, to, viewNow)).then(() => saveViewport(flow.getViewport()));
+  }, [layout, flow, frame, view.focusedTicketId, saveViewport]);
+  const onMoveStart = useCallback((event: unknown) => {
+    if (event) dragging.current = true;
+  }, []);
+  const onMoveEnd = useCallback(
+    (event: unknown, viewport: Viewport) => {
+      if (event) dragging.current = false;
+      const held = heldShift.current;
+      if (event && held) {
+        heldShift.current = null;
+        void flow
+          .setViewport(followAnchor({ x: 0, y: 0 }, { x: held.dx, y: held.dy }, viewport))
+          .then(() => saveViewport(flow.getViewport()));
+        return;
+      }
+      saveViewport(viewport);
+    },
+    [flow, saveViewport],
+  );
 
   const focusNode = useCallback(
     (ticketId: string) => {
@@ -461,6 +500,25 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, vie
       })),
     [projection, positions, childCounts, expanded, badges, actions, fixIds, view.focusedTicketId],
   );
+  const routes = useMemo(
+    () =>
+      sideRoutes(
+        (projection?.edges ?? []).filter((edge) => edge.kind !== 'parent'),
+        positions,
+      ),
+    [projection, positions],
+  );
+  const labelBoxes = useMemo(() => {
+    const labels = (projection?.edges ?? [])
+      .filter((edge) => edge.kind !== 'parent' && routes[edge.id])
+      .map((edge) => ({
+        id: edge.id,
+        at: (routes[edge.id] as SideRoute).label,
+        text: edge.kind === 'repair' ? repairLabel(edge.cycleId) : 'phải xong trước',
+        endpoints: [edge.source, edge.target],
+      }));
+    return new Map(placeEdgeLabels(labels, positions, view.focusedTicketId).map((box) => [box.id, box]));
+  }, [projection, routes, positions, view.focusedTicketId]);
   const edges = useMemo<TicketFlowEdge[]>(
     () =>
       (projection?.edges ?? []).map((edge) => ({
@@ -468,7 +526,12 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, vie
         source: edge.source,
         target: edge.target,
         type: edge.kind,
-        data: edge.cycleId ? { cycleId: edge.cycleId } : {},
+        data: {
+          ...(edge.cycleId ? { cycleId: edge.cycleId } : {}),
+          ...(edge.kind === 'parent'
+            ? {}
+            : { points: routes[edge.id]?.points, label: labelBoxes.get(edge.id) ?? null }),
+        },
         markerEnd:
           edge.kind === 'parent' ? undefined : { type: MarkerType.ArrowClosed, color: edgeColors[edge.kind] },
         focusable: false,
@@ -476,7 +539,7 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, vie
         deletable: false,
         ariaLabel: edgeLabel(edge, (id) => titles.get(id) ?? id),
       })),
-    [projection, titles],
+    [projection, titles, routes, labelBoxes],
   );
 
   // A root seen for the first time in this tab opens 1:1 with the root at the left edge, centred vertically
@@ -635,7 +698,8 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, vie
                   defaultViewport={view.viewport}
                   minZoom={minZoom}
                   maxZoom={maxZoom}
-                  onMoveEnd={(_, viewport) => saveViewport(viewport)}
+                  onMoveStart={onMoveStart}
+                  onMoveEnd={onMoveEnd}
                   nodesDraggable={false}
                   nodesConnectable={false}
                   nodesFocusable={false}

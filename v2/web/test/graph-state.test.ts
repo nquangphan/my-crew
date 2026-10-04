@@ -303,6 +303,7 @@ function graphServer(initial: TicketGraph): GraphServer {
 
 type MapEnv = Awaited<ReturnType<typeof harness>> & { queryClient: InstanceType<typeof QueryClient> };
 let selectTicket: (id: string | null) => void = () => undefined;
+let mountedClient: InstanceType<typeof QueryClient> | null = null;
 
 async function mountMap(
   source: GraphServer,
@@ -314,6 +315,7 @@ async function mountMap(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
   });
+  mountedClient = queryClient;
   const services = {
     client: env.client,
     pending: env.pending,
@@ -512,12 +514,18 @@ test('mở node bằng click mở TicketDetail chung; đóng giữ viewport, exp
   assertFocused(nodeButton(stepB), 'stepB');
 });
 
-test('realtime: refetch cả graph (GET cũ bị hủy), cây tự căn lại (cha giữa các con), root làm neo đứng yên, không fit', async () => {
+test('realtime: refetch cả graph (GET cũ bị hủy), cây tự căn lại (cha giữa các con), thẻ gần tâm khung làm neo đứng yên, không fit', async () => {
   const source = graphServer(baseGraph());
   const storage = new MemoryStorage();
   writeMapView(storage, { ...initialMapView(mapRoot), viewport: { x: 30, y: 200, zoom: 0.9 } });
   const env = await mountMap(source, storage);
-  const rootBefore = screenOf(mapRoot);
+  // No focused card: the card nearest the frame centre (1024×768 in jsdom, zoom 0.9) is what the owner watches.
+  const nearest = [mapRoot, stepA, stepB]
+    .map((id) => {
+      const at = screenOf(id);
+      return { id, at, d: Math.hypot(at.x + (280 * 0.9) / 2 - 512, at.y + (48 * 0.9) / 2 - 384) };
+    })
+    .sort((a, b) => a.d - b.d)[0] as { id: string; at: { x: number; y: number } };
   const reads = source.graphReads.length;
   source.hold(true);
   await act(async () => {
@@ -539,7 +547,7 @@ test('realtime: refetch cả graph (GET cũ bị hủy), cây tự căn lại (c
   await settleQuietly(() => false);
   assert.equal(nodeButton(stepB)?.dataset.revision, '2');
   assert.match(viewportTransform(), /scale\(0\.9\)$/, 'realtime không tự fit (zoom giữ nguyên)');
-  assertStill(mapRoot, rootBefore, 'root (neo khi chưa focus thẻ nào)');
+  assertStill(nearest.id, nearest.at, 'thẻ gần tâm khung (neo khi chưa focus thẻ nào)');
   const stepC = '0d0d0d0d-0000-4000-8000-000000000012';
   const ys = [stepA, stepB, stepC].map(cardY).sort((a, b) => a - b);
   assert.ok(
@@ -713,4 +721,61 @@ test('dialog mở từ sơ đồ theo màn 2: chấm trạng thái + tiêu đề
   const text = [...tiles.querySelectorAll('li')].map((li) => li.textContent);
   assert.deepEqual(text, ['Trạng tháiChờ thực hiện · Phiên bản 1', 'Máy · modelChưa có dữ liệu']);
   assert.ok(!tiles.textContent?.includes('Cập nhật'), 'không có dữ liệu thời gian thì không hiện ô Cập nhật');
+});
+
+test('realtime: thêm việc phía trên vùng đang xem (root ngoài khung, không focus) thì vùng đó không trượt', async () => {
+  const steps = Array.from({ length: 8 }, (_, index) =>
+    row(`0e0e0e0e-0000-4000-8000-00000000001${index}`, 'step', mapRoot, `Bước ${index + 1}`),
+  );
+  const graph: TicketGraph = {
+    nodes: [
+      row(mapRoot, 'request', null, 'Yêu cầu gốc'),
+      ...steps,
+      row(taskA1, 'task', steps[0]?.id ?? '', 'Việc 1'),
+    ],
+    dependencies: [],
+    repairLinks: [],
+  };
+  const source = graphServer(graph);
+  const storage = new MemoryStorage();
+  // Root (x 0..280) is left of the frame; steps 6–8 sit around the frame's centre.
+  writeMapView(storage, {
+    ...initialMapView(mapRoot),
+    expanded: [steps[0]?.id ?? ''],
+    viewport: { x: -300, y: -150, zoom: 1 },
+  });
+  const watched = steps[6]?.id ?? '';
+  await mountMap(source, storage, null, () => nodeButton(watched) !== null);
+  await settleQuietly(() => false);
+  const before = screenOf(watched);
+  const grown: TicketGraph = {
+    ...graph,
+    nodes: [
+      ...graph.nodes,
+      row('0e0e0e0e-0000-4000-8000-000000000201', 'task', steps[0]?.id ?? '', 'Việc mới'),
+    ],
+  };
+  source.setGraph(grown);
+  const env = mountedClient;
+  await act(async () => {
+    await env?.invalidateQueries({ queryKey: queryRoots.graphs });
+  });
+  await settleQuietly(() => false);
+  assertStill(watched, before, 'thẻ ở giữa vùng đang xem');
+});
+
+test('thân dialog theo màn 2: không lặp “Chưa có dữ liệu” của mục Thực thi hiện tại; ô Máy · model gộp phần còn thiếu', async () => {
+  const source = graphServer(baseGraph());
+  await mountMap(source);
+  await act(async () => fireEvent.click(nodeButton(stepB) as HTMLButtonElement));
+  const dialog = await screen.findByRole('dialog', { name: 'Bước B' });
+  await until(() => within(dialog).queryByRole('list', { name: 'Thông tin nhanh' }) !== null, 'tiles');
+  assert.ok(
+    within(dialog).queryByRole('heading', { name: 'Thực thi hiện tại' }) === null,
+    'mục Thực thi hiện tại đã gộp vào ô Máy · model',
+  );
+  const tiles = within(dialog).getByRole('list', { name: 'Thông tin nhanh' });
+  assert.match(tiles.textContent ?? '', /Máy · modelChưa có dữ liệu/);
+  const missing = (dialog.textContent ?? '').split('Chưa có dữ liệu').length - 1;
+  assert.ok(missing <= 2, `“Chưa có dữ liệu” lặp ${missing} lần`);
 });

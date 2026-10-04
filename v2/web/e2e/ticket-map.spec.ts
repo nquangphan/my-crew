@@ -361,6 +361,30 @@ async function sideBySide(page: Page, ours: string, screen: 1 | 2, name: string)
   }
 }
 
+/** Shown edge labels never overlap each other. */
+async function expectNoLabelOverlap(page: Page): Promise<void> {
+  const clashes = await page.evaluate(() => {
+    const boxes = [...document.querySelectorAll<HTMLElement>('.react-flow__edgelabel-renderer span')].map(
+      (el) => el.getBoundingClientRect(),
+    );
+    let count = 0;
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i] as DOMRect;
+        const b = boxes[j] as DOMRect;
+        if (
+          a.left < b.right - 0.5 &&
+          b.left < a.right - 0.5 &&
+          a.top < b.bottom - 0.5 &&
+          b.top < a.bottom - 0.5
+        )
+          count++;
+      }
+    return count;
+  });
+  expect(clashes).toBe(0);
+}
+
 async function shoot(page: Page, name: string): Promise<void> {
   await mkdir(evidenceDir, { recursive: true });
   await page.screenshot({ path: `${evidenceDir}${name}`, fullPage: false });
@@ -441,7 +465,10 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await sideBySide(page, 'map-root-fork-join-repair.png', 1, 'side-by-side-map-vs-mockup.png');
   await expectEdgesMatch(page, fromRoot);
   await expect(map.getByText('phải xong trước').first()).toBeVisible();
-  await expect(map.getByText(/^sửa vòng /).first()).toBeVisible();
+  // Labels without free room appear when one of their cards has focus: all five cycles of the check step.
+  await node(page, steps.K.id).focus();
+  await expect(map.getByText(/^sửa vòng /)).toHaveCount(5);
+  await expectNoLabelOverlap(page);
   await expect(page.getByRole('alert')).toHaveCount(0);
 
   // Restore a stored view at zoom 1.7 that puts step A at (120, 60) of the pane (reload path), then pan by
@@ -600,8 +627,24 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
   await map.getByRole('button', { name: 'Mở tất cả' }).click();
   await page.waitForTimeout(300);
-  // No card has focus: the root anchors every realtime relayout and must stay still on screen.
-  const rootBefore = await node(page, root.id).boundingBox();
+  // No card has focus: the card nearest the frame centre is what the owner watches; it must stay still.
+  const watched = await page.evaluate(() => {
+    const frame = document.querySelector('.react-flow')?.getBoundingClientRect();
+    if (!frame) return null;
+    const cx = frame.left + frame.width / 2;
+    const cy = frame.top + frame.height / 2;
+    let best: { id: string; d: number } | null = null;
+    for (const button of document.querySelectorAll<HTMLElement>('button[data-map-node]')) {
+      const r = button.closest('.react-flow__node')?.getBoundingClientRect();
+      if (!r || r.right < frame.left || r.left > frame.right || r.bottom < frame.top || r.top > frame.bottom)
+        continue;
+      const d = Math.hypot(r.left + r.width / 2 - cx, r.top + r.height / 2 - cy);
+      if (!best || d < best.d) best = { id: button.dataset.mapNode ?? '', d };
+    }
+    return best?.id ?? null;
+  });
+  if (!watched) throw new Error('NO_WATCHED_CARD');
+  const watchedBefore = await node(page, watched).boundingBox();
 
   // Concurrent writers: new tasks under A and B, each depending on an existing task, all at once.
   const created = await Promise.all(
@@ -621,7 +664,11 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
   expect(final.nodes).toHaveLength(20);
   await expect(map).toHaveAttribute('data-nodes', String(final.nodes.length), { timeout: 20_000 });
   await page.waitForTimeout(500);
-  expectSameBox(await node(page, root.id).boundingBox(), rootBefore, 'root (neo) sau ghi đồng thời');
+  expectSameBox(
+    await node(page, watched).boundingBox(),
+    watchedBefore,
+    'thẻ đang xem (neo) sau ghi đồng thời',
+  );
   await map.getByRole('button', { name: 'Vừa khung' }).click();
   await page.waitForTimeout(400);
   await expect(page.locator('button[data-map-node]')).toHaveCount(final.nodes.length);
@@ -636,18 +683,33 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
   await expectEdgesMatch(page, final);
   await shoot(page, 'map-after-concurrent-writes.png');
 
+  // Realtime while the owner drags: the view does not jump under the hand; the shift waits for release.
+  const pane = await page.locator('.react-flow').boundingBox();
+  if (!pane) throw new Error('MAP_BOX');
+  await page.mouse.move(pane.x + 30, pane.y + pane.height - 30);
+  await page.mouse.down();
+  await page.mouse.move(pane.x + 60, pane.y + pane.height - 20, { steps: 4 });
+  await page.waitForTimeout(200);
+  const held = await viewport(page);
+  await create(owner, seeded.projectId, steps.A.id, 'task', 'Việc tạo khi đang kéo');
+  await expect(map).toHaveAttribute('data-nodes', String(final.nodes.length + 1), { timeout: 15_000 });
+  await page.waitForTimeout(300);
+  expectSameView(await viewport(page), held);
+  await page.mouse.up();
+  const latest = await graphOf(page, root.id);
+
   // Board and list read the same revisions.
   await page.goto(`${crew.webOrigin}/crew-v2/projects/${seeded.projectId}/tickets?view=board`);
   const board = page.getByRole('region', { name: 'Bảng ticket' });
-  await expect(board.locator('button[data-ticket-id]')).toHaveCount(final.nodes.length, { timeout: 20_000 });
-  for (const row of final.nodes)
+  await expect(board.locator('button[data-ticket-id]')).toHaveCount(latest.nodes.length, { timeout: 20_000 });
+  for (const row of latest.nodes)
     await expect(board.locator(`button[data-ticket-id="${row.id}"]`)).toHaveAttribute(
       'data-revision',
       String(row.revision),
     );
   await page.goto(`${crew.webOrigin}/crew-v2/projects/${seeded.projectId}/tickets?view=list`);
   const list = page.getByRole('region', { name: 'Danh sách ticket' });
-  for (const row of final.nodes)
+  for (const row of latest.nodes)
     await expect(list.locator(`tr[data-ticket-id="${row.id}"]`)).toHaveAttribute(
       'data-revision',
       String(row.revision),
