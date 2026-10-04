@@ -198,3 +198,6 @@ Task 2 B3a: minor (deferred): R1 test cùng máy A dùng lại operationId ở t
 
 02:30 B3b review `task-2-slice-b3b-review.md`: Needs fixes, Important3 (I1 mọi 4xx đóng vĩnh viễn kể cả 401/408/429; I2 mã stale không xảy ra, fake lệch mã thật; I3 đếm attempt lệch, unavailable khi chưa gửi) /Minor6. FIX1/5 resume, RED bắt buộc; nâng M1, M2, M4. Re-release hẹp http-operations.ts (phase03) chỉ phần đếm attempt nếu bắt buộc.
 Task 2 B3b: minor (deferred): M3 pending journal phát lại vĩnh viễn, chưa có GET poll (B3 route GET); M5 journal assistant-tools không GC; M6 hai client cùng root bị khóa, lỗi chưa rõ.
+
+02:50 B3b FIX1 `7ffa25b` re-review `task-2-slice-b3b-fix1-re-review.md`: I1/I2/I3/M1/M2/M4 ADDRESSED; mới N1 Important (ghi journal theo status không theo serverCode → 404 proxy/Fastify mặc định đầu độc journal). FIX2/5: N1, N3 (Retry-After max backoff), N4 (kiểm credential), R3, R1 docs.
+Task 2 B3b: minor (deferred): N2 hai execute đồng thời cùng operation gửi song song (server idempotent); N5 test route thật tự dựng error handler lệch buildApp — 413/404 route-not-found chưa kiểm trên route thật (checklist T7 cùng M4 B3a); create_run/ask_owner completed chỉ kiểm qua fake.
