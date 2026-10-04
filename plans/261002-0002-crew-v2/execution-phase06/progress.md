@@ -246,3 +246,6 @@ S6b-i: minor (deferred): docs bước 9 còn câu "Helper kill mọi group đã 
 OpenCode map N2/N4 (lane bỏ qua bracketRun, aria-hidden nhãn) — chờ tester chạy test web rồi commit.
 
 13:05 S6b-ii `b3ec7a8`/`33a209f`/`8689125`/`b00163d` DONE_WITH_CONCERNS (79/57/90 GREEN; full gateway 294/330, 36 lỗi môi trường: DB/dist/builder pin). Ruling: BMAD_TRACKED_IN_CHECKOUT — theo memo S6b 'mặc định từ chối khi owner checkout track _bmad/' → không được dời _bmad của owner, phải từ chối (fix nếu review xác nhận). prerequisites opt-in tới khi S6b-iii mở schema server. Probe từ chối Python <3.11 — chấp nhận (renderer cần tomllib).
+
+13:20 S6b-ii review `task-3-s6b-ii-review.md`: Spec ❌ (I1 _bmad owner track bị dời thay vì từ chối), không traversal/symlink/TOCTOU, journal fail-closed; phase03-owner chấp nhận có điều kiện. FIX1/5 resume: I1, M1–M5.
+Checklist S6b-iii/T7 (từ review): ⚠️1 cần lệnh reconcile render stage trước khi bật production (ngưỡng 1 unknown chặn root); ⚠️2 bật prerequisites khi mở schema server, probe chưa cache; ⚠️3 server so sha prerequisites với gateway_applied (chống giả mạo); ⚠️4 BUSY khi remove cũng bận để stage complete chờ cleanup; ⚠️6 thông báo owner: nâng cấp uv/Python cần report lại, nếu không render HALT.
