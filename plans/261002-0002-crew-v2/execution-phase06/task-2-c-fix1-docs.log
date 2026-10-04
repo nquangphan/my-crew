@@ -1,0 +1,8 @@
+HEAD=694fb49e07b62334f4554f66bf5b6565464ab233 overlay=5 files
+unchanged docs/index.md
+unchanged docs/files.md
+generate exit=0
+crew-docs check --all: ok
+check-all exit=0
+crew-docs check --staged: ok
+check-staged exit=0

@@ -184,3 +184,84 @@ Create đi theo prefix của B1: `prepareTicket` khóa root → parent, rồi pr
 3. **Scope message chỉ tạo được request mới.** Mọi ticket đã tồn tại phải đi qua root scope. Đây là cách diễn giải fail-closed của dòng "children inherit exact root scope".
 4. **Case "sai deployment" mô phỏng row import** bằng `session_replication_role=replica`. FK/trigger 011 không cho tạo receipt deployment lạ theo cách thường.
 5. **Lọt kiểm tra file sở hữu:** `files.md` được sinh lại cùng `flows.yaml` (2 dòng). Hai file này nằm ngoài danh sách "Files you may modify" trong brief, nhưng là bắt buộc theo R2/generate. Lát này đã giữ lock manifest khi sửa.
+
+---
+
+# Fix round 1 (review `task-2-c-review.md`): I1, I2, M1, M2, M3
+
+**Kết quả: DONE.** Tôi viết RED trước khi sửa source. RED chạy port suite: 34 tests, 29 pass, 5 fail, exit 1. GREEN cuối 196/196 (187 test cũ cộng 9 test mới), exit 0. Hồi quy 102/102, exit 0. Scoped strict tsc exit 0 (output rỗng). Biome exit 0, 0 warning. crew-docs `generate`/`check --all`/`check --staged` đều ok. Lượt này không thêm SQL hay migration, không sửa wiring, và app production vẫn trả 503.
+
+## Sửa
+
+| Mục | File | Thay đổi |
+|---|---|---|
+| I1 | `v2/server/src/assistant/orchestration.ts` | Câu truy vấn operation thêm `xmin=pg_current_xact_id()::xid`, tức row phải do chính Tx hiện tại ghi (cùng cơ chế với `verifyNewRoot`). Row đã commit từ Tx trước trả 404 `ASSISTANT_OPERATION_NOT_FOUND`. Mỗi authority giữ `WeakMap<Tx, Set<operation_id>>` theo `operation_id` chuẩn hoá từ DB; lần dùng thứ hai trong cùng Tx trả 409 `ASSISTANT_OPERATION_CONSUMED`. Operation được tiêu ngay khi đã hợp lệ, trước bước membership. |
+| I2 và M3 | `v2/server/src/assistant/authority.ts` | Tra session thẳng theo `id=turn.read_session_id and admission_id=turn.admission_id` (M3). Khoá grant FOR SHARE trước session, theo thứ tự grant → session của plan. Grant phải: `revoked_at is null`; `expires_at>clock_timestamp()` (đo cùng statement sau khoá); `machine_id` bằng máy designation; `snapshot_id` bằng snapshot của session; `designation_id` và revision khớp fence. Ngoài ra kiểm `session.grant_id` bằng grant đã khoá. Mọi lệch trả 403 `ASSISTANT_ADMISSION_DENIED`. |
+| M2 | `orchestration.ts` | `verifyNewRoot` thêm `for share of m` khi đọc `attachment_messages.input_revision`. |
+| M1 | `v2/server/test/assistant-orchestration-port.test.ts` | Thêm các biến thể deny vào bảng admission: capability hết hạn, receipt sai máy, session sai máy, session sai snapshot, `read_session_id` trỏ session khác. |
+| Test I1 | cùng file, `v2/server/test/support/assistant.ts` | `run` nhận thêm `operationId` dạng hàm, để seed operation ngay trong Tx đang test. Test operation đổi lại: row completed và row lệch snapshot được ghi trong Tx; row pending đã commit từ Tx trước giờ phải bị 404 (thay assert cũ "still authorizes"). Thêm test `S2 one operation authorizes exactly one mutation in its Tx`: decision thành công, sau đó signal dùng cùng proof bị 409 và toàn bộ Tx rollback. Test new-root với decision đã commit nay dùng operation ghi trong Tx có `operationId` chọn trước, để vẫn đúng là nhánh decision khác Tx bị chặn. `seedToolOperation` nhận `operationId` tuỳ chọn. |
+| Test I2 | port test | Thêm 3 test: grant bị thu hồi theo đúng câu SQL re-route của `attachments/routing.ts` trong khi session vẫn `reserved`; grant hết hạn; grant cấp cho máy khác. |
+| Docs | `v2/docs/flows/server-assistant.md` | Mô tả kiểm grant, operation cùng Tx dùng một lần, khoá message. Thêm một dòng precondition: gọi port trong `mutate()` hoặc khoá `event_cursor` trước root (W4); router ghi trực tiếp trong Tx, không qua savepoint, và ghi decision trước khi tăng `input_revision` (W5). `flows.yaml` và `files.md` không đổi nên lượt này không cần lock manifest. |
+
+Biến thể giả lập dữ liệu import (capability hết hạn, receipt sai máy, `read_session_id` khác) dùng `session_replication_role=replica` trong một Tx tamper riêng, cùng lý do như W1.
+
+## RED (trên source `3fddbeb`, test mới)
+
+Lệnh: `node --test --test-concurrency=1 --test-timeout=120000 v2/server/test/assistant-orchestration-port.test.ts`. Môi trường: `NODE_OPTIONS=--max-old-space-size=384`, PG riêng port 50187.
+
+Kết quả: tests 34, pass 29, fail 5, exit 1. Cả 5 test fail đều là "Missing expected rejection", tức là semantic:
+- `grant revoked by re-route while session stays reserved`
+- `grant expired`
+- `grant for another machine`
+- `operation must be a pending row written in this Tx` (fail ở nhánh row đã commit từ Tx trước)
+- `one operation authorizes exactly one mutation`
+
+Năm biến thể M1 đã PASS ngay ở RED. Điều này đúng kỳ vọng: các nhánh đó đã có trong code, lượt này chỉ thêm test để khoá chúng lại.
+
+Hash tại RED: authority `4d225a9c…`, orchestration `ec359ba7…`, port test `b614d15a…`, support `f38f2e73…`.
+
+## GREEN
+
+| Lượt | Lệnh | Kết quả |
+|---|---|---|
+| Biome format | `pnpm dlx @biomejs/biome@2.5.14 format --write <10 file>` | exit 0 |
+| Biome | `… check <10 file>` | exit 0, `Checked 10 files`, 0 warning |
+| tsc | Cùng lệnh scoped strict như lượt đầu | exit 0, output rỗng |
+| GREEN | assistant-authority, assistant-orchestration-port, assistant-mutations, assistant-orchestration, tickets, deploy, dependencies | tests 196, pass 196, fail 0, cancelled 0, exit 0, 45.5 s |
+| Hồi quy | api-acceptance, assistant-store, attachments-routing, attachments-snapshots, attempts, completion, docs-read, repair | tests 102, pass 102, fail 0, exit 0, 38.9 s |
+
+Lưu ý: lượt hồi quy chạy trên working tree đang có thay đổi chưa commit của worker khác (`v2/server/src/tickets/routes.ts`, `v2/server/src/journal/routes.ts`). Lát này không chạm hai file đó.
+
+## Docs
+
+Mirror tạm dựng từ `git archive HEAD:v2` (HEAD `694fb49`), overlay 5 file. `generate` không đổi file nào; `check --all` ok; `check --staged` ok. Mirror đã xoá.
+
+## Tài nguyên và cleanup
+
+Heavy slot owner `s2-t2c`:
+- 04:48:39–04:48:51 UTC: RED, sau khi chờ slot bận.
+- 04:51:31–04:53:03 UTC: Biome, tsc, GREEN và hồi quy.
+
+Telemetry mọi lần đều `heavyEligible=true`: pressure 1, available 4.05–4.78 GiB, CPU idle trên 80 %. Container `postgres:18.6` local, 256m, 1 CPU, pids 64, loopback port 50187 (RED), 51273 (GREEN), 51837 (hồi quy). Cleanup cả ba lượt: `crew_v2_test_%` còn 0, container đã stop và auto-remove, `docker inspect` báo no such object, không còn `node --test`.
+
+## SHA256
+
+| File | SHA256 |
+|---|---|
+| v2/server/src/assistant/authority.ts | `5f300e5e4333d44e5d22c2bff8f6470179d1d496d2937e637afa5081fcc9dc27` |
+| v2/server/src/assistant/orchestration.ts | `e395d9771c650e11f5eb812e4bf15033365bec211c811bb5d7138586d76f95a4` |
+| v2/server/test/assistant-orchestration-port.test.ts | `e2b5bf5dd0fbc9205c87f3c9ba9f001b464b259841bb438d221582936d0431e9` |
+| v2/server/test/support/assistant.ts | `f38f2e73c5769d2952215b7ce8a601288770c8d619d997fd2e52455eb132e188` |
+| v2/docs/flows/server-assistant.md | `b586ddb42e6fcdc91be8107dd4099088e31b6f9e15df064b38f2eef696c4b076` |
+| task-2-c-fix1-red.log | `fc076b9a6ded63fca0a1123a0e475adcf085d5d7c4663d9c8b403a388d90c451` |
+| task-2-c-fix1-green.log | `1ae05652d9503b33f656a4817e36d7e9b3da83b5b557a3d94ef0e08fb6db61cd` |
+| task-2-c-fix1-regression.log | `243eb5da039a494034b3a596a96e9f3eb134f1cfadb1e9a58bb2f799cff6d164` |
+| task-2-c-fix1-typecheck.log | `e3b0c442…b855` (rỗng) |
+| task-2-c-fix1-biome.log | `723e07d61baca9a940e9218dc2e8d565525db53626aef91e6d54e717d567ca31` |
+| task-2-c-fix1-docs.log | `d1857e0ecc2a4f0226080c1be7cd3fdfb21d5c61128e8e316d3681fc0a51efdd` |
+
+## Còn lại
+
+- Ngoài lát này, `attachments/routing.ts` lúc re-route không đổi state của session `reserved`. Resolver giờ đã chặn trường hợp này qua grant, nhưng writer đó vẫn nên được owner phase05/T5 xử lý cho nhất quán.
+- Ràng buộc `request_hash` ↔ `targetSha256` vẫn để B3 làm, theo ruling 15:00.
+- M2 không có test đồng thời riêng; lượt này chỉ thêm khoá và ghi precondition.

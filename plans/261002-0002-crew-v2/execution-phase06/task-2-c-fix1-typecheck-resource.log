@@ -1,0 +1,2 @@
+{"at": "2026-10-04T04:51:32.856530+00:00", "pageSize": 16384, "pages": {"Pages free": 11170, "Pages inactive": 264154, "Pages speculative": 860}, "availableBytes": 4524998656, "availableGiB": 4.214, "pressure": 1, "cpuIdlePercent": 79.81, "cpu": "7.88% user, 12.30% sys, 79.81% idle", "diskFreeBytes": 806648393728, "diskFreeGiB": 751.25, "heavyEligible": true}
+tsc exit=0 at=2026-10-04T04:51:33Z

@@ -1,0 +1,9 @@
+# telemetry before PG create
+{"at": "2026-10-04T04:51:33.740505+00:00", "pageSize": 16384, "pages": {"Pages free": 27115, "Pages inactive": 241348, "Pages speculative": 1581}, "availableBytes": 4424400896, "availableGiB": 4.121, "pressure": 1, "cpuIdlePercent": 83.54, "cpu": "5.69% user, 10.75% sys, 83.54% idle", "diskFreeBytes": 806648385536, "diskFreeGiB": 751.25, "heavyEligible": true}
+name=crew-v2-test-be3b2ae9-9efa-4156-890e-fee4cb6fe151 id=37cc95fcf2cd2392fa5fd9852f45f0378824e9954ab99321c163b2472cde4848 port=51273
+image=sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280 mem=268435456 nanocpus=1000000000 pids=64
+pg_isready ok try=2
+# telemetry before Node
+{"at": "2026-10-04T04:51:35.045277+00:00", "pageSize": 16384, "pages": {"Pages free": 4870, "Pages inactive": 255676, "Pages speculative": 4738}, "availableBytes": 4346413056, "availableGiB": 4.048, "pressure": 1, "cpuIdlePercent": 81.81, "cpu": "6.26% user, 11.91% sys, 81.81% idle", "diskFreeBytes": 806607372288, "diskFreeGiB": 751.212, "heavyEligible": true}
+node=v24.21.0 at=2026-10-04T04:51:35Z
+node exit=0 at=2026-10-04T04:52:20Z
