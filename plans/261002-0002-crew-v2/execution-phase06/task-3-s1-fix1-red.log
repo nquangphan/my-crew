@@ -1,0 +1,662 @@
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HQbdeG
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HQbdeG nonceSha256=8e7265e8821afd6a52ac1880b37d45c30f871c3ea2b79e56503dff5f4ae67db3
+attachment DB scratch identity dev=16777231 ino=220534785 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HQbdeG
+✔ S2 admitted PASS turn creates A→B child through the real port with actor A audit (317.283ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-oO1JRt
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-oO1JRt nonceSha256=d341da9f8a353efb51cc47ab9a2fc5c74e4ac707aa843b68f0f1393c2546dc76
+attachment DB scratch identity dev=16777231 ino=220534792 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-oO1JRt
+✔ S2 decision, dependency and signal go through the real port with actor A audit (255.931666ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZsyIPW
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZsyIPW nonceSha256=13af4fe82902873a3b9bf72339a2c7f97cccf8857b2e298c4fc2c375e0d3bb88
+attachment DB scratch identity dev=16777231 ino=220534799 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ZsyIPW
+✔ S2 port snapshots caller arguments synchronously before any authority wait (235.590375ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Q2KXC7
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Q2KXC7 nonceSha256=39f9a16cb5f7bbcb9f415e954bc7344827354d925fec30d0fdb235dce3b20a13
+attachment DB scratch identity dev=16777231 ino=220534806 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Q2KXC7
+✔ S2 turn without admission stays 503 and preserves state (229.88725ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XzASGI
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XzASGI nonceSha256=90528945948420e6516aa5f6cece7b4fcb16866623727708938bbe459b4f0f5f
+attachment DB scratch identity dev=16777231 ino=220534813 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XzASGI
+✔ S2 admission denies receipt UNVERIFIED with 403 and preserves state (221.434208ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-2ZO60F
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-2ZO60F nonceSha256=a7ae403b9e408d1c3c0ea020c4ed764851fe153a4695b38dc6dd118490c2b861
+attachment DB scratch identity dev=16777231 ino=220534820 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-2ZO60F
+✔ S2 admission denies receipt FAIL with 403 and preserves state (228.19175ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mHD5jo
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mHD5jo nonceSha256=63ee3d507680a27120946f47d9832eabb0fde0997a09c0ae283b896d1a6b0056
+attachment DB scratch identity dev=16777231 ino=220534827 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mHD5jo
+✔ S2 admission denies receipt expired with 403 and preserves state (239.594875ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nG3e4i
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nG3e4i nonceSha256=994614eb7c9db1048dbc45d768ce05e89179d3682c66a7e2e555f30d17d339bc
+attachment DB scratch identity dev=16777231 ino=220534834 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nG3e4i
+✔ S2 admission denies receipt revoked with 403 and preserves state (241.104916ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-uqrx4O
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-uqrx4O nonceSha256=a68507b0bb9dbf4af118df474482325d3cdc1ffa39c5a3f7e5318c39d4b06ea9
+attachment DB scratch identity dev=16777231 ino=220534841 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-uqrx4O
+✔ S2 admission denies receipt from another deployment with 403 and preserves state (230.918125ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9S6qm3
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9S6qm3 nonceSha256=3ba9b3bce32429d70a4865cea10f4e937e1f00f0e841e66caa4bc1883a23b041
+attachment DB scratch identity dev=16777231 ino=220534848 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9S6qm3
+✔ S2 admission denies receipt signed by another verifier with 403 and preserves state (222.802417ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-oiWTtz
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-oiWTtz nonceSha256=0331118b95595e65bb347d4f871d4589f56f3a38d8532f37ba8079abc4070045
+attachment DB scratch identity dev=16777231 ino=220534855 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-oiWTtz
+✔ S2 admission denies assembly pinned to another verifier with 403 and preserves state (229.037375ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MeNdq3
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MeNdq3 nonceSha256=cf581c8eb6fc20f015efc0976c463cec3d384867c634d86598aeb65a77f84898
+attachment DB scratch identity dev=16777231 ino=220534862 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MeNdq3
+✔ S2 admission denies session expired with 403 and preserves state (223.571417ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Qn3APM
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Qn3APM nonceSha256=7172ad608d9c021ad24d5a950ebd3c53b760796084dfb2df030e33bd2e3f15c9
+attachment DB scratch identity dev=16777231 ino=220534869 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Qn3APM
+✔ S2 admission denies session other process instance with 403 and preserves state (219.151542ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-M7uU4M
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-M7uU4M nonceSha256=3d2d5a0ca2ea9b85c55f890e93131d4aae2a287500e7e412a06f80a18d3470c9
+attachment DB scratch identity dev=16777231 ino=220534876 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-M7uU4M
+✔ S2 admission denies session other designation revision with 403 and preserves state (228.185209ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XTIw42
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XTIw42 nonceSha256=7f19709dc40d05f551035b2d8347a9f8d1cf24dd5d5cb0efe346f28ef0b56506
+attachment DB scratch identity dev=16777231 ino=220534883 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-XTIw42
+✔ S2 admission denies grant revoked by re-route while session stays reserved with 403 and preserves state (242.270708ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Q12seT
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Q12seT nonceSha256=cf3daae70ddb75a4d7c201f7306673fcca9042aa8d13a7ba949e6463b11b3bf5
+attachment DB scratch identity dev=16777231 ino=220534890 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Q12seT
+✔ S2 admission denies grant expired with 403 and preserves state (219.009542ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-D2ISSW
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-D2ISSW nonceSha256=26d920236a1dc303c352375f758b83ec5bb8f2c907941f85c4ba70d70452c431
+attachment DB scratch identity dev=16777231 ino=220534897 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-D2ISSW
+✔ S2 admission denies grant for another machine with 403 and preserves state (232.082292ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HrZjuH
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HrZjuH nonceSha256=3660d42840aa85bf07ae8639466df2878185e63a952a9e409b66f98a72958ef6
+attachment DB scratch identity dev=16777231 ino=220534904 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HrZjuH
+✔ S2 admission denies capability receipt expired with 403 and preserves state (242.777333ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-1gRq7v
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-1gRq7v nonceSha256=18afc45a9c5c1fa51f1c9d1b5e74e07998b8db09a17495054e7e3c3b2a729896
+attachment DB scratch identity dev=16777231 ino=220534911 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-1gRq7v
+✔ S2 admission denies receipt for another machine with 403 and preserves state (222.602209ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SXqte0
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SXqte0 nonceSha256=5d7a2a8e4ed6306e5a0cf99eefad450420f5412b3dd3e5dc4f750cbe7c44182b
+attachment DB scratch identity dev=16777231 ino=220534918 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SXqte0
+✔ S2 admission denies session for another machine with 403 and preserves state (223.079ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-TWX8U1
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-TWX8U1 nonceSha256=5a3d1050659c6f6f94d18b140d91ccd97a3d23da9f9646fd305a0b4182226406
+attachment DB scratch identity dev=16777231 ino=220534925 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-TWX8U1
+✔ S2 admission denies session on another snapshot with 403 and preserves state (242.712917ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-52Qdaf
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-52Qdaf nonceSha256=9a6e9db4bdc351a8bee3c999cfaf124eccc45351f37a87ea7d1b61753e5ddec9
+attachment DB scratch identity dev=16777231 ino=220534932 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-52Qdaf
+✔ S2 admission denies turn read session is another session with 403 and preserves state (215.159583ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9qPdBT
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9qPdBT nonceSha256=a105d5af7baf2b4db7f67be48af43d52707d291fe55b0596b17b6939d4ee5a84
+attachment DB scratch identity dev=16777231 ino=220534939 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9qPdBT
+✔ S2 admission denies session no longer live with 403 and preserves state (213.531459ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WiJHK0
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WiJHK0 nonceSha256=9bf76c0b4eac54b7f47515e339022673a98b0e01c24279f4990d62cc29d2409f
+attachment DB scratch identity dev=16777231 ino=220534946 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-WiJHK0
+✔ S2 operation must be a pending row written in this Tx on the scope input (245.357125ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-frQbCY
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-frQbCY nonceSha256=90939c7171de2783ef78ffdce92742b8ea6d86dcab6d0a473c6ef7c7e18ab0ee
+attachment DB scratch identity dev=16777231 ino=220534953 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-frQbCY
+✔ S2 one operation authorizes exactly one mutation in its Tx (239.993ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Nkfx8Q
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Nkfx8Q nonceSha256=94de739aa8c2569f1f9c25e9dd7f3f4bfad2c7616a22f9058bf7d7d8c44721eb
+attachment DB scratch identity dev=16777231 ino=220534960 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Nkfx8Q
+✔ S2 action outside the persisted scope actions is denied (230.0715ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-86AVSz
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-86AVSz nonceSha256=ac4d8a518d4df753aaf15a6fc139ca96d9c2443724c02c28963b14023c44ba1e
+attachment DB scratch identity dev=16777231 ino=220534967 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-86AVSz
+✔ S2 new root requires the same-Tx routing decision for the exact CreateTicket hash (250.376584ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rvX1HK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rvX1HK nonceSha256=bf30773e24b51e5f3140d988b7cdc1b4cb2557a7487d3c54b06fb6459e26dbb0
+attachment DB scratch identity dev=16777231 ino=220534974 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rvX1HK
+✔ S2 root scope cannot create a new root without a message routing decision (222.417875ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FqoH1Y
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FqoH1Y nonceSha256=095f88faaec6c651d0f25662266de25934df145747fa8960f4d50881141e6074
+attachment DB scratch identity dev=16777231 ino=220534981 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-FqoH1Y
+✔ S2 message scope without a root cannot write existing tickets (231.068584ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-f3thtr
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-f3thtr nonceSha256=5249cba5cd8b4a57a9068620c52232064960b260ed193a9f54b81f512a849d5d
+attachment DB scratch identity dev=16777231 ino=220534988 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-f3thtr
+✔ S2 tickets outside the scope root are not found (236.875584ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jDBBgx
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jDBBgx nonceSha256=5f916f5a06bfef7bd07d63cb283c28cd8da96cc394e802d14928329c850d01df
+attachment DB scratch identity dev=16777231 ino=220534995 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jDBBgx
+✔ S2 caller actor other than the designation machine is denied despite a valid proof (240.409ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MYeABf
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MYeABf nonceSha256=22410ad03fdcd57b0c3d9d8fe643ee8bb24b6da0d90e5c5c7620fef4f64c1b96
+attachment DB scratch identity dev=16777231 ino=220535002 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MYeABf
+✔ S2 generic ticket routes stay 404 for machine A while its admitted turn is live (370.45525ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-bpGbef
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-bpGbef nonceSha256=59004968d28a0f81a13a62a97c88445bbb74209e17dcf9701472a0505e1be818
+attachment DB scratch identity dev=16777231 ino=220535009 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-bpGbef
+✔ S2 command stays unreleased with 503 and writes nothing (215.738792ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nbsy3V
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nbsy3V nonceSha256=789035f026e6f40cbee94fbb06acfcba12f124abd19fcc37bf6bfb3b1864bafa
+attachment DB scratch identity dev=16777231 ino=220535016 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nbsy3V
+✔ S2 bare persisted authority without the port target fails closed (220.276208ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-2vx01R
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-2vx01R nonceSha256=1f109a8434696d85910f640687619484e4b6816f1fcc360a39ae1b9238ce90bd
+attachment DB scratch identity dev=16777231 ino=220535023 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-2vx01R
+✖ S4 port graph authorization creates the exact hashed set with actor A and closes once (217.489875ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YpFBlE
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YpFBlE nonceSha256=ff071c4a54ee3e93b7b7f898b1dde98be374c6b90b637404e5321a5c83c6da71
+attachment DB scratch identity dev=16777231 ino=220535030 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-YpFBlE
+✖ S4 port graph that differs from the operation request hash is denied without rows (212.886708ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PfEorn
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PfEorn nonceSha256=3cdfe799b6563ef84642ee896e2196bc4a5256db159ef0c69fb20fb9ae792445
+attachment DB scratch identity dev=16777231 ino=220535037 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PfEorn
+✖ S4 port operation request hash separates create_run, single mutations and other tools (210.958167ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HrOOnK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HrOOnK nonceSha256=a249bb1d7e373db1d48c75841c238c08db7863deb4c0e5fa38769c1139405b12
+attachment DB scratch identity dev=16777231 ino=220535044 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HrOOnK
+✖ S4 port graph mutation outside the hashed set is denied (220.166625ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ij3YtY
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ij3YtY nonceSha256=c35d26de58639822b09043ba707d7bed5d9a9bef377c2b4bcb2672db48151968
+attachment DB scratch identity dev=16777231 ino=220535051 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ij3YtY
+✖ S4 port graph element reused in the same session is a conflict (217.38225ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-89Q9QR
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-89Q9QR nonceSha256=c04d60c62d9e0ceb199a5c623f6ecf865a801b9a95c2c4eb1ac55281712d1a8f
+attachment DB scratch identity dev=16777231 ino=220535058 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-89Q9QR
+✖ S4 port graph authorization from another Tx is not found (212.634291ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lm563r
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lm563r nonceSha256=705a931d9c618575d4b7bd90f778bb5610fbc1333c945f44d68a819a91a8980e
+attachment DB scratch identity dev=16777231 ino=220535065 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lm563r
+✖ S4 port one operation is consumed once per transaction across graph and single paths (214.444917ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-EZIfaa
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-EZIfaa nonceSha256=8e1c6222b4a4943907893e5ad958fcfcec06457b95eb17147b645eb891c186ee
+attachment DB scratch identity dev=16777231 ino=220535072 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-EZIfaa
+✖ S4 port single use survives savepoint handles of the same transaction (231.282709ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-AuTwQb
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-AuTwQb nonceSha256=04f7dc900d23e5fd21de364a93f27b6b8e18f1272a4340211ee6d357e7b54531
+attachment DB scratch identity dev=16777231 ino=220535079 uid=501 pid=38870
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-AuTwQb
+✖ S4 port graph needs create_run in the scope tools and its actions (208.157875ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-R1fIrt
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-R1fIrt nonceSha256=c4c230560ffff9abc0b28bf5e0a8cf641e68fefab9a25ed2cf35edab8ec8d218
+attachment DB scratch identity dev=16777231 ino=220535086 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-R1fIrt
+✔ assistant workflows: definition not proven on machine B is 422 without rows (277.439375ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-BlTLHO
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-BlTLHO nonceSha256=514177318f44d7bead320268fc70b0662966a8b97122ebb44b969bace39b530d
+attachment DB scratch identity dev=16777231 ino=220535093 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-BlTLHO
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ISfP9B
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ISfP9B nonceSha256=931e422f37e6a738a4a0d898b46e92268523f20c810fb23b18577fff564017a1
+attachment DB scratch identity dev=16777231 ino=220535100 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ISfP9B
+✔ assistant workflows: resolver denial writes no run (454.391917ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vwDyyb
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vwDyyb nonceSha256=659d799ae070fda90d0ba53c0e927eea2e33af5fd5af6142d75ed215c5364f24
+attachment DB scratch identity dev=16777231 ino=220535107 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-vwDyyb
+✖ assistant workflows: createRun accepts only the operation written for this exact run request (318.9725ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-omHalG
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-omHalG nonceSha256=efa7e64bb34af1649f6dd78d6df5ccce4ea79df15d8a9ee4afc22c39a5ea581c
+attachment DB scratch identity dev=16777231 ino=220535114 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-omHalG
+✖ assistant workflows: architectural path follows the pinned brainstorming → writing-plans → execution chain (331.749958ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mLeaaN
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mLeaaN nonceSha256=d3f001327c078e5f4ac95b6efea9de16f5257bced13e23f77d7c0c0c6cd22647
+attachment DB scratch identity dev=16777231 ino=220535121 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-mLeaaN
+✖ assistant workflows: bounded, bug and spike paths map their pinned sources (285.057041ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MVfW4r
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MVfW4r nonceSha256=10ee6fd99e4f20ad393767ce56a906bf45114f6d2862b033a60deee049e6ba37
+attachment DB scratch identity dev=16777231 ino=220535128 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MVfW4r
+✖ assistant workflows: bmad-dispatch run waits for a verified render latch (304.466958ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SHdWIr
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SHdWIr nonceSha256=cfe04ab8381ae5819220c06ccbb0813a39ae2733a717695bae0fc0201acd7b30
+attachment DB scratch identity dev=16777231 ino=220535135 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SHdWIr
+✖ assistant workflows: bmad-oneshot keeps the official oneshot route without an artifact (305.200416ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rx7igw
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rx7igw nonceSha256=9d84c4980e0e5bdfd6e267a6db0201541c96e03be24d73edb0e7a5c04a04b0a8
+attachment DB scratch identity dev=16777231 ino=220535142 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-rx7igw
+✔ assistant workflows: pinned run and step identity is immutable in SQL (292.271458ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-69fciV
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-69fciV nonceSha256=376ad99deb192434d96ba43c1c2aa96edb88fdd27404e40b5d0ad79ce7a98a97
+attachment DB scratch identity dev=16777231 ino=220535150 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-69fciV
+✖ assistant workflows: createRun is all-or-nothing when a later write fails (275.133542ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SEbAz1
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SEbAz1 nonceSha256=24c1167937b9e2efa80fe200c9a2de6e1242a49d6e4a5b374771ed2deb0e3bc2
+attachment DB scratch identity dev=16777231 ino=220535157 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-SEbAz1
+✔ assistant workflows: parallel needs an exact owner approval of this root, sequential otherwise (331.900125ms)
+attachment DB container f88f09d5188c526109ec8a8315a0e6f2b4cbc9c5f8cb86c295c6bf017963c8b2 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NHbea9
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NHbea9 nonceSha256=dc37d22deca3e66aad2b73e0162955587bbec1c88d912c14197829eaaccc034b
+attachment DB scratch identity dev=16777231 ino=220535164 uid=501 pid=39659
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-NHbea9
+✖ assistant workflows: owner approval of another root leaves this run sequential (218.241833ms)
+ℹ tests 54
+ℹ suites 0
+ℹ pass 38
+ℹ fail 16
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13691.484875
+
+✖ failing tests:
+
+test at v2/server/test/assistant-orchestration-port.test.ts:802:1
+✖ S4 port graph authorization creates the exact hashed set with actor A and closes once (217.489875ms)
+  Error [ApiError]: Đồ thị điều phối không hợp lệ
+      at graphInvalid (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:88:28)
+      at assertGraphShape (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:116:11)
+      at authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:375:5)
+      at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:566:28)
+      at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:138:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:808:25
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:172:23
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18) {
+    code: 'VALIDATION',
+    status: 400,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:835:1
+✖ S4 port graph that differs from the operation request hash is denied without rows (212.886708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'VALIDATION',
+  +   status: 400
+  -   code: 'ORCHESTRATION_REQUEST_MISMATCH',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:855:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Đồ thị điều phối không hợp lệ
+        at graphInvalid (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:88:28)
+        at assertGraphShape (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:116:11)
+        at authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:375:5)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:566:28)
+        at f.run.request (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:857:52)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:172:29
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14),
+    expected: { code: 'ORCHESTRATION_REQUEST_MISMATCH', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:868:1
+✖ S4 port operation request hash separates create_run, single mutations and other tools (210.958167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'VALIDATION',
+  +   status: 400
+  -   code: 'ORCHESTRATION_REQUEST_MISMATCH',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:878:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Đồ thị điều phối không hợp lệ
+        at graphInvalid (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:88:28)
+        at assertGraphShape (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:116:11)
+        at authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:375:5)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:566:28)
+        at f.run.request (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:880:50)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:172:29
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14),
+    expected: { code: 'ORCHESTRATION_REQUEST_MISMATCH', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:934:1
+✖ S4 port graph mutation outside the hashed set is denied (220.166625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'VALIDATION',
+  +   status: 400
+  -   code: 'ORCHESTRATION_TARGET_NOT_AUTHORIZED',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:956:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Đồ thị điều phối không hợp lệ
+        at graphInvalid (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:88:28)
+        at assertGraphShape (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:116:11)
+        at authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:375:5)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:566:28)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:138:23)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:959:27
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:172:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18),
+    expected: { code: 'ORCHESTRATION_TARGET_NOT_AUTHORIZED', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:969:1
+✖ S4 port graph element reused in the same session is a conflict (217.38225ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'VALIDATION',
+  +   status: 400
+  -   code: 'ORCHESTRATION_TARGET_CONSUMED',
+  -   status: 409
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:975:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Đồ thị điều phối không hợp lệ
+        at graphInvalid (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:88:28)
+        at assertGraphShape (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:116:11)
+        at authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:375:5)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:566:28)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:138:23)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:978:29
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:172:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18),
+    expected: { code: 'ORCHESTRATION_TARGET_CONSUMED', status: 409 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:1010:1
+✖ S4 port graph authorization from another Tx is not found (212.634291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'VALIDATION',
+  +   status: 400
+  -   code: 'ASSISTANT_OPERATION_NOT_FOUND',
+  -   status: 404
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:1021:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Đồ thị điều phối không hợp lệ
+        at graphInvalid (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:88:28)
+        at assertGraphShape (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:116:11)
+        at authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:375:5)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:566:28)
+        at f.run.operationId (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:1023:50)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:172:29
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14),
+    expected: { code: 'ASSISTANT_OPERATION_NOT_FOUND', status: 404 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:1053:1
+✖ S4 port one operation is consumed once per transaction across graph and single paths (214.444917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'VALIDATION',
+  +   status: 400
+  -   code: 'ASSISTANT_OPERATION_CONSUMED',
+  -   status: 409
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:1059:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Đồ thị điều phối không hợp lệ
+        at graphInvalid (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:88:28)
+        at assertGraphShape (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:116:11)
+        at authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:375:5)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:566:28)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:1063:32
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:172:29
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14),
+    expected: { code: 'ASSISTANT_OPERATION_CONSUMED', status: 409 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:1087:1
+✖ S4 port single use survives savepoint handles of the same transaction (231.282709ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:1093:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ASSISTANT_OPERATION_CONSUMED', status: 409 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-orchestration-port.test.ts:1113:1
+✖ S4 port graph needs create_run in the scope tools and its actions (208.157875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'VALIDATION',
+  +   status: 400
+  -   code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE',
+  -   status: 403
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:1120:9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:1115:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Đồ thị điều phối không hợp lệ
+        at graphInvalid (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:88:28)
+        at assertGraphShape (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:116:11)
+        at authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:375:5)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/orchestration.ts:566:28)
+        at Object.authorizeGraph (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:138:23)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-orchestration-port.test.ts:172:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14),
+    expected: { code: 'ORCHESTRATION_ACTION_NOT_IN_SCOPE', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-workflows.test.ts:471:1
+✖ assistant workflows: createRun accepts only the operation written for this exact run request (318.9725ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:479:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ORCHESTRATION_REQUEST_MISMATCH', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-workflows.test.ts:524:1
+✖ assistant workflows: architectural path follows the pinned brainstorming → writing-plans → execution chain (331.749958ms)
+  TypeError: Cannot read properties of undefined (reading 'split')
+      at cited (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:330:36)
+      at assertCitations (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:362:15)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:539:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at v2/server/test/assistant-workflows.test.ts:591:1
+✖ assistant workflows: bounded, bug and spike paths map their pinned sources (285.057041ms)
+  TypeError: Cannot read properties of undefined (reading 'split')
+      at cited (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:330:36)
+      at assertCitations (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:362:15)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:598:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:593:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at v2/server/test/assistant-workflows.test.ts:706:1
+✖ assistant workflows: bmad-dispatch run waits for a verified render latch (304.466958ms)
+  TypeError: Cannot read properties of undefined (reading 'split')
+      at cited (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:330:36)
+      at assertCitations (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:362:15)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:712:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at v2/server/test/assistant-workflows.test.ts:767:1
+✖ assistant workflows: bmad-oneshot keeps the official oneshot route without an artifact (305.200416ms)
+  TypeError: Cannot read properties of undefined (reading 'split')
+      at cited (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:330:36)
+      at assertCitations (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:362:15)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:773:7
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at v2/server/test/assistant-workflows.test.ts:831:1
+✖ assistant workflows: createRun is all-or-nothing when a later write fails (275.133542ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /TEST_ONLY_STEP_FAILURE/. Input:
+  
+  'WORKFLOW_RUN_EXISTS:Yêu cầu đã có run'
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:874:16
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'WORKFLOW_RUN_EXISTS:Yêu cầu đã có run',
+    expected: /TEST_ONLY_STEP_FAILURE/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-workflows.test.ts:959:1
+✖ assistant workflows: owner approval of another root leaves this run sequential (218.241833ms)
+  Error [ApiError]: Duyệt song song cần quyết định của chủ dự án
+      at denied (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/runs.ts:140:5)
+      at parallelApproval (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/runs.ts:151:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Object.createRun (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/runs.ts:276:24)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:185:47
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:174:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:976:19 {
+    code: 'WORKFLOW_PARALLEL_APPROVAL_INVALID',
+    status: 403,
+    details: undefined
+  }

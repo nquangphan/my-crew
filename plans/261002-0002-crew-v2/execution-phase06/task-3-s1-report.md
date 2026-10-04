@@ -143,3 +143,78 @@ Source SHA cuối:
 
 1. Xác nhận ánh xạ implement → `test-driven-development` (thay vì cố định SDD/executing-plans) cho architectural/bounded.
 2. `parallelApprovalId` toàn cục chặn root khác: có cần T7/S5 chuyển sang tra theo root không.
+
+---
+
+# FIX round 1/5 (review `task-3-s1-review.md`, ruling 20:45)
+
+Commit `e4b8cd3` trên HEAD `5b0c76d`. Lần này test được viết trước source thật (W8). Chỉ có hai thứ tạo trước RED:
+- module hợp đồng `operation-request.ts`, vì công thức hash đã được ruling cố định nguyên văn và fixture cần nó để ghi row;
+- scaffold `createRunRequest` trả digest giả `0…0` và type `CreateRunRequest`, không có hành vi thật.
+
+## Mục đã sửa
+
+| Mục | Sửa |
+|---|---|
+| I1 + W1 | Module dùng chung `server/src/assistant/operation-request.ts` export `OperationRequest` và `operationRequestSha256 = sha256(canonicalJson({action, payload}))`. Port so `request_hash` cho mọi authorization; lệch trả 403 `ORCHESTRATION_REQUEST_MISMATCH`. Thứ tự kiểm: op 404 → snapshot 409 → đã dùng 409 → hash 403 → tiêu. Mutation đơn lẻ dùng exact payload đã submit. `authorizeGraph(tx, actor, proof, request, graph)` không còn nhận digest từ caller: port tự tính `runGraphSha256(graph)` và đòi `request_hash` của `{action:'create_run', payload:{rootTicketId, path, definitionSha256, graphSha256}}`. Mọi ID của run được dẫn xuất từ `operationId`, nên graph là hàm thuần. `runs.createRunRequest(tx, operationId, input)` là điểm B3 gọi để băm row. Fixture `seedToolOperation` nhận `request`; test port ghi row lười ngay trước lời gọi port với hash của đúng lời gọi đó. Test cũ không bị nới assert nào. Test `:914` đổi tên thành "one operation is consumed once per transaction across graph and single paths"; mục 11/12 của flow `server-assistant` đã viết lại cho khớp code. |
+| I2 | Architectural: design → spec → plan (`writing-plans`) → execute (source `skills/writing-plans/SKILL.md`, `executionChoices` = subagent-driven-development / executing-plans kèm SHA, `resolvedByGateId` = gate kế hoạch, chưa resolve thì chưa dispatch) → finish (`finishing-a-development-branch`). Bounded giữ TDD (`brainstorming:127`). `stepSources` đòi đủ nguồn của cả hai lựa chọn. |
+| I3 | Quyết định của root khác thì trả `null` (chạy tuần tự). Trong cùng root, quyết định không phải `approval` của owner vẫn 403. Theo W7, duyệt song song lúc tạo run chỉ dành cho `bounded`; architectural trả 409 vì cần kế hoạch đã viết. |
+| W3 | Tập đã dùng nằm trong setting cục bộ của transaction (`crew.assistant_consumed_operations`), thay cho WeakMap theo object Tx. Mọi handle savepoint đều thấy; savepoint rollback thì trả operation lại cùng các ghi của nó. |
+| W4 | `createRun` ghi trong `tx.savepoint`: lỗi JS của port hay lỗi DB sau lần ghi đầu đều rollback hết, caller vẫn commit được. |
+| M1 | Latch đòi attempt `active`; thêm test lệch `binding_revision` và attempt `uncertain`. |
+| M2 | Gate mang `trigger` (`on_stage` / `after_three_failed_fixes`); gate `architecture_discussion` có trigger thứ hai. |
+| M3 | Test không chép bảng nữa: đọc dòng trích dẫn từ archive pin bằng `tar` và kiểm marker gate. Execution choices lấy từ dòng `REQUIRED SUB-SKILL`, finishing lấy từ handoff `Final review clean`, chuỗi BMAD lấy từ `FIRST STEP`/`NEXT`/`EARLY EXIT`, bốn pha bug lấy từ heading `### Phase N`. Spike được assert kind `research`, role `research` và outputKinds không có code/test. Citation BMAD đổi sang đường dẫn đầy đủ. |
+
+## Test mới
+
+- Port (+3, tổng 44):
+  - request hash lệch (graph bị đổi, path khác) → 403, không có row;
+  - tách miền: op của tool khác → 403 cho cả graph lẫn mutation đơn; op `create_run` cho `createTicket`/`decision` → 403; op `create_ticket` cho graph → 403; payload hoặc action đơn lẻ khác → 403;
+  - dùng một lần qua hai savepoint → 409.
+- Workflows (+3, tổng 11):
+  - `createRun` chỉ nhận đúng op của mình: tool khác, mutation đơn, path khác, digest do caller chọn, digest của op khác → 403, không có row;
+  - all-or-nothing với hai nhánh: lỗi JS tiêm vào port và lỗi DB qua trigger test-only; caller commit được marker, không còn row nào của run, root vẫn tạo run được sau đó;
+  - quyết định song song của root khác → tuần tự.
+- Test hiện có được viết lại theo mapping mới và oracle archive.
+
+## RED → GREEN
+
+| Lượt | Kết quả | Log SHA-256 (16 ký tự đầu) |
+|---|---|---|
+| RED (`task-3-s1-fix1-red.log`) | 54 test, 38 pass, 16 fail. Port: 9 fail vì chữ ký cũ trả 400, thiếu rejection 403/409, savepoint không 409. Workflows: 7 fail vì thiếu rejection 403, thiếu citation, run dở còn sót (`WORKFLOW_RUN_EXISTS`), root khác 403 | `becad487f584e209` |
+| GREEN lượt 1 lỗi nạp (dư dấu `}` trong `runs.ts`) | ghi lại, không tính | `338a9a5308aa2461` |
+| GREEN lượt 1 | 54/54 | `360e42a3f4c12e38` |
+| GREEN cuối, sau Biome format (8 tệp như vòng đầu) | 216/216 | `dd5751cf4795ded4` |
+| Hồi quy (8 tệp như vòng đầu) | 102/102 | `8318da52a4739eac` |
+
+216 = 196 test S2 cũ + 10 port graph/request + 10 workflows. Kiểm tra cuối:
+- Scoped strict tsc trên 7 file cộng 3 file `.d.ts`: exit 0, log rỗng.
+- Biome trên 7 file: 0 warning (`e8591378d95195a6`).
+- `crew-docs check --all` và `--staged` ok trong mirror.
+- Import untracked: chỉ trỏ tới `operation-request.ts`, file này được commit cùng lát.
+
+Source SHA (16 ký tự đầu):
+
+| File | SHA-256 |
+|---|---|
+| `operation-request.ts` | `4173a44a8664f455` |
+| `orchestration.ts` | `653f3709de964fa2` |
+| `runs.ts` | `300dbad1628c1184` |
+| `workflows.ts` | `b9fac64d17583ee9` |
+| `assistant-workflows.test.ts` | `68b755bf661be0c1` |
+| `assistant-orchestration-port.test.ts` | `f4c4267258c69a8b` |
+| `support/assistant.ts` | `829b127bcd117c77` |
+
+## Tài nguyên
+
+- Scratch riêng `$TMPDIR/crew-v2-s4-t3s1/`.
+- Mọi lượt nặng giữ heavy lock và đều có `heavyEligible=true` trước khi tạo PG và trước khi chạy Node.
+- 5 container `crew-v2-test-*` (256m, 1 CPU, pids 64, loopback ngẫu nhiên). Sau mỗi lượt: còn 0 DB `crew_v2_test_%`, container đã stop/rm, không còn `node --test` của lát này.
+- Manifest sửa dưới lock và đã trả lock; mirror đã xóa.
+
+## Còn lại / cần PM
+
+- Test port giờ đi qua wrapper ghi row lười, đóng vai tools route. Riêng test snapshot đồng bộ gọi port thật với row ghi sẵn, để wrapper không che việc port tự chụp tham số.
+- Theo W7, duyệt song song cho architectural lúc tạo run giờ trả 409. Đây là thu hẹp hành vi so với vòng đầu; tách unit sau written plan thuộc S5.
+- `createRunRequest` đọc không khóa. B3 phải gọi nó trong cùng transaction rồi ghi row ngay, nếu không thì `createRun` dựng lại graph và trả 403 khi các row đã đổi.
+- Deferred theo ledger: W2, W5, W6, W9, M4, M5.
