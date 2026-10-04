@@ -1,0 +1,27 @@
+attachment DB container 42af61f3624f578371a8e65aad13356d6bab3cfc5aecd444f3e79467138f781c root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0bhBMQ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0bhBMQ nonceSha256=1c2fb621e60a1ff206fe68c99dc53f0318ac6c7807595c36f149c053649906d6
+attachment DB scratch identity dev=16777231 ino=220483687 uid=501 pid=90545
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0bhBMQ
+✔ attachment mount: buildApp serves owner policy, upload, download and lists with session, CSRF and ACL (709.038875ms)
+attachment DB container 42af61f3624f578371a8e65aad13356d6bab3cfc5aecd444f3e79467138f781c root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0N3eBt
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0N3eBt nonceSha256=e9bccf8aa19ba6d50e230611b6a3d0153d0d713a7f88137217fd295af7c299bb
+attachment DB scratch identity dev=16777231 ino=220483705 uid=501 pid=90545
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-0N3eBt
+attachment DB container 42af61f3624f578371a8e65aad13356d6bab3cfc5aecd444f3e79467138f781c root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-i2icpV
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-i2icpV nonceSha256=0beb5ceb68ddcac72ae17fde458e5c72597666a4ad9586fd6ac746b00f098ca2
+attachment DB scratch identity dev=16777231 ino=220483713 uid=501 pid=90545
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-i2icpV
+✔ attachment mount: default production assembly keeps unproduced input ports fail-closed (1088.939583ms)
+attachment DB container 42af61f3624f578371a8e65aad13356d6bab3cfc5aecd444f3e79467138f781c root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PC2eiQ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PC2eiQ nonceSha256=ec456b583e47d15f7fb89201953fd37f46ff6e6627bb48f14f306a573253d131
+attachment DB scratch identity dev=16777231 ino=220483734 uid=501 pid=90545
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-PC2eiQ
+✔ attachment mount: comment projection groups live refs by commentId in stable pages with ticket ACL (836.615709ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2781.274333

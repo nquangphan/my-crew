@@ -22,6 +22,8 @@ Cung cấp cây tài liệu, trang nguyên trạng, tìm kiếm Unicode và API 
 
 8. `server/src/app.ts` → `buildApp`: ghép `registerGatewayRoutes` cho namespace007; AppOptions nhận optional GatewayProjectionPolicy do composition phase06 cấp, mặc định SELECTION_NOT_CONFIGURED. ServerOptions/DispatchPermit và hai default deny execution/final giữ nguyên; không auto-migrate007. Gateway mutation recheck actual credential dưới khóa machine/entity trước cache. Flow `server-gateway` mô tả boot/config/report/command/projection.
 
+9. `server/src/app.ts` → `buildApp`: AppOptions nhận optional `attachments` (`AttachmentAssembly`) để dựng storage/receiver/stage/submission/message thật và mount `registerAttachmentRoutes`; `registerInputScopeRoutes` luôn mount với port chưa có producer để mặc định deny. Assembly lỗi (storageHostId sai, không Linux, root không private) làm buildApp thất bại trước khi tạo Fastify. `main.ts` chưa truyền assembly nên route storage chưa có trên entrypoint; chi tiết ở flow `server-attachments`.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |

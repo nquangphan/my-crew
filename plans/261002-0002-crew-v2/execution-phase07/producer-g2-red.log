@@ -1,0 +1,87 @@
+attachment DB container 42af61f3624f578371a8e65aad13356d6bab3cfc5aecd444f3e79467138f781c root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-GkSI8L
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-GkSI8L nonceSha256=a7606755bb058bf86555005d1116cc3387edbbfc947b662c4048b4f56e75b0db
+attachment DB scratch identity dev=16777231 ino=220483646 uid=501 pid=90170
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-GkSI8L
+✖ attachment mount: buildApp serves owner policy, upload, download and lists with session, CSRF and ACL (625.606875ms)
+attachment DB container 42af61f3624f578371a8e65aad13356d6bab3cfc5aecd444f3e79467138f781c root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HnbkCJ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HnbkCJ nonceSha256=560a213ea74920e0f29c83f1b0d847b7929dcaae729eb8077651eee07f7b3831
+attachment DB scratch identity dev=16777231 ino=220483653 uid=501 pid=90170
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HnbkCJ
+✖ attachment mount: default production assembly keeps unproduced input ports fail-closed (460.886792ms)
+attachment DB container 42af61f3624f578371a8e65aad13356d6bab3cfc5aecd444f3e79467138f781c root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zL1qBC
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zL1qBC nonceSha256=189c8e20077111f51780d73523ca2fa31f201fe0d7c0c877af816a4cae089d6d
+attachment DB scratch identity dev=16777231 ino=220483661 uid=501 pid=90170
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zL1qBC
+✖ attachment mount: comment projection groups live refs by commentId in stable pages with ticket ACL (453.83575ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1711.748125
+
+✖ failing tests:
+
+test at test/attachment-mount.test.ts:123:1
+✖ attachment mount: buildApp serves owner policy, upload, download and lists with session, CSRF and ACL (625.606875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 401
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/attachment-mount.test.ts:127:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/attachment-mount.test.ts:124:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachment-mount.test.ts:217:1
+✖ attachment mount: default production assembly keeps unproduced input ports fail-closed (460.886792ms)
+  AssertionError [ERR_ASSERTION]: {"message":"Route POST:/v2/attachment-conversations not found","error":"Not Found","statusCode":404}
+  
+  404 !== 409
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/attachment-mount.test.ts:223:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/attachment-mount.test.ts:218:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 409,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/attachment-mount.test.ts:306:1
+✖ attachment mount: comment projection groups live refs by commentId in stable pages with ticket ACL (453.83575ms)
+  AssertionError [ERR_ASSERTION]: {"message":"Route POST:/v2/attachment-compose not found","error":"Not Found","statusCode":404}
+  
+  404 !== 201
+  
+      at ready (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/attachment-mount.test.ts:78:14)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Object.comment (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/attachment-mount.test.ts:100:25)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/attachment-mount.test.ts:310:21
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/attachment-mount.test.ts:307:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

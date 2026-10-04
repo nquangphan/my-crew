@@ -1,0 +1,15 @@
+
+> @crew-v2/server@ typecheck /Volumes/CORSAIR/Projects/my-crew-v2/v2/server
+> tsc --noEmit
+
+src/attachments/extract/pdf.ts(184,20): error TS2307: Cannot find module 'pdf-lib' or its corresponding type declarations.
+src/attachments/extract/pdf.ts(214,22): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(215,67): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(217,22): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(244,22): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(246,13): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(248,27): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(248,53): error TS18046: 'object' is of type 'unknown'.
+src/attachments/extract/pdf.ts(250,34): error TS18046: 'object' is of type 'unknown'.
+test/attachments-pdf-image.unit.test.ts(138,49): error TS2307: Cannot find module 'pdf-lib' or its corresponding type declarations.
+ ELIFECYCLE  Command failed with exit code 1.

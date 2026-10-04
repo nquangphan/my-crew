@@ -174,6 +174,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/assistant/routes.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/store.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/attachments/access.ts` | [server-attachments](flows/server-attachments.md) (file) |
+| `server/src/attachments/comment-refs.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
 | `server/src/attachments/extract/csv.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
@@ -265,6 +266,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/assistant-orchestration.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
 | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+| `server/test/attachment-mount.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-access.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-api.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
 | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |

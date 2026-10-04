@@ -14,6 +14,7 @@ import {
   notFound,
   readAuthorizedManifest,
 } from './access.ts';
+import { readCommentAttachmentGroups, ticketAttachmentRef } from './comment-refs.ts';
 import type { AttachmentConfig } from './config.ts';
 import type {
   AssistantInputAuthority,
@@ -496,16 +497,23 @@ export function registerAttachmentRoutes(
         if (!ids.length) return { items: [], nextCursor: null };
         const rows =
           await tx`select l.id as link_id,u.id,u.expected_sha256,u.file_name,u.detected_mime,u.expected_bytes from attachment_links l join attachment_uploads u on u.id=l.attachment_id where l.id in ${tx(ids)} and (${cursor}::uuid is null or l.id>${cursor}::uuid) order by l.id limit ${limit + 1}`;
-        const items = rows.slice(0, limit).map((r) => ({
-          linkId: String(r.link_id),
-          attachmentId: String(r.id),
-          sha256: String(r.expected_sha256),
-          ownerId: 'owner',
-          fileName: r.file_name,
-          mime: r.detected_mime,
-          byteLength: Number(r.expected_bytes),
-        }));
+        const items = rows.slice(0, limit).map(ticketAttachmentRef);
         return { items, nextCursor: rows.length > limit ? items.at(-1)?.linkId : null };
+      });
+    },
+  );
+  app.get<{ Params: { id: string }; Querystring: { limit?: string; cursor?: string } }>(
+    '/v2/tickets/:id/attachments/by-comment',
+    { schema: { params: params('/v2/tickets/:id/attachments/by-comment'), querystring: pagination } },
+    async (request) => {
+      const actor = await deps.auth.authenticate(request);
+      const query = page(request.query);
+      return options.db.begin(async (tx) => {
+        await authenticateCurrentCredential(tx, request, options.now());
+        const [t] = await tx`select project_id from tickets where id=${request.params.id}`;
+        if (!t) notFound();
+        await requireProjectScope(tx, String(t.project_id), actor);
+        return readCommentAttachmentGroups(tx, request.params.id, query);
       });
     },
   );
@@ -651,11 +659,13 @@ export function registerInputScopeRoutes(
   app: FastifyInstance,
   options: ServerOptions,
   deps: RouteDependencies,
+  // Absent ports stay fail-closed: selection/assistant default-deny, routing503,
+  // route correction503, messages409 INPUT_SERVICES_NOT_CONFIGURED, storage503.
   ports: {
-    selection: PreclaimSelectionAuthority;
-    assistant: AssistantInputAuthority;
-    routing: InputRoutingAuthority;
-    retire: RouteRetirementAuthority;
+    selection?: PreclaimSelectionAuthority;
+    assistant?: AssistantInputAuthority;
+    routing?: InputRoutingAuthority;
+    retire?: RouteRetirementAuthority;
     store?: BlobStore;
     messages?: ReturnType<typeof createMessageServices>;
   },

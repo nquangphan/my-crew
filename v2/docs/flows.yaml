@@ -322,6 +322,7 @@ flows:
     entrypoints: []
     files:
       - server/src/attachments/access.ts
+      - server/src/attachments/comment-refs.ts
       - server/src/attachments/config.ts
       - server/src/attachments/contracts.ts
       - server/src/attachments/grants.ts
@@ -336,6 +337,7 @@ flows:
       - server/src/attachments/submissions.ts
       - server/migrations/009_attachments.sql
     tests:
+      - server/test/attachment-mount.test.ts
       - server/test/attachment-event.test.ts
       - server/test/attachments-access.test.ts
       - server/test/attachments-api.test.ts
