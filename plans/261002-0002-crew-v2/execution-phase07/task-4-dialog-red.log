@@ -1,0 +1,18 @@
+✖ dialog mở từ sơ đồ theo màn 2: chấm trạng thái + tiêu đề, dòng phụ “loại · bước · gốc”, ô thông tin không bịa “Cập nhật” (457.463083ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1296.351583
+
+✖ failing tests:
+
+test at test/graph-state.test.ts:695:1
+✖ dialog mở từ sơ đồ theo màn 2: chấm trạng thái + tiêu đề, dòng phụ “loại · bước · gốc”, ô thông tin không bịa “Cập nhật” (457.463083ms)
+  Error: TIMEOUT:subline
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:365:5
+exit=1

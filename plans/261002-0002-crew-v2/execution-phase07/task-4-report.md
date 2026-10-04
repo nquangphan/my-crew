@@ -206,3 +206,44 @@ Lệch so với mockup:
 - **Nhãn “sửa vòng” chưa có số thứ tự:** repair link chỉ có `cycleId`, không có số thứ tự vòng, nên nhãn ghi “sửa vòng <8 ký tự cycle>” chứ không đánh số 1, 2, 3.
 - **Bên trong dialog chưa theo màn 2:** dialog đã tối, nhưng header có chấm trạng thái và dòng phụ, ba ô Trạng thái/Máy·model/Cập nhật, tiêu đề mục nhỏ và nút “Gửi” xanh đều nằm trong `tickets/detail.tsx` cùng các component con. Phần này ngoài quyền hẹp; cần PM cấp quyền `detail.tsx` (và có thể `history.tsx`, `compose/composer.tsx`) nếu muốn khớp đủ.
 - **Thêm vài nút so với mockup:** “Thu gọn tất cả”, “+”, “−” và “Xem dạng danh sách” được giữ vì brief yêu cầu thanh điều khiển zoom truy cập được và dạng danh sách tương đương.
+
+## Dialog theo màn 2 của mockup (quyền hẹp: `detail.tsx` và component con trực tiếp)
+
+Commit: `74f678b` (source/test/docs). Báo cáo, log và ảnh nằm ở commit kế tiếp.
+
+File đã sửa theo quyền hẹp, chỉ phần trình bày:
+- `v2/web/src/tickets/detail.tsx`:
+  - `Headings` nhận thêm prop `leading` để đặt chấm trạng thái trước tiêu đề.
+  - Thêm `useTicketSubline`: dòng phụ “cấp · bước · gốc”, lấy tiêu đề từ `useTicketGraph(rootId)`, cùng key với `ChildTickets` nên không thêm request.
+  - Thêm `InfoTiles`: ô Trạng thái và ô Máy · model.
+  - Loại công việc chuyển vào mục Thông tin.
+  - Phần thân tách thành `LoadedTicketDetail` để gọi được hook dòng phụ; query và logic không đổi.
+- `v2/web/src/compose/composer.tsx`: chỉ thêm `className="compose-submit"` cho nút gửi.
+- `v2/web/src/styles.css`: thêm CSS `.ticket-dialog` cho tiêu đề mục, nút, ô nhập và nút gửi màu nhấn `#3b6fd4`.
+- `v2/web/src/tickets/dialog.tsx` đã đổi ở vòng trước (nền tối, nút × có viền); vòng này không sửa.
+
+| Mục | Kết quả | RED trước |
+|---|---|---|
+| Header | Chấm trạng thái (`aria-hidden`), tiêu đề (`Dialog.Title`), dòng phụ (`Dialog.Description`) “Công việc · <bước> · <gốc>” | DOM `TIMEOUT:subline` (`task-4-dialog-red.log` `3bc4c513cdad`) |
+| Ô thông tin | “Thông tin nhanh”: Trạng thái (chữ · phiên bản), Máy · model (“Chưa có dữ liệu”). Không có ô Cập nhật vì chưa có dữ liệu thời gian thật | cùng test |
+| Nút gửi | `#3b6fd4` trên nền tối; khi disabled là nền xám | CSS, xác minh bằng ảnh |
+
+Test hành vi của S3a/S3b giữ nguyên, không phải đổi selector nào.
+
+Kiểm chứng:
+
+| Lệnh | Kết quả | Log |
+|---|---|---|
+| Biome 14 file | exit 0 | `task-4-dialog-biome.log` `80773eb948e2` |
+| tsc | exit 0 | `task-4-dialog-typecheck.log` `19eaf43821a7` |
+| Unit web đầy đủ | 291/291 | `task-4-dialog-unit-full.log` `06e29554fa29` |
+| Build (outDir scratch) | exit 0 | `task-4-dialog-build.log` `8c01264a96ce` |
+| E2E `ticket-map`, `tickets`, `ticket-routes`, `compose` | 15/15 | `task-4-dialog-e2e.log` `fefaf71cdfb6` |
+| `crew-docs generate` + `check --all` | ok, generated không đổi | — |
+
+Ảnh: `dialog-header-from-map.png` (phần đầu dialog) và `side-by-side-dialog-vs-mockup.png` (đặt cạnh màn 2).
+
+Còn lệch so với màn 2:
+- Các mục cũ của S3a vẫn nằm dưới ô thông tin: Thông tin, Thực thi hiện tại, Ticket con. Chúng được giữ vì phạm vi chỉ là trình bày, và E2E `tickets.spec` có assert nội dung “Chưa có dữ liệu — máy chủ…”.
+- Lịch sử và liên kết tài liệu giữ markup của `history.tsx` và `docs/ticket-links.tsx`; hai file này nằm ngoài quyền.
+- Dòng phụ không có giờ, nhãn “sửa vòng” dùng `cycleId`: PM đã ghi vào backlog producer.

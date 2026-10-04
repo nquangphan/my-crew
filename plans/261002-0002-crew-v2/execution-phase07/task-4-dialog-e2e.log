@@ -1,0 +1,41 @@
+
+Running 15 tests using 1 worker
+
+[1/15] [chromium] › e2e/compose.spec.ts:315:1 › A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt
+[chromium] › e2e/compose.spec.ts:315:1 › A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt
+{"level":30,"time":1791119657079,"pid":3256,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56388"}
+
+[2/15] [chromium] › e2e/compose.spec.ts:393:1 › A5/A3 text-only: mất response sau commit → phiên hết hạn → đăng nhập lại → replay cùng key/body → một ticket
+[chromium] › e2e/compose.spec.ts:393:1 › A5/A3 text-only: mất response sau commit → phiên hết hạn → đăng nhập lại → replay cùng key/body → một ticket
+EVIDENCE ticket-replay {"posts":6,"droppedAfterCommit":[201,201,201,201]}
+
+[3/15] [chromium] › e2e/compose.spec.ts:459:1 › A5/A3 text-only: bình luận mất response → hết phiên → đăng nhập lại → replay cùng key → một bình luận
+[chromium] › e2e/compose.spec.ts:459:1 › A5/A3 text-only: bình luận mất response → hết phiên → đăng nhập lại → replay cùng key → một bình luận
+EVIDENCE comment-replay {"posts":6,"droppedAfterCommit":[201,201,201,201]}
+
+[4/15] [chromium] › e2e/compose.spec.ts:522:1 › A5 text-only: bỏ bản nháp khi chưa xác nhận hiện cảnh báo trùng, giữ khóa cũ và không mất ticket đã lưu
+[5/15] [chromium] › e2e/compose.spec.ts:574:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket
+[chromium] › e2e/compose.spec.ts:574:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket
+EVIDENCE files-503 {"posts":1,"responses":[{"status":503,"code":"EXTRACTION_NOT_CONFIGURED"}]}
+
+[6/15] [chromium] › e2e/ticket-map.spec.ts:369:1 › A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload
+[chromium] › e2e/ticket-map.spec.ts:369:1 › A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload
+{"level":30,"time":1791119688670,"pid":4375,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:57283"}
+
+[7/15] [chromium] › e2e/ticket-map.spec.ts:587:1 › G1 race: tạo con và dependency đồng thời khi sơ đồ mở — không cạnh treo, bảng/danh sách/sơ đồ cùng revision cuối
+[8/15] [chromium] › e2e/ticket-map.spec.ts:663:1 › 390px và 640px (tương đương zoom 200%): danh sách tương đương, không tràn ngang, mở dialog chung
+[9/15] [chromium] › e2e/ticket-map.spec.ts:690:1 › hiệu năng: 200 bước / 600 task — sơ đồ dùng được lần đầu ≤ 2s trên máy fixture
+[10/15] [chromium] › e2e/ticket-routes.spec.ts:40:1 › deep link /tickets/<id>: guest quay về đúng trang sau đăng nhập, reload vẫn giữ trang, GET ticket sau catch-up
+[chromium] › e2e/ticket-routes.spec.ts:40:1 › deep link /tickets/<id>: guest quay về đúng trang sau đăng nhập, reload vẫn giữ trang, GET ticket sau catch-up
+{"level":30,"time":1791119714051,"pid":5271,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:58353"}
+
+[11/15] [chromium] › e2e/ticket-routes.spec.ts:68:1 › id không tồn tại hoặc không phải UUID hiện view không tìm thấy, không lộ dữ liệu
+[12/15] [chromium] › e2e/ticket-routes.spec.ts:81:1 › bảng/danh sách giữ view và bộ lọc trên URL, dialog dùng chung, nút quay lại từ trang ticket
+[13/15] [chromium] › e2e/ticket-routes.spec.ts:133:1 › đăng xuất xóa bản nháp: reload không mở ticket rồi logout; logout xong reload ở guest
+[14/15] [chromium] › e2e/tickets.spec.ts:256:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus
+[chromium] › e2e/tickets.spec.ts:256:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus
+{"level":30,"time":1791119718597,"pid":5502,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:59070"}
+
+[15/15] [chromium] › e2e/tickets.spec.ts:358:1 › “Tạo yêu cầu” trên bảng: form project/loại/tiêu đề/workflow, Superpowers mặc định, đóng vẫn giữ bản nháp
+  15 passed (1.2m)
+exit=0
