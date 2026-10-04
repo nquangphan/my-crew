@@ -109,3 +109,12 @@ Task 3 D2: complete — 57601b9.
 Task 3 D2: minor (deferred): script `_bmad/scripts/*.py` chọn không kiểm `entry.type`, symlink trả errno thô thay WORKFLOW_SKILL_MISMATCH (`workflow-manifest.ts:186`).
 Task 3 D2: minor (deferred): adapter chưa áp giới hạn D1 (≤128 file, tên ≤512, acceptedBmadSourceTree, size) — nên export validator thuần từ D1 (`workflow-manifest.ts:166-206`); nên làm trong S6 trước receipt.
 Task 3 D2: minor (deferred): ghi chú BMAD chỉ claude — đã khép bằng ruling trên.
+
+11:05 04/10 S1/B2b-i full review `task-2-slice-b2b-i-review.md`: Spec ✅, Approved, Critical0/Important0/Minor4/⚠️3.
+Task 2 Slice B2b-i: complete — e9cdd37.
+Task 2 B2b-i: minor (scheduled S2): M1 scoped signal tự dựng lock/token thay vì `access.prepare` B2a, thiếu recheck root/project dưới lock và consumeAssistantScope (`service.ts:359–376,509–550`) — S2 được release thêm để gộp về prepare/authorize/consume.
+Task 2 B2b-i: minor (deferred): M2 guard verifiedSignals/continuationDecisionId không có test trực tiếp (`service.ts:423–435`).
+Task 2 B2b-i: minor (deferred): M3 flow server-tickets.md số bước lặp "8.", "trả503" (`:22,24,28,30`).
+Task 2 B2b-i: minor (deferred): M4 test serialize một chiều và dùng sleep(200) (`assistant-mutations.test.ts:991`).
+Ruling: ⚠️W1 wait_owner trên ready không retire start command chưa claim → checklist T4 (retirement R4). ⚠️W2 dò trạng thái trước verify → đã có ruling chống dò ở transport (A2) cho B3. ⚠️W3 M2 còn ở decisions/dependencies → gộp trong S2 khi đụng prepare.
+Dispatch S2 (T2-C positive resolver + orchestration port) theo memo A3/S2, thêm license gộp B2b-i M1 + B2a M2 vào `access.prepare`.
