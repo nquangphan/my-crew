@@ -136,3 +136,10 @@ S4 (createRun + latchRenderedArtifact) chờ S2 review khép.
 15:40 S2 security review `task-2-c-review.md`: Spec gần đạt (lệch A2), Needs fixes, Important2/Minor3/⚠️5. Captured target xác nhận không cấp quyền. FIX1/5 resume implementer: I1 operation dùng nhiều lần/khác Tx, I2 resolver không kiểm grant, nâng M1 (test deny thiếu) + M2 (for share input_revision), M3 tùy.
 Ruling (brief B3/B4 bắt buộc): W4 caller port phải giữ `event_cursor` trước như mutate() — gọi trong Tx trần có thể deadlock với ingestEvents; W5 router B4 không ghi decision trong savepoint và ghi decision trước khi tăng input_revision của message; cùng request_hash ↔ targetSha256 binding và chống dò tồn tại ở transport.
 Ruling: W1 test sai deployment bằng session_replication_role=replica chấp nhận — mô phỏng row import.
+
+16:50 S2 FIX1 `c54efb5` security re-review `task-2-c-fix1-re-review.md`: Approved; I1/I2/M1/M2/M3 ADDRESSED; không deadlock với re-route, consumed không rò Tx, mã lỗi không giúp dò.
+Task 2 Slice C (S2): complete — c54efb5 (3fddbeb + c54efb5). Production vẫn 503 (port chưa inject).
+Task 2 C: minor (deferred): N1 danh sách operation consumed theo instance port — ràng buộc "một port mỗi assembly" vào checklist T7 hoặc đưa lên module.
+Task 2 C: minor (deferred): N3 thiếu test deny riêng cho lệch designation/revision vs fence và snapshot grant ≠ session.
+Ruling (brief B3 bắt buộc, thêm): N2 kiểm `xmin` = lần ghi cuối trong Tx — transport replay chỉ đọc kết quả đã lưu, KHÔNG UPDATE/upsert lại row pending cũ. Phase05/T5 owner: writer re-route `attachments/routing.ts` nên chuyển session reserved cho nhất quán (resolver đã deny qua grant).
+Dispatch S4 (T3-S1 createRun + latchRenderedArtifact) — S2 và S3b đã khép.
