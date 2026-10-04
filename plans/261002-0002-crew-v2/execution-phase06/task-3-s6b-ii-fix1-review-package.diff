@@ -1,0 +1,773 @@
+cf78d0f fix(v2): từ chối _bmad tracked khi prepare BMAD và làm chặt probe, cleanup render
+ v2/docs/flows/assistant-workflows.md        |   4 +-
+ v2/docs/flows/gateway-host.md               |   2 +-
+ v2/docs/flows/gateway-workflows.md          |   4 +-
+ v2/gateway/src/assistant/render-executor.ts |  47 +++++++----
+ v2/gateway/src/isolation/workspace.ts       |   8 ++
+ v2/gateway/src/sync/gateway-sync.ts         |   2 +-
+ v2/gateway/test/isolation-render.test.ts    | 123 +++++++++++++++++++++-------
+ v2/gateway/test/render-executor.test.ts     |  46 ++++++++---
+ v2/gateway/test/sync.test.ts                |  23 +++++-
+ 9 files changed, 194 insertions(+), 65 deletions(-)
+diff --git a/v2/docs/flows/assistant-workflows.md b/v2/docs/flows/assistant-workflows.md
+index a4f7e1c..011b8d2 100644
+--- a/v2/docs/flows/assistant-workflows.md
++++ b/v2/docs/flows/assistant-workflows.md
+@@ -22,18 +22,18 @@ Gắn định nghĩa workflow với đúng source và projection bất biến tr
+ 2. Chọn các `skills/*/SKILL.md` từ manifest source chính thức. Mỗi path phải là regular file trong cả source và projection, có cùng SHA-256. Adapter đọc lại bytes ở hai root, kiểm hash thực tế và so toàn bộ manifest source/projection với pin. File được mở với `O_NOFOLLOW | O_NONBLOCK`; `fstat` loại FIFO và file không regular trước khi đọc; FD được đóng trong `finally`.
+ 3. `customizationSha256` là SHA-256 của canonical `{schema: 'crew-v2:workflow-customization:1', workflow, sourceTreeSha256, projectionTreeSha256, layers}`. Superpowers có `layers = {}`: projection đã pin không chứa layer tùy biến nào, và phát biểu đó gắn vào `projectionTreeSha256`, nên đổi projection thì đổi digest; thứ tự key không ảnh hưởng. BMAD có đủ 7 layer path (SHA-256 hoặc `null`) đo từ projection. Hàm kiểm lại pin, từ chối source/projection lệch nhau, layer thừa/thiếu và layer bắt buộc bằng `null`.
+ 4. BMAD chỉ nhận runtime `claude`. Từ manifest projection, adapter chọn mọi file `.md` dưới `.claude/skills/bmad-build/` (kể cả thư mục con, không lấy `bmad-build-auto`), `customize.toml` và `_bmad/scripts/{render_skill,config_utils}.py`. Thiếu `SKILL.md`, `workflow.md`, `customize.toml`, một trong hai script, layer bắt buộc `_bmad/config.toml`, hoặc gặp symlink/không phải file ở cây skill hay layer path đều trả `WORKFLOW_SKILL_MISMATCH`. Script không phải file thường cũng trả `WORKFLOW_SKILL_MISMATCH`. Trước khi đọc bytes, adapter gọi `validateRenderDefinition` với kích thước khai trong manifest: quá 128 file được chọn, tên `.md` dài hơn 512 ký tự hoặc chưa chuẩn hóa, source tree khác cây BMAD đã chấp nhận, file trên 16 MiB hoặc tổng trên 32 MiB đều bị từ chối bằng mã của bộ kiểm tra (`RENDER_ARTIFACT_MISMATCH`/`RENDER_ARTIFACT_TOO_LARGE`), nên adapter không trả định nghĩa mà bộ kiểm tra luôn từ chối. Mọi file được chọn và mọi layer có mặt được đọc lại bytes thật trong projection root; kích thước thật phải bằng kích thước đã pin. `skills` là các `.md` được chọn trừ `SKILL.md`. `render = {source, projection, selectedProjectionSha256, layers}` đúng bằng expectation của bộ kiểm tra artifact khi bỏ `projectRoot`/`generationRoot` do host gắn sau.
+ 5. `sha256` của định nghĩa là SHA-256 của canonical `{source, projection, skills, customizationSha256, render}` (Superpowers: `render = null`). Identity này chỉ chứng minh định nghĩa manifest đã đọc; nó không cấp quyền chạy model, phát lệnh hay chứng nhận runtime isolation. Adapter không chạy renderer, `uv` hay process con nào.
+ 6. Bộ kiểm tra artifact nhận byte manifest, projected sources, config layers và output. Nó từ chối proxy/accessor trước khi đọc, giới hạn tổng byte trước copy và kiểm hai quan sát của cùng `customize.toml` nhất quán. Path identity phải là Unicode hợp lệ; manifest schema1 và generation identity khớp canonical JSON của renderer Python. `resolved_values` chỉ nhận key từ token source đã chụp và loại scalar/string-list/review-layer chính thức của exact BMAD tree được chấp nhận. Unknown pin/category, key thừa hoặc short token mơ hồ đều bị từ chối.
+ 7. Adapter không còn trả `RENDER_ARTIFACT_REQUIRED`. Việc từ chối BMAD chưa có artifact thuộc server: run BMAD được tạo với `rendered_artifact_id = null` và admission từ chối dispatch khi giá trị này còn `null`. Không dùng hash/path do client khai báo làm bằng chứng renderer.
+    - Executor render BMAD chạy trên máy B. Định nghĩa không có `render` (Superpowers) trả `RENDER_NOT_BMAD` mà không đặt chỗ hay spawn gì. Trước mọi effect, executor kiểm `attemptId`/`operationId` là UUID chữ thường, `projectRoot`, `path`/`realpath` của `uv` và của Python là path tuyệt đối đã chuẩn hóa, sha256 là hex 64 ký tự, version là ASCII in được 1–128 ký tự, không có ký tự điều khiển, `"` hay `\`, tên thư mục project là ASCII in được (`RENDER_REQUEST_INVALID`). Nó chụp định nghĩa, chạy `validateRenderDefinition`, tính lại `customizationSha256` và `sha256` theo đúng công thức của adapter (`RENDER_DEFINITION_MISMATCH`). `projectRoot` phải là thư mục thật và bằng `realpath` của chính nó (`RENDER_PROJECT_ROOT_MISMATCH`). Closure quanh renderer phải đúng projection: `_bmad/scripts/` chỉ có `render_skill.py` và `config_utils.py` (script đứng đầu `sys.path`, nên module thừa như `json.py` hay `__pycache__` sẽ chạy thay stdlib), `_bmad/` chỉ có `scripts`, `render`, `custom` và các layer config đã khai, `_bmad/custom/` chỉ có layer đã khai, thư mục skill đúng tập file được chọn; symlink hay file đặc biệt ở các chỗ này đều bị từ chối. Mọi file được chọn và 7 layer được đọc trong `projectRoot` không theo symlink ở bất kỳ cấp nào (file thường, một link, có giới hạn byte) và phải khớp hash của định nghĩa, layer vắng phải vẫn vắng (`RENDER_INPUT_MISMATCH`). `uv` và Python được resolve `realpath` (chấp nhận symlink kiểu Homebrew); kết quả phải bằng `realpath` mà install report đã ghi và file thật ≤256 MiB phải khớp SHA-256 đã ghi (`RENDER_UV_UNAVAILABLE`, `RENDER_PYTHON_UNAVAILABLE`); chính file `uv` đó được chạy, còn file Python đó được ghim qua `UV_PYTHON`. `witness.uvPath` giữ path đã ghi, `argv[0]` là path đã resolve. Phiên bản `uv`/Python chỉ chuyển tiếp từ install report, không đo lại. `argv[0]` không tự chứng minh điều gì; bằng chứng về `uv` là `uvSha256`, đo trên chính file đã được thực thi, nên server không được coi `argv[0]` là bằng chứng. Các bước này không spawn gì.
+    - Executor chạy đúng một lần argv chính thức `uv run --no-cache {root}/_bmad/scripts/render_skill.py --project-root {root} --skill {root}/.claude/skills/bmad-build` qua `OwnedOperations.executeTree` trên stage riêng `stages/render-{operationId}`: `uv` luôn chạy Python như process con, nên chỉ chế độ cây tiến trình (session riêng, phải rỗng khi leader thoát) mới cho receipt được. Owned root phải canonical (`realpath`) để profile sandbox khớp path của stage, nếu không thì `RENDER_OPERATION_UNAVAILABLE`. `journal.blocked()` báo còn stage render chưa đối soát thì trả `RENDER_RECONCILE_REQUIRED` trước mọi thao tác. Receipt `receipts/render-{op}.json`, bản ghi leader `receipts/render-{op}.leader` hay stage đã tồn tại (helper thoát 22) thì trả `RENDER_OPERATION_REUSED`, không chạy lại; owned root đang bị thao tác khác khóa (helper thoát 20) thì trả `RENDER_OPERATION_BUSY`; guard `.operations.guard` không phải file riêng hợp lệ (thoát 24) thì trả `RENDER_OPERATION_GUARD_INVALID`. Mỗi bước được ghi bền qua `journal.record(operationId, {state, stageIdentity, leader, receipt, error})`: `reserved` trước khi tạo stage, `pending` khi stage có, `complete` khi vòng đời con đã chứng minh (hoặc con chưa từng chạy), `unknown` khi không, `deleted` khi stage đã thu hồi; ghi lỗi trước khi spawn thì thu hồi stage và trả `RENDER_OPERATION_UNAVAILABLE`. Thao tác owned cấp env riêng (HOME/XDG/TMPDIR trong stage, `PATH=/usr/bin:/bin`), giới hạn thời gian (mặc định 60 s, tối đa 120 s), giới hạn ghi và theo dõi process; executor thêm `UV_OFFLINE=1`, `UV_NO_CONFIG=1`, `UV_PYTHON_DOWNLOADS=never`, `UV_PYTHON={realpath Python}`, `PYTHONDONTWRITEBYTECODE=1` (env, không đổi argv) và profile `sandbox-exec` cấm mọi network, chỉ cho ghi vào stage và `{root}/_bmad/render`. `EXECUTOR_BUSY` hay `EXECUTOR_GUARD_INVALID` từ `executeTree` nghĩa là helper từ chối trước khi fork, nên stage được thu hồi ngay (bản ghi `complete` không receipt rồi `deleted`) và trả `RENDER_OPERATION_BUSY`/`RENDER_OPERATION_GUARD_INVALID`. Thao tác báo không chứng minh được vòng đời con trả `RENDER_LIFETIME_UNKNOWN`; helper lỗi khác trả `RENDER_OPERATION_UNAVAILABLE`; hai trường hợp này ghi `unknown` kèm nội dung `.leader`, giữ stage và bản ghi leader lại để đối soát. Timeout ở chế độ cây chỉ có receipt khi helper đã chứng minh session rỗng, nên stage được thu hồi như HALT thường. Hết giờ trả `RENDER_TIMED_OUT`, exit 127 trả `RENDER_UV_UNAVAILABLE`, exit khác 0 trả `RENDER_EXIT_NONZERO`.
+-   - Install report đo prerequisites bằng `probeRenderPrerequisites` trong môi trường owner (không shell; env của owner cộng `UV_OFFLINE=1`, `UV_PYTHON_DOWNLOADS=never`; mỗi lệnh ≤10 s, stdout ≤64 KiB): `realpath` và SHA-256 (≤256 MiB) của `uv`, `uv --version`, rồi `uv python find --script {projectionRoot}/_bmad/scripts/render_skill.py` để lấy đúng interpreter mà `uv run` của runtime sẽ chọn, `realpath`/SHA-256 của nó và `-c 'import sys;print(sys.version.split()[0])'`. Output phải là một dòng ASCII in được, path tuyệt đối đã chuẩn hóa (`RENDER_PREREQUISITE_INVALID`); phiên bản phải là CPython 3.11 trở lên vì renderer cần `tomllib` (`RENDER_PYTHON_UNSUPPORTED`); lệnh hay file lỗi trả `RENDER_UV_UNAVAILABLE`/`RENDER_PYTHON_UNAVAILABLE`. Executor dùng đúng bộ `{path, realpath, sha256, version}` này.
+-   - Output gộp stdout/stderr (≤64 KiB) phải đúng một dòng `read and follow {G}/workflow.md`, với `G = {root}/_bmad/render/bmad-build/{slug}-{sha256(root)[:12]}/{20 hex}` và `{G}/workflow.md` là file thường (`RENDER_STDOUT_MISMATCH`). Thư mục generation chỉ được chứa `manifest.json` và đúng các output tên theo source `.md` (không symlink, không file thừa). Trước lần kiểm closure đầu, executor tạo `{root}/_bmad/render` nếu chưa có rồi ghi lại `dev/ino/mtime/ctime` (ns) và kích thước của project root, `.claude`, `.claude/skills`, `_bmad`, `_bmad/scripts`, `_bmad/custom` (hoặc việc nó vắng), từng file nằm trực tiếp trong ba thư mục `_bmad` đó, và mọi thư mục cùng file trong cây skill. Closure được kiểm lại sau khi chạy và các giá trị này phải không đổi, nên file được thêm rồi xóa, hay file bị ghi đè rồi trả lại đúng bytes cũ giữa hai lần kiểm, cũng bị bắt (`RENDER_ARTIFACT_MISMATCH`). Executor đọc lại input sau khi chạy rồi đưa cả bộ bytes cho bộ kiểm tra artifact; lệch bất kỳ, kể cả generation khác hash thật hay layer đổi trong lúc render, trả `RENDER_ARTIFACT_MISMATCH`. Executor không bao giờ ghi vào generation, nên lần render thứ hai gặp generation byte-identical để renderer chính thức tự kiểm và giữ nguyên. Mọi HALT sau khi đã có `execution.log` trả kèm `log = {sha256, firstLine, lastLine}`: digest của toàn bộ log và dòng không rỗng đầu tiên, cuối cùng đã làm sạch. Dòng cuối lấy từ 4 KiB cuối của log; nếu cửa sổ này không bắt đầu ở đầu file thì phần dòng dở đầu cửa sổ bị bỏ, nên dòng cuối dài hơn cửa sổ trả rỗng thay vì một mảnh giữa dòng. Cách làm sạch: path đã biết thành nhãn như `{project-root}`, `{uv}`, `{python}`, chỉ giữ phần đuôi gồm ký tự path thường (`A-Za-z0-9._/-`), nên `?token=…` sau path vẫn qua luật credential; `Bearer …` và giá trị của trường có tên chứa `token`, `secret`, `password`/`passwd`, `credential`, hoặc `key` là một từ riêng (`api_key`, `ACCESS_KEY`, `key`) hay hậu tố camel-case (`apiKey`) dạng `name: value` hay `name=value`, cùng mọi `NAME=value`, bị thay bằng `{redacted}`, còn `KeyError`, `keyword` giữ nguyên; mọi path `/…` hay `~/…` khác thành `{path}` bất kể ký tự đứng trước, kể cả backtick hay ngoặc; chỉ ASCII in được, ≤256 ký tự; vẫn là text không tin cậy), tính trước khi stage bị thu hồi. Stage chỉ bị thu hồi khi thao tác owned đã chứng minh process con đóng; thu hồi xóa stage rồi xóa `receipts/render-{op}.leader` (file thường, một link, cùng uid), còn `render-{op}.json` giữ lại làm bằng chứng operation đã chạy; thu hồi lỗi trả `RENDER_CLEANUP_FAILED`. Thành công trả `{kind: 'workflow_render_receipt', attemptId, data: {definitionSha256, customizationSha256, projectRoot, generationPath, inspection, witness: {uvPath, uvSha256, uvVersion, python: {path, sha256, version}, argv, exitCode, stdoutPath, startedAt, endedAt, operationId}}}`; `witness.python` là nhân chứng, không thuộc identity của generation (renderer không băm phiên bản Python); `witness.argv` là argv `uv` chính thức, không gồm lớp `env`/`sandbox-exec`. Executor không gọi server; receipt chỉ là object để lát đăng ký gửi đi.
++   - Install report đo prerequisites bằng `probeRenderPrerequisites` trong môi trường owner (không shell; cwd là `projectionRoot` — `uv` đọc `.python-version`/`.venv` theo cwd và thư mục cha, projection root không có hai thứ này, giống workspace của dự án không ghim interpreter, nên cwd của gateway không ảnh hưởng; env của owner cộng `UV_OFFLINE=1`, `UV_PYTHON_DOWNLOADS=never`; mỗi lệnh ≤10 s, stdout ≤64 KiB): `realpath` và SHA-256 (≤256 MiB) của `uv`, `uv --version`, rồi `uv python find --script {projectionRoot}/_bmad/scripts/render_skill.py` để lấy đúng interpreter mà `uv run` của runtime sẽ chọn, `realpath`/SHA-256 của nó và `-c 'import sys;print(sys.implementation.name, sys.version.split()[0])'`, chỉ nhận `cpython`. Output phải là một dòng ASCII in được, path tuyệt đối đã chuẩn hóa (`RENDER_PREREQUISITE_INVALID`); implementation phải là CPython và phiên bản từ 3.11 vì renderer cần `tomllib` (PyPy, GraalPy hay CPython cũ trả `RENDER_PYTHON_UNSUPPORTED`); lệnh hay file lỗi trả `RENDER_UV_UNAVAILABLE`/`RENDER_PYTHON_UNAVAILABLE`. Executor dùng đúng bộ `{path, realpath, sha256, version}` này.
++   - Output gộp stdout/stderr (≤64 KiB) phải đúng một dòng `read and follow {G}/workflow.md`, với `G = {root}/_bmad/render/bmad-build/{slug}-{sha256(root)[:12]}/{20 hex}` và `{G}/workflow.md` là file thường (`RENDER_STDOUT_MISMATCH`). Thư mục generation chỉ được chứa `manifest.json` và đúng các output tên theo source `.md` (không symlink, không file thừa). Trước lần kiểm closure đầu, executor tạo `{root}/_bmad/render` nếu chưa có rồi ghi lại `dev/ino/mtime/ctime` (ns) và kích thước của project root, `.claude`, `.claude/skills`, `_bmad`, `_bmad/scripts`, `_bmad/custom` (hoặc việc nó vắng), từng file nằm trực tiếp trong ba thư mục `_bmad` đó, và mọi thư mục cùng file trong cây skill. Closure được kiểm lại sau khi chạy và các giá trị này phải không đổi, nên file được thêm rồi xóa, hay file bị ghi đè rồi trả lại đúng bytes cũ giữa hai lần kiểm, cũng bị bắt (`RENDER_ARTIFACT_MISMATCH`). Executor đọc lại input sau khi chạy rồi đưa cả bộ bytes cho bộ kiểm tra artifact; lệch bất kỳ, kể cả generation khác hash thật hay layer đổi trong lúc render, trả `RENDER_ARTIFACT_MISMATCH`. Executor không bao giờ ghi vào generation, nên lần render thứ hai gặp generation byte-identical để renderer chính thức tự kiểm và giữ nguyên. Mọi HALT sau khi đã có `execution.log` trả kèm `log = {sha256, firstLine, lastLine}`: digest của toàn bộ log và dòng không rỗng đầu tiên, cuối cùng đã làm sạch. Dòng cuối lấy từ 4 KiB cuối của log; nếu cửa sổ này không bắt đầu ở đầu file thì phần dòng dở đầu cửa sổ bị bỏ, nên dòng cuối dài hơn cửa sổ trả rỗng thay vì một mảnh giữa dòng. Cách làm sạch: path đã biết thành nhãn như `{project-root}`, `{uv}`, `{python}`, chỉ giữ phần đuôi gồm ký tự path thường (`A-Za-z0-9._/-`), nên `?token=…` sau path vẫn qua luật credential; `Bearer …` và giá trị của trường có tên chứa `token`, `secret`, `password`/`passwd`, `credential`, hoặc `key` là một từ riêng (`api_key`, `ACCESS_KEY`, `key`) hay hậu tố camel-case (`apiKey`) dạng `name: value` hay `name=value`, cùng mọi `NAME=value`, bị thay bằng `{redacted}`, còn `KeyError`, `keyword` giữ nguyên; mọi path `/…` hay `~/…` khác thành `{path}` bất kể ký tự đứng trước, kể cả backtick hay ngoặc; chỉ ASCII in được, ≤256 ký tự; vẫn là text không tin cậy), tính trước khi stage bị thu hồi. Stage chỉ bị thu hồi khi thao tác owned đã chứng minh process con đóng; thu hồi xóa stage (bỏ qua nếu stage đã vắng, để lần thu hồi lại chỉ còn dọn bản ghi leader) rồi xóa `receipts/render-{op}.leader` (file thường, một link, cùng uid), còn `render-{op}.json` giữ lại làm bằng chứng operation đã chạy; thu hồi lỗi trả `RENDER_CLEANUP_FAILED`. Thành công trả `{kind: 'workflow_render_receipt', attemptId, data: {definitionSha256, customizationSha256, projectRoot, generationPath, inspection, witness: {uvPath, uvSha256, uvVersion, python: {path, sha256, version}, argv, exitCode, stdoutPath, startedAt, endedAt, operationId}}}`; `witness.python` là nhân chứng, không thuộc identity của generation (renderer không băm phiên bản Python); `witness.argv` là argv `uv` chính thức, không gồm lớp `env`/`sandbox-exec`. Executor không gọi server; receipt chỉ là object để lát đăng ký gửi đi.
+ 8. `createRun` kiểm input, khóa root (phải là request) rồi project, rồi mới gọi resolver Actor persisted (turn chưa admit 503, admission lệch 403, không ghi row). Actor luôn là máy Trợ lý A do resolver trả, không lấy từ caller.
+ 9. Definition tra theo máy B đang gắn với project. Lookup chỉ đọc `gateway_applied.workflow_status` của máy đó: slot projection và slot source phải `current`, digest phải tính lại đúng trên pin của slot, skills, customization và render. Không suy definition từ applied revision. BMAD chỉ có ở runtime `claude` và luôn có `render`; Superpowers không có `render`. Hash không có, slot không current, digest lệch hoặc chỉ máy khác báo đều trả 422 `WORKFLOW_DEFINITION_UNKNOWN`. Definition khác workflow của path trả 422 `WORKFLOW_PATH_MISMATCH`; nguồn của một bước không có trong definition trả 422 `WORKFLOW_SKILL_MISSING`. Pin hoặc `workflowChoice` của root khác workflow trả 409; root đã có run trả 409 `WORKFLOW_RUN_EXISTS`.
+ 10. Graph là bảng ánh xạ cố định từ nguồn đã pin (bảng bên dưới). Mỗi bước là một ticket `step` con của root với `stepOperationId` cấp trước. Criteria của ticket ghi `workflowRun = {runId, path, stepKey, stepOperationId, sourcePath, citation, gates:[{id, kind, requiredActor, trigger, citation}]}`. `trigger` là `on_stage` (run nào cũng qua) hoặc `after_three_failed_fixes` (gate `architecture_discussion`, chỉ materialize sau ba lần sửa hỏng). Bước execution của architectural còn có `executionChoices` (skill, source path, SHA của từng lựa chọn) và `resolvedByGateId` = gate kế hoạch; bước này chưa dispatch được khi gate chưa chọn. UUID gate được giữ chỗ trong `workflow_steps.gate_ids`; không tạo `workflow_gates` khi chưa có artifact. Mặc định tuần tự: mỗi bước chỉ chờ bước liền trước.
+ 11. Chạy song song chỉ khi `assistant_config.policy.parallelApprovalId` trỏ tới quyết định `approval` của owner trong cùng root, với `scope.parallel = {rootTicketId, path, definitionSha256, units:[{key,title,ownershipKeys}]}` khớp chính yêu cầu. Quyết định của root khác không phải override cho root này: run chạy tuần tự, `parallel_approval_id` null. Trong cùng root, quyết định không phải `approval` của owner trả 403 `WORKFLOW_PARALLEL_APPROVAL_INVALID`. Scope lệch hoặc path khác `bounded` trả 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH` (duyệt song song cho architectural cần kế hoạch đã viết, thuộc gate kế hoạch); danh sách `units` (có thể kèm `dependsOn`) đi qua luật chung `parallelUnits` của `gates.ts` (bước 17), nên path trùng hoặc lồng nhau trả 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`, phụ thuộc trả 409 `WORKFLOW_PARALLEL_DEPENDENCY`. Khi hợp lệ, bước triển khai tách thành từng phần với `stepOperationId` và ownership riêng, cùng chờ bước trước; bước review chờ đủ mọi phần.
+ 12. Mọi ID của run (run, step, `stepOperationId`, gate, khóa cạnh) được dẫn xuất từ `operationId` của proof, nên graph là hàm thuần của operation, input và các row đã đọc. `runs.createRunRequest(tx, operationId, input)` trả đúng request `{action:'create_run', payload:{rootTicketId, path, definitionSha256, graphSha256}}` mà transport băm vào `request_hash`. `createRun` dựng lại graph, rồi trong một savepoint nội bộ gọi `port.authorizeGraph(sp, actor, proof, input, graph)` một lần; port tự tính lại digest và so `request_hash`. Lỗi bất kỳ sau lần ghi đầu (lỗi JS của port hay lỗi DB) rollback toàn bộ ghi của `createRun` và cả lần dùng operation, transaction của caller vẫn dùng được. Trong savepoint: insert `workflow_runs` (revision 1, `rendered_artifact_id` null). Mỗi ticket con đi qua session của port; sau khi ticket và step tồn tại thì ghi `assistant_operation_ids` (`action_kind='create_ticket'`, `target_identity` = ticket ID). Mỗi cạnh dependency cũng đi qua session rồi ghi operation riêng (`target_identity = ticketId:predecessorId`). `precondition_sha256` là hash của graph; `effect_id = sha256(canonicalJson([runId, stepOperationId, actionKind, targetIdentity, preconditionSha256]))`, cùng công thức `deriveEffectId` của gateway. Session phải được `close` với mọi phần tử đã dùng.
+ 13. `latchRenderedArtifact` chỉ cho run `bmad-*` chưa latch (409 `WORKFLOW_RENDER_NOT_REQUIRED` / `WORKFLOW_RENDER_ALREADY_LATCHED`). Evidence phải là `workflow_render_receipt` có attempt. Attempt phải thuộc ticket bước của chính run, đang `active`, cùng máy và `binding_revision` hiện hành của project. `definitionSha256` và `customizationSha256` trong `data` phải khớp run. `generationPath` phải đúng `{projectRoot}/_bmad/render/bmad-build/{slug}-{sha256(projectRoot)[:12]}/{20 hex}` như renderer chính thức. Lệch bất kỳ điều nào trả 409 `WORKFLOW_RENDER_RECEIPT_INVALID`. Đúng thì set `rendered_artifact_id` và tăng revision trong cùng một câu UPDATE có điều kiện. Server chưa có bản ghi workspace nên chưa đối chiếu được `projectRoot` với workspace thật; việc đó thuộc lát đăng ký receipt trên máy B.
+ 
+ 14. `createOwnerQuestion` là tool `ask_owner` của Trợ lý. Câu hỏi phải gắn một ticket (thiếu thì 422 `WORKFLOW_QUESTION_TICKET_REQUIRED`). Thứ tự khóa root → project → resolver Actor persisted, rồi scope của proof phải đúng root và có tool `ask_owner` (thiếu thì 403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`). Row operation pending phải được ghi trong chính Tx, cùng turn và snapshot của scope, với `request_hash = operationRequestSha256({action:'ask_owner', payload: proposal})` trên đúng proposal đã gửi; lệch thì 403 `ORCHESTRATION_REQUEST_MISMATCH`, row từ Tx trước thì 404. ID câu hỏi dẫn xuất từ `operationId`, nên một operation chỉ hỏi được một lần (lần hai 409 `ASSISTANT_OPERATION_CONSUMED`). `conversationId` phải là hội thoại của turn đang hỏi.
+diff --git a/v2/docs/flows/gateway-host.md b/v2/docs/flows/gateway-host.md
+index e0dc2af..6baed47 100644
+--- a/v2/docs/flows/gateway-host.md
++++ b/v2/docs/flows/gateway-host.md
+@@ -32,17 +32,17 @@ Các API dưới đây là nền tảng Task 2; `GatewayHost` hiện chưa tự
+ 7. `gateway/src/telemetry/capacity.ts`, `gateway/src/telemetry/macos-provider.ts` → `DispatchCapacity.sampleAndDecide`, `MacOsTelemetryProvider.sample`: sample mới cho mỗi implement/review/fix; `os.loadavg`, `availableParallelism`, `vm_stat`, `sysctl kern.memorystatus_vm_pressure_level`, `statfs` và process registry. Tuổi monotonic/wall quá 15 giây, thiếu sample, pressure warn/critical, RAM <2 GiB, disk <5 GiB, load/CPU >1, vượt min(configured/request max jobs) hoặc ownership key trùng đều chờ. Capacity chỉ là advisory để phase06 lưu rationale/decision, không tự claim.
+ 
+ ### Đồng bộ, command bridge và retirement (Task 5)
+ 
+ `GatewayConnection` giữ boot CAS và heartbeat body/sequence/key bền vững qua mất reply; boot ID khác
+ bắt buộc reconcile. `GatewayEventPump` dùng SSE làm tín hiệu thức dậy, fallback poll `/v2/events` và chỉ
+ commit cursor sau reconcile thành công. `GatewaySync` đọc desired trước command, lưu từng command theo
+ machine/ID trước cursor; nguồn hoặc projection lỗi giữ received, báo partial và retry backoff có base tối đa 60 giây và jitter 0,75–1,25 (trần thực 75 giây).
+-Khi `SyncOptions.definitions` được cấp (thường là `createWorkflowManifest(registry)`), mỗi projection vừa báo `current` được gắn thêm `definition` `{sha256, skills, customizationSha256}` (kèm `render` nếu BMAD claude có) do `loadDefinition` trả; definition không có sẵn (BMAD ngoài claude, lỗi đọc) thì slot vẫn `current` nhưng không có trường này. Chỉ `WORKFLOW_DEFINITION_UNAVAILABLE` được bỏ qua; lỗi khác (ví dụ `WORKFLOW_SKILL_MISMATCH`) đưa slot sang `error` với `DEFINITION_FAILED` và mã lỗi đã lọc. Không cấp `definitions` thì report giữ nguyên hình dạng cũ. Khi `SyncOptions.prerequisites` được cấp (thường là `probeRenderPrerequisites` với đường dẫn `uv` của owner) và definition có `render` (BMAD claude), sync gọi nó với `projectionRoot` của projection đó và gắn thêm `prerequisites = {uv, python}`, mỗi phần là `{path, realpath, sha256, version}`; trường này additive, không đổi `definition` nên phép so definition của server không đổi. Đo lỗi (máy chưa có `uv` hay Python ≥3.11) chỉ bỏ trường, slot vẫn `current` với definition. Server hiện dùng schema strict cho install report nên chưa nhận trường này; host chưa cấp option cho tới khi schema server mở (lát đăng ký receipt). Mỗi report mới có ID riêng; report mất reply dùng đúng body/key cũ. Revision bị thay thế hoàn tất command cũ
++Khi `SyncOptions.definitions` được cấp (thường là `createWorkflowManifest(registry)`), mỗi projection vừa báo `current` được gắn thêm `definition` `{sha256, skills, customizationSha256}` (kèm `render` nếu BMAD claude có) do `loadDefinition` trả; definition không có sẵn (BMAD ngoài claude, lỗi đọc) thì slot vẫn `current` nhưng không có trường này. Chỉ `WORKFLOW_DEFINITION_UNAVAILABLE` được bỏ qua; lỗi khác (ví dụ `WORKFLOW_SKILL_MISMATCH`) đưa slot sang `error` với `DEFINITION_FAILED` và mã lỗi đã lọc. Không cấp `definitions` thì report giữ nguyên hình dạng cũ. Khi `SyncOptions.prerequisites` được cấp (thường là `probeRenderPrerequisites` với đường dẫn `uv` của owner) và definition có `render` (BMAD claude), sync gọi nó với `projectionRoot` của projection đó và gắn thêm `prerequisites = {uv, python}`, mỗi phần là `{path, realpath, sha256, version}`; trường này additive, không đổi `definition` nên phép so definition của server không đổi. Đo lỗi (máy chưa có `uv` hay CPython ≥3.11) hoặc tra `projectionRoot` lỗi chỉ bỏ trường, slot vẫn `current` với definition. Server hiện dùng schema strict cho install report nên chưa nhận trường này; host chưa cấp option cho tới khi schema server mở (lát đăng ký receipt). Mỗi report mới có ID riêng; report mất reply dùng đúng body/key cũ. Revision bị thay thế hoàn tất command cũ
+ với SUPERSEDED; revision mới dùng command mới. Namespace sync_models thuộc consumer riêng.
+ Config và command là hai GET riêng: command có revision cao hơn snapshot phải chờ pass mới;
+ chỉ revision thấp hơn desired hiện hành mới được SUPERSEDED.
+ 
+ `HttpOperationJournal.retryTransient` giữ nguyên `replay` và response đầu bất biến trong
+ `http-operations`; `http-retries` chứa từng attempt/response bổ sung. Chỉ 500/502/503/504 được gửi lại,
+ mỗi lần gọi tối đa một send, cùng route/body/key gốc; lịch chờ durable tăng tới 60 giây. Attempt mất
+ reply giữ nguyên qua reopen; response thành công settle một lần. Lỗi HTTP không chứng minh chưa có tác động;
+diff --git a/v2/docs/flows/gateway-workflows.md b/v2/docs/flows/gateway-workflows.md
+index 79a5c46..4e9ee5a 100644
+--- a/v2/docs/flows/gateway-workflows.md
++++ b/v2/docs/flows/gateway-workflows.md
+@@ -24,17 +24,17 @@ Giữ BMAD và Superpowers cạnh nhau trong registry riêng của host. Exact o
+ 9. `operations.ts`, `operation-native.c`: attested private parent/objects; native FD no-follow traversal/quarantine/delete kiểm device/inode/UID/type, regular nlink1, foreign mount/hardlink fail closed; symlink được unlink như entry. Directory nlink chỉ quan sát. Bounded installer executor 90 giây, disk accounting 256 MiB/30.000 entries/depth128, log/file bound64 MiB. Arm kqueue NOTE_FORK/NOTE_EXIT trước gated exec rồi actual waitpid. Protected receipt bind operation ID + device/inode; bất kỳ fork/lost receipt giữ UNKNOWN. Không sửa Task2 ProcessJournal/ResourceRegistry để giả stopped.
+    Verb `execute-tree` (`OwnedOperations.executeTree`) dành cho cây tiến trình có giới hạn (`uv` → Python); verb `execute` của installer giữ nguyên ngữ nghĩa (mọi fork → UNKNOWN). Leader gọi `setsid()`. Trước khi mở gate, parent ghi `receipts/{id}.leader` = `pid start-giây.micro-giây` (O_EXCL, 0600, fsync file và thư mục) để reconcile sau crash. File nằm ngoài stage mà child ghi được, nên reconcile chỉ tin bản này; một `.leader` trong stage chỉ là dữ liệu của child. Không ghi được bản này thì helper thoát 36 trước khi child chạy. File dùng O_EXCL: bản cũ còn thì chạy lại cùng `id` sẽ thoát 36. Caller phải kiểm `absent('receipts', '{id}.leader')` trước khi chạy và dọn file này cùng `{id}.json` khi reclaim. macOS hiện tại trả ENOENT cho `KERN_PROC_SESSION`. Vì vậy thành viên được liệt kê là tiến trình còn sống (không phải zombie) trong một lần liệt kê `KERN_PROC_ALL` mà process group của nó đã biết thuộc session, hoặc có `getsid()` bằng pid leader. Lần liệt kê này **không nguyên tử**: `proc_iterate()` của XNU gom tập pid khi giữ lock, nhả lock rồi mới đọc pgid/trạng thái từng tiến trình. Một chuỗi fork→thoát nhanh vì thế có thể vắng mặt trong một lần liệt kê. Hai phép thử khác chặn khe này. (1) `kill(-g, 0)` cho từng group đã biết: kernel duyệt thành viên của group dưới lock của group, trả 0 khi còn thành viên sống cùng uid, EPERM khi chỉ còn zombie (như leader đã thoát) hoặc thành viên khác uid, ESRCH khi group đã mất. Lúc phán quyết và lúc xác nhận rỗng, còn group nào trả 0 thì không PASS. Nhờ vậy chuỗi trong group đã biết bị bắt tất định. (2) Bất biến chặn chính: sau khi leader thoát mà còn phải kill bất cứ thứ gì thì run không bao giờ PASS. Group được học từ thành viên đã xác nhận bằng `getsid` (một group không bao giờ đổi session). Group bị loại khỏi danh sách ngay khi `kill(-g, 0)` trả ESRCH. `kill(-g, SIGKILL)` với group đã học chỉ được gửi khi ngay lúc đó có một tiến trình sống trong group mà `getpgid`/`getsid` xác nhận thuộc session; group của leader không cần xác nhận vì leader chưa reap giữ id đó. Group còn sống mà không xác nhận được thì không bị kill: helper chỉ kill các pid đã xác nhận cùng session, session không được chứng minh rỗng và kết quả là UNKNOWN. Receipt ghi `groupsKnown` là số group còn giữ lúc ghi. Mỗi thành viên được gắn `NOTE_FORK|NOTE_EXIT`, nên mỗi fork trong cây đánh thức vòng lặp và liệt kê ngay. Thành viên có `getsid()` trả về một session sống khác được ghi là đã rời session ngay lúc thấy, nên việc kill sau đó không xoá được bằng chứng. Leader chưa được reap trong suốt quá trình theo dõi, nên pid của nó không thể thành session id hay group id của tiến trình khác. Khi leader thoát, trước `waitpid`: thành viên còn trong session là `survivors`; thành viên đã rời session cộng phần không theo dõi được là `escaped`. Helper kill mọi group đã học, mọi thành viên và mọi thành viên đã theo dõi chưa thoát, rồi chờ tối đa 2 giây tới khi session rỗng; `treeEmpty` của receipt tree mang nghĩa đó. Nếu vòng chờ này còn phải kill thứ gì trong khi phán quyết lúc leader thoát là rỗng, `survivors` bị nâng lên ít nhất 1: run đó không bao giờ PASS. Mọi đường lỗi sau khi mở gate đều kill và chờ như vậy (tối đa 2 giây) rồi thoát không receipt. Receipt thêm `mode:"tree"`, `sessionEmptyAtExit`, `survivors`, `escaped`, `maxSessionSize`; `formatVersion` vẫn là 1. PASS khi `treeEmpty`, `escaped=0` và session rỗng lúc leader thoát (`survivors=0`). Timeout kill cả session và chỉ trả receipt khi `treeEmpty` và `escaped=0`, vì hậu duệ của thành viên đã rời session không chứng minh được là đã hết. Các trường hợp khác là `EXECUTOR_LIFETIME_UNKNOWN`, receipt giữ lại cho reconcile. Trần 256 áp cho số thành viên cùng lúc trong một lần liệt kê, cho số group đã học, và cho tổng số thành viên được theo dõi **cộng dồn** suốt một lần chạy (slot đã thoát không được dùng lại). Lệnh sinh hơn 256 tiến trình trong cả vòng đời luôn ra UNKNOWN; vượt trần khi liệt kê thì helper thoát 32 không receipt. Phần dư đã chấp nhận: hậu duệ ở group chưa biết gọi `setsid()` trước lần quan sát đầu tiên thì không thấy được. Thành viên khác uid (setuid) không được `kill(-g, 0)` đếm, chỉ được bắt qua liệt kê. Kill theo pid chỉ gửi cho pid vừa được `getsid` xác nhận cùng session, hoặc cho thành viên đã theo dõi mà chưa có `NOTE_EXIT`; giữa lần xác nhận và lần kill vẫn còn khe của chính syscall đó. Guard: helper thoát 20 khi `.operations.guard` đang bị giữ → `EXECUTOR_BUSY`; thoát 24 khi guard không phải file thường riêng của user (symlink, sai mode/uid/nlink, mở lỗi) → `EXECUTOR_GUARD_INVALID`. Cả hai xảy ra trước fork và trước mọi ghi vào stage, ở mọi verb: không có tiến trình nào chạy, caller thu hồi stage ngay thay vì giữ như UNKNOWN; chỉ BUSY là tín hiệu có thể thử lại.
+ 10. Pure operations có closure proof khi exclusive writer được reacquire; restart reconcile reserve/create/rename/receipt/quarantine windows. Completed failed stages có byte accounting và reclaim/retry theo identity; unresolved stages tối đa8 trước STAGING_RETRY_LIMIT. Published GC xử lý projection trước source, giữ current source, projection dependency, registry refs và mọi recovered ProcessJournal refs. `retentionInventory` ghi exact pair/bytes/reason/release requirement; accepted005-finalization producer chưa có thì giữ riêng nhóm process references, không khóa cleanup của pure/unreferenced groups. Heartbeat/stopped/ACK không phải terminal release authority.
+    FIX2 admission authority: managed `ProcessJournal.reserve` giữ cùng journal transaction mà GC/recovered publication reclaim giữ xuyên snapshot → native quarantine → delete. Registry queue luôn đứng trước journal queue; reserve validator chỉ resolve immutable pair, không lấy registry queue. GC-first làm reserve sau đó reject trước LaunchRecord nếu pair đã mất; reserve-first ghi durable pin admission intent rồi actual LaunchRecord dưới barrier, nên GC phải thấy protected ref. Bind marker/binding bền vững chặn unbound/reopened journal; bind chờ standalone transaction đang chạy. Missing journal attachment từ chối published GC và giữ recovered publication quarantine, nhưng pure-stage reclaim vẫn có closure authority riêng. `pendingPinAdmissions` bảo vệ intent crash chưa commit, dedupe exact committed records và inventory `durable-pin-admission-intent`; không TTL/closed boolean/fake release. Consumer Task5/04 phải dùng bound registry+journal cùng host root; cross-process writers vẫn bị OS guard loại trừ.
+ 11. `resolve` recheck full pins, payload/SRI, manifest/tree và native policy/geometry. HTTP desired/applied/boot/dispatch/companion integration thuộc Task3/5; Task4 không mutate server state hoặc bypass admission.
+ 12. Task6 clone độc lập tại exact HEAD bằng Git trực tiếp, không fork: xuất reachable pack qua stdin commit bất biến và stdout độc quyền, kiểm giới hạn64 MiB/header/trailer, index strict single-thread, update-ref/checkout chỉ trong scratch. HEAD/tree/common-dir/clean checkout và no-alternates/no-hardlink được kiểm trước loại discovery. Giữ product docs; inventory từng đường dẫn `.agents`, `.claude`, `.codex`, `_bmad`, instruction/config bị chuyển ra sibling `excluded`. Git object database vẫn chứa bytes bị loại; policy chặn toàn bộ `.git` và probe đo denial trực tiếp. Owner linked-worktree ngoài read root hiện fail closed; trusted common-dir binding cần composition/review riêng.
+ 13. Private HOME/config/TMP/XDG, frozen source/projection/policy/executable identities; sandbox deny data mặc định, network/fork và securityd, chỉ grant paths hệ thống cần chạy cùng workspace/home/P/stage riêng. Literal `/` phục vụ dyld openat, không grant descendants. Nofork kernel EXIT+wait receipt của `OwnedOperations` là authority; PID/start numeric không có trong API này nên evidence ghi unavailable. Intent command bền vững trước execute; missing receipt giữ workspace/pins và chặn probe sau reopen. Lock order isolation queue → registry read/reference; registry không gọi ngược isolation.
+ 14. No-model probes đọc exact selected SKILL bytes và canaries; absolute, symlink, `..`, Git config/objectdb bị deny, alias/hardlink/config/pin tamper fail trước runtime. Claude CLI plugin list chỉ thấy selected Superpowers, SDK control initialize chưa trả inventory trong bounded run. Codex stdin initialize trả metadata nhưng EOF chưa có skills/list/hooks/list/config/read responses. Lịch sử Unix socket EPERM không chứng minh runtime thiếu hỗ trợ IPC. Native Read/Skill/MCP/child/renderer invoke/full-tree đều UNVERIFIED; overall luôn UNVERIFIED khi các canary sạch, FAIL khi integrity/cross-source lỗi, `productionEnabled:false`. API chỉ inventory artifact; không gọi provider/model.
+-15. BMAD render trong prepare: `prepareWorkspace(..., {definition, prerequisites})` chỉ nhận khi attempt là UUID, source `bmad`, projection `claude` và `definition.render.source/projection` đúng bằng cặp pin đang chuẩn bị (`RENDER_DEFINITION_BINDING_MISMATCH`, trước khi đặt chỗ gì). Sau khi loại discovery, `materializeRenderInputs` copy đúng tập con suy từ `definition.render`: file được chọn trong `selectedProjectionSha256` (cây `bmad-build`, `customize.toml`, `render_skill.py`, `config_utils.py`) cộng mọi layer config có mặt, đọc từ projection bất biến không theo symlink, so SHA-256 với pin rồi ghi file thường mới (O_EXCL, 0644, một link); `memlog.py`, `resolve_*.py`, `_bmad/custom/.gitignore` và file khác của projection không bao giờ được copy. Thư mục cha và `_bmad/render` rỗng được tạo; tất cả ghi vào `injected = {files, directories, generated: '_bmad/render'}` của bản ghi workspace. Executor render (`stages/render-{op}` trên cùng owned root `operations`, cùng transaction isolation) chạy trước audit `after`, nên `entries` gồm cả input và generation. HALT làm prepare thất bại với `RENDER_HALTED:{reason}`, workspace giữ `retained` kèm `render.halt = {reason, log?}` và `injected` vẫn khai `_bmad/render`; thành công ghi `render.receipt` để lát đăng ký gửi lên server. Bản ghi bền `render-{op}` (`kind: 'isolation-render'`, `attemptId`, `state`, `stageIdentity`, `leader`, `receipt`, `error`) do journal của workspace giữ; mở service chuyển mọi `reserved`/`pending` thành `unknown` vì khóa store là độc quyền nên không render nào đang chạy. Còn một bản ghi không `complete`/`deleted` bất kỳ trên root thì mọi render mới trả `RENDER_RECONCILE_REQUIRED`; `verify` trả `PROCESS_CLOSURE_UNVERIFIED` và `cleanup` giữ workspace (`retained`) cho attempt có render chưa chứng minh, còn stage `complete` mà thu hồi lỗi trước đó được thu hồi lại khi cleanup. `auditWorkspace(..., injected)` xếp đường dẫn đã khai là `selected` (`render-input`/`render-output`); trong các root `_bmad`, `.claude` mà khai báo trải ra, đường dẫn không khai là `UNDECLARED_INJECTION`, file khác bytes là `INJECTED_BYTES`, symlink là `INJECTED_SYMLINK`, thiếu là `INJECTED_MISSING`. Không có `render` thì prepare giữ nguyên hành vi cũ.
++15. BMAD render trong prepare: `prepareWorkspace(..., {definition, prerequisites})` chỉ nhận khi attempt là UUID, source `bmad`, projection `claude` và `definition.render.source/projection` đúng bằng cặp pin đang chuẩn bị (`RENDER_DEFINITION_BINDING_MISMATCH`, trước khi đặt chỗ gì). Ngay sau audit `before` (clone sạch tại commit owner nên mọi entry đều là file tracked), nếu checkout owner track `_bmad` hay bất kỳ `_bmad/**` thì prepare BMAD từ chối `BMAD_TRACKED_IN_CHECKOUT` trước bước loại discovery: `_bmad` của owner không bị dời, xóa hay thay, workspace giữ `retained`, không có `injected`, `render` hay bản ghi `render-*`; prepare không render vẫn loại `_bmad` tracked như cũ. Sau khi loại discovery, `materializeRenderInputs` copy đúng tập con suy từ `definition.render`: file được chọn trong `selectedProjectionSha256` (cây `bmad-build`, `customize.toml`, `render_skill.py`, `config_utils.py`) cộng mọi layer config có mặt, đọc từ projection bất biến không theo symlink, so SHA-256 với pin rồi ghi file thường mới (O_EXCL, 0644, một link); `memlog.py`, `resolve_*.py`, `_bmad/custom/.gitignore` và file khác của projection không bao giờ được copy. Thư mục cha và `_bmad/render` rỗng được tạo; tất cả ghi vào `injected = {files, directories, generated: '_bmad/render'}` của bản ghi workspace. Executor render (`stages/render-{op}` trên cùng owned root `operations`, cùng transaction isolation) chạy trước audit `after`, nên `entries` gồm cả input và generation. HALT làm prepare thất bại với `RENDER_HALTED:{reason}`, workspace giữ `retained` kèm `render.halt = {reason, log?}` và `injected` vẫn khai `_bmad/render`; thành công ghi `render.receipt` để lát đăng ký gửi lên server. Bản ghi bền `render-{op}` (`kind: 'isolation-render'`, `attemptId`, `state`, `stageIdentity`, `leader`, `receipt`, `error`) do journal của workspace giữ; mở service chuyển mọi `reserved`/`pending` thành `unknown` vì khóa store là độc quyền nên không render nào đang chạy. Còn một bản ghi không `complete`/`deleted` bất kỳ trên root thì mọi render mới trả `RENDER_RECONCILE_REQUIRED`; `verify` trả `PROCESS_CLOSURE_UNVERIFIED` và `cleanup` giữ workspace (`retained`) cho attempt có render chưa chứng minh, còn stage `complete` mà thu hồi lỗi trước đó được thu hồi lại khi cleanup; nếu stage đó đã vắng (lần trước xóa được stage nhưng lỗi ở bước dọn `.leader` hay ghi `deleted`) thì chỉ dọn `.leader` và ghi `deleted`, không gọi `remove` lại. `auditWorkspace(..., injected)` xếp đường dẫn đã khai là `selected` (`render-input`/`render-output`); trong các root `_bmad`, `.claude` mà khai báo trải ra, đường dẫn không khai là `UNDECLARED_INJECTION`, file khác bytes là `INJECTED_BYTES`, symlink là `INJECTED_SYMLINK`, thiếu là `INJECTED_MISSING`. Không có `render` thì prepare giữ nguyên hành vi cũ.
+ 
+ ## Files
+ 
+ | Đường dẫn | Vai trò |
+ |---|---|
+ | `gateway/src/workflows/pins.ts`, `fetch.ts`, `stage.ts` | Frozen DTO/URL/hash/download/parser/tree |
+ | `gateway/src/workflows/registry.ts`, `retention.ts` | Publish/recover/reclaim/GC/reference inventory |
+ | `gateway/src/workflows/audit.ts`, `api-policy.ts`, `native-projection.ts` | Official artifact audit và policy từng runtime |
+@@ -90,9 +90,9 @@ UNKNOWN có exact scoped attempt/companion thành `retained-unknown`, không b
+ admission barrier kiểm snapshot và orphan intent trước lifecycle receipt; observe chạy trước barrier
+ vì nó ghi journal, callback dưới barrier không gọi registry queue. Snapshot desired cũ không được
+ hoàn tất nhầm command mới; cache nguồn/projection và pending report giữ nguyên qua deferred pass.
+ 
+ Task6: `isolation:probe -- --runtime claude|codex --no-model` chỉ nhận exact arguments và chạy owned fixture cho runtime đã chọn cùng API audit. Frozen covering set dùng21 gateway test files đã review cộng2 isolation tests; không lấy peer model/attachment candidate. Evidence `execution-phase03/task6-evidence` giữ RED→GREEN policy/Git attempts, stdin hashes, exact argv/policy/exit/receipt, sanitized matrix và resource identities. Durable reserved-intent negative fixture được giữ vì thiếu closure proof; không xóa history hoặc chế STOP để cleanup. BMAD runtime discovery/invoke, common/system skill inventory và linked owner source chưa được chứng nhận; Phase04 phải đo selected/unselected load+invoke trước enable.
+ 
+ Task6 FIX1 đóng exemption `.git` bị dùng chung cho HOME: `auditWorkspace` mặc định từ chối metadata `.git` ở mọi root/nested path; chỉ ba execution-workspace callers truyền exact Git root được inventory độc lập. HOME và Git metadata audit không có exemption. Actual regression tạo hardlink foreign canary trong `HOME/.git/foreign-skill`, symlink `HOME/.git`, nested `HOME/cache/.git` và nested metadata trong workspace Git; preflight phải FAIL trước command đầu tiên. Legitimate workspace Git vẫn được kiểm riêng; pack tamper bị chặn và khôi phục bytes cho phép canary objectdb denial chạy lại. Repair validation dùng frozen candidate cộng own fix, `CREW_ISOLATION_SKIP_DISCOVERY=1` chỉ trong test để không lặp init/probe; overall UNVERIFIED và native receipt authority giữ nguyên.
+ 
+-S6b-ii: `node --test test/isolation-render.test.ts` dựng registry với source BMAD 6.12.0 đã pin và projection copy tổng hợp (markdown không token, thêm `memlog.py`, `resolve_*.py`, `.gitignore` và file không phải `.md` trong thư mục skill để chứng minh không bị copy), owner checkout có `_bmad`/`.claude` tracked, Git thật qua helper owned và `uv` giả là script Node chỉ render khi `UV_PYTHON` đúng realpath Python đã ghi (Python kiểu Homebrew qua symlink). Các case: prepare không có `render` không đổi; prepare BMAD copy đúng 9 file, mỗi file thường một link khớp pin, receipt đúng workspace/argv/`python`, generation có trong `entries`, bản ghi `deleted` có leader và receipt tree, `.leader` đã xóa còn `.json` giữ; `uv` thấy Python khác → `RENDER_HALTED:RENDER_EXIT_NONZERO`, `lastLine` có `No interpreter found`, audit với khai báo không có blocker; file thêm, sửa, xóa trong vùng injected thành blocker và `verify` từ chối; Python sai bytes dừng trước stage render, definition không khớp pin hay attempt không phải UUID dừng trước khi đặt chỗ; bản ghi `pending` do crash thành `unknown` khi mở lại, `verify`/`cleanup` giữ workspace và render mới trả `RENDER_RECONCILE_REQUIRED`, còn prepare không render vẫn chạy. Chưa chạy `uv`/Python thật (S6b-iv).
++S6b-ii: `node --test test/isolation-render.test.ts` dựng registry với source BMAD 6.12.0 đã pin và projection copy tổng hợp (markdown không token, thêm `memlog.py`, `resolve_*.py`, `.gitignore` và file không phải `.md` trong thư mục skill để chứng minh không bị copy), owner checkout có `_bmad`/`.claude` tracked, Git thật qua helper owned và `uv` giả là script Node chỉ render khi `UV_PYTHON` đúng realpath Python đã ghi (Python kiểu Homebrew qua symlink). Các case: checkout track `_bmad` bị từ chối `BMAD_TRACKED_IN_CHECKOUT` mà `_bmad/legacy.toml` còn nguyên trong clone và checkout; bản ghi `complete` của stage đã vắng được cleanup chốt `deleted`; prepare không có `render` không đổi; prepare BMAD copy đúng 9 file, mỗi file thường một link khớp pin, receipt đúng workspace/argv/`python`, generation có trong `entries`, bản ghi `deleted` có leader và receipt tree, `.leader` đã xóa còn `.json` giữ; `uv` thấy Python khác → `RENDER_HALTED:RENDER_EXIT_NONZERO`, `lastLine` có `No interpreter found`, audit với khai báo không có blocker; file thêm, sửa, xóa trong vùng injected thành blocker và `verify` từ chối; Python sai bytes dừng trước stage render, definition không khớp pin hay attempt không phải UUID dừng trước khi đặt chỗ; bản ghi `pending` do crash thành `unknown` khi mở lại, `verify`/`cleanup` giữ workspace và render mới trả `RENDER_RECONCILE_REQUIRED`, còn prepare không render vẫn chạy. Chưa chạy `uv`/Python thật (S6b-iv).
+diff --git a/v2/gateway/src/assistant/render-executor.ts b/v2/gateway/src/assistant/render-executor.ts
+index 7e452f8..765763a 100644
+--- a/v2/gateway/src/assistant/render-executor.ts
++++ b/v2/gateway/src/assistant/render-executor.ts
+@@ -438,19 +438,19 @@ function escapeRegExp(value: string): string {
+  * workspace-relative suffix is kept); `Bearer` credentials and the values of `*token*`, `*secret*`,
+  * `*password*`, `*credential*` and `key` fields (`name: value` or `name=value`) and of any
+  * `NAME=value` are redacted; every other `/…` or `~/…` path becomes `{path}` whatever precedes it;
+  * then printable ASCII only. The result is still untrusted text.
+  */
+ function sanitizeLine(text: string, labels: readonly [string, string][]): string {
+   // Finished fragments are parked behind private-use delimiters so later rules cannot touch them;
+   // delimiters already present in the child's output are dropped first.
+-  let line = text.replace(/[]/g, '');
++  let line = text.replace(/[\uE000\uE001]/g, '');
+   const kept: string[] = [];
+-  const hold = (fragment: string) => `${kept.push(fragment) - 1}`;
++  const hold = (fragment: string) => `\uE000${kept.push(fragment) - 1}\uE001`;
+   for (const [value, label] of [...labels].sort((a, b) => b[0].length - a[0].length))
+     line = line.replace(new RegExp(`${escapeRegExp(value)}${labelSuffix}`, 'g'), (_match, suffix?: string) =>
+       hold(`${label}${suffix ?? ''}`),
+     );
+   line = line.replace(/\bBearer\s+\S+/gi, () => hold('Bearer {redacted}'));
+   let redacted = '';
+   let copied = 0;
+   credentialField.lastIndex = 0;
+@@ -465,17 +465,17 @@ function sanitizeLine(text: string, labels: readonly [string, string][]): string
+     copied = credentialField.lastIndex;
+   }
+   line = redacted + line.slice(copied);
+   line = line.replace(
+     /\b([A-Za-z_][A-Za-z0-9_]*)=\S*/g,
+     (_match, name: string) => `${name}=${hold('{redacted}')}`,
+   );
+   line = line.replace(pathRun, '{path}');
+-  line = line.replace(/(\d+)/g, (_match, index: string) => kept[Number(index)] ?? '?');
++  line = line.replace(/\uE000(\d+)\uE001/g, (_match, index: string) => kept[Number(index)] ?? '?');
+   return [...line]
+     .map((character) => (/^[\x20-\x7e]$/.test(character) ? character : '?'))
+     .join('')
+     .slice(0, maxLine);
+ }
+ 
+ /**
+  * Identity of a closure entry (device, inode, mtime and ctime in ns, size): rewriting a file, even
+@@ -574,23 +574,35 @@ async function removeLeader(root: string, name: string): Promise<void> {
+     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+     throw error;
+   }
+   if (!stat.isFile() || stat.nlink !== 1 || stat.uid !== process.getuid?.())
+     throw new Error('RENDER_LEADER_UNSAFE');
+   await unlink(path);
+ }
+ 
+-/** Reclaims a render stage whose closure is proven, then its session leader record. */
++/**
++ * Reclaims a render stage whose closure is proven, then its session leader record. Idempotent: a stage
++ * already gone (an earlier reclaim removed it but failed afterwards) counts as removed, so a retry only
++ * finishes the leader cleanup instead of failing on the missing stage forever.
++ */
+ export async function reclaimRenderStage(
+   operations: Pick<RenderOperations, 'root' | 'remove'>,
+   name: string,
+   identity: OwnedIdentity,
+ ): Promise<void> {
+-  await operations.remove('stages', name, identity);
++  const present = await lstat(join(operations.root, 'stages', name)).then(
++    () => true,
++    (error: NodeJS.ErrnoException) => {
++      if (error.code === 'ENOENT') return false;
++      throw error;
++    },
++  );
++  // A stage that is present is removed only through the helper, which checks its identity.
++  if (present) await operations.remove('stages', name, identity);
+   await removeLeader(operations.root, name);
+ }
+ 
+ function policy(stage: string, projectRoot: string): string {
+   // The renderer runs as uv's child Python; process creation stays allowed and is bounded by the
+   // owned executor, while every network operation and any write outside the stage or the render
+   // destination is denied.
+   return `(version 1) (allow default)
+@@ -976,29 +988,30 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
+       } catch (error) {
+         if (!(error instanceof RenderHalt)) return { halt: true, reason: 'RENDER_UNEXPECTED_FAILURE' };
+         return { halt: true, reason: error.reason, ...(error.log ? { log: error.log } : {}) };
+       }
+     },
+   };
+ }
+ 
+-/** Runs one owner executable (no shell) and resolves with its stdout; rejects on any failure. */
+-export type ProbeRunner = (file: string, args: string[]) => Promise<string>;
++/** Runs one owner executable (no shell) in `cwd` and resolves with its stdout; rejects on any failure. */
++export type ProbeRunner = (file: string, args: string[], options: { cwd: string }) => Promise<string>;
+ 
+-const pythonVersionProgram = 'import sys;print(sys.version.split()[0])';
++const pythonVersionProgram = 'import sys;print(sys.implementation.name, sys.version.split()[0])';
+ 
+ // The owner's own environment decides which interpreter `uv` finds, as for the runtime's own
+ // `uv run`; only downloads and network are switched off. Bounded in time and output.
+-const ownerRunner: ProbeRunner = (file, args) =>
++const ownerRunner: ProbeRunner = (file, args, { cwd }) =>
+   new Promise((resolve, reject) => {
+     execFile(
+       file,
+       args,
+       {
++        cwd,
+         env: { ...process.env, UV_OFFLINE: '1', UV_PYTHON_DOWNLOADS: 'never' },
+         timeout: 10_000,
+         maxBuffer: 64 * 1024,
+         encoding: 'utf8',
+       },
+       (error, stdout) => (error ? reject(error) : resolve(stdout)),
+     );
+   });
+@@ -1031,45 +1044,49 @@ async function measuredIdentity(path: string): Promise<{ realpath: string; sha25
+   return { realpath: resolved, sha256: (await digestFile(resolved, maxExecutableBytes)).sha256 };
+ }
+ 
+ /**
+  * Install-report measurement of the render prerequisites in the owner's environment: the `uv`
+  * at `uvPath` (path, resolved path, SHA-256 of the resolved bytes, `uv --version`), and the
+  * interpreter `uv python find --script` picks for the projection's pinned `render_skill.py` — the one
+  * the runtime's own `uv run` would use — with its version, which must be CPython 3.11 or newer.
++ * Every command runs with the projection root as working directory: `uv` reads `.python-version` and
++ * `.venv` from the working directory and its parents, and the projection root carries neither, like a
++ * workspace whose project pins no interpreter, so the gateway's own working directory cannot sway it.
+  * Rejects with RENDER_PREREQUISITE_INVALID, RENDER_UV_UNAVAILABLE, RENDER_PYTHON_UNAVAILABLE or
+  * RENDER_PYTHON_UNSUPPORTED. Versions are recorded as reported, not verified.
+  */
+ export async function probeRenderPrerequisites(input: {
+   uvPath: string;
+   projectionRoot: string;
+   run?: ProbeRunner;
+ }): Promise<RenderPrerequisites> {
+   const { uvPath, projectionRoot } = input;
+-  const run = input.run ?? ownerRunner;
+   if (!lexicalPath(uvPath) || !lexicalPath(projectionRoot)) throw new Error('RENDER_PREREQUISITE_INVALID');
++  const runner = input.run ?? ownerRunner;
++  const run = (file: string, args: string[]) => runner(file, args, { cwd: projectionRoot });
+   const uvMeasured = await probeStep('RENDER_UV_UNAVAILABLE', () => measuredIdentity(uvPath));
+   const uvVersion = await probeStep('RENDER_UV_UNAVAILABLE', async () =>
+     probeLine(await run(uvMeasured.realpath, ['--version']), /^.{1,128}$/),
+   );
+   const pythonPath = await probeStep('RENDER_PYTHON_UNAVAILABLE', async () => {
+     const found = probeLine(
+       await run(uvMeasured.realpath, ['python', 'find', '--script', `${projectionRoot}/${rendererPath}`]),
+       /^\/.{1,4095}$/,
+     );
+     if (!lexicalPath(found)) throw new Error('RENDER_PREREQUISITE_INVALID');
+     return found;
+   });
+   const pythonMeasured = await probeStep('RENDER_PYTHON_UNAVAILABLE', () => measuredIdentity(pythonPath));
+   const pythonVersion = await probeStep('RENDER_PYTHON_UNAVAILABLE', async () => {
+     const output = await run(pythonMeasured.realpath, ['-c', pythonVersionProgram]);
+-    const version = typeof output === 'string' ? output.replace(/\r?\n$/, '') : '';
+-    const match = /^3\.(\d{1,3})\.\d{1,3}(?:[a-z]+\d*)?$/.exec(version);
+-    // The pinned renderer needs `tomllib`, new in Python 3.11.
+-    if (!match || Number(match[1]) < 11) throw new Error('RENDER_PYTHON_UNSUPPORTED');
+-    return version;
++    const line = typeof output === 'string' ? output.replace(/\r?\n$/, '') : '';
++    // Only CPython is accepted, and the pinned renderer needs `tomllib`, new in Python 3.11.
++    const match = /^cpython (3\.(\d{1,3})\.\d{1,3}(?:[a-z]+\d*)?)$/.exec(line);
++    if (!match || Number(match[2]) < 11) throw new Error('RENDER_PYTHON_UNSUPPORTED');
++    return match[1];
+   });
+   return {
+     uv: { path: uvPath, ...uvMeasured, version: uvVersion },
+     python: { path: pythonPath, ...pythonMeasured, version: pythonVersion },
+   };
+ }
+diff --git a/v2/gateway/src/isolation/workspace.ts b/v2/gateway/src/isolation/workspace.ts
+index 348efed..6d584f0 100644
+--- a/v2/gateway/src/isolation/workspace.ts
++++ b/v2/gateway/src/isolation/workspace.ts
+@@ -663,16 +663,24 @@ export class IsolationWorkspace {
+           reads,
+         );
+         if ((await git(['-C', workspace, 'rev-parse', 'HEAD^{tree}'], [])) !== ownerTree)
+           throw new Error('CLONE_TREE_MISMATCH');
+         if (await git(['-C', workspace, 'status', '--porcelain', '--untracked-files=all'], []))
+           throw new Error('CLONE_NOT_CLEAN');
+         const before = await auditWorkspace(workspace, undefined, [], join(workspace, '.git'));
+         if (before.blockers.length) throw new Error(before.blockers.join(';'));
++        // The clone is clean at the owner commit, so every entry is tracked. A BMAD render would replace
++        // a tracked `_bmad` with the render subset and the runtime could commit that replacement, so the
++        // prepare refuses before anything of the owner's `_bmad` is moved.
++        if (
++          render !== undefined &&
++          before.entries.some((e) => e.path === '_bmad' || e.path.startsWith('_bmad/'))
++        )
++          throw new Error('BMAD_TRACKED_IN_CHECKOUT');
+         record.exclusions = before.entries.filter((e) => e.classification === 'discovery');
+         const excludedRoots: string[] = [];
+         for (const entry of record.exclusions) {
+           if (excludedRoots.some((p) => entry.path.startsWith(`${p}/`))) continue;
+           const target = join(base, 'excluded', entry.path);
+           await mkdir(dirname(target), { recursive: true, mode: 0o700 });
+           await rename(join(workspace, entry.path), target);
+           excludedRoots.push(entry.path);
+diff --git a/v2/gateway/src/sync/gateway-sync.ts b/v2/gateway/src/sync/gateway-sync.ts
+index 84566d8..f00a0dd 100644
+--- a/v2/gateway/src/sync/gateway-sync.ts
++++ b/v2/gateway/src/sync/gateway-sync.ts
+@@ -140,18 +140,18 @@ export class GatewaySync {
+     try {
+       return await this.options.definitions.loadDefinition(source, pin);
+     } catch (error) {
+       if ((error as Error)?.message === 'WORKFLOW_DEFINITION_UNAVAILABLE') return null;
+       throw error;
+     }
+   }
+   private async prerequisites(source: SourcePin, pin: ProjectionPin): Promise<RenderPrerequisites | null> {
+-    const { projectionRoot } = await this.options.registry.resolve(source, pin);
+     try {
++      const { projectionRoot } = await this.options.registry.resolve(source, pin);
+       return (await this.options.prerequisites?.(projectionRoot)) ?? null;
+     } catch {
+       return null;
+     }
+   }
+   private async process(record: SyncRecord, config: GatewayConfig | null) {
+     if (record.completion) return this.complete(record, record.completion);
+     if ((this.options.now ?? Date.now)() < record.retryAt) return;
+diff --git a/v2/gateway/test/isolation-render.test.ts b/v2/gateway/test/isolation-render.test.ts
+index 3c09e0a..6a07fc3 100644
+--- a/v2/gateway/test/isolation-render.test.ts
++++ b/v2/gateway/test/isolation-render.test.ts
+@@ -125,90 +125,102 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare',
+       pin,
+       projection,
+     );
+     assert(definition.render);
+     const pinned: Record<string, string> = { ...definition.render.selectedProjectionSha256 };
+     for (const [path, digest] of Object.entries(definition.render.layers)) if (digest) pinned[path] = digest;
+     assert.deepEqual(Object.keys(pinned).sort(), expectedFiles);
+ 
+-    // Owner checkout tracking its own `_bmad` and `.claude`; both must be excluded, never mixed in.
++    // Two owner checkouts: `owner` tracks only `.claude` (excluded from the clone, then the render subset
++    // is materialized); `trackedOwner` also tracks `_bmad`, which a BMAD prepare must refuse.
+     const owner = join(root, 'owner');
++    const trackedOwner = join(root, 'tracked-owner');
+     const home = join(root, 'fixture-home');
+-    for (const path of [owner, home, join(home, 'template'), join(home, 'hooks')])
++    for (const path of [owner, trackedOwner, home, join(home, 'template'), join(home, 'hooks')])
+       await mkdir(path, { mode: 0o700 });
+     const projectionRoot = (await registry.resolve(pin, projection)).projectionRoot;
+-    const ownerGit = async (...args: string[]) => {
++    const repoGit = async (repo: string, ...args: string[]) => {
+       const e = await service.measure(
+         'fixture',
+-        owner,
++        repo,
+         git,
+         [
+           '-c',
+           `core.hooksPath=${join(home, 'hooks')}`,
+           '-c',
+           'core.fsmonitor=false',
+           '-c',
+           'gc.auto=0',
+           ...args,
+         ],
+         {
+-          workspace: owner,
++          workspace: repo,
+           attemptHome: home,
+           projectionRoot,
+-          extraRead: [owner, '/Library/Developer/CommandLineTools'],
+-          extraWrite: [owner],
++          extraRead: [repo, '/Library/Developer/CommandLineTools'],
++          extraWrite: [repo],
+           environment: [
+             'GIT_CONFIG_NOSYSTEM=1',
+             'GIT_CONFIG_GLOBAL=/dev/null',
+             `GIT_TEMPLATE_DIR=${join(home, 'template')}`,
+           ],
+         },
+       );
+       assert.equal(e.receipt?.exitCode, 0, e.output || e.error || 'missing receipt');
+       return e.output.trim();
+     };
+-    await ownerGit('init', owner);
+-    await mkdir(join(owner, 'docs'));
+-    await mkdir(join(owner, '_bmad'));
+-    await mkdir(join(owner, '.claude'));
+-    await writeFile(join(owner, 'docs/product.md'), 'product specifications remain\n');
+-    await writeFile(join(owner, '_bmad/legacy.toml'), 'owner = "tracked"\n');
+-    await writeFile(join(owner, '.claude/settings.json'), '{"owner":true}\n');
+-    await ownerGit('-C', owner, 'add', '--all');
+-    await ownerGit(
+-      '-C',
+-      owner,
+-      '-c',
+-      'user.name=Fixture',
+-      '-c',
+-      'user.email=fixture@example.invalid',
+-      '-c',
+-      'commit.gpgSign=false',
+-      'commit',
+-      '-m',
+-      'fixture',
+-    );
++    const commitOwner = async (repo: string, files: Record<string, string>) => {
++      await repoGit(repo, 'init', repo);
++      for (const [path, body] of Object.entries(files)) {
++        await mkdir(join(repo, path, '..'), { recursive: true });
++        await writeFile(join(repo, path), body);
++      }
++      await repoGit(repo, '-C', repo, 'add', '--all');
++      await repoGit(
++        repo,
++        '-C',
++        repo,
++        '-c',
++        'user.name=Fixture',
++        '-c',
++        'user.email=fixture@example.invalid',
++        '-c',
++        'commit.gpgSign=false',
++        'commit',
++        '-m',
++        'fixture',
++      );
++    };
++    await commitOwner(owner, {
++      'docs/product.md': 'product specifications remain\n',
++      '.claude/settings.json': '{"owner":true}\n',
++    });
++    await commitOwner(trackedOwner, {
++      'docs/product.md': 'product specifications remain\n',
++      '_bmad/legacy.toml': 'owner = "tracked"\n',
++      '.claude/settings.json': '{"owner":true}\n',
++    });
+ 
+     // Install-report prerequisites: `uv` and a Homebrew-style linked interpreter.
+     await mkdir(join(root, 'bin'));
+     await mkdir(join(root, 'cellar'));
+     const pythonReal = join(root, 'cellar', 'python3.13');
+     await writeFile(pythonReal, 'python 3.13 fixture bytes\n', { mode: 0o755 });
+     await symlink(pythonReal, join(root, 'bin', 'python3'));
+     await fakeUv(join(root, 'bin', 'uv'), pythonReal);
+     await fakeUv(join(root, 'bin', 'uv-elsewhere'), join(root, 'cellar', 'python3.12'));
+     const prerequisites: RenderPrerequisites = {
+       uv: await identity(join(root, 'bin', 'uv'), 'uv 0.12.13'),
+       python: await identity(join(root, 'bin', 'python3'), '3.13.5'),
+     };
+     const render = { definition, prerequisites };
+ 
+     await t.test('a prepare without a render request is unchanged', async () => {
+-      const w = await service.prepareWorkspace(owner, 'plain-attempt', pin, projection);
++      const w = await service.prepareWorkspace(trackedOwner, 'plain-attempt', pin, projection);
+       assert.equal('injected' in w, false);
+       assert.equal('render' in w, false);
+       assert(w.exclusions.some((e) => e.path === '_bmad/legacy.toml'));
+       assert(w.exclusions.some((e) => e.path === '.claude/settings.json'));
+       assert.equal(await lstat(join(w.workspace, '_bmad')).catch(() => null), null);
+       assert.equal(await lstat(join(w.workspace, '.claude')).catch(() => null), null);
+       assert.deepEqual(await service.renders('plain-attempt'), []);
+       await service.verify(w.workspace, w.attemptHome, pin, projection);
+@@ -234,17 +246,19 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare',
+         for (const omitted of [
+           'memlog.py',
+           'resolve_config.py',
+           'resolve_customization.py',
+           '.gitignore',
+           'notes.py',
+         ])
+           assert(!w.entries.some((e) => e.path.endsWith(`/${omitted}`)), omitted);
+-        assert(w.exclusions.some((e) => e.path === '_bmad/legacy.toml'));
++        // An untracked `_bmad` in the owner checkout is materialized as before; `.claude` is excluded.
++        assert(w.exclusions.some((e) => e.path === '.claude/settings.json'));
++        assert(!w.exclusions.some((e) => e.path.startsWith('_bmad')));
+ 
+         assert(w.injected);
+         assert.deepEqual(Object.keys(w.injected.files).sort(), expectedFiles);
+         assert(w.injected.directories.includes('_bmad/render'));
+         assert.equal(w.injected.generated, '_bmad/render');
+ 
+         // The receipt is the renderer's, for this workspace, with the pinned interpreter as witness.
+         assert(w.render?.receipt);
+@@ -323,16 +337,65 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare',
+         assert.deepEqual(
+           (await service.renders(attemptId)).map((r) => r.state),
+           ['deleted'],
+         );
+         assert.equal(await service.cleanup(attemptId), 'deleted');
+       },
+     );
+ 
++    await t.test(
++      'a BMAD prepare refuses an owner checkout that tracks _bmad and leaves it in place',
++      async () => {
++        const attemptId = randomUUID();
++        await assert.rejects(
++          () => service.prepareWorkspace(trackedOwner, attemptId, pin, projection, render),
++          /BMAD_TRACKED_IN_CHECKOUT/,
++        );
++        const record = await service.get(attemptId);
++        assert(record);
++        assert.equal(record.state, 'retained');
++        assert.equal('injected' in record, false);
++        assert.equal('render' in record, false);
++        assert.deepEqual(record.exclusions, []);
++        // Nothing of the owner's `_bmad` was moved, removed or replaced, in the clone or the checkout.
++        assert.equal(
++          await readFile(join(record.workspace, '_bmad/legacy.toml'), 'utf8'),
++          'owner = "tracked"\n',
++        );
++        assert.deepEqual(await filesBelow(record.workspace, '_bmad'), ['_bmad/legacy.toml']);
++        assert.equal(await readFile(join(trackedOwner, '_bmad/legacy.toml'), 'utf8'), 'owner = "tracked"\n');
++        assert.deepEqual(await service.renders(attemptId), []);
++        assert.equal(await service.cleanup(attemptId), 'deleted');
++      },
++    );
++
++    await t.test('cleanup treats a proven render stage that is already gone as reclaimed', async () => {
++      const attemptId = randomUUID();
++      const w = await service.prepareWorkspace(owner, attemptId, pin, projection, render);
++      const [done] = await service.renders(attemptId);
++      assert.equal(done.state, 'deleted');
++      assert(done.stageIdentity);
++      // As if the stage was removed but the leader cleanup or the `deleted` record write failed.
++      await service.close();
++      const journal = await AtomicRecords.open(join(root, 'isolation', 'journal'));
++      try {
++        await journal.put(`render-${done.operationId}`, { ...done, state: 'complete' });
++      } finally {
++        await journal.close();
++      }
++      service = await IsolationWorkspace.open(join(root, 'isolation'), registry);
++      assert.equal(await service.cleanup(attemptId), 'deleted');
++      assert.deepEqual(
++        (await service.renders(attemptId)).map((r) => r.state),
++        ['deleted'],
++      );
++      assert.equal(await lstat(w.workspace).catch(() => null), null);
++    });
++
+     await t.test('an undeclared or altered injected path is an audit blocker', async () => {
+       const attemptId = randomUUID();
+       const w = await service.prepareWorkspace(owner, attemptId, pin, projection, render);
+       assert(w.injected);
+       await writeFile(join(w.workspace, '_bmad/scripts/json.py'), 'import os\n');
+       await writeFile(join(w.workspace, `${skill}/workflow.md`), 'Changed.\n');
+       await rm(join(w.workspace, '_bmad/custom/config.toml'));
+       const audit = await auditWorkspace(w.workspace, undefined, [], join(w.workspace, '.git'), w.injected);
+diff --git a/v2/gateway/test/render-executor.test.ts b/v2/gateway/test/render-executor.test.ts
+index f89faad..5e7139f 100644
+--- a/v2/gateway/test/render-executor.test.ts
++++ b/v2/gateway/test/render-executor.test.ts
+@@ -1132,42 +1132,42 @@ test('render executor detects a closure file rewritten and restored during the r
+ /** Owner machine double for the install-report probe: real files for hashing, scripted command output. */
+ async function withProbeHost(
+   run: (host: {
+     base: string;
+     projectionRoot: string;
+     uvPath: string;
+     pythonLink: string;
+     pythonReal: string;
+-    calls: [string, string[]][];
++    calls: [string, string[], string][];
+     outputs: Map<string, string | Error>;
+-    runner: (file: string, args: string[]) => Promise<string>;
++    runner: (file: string, args: string[], options: { cwd: string }) => Promise<string>;
+   }) => Promise<void>,
+ ): Promise<void> {
+   const base = await realpath(await mkdtemp(join(tmpdir(), 'crew-render-probe-')));
+   try {
+     const projectionRoot = join(base, 'projection', 'tree');
+     await mkdir(join(projectionRoot, '_bmad/scripts'), { recursive: true });
+     await writeFile(join(projectionRoot, '_bmad/scripts/render_skill.py'), '# requires-python >=3.11\n');
+     await mkdir(join(base, 'bin'));
+     await mkdir(join(base, 'cellar'));
+     const uvPath = join(base, 'bin', 'uv');
+     await writeFile(uvPath, 'uv bytes\n', { mode: 0o755 });
+     const pythonReal = join(base, 'cellar', 'python3.13');
+     await writeFile(pythonReal, 'python bytes\n', { mode: 0o755 });
+     const pythonLink = join(base, 'bin', 'python3.13');
+     await symlink(pythonReal, pythonLink);
+-    const calls: [string, string[]][] = [];
++    const calls: [string, string[], string][] = [];
+     const outputs = new Map<string, string | Error>([
+       ['--version', 'uv 0.12.13 (Homebrew 2026-09-30)\n'],
+       ['python', `${pythonLink}\n`],
+-      ['-c', '3.13.5\n'],
++      ['-c', 'cpython 3.13.5\n'],
+     ]);
+-    const runner = async (file: string, args: string[]) => {
+-      calls.push([file, [...args]]);
++    const runner = async (file: string, args: string[], options: { cwd: string }) => {
++      calls.push([file, [...args], options.cwd]);
+       const output = outputs.get(args[0]);
+       if (output instanceof Error) throw output;
+       return output ?? '';
+     };
+     await run({ base, projectionRoot, uvPath, pythonLink, pythonReal, calls, outputs, runner });
+   } finally {
+     await rm(base, { recursive: true, force: true });
+   }
+@@ -1189,29 +1189,42 @@ test('install-report probe measures uv and the interpreter uv finds for the pinn
+       },
+       python: {
+         path: host.pythonLink,
+         realpath: host.pythonReal,
+         sha256: sha256('python bytes\n'),
+         version: '3.13.5',
+       },
+     });
++    // Every probe command runs in the projection root, never in the gateway's own working directory,
++    // so a `.python-version` or `.venv` there cannot change the interpreter uv finds.
+     assert.deepEqual(host.calls, [
+-      [host.uvPath, ['--version']],
+-      [host.uvPath, ['python', 'find', '--script', `${host.projectionRoot}/_bmad/scripts/render_skill.py`]],
+-      [host.pythonReal, ['-c', 'import sys;print(sys.version.split()[0])']],
++      [host.uvPath, ['--version'], host.projectionRoot],
++      [
++        host.uvPath,
++        ['python', 'find', '--script', `${host.projectionRoot}/_bmad/scripts/render_skill.py`],
++        host.projectionRoot,
++      ],
++      [
++        host.pythonReal,
++        ['-c', 'import sys;print(sys.implementation.name, sys.version.split()[0])'],
++        host.projectionRoot,
++      ],
+     ]);
+   });
+ });
+ 
+ test('install-report probe refuses an interpreter the pinned renderer cannot run or an unusable answer', async () => {
+   const cases: [string, (host: { outputs: Map<string, string | Error>; base: string }) => void, RegExp][] = [
+-    ['CLT Python 3.9', (h) => h.outputs.set('-c', '3.9.6\n'), /RENDER_PYTHON_UNSUPPORTED/],
+-    ['Python 2', (h) => h.outputs.set('-c', '2.7.18\n'), /RENDER_PYTHON_UNSUPPORTED/],
+-    ['garbled version', (h) => h.outputs.set('-c', 'Python three\n'), /RENDER_PYTHON_UNSUPPORTED/],
++    ['CLT Python 3.9', (h) => h.outputs.set('-c', 'cpython 3.9.6\n'), /RENDER_PYTHON_UNSUPPORTED/],
++    ['Python 2', (h) => h.outputs.set('-c', 'cpython 2.7.18\n'), /RENDER_PYTHON_UNSUPPORTED/],
++    ['garbled version', (h) => h.outputs.set('-c', 'cpython three\n'), /RENDER_PYTHON_UNSUPPORTED/],
++    ['PyPy 3.11', (h) => h.outputs.set('-c', 'pypy 3.11.13\n'), /RENDER_PYTHON_UNSUPPORTED/],
++    ['GraalPy 3.11', (h) => h.outputs.set('-c', 'graalpy 3.11.7\n'), /RENDER_PYTHON_UNSUPPORTED/],
++    ['version without implementation', (h) => h.outputs.set('-c', '3.13.5\n'), /RENDER_PYTHON_UNSUPPORTED/],
+     [
+       'no interpreter found',
+       (h) => h.outputs.set('python', new Error('error: No interpreter found for Python >=3.11')),
+       /RENDER_PYTHON_UNAVAILABLE/,
+     ],
+     ['relative interpreter path', (h) => h.outputs.set('python', 'python3\n'), /RENDER_PREREQUISITE_INVALID/],
+     [
+       'two interpreter lines',
+@@ -1264,27 +1277,34 @@ test('install-report probe refuses an interpreter the pinned renderer cannot run
+ });
+ 
+ test('install-report probe runs the owner executables without a shell by default', async () => {
+   await withProbeHost(async (host) => {
+     // Stand-in executables answering exactly the three probe invocations.
+     await writeFile(
+       host.uvPath,
+       `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "uv 0.12.13"; exit 0; fi\n` +
++        `[ "$(pwd -P)" = "${host.projectionRoot}" ] || exit 3\n` +
+         `if [ "$1 $2 $3 $4" = "python find --script ${host.projectionRoot}/_bmad/scripts/render_skill.py" ]; then echo "${host.pythonLink}"; exit 0; fi\nexit 2\n`,
+       { mode: 0o755 },
+     );
+     await writeFile(
+       host.pythonReal,
+-      `#!/bin/sh\n[ "$1 $2" = "-c import sys;print(sys.version.split()[0])" ] && echo 3.12.12\n`,
++      `#!/bin/sh\n[ "$1 $2" = "-c import sys;print(sys.implementation.name, sys.version.split()[0])" ] && echo cpython 3.12.12\n`,
+       { mode: 0o755 },
+     );
+     const measured = await probeRenderPrerequisites({
+       uvPath: host.uvPath,
+       projectionRoot: host.projectionRoot,
+     });
+     assert.equal(measured.uv.version, 'uv 0.12.13');
+     assert.equal(measured.python.path, host.pythonLink);
+     assert.equal(measured.python.realpath, host.pythonReal);
+     assert.equal(measured.python.version, '3.12.12');
+     assert.equal(measured.python.sha256, sha256(await readFile(host.pythonReal)));
+   });
+ });
++
++test('render executor source spells its private-use sanitizer delimiters as escapes', async () => {
++  const source = await readFile(new URL('../src/assistant/render-executor.ts', import.meta.url), 'utf8');
++  assert.doesNotMatch(source, /[-]/u);
++  assert(source.includes('\\uE000') && source.includes('\\uE001'));
++});
+diff --git a/v2/gateway/test/sync.test.ts b/v2/gateway/test/sync.test.ts
+index f641ad2..153c3af 100644
+--- a/v2/gateway/test/sync.test.ts
++++ b/v2/gateway/test/sync.test.ts
+@@ -516,16 +516,17 @@ test('sync reports measured render prerequisites beside a BMAD render definition
+   };
+   const definitions = {
+     async loadDefinition(
+       source: import('../src/host/status.ts').SourcePin,
+       projection: import('../src/host/status.ts').ProjectionPin,
+     ) {
+       if (source.name === 'bmad' && projection.runtime !== 'claude')
+         throw new Error('WORKFLOW_DEFINITION_UNAVAILABLE');
++      if (source.name === 'bmad' && armResolveFailure) failNextResolve = true;
+       // Only the BMAD claude definition carries a render tier; its content is opaque to sync.
+       return {
+         sha256: projection.treeSha256,
+         skills: [],
+         customizationSha256: projection.manifestSha256,
+         ...(source.name === 'bmad' ? { render: { marker: 'render-tier' } } : {}),
+       } as unknown as import('../src/assistant/workflow-manifest.ts').WorkflowDefinition;
+     },
+@@ -539,31 +540,42 @@ test('sync reports measured render prerequisites beside a BMAD render definition
+     },
+     python: {
+       path: '/opt/homebrew/bin/python3.13',
+       realpath: '/opt/homebrew/Cellar/python@3.13/3.13.5/bin/python3.13',
+       sha256: 'b'.repeat(64),
+       version: '3.13.5',
+     },
+   };
++  // Lets a test make the projection lookup made for the prerequisites (after the definition) fail.
++  let failNextResolve = false;
++  const registry = Object.create(w.registry) as typeof w.registry;
++  registry.resolve = async (...args: Parameters<typeof w.registry.resolve>) => {
++    if (failNextResolve) {
++      failNextResolve = false;
++      throw new Error('PROJECTION_RESOLVE_FAILED');
++    }
++    return w.registry.resolve(...args);
++  };
++  let armResolveFailure = false;
+   const run = async (probe?: (projectionRoot: string) => Promise<typeof measured>) => {
+     const reports: import('../src/commands/contracts.ts').InstallReport[] = [];
+     const home = await bridgeRoot();
+     const http = await HttpOperationJournal.open(home.root, async (req) => {
+       if (req.phase === 'install-report') {
+         reports.push(req.canonicalBody as (typeof reports)[number]);
+         return { status: 200, body: { accepted: true, appliedRevision: 1 } };
+       }
+       return { status: 200, body: command };
+     });
+     const sync = await GatewaySync.open(home.root, {
+       machineId: command.machineId,
+       bootId: randomUUID(),
+       bootGeneration: '1',
+-      registry: w.registry,
++      registry,
+       http,
+       recipes: w.projections,
+       definitions,
+       ...(probe ? { prerequisites: probe } : {}),
+       read: async (route) =>
+         route === '/v2/gateway/config'
+           ? { revision: 1, desired: w.desired, maxJobs: 1, enabled: true }
+           : { items: [command], nextCursor: '1' },
+@@ -607,16 +619,25 @@ test('sync reports measured render prerequisites beside a BMAD render definition
+ 
+     // A machine without uv or a usable Python still reports the projection and its definition.
+     const missing = await run(async () => {
+       throw new Error('RENDER_PYTHON_UNAVAILABLE');
+     });
+     assert.equal(missing.bmad.projections.claude.state, 'current');
+     assert.deepEqual(missing.bmad.projections.claude.definition, plain.bmad.projections.claude.definition);
+     assert.equal('prerequisites' in missing.bmad.projections.claude, false);
++
++    // The projection lookup for the probe failing likewise only omits the field.
++    armResolveFailure = true;
++    const unresolved = await run(async () => measured);
++    armResolveFailure = false;
++    assert.equal(failNextResolve, false, 'the prerequisites lookup was attempted');
++    assert.equal(unresolved.bmad.projections.claude.state, 'current');
++    assert.deepEqual(unresolved.bmad.projections.claude.definition, plain.bmad.projections.claude.definition);
++    assert.equal('prerequisites' in unresolved.bmad.projections.claude, false);
+   } finally {
+     await w.close();
+     await owned.cleanup();
+   }
+ });
+ 
+ // Shared golden vector: the server install-report test reads this exact file, so a definition produced
+ // by the real gateway adapter is proven acceptable to the server digest check (and vice versa).
