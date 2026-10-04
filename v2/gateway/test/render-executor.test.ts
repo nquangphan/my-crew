@@ -875,3 +875,50 @@ test('render executor requires a canonical owned-operation root before reserving
     assert.deepEqual(operations.calls, []);
   });
 });
+
+test('render executor removes bracketed and home paths and credential values from the halt line', async () => {
+  await withHarness(async (h) => {
+    const line =
+      'error: Failed to inspect `/Users/owner/.local/share/uv/python/cpython-3.12` [/opt/homebrew/bin/uv] ' +
+      `<~/cfg/uv.toml> {/tmp/x} (~owner/y) at ${h.projectRoot}/_bmad/config.toml Authorization: Bearer abc.def ` +
+      'token: s3cr3t api_key=XYZ password = hunter2 Secret:"q w" done';
+    h.operations.behaviour = async () => ({ kind: 'exit', exitCode: 2, stdout: `${line}\n` });
+    const outcome = await h.render();
+    halted(outcome, 'RENDER_EXIT_NONZERO', true);
+    assert('log' in outcome && outcome.log);
+    assert.equal(
+      outcome.log.firstLine,
+      'error: Failed to inspect `{path}` [{path}] <{path}> {{path}} ({path}) at {project-root}/_bmad/config.toml ' +
+        'Authorization: Bearer {redacted} token: {redacted} api_key={redacted} password = {redacted} ' +
+        'Secret:{redacted} done',
+    );
+    assert.doesNotMatch(outcome.log.firstLine, /Users|owner|homebrew|abc\.def|s3cr3t|XYZ|hunter2|q w/);
+  });
+});
+
+test('render executor detects a file added and removed beside the renderer during the render', async () => {
+  const places = ['_bmad/scripts', `${skillRoot}/steps`, skillRoot, '_bmad'];
+  for (const place of places) {
+    await withHarness(async (h) => {
+      h.operations.behaviour = async (call) => {
+        const result = await officialRender(officialArgv(call.command));
+        const transient = join(h.projectRoot, place, 'json.py');
+        await writeFile(transient, 'import os\n');
+        await rm(transient);
+        return { kind: 'exit', ...result };
+      };
+      const outcome = await h.render();
+      assert.equal('reason' in outcome && outcome.reason, 'RENDER_ARTIFACT_MISMATCH', place);
+    });
+  }
+  await withHarness(async (h) => {
+    h.operations.behaviour = async (call) => {
+      const result = await officialRender(officialArgv(call.command));
+      await mkdir(join(h.projectRoot, '_bmad/custom'));
+      await rm(join(h.projectRoot, '_bmad/custom'), { recursive: true });
+      return { kind: 'exit', ...result };
+    };
+    const outcome = await h.render();
+    assert.equal('reason' in outcome && outcome.reason, 'RENDER_ARTIFACT_MISMATCH', 'custom appeared');
+  });
+});

@@ -341,21 +341,80 @@ async function digestFile(path: string, maxBytes: number): Promise<{ sha256: str
   }
 }
 
+// A path runs until whitespace, a quote, a backtick or a closing bracket.
+const pathRun = /(?:~[A-Za-z0-9_.-]*)?\/[^\s'"`\]>)}]*/g;
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
- * First log line safe to hand to the server or owner: known host paths become labels, `NAME=value`
- * assignments lose their value, any other absolute path becomes `{path}`, then printable ASCII only.
+ * First log line safe to hand to the server or owner. Known host paths become labels (their
+ * workspace-relative suffix is kept); `Bearer` credentials and the values of `*token*`, `*secret*`,
+ * `*key*` and `*password*` fields (`name: value` or `name=value`) and of any `NAME=value` are
+ * redacted; every other `/…` or `~/…` path becomes `{path}` whatever precedes it; then printable
+ * ASCII only. The result is still untrusted text.
  */
 function sanitizeFirstLine(head: Buffer, labels: readonly [string, string][]): string {
   const newline = head.indexOf(0x0a);
   let line = new TextDecoder('utf-8').decode(newline < 0 ? head : head.subarray(0, newline));
+  // Finished fragments are parked behind private-use delimiters so later rules cannot touch them;
+  // delimiters already present in the child's output are dropped first.
+  line = line.replace(/[\uE000\uE001]/g, '');
+  const kept: string[] = [];
+  const hold = (text: string) => `\uE000${kept.push(text) - 1}\uE001`;
   for (const [value, label] of [...labels].sort((a, b) => b[0].length - a[0].length))
-    line = line.split(value).join(label);
-  line = line.replace(/\b([A-Za-z_][A-Za-z0-9_]*)=\S*/g, '$1={redacted}');
-  line = line.replace(/(^|[\s'"(:,=])\/[^\s'"]*/g, '$1{path}');
+    line = line.replace(
+      new RegExp(`${escapeRegExp(value)}(/[^\\s'"\`\\]>)}]*)?`, 'g'),
+      (_match, suffix: string | undefined) => hold(`${label}${suffix ?? ''}`),
+    );
+  line = line.replace(/\bBearer\s+\S+/gi, () => hold('Bearer {redacted}'));
+  line = line.replace(
+    /\b([A-Za-z0-9_-]*(?:token|secret|key|password)[A-Za-z0-9_-]*)(\s*[:=]\s*)("[^"]*"|'[^']*'|\S+)/gi,
+    (_match, name: string, separator: string) => `${name}${separator}${hold('{redacted}')}`,
+  );
+  line = line.replace(
+    /\b([A-Za-z_][A-Za-z0-9_]*)=\S*/g,
+    (_match, name: string) => `${name}=${hold('{redacted}')}`,
+  );
+  line = line.replace(pathRun, '{path}');
+  line = line.replace(/\uE000(\d+)\uE001/g, (_match, index: string) => kept[Number(index)] ?? '?');
   return [...line]
     .map((character) => (/^[\x20-\x7e]$/.test(character) ? character : '?'))
     .join('')
     .slice(0, maxFirstLine);
+}
+
+/** Directory identity (device, inode, mtime, ctime in ns); adding or removing an entry changes it. */
+async function directoryStamp(path: string): Promise<string | null> {
+  let stat: Awaited<ReturnType<typeof lstat>> & { mtimeNs: bigint; ctimeNs: bigint };
+  try {
+    stat = await lstat(path, { bigint: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+  if (!stat.isDirectory()) throw new Error('RENDER_CLOSURE_MISMATCH');
+  return `${stat.dev}:${stat.ino}:${stat.mtimeNs}:${stat.ctimeNs}`;
+}
+
+/**
+ * Stamps of every directory whose entries form the renderer's closure, so a file added and removed
+ * between the two closure checks is still seen.
+ */
+async function closureStamps(projectRoot: string): Promise<string> {
+  const stamps: [string, string | null][] = [];
+  for (const path of ['_bmad', '_bmad/scripts', '_bmad/custom'])
+    stamps.push([path, await directoryStamp(join(projectRoot, path))]);
+  const pending = [skillRoot];
+  while (pending.length > 0) {
+    const path = pending.shift() as string;
+    if (stamps.length > maxTreeEntries) throw new Error('RENDER_TREE_SHAPE');
+    stamps.push([path, await directoryStamp(join(projectRoot, path))]);
+    for (const entry of await readdir(join(projectRoot, path), { withFileTypes: true }))
+      if (entry.isDirectory()) pending.push(`${path}/${entry.name}`);
+  }
+  return JSON.stringify(stamps);
 }
 
 /** `NativeHelper.run` rejects with the execFile error; its numeric `code` is the helper exit status. */
@@ -460,11 +519,20 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
     });
 
     // Refuse drifted inputs before reserving anything or spawning.
-    await guard('RENDER_INPUT_MISMATCH', async () => {
+    const stamps = await guard('RENDER_INPUT_MISMATCH', async () => {
+      // The render destination exists before stamping, so creating it never moves `_bmad`.
+      await realDirectory(join(projectRoot, '_bmad'));
+      await mkdir(join(projectRoot, '_bmad/render'), { mode: 0o755 }).catch(
+        (error: NodeJS.ErrnoException) => {
+          if (error.code !== 'EEXIST') throw error;
+        },
+      );
+      const before = await closureStamps(projectRoot);
       await checkClosure(projectRoot, render);
       const inputs = await readInputs(projectRoot, render, { remaining: maxSnapshotBytes });
       validateRenderDefinition(render, inputs.sizes);
       if (!inputsMatch(render, inputs)) throw new Error('RENDER_INPUT_DRIFT');
+      return before;
     });
 
     // A package-manager symlink is accepted: the resolved file is hashed (bounded) and executed.
@@ -611,6 +679,7 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
 
       const inspection = await guard('RENDER_ARTIFACT_MISMATCH', async () => {
         await checkClosure(projectRoot, render);
+        if ((await closureStamps(projectRoot)) !== stamps) throw new Error('RENDER_CLOSURE_CHANGED');
         const relative = generationPath.slice(projectRoot.length + 1);
         const names = outputNames(render);
         const listed = await listFiles(generationPath);
