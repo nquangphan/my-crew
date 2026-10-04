@@ -248,7 +248,9 @@ function pythonCanonical(value: unknown): string {
   return `{${keys.map((key) => `${pythonCanonical(key)}:${pythonCanonical((value as Record<string, unknown>)[key])}`).join(',')}}`;
 }
 
-function checkPinBounds(expected: CapturedRenderExpectation): void {
+type RenderDefinitionPart = Omit<CapturedRenderExpectation, 'projectRoot' | 'generationRoot'>;
+
+function checkPinBounds(expected: RenderDefinitionPart): void {
   hasExactKeys(expected.source, [
     'name',
     'version',
@@ -282,6 +284,35 @@ function checkPinBounds(expected: CapturedRenderExpectation): void {
   for (const option of options) if (typeof option !== 'string' || option.length > 4096) mismatch();
 }
 
+function checkDefinition(definition: RenderDefinitionPart): string[] {
+  checkPinBounds(definition);
+  validateSourcePin(definition.source);
+  validateProjectionPin(definition.projection);
+  if (
+    definition.source.name !== 'bmad' ||
+    definition.source.sourceTreeSha256 !== definition.projection.sourceTreeSha256 ||
+    definition.source.sourceTreeSha256 !== acceptedBmadSourceTree
+  )
+    mismatch();
+
+  const selected = boundedKeys(definition.selectedProjectionSha256, maxSelectedFiles);
+  for (const path of selected) {
+    selectedName(path);
+    if (!isDigest(definition.selectedProjectionSha256[path])) mismatch();
+  }
+  for (const required of [rendererPath, helperPath, customizePath, skillPath, workflowPath]) {
+    if (!selected.includes(required)) mismatch();
+  }
+  hasExactKeys(definition.layers, layerPaths);
+  for (const path of layerPaths) {
+    const expectedHash = definition.layers[path];
+    if (requiredLayers.has(path) ? !isDigest(expectedHash) : expectedHash !== null && !isDigest(expectedHash))
+      mismatch();
+  }
+  if (definition.layers[customizePath] !== definition.selectedProjectionSha256[customizePath]) mismatch();
+  return selected;
+}
+
 function capture(expected: CapturedRenderExpectation): CapturedRenderExpectation {
   hasExactKeys(expected, [
     'projectRoot',
@@ -293,32 +324,37 @@ function capture(expected: CapturedRenderExpectation): CapturedRenderExpectation
   ]);
   checkedAbsolutePath(expected.projectRoot);
   checkedAbsolutePath(expected.generationRoot);
-  checkPinBounds(expected);
-  validateSourcePin(expected.source);
-  validateProjectionPin(expected.projection);
-  if (
-    expected.source.name !== 'bmad' ||
-    expected.source.sourceTreeSha256 !== expected.projection.sourceTreeSha256 ||
-    expected.source.sourceTreeSha256 !== acceptedBmadSourceTree
-  )
-    mismatch();
-
-  const selected = boundedKeys(expected.selectedProjectionSha256, maxSelectedFiles);
-  for (const path of selected) {
-    selectedName(path);
-    if (!isDigest(expected.selectedProjectionSha256[path])) mismatch();
-  }
-  for (const required of [rendererPath, helperPath, customizePath, skillPath, workflowPath]) {
-    if (!selected.includes(required)) mismatch();
-  }
-  hasExactKeys(expected.layers, layerPaths);
-  for (const path of layerPaths) {
-    const expectedHash = expected.layers[path];
-    if (requiredLayers.has(path) ? !isDigest(expectedHash) : expectedHash !== null && !isDigest(expectedHash))
-      mismatch();
-  }
-  if (expected.layers[customizePath] !== expected.selectedProjectionSha256[customizePath]) mismatch();
+  checkDefinition(expected);
   return structuredClone(expected);
+}
+
+/**
+ * Pure check that a host-independent BMAD render definition is one the inspector can accept: the
+ * same pin, accepted-tree, selected-name (≤128 files, normalized `.md` names ≤512) and layer rules
+ * as `createBmadArtifactInspector`. With `fileBytes`, it also applies the inspector's byte caps to
+ * the size of every selected file and present layer (≤16 MiB each, ≤32 MiB together); `fileBytes`
+ * must then name exactly those paths. Throws `RENDER_ARTIFACT_MISMATCH` or
+ * `RENDER_ARTIFACT_TOO_LARGE`; returns nothing and grants no authority.
+ */
+export function validateRenderDefinition(
+  definition: RenderDefinitionPart,
+  fileBytes?: Readonly<Record<string, number>>,
+): void {
+  hasExactKeys(definition, ['source', 'projection', 'selectedProjectionSha256', 'layers']);
+  const selected = checkDefinition(definition);
+  if (fileBytes === undefined) return;
+  const present = new Set(selected);
+  for (const path of layerPaths) if (definition.layers[path] !== null) present.add(path);
+  const sized = boundedKeys(fileBytes, maxSelectedFiles + layerPaths.length);
+  sameKeys(sized, [...present]);
+  let total = 0;
+  for (const path of sized) {
+    const bytes = fileBytes[path];
+    if (typeof bytes !== 'number' || !Number.isSafeInteger(bytes) || bytes < 0) mismatch();
+    if (bytes > maxFileBytes) tooLarge();
+    total += bytes;
+  }
+  if (total > maxTotalBytes) tooLarge();
 }
 
 function snapshotBytes(snapshot: RenderArtifactByteSnapshot): RenderArtifactByteSnapshot {

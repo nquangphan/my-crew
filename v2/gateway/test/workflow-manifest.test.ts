@@ -588,3 +588,63 @@ test('workflow definition never spawns uv, the renderer or any child process', a
     },
   );
 });
+
+test('workflow definition rejects a BMAD renderer script that is not a regular file with the stable code', async () => {
+  await withBmadProjection(
+    (files) => [
+      ...files.filter((file) => file.path !== '_bmad/scripts/config_utils.py'),
+      {
+        path: '_bmad/scripts/config_utils.py',
+        type: 'symlink',
+        mode: null,
+        body: Buffer.alloc(0),
+        target: 'render_skill.py',
+      },
+    ],
+    async (resolver, source, projection) => {
+      await assert.rejects(
+        createWorkflowManifest(resolver).loadDefinition(source, projection),
+        /WORKFLOW_SKILL_MISMATCH/,
+      );
+    },
+  );
+});
+
+test('workflow definition refuses a BMAD selection the render artifact inspector would reject', async () => {
+  const extraSkills = (count: number) => (files: TreeFile[]) => [
+    ...files,
+    ...Array.from({ length: count }, (_, index) => ({
+      path: `${bmadSkillRoot}extra/step-${String(index).padStart(3, '0')}.md`,
+      type: 'file' as const,
+      mode: 0o644 as const,
+      body: Buffer.from(`Extra ${index}\n`),
+    })),
+  ];
+  // 14 official skill sources + SKILL.md + customize.toml + 2 scripts = 18 selected paths.
+  await withBmadProjection(extraSkills(128 - 18), async (resolver, source, projection) => {
+    const definition = await createWorkflowManifest(resolver).loadDefinition(source, projection);
+    assert(definition.render);
+    assert.equal(Object.keys(definition.render.selectedProjectionSha256).length, 128);
+  });
+  await withBmadProjection(extraSkills(128 - 18 + 1), async (resolver, source, projection) => {
+    await assert.rejects(
+      createWorkflowManifest(resolver).loadDefinition(source, projection),
+      /RENDER_ARTIFACT_TOO_LARGE/,
+    );
+  });
+  // Every path component stays under the host name limit; the relative skill name is 513 characters.
+  const longName = `${'a'.repeat(200)}/${'b'.repeat(200)}/${'c'.repeat(108)}.md`;
+  assert.equal(longName.length, 513);
+  await withBmadProjection(
+    (files) => [
+      ...files,
+      { path: `${bmadSkillRoot}${longName}`, type: 'file', mode: 0o644, body: Buffer.from('Long\n') },
+    ],
+    async (resolver, source, projection) => {
+      await assert.rejects(
+        createWorkflowManifest(resolver).loadDefinition(source, projection),
+        /RENDER_ARTIFACT_MISMATCH/,
+      );
+    },
+  );
+});

@@ -5,6 +5,7 @@ import {
   type CapturedRenderExpectation,
   createBmadArtifactInspector,
   type RenderArtifactByteSnapshot,
+  validateRenderDefinition,
 } from '../src/assistant/render-artifacts.ts';
 import { createWorkflowManifest } from '../src/assistant/workflow-manifest.ts';
 import {
@@ -629,4 +630,78 @@ test('render artifact inspection remains separate from the two-tier BMAD adapter
     await fs.rm(root, { recursive: true, force: true });
   }
   for (const spy of spies) assert.equal(spy.mock.callCount(), 0);
+});
+
+test('render definition validator applies the inspector limits to a host-independent definition', () => {
+  const { projectRoot: _root, generationRoot: _generation, ...definition } = fixture().expected;
+  const sizes = (): Record<string, number> => ({
+    ...Object.fromEntries(Object.keys(definition.selectedProjectionSha256).map((path) => [path, 10])),
+    '_bmad/config.toml': 10,
+  });
+  assert.doesNotThrow(() => validateRenderDefinition(definition, sizes()));
+  assert.doesNotThrow(() => validateRenderDefinition(definition));
+  // The definition shape is exact: host-bound roots belong to the inspector, not the definition.
+  assert.throws(
+    () => validateRenderDefinition({ ...definition, projectRoot } as typeof definition, sizes()),
+    /RENDER_ARTIFACT_MISMATCH/,
+  );
+  const missing = sizes();
+  delete missing['_bmad/config.toml'];
+  assert.throws(() => validateRenderDefinition(definition, missing), /RENDER_ARTIFACT_MISMATCH/);
+  assert.throws(
+    () => validateRenderDefinition(definition, { ...sizes(), '_bmad/config.user.toml': 1 }),
+    /RENDER_ARTIFACT_MISMATCH/,
+  );
+  assert.throws(
+    () => validateRenderDefinition(definition, { ...sizes(), '_bmad/config.toml': -1 }),
+    /RENDER_ARTIFACT_MISMATCH/,
+  );
+  assert.throws(
+    () => validateRenderDefinition(definition, { ...sizes(), '_bmad/config.toml': 16 * 1024 * 1024 + 1 }),
+    /RENDER_ARTIFACT_TOO_LARGE/,
+  );
+  assert.doesNotThrow(() =>
+    validateRenderDefinition(definition, { ...sizes(), '_bmad/config.toml': 16 * 1024 * 1024 }),
+  );
+  assert.throws(
+    () =>
+      validateRenderDefinition(definition, {
+        ...sizes(),
+        '_bmad/config.toml': 16 * 1024 * 1024,
+        '_bmad/scripts/render_skill.py': 16 * 1024 * 1024,
+      }),
+    /RENDER_ARTIFACT_TOO_LARGE/,
+  );
+
+  const unapproved = structuredClone(definition);
+  unapproved.source.payloadSha256 = sha256(utf8('different archive bytes'));
+  unapproved.source.sourceTreeSha256 = sourceTreeHash(unapproved.source);
+  unapproved.projection.sourceTreeSha256 = unapproved.source.sourceTreeSha256;
+  unapproved.projection.treeSha256 = projectionTreeHash(unapproved.projection);
+  assert.throws(() => validateRenderDefinition(unapproved, sizes()), /RENDER_ARTIFACT_MISMATCH/);
+
+  const crowded = structuredClone(definition);
+  const crowdedSizes = sizes();
+  for (let index = 0; Object.keys(crowded.selectedProjectionSha256).length <= 128; index++) {
+    const path = `.claude/skills/bmad-build/extra-${index}.md`;
+    (crowded.selectedProjectionSha256 as Record<string, string>)[path] = digests.step;
+    crowdedSizes[path] = 1;
+  }
+  assert.throws(() => validateRenderDefinition(crowded, crowdedSizes), /RENDER_ARTIFACT_TOO_LARGE/);
+  assert.throws(() => validateRenderDefinition(crowded), /RENDER_ARTIFACT_TOO_LARGE/);
+
+  const longName = structuredClone(definition);
+  const longPath = `.claude/skills/bmad-build/${'a'.repeat(510)}.md`;
+  (longName.selectedProjectionSha256 as Record<string, string>)[longPath] = digests.step;
+  assert.throws(
+    () => validateRenderDefinition(longName, { ...sizes(), [longPath]: 1 }),
+    /RENDER_ARTIFACT_MISMATCH/,
+  );
+  const unnormalized = structuredClone(definition);
+  const dotted = '.claude/skills/bmad-build/steps/../step-01.md';
+  (unnormalized.selectedProjectionSha256 as Record<string, string>)[dotted] = digests.step;
+  assert.throws(
+    () => validateRenderDefinition(unnormalized, { ...sizes(), [dotted]: 1 }),
+    /RENDER_ARTIFACT_MISMATCH/,
+  );
 });

@@ -12,7 +12,11 @@ import {
 } from '../workflows/pins.ts';
 import type { WorkflowRegistry } from '../workflows/registry.ts';
 import { manifestHash } from '../workflows/stage.ts';
-import type { CapturedRenderExpectation, RenderLayerPath } from './render-artifacts.ts';
+import {
+  type CapturedRenderExpectation,
+  type RenderLayerPath,
+  validateRenderDefinition,
+} from './render-artifacts.ts';
 
 export type RenderDefinition = Omit<CapturedRenderExpectation, 'projectRoot' | 'generationRoot'>;
 
@@ -119,7 +123,12 @@ async function readPinnedFile(root: string, entry: ManifestEntry): Promise<void>
   );
   try {
     const stat = await file.stat();
-    if (!stat.isFile() || stat.nlink !== 1 || hash(await file.readFile()) !== entry.sha256)
+    if (
+      !stat.isFile() ||
+      stat.nlink !== 1 ||
+      stat.size !== entry.bytes ||
+      hash(await file.readFile()) !== entry.sha256
+    )
       throw new Error('WORKFLOW_SKILL_MISMATCH');
   } finally {
     await file.close();
@@ -183,6 +192,7 @@ async function loadBmadDefinition(
   }
   for (const path of bmadScripts) {
     const entry = entries.get(path);
+    if (entry && entry.type !== 'file') throw new Error('WORKFLOW_SKILL_MISMATCH');
     if (entry) selected.push(entry);
   }
   const layers = {} as Record<RenderLayerPath, string | null>;
@@ -198,13 +208,18 @@ async function loadBmadDefinition(
   for (const required of [bmadSkill, bmadWorkflow, bmadCustomize, ...bmadScripts])
     if (!selectedPaths.has(required)) throw new Error('WORKFLOW_SKILL_MISMATCH');
   selected.sort(byPath);
+  const selectedProjectionSha256 = Object.fromEntries(selected.map((entry) => [entry.path, entry.sha256]));
+  // Refuse, before reading bytes, any selection the render artifact inspector could never accept.
+  validateRenderDefinition(
+    { source, projection, selectedProjectionSha256, layers },
+    Object.fromEntries([...selected, ...layerEntries].map((entry) => [entry.path, entry.bytes])),
+  );
   for (const entry of [...selected, ...layerEntries]) await readPinnedFile(resolved.projectionRoot, entry);
   assertPinnedManifests(resolved.manifest, source, projection);
 
   const skills = selected
     .filter((entry) => entry.path.endsWith('.md') && posix.basename(entry.path) !== 'SKILL.md')
     .map((entry) => ({ path: entry.path, sha256: entry.sha256 }));
-  const selectedProjectionSha256 = Object.fromEntries(selected.map((entry) => [entry.path, entry.sha256]));
   return definition(source, projection, skills, layers, selectedProjectionSha256);
 }
 

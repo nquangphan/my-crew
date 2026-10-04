@@ -24,6 +24,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/package.json` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/pnpm-lock.yaml` | [gateway-host](flows/gateway-host.md) (file) |
 | `gateway/src/assistant/render-artifacts.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
+| `gateway/src/assistant/render-executor.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
 | `gateway/src/assistant/tool-client.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
 | `gateway/src/assistant/workflow-manifest.ts` | [assistant-workflows](flows/assistant-workflows.md) (điểm vào) |
 | `gateway/src/commands/contracts.ts` | [gateway-host](flows/gateway-host.md) (file) |
@@ -111,6 +112,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/model-reporter.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
 | `gateway/test/pin-retirement.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/render-artifacts.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
+| `gateway/test/render-executor.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
 | `gateway/test/resources.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/retirement-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/runtime-boundary.test.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
