@@ -241,3 +241,6 @@ Codex batch 1 (docs/comment) commit — PM chỉnh comment code sang tiếng Anh
 12:05 S6b-i FIX2 `b719bf1` re-review `task-3-s6b-i-fix2-re-review.md`: Approved, phase03-owner chấp nhận C tại b719bf1; N1a/N1b/N2 ADDRESSED; execute cũ byte-identical; miễn trừ group leader an toàn vì mọi kill trước waitpid.
 Task 3 S6b-i: complete — b719bf1 (a1981b7 + 4c4e0aa + b719bf1).
 S6b-i: minor (deferred): docs bước 9 còn câu "Helper kill mọi group đã học" — sửa theo cơ chế chỉ kill group đã xác nhận. Ràng buộc S6b-ii: không thêm code kill sau khi reap leader; N3 kiểm vắng + dọn receipts/{id}.leader; render-executor xử lý exit 24 (EXECUTOR_GUARD_INVALID) và EXECUTOR_BUSY không giữ stage.
+
+12:45 OpenCode (kimi-k3) code-only + tester (sonnet) RED/GREEN: B2a M6 null input/sources → 400 VALIDATION + S2 N3 test deny — commit `accba5a` (163/163, tsc 0, PM biome --write + flow R3). PM tự review diff (nhỏ). Task 2 B2a: minor M6 — đóng. Task 2 C: minor N3 — đóng.
+OpenCode map N2/N4 (lane bỏ qua bracketRun, aria-hidden nhãn) — chờ tester chạy test web rồi commit.
