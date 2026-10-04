@@ -132,3 +132,7 @@ Task S3b: complete — 963dc31 (c184944 + 963dc31).
 Task S3b: minor (deferred): nhánh DEFINITION_FAILED ghi `installed: null` làm mất pin để chẩn đoán — cân nhắc `installed: pin`.
 Ruling (hợp đồng host assembly T7): khi nối `definitions` vào production, lỗi I/O tạm của loader chặn acceptance tới lần retry partial kế — ghi vào checklist T7 cùng việc cấp `createWorkflowManifest(registry)`. Fixture recipe `workflow-archives.ts:117` map skills sang `.${runtime}/skills` — test nối loader thật phải dùng mapping production.
 S4 (createRun + latchRenderedArtifact) chờ S2 review khép.
+
+15:40 S2 security review `task-2-c-review.md`: Spec gần đạt (lệch A2), Needs fixes, Important2/Minor3/⚠️5. Captured target xác nhận không cấp quyền. FIX1/5 resume implementer: I1 operation dùng nhiều lần/khác Tx, I2 resolver không kiểm grant, nâng M1 (test deny thiếu) + M2 (for share input_revision), M3 tùy.
+Ruling (brief B3/B4 bắt buộc): W4 caller port phải giữ `event_cursor` trước như mutate() — gọi trong Tx trần có thể deadlock với ingestEvents; W5 router B4 không ghi decision trong savepoint và ghi decision trước khi tăng input_revision của message; cùng request_hash ↔ targetSha256 binding và chống dò tồn tại ở transport.
+Ruling: W1 test sai deployment bằng session_replication_role=replica chấp nhận — mô phỏng row import.
