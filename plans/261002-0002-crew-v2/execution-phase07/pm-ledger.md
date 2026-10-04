@@ -75,3 +75,4 @@ Ruling: workers không amend commit (concurrency) — tạo commit mới.
 12:55 Wiring FIX1 `b08a927` re-review: I1/I2 ADDRESSED, mới Important R2 thiếu app-router.spec trong manifest; FIX2/5 resume (R2, M6 có tác dụng, assert vacuous, câu docs logout).
 Ruling: khi S3a/S5a gắn GET dữ liệu thật vào ProtectedLayout, controller phải thêm assert đích danh GET đó đứng sau catch-up `/v2/events` trong `e2e/app-router.spec.ts` — ghi checklist S3b/S5 acceptance.
 Wiring: minor (deferred): `app-router.spec.ts:132` phụ thuộc Chromium requestfailed khi abort stream — theo dõi flaky.
+Ruling 13:20: sửa `v2/docs/flows.yaml`/`files.md`/generated phải giữ lock riêng `$TMPDIR/crew-v2-manifest.lock` (mkdir) từ lúc đọc HEAD tới khi commit xong, rebase hunk lên HEAD mới nhất — wiring dbeb6da từng ghi đè entry S3a (đã khôi phục e2dd3e4, net 2 dòng đã PM kiểm) — sai thì mất entry manifest của worker khác.

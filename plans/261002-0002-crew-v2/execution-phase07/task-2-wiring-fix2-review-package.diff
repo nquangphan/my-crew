@@ -1,0 +1,137 @@
+dbeb6da fix(v2/web): đăng ký app-router.spec vào flow, bỏ returnTo thừa và assert vô nghĩa
+ba58e42 feat(v2/web): thêm bảng, danh sách, chi tiết và hộp thoại ticket dùng chung (chỉ đọc)
+ v2/docs/flows/web-shell.md    |  2 +-
+ v2/web/e2e/app-router.spec.ts |  5 ++++-
+ v2/web/src/router.tsx         | 17 ++---------------
+ 3 files changed, 7 insertions(+), 17 deletions(-)
+diff --git a/v2/docs/flows/web-shell.md b/v2/docs/flows/web-shell.md
+index 6899e15..c948aa0 100644
+--- a/v2/docs/flows/web-shell.md
++++ b/v2/docs/flows/web-shell.md
+@@ -37,11 +37,11 @@
+ Mỗi lần mount có đúng một `AppRuntime`, nên một `QueryClient`, một phiên và một stream sự kiện; dữ liệu nhạy cảm không vào module-global state. Nội dung `/` và `/projects/$projectId` vẫn là bản minh họa phía sau đăng nhập, chưa đọc project/ticket/Assistant thật. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
+ 
+ ## Flow liên quan
+ 
+ `v2/docs/flows/server-platform.md` định nghĩa migration và DB v2; `v2/docs/flows/server-identity.md` định nghĩa bootstrap/login owner. Các trang nghiệp vụ Phase07 Task2–8 sẽ dùng shell này sau khi producer gate tương ứng mở.
+ 
+ ## Tests
+ 
+ Workspace RED đầu tiên exit 1 bằng assertion thiếu `package.json`, sau scaffold workspace 1/1 PASS. Lifecycle RED trên deny scaffold có 3 assertion thất bại đúng hành vi thiếu callback/identity/STOP. Preview SIGTERM child từng RED thực: tài nguyên cleanup nhưng process không tự exit; đã GREEN. Review FIX1 phát hiện request gửi dở có thể giữ `close()` chờ vô hạn; test HTTP thật RED với `ACTIVE_REQUEST_CLOSE_DEADLINE`, sau sửa hủy socket thuộc fixture và deadline cleanup thì GREEN. Lượt final sau format đạt lifecycle 5/5 trên PostgreSQL18.6/API/web listener thật: POST login, GET session trực tiếp và qua proxy `/v2`, close lặp, active request, SIGTERM child exit0/cleanup; hai case UNKNOWN là unit policy. Scoped Biome và strict typecheck sau FIX1 exit0; web build 150 modules và workspace 1/1 thuộc freeze UI trước FIX1, vì FIX1 chỉ đổi harness/test. Exact container ID, image digest, DB, cổng, process, scratch và STOP độc lập, cùng raw logs có hash của FIX1, được ghi trong báo cáo Phase07. Preview Playwright MCP cuối trên source UI đã xác nhận Enter skip link chuyển focus vào `MAIN#main-content`, error console 0, viewport thật 1280/390/640 px đều không tràn. Viewport 640px là kiểm tra bố cục tương đương; literal browser zoom 200% chưa đo được vì shortcut không đổi zoom metrics. Fixture preview đã đóng và exact resource biến mất. FIX2 bổ sung guard sau stat để không khởi chạy rm sau REMOVE timeout; focused unit RED/GREEN và scoped Biome đã có. Full lifecycle6 và strict typecheck trên freeze FIX2 chưa chạy do resource gate, independent scoped FIX2 review chưa hoàn tất. Đây là checkpoint source, chưa nghiệm thu đầy đủ Task1; các trang nghiệp vụ Task2–8 nằm ngoài nghiệm thu shell này.
+ 
+-`web/test/app-wiring.test.ts` nạp `app-runtime.ts` qua Vite SSR (Node không đọc được JSX trong `session-boundary.tsx`) và kiểm: stream catch-up đi trước GET dữ liệu đầu tiên, query không retry mặc định, route chưa xác thực bị chuyển tới login kèm return path nội bộ, URL ngoài bị loại, logout và hết phiên xóa cache và dừng stream. Hai spec `auth.spec.ts` và `events.spec.ts` của flow web-data vẫn mount `SessionBoundary` vào root `#task2-harness` và ẩn app thật; vì app thật nay có form đăng nhập nên chúng chỉ tìm ô “Mật khẩu” trong root đó. `web/e2e/app-router.spec.ts` chạy router thật qua fixture PostgreSQL/API/Vite: guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=…`, đăng nhập quay về đúng path, request `GET /v2/events` đi trước mọi GET khác sau bước xác minh phiên, `returnTo` là URL ngoài rơi về `/crew-v2/`, và đăng xuất đóng stream (request stream bị hủy, không có request sự kiện mới).
++`web/test/app-wiring.test.ts` nạp `app-runtime.ts` qua Vite SSR (Node không đọc được JSX trong `session-boundary.tsx`) và kiểm: stream catch-up đi trước GET dữ liệu đầu tiên, query không retry mặc định, route chưa xác thực bị chuyển tới login kèm return path nội bộ, URL ngoài bị loại, logout và hết phiên xóa cache và dừng stream. Hai spec `auth.spec.ts` và `events.spec.ts` của flow web-data vẫn mount `SessionBoundary` vào root `#task2-harness` và ẩn app thật; vì app thật nay có form đăng nhập nên chúng chỉ tìm ô “Mật khẩu” trong root đó. `web/e2e/app-router.spec.ts` chạy router thật qua fixture PostgreSQL/API/Vite: guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=…`, đăng nhập quay về đúng path, request `GET /v2/events` đi trước mọi GET khác sau bước xác minh phiên, `returnTo` là URL ngoài rơi về `/crew-v2/`, và đăng xuất làm request stream bị hủy; khi còn là guest (kể cả sau khi tải lại trang đăng nhập) không có request `/v2/events` nào được gửi.
+diff --git a/v2/web/e2e/app-router.spec.ts b/v2/web/e2e/app-router.spec.ts
+index 4c42e33..c170f7d 100644
+--- a/v2/web/e2e/app-router.spec.ts
++++ b/v2/web/e2e/app-router.spec.ts
+@@ -57,16 +57,19 @@ test('router thật: guest chuyển login, quay về đúng path, stream trướ
+   const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
+   expect(afterLogin[0]).toBe('GET /v2/events');
+   expect(afterLogin.filter((call) => call === 'GET /v2/events/stream')).toHaveLength(1);
+ 
+   await page.getByRole('button', { name: 'Đăng xuất' }).click();
+   await expect(heading).toBeVisible();
+   await expect.poll(() => streamsClosed.length).toBe(1);
+   const afterLogout = calls.length;
+ 
+   await page.goto(`${crew.webOrigin}/crew-v2/login?returnTo=${encodeURIComponent('https://evil.example/')}`);
++  await expect(heading).toBeVisible();
++  // As a guest, neither the logout nor the fresh page load opens any event request.
++  expect(calls.slice(afterLogout).filter((call) => call.startsWith('GET /v2/events'))).toEqual([]);
+   await password.fill(crew.ownerPassword);
+   await signIn.click();
+   await expect(page.getByRole('heading', { name: 'Không gian làm việc', level: 1 })).toBeVisible();
+   expect(new URL(page.url()).pathname).toBe('/crew-v2/');
+-  expect(calls.slice(afterLogout).some((call) => call.includes('evil'))).toBe(false);
++  expect(page.url()).not.toContain('evil.example');
+ });
+diff --git a/v2/web/src/router.tsx b/v2/web/src/router.tsx
+index c424943..ff6ce75 100644
+--- a/v2/web/src/router.tsx
++++ b/v2/web/src/router.tsx
+@@ -1,28 +1,21 @@
+ import {
+   createRootRoute,
+   createRoute,
+   createRouter,
+   Outlet,
+   redirect,
+-  useLocation,
+   useRouter,
+   useSearch,
+ } from '@tanstack/react-router';
+ import { useEffect, useSyncExternalStore } from 'react';
+-import {
+-  type AppRuntime,
+-  authorizeRoute,
+-  internalReturnPath,
+-  parseLoginSearch,
+-  useRuntime,
+-} from './app-runtime.ts';
++import { type AppRuntime, authorizeRoute, parseLoginSearch, useRuntime } from './app-runtime.ts';
+ import { LoginScreen } from './auth/login.tsx';
+ import { SessionBoundary } from './auth/session-boundary.tsx';
+ import { safeReturnPath } from './lib/session.ts';
+ import { EmptyPanel, ErrorPanel, LoadingPanel, Shell } from './shell.tsx';
+ 
+ function GuestHome() {
+   return (
+     <section className="page-stack" aria-labelledby="guest-heading">
+       <div className="page-intro">
+         <span className="eyebrow">Bản minh họa</span>
+@@ -46,28 +39,22 @@ function ProjectHome() {
+         <h1 id="project-heading">Dự án</h1>
+         <p>Thông tin dự án sẽ xuất hiện sau khi đăng nhập.</p>
+       </div>
+       <EmptyPanel />
+     </section>
+   );
+ }
+ 
+ function ProtectedLayout() {
+   const { session, pending, client } = useRuntime();
+-  const location = useLocation();
+   return (
+-    <SessionBoundary
+-      session={session}
+-      pending={pending}
+-      client={client}
+-      returnTo={internalReturnPath(location)}
+-    >
++    <SessionBoundary session={session} pending={pending} client={client}>
+       <Outlet />
+     </SessionBoundary>
+   );
+ }
+ 
+ function LoginRoute() {
+   const { session } = useRuntime();
+   const router = useRouter();
+   const { returnTo } = useSearch({ from: '/login' });
+   const snapshot = useSyncExternalStore(
+=== net manifest delta ba58e42..e2dd3e4
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 3223420..69bd7b3 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -350,6 +350,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
++| `web/e2e/app-router.spec.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/e2e/auth.spec.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/e2e/events.spec.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index b633573..fe02086 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -491,6 +491,7 @@ flows:
+       - web/test/workspace.test.ts
+       - web/test/fixture-lifecycle.test.ts
+       - web/test/app-wiring.test.ts
++      - web/e2e/app-router.spec.ts
+   web-data:
+     title: Transport, phiên owner và đồng bộ sự kiện web Crew v2
+     doc: docs/flows/web-data.md
