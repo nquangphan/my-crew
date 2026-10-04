@@ -1,0 +1,2046 @@
+167f79c fix(v2/docs): đặt flow web-tickets đúng trong mục flows và sắp lại bảng tra file
+e2dd3e4 fix(v2/docs): khôi phục mục flow của worker khác bị ghi đè, giữ app-router.spec trong web-shell
+dbeb6da fix(v2/web): đăng ký app-router.spec vào flow, bỏ returnTo thừa và assert vô nghĩa
+ba58e42 feat(v2/web): thêm bảng, danh sách, chi tiết và hộp thoại ticket dùng chung (chỉ đọc)
+ .../execution-phase07/task-3-s3a-report.md         | 103 +++++++
+ v2/docs/files.md                                   |  10 +
+ v2/docs/flows.yaml                                 |  16 +
+ v2/docs/flows/web-tickets.md                       |  47 +++
+ v2/docs/index.md                                   |   1 +
+ v2/web/e2e/tickets.spec.ts                         | 315 +++++++++++++++++++
+ v2/web/src/tickets/board.tsx                       |  83 +++++
+ v2/web/src/tickets/detail.tsx                      | 214 +++++++++++++
+ v2/web/src/tickets/dialog.tsx                      |  81 +++++
+ v2/web/src/tickets/history.tsx                     | 113 +++++++
+ v2/web/src/tickets/list.tsx                        | 171 +++++++++++
+ v2/web/src/tickets/queries.ts                      | 269 +++++++++++++++++
+ v2/web/src/tickets/status.ts                       |  94 ++++++
+ v2/web/test/tickets.test.ts                        | 336 +++++++++++++++++++++
+ 14 files changed, 1853 insertions(+)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/task-3-s3a-report.md b/plans/261002-0002-crew-v2/execution-phase07/task-3-s3a-report.md
+new file mode 100644
+index 0000000..4540038
+--- /dev/null
++++ b/plans/261002-0002-crew-v2/execution-phase07/task-3-s3a-report.md
+@@ -0,0 +1,103 @@
++# CREWV2-701 / Task 3 — S3a: giao diện đọc ticket (bảng, danh sách, chi tiết, hộp thoại, lịch sử)
++
++BASE `43792f1`, worktree `my-crew-v2`, nhánh `codex/crew-v2-server`, Node v24.21.0, pnpm 10.32.1, Asia/Ho_Chi_Minh.
++Brief `execution-phase07/task-3-brief.md`, dòng S3a. Worker Claude (web-s3a); không dispatch subagent/reviewer.
++
++**Phạm vi được claim:** chỉ S3a (source + interface đọc, đã tự review). **Không** claim S3b (create-request, composer), **không** claim A3.
++
++## 1. Tiền kiểm producer (chỉ đọc, không sửa server)
++
++| Route | Nguồn | Có ở HEAD |
++|---|---|---|
++| GET `/v2/tickets?projectId&status&kind&rootId&cursor&limit` (≤100, mặc định 50, xếp theo `id`) | `v2/server/src/tickets/routes.ts:199-239` | có |
++| GET `/v2/tickets/:id` | `routes.ts:241` | có |
++| GET `/v2/tickets/:id/graph` (cả root) | `routes.ts:245`, `dependencies.ts:153` | có |
++| GET `/v2/tickets/:id/comments`, `/decisions` (cursor UUID, xếp theo `id`) | `routes.ts:337-428` | có |
++| Projection máy/model/độ khó/lượt chạy/bằng chứng (G1/G3) | — | **chưa có** |
++| History projection đầy đủ: review/fallback/artifact/commit/docs sync (G1/G3) | — | **chưa có** |
++| Phân trang theo request root (G1) | — | **chưa có** (list không có filter `level`) |
++| Ticket → docs refs (G1) | chỉ có PUT `/docs-links` (`routes.ts:453`) | **chưa có route đọc** |
++| Attachment của ticket (G2) | `attachments/routes.ts`, chưa mount | **chưa mount** |
++
++Phần thiếu được hiển thị là “Chưa có dữ liệu — máy chủ chưa cung cấp thông tin này.” hoặc ghi chú tương ứng. Web không bịa route và không suy dữ liệu từ `criteria` hay prose.
++
++## 2. File
++
++Mới (đều nằm trong danh sách “Files mới” của brief, phần S3a):
++
++- `v2/web/src/tickets/status.ts`: `statusLabels` (đúng 7 nhãn của brief), `statusOrder`, `statusIcons`, `levelLabels`, `kindLabels`, `isTerminal`, `mergeTicketPages`, `requestRoots`, `groupByStatus`, `pickReturnFocus`, `waitReasonLabel`.
++- `v2/web/src/tickets/queries.ts`: `parseTicketFilters`, `ticketListPath`, `fetchTicketPage`, `ticketListOptions`, `ticketQueryOptions` (revision guard), `fetchAllPages` (chặn cursor lặp), `buildLegacyTimeline`, `formatTime`, `actorLabel`, cùng các hook `useTicket`, `useTicketList`, `useTicketHistory`, `useTicketGraph`. Hook nhận `OwnerClient` từ component (`useRuntime().client`), nên module chạy được trong `node:test`.
++- `v2/web/src/tickets/detail.tsx` (`TicketDetail`, `StatusBadge`), `dialog.tsx` (`TicketDialog`), `history.tsx` (`TicketHistory`), `list.tsx` (`TicketList`, `TicketFilterBar`, `TicketPagination`), `board.tsx` (`TicketBoard`).
++- `v2/web/test/tickets.test.ts`, `v2/web/e2e/tickets.spec.ts`.
++- Docs: `v2/docs/flows/web-tickets.md`, mục `web-tickets` trong `v2/docs/flows.yaml`, khối generated trong `v2/docs/index.md`/`files.md`.
++
++Không tạo `requests.tsx`, `create-request.tsx`, `create-request-state.ts`, `create-request.test.ts` và không import `compose/*`; các phần đó thuộc S3b. `requestRoots` được đặt trong `status.ts` để Task4 và S3b dùng lại. Không sửa `main.tsx`, `router.tsx`, `styles.css`, `app-runtime.ts`, `auth/lib/contracts`, harness hay server. Style nằm inline trong component, vì `styles.css` thuộc controller.
++
++Interface khớp brief: `TicketDetail({ ticketId, presentation: 'page' | 'dialog' })`, `TicketDialog({ ticketId, onClose, returnFocus })`, `requestRoots(tickets)`, `statusLabels`.
++
++## 3. RED → GREEN
++
++Mọi lệnh chạy trong `v2/web`, heap 384 MiB, khi đang giữ sole heavy slot.
++
++| Lệnh | Kết quả | Log, SHA-256 |
++|---|---|---|
++| RED `node --test test/tickets.test.ts` trên scaffold sai hành vi (nhãn rỗng, filter rỗng, timeline rỗng, `pickReturnFocus` → null…) | exit 1, 16/16 fail, đều do assertion hoặc thiếu hành vi; không có lỗi import | `task-3-s3a-red.log` `1d0dfc2b97399144232e329497f8db21d15ad645232094c1fac983e250de402d` |
++| GREEN cùng lệnh, trên source cuối | exit 0, 16/16 | `task-3-s3a-green-focused.log` `7a110537f9d956446d35291eca3c65eecaae6bd3c85f17d1c1d0ce678821faf3` |
++| `node --test test/*.test.ts` | 69 test: 68 pass, 1 fail. Test fail là `test/compose-submit.test.ts` của S5a (chưa commit, import `receiptSummary` chưa có); không thuộc Task3 | `task-3-s3a-unit-full.log` `d35c795de994b1e24378256180bfb357d5f8daa5e9d4ab299ca8a76dc607d729` |
++| `pnpm build` | `tsc` fail, chỉ do 4 lỗi trong `test/compose-submit.test.ts` (S5a) | `task-3-s3a-build.log` (cùng file) |
++| `tsc --noEmit -p` một tsconfig tạm (extends `tsconfig.json`, chỉ exclude `test/compose-submit.test.ts`; đã xóa sau khi chạy), rồi `vite build` | tsc exit 0; vite exit 0 | `task-3-s3a-build.log` `0e5ae972c3ee49e70736d0f042a9183d28dc024eacd5369748855566f91b7555` |
++| `biome check` 9 file của S3a (từ gốc repo) | exit 0, không còn diagnostic | `task-3-s3a-biome.log` `8318d2aabc321577309d464077a6235eaeab0a3531e2152595335c714d5fd36b` |
++| `playwright test e2e/tickets.spec.ts` | exit 0, 1 passed (3,6 giây) | `task-3-s3a-e2e.log` `5e4781bcc7b57ae55ca8ac6a6998f933264dbc9400b2eff805674e7d37b34e2b` |
++| `crew-docs generate` và `check --all` trong bản sao tạm có `v2/` làm Git root | chỉ thêm các dòng `web-tickets`. `check` còn 4 lỗi R2 cho `web/src/compose/*` của S5a (chưa vào flow); không có lỗi nào của S3a | ghi tại đây |
++
++E2E (API, PostgreSQL và Vite thật của fixture Task1; dữ liệu tạo qua API owner; không mock mạng): harness dựng bằng `createAppRuntime` + `RuntimeContext` thật, mount `TicketBoard`/`TicketList`/`TicketDialog` vào root `#tickets-harness` do test sở hữu. Dữ liệu seed: project; hai yêu cầu gốc trùng tiêu đề; một bước bắt buộc; lần lượt bình luận → quyết định → bình luận. Test kiểm:
++
++- 7 cột trạng thái và 3 thẻ; danh sách báo “Đã tải hết”.
++- Hộp thoại có tên bằng tiêu đề, đúng `data-ticket-id`, mô tả nhiều dòng, ticket con, phần “Chưa có dữ liệu”, timeline đúng thứ tự comment/decision/comment kèm lý do.
++- Nền `aria-hidden`; Tab 6 lần vẫn ở trong hộp thoại.
++- Bình luận tạo trong lúc hộp thoại mở xuất hiện qua event SSE thật, focus vẫn ở nút Đóng.
++- Escape trả focus về thẻ.
++- Danh sách cùng revision với bảng; mở từ dòng, X trả focus về dòng.
++- Filter loại `research` thu hẹp cả danh sách lẫn bảng khi đổi view.
++
++Trong quá trình chạy phát hiện thư viện `aria-hidden` của Radix giữ lại tổ tiên của phần tử `[aria-live]`, khiến `main` phía sau không bị ẩn. Đã đổi các vùng trạng thái sang `role="status"`; sau đó E2E PASS.
++
++Telemetry khi lấy slot: 5,189 GiB khả dụng / pressure 1 / CPU idle 84,51% / đĩa 752,3 GiB (đạt gate). Slot do web-wiring giữ trước đó, đã chờ rồi lấy lại. Đã `rm -rf` đúng thư mục lock và `ls` xác nhận lock không còn. Cleanup: danh sách `docker ps -a` trước và sau trùng nhau; không có container `crew-v2-web*`, không còn `crew-v2-web-*` trong TMPDIR, không còn listener trên 62505/63387/64798; `test-results` đã xóa. Các process `playwright-mcp` đang chạy không phải của worker này. Không có screenshot (không bắt buộc).
++
++## 4. Đối chiếu checkbox S3a của brief
++
++- [x] Bảy nhãn đúng; root `level==='request' && id===rootId && parentId===null`; ID trùng lấy revision mới. Fixture có hai root trùng tiêu đề, bước mồ côi, con bắt buộc, done/cancelled; không suy root từ trang đầu hay tiêu đề.
++- [x] List/board chỉ dùng filter producer hỗ trợ; cursor UUID đi tới `null` qua nút “Tải thêm” rõ ràng; không tuyên bố danh sách root đầy đủ. Nhóm trạng thái có chữ + biểu tượng; không kéo thả. Filter giữ qua đổi view: component nhận filter từ caller; giữ trong URL là việc của router controller.
++- [x] Chi tiết dùng chung tải ticket, comment, decision và graph bằng cùng ID. Máy/model/độ khó/lượt chạy/bằng chứng/attachment/docs refs hiện rõ là chưa có (chờ G1/G2/G3).
++- [x] Timeline cũ đọc hết trang trước khi sắp theo `createdAt`/`id`, không dùng thứ tự UUID làm thứ tự thời gian. Phần review/fallback/artifact/commit/docs sync chờ G1/G3.
++- [x] Một Radix dialog dùng chính `TicketDetail` (Title/Description, giữ focus, nền trơ, Escape/X). Focus trả về trigger, hoặc `[data-focus-fallback]`, rồi `#main-content`; realtime không giành focus. **Chưa có** draft per ticket: không có ô nhập nào trước S3b. Draft và composer được inject ở S3b sau S5a/A5.
++- [ ] Sáu caller: S3a có hai (thẻ `v2/web/src/tickets/board.tsx:67`, dòng `v2/web/src/tickets/list.tsx:150`); bốn còn lại (chọn request S3b, node graph Task4, link docs Task6, link Trợ lý Task6) chờ controller/task tương ứng.
++- [ ] A3 (deep link/reload 404, zoom 200%, draft khi có event, needs_input/repair5 trong trình duyệt, tạo yêu cầu): **pending**. Cần S3b, A5, G1, router controller; history/question cần G3.
++
++## 5. Wiring đề xuất cho controller (không tự sửa router)
++
++- Route `/projects/$projectId/tickets` với search `{ view?: 'board' | 'list', status?, kind?, rootId? }`. Lấy filter bằng `parseTicketFilters({ projectId, ...search })`, render `TicketBoard` hoặc `TicketList` với `onFiltersChange` ghi lại search (giữ `view`), cùng một `TicketDialog` có state `{ ticketId, trigger }` (hoặc search `ticket=<id>` nếu muốn mở dialog bằng link).
++- Route `/tickets/$ticketId` cho deep link/reload: `<TicketDetail ticketId={ticketId} presentation="page" />`. ID không phải UUID hoặc 404 hiện panel lỗi trong detail.
++- Component phải nằm dưới `RuntimeContext` và `QueryClientProvider` (đã có ở `main.tsx`).
++
++## 6. Tự review và lưu ý
++
++- Authority: web không gửi mutation nào. Trạng thái, root, lý do chờ và repair đều đọc từ field DTO của producer. Ghi chú “chỉ xem” cho done/cancelled là ghi chú hiển thị, không phải quyền.
++- `waitReasonLabel` chỉ dịch hai mã producer đang ghi (`repair_limit` ở `server/src/tickets/repair.ts:54`, `final_result_pending` ở `server/src/execution/attempts.ts:489`); mã lạ hiện nguyên văn.
++- `ChildTickets` đọc graph toàn root. Với cây lớn, việc này tốn tải; khi có projection G1 nên chuyển sang route đó.
++- Vite dev phát hiện `@radix-ui/react-dialog` lần đầu nên có thể reload trang. E2E vì vậy warm-up import một lần rồi mở trang mới. Khi router import dialog, Vite sẽ pre-bundle dependency này từ đầu.
++
++## 7. SHA-256 source cuối
++
++| File | SHA-256 |
++|---|---|
++| `v2/web/src/tickets/board.tsx` | `f3daaa89ba3d5a0a79624629273d5d091a812f59e03dd0f3d3d2835a574c7fc8` |
++| `v2/web/src/tickets/detail.tsx` | `f58a5466a46246cb571cdafb7d1d7379d8ed8ae3341b87e6bc7d36c540046472` |
++| `v2/web/src/tickets/dialog.tsx` | `1697ee174f8c858fd2bff03be1a32c5340860d4f59b774ca50b1ca50a946d544` |
++| `v2/web/src/tickets/history.tsx` | `c27a760e99b51bf08a0034e6f700b1cf2f0d43fe397534daf834b796c655e174` |
++| `v2/web/src/tickets/list.tsx` | `865aae4f2c5c6d2566848ed13976e06fb6fe95d2516fec4a74277fc1e5293bb0` |
++| `v2/web/src/tickets/queries.ts` | `ee212e93fd29778ec9bf4628f9406ceef5331356934ad1fb37c0019b5df1b58f` |
++| `v2/web/src/tickets/status.ts` | `c7ac8284e4517fa61d05ac34550948ffebdc37b8d6b00841d328f3c1eda3e1d7` |
++| `v2/web/test/tickets.test.ts` | `eab7196dcb9ce17199746dc8057b178587617781e8b18a60ec5c5de936f2e458` |
++| `v2/web/e2e/tickets.spec.ts` | `60e378780e65a62aac067fa37158fe7d0c983c949bbd2b46ea9f8e7055ebd946` |
++| `v2/docs/flows/web-tickets.md` | `6b75598e40ce3880a4a9c38e4561ed96be137b23446ef146e4cad8cab87c2287` |
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index e4ca685..e9986fb 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -343,23 +343,25 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
+ | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
++| `web/e2e/app-router.spec.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/e2e/auth.spec.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/e2e/events.spec.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
++| `web/e2e/tickets.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/index.html` | [web-shell](flows/web-shell.md) (file) |
+ | `web/package.json` | [web-shell](flows/web-shell.md) (file) |
+ | `web/playwright.config.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/pnpm-lock.yaml` | [web-shell](flows/web-shell.md) (file) |
+ | `web/scripts/e2e-fixture.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/app-runtime.ts` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/auth/login.tsx` | [web-data](flows/web-data.md) (file) |
+ | `web/src/auth/session-boundary.tsx` | [web-data](flows/web-data.md) (điểm vào) |
+ | `web/src/contracts/attachments.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/contracts/docs.ts` | [web-data](flows/web-data.md) (file) |
+@@ -368,19 +370,27 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `web/src/contracts/tickets.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/api.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/events.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/pending-operation.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/query-keys.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/session.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
+ | `web/src/router.tsx` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/shell.tsx` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
++| `web/src/tickets/board.tsx` | [web-tickets](flows/web-tickets.md) (file) |
++| `web/src/tickets/detail.tsx` | [web-tickets](flows/web-tickets.md) (file) |
++| `web/src/tickets/dialog.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
++| `web/src/tickets/history.tsx` | [web-tickets](flows/web-tickets.md) (file) |
++| `web/src/tickets/list.tsx` | [web-tickets](flows/web-tickets.md) (file) |
++| `web/src/tickets/queries.ts` | [web-tickets](flows/web-tickets.md) (file) |
++| `web/src/tickets/status.ts` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/test/app-wiring.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
++| `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |
+ | `web/vite.config.ts` | [web-shell](flows/web-shell.md) (file) |
+ <!-- crew-docs:files:end -->
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 0427588..ef27117 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -484,20 +484,21 @@ flows:
+       - web/package.json
+       - web/pnpm-lock.yaml
+       - web/tsconfig.json
+       - web/vite.config.ts
+       - web/index.html
+       - web/playwright.config.ts
+     tests:
+       - web/test/workspace.test.ts
+       - web/test/fixture-lifecycle.test.ts
+       - web/test/app-wiring.test.ts
++      - web/e2e/app-router.spec.ts
+   web-data:
+     title: Transport, phiên owner và đồng bộ sự kiện web Crew v2
+     doc: docs/flows/web-data.md
+     entrypoints:
+       - web/src/auth/session-boundary.tsx
+     files:
+       - web/src/auth/login.tsx
+       - web/src/contracts/attachments.ts
+       - web/src/contracts/docs.ts
+       - web/src/contracts/http.ts
+@@ -507,12 +508,27 @@ flows:
+       - web/src/lib/events.ts
+       - web/src/lib/pending-operation.ts
+       - web/src/lib/query-keys.ts
+       - web/src/lib/session.ts
+     tests:
+       - web/test/client.test.ts
+       - web/test/events.test.ts
+       - web/test/auth-recovery.test.ts
+       - web/e2e/auth.spec.ts
+       - web/e2e/events.spec.ts
++  web-tickets:
++    title: Bảng, danh sách và hộp thoại ticket dùng chung trên web Crew v2
++    doc: docs/flows/web-tickets.md
++    entrypoints:
++      - web/src/tickets/dialog.tsx
++    files:
++      - web/src/tickets/board.tsx
++      - web/src/tickets/list.tsx
++      - web/src/tickets/detail.tsx
++      - web/src/tickets/history.tsx
++      - web/src/tickets/queries.ts
++      - web/src/tickets/status.ts
++    tests:
++      - web/test/tickets.test.ts
++      - web/e2e/tickets.spec.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/web-tickets.md b/v2/docs/flows/web-tickets.md
+new file mode 100644
+index 0000000..64ee7df
+--- /dev/null
++++ b/v2/docs/flows/web-tickets.md
+@@ -0,0 +1,47 @@
++# Bảng, danh sách và hộp thoại ticket dùng chung trên web Crew v2
++
++## Mục đích
++
++Flow này hiển thị ticket cho owner theo kiểu Jira: bảng theo trạng thái, danh sách dạng bảng và một hộp thoại chi tiết dùng chung. Mọi view đọc cùng query key, nên cùng một ticket luôn hiện cùng trạng thái và cùng phiên bản (`revision`). Phần này (S3a) chỉ đọc dữ liệu. Form “Tạo yêu cầu”, composer bình luận và tệp đính kèm thuộc S3b, được gắn vào sau khi composer dùng chung của Task5 (S5a) được nghiệm thu.
++
++## Điểm vào
++
++- `web/src/tickets/dialog.tsx` → `TicketDialog({ ticketId, onClose, returnFocus })`: hộp thoại Radix duy nhất cho mọi nơi mở ticket. Hộp thoại có Title/Description, giữ focus bên trong, làm nền trơ, đóng bằng Escape hoặc nút X. Khi đóng, focus quay về phần tử đã mở hộp thoại. Nếu phần tử đó không còn trong DOM, focus về container `[data-focus-fallback]` gần nhất được ghi nhận lúc mở, rồi tới `#main-content`.
++- `web/src/tickets/detail.tsx` → `TicketDetail({ ticketId, presentation })`: phần chi tiết dùng chung. Với `presentation: 'dialog'`, tiêu đề và mô tả ngắn là `Dialog.Title`/`Dialog.Description`; với `'page'` là `h1`/`p`.
++- `web/src/tickets/board.tsx` → `TicketBoard` và `web/src/tickets/list.tsx` → `TicketList`: cùng nhận `{ filters, onFiltersChange, onOpenTicket(ticketId, trigger) }`.
++
++## Các bước
++
++1. Router (do controller sở hữu) đọc search params, gọi `parseTicketFilters` để chỉ giữ `projectId`, `status`, `kind`, `rootId` hợp lệ, rồi truyền vào board hoặc list. Filter nằm trong URL nên đổi chế độ xem vẫn giữ nguyên filter. `TicketFilterBar` chỉ cho chọn trạng thái và loại; bỏ lọc theo `rootId` khi có.
++2. `web/src/tickets/queries.ts` → `useTicketList(client, filters)`: infinite query trên `queryKeys.tickets(filters)`. Mỗi trang gọi GET `/v2/tickets?…&cursor=<UUID>&limit=50` qua `OwnerClient` của app runtime và giải mã bằng `decodeTicketPage`. Trang tiếp theo chỉ được tải khi owner bấm “Tải thêm”, cho tới khi `nextCursor` là `null`. Nếu còn trang, giao diện ghi rõ “danh sách chưa đầy đủ”. Các trang được gộp bằng `mergeTicketPages`: ID trùng thì giữ revision mới hơn.
++3. `TicketBoard` chia ticket vào bảy cột theo `statusOrder`. Mỗi cột có biểu tượng chữ và nhãn từ `statusLabels`, nên trạng thái không chỉ dựa vào màu. Không có kéo thả: trạng thái chỉ đổi qua signal của producer. `TicketList` hiện cùng dữ liệu dạng bảng (tiêu đề, trạng thái, cấp, loại, phiên bản).
++4. Bấm thẻ hoặc dòng gọi `onOpenTicket(id, trigger)`. Caller giữ `{ ticketId, trigger }` và render một `TicketDialog`. Hộp thoại nằm trên view hiện tại, không đổi scroll hay viewport của view phía sau.
++5. `TicketDetail` dùng `useTicket` (GET `/v2/tickets/:id`). `ticketQueryOptions` từ chối ID không phải UUID trước khi gọi mạng. Response có revision cũ hơn bản trong cache bị bỏ qua (`newerTicket`). Khi đã có dữ liệu, refetch hoặc lỗi refetch không thay thế nội dung, nên event realtime không làm mất focus đang ở trong hộp thoại. Ticket `done`/`cancelled` hiện ghi chú chỉ xem. Ticket `needs_input` hiện lý do chờ từ `waitReason` (`waitReasonLabel`: `repair_limit`, `final_result_pending`; mã lạ hiện nguyên văn). Phần thông tin hiện `repairCycles`/5, workflow đã ghim, skill, commit đã merge và các ID.
++6. `ChildTickets` đọc GET `/v2/tickets/:rootId/graph` (`queryKeys.graph(rootId)`) và chỉ liệt kê con trực tiếp (`parentId === ticket.id`).
++7. `web/src/tickets/history.tsx` → `TicketHistory`: `fetchAllPages` đọc hết mọi trang `/comments` và `/decisions` (limit 100, cursor UUID). Nếu cursor lặp lại thì dừng với `PAGE_CURSOR_LOOP`. Sau đó `buildLegacyTimeline` sắp xếp theo `createdAt` rồi `id`, vì producer xếp theo UUID chứ không theo thời gian. Mỗi mục hiện loại, người thực hiện, giờ Asia/Ho_Chi_Minh (`formatTime`), nội dung; quyết định có thêm lý do và nguồn.
++8. Event `ticket.*`, `comment.created`, `decision.created` từ `EventSync` invalidate các prefix `ticket/tickets/graphs/comments/decisions` (flow `web-data`), nên board, list và hộp thoại đang mở cùng refetch.
++
++## Dữ liệu
++
++DTO lấy từ `web/src/contracts/tickets.ts` (Ticket, trang ticket, graph, comment, decision), không khai báo lại. `statusLabels` khớp chính xác bảy trạng thái của producer. `requestRoots` nhận ra yêu cầu gốc chỉ bằng `level === 'request' && id === rootId && parentId === null`, không dựa vào tiêu đề hay vị trí trang. Hooks nhận `OwnerClient` từ `useRuntime().client` của component gọi, nên `queries.ts` không phụ thuộc composition root và chạy được trong `node:test`.
++
++Phần còn chờ producer được hiện rõ là chưa có dữ liệu, không suy ra từ `criteria` hay prose:
++
++- Máy, model, độ khó, lượt chạy hiện tại và bằng chứng: chờ projection có kiểu của G1/G3.
++- Lịch sử review, phương án dự phòng, sản phẩm, commit và đồng bộ tài liệu: chờ history projection G1/G3. Hiện timeline chỉ gồm bình luận và quyết định.
++- Tệp đính kèm của ticket: API attachment chưa mount (G2).
++- Tài liệu liên quan của ticket: producer chưa có route đọc ticket → docs (G1).
++- Phân trang theo yêu cầu gốc: G1. Hiện danh sách chỉ lọc theo các filter producer hỗ trợ.
++
++## Wiring cho controller
++
++Sáu nơi mở ticket phải dùng chung `TicketDialog`/`TicketDetail` và query trong flow này: thẻ trên bảng (`board.tsx`), dòng trong danh sách (`list.tsx`), chọn yêu cầu (S3b), node trên graph (Task4), link ticket liên quan trong docs (Task6) và link ticket trong Trợ lý (Task6). Router cần một route trang chi tiết dùng `TicketDetail presentation="page"` cho deep link/reload, và route board/list lưu filter trong search params. Container của mỗi view cần `data-focus-fallback` và `tabIndex={-1}` để làm đích trả focus dự phòng.
++
++## Flow liên quan
++
++`web-data.md` sở hữu `OwnerClient`, query key, event invalidation và DTO. `web-shell.md` sở hữu app runtime, router và fixture. `server-tickets.md` định nghĩa các route đọc ticket, graph, comment và decision.
++
++## Tests
++
++- `web/test/tickets.test.ts`: 16 test cho đủ 7 nhãn và biểu tượng riêng; `requestRoots` với hai gốc trùng tiêu đề, bước mồ côi, con bắt buộc, gốc giả và gốc done/cancelled; ID trùng lấy revision mới; nhóm theo trạng thái; filter chỉ giữ giá trị producer hỗ trợ; path danh sách và cursor UUID; giải mã và lỗi shape; `nextCursor` null dừng phân trang; đọc hết trang và chặn cursor lặp; timeline theo thời gian khi thứ tự UUID ngược; revision guard; từ chối ID sai trước khi gọi mạng; giờ Asia/Ho_Chi_Minh; nhãn người thực hiện; chọn đích trả focus. RED trên scaffold: 16/16 thất bại; GREEN 16/16.
++- `web/e2e/tickets.spec.ts` chạy trên API, PostgreSQL và Vite thật của fixture Task1, dữ liệu tạo qua API owner, không mock mạng. Bảng có đủ 7 cột, ba ticket (hai gốc trùng tiêu đề và một bước con). Hộp thoại mở đúng ticket, hiện mô tả nhiều dòng, ticket con, phần chưa có dữ liệu và timeline bình luận → quyết định → bình luận kèm lý do. Nền bị `aria-hidden`, Tab không thoát khỏi hộp thoại. Bình luận mới tạo trong lúc hộp thoại mở xuất hiện qua event thật mà focus vẫn ở nút Đóng. Escape trả focus về thẻ. Danh sách hiện cùng revision với bảng; mở từ dòng, đóng bằng X trả focus về dòng. Filter loại thu hẹp cả danh sách lẫn bảng.
+diff --git a/v2/docs/index.md b/v2/docs/index.md
+index 400eada..7ac9cc1 100644
+--- a/v2/docs/index.md
++++ b/v2/docs/index.md
+@@ -43,17 +43,18 @@
+ | [Đọc tài liệu và tích hợp HTTP Crew v2](flows/server-docs-view.md) | `server-docs-view` | `server/src/app.ts`, `server/src/docs/routes.ts` |
+ | [Command, attempt và quyền thực thi có fencing](flows/server-execution.md) | `server-execution` | `server/src/execution/routes.ts` |
+ | [Control plane gateway và boot/config/report](flows/server-gateway.md) | `server-gateway` | `server/src/gateway/routes.ts` |
+ | [Xác thực owner và gắn dự án với máy Crew v2](flows/server-identity.md) | `server-identity` | `server/src/auth/routes.ts`, `server/src/projects/routes.ts` |
+ | [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
+ | [Nguồn model, catalogue và provisioning credential Crew v2](flows/server-models.md) | `server-models` | `server/src/models/routes.ts` |
+ | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
+ | [Cây ticket, phụ thuộc và bằng chứng hoàn tất](flows/server-tickets.md) | `server-tickets` | `server/src/tickets/routes.ts` |
+ | [Transport, phiên owner và đồng bộ sự kiện web Crew v2](flows/web-data.md) | `web-data` | `web/src/auth/session-boundary.tsx` |
+ | [Khung web và fixture cô lập Crew v2](flows/web-shell.md) | `web-shell` | `web/src/main.tsx` |
++| [Bảng, danh sách và hộp thoại ticket dùng chung trên web Crew v2](flows/web-tickets.md) | `web-tickets` | `web/src/tickets/dialog.tsx` |
+ <!-- crew-docs:flows:end -->
+ 
+ ## Cách dùng docs
+ 
+ - [Kiến trúc](architecture.md) mô tả ranh giới của thư viện miền.
+ - [Bảng tra file](files.md) cho biết file thuộc flow nào.
+ - Mỗi trang trong `flows/` mô tả điểm vào, bước xử lý, dữ liệu và test của một flow.
+diff --git a/v2/web/e2e/tickets.spec.ts b/v2/web/e2e/tickets.spec.ts
+new file mode 100644
+index 0000000..82ce729
+--- /dev/null
++++ b/v2/web/e2e/tickets.spec.ts
+@@ -0,0 +1,315 @@
++/**
++ * Ticket read paths on the real API/PostgreSQL of the Task1 fixture: board and list read the same query,
++ * the shared Radix dialog renders `TicketDetail`, history is chronological across comments and decisions,
++ * a live `comment.created` event refreshes the open dialog without moving focus, and focus returns to the
++ * trigger on close. Data is created through the owner API; no network is mocked.
++ */
++import { test as base, expect, type Page } from '@playwright/test';
++import type { QueryClient } from '@tanstack/react-query';
++import type { Ticket } from '../src/contracts/tickets.ts';
++import type { OwnerClient } from '../src/lib/api.ts';
++import type { EventSync } from '../src/lib/events.ts';
++import type { PendingStore } from '../src/lib/pending-operation.ts';
++import type { SessionController } from '../src/lib/session.ts';
++import { type FixtureHandle, withFixture } from './support/fixture.ts';
++
++type Harness = {
++  session: SessionController;
++  pending: PendingStore;
++  client: OwnerClient;
++  events: EventSync;
++  cache: QueryClient;
++  setFilters: (filters: Record<string, string>) => void;
++};
++
++const test = base.extend<Record<never, never>, { crew: FixtureHandle }>({
++  crew: [
++    // biome-ignore lint/correctness/noEmptyPattern: Playwright requires an object pattern for fixture deps.
++    async ({}, use) => {
++      await withFixture(async (handle) => {
++        await use(handle);
++      });
++    },
++    { scope: 'worker', timeout: 180_000 },
++  ],
++});
++test.describe.configure({ mode: 'serial', timeout: 120_000 });
++
++const ticketModules = ['board.tsx', 'list.tsx', 'dialog.tsx', 'queries.ts'] as const;
++
++/**
++ * The ticket modules pull `@radix-ui/react-dialog`, which the Vite dev server discovers on first import and
++ * may answer with a full reload. Import once, let any reload settle, then start from a fresh page so every
++ * module shares one optimized React instance.
++ */
++async function warmUp(page: Page, crew: FixtureHandle): Promise<void> {
++  await page.goto(`${crew.webOrigin}/crew-v2/`);
++  await page.waitForSelector('.app-shell');
++  await page
++    .evaluate(async (modules) => {
++      for (const name of modules) await import(/* @vite-ignore */ `/crew-v2/src/tickets/${name}`);
++    }, ticketModules)
++    .catch(() => undefined);
++  await page.waitForTimeout(1500);
++  await page.goto(`${crew.webOrigin}/crew-v2/`);
++  await page.waitForSelector('.app-shell');
++}
++
++async function mountHarness(page: Page, crew: FixtureHandle): Promise<void> {
++  await warmUp(page, crew);
++  await page.evaluate(async () => {
++    const load = (url: string): Promise<unknown> => import(/* @vite-ignore */ url);
++    const entry = await (await fetch('/crew-v2/src/main.tsx')).text();
++    const dep = async (name: string) => {
++      const url = [...entry.matchAll(/["']([^"']*\/\.vite\/deps\/[^"']+)["']/g)]
++        .map((match) => match[1] ?? '')
++        .find((candidate) => (candidate.split('/').pop() ?? '').startsWith(`${name}.js`));
++      if (!url) throw new Error(`DEP_NOT_FOUND:${name}`);
++      return (await load(url)) as Record<string, unknown> & { default?: Record<string, unknown> };
++    };
++    const reactModule = await dep('react');
++    const React = (reactModule.default ?? reactModule) as typeof import('react');
++    const domModule = await dep('react-dom_client');
++    const { createRoot } = (
++      domModule.createRoot ? domModule : domModule.default
++    ) as typeof import('react-dom/client');
++    const queryModule = (await dep(
++      '@tanstack_react-query',
++    )) as unknown as typeof import('@tanstack/react-query');
++    const runtimeModule = (await load(
++      '/crew-v2/src/app-runtime.ts',
++    )) as typeof import('../src/app-runtime.ts');
++    const boundaryModule = (await load(
++      '/crew-v2/src/auth/session-boundary.tsx',
++    )) as typeof import('../src/auth/session-boundary.tsx');
++    const queries = (await load(
++      '/crew-v2/src/tickets/queries.ts',
++    )) as typeof import('../src/tickets/queries.ts');
++    const boardModule = (await load(
++      '/crew-v2/src/tickets/board.tsx',
++    )) as typeof import('../src/tickets/board.tsx');
++    const listModule = (await load(
++      '/crew-v2/src/tickets/list.tsx',
++    )) as typeof import('../src/tickets/list.tsx');
++    const dialogModule = (await load(
++      '/crew-v2/src/tickets/dialog.tsx',
++    )) as typeof import('../src/tickets/dialog.tsx');
++
++    // The app's own composition root: one QueryClient, session, owner client and event stream.
++    const runtime = runtimeModule.createAppRuntime({ storage: window.sessionStorage, window });
++    const { session, pending, client, events, queryClient: cache } = runtime;
++    const harness = { session, pending, client, events, cache } as Omit<Harness, 'setFilters'> & {
++      setFilters?: Harness['setFilters'];
++    };
++    (window as unknown as { crewTest: typeof harness }).crewTest = harness;
++
++    const h = React.createElement;
++    function Views() {
++      const [filters, setFilters] = React.useState<Record<string, string>>({});
++      const [view, setView] = React.useState<'board' | 'list'>('board');
++      const [open, setOpen] = React.useState<{ id: string | null; trigger: HTMLElement | null }>({
++        id: null,
++        trigger: null,
++      });
++      harness.setFilters = setFilters;
++      const viewProps = {
++        filters: queries.parseTicketFilters(filters),
++        onFiltersChange: (next: Record<string, string>) => setFilters({ ...next }),
++        onOpenTicket: (id: string, trigger: HTMLElement) => setOpen({ id, trigger }),
++      };
++      return h(
++        'div',
++        null,
++        h(
++          'button',
++          { type: 'button', onClick: () => setView(view === 'board' ? 'list' : 'board') },
++          view === 'board' ? 'Xem dạng danh sách' : 'Xem dạng bảng',
++        ),
++        view === 'board' ? h(boardModule.TicketBoard, viewProps) : h(listModule.TicketList, viewProps),
++        h(dialogModule.TicketDialog, {
++          ticketId: open.id,
++          returnFocus: open.trigger,
++          onClose: () => setOpen((current) => ({ id: null, trigger: current.trigger })),
++        }),
++      );
++    }
++
++    const app = document.getElementById('app');
++    if (app) app.style.display = 'none';
++    const mount = document.createElement('main');
++    mount.id = 'tickets-harness';
++    mount.tabIndex = -1;
++    mount.className = 'workspace__main';
++    document.body.append(mount);
++    createRoot(mount).render(
++      h(
++        runtimeModule.RuntimeContext.Provider,
++        { value: runtime },
++        h(
++          queryModule.QueryClientProvider,
++          { client: cache },
++          h(boundaryModule.SessionBoundary, { session, pending, client, children: h(Views) }),
++        ),
++      ),
++    );
++  });
++}
++
++type Seeded = { projectId: string; rootA: Ticket; rootB: Ticket; step: Ticket };
++
++async function mutate<T>(page: Page, intentId: string, path: string, body: unknown): Promise<T> {
++  return page.evaluate(
++    async ({ intentId, path, body }) => {
++      const harness = (window as unknown as { crewTest: Harness }).crewTest;
++      const operation = harness.pending.begin({ intentId, method: 'POST', path, body, storage: 'tab' });
++      return harness.client.mutate(operation);
++    },
++    { intentId, path, body },
++  ) as Promise<T>;
++}
++
++function rootBody(projectId: string, kind: 'code' | 'research', description: string) {
++  return {
++    projectId,
++    parentId: null,
++    level: 'request',
++    kind,
++    title: 'Yêu cầu trùng tên',
++    description,
++    mandatory: true,
++    criteria: { workflowChoice: 'superpowers' },
++    inputs: {},
++    outputs: {},
++    skill: null,
++    workflowPin: null,
++  };
++}
++
++async function seed(page: Page): Promise<Seeded> {
++  const project = await mutate<{ id: string }>(page, 'seed-project', '/v2/projects', {
++    key: 'TICK',
++    name: 'Dự án ticket',
++    repositoryUrl: null,
++  });
++  const rootA = await mutate<Ticket>(
++    page,
++    'seed-root-a',
++    '/v2/tickets',
++    rootBody(project.id, 'code', 'Dòng một của mô tả.\nDòng hai có dấu: ước lượng.'),
++  );
++  const rootB = await mutate<Ticket>(
++    page,
++    'seed-root-b',
++    '/v2/tickets',
++    rootBody(project.id, 'research', 'B'),
++  );
++  const step = await mutate<Ticket>(page, 'seed-step', '/v2/tickets', {
++    ...rootBody(project.id, 'code', 'Bước con'),
++    parentId: rootA.id,
++    level: 'step',
++    title: 'Bước bắt buộc',
++    criteria: {},
++  });
++  await mutate(page, 'seed-c1', `/v2/tickets/${rootA.id}/comments`, { text: 'Bình luận đầu tiên' });
++  await mutate(page, 'seed-d1', `/v2/tickets/${rootA.id}/decisions`, {
++    kind: 'assessment',
++    content: 'Đánh giá khối lượng',
++    rationale: 'Phạm vi nhỏ, một bước',
++    sources: [],
++    scope: {},
++  });
++  await mutate(page, 'seed-c2', `/v2/tickets/${rootA.id}/comments`, { text: 'Bình luận thứ hai' });
++  return { projectId: project.id, rootA, rootB, step };
++}
++
++async function login(page: Page, crew: FixtureHandle): Promise<void> {
++  const root = page.locator('#tickets-harness');
++  await root.getByLabel('Mật khẩu').fill(crew.ownerPassword);
++  await root.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
++  await expect(root.getByRole('button', { name: 'Xem dạng danh sách' })).toBeVisible();
++}
++
++test('board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus', async ({
++  page,
++  crew,
++}) => {
++  await mountHarness(page, crew);
++  await login(page, crew);
++  const seeded = await seed(page);
++  await page.evaluate((projectId) => {
++    (window as unknown as { crewTest: Harness }).crewTest.setFilters({ projectId });
++  }, seeded.projectId);
++
++  const board = page.getByRole('region', { name: 'Bảng ticket' });
++  for (const label of [
++    'Chờ thực hiện',
++    'Sẵn sàng',
++    'Đang chạy',
++    'Chờ bạn',
++    'Tạm dừng',
++    'Hoàn thành',
++    'Đã hủy',
++  ])
++    await expect(board.getByRole('heading', { name: new RegExp(label) })).toBeVisible();
++  const cardA = board.locator(`button[data-ticket-id="${seeded.rootA.id}"]`);
++  await expect(cardA).toBeVisible();
++  await expect(board.locator('button[data-ticket-id]')).toHaveCount(3);
++  await expect(board.getByText('Đã tải hết danh sách theo bộ lọc.')).toBeVisible();
++  expect(await board.getByText('Yêu cầu trùng tên').count()).toBe(2);
++
++  await cardA.click();
++  const dialog = page.getByRole('dialog', { name: 'Yêu cầu trùng tên' });
++  await expect(dialog).toBeVisible();
++  await expect(dialog.getByTestId('ticket-detail')).toHaveAttribute('data-ticket-id', seeded.rootA.id);
++  await expect(dialog.getByText('Dòng hai có dấu: ước lượng.', { exact: false })).toBeVisible();
++  await expect(dialog.getByText('Bước bắt buộc', { exact: false })).toBeVisible();
++  await expect(
++    dialog.getByText('Chưa có dữ liệu — máy chủ chưa cung cấp thông tin này.').first(),
++  ).toBeVisible();
++  const entries = dialog.getByTestId('timeline-entry');
++  await expect(entries).toHaveCount(3);
++  expect(await entries.evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-source')))).toEqual(
++    ['comment', 'decision', 'comment'],
++  );
++  await expect(entries.nth(1)).toContainText('Lý do: Phạm vi nhỏ, một bước');
++  await expect(entries.nth(1)).toContainText('Quyết định · Đánh giá');
++  await expect(page.locator('#tickets-harness')).toHaveAttribute('aria-hidden', 'true');
++
++  // Focus stays inside the dialog while tabbing.
++  for (let index = 0; index < 6; index++) await page.keyboard.press('Tab');
++  expect(await dialog.evaluate((node) => node.contains(document.activeElement))).toBe(true);
++
++  // A live event refreshes the open dialog without moving focus.
++  const close = dialog.getByRole('button', { name: 'Đóng' });
++  await close.focus();
++  await mutate(page, 'live-c3', `/v2/tickets/${seeded.rootA.id}/comments`, { text: 'Bình luận realtime' });
++  await expect(entries).toHaveCount(4, { timeout: 15_000 });
++  await expect(entries.nth(3)).toContainText('Bình luận realtime');
++  await expect(close).toBeFocused();
++
++  await page.keyboard.press('Escape');
++  await expect(dialog).toBeHidden();
++  await expect(cardA).toBeFocused();
++
++  const boardRevision = await cardA.getAttribute('data-revision');
++  await page.getByRole('button', { name: 'Xem dạng danh sách' }).click();
++  const list = page.getByRole('region', { name: 'Danh sách ticket' });
++  const rowA = list.locator(`tr[data-ticket-id="${seeded.rootA.id}"]`);
++  await expect(rowA).toHaveAttribute('data-revision', boardRevision ?? '');
++  await expect(list.locator('tr[data-ticket-id]')).toHaveCount(3);
++
++  const rowButton = rowA.getByRole('button', { name: 'Yêu cầu trùng tên' });
++  await rowButton.click();
++  await expect(dialog).toBeVisible();
++  await expect(dialog.getByTestId('ticket-detail')).toHaveAttribute('data-revision', boardRevision ?? '');
++  await dialog.getByRole('button', { name: 'Đóng' }).click();
++  await expect(dialog).toBeHidden();
++  await expect(rowButton).toBeFocused();
++
++  // Kind filter is the producer's; the shared filter bar narrows both views.
++  await list.getByLabel('Loại').selectOption('research');
++  await expect(list.locator('tr[data-ticket-id]')).toHaveCount(1);
++  await expect(list.locator(`tr[data-ticket-id="${seeded.rootB.id}"]`)).toBeVisible();
++  await page.getByRole('button', { name: 'Xem dạng bảng' }).click();
++  await expect(board.locator('button[data-ticket-id]')).toHaveCount(1);
++});
+diff --git a/v2/web/src/tickets/board.tsx b/v2/web/src/tickets/board.tsx
+new file mode 100644
+index 0000000..b11baa0
+--- /dev/null
++++ b/v2/web/src/tickets/board.tsx
+@@ -0,0 +1,83 @@
++/**
++ * Status board: one column per producer status with text label and icon. Cards open the shared ticket
++ * dialog; there is no drag-and-drop because status changes only through producer signals.
++ */
++import type { CSSProperties } from 'react';
++import { useRuntime } from '../app-runtime.ts';
++import { TicketFilterBar, TicketPagination, type TicketViewProps } from './list.tsx';
++import { useTicketList } from './queries.ts';
++import { groupByStatus, kindLabels, levelLabels, statusIcons, statusLabels, statusOrder } from './status.ts';
++
++const boardStyle: CSSProperties = {
++  display: 'grid',
++  gridAutoFlow: 'column',
++  gridAutoColumns: 'minmax(15rem, 1fr)',
++  gap: '0.75rem',
++  overflowX: 'auto',
++  alignItems: 'start',
++  paddingBottom: '0.5rem',
++};
++const columnStyle: CSSProperties = {
++  display: 'grid',
++  gap: '0.5rem',
++  padding: '0.75rem',
++  borderRadius: '0.75rem',
++  border: '1px solid rgb(148 163 184 / 0.6)',
++};
++const cardStyle: CSSProperties = {
++  display: 'grid',
++  gap: '0.3rem',
++  width: '100%',
++  textAlign: 'left',
++  font: 'inherit',
++  color: 'inherit',
++  background: 'Canvas',
++  padding: '0.6rem 0.75rem',
++  borderRadius: '0.5rem',
++  border: '1px solid rgb(148 163 184 / 0.8)',
++  cursor: 'pointer',
++};
++
++export function TicketBoard({ filters, onFiltersChange, onOpenTicket }: TicketViewProps) {
++  const list = useTicketList(useRuntime().client, filters);
++  const groups = groupByStatus(list.tickets);
++  return (
++    <section
++      aria-label="Bảng ticket"
++      data-focus-fallback=""
++      tabIndex={-1}
++      style={{ display: 'grid', gap: '1rem', minWidth: 0 }}
++    >
++      <TicketFilterBar filters={filters} onFiltersChange={onFiltersChange} />
++      <div style={boardStyle}>
++        {statusOrder.map((status) => (
++          <section key={status} aria-labelledby={`board-${status}`} style={columnStyle} data-status={status}>
++            <h2 id={`board-${status}`} style={{ margin: 0, fontSize: '1rem' }}>
++              <span aria-hidden="true">{statusIcons[status]}</span> {statusLabels[status]}{' '}
++              <span>({groups[status].length})</span>
++            </h2>
++            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: '0.5rem' }}>
++              {groups[status].map((ticket) => (
++                <li key={ticket.id}>
++                  <button
++                    type="button"
++                    style={cardStyle}
++                    data-ticket-id={ticket.id}
++                    data-revision={ticket.revision}
++                    onClick={(event) => onOpenTicket(ticket.id, event.currentTarget)}
++                  >
++                    <strong style={{ overflowWrap: 'anywhere' }}>{ticket.title}</strong>
++                    <span>
++                      {levelLabels[ticket.level]} · {kindLabels[ticket.kind]} · Phiên bản {ticket.revision}
++                    </span>
++                  </button>
++                </li>
++              ))}
++            </ul>
++          </section>
++        ))}
++      </div>
++      <TicketPagination list={list} />
++    </section>
++  );
++}
+diff --git a/v2/web/src/tickets/detail.tsx b/v2/web/src/tickets/detail.tsx
+new file mode 100644
+index 0000000..e5e9a39
+--- /dev/null
++++ b/v2/web/src/tickets/detail.tsx
+@@ -0,0 +1,214 @@
++/**
++ * Shared ticket detail used by the ticket page and by the ticket dialog. It renders only producer fields of
++ * the Ticket DTO plus the legacy history. Machine, model, difficulty, current attempt and evidence wait for
++ * the typed G1/G3 projection; attachments wait for G2 and ticket→docs links for G1. Missing data is shown
++ * as missing, never derived from `criteria` keys or prose.
++ */
++import * as Dialog from '@radix-ui/react-dialog';
++import type { CSSProperties, ReactNode } from 'react';
++import { useRuntime } from '../app-runtime.ts';
++import type { Ticket } from '../contracts/tickets.ts';
++import { failureText, TicketHistory } from './history.tsx';
++import { useTicket, useTicketGraph } from './queries.ts';
++import {
++  isTerminal,
++  kindLabels,
++  levelLabels,
++  statusIcons,
++  statusLabels,
++  statusOrder,
++  waitReasonLabel,
++} from './status.ts';
++
++export type TicketDetailProps = { ticketId: string; presentation: 'page' | 'dialog' };
++
++const stackStyle: CSSProperties = { display: 'grid', gap: '1.25rem', minWidth: 0 };
++const gridStyle: CSSProperties = {
++  display: 'grid',
++  gridTemplateColumns: 'minmax(8rem, max-content) 1fr',
++  gap: '0.35rem 1rem',
++  margin: 0,
++};
++const textStyle: CSSProperties = { margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
++const noticeStyle: CSSProperties = {
++  margin: 0,
++  padding: '0.6rem 0.8rem',
++  border: '1px solid currentColor',
++  borderRadius: '0.5rem',
++};
++const missing = 'Chưa có dữ liệu — máy chủ chưa cung cấp thông tin này.';
++
++export function StatusBadge({ status }: { status: Ticket['status'] }) {
++  return (
++    <span data-status={status} style={{ whiteSpace: 'nowrap' }}>
++      <span aria-hidden="true">{statusIcons[status]}</span> {statusLabels[status]}
++    </span>
++  );
++}
++
++function Headings({
++  presentation,
++  title,
++  description,
++}: {
++  presentation: TicketDetailProps['presentation'];
++  title: ReactNode;
++  description: ReactNode;
++}) {
++  if (presentation === 'dialog')
++    return (
++      <>
++        <Dialog.Title style={{ margin: 0 }}>{title}</Dialog.Title>
++        <Dialog.Description style={textStyle}>{description}</Dialog.Description>
++      </>
++    );
++  return (
++    <>
++      <h1 style={{ margin: 0 }}>{title}</h1>
++      <p style={textStyle}>{description}</p>
++    </>
++  );
++}
++
++function Field({ label, children }: { label: string; children: ReactNode }) {
++  return (
++    <>
++      <dt>{label}</dt>
++      <dd style={{ margin: 0, overflowWrap: 'anywhere' }}>{children}</dd>
++    </>
++  );
++}
++
++function ChildTickets({ ticket }: { ticket: Ticket }) {
++  const graph = useTicketGraph(useRuntime().client, ticket.rootId);
++  const children = graph.data?.nodes.filter((node) => node.parentId === ticket.id) ?? [];
++  children.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
++  return (
++    <section aria-labelledby={`children-${ticket.id}`} style={{ display: 'grid', gap: '0.5rem' }}>
++      <h2 id={`children-${ticket.id}`}>Ticket con</h2>
++      {graph.isPending ? (
++        <p role="status">Đang tải ticket con…</p>
++      ) : graph.error && !graph.data ? (
++        <p role="alert">Không tải được ticket con: {failureText(graph.error)}</p>
++      ) : children.length === 0 ? (
++        <p>Không có ticket con.</p>
++      ) : (
++        <ul aria-label="Danh sách ticket con">
++          {children.map((child) => (
++            <li key={child.id} data-ticket-id={child.id}>
++              {levelLabels[child.level]}: {child.title} — <StatusBadge status={child.status} />
++              {child.mandatory ? ' · Bắt buộc' : ''}
++            </li>
++          ))}
++        </ul>
++      )}
++    </section>
++  );
++}
++
++export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
++  const query = useTicket(useRuntime().client, ticketId);
++  if (!query.data) {
++    const failed = query.error !== null;
++    return (
++      <article style={stackStyle} aria-busy={!failed}>
++        <Headings
++          presentation={presentation}
++          title={failed ? 'Không tải được ticket' : 'Đang tải ticket'}
++          description={failed ? failureText(query.error) : 'Đang lấy dữ liệu mới nhất.'}
++        />
++        {failed && (
++          <div>
++            <button type="button" onClick={() => void query.refetch()}>
++              Thử lại
++            </button>
++          </div>
++        )}
++      </article>
++    );
++  }
++  const ticket = query.data;
++  const pin = ticket.workflowPin;
++  return (
++    <article
++      style={stackStyle}
++      data-testid="ticket-detail"
++      data-ticket-id={ticket.id}
++      data-revision={ticket.revision}
++    >
++      <header style={{ display: 'grid', gap: '0.4rem' }}>
++        <span>
++          {levelLabels[ticket.level]} · {kindLabels[ticket.kind]}
++        </span>
++        <Headings
++          presentation={presentation}
++          title={ticket.title}
++          description={
++            <>
++              Trạng thái: <StatusBadge status={ticket.status} /> · Phiên bản {ticket.revision}
++            </>
++          }
++        />
++      </header>
++      {query.error && (
++        <p role="status" style={noticeStyle}>
++          Đang hiển thị dữ liệu đã tải trước đó: {failureText(query.error)}
++        </p>
++      )}
++      {isTerminal(ticket.status) && (
++        <p role="note" style={noticeStyle}>
++          Ticket đã kết thúc ({statusLabels[ticket.status]}), chỉ xem.
++        </p>
++      )}
++      {ticket.status === 'needs_input' && (
++        <p role="note" style={noticeStyle}>
++          Đang chờ bạn: {waitReasonLabel(ticket.waitReason)}
++        </p>
++      )}
++      <section aria-labelledby={`description-${ticket.id}`}>
++        <h2 id={`description-${ticket.id}`}>Mô tả</h2>
++        <p style={textStyle}>{ticket.description || 'Chưa có mô tả.'}</p>
++      </section>
++      <section aria-labelledby={`fields-${ticket.id}`}>
++        <h2 id={`fields-${ticket.id}`}>Thông tin</h2>
++        <dl style={gridStyle}>
++          <Field label="Mã ticket">
++            <code>{ticket.id}</code>
++          </Field>
++          <Field label="Ticket gốc">
++            <code>{ticket.rootId}</code>
++          </Field>
++          <Field label="Ticket cha">{ticket.parentId ? <code>{ticket.parentId}</code> : 'Không có'}</Field>
++          <Field label="Bắt buộc">{ticket.mandatory ? 'Có' : 'Không'}</Field>
++          <Field label="Workflow đã ghim">
++            {pin ? `${pin.workflow === 'bmad' ? 'BMAD' : 'Superpowers'} ${pin.version}` : 'Chưa ghim'}
++          </Field>
++          <Field label="Skill">{ticket.skill ?? 'Không có'}</Field>
++          <Field label="Số vòng sửa">{ticket.repairCycles}/5</Field>
++          <Field label="Commit đã merge">
++            {ticket.mergedCommit ? <code>{ticket.mergedCommit}</code> : 'Chưa có'}
++          </Field>
++        </dl>
++      </section>
++      <section aria-labelledby={`run-${ticket.id}`}>
++        <h2 id={`run-${ticket.id}`}>Thực thi hiện tại</h2>
++        <dl style={gridStyle}>
++          <Field label="Máy">{missing}</Field>
++          <Field label="Model">{missing}</Field>
++          <Field label="Độ khó">{missing}</Field>
++          <Field label="Lượt chạy">{missing}</Field>
++          <Field label="Bằng chứng">{missing}</Field>
++        </dl>
++      </section>
++      <ChildTickets ticket={ticket} />
++      <section aria-labelledby={`related-${ticket.id}`}>
++        <h2 id={`related-${ticket.id}`}>Tệp và tài liệu liên quan</h2>
++        <dl style={gridStyle}>
++          <Field label="Tệp đính kèm">Chưa hiển thị được — máy chủ chưa mở API tệp đính kèm.</Field>
++          <Field label="Tài liệu liên quan">{missing}</Field>
++        </dl>
++      </section>
++      <TicketHistory ticketId={ticket.id} />
++    </article>
++  );
++}
+diff --git a/v2/web/src/tickets/dialog.tsx b/v2/web/src/tickets/dialog.tsx
+new file mode 100644
+index 0000000..66c4fc4
+--- /dev/null
++++ b/v2/web/src/tickets/dialog.tsx
+@@ -0,0 +1,81 @@
++/**
++ * The one ticket dialog shared by board, list, request selection, graph, docs and Assistant links. It renders
++ * `TicketDetail` in dialog presentation inside a Radix modal (Title/Description, focus trap, inert
++ * background, Escape and the X button). On close focus returns to the trigger, or — if the trigger left the
++ * DOM — to the nearest `[data-focus-fallback]` container captured at open time, then to `#main-content`.
++ */
++import * as Dialog from '@radix-ui/react-dialog';
++import { type CSSProperties, useEffect, useRef } from 'react';
++import { TicketDetail } from './detail.tsx';
++import { pickReturnFocus } from './status.ts';
++
++export type TicketDialogProps = {
++  ticketId: string | null;
++  onClose: () => void;
++  returnFocus: HTMLElement | null;
++};
++
++const overlayStyle: CSSProperties = { position: 'fixed', inset: 0, background: 'rgb(15 23 42 / 0.45)' };
++const contentStyle: CSSProperties = {
++  position: 'fixed',
++  top: '4vh',
++  left: '50%',
++  transform: 'translateX(-50%)',
++  width: 'min(60rem, calc(100vw - 2rem))',
++  maxHeight: '92vh',
++  overflow: 'auto',
++  boxSizing: 'border-box',
++  padding: '1.5rem',
++  borderRadius: '0.75rem',
++  background: 'Canvas',
++  color: 'CanvasText',
++  boxShadow: '0 1.5rem 3rem rgb(15 23 42 / 0.3)',
++};
++const closeStyle: CSSProperties = {
++  float: 'right',
++  font: 'inherit',
++  fontSize: '1.25rem',
++  lineHeight: 1,
++  padding: '0.35rem 0.6rem',
++  borderRadius: '0.5rem',
++  border: '1px solid currentColor',
++  background: 'transparent',
++  color: 'inherit',
++  cursor: 'pointer',
++};
++
++export function TicketDialog({ ticketId, onClose, returnFocus }: TicketDialogProps) {
++  const fallback = useRef<HTMLElement | null>(null);
++  useEffect(() => {
++    if (ticketId !== null)
++      fallback.current = returnFocus?.parentElement?.closest<HTMLElement>('[data-focus-fallback]') ?? null;
++  }, [ticketId, returnFocus]);
++
++  return (
++    <Dialog.Root
++      open={ticketId !== null}
++      onOpenChange={(open) => {
++        if (!open) onClose();
++      }}
++    >
++      <Dialog.Portal>
++        <Dialog.Overlay style={overlayStyle} />
++        <Dialog.Content
++          style={contentStyle}
++          data-testid="ticket-dialog"
++          onCloseAutoFocus={(event) => {
++            event.preventDefault();
++            pickReturnFocus([returnFocus, fallback.current, document.getElementById('main-content')])?.focus({
++              preventScroll: true,
++            });
++          }}
++        >
++          <Dialog.Close style={closeStyle} aria-label="Đóng">
++            <span aria-hidden="true">×</span>
++          </Dialog.Close>
++          {ticketId !== null && <TicketDetail key={ticketId} ticketId={ticketId} presentation="dialog" />}
++        </Dialog.Content>
++      </Dialog.Portal>
++    </Dialog.Root>
++  );
++}
+diff --git a/v2/web/src/tickets/history.tsx b/v2/web/src/tickets/history.tsx
+new file mode 100644
+index 0000000..b34177f
+--- /dev/null
++++ b/v2/web/src/tickets/history.tsx
+@@ -0,0 +1,113 @@
++/**
++ * Ticket timeline from the legacy comment and decision collections, read completely and ordered by
++ * `createdAt`/`id`. Review, fallback, artifact, commit and docs-sync entries need the G1/G3 history
++ * projection and are reported as not yet available instead of being inferred.
++ */
++import type { CSSProperties } from 'react';
++import { useRuntime } from '../app-runtime.ts';
++import { ApiFailure } from '../lib/api.ts';
++import { actorLabel, formatTime, type TimelineEntry, useTicketHistory } from './queries.ts';
++
++const decisionLabels: Record<Extract<TimelineEntry, { source: 'decision' }>['kind'], string> = {
++  assessment: 'Đánh giá',
++  delegated: 'Ủy quyền',
++  owner_answer: 'Câu trả lời của bạn',
++  approval: 'Phê duyệt',
++  intervention: 'Can thiệp',
++  dispatch: 'Điều phối',
++};
++const sourceLabels = {
++  docs: 'Tài liệu',
++  ticket: 'Ticket',
++  artifact: 'Sản phẩm',
++  owner_decision: 'Quyết định của bạn',
++};
++
++const listStyle: CSSProperties = {
++  listStyle: 'none',
++  margin: 0,
++  padding: 0,
++  display: 'grid',
++  gap: '0.75rem',
++};
++const entryStyle: CSSProperties = {
++  borderLeft: '3px solid currentColor',
++  paddingLeft: '0.75rem',
++  display: 'grid',
++  gap: '0.25rem',
++};
++const textStyle: CSSProperties = { margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
++
++export function failureText(error: unknown): string {
++  if (error instanceof ApiFailure) {
++    if (error.status === 404) return 'Không tìm thấy ticket hoặc bạn không có quyền xem.';
++    if (error.kind === 'transport') return 'Mất kết nối tới máy chủ.';
++    if (error.kind === 'shape') return 'Máy chủ trả dữ liệu không đúng định dạng.';
++    return `Máy chủ báo lỗi (${error.code}).`;
++  }
++  return 'Đã có lỗi không xác định.';
++}
++
++function Entry({ entry }: { entry: TimelineEntry }) {
++  const heading = entry.source === 'comment' ? 'Bình luận' : `Quyết định · ${decisionLabels[entry.kind]}`;
++  return (
++    <li style={entryStyle} data-testid="timeline-entry" data-entry-id={entry.id} data-source={entry.source}>
++      <div>
++        <strong>{heading}</strong> · <span>{actorLabel(entry.actor)}</span> ·{' '}
++        <time dateTime={entry.createdAt}>{formatTime(entry.createdAt)}</time>
++      </div>
++      {entry.source === 'comment' ? (
++        <p style={textStyle}>{entry.text}</p>
++      ) : (
++        <>
++          <p style={textStyle}>{entry.content}</p>
++          <p style={textStyle}>
++            <span>Lý do: </span>
++            {entry.rationale}
++          </p>
++          {entry.sources.length > 0 && (
++            <ul aria-label="Nguồn">
++              {entry.sources.map((source) => (
++                <li key={`${source.kind}:${source.id}:${source.path ?? ''}:${source.locator ?? ''}`}>
++                  {sourceLabels[source.kind]} <code>{source.path ?? source.id}</code>
++                  {source.locator ? ` (${source.locator})` : ''}
++                </li>
++              ))}
++            </ul>
++          )}
++        </>
++      )}
++    </li>
++  );
++}
++
++export function TicketHistory({ ticketId }: { ticketId: string }) {
++  const history = useTicketHistory(useRuntime().client, ticketId);
++  return (
++    <section aria-labelledby={`history-${ticketId}`} style={{ display: 'grid', gap: '0.75rem' }}>
++      <h2 id={`history-${ticketId}`}>Lịch sử</h2>
++      <p style={textStyle}>
++        Gồm bình luận và quyết định đã ghi nhận. Review, phương án dự phòng, sản phẩm, commit và đồng bộ tài
++        liệu sẽ hiện khi máy chủ cung cấp lịch sử đầy đủ.
++      </p>
++      {history.entries === undefined && history.error ? (
++        <div role="alert">
++          <p style={textStyle}>Không tải được lịch sử: {failureText(history.error)}</p>
++          <button type="button" onClick={() => void history.refetch()}>
++            Thử lại
++          </button>
++        </div>
++      ) : history.entries === undefined ? (
++        <p role="status">Đang tải lịch sử…</p>
++      ) : history.entries.length === 0 ? (
++        <p>Chưa có bình luận hay quyết định nào.</p>
++      ) : (
++        <ol style={listStyle} aria-label="Dòng thời gian">
++          {history.entries.map((entry) => (
++            <Entry key={`${entry.source}:${entry.id}`} entry={entry} />
++          ))}
++        </ol>
++      )}
++    </section>
++  );
++}
+diff --git a/v2/web/src/tickets/list.tsx b/v2/web/src/tickets/list.tsx
+new file mode 100644
+index 0000000..b9c646f
+--- /dev/null
++++ b/v2/web/src/tickets/list.tsx
+@@ -0,0 +1,171 @@
++/**
++ * Ticket list view plus the filter bar and pagination shared with the board. Both views read the same
++ * `useTicketList(client, filters)` query, so they show the same rows and revisions. Filters are exactly the
++ * producer's (`projectId`, `status`, `kind`, `rootId`); the caller keeps them in the URL so switching views
++ * preserves them. Pages load one at a time on “Tải thêm” until `nextCursor` is null.
++ */
++import type { CSSProperties } from 'react';
++import { useRuntime } from '../app-runtime.ts';
++import type { Ticket } from '../contracts/tickets.ts';
++import { StatusBadge } from './detail.tsx';
++import { failureText } from './history.tsx';
++import { parseTicketFilters, type TicketFilters, useTicketList } from './queries.ts';
++import { kindLabels, levelLabels, statusLabels, statusOrder } from './status.ts';
++
++export type TicketViewProps = {
++  filters: TicketFilters;
++  onFiltersChange: (next: TicketFilters) => void;
++  onOpenTicket: (ticketId: string, trigger: HTMLElement) => void;
++};
++
++const barStyle: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems: 'end' };
++const buttonStyle: CSSProperties = {
++  font: 'inherit',
++  padding: '0.35rem 0.7rem',
++  borderRadius: '0.5rem',
++  border: '1px solid currentColor',
++  background: 'transparent',
++  color: 'inherit',
++  cursor: 'pointer',
++};
++const openStyle: CSSProperties = {
++  ...buttonStyle,
++  border: 'none',
++  padding: 0,
++  textAlign: 'left',
++  textDecoration: 'underline',
++};
++
++export function TicketFilterBar({
++  filters,
++  onFiltersChange,
++}: Pick<TicketViewProps, 'filters' | 'onFiltersChange'>) {
++  const update = (patch: Partial<Record<keyof TicketFilters, string>>) =>
++    onFiltersChange(parseTicketFilters({ ...filters, ...patch }));
++  return (
++    <form style={barStyle} aria-label="Lọc ticket" onSubmit={(event) => event.preventDefault()}>
++      <label style={{ display: 'grid', gap: '0.25rem' }}>
++        Trạng thái
++        <select value={filters.status ?? ''} onChange={(event) => update({ status: event.target.value })}>
++          <option value="">Tất cả</option>
++          {statusOrder.map((status) => (
++            <option key={status} value={status}>
++              {statusLabels[status]}
++            </option>
++          ))}
++        </select>
++      </label>
++      <label style={{ display: 'grid', gap: '0.25rem' }}>
++        Loại
++        <select value={filters.kind ?? ''} onChange={(event) => update({ kind: event.target.value })}>
++          <option value="">Tất cả</option>
++          {(Object.keys(kindLabels) as Ticket['kind'][]).map((kind) => (
++            <option key={kind} value={kind}>
++              {kindLabels[kind]}
++            </option>
++          ))}
++        </select>
++      </label>
++      {filters.rootId && (
++        <button type="button" style={buttonStyle} onClick={() => update({ rootId: '' })}>
++          Bỏ lọc theo yêu cầu gốc
++        </button>
++      )}
++    </form>
++  );
++}
++
++export function TicketPagination({ list }: { list: ReturnType<typeof useTicketList> }) {
++  const { query, tickets } = list;
++  if (query.isPending) return <p role="status">Đang tải ticket…</p>;
++  return (
++    <div style={barStyle} role="status">
++      <span>Đã tải {tickets.length} ticket.</span>
++      {query.hasNextPage ? (
++        <>
++          <span>Còn ticket chưa tải, danh sách chưa đầy đủ.</span>
++          <button
++            type="button"
++            style={buttonStyle}
++            disabled={query.isFetchingNextPage}
++            onClick={() => void query.fetchNextPage()}
++          >
++            {query.isFetchingNextPage ? 'Đang tải…' : 'Tải thêm'}
++          </button>
++        </>
++      ) : (
++        query.isSuccess && <span>Đã tải hết danh sách theo bộ lọc.</span>
++      )}
++      {query.error && (
++        <span role="alert">
++          Không tải được: {failureText(query.error)}{' '}
++          <button type="button" style={buttonStyle} onClick={() => void query.refetch()}>
++            Thử lại
++          </button>
++        </span>
++      )}
++    </div>
++  );
++}
++
++export function TicketList({ filters, onFiltersChange, onOpenTicket }: TicketViewProps) {
++  const list = useTicketList(useRuntime().client, filters);
++  return (
++    <section
++      aria-label="Danh sách ticket"
++      data-focus-fallback=""
++      tabIndex={-1}
++      style={{ display: 'grid', gap: '1rem', minWidth: 0 }}
++    >
++      <TicketFilterBar filters={filters} onFiltersChange={onFiltersChange} />
++      {list.tickets.length > 0 && (
++        <div style={{ overflowX: 'auto' }}>
++          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
++            <thead>
++              <tr>
++                <th scope="col" style={{ textAlign: 'left' }}>
++                  Tiêu đề
++                </th>
++                <th scope="col" style={{ textAlign: 'left' }}>
++                  Trạng thái
++                </th>
++                <th scope="col" style={{ textAlign: 'left' }}>
++                  Cấp
++                </th>
++                <th scope="col" style={{ textAlign: 'left' }}>
++                  Loại
++                </th>
++                <th scope="col" style={{ textAlign: 'right' }}>
++                  Phiên bản
++                </th>
++              </tr>
++            </thead>
++            <tbody>
++              {list.tickets.map((ticket) => (
++                <tr key={ticket.id} data-ticket-id={ticket.id} data-revision={ticket.revision}>
++                  <td>
++                    <button
++                      type="button"
++                      style={openStyle}
++                      onClick={(event) => onOpenTicket(ticket.id, event.currentTarget)}
++                    >
++                      {ticket.title}
++                    </button>
++                  </td>
++                  <td>
++                    <StatusBadge status={ticket.status} />
++                  </td>
++                  <td>{levelLabels[ticket.level]}</td>
++                  <td>{kindLabels[ticket.kind]}</td>
++                  <td style={{ textAlign: 'right' }}>{ticket.revision}</td>
++                </tr>
++              ))}
++            </tbody>
++          </table>
++        </div>
++      )}
++      {list.query.isSuccess && list.tickets.length === 0 && <p>Không có ticket nào khớp bộ lọc.</p>}
++      <TicketPagination list={list} />
++    </section>
++  );
++}
+diff --git a/v2/web/src/tickets/queries.ts b/v2/web/src/tickets/queries.ts
+new file mode 100644
+index 0000000..c0048ee
+--- /dev/null
++++ b/v2/web/src/tickets/queries.ts
+@@ -0,0 +1,269 @@
++/**
++ * Ticket read layer shared by board, list, graph and the ticket dialog. Every view reads the same query keys
++ * (`queryKeys.ticket/tickets/comments/decisions/graph`), so one event invalidation refreshes all of them and
++ * they show the same revision. Only producer routes that exist are called; typed run projections (machine,
++ * model, attempt, evidence) and the full chronology wait for gates G1/G3 and are never derived here.
++ */
++import { type QueryClient, useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
++import { useMemo } from 'react';
++import { type Actor, isUuid } from '../contracts/http.ts';
++import {
++  type Comment,
++  type Decision,
++  decodeCommentPage,
++  decodeDecisionPage,
++  decodeTicket,
++  decodeTicketGraph,
++  decodeTicketPage,
++  newerTicket,
++  type Ticket,
++  type TicketGraph,
++  type TicketPage,
++  type TicketStatus,
++  ticketKind,
++  ticketStatus,
++} from '../contracts/tickets.ts';
++import { ApiFailure, getDecoded, type OwnerClient } from '../lib/api.ts';
++import { queryKeys } from '../lib/query-keys.ts';
++import { mergeTicketPages } from './status.ts';
++
++/** Exactly the filters accepted by GET `/v2/tickets` (`v2/server/src/tickets/routes.ts:199`). */
++export type TicketFilters = {
++  projectId?: string;
++  status?: TicketStatus;
++  kind?: Ticket['kind'];
++  rootId?: string;
++};
++export const ticketListPageLimit = 50;
++/** Producer maximum page size for comments/decisions (`routes.ts:150`). */
++export const historyPageLimit = 100;
++const maxHistoryPages = 1000;
++
++function accepts<T>(decoder: (value: unknown) => T, value: unknown): value is T {
++  try {
++    decoder(value);
++    return true;
++  } catch {
++    return false;
++  }
++}
++
++/** Keeps only supported filters with valid values, in a fixed key order (stable query key and URL). */
++export function parseTicketFilters(search: unknown): TicketFilters {
++  if (!search || typeof search !== 'object') return {};
++  const source = search as Record<string, unknown>;
++  const filters: TicketFilters = {};
++  if (isUuid(source.projectId)) filters.projectId = source.projectId.toLowerCase();
++  if (accepts(ticketStatus, source.status)) filters.status = source.status;
++  if (accepts(ticketKind, source.kind)) filters.kind = source.kind;
++  if (isUuid(source.rootId)) filters.rootId = source.rootId.toLowerCase();
++  return filters;
++}
++
++function filterRecord(filters: TicketFilters): Record<string, string> {
++  return { ...parseTicketFilters(filters) } as Record<string, string>;
++}
++
++export function ticketListPath(filters: TicketFilters, cursor: string | null): string {
++  if (cursor !== null && !isUuid(cursor)) throw new ApiFailure(null, 'CURSOR_INVALID', 'local');
++  const params = new URLSearchParams(filterRecord(filters));
++  if (cursor) params.set('cursor', cursor);
++  params.set('limit', String(ticketListPageLimit));
++  return `/v2/tickets?${params.toString()}`;
++}
++
++function ticketPath(ticketId: string, suffix = ''): string {
++  if (!isUuid(ticketId)) throw new ApiFailure(null, 'TICKET_ID_INVALID', 'local');
++  return `/v2/tickets/${ticketId}${suffix}`;
++}
++
++export function fetchTicketPage(
++  client: OwnerClient,
++  filters: TicketFilters,
++  cursor: string | null,
++  signal?: AbortSignal,
++): Promise<TicketPage> {
++  return getDecoded(client, ticketListPath(filters, cursor), decodeTicketPage, signal);
++}
++
++/** Infinite list: one page per explicit “Tải thêm”, until the producer's `nextCursor` is null. */
++export function ticketListOptions(client: OwnerClient, filters: TicketFilters) {
++  return {
++    queryKey: queryKeys.tickets(filterRecord(filters)),
++    queryFn: ({ pageParam, signal }: { pageParam: string | null; signal: AbortSignal }) =>
++      fetchTicketPage(client, filters, pageParam, signal),
++    initialPageParam: null as string | null,
++    getNextPageParam: (last: TicketPage): string | undefined => last.nextCursor ?? undefined,
++    retry: false as const,
++  };
++}
++
++/** Single ticket with a revision guard: an older response never replaces a newer cached row. */
++export function ticketQueryOptions(client: OwnerClient, cache: QueryClient, ticketId: string) {
++  const queryKey = queryKeys.ticket(ticketId);
++  return {
++    queryKey,
++    queryFn: async ({ signal }: { signal: AbortSignal }): Promise<Ticket> => {
++      const incoming = await getDecoded(client, ticketPath(ticketId), decodeTicket, signal);
++      return newerTicket(cache.getQueryData<Ticket>(queryKey), incoming);
++    },
++    retry: false as const,
++  };
++}
++
++type HistoryItem = { comment: Comment; decision: Decision };
++const historyDecoders = { comment: decodeCommentPage, decision: decodeDecisionPage } as const;
++
++/**
++ * Reads every page of a legacy UUID-cursor collection. Chronology needs the whole set because the producer
++ * orders by UUID, not by time. A repeated cursor stops the loop instead of spinning.
++ */
++export async function fetchAllPages<K extends keyof HistoryItem>(
++  client: OwnerClient,
++  path: string,
++  kind: K,
++  signal?: AbortSignal,
++): Promise<HistoryItem[K][]> {
++  const decoder = historyDecoders[kind] as (value: unknown) => {
++    items: HistoryItem[K][];
++    nextCursor: string | null;
++  };
++  const items: HistoryItem[K][] = [];
++  const seen = new Set<string>();
++  let cursor: string | null = null;
++  for (let pageIndex = 0; pageIndex < maxHistoryPages; pageIndex++) {
++    const params = new URLSearchParams();
++    if (cursor) params.set('cursor', cursor);
++    params.set('limit', String(historyPageLimit));
++    const page = await getDecoded(client, `${path}?${params.toString()}`, decoder, signal);
++    items.push(...page.items);
++    if (page.nextCursor === null) return items;
++    if (seen.has(page.nextCursor)) throw new ApiFailure(null, 'PAGE_CURSOR_LOOP', 'shape');
++    seen.add(page.nextCursor);
++    cursor = page.nextCursor;
++  }
++  throw new ApiFailure(null, 'HISTORY_TOO_LARGE', 'shape');
++}
++
++export type TimelineEntry =
++  | { source: 'comment'; id: string; actor: Actor; createdAt: string; text: string }
++  | {
++      source: 'decision';
++      id: string;
++      actor: Actor;
++      createdAt: string;
++      kind: Decision['kind'];
++      content: string;
++      rationale: string;
++      sources: Decision['sources'];
++    };
++
++function instant(value: string): number {
++  const parsed = Date.parse(value);
++  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
++}
++
++/** Merges fully-read comments and decisions by `createdAt`, then `id`; unparsable times sort last. */
++export function buildLegacyTimeline(
++  comments: readonly Comment[],
++  decisions: readonly Decision[],
++): TimelineEntry[] {
++  const entries: TimelineEntry[] = [
++    ...comments.map((row) => ({
++      source: 'comment' as const,
++      id: row.id,
++      actor: row.actor,
++      createdAt: row.createdAt,
++      text: row.text,
++    })),
++    ...decisions.map((row) => ({
++      source: 'decision' as const,
++      id: row.id,
++      actor: row.actor,
++      createdAt: row.createdAt,
++      kind: row.kind,
++      content: row.content,
++      rationale: row.rationale,
++      sources: row.sources,
++    })),
++  ];
++  return entries.sort((a, b) => {
++    const delta = instant(a.createdAt) - instant(b.createdAt);
++    if (delta !== 0 && !Number.isNaN(delta)) return delta;
++    return a.id < b.id ? -1 : a.id > b.id ? 1 : a.source.localeCompare(b.source);
++  });
++}
++
++const timeFormat = new Intl.DateTimeFormat('vi-VN', {
++  timeZone: 'Asia/Ho_Chi_Minh',
++  year: 'numeric',
++  month: '2-digit',
++  day: '2-digit',
++  hour: '2-digit',
++  minute: '2-digit',
++  hourCycle: 'h23',
++});
++
++/** `HH:mm dd/MM/yyyy` in Asia/Ho_Chi_Minh; an unparsable value is shown as received. */
++export function formatTime(value: string): string {
++  const parsed = Date.parse(value);
++  if (Number.isNaN(parsed)) return value;
++  const parts = Object.fromEntries(timeFormat.formatToParts(parsed).map((part) => [part.type, part.value]));
++  return `${parts.hour}:${parts.minute} ${parts.day}/${parts.month}/${parts.year}`;
++}
++
++export function actorLabel(actor: Actor): string {
++  return actor.kind === 'owner' ? 'Chủ dự án' : `Máy ${actor.id.slice(0, 8)}`;
++}
++
++/**
++ * Hooks take the app runtime's single `OwnerClient` (`useRuntime().client`) from the calling component, so
++ * this module stays free of the app composition root.
++ */
++export function useTicket(client: OwnerClient, ticketId: string) {
++  const cache = useQueryClient();
++  return useQuery(ticketQueryOptions(client, cache, ticketId));
++}
++
++export function useTicketList(client: OwnerClient, filters: TicketFilters) {
++  const query = useInfiniteQuery(ticketListOptions(client, filters));
++  const tickets = useMemo(
++    () => mergeTicketPages(query.data?.pages.map((page) => page.items) ?? []),
++    [query.data],
++  );
++  return { query, tickets };
++}
++
++export function useTicketHistory(client: OwnerClient, ticketId: string) {
++  const comments = useQuery({
++    queryKey: queryKeys.comments(ticketId),
++    queryFn: ({ signal }) => fetchAllPages(client, ticketPath(ticketId, '/comments'), 'comment', signal),
++    retry: false,
++  });
++  const decisions = useQuery({
++    queryKey: queryKeys.decisions(ticketId),
++    queryFn: ({ signal }) => fetchAllPages(client, ticketPath(ticketId, '/decisions'), 'decision', signal),
++    retry: false,
++  });
++  const entries = useMemo(
++    () => (comments.data && decisions.data ? buildLegacyTimeline(comments.data, decisions.data) : undefined),
++    [comments.data, decisions.data],
++  );
++  return {
++    entries,
++    error: comments.error ?? decisions.error,
++    isPending: comments.isPending || decisions.isPending,
++    refetch: () => Promise.all([comments.refetch(), decisions.refetch()]),
++  };
++}
++
++/** Whole-root graph (`/v2/tickets/:rootId/graph`); used here only to list direct children. */
++export function useTicketGraph(client: OwnerClient, rootId: string | undefined) {
++  return useQuery({
++    queryKey: queryKeys.graph(rootId ?? ''),
++    queryFn: ({ signal }): Promise<TicketGraph> =>
++      getDecoded(client, ticketPath(rootId ?? '', '/graph'), decodeTicketGraph, signal),
++    enabled: rootId !== undefined,
++    retry: false,
++  });
++}
+diff --git a/v2/web/src/tickets/status.ts b/v2/web/src/tickets/status.ts
+new file mode 100644
+index 0000000..4fef7f6
+--- /dev/null
++++ b/v2/web/src/tickets/status.ts
+@@ -0,0 +1,94 @@
++/**
++ * Pure ticket view-model helpers shared by board, list, graph and the ticket dialog. Status and hierarchy
++ * come only from producer fields (`status`, `level`, `id`, `rootId`, `parentId`); titles or page position
++ * never decide whether a ticket is a request root.
++ */
++import { newerTicket, type Ticket, type TicketStatus } from '../contracts/tickets.ts';
++
++export const statusLabels = {
++  pending: 'Chờ thực hiện',
++  ready: 'Sẵn sàng',
++  running: 'Đang chạy',
++  needs_input: 'Chờ bạn',
++  paused: 'Tạm dừng',
++  done: 'Hoàn thành',
++  cancelled: 'Đã hủy',
++} as const satisfies Record<TicketStatus, string>;
++
++/** Board column order: the producer lifecycle from waiting to terminal. */
++export const statusOrder: readonly TicketStatus[] = [
++  'pending',
++  'ready',
++  'running',
++  'needs_input',
++  'paused',
++  'done',
++  'cancelled',
++];
++
++/** Text icon shown next to the label, so status never relies on colour alone. */
++export const statusIcons: Readonly<Record<TicketStatus, string>> = {
++  pending: '○',
++  ready: '◔',
++  running: '▶',
++  needs_input: '?',
++  paused: '‖',
++  done: '✓',
++  cancelled: '✕',
++};
++
++export const levelLabels = { request: 'Yêu cầu', step: 'Bước', task: 'Công việc' } as const satisfies Record<
++  Ticket['level'],
++  string
++>;
++export const kindLabels = {
++  code: 'Lập trình',
++  research: 'Nghiên cứu',
++  docs: 'Tài liệu',
++  deploy: 'Triển khai',
++} as const satisfies Record<Ticket['kind'], string>;
++
++export function isTerminal(status: TicketStatus): boolean {
++  return status === 'done' || status === 'cancelled';
++}
++
++/** Dedupe by ID keeping the highest revision; first-seen order is preserved. */
++export function mergeTicketPages(pages: readonly (readonly Ticket[])[]): Ticket[] {
++  const rows = new Map<string, Ticket>();
++  for (const page of pages) for (const row of page) rows.set(row.id, newerTicket(rows.get(row.id), row));
++  return [...rows.values()];
++}
++
++/** Request roots by producer hierarchy only: `level==='request' && id===rootId && parentId===null`. */
++export function requestRoots(tickets: readonly Ticket[]): Ticket[] {
++  return mergeTicketPages([tickets]).filter(
++    (row) => row.level === 'request' && row.id === row.rootId && row.parentId === null,
++  );
++}
++
++export function groupByStatus(tickets: readonly Ticket[]): Record<TicketStatus, Ticket[]> {
++  const groups = Object.fromEntries(statusOrder.map((status) => [status, [] as Ticket[]])) as Record<
++    TicketStatus,
++    Ticket[]
++  >;
++  for (const row of tickets) groups[row.status].push(row);
++  return groups;
++}
++
++export type Focusable = { readonly isConnected: boolean; focus(): void };
++
++/** First candidate still attached to the document: trigger, then its view container, then main. */
++export function pickReturnFocus<T extends Focusable>(candidates: readonly (T | null)[]): T | null {
++  return candidates.find((candidate): candidate is T => candidate?.isConnected === true) ?? null;
++}
++
++const waitReasonLabels: Readonly<Record<string, string>> = {
++  repair_limit: 'Đã sửa đủ 5 vòng nhưng vẫn chưa đạt, cần bạn quyết định.',
++  final_result_pending: 'Đang chờ máy xác nhận kết quả cuối.',
++};
++
++/** Label for the producer's `waitReason` code; an unknown code is shown verbatim, never reinterpreted. */
++export function waitReasonLabel(reason: string | null): string {
++  if (reason === null) return 'Máy chủ chưa ghi lý do.';
++  return waitReasonLabels[reason] ?? `Lý do từ máy chủ: ${reason}`;
++}
+diff --git a/v2/web/test/tickets.test.ts b/v2/web/test/tickets.test.ts
+new file mode 100644
+index 0000000..96db5f7
+--- /dev/null
++++ b/v2/web/test/tickets.test.ts
+@@ -0,0 +1,336 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import { QueryClient } from '@tanstack/react-query';
++import type { Comment, Decision, Ticket } from '../src/contracts/tickets.ts';
++import { ApiFailure, assertOwnerPath, type OwnerClient } from '../src/lib/api.ts';
++import { queryKeys } from '../src/lib/query-keys.ts';
++import {
++  actorLabel,
++  buildLegacyTimeline,
++  fetchAllPages,
++  fetchTicketPage,
++  formatTime,
++  historyPageLimit,
++  parseTicketFilters,
++  ticketListOptions,
++  ticketListPath,
++  ticketQueryOptions,
++} from '../src/tickets/queries.ts';
++import {
++  groupByStatus,
++  isTerminal,
++  mergeTicketPages,
++  pickReturnFocus,
++  requestRoots,
++  statusIcons,
++  statusLabels,
++  statusOrder,
++} from '../src/tickets/status.ts';
++
++const projectId = '00000000-0000-4000-8000-0000000000aa';
++const id = (n: number) => `00000000-0000-4000-8000-${n.toString(16).padStart(12, '0')}`;
++
++function ticket(overrides: Partial<Ticket> & Pick<Ticket, 'id'>): Ticket {
++  return {
++    projectId,
++    parentId: null,
++    rootId: overrides.id,
++    level: 'request',
++    kind: 'code',
++    title: 'Yêu cầu',
++    description: 'Mô tả',
++    mandatory: true,
++    criteria: { workflowChoice: 'superpowers' },
++    inputs: {},
++    outputs: {},
++    skill: null,
++    workflowPin: null,
++    status: 'pending',
++    revision: 1,
++    waitReason: null,
++    repairCycles: 0,
++    mergedCommit: null,
++    ...overrides,
++  };
++}
++
++type Fake = { client: OwnerClient; paths: string[] };
++function fakeClient(answer: (path: string) => unknown): Fake {
++  const paths: string[] = [];
++  const client: OwnerClient = {
++    async get<T>(path: string): Promise<T> {
++      assertOwnerPath(path);
++      paths.push(path);
++      return answer(path) as T;
++    },
++    mutate: async () => {
++      throw new Error('READ_ONLY');
++    },
++    upload: async () => {
++      throw new Error('READ_ONLY');
++    },
++  };
++  return { client, paths };
++}
++
++test('statusLabels đủ 7 nhãn tiếng Việt, mỗi trạng thái có biểu tượng riêng và thứ tự cột', () => {
++  assert.deepEqual(statusLabels, {
++    pending: 'Chờ thực hiện',
++    ready: 'Sẵn sàng',
++    running: 'Đang chạy',
++    needs_input: 'Chờ bạn',
++    paused: 'Tạm dừng',
++    done: 'Hoàn thành',
++    cancelled: 'Đã hủy',
++  });
++  assert.deepEqual(statusOrder, [
++    'pending',
++    'ready',
++    'running',
++    'needs_input',
++    'paused',
++    'done',
++    'cancelled',
++  ]);
++  const icons = statusOrder.map((status) => statusIcons[status]);
++  assert.equal(new Set(icons).size, 7, 'biểu tượng không trùng nhau');
++  assert.ok(icons.every((icon) => typeof icon === 'string' && icon.length > 0));
++  assert.equal(isTerminal('done'), true);
++  assert.equal(isTerminal('cancelled'), true);
++  assert.equal(isTerminal('needs_input'), false);
++});
++
++test('requestRoots chỉ nhận level request, id===rootId, parentId null; không suy từ title/trang đầu', () => {
++  const rootA = ticket({ id: id(1), title: 'Trùng tên' });
++  const rootB = ticket({ id: id(2), title: 'Trùng tên', status: 'done' });
++  const cancelled = ticket({ id: id(3), status: 'cancelled' });
++  const orphanStep = ticket({
++    id: id(4),
++    level: 'step',
++    parentId: id(99),
++    rootId: id(99),
++    title: 'Trùng tên',
++  });
++  const mandatoryChild = ticket({
++    id: id(5),
++    level: 'step',
++    parentId: id(1),
++    rootId: id(1),
++    mandatory: true,
++  });
++  const fakeRootLevel = ticket({ id: id(6), parentId: id(1), rootId: id(1) });
++  const wrongRootId = ticket({ id: id(7), rootId: id(1) });
++  const stepWithoutParent = ticket({ id: id(8), level: 'step', parentId: null });
++  const roots = requestRoots([
++    orphanStep,
++    rootA,
++    mandatoryChild,
++    rootB,
++    fakeRootLevel,
++    wrongRootId,
++    stepWithoutParent,
++    cancelled,
++  ]);
++  assert.deepEqual(
++    roots.map((root) => root.id),
++    [id(1), id(2), id(3)],
++  );
++});
++
++test('requestRoots và mergeTicketPages: ID trùng lấy revision mới bất kể thứ tự trang', () => {
++  const older = ticket({ id: id(1), revision: 2, status: 'pending' });
++  const newer = ticket({ id: id(1), revision: 5, status: 'running' });
++  assert.equal(requestRoots([newer, older])[0]?.revision, 5);
++  assert.equal(requestRoots([older, newer])[0]?.revision, 5);
++  const merged = mergeTicketPages([[older, ticket({ id: id(2) })], [newer]]);
++  assert.deepEqual(
++    merged.map((row) => [row.id, row.revision]),
++    [
++      [id(1), 5],
++      [id(2), 1],
++    ],
++  );
++});
++
++test('groupByStatus luôn có đủ 7 nhóm, gom done/cancelled riêng', () => {
++  const groups = groupByStatus([
++    ticket({ id: id(1), status: 'done' }),
++    ticket({ id: id(2), status: 'cancelled' }),
++    ticket({ id: id(3), status: 'needs_input' }),
++    ticket({ id: id(4), status: 'done' }),
++  ]);
++  assert.deepEqual(Object.keys(groups), [...statusOrder]);
++  assert.deepEqual(
++    groups.done.map((row) => row.id),
++    [id(1), id(4)],
++  );
++  assert.equal(groups.cancelled.length, 1);
++  assert.equal(groups.needs_input.length, 1);
++  assert.equal(groups.pending.length, 0);
++});
++
++test('parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị hợp lệ', () => {
++  assert.deepEqual(
++    parseTicketFilters({
++      projectId,
++      status: 'needs_input',
++      kind: 'research',
++      rootId: id(1),
++      level: 'request',
++      q: 'abc',
++      cursor: id(2),
++    }),
++    { projectId, status: 'needs_input', kind: 'research', rootId: id(1) },
++  );
++  assert.deepEqual(parseTicketFilters({ projectId: 'không-phải-uuid', status: 'blocked', kind: 7 }), {});
++  assert.deepEqual(parseTicketFilters(null), {});
++});
++
++test('ticketListPath dựng đúng query /v2/tickets với cursor UUID và limit', () => {
++  const path = ticketListPath({ projectId, status: 'done' }, null);
++  assert.equal(path, `/v2/tickets?projectId=${projectId}&status=done&limit=50`);
++  assert.equal(assertOwnerPath(path), path);
++  assert.equal(
++    ticketListPath({ kind: 'docs', rootId: id(1) }, id(9)),
++    `/v2/tickets?kind=docs&rootId=${id(1)}&cursor=${id(9)}&limit=50`,
++  );
++  assert.throws(() => ticketListPath({}, 'not-a-uuid'), /CURSOR_INVALID/);
++});
++
++test('fetchTicketPage giải mã DTO, sai shape báo RESPONSE_SHAPE_INVALID', async () => {
++  const row = ticket({ id: id(1) });
++  const ok = fakeClient(() => ({ items: [row], nextCursor: id(1) }));
++  const page = await fetchTicketPage(ok.client, { projectId }, null);
++  assert.deepEqual(page, { items: [row], nextCursor: id(1) });
++  assert.deepEqual(ok.paths, [`/v2/tickets?projectId=${projectId}&limit=50`]);
++  const bad = fakeClient(() => ({ items: [{ ...row, extra: true }], nextCursor: null }));
++  await assert.rejects(
++    fetchTicketPage(bad.client, {}, null),
++    (error: unknown) => error instanceof ApiFailure && error.code === 'RESPONSE_SHAPE_INVALID',
++  );
++});
++
++test('ticketListOptions phân trang tới nextCursor null, không tự tải hết', async () => {
++  const options = ticketListOptions(fakeClient(() => null).client, { status: 'ready' });
++  assert.deepEqual(options.queryKey, queryKeys.tickets({ status: 'ready' }));
++  assert.equal(options.initialPageParam, null);
++  assert.equal(options.retry, false);
++  assert.equal(options.getNextPageParam({ items: [], nextCursor: id(3) }), id(3));
++  assert.equal(options.getNextPageParam({ items: [], nextCursor: null }), undefined);
++});
++
++function comment(n: number, createdAt: string, text = `bình luận ${n}`): Comment {
++  return { id: id(n), ticketId: id(1), actor: { kind: 'owner', id: 'owner' }, text, createdAt };
++}
++function decision(n: number, createdAt: string): Decision {
++  return {
++    id: id(n),
++    ticketId: id(1),
++    actor: { kind: 'machine', id: id(77) },
++    kind: 'assessment',
++    content: `quyết định ${n}`,
++    rationale: `lý do ${n}`,
++    sources: [{ kind: 'docs', id: id(55), path: 'docs/a.md' }],
++    scope: {},
++    createdAt,
++  };
++}
++
++test('fetchAllPages đọc hết trang theo cursor đến null', async () => {
++  const pages: Record<string, unknown> = {
++    '': { items: [comment(3, '2026-10-01T00:00:00.000Z')], nextCursor: id(3) },
++    [id(3)]: { items: [comment(9, '2026-10-01T00:00:01.000Z')], nextCursor: id(9) },
++    [id(9)]: { items: [], nextCursor: null },
++  };
++  const fake = fakeClient((path) => pages[new URL(path, 'http://x').searchParams.get('cursor') ?? '']);
++  const items = await fetchAllPages(fake.client, `/v2/tickets/${id(1)}/comments`, 'comment');
++  assert.deepEqual(
++    items.map((item) => item.id),
++    [id(3), id(9)],
++  );
++  assert.deepEqual(fake.paths, [
++    `/v2/tickets/${id(1)}/comments?limit=${historyPageLimit}`,
++    `/v2/tickets/${id(1)}/comments?cursor=${id(3)}&limit=${historyPageLimit}`,
++    `/v2/tickets/${id(1)}/comments?cursor=${id(9)}&limit=${historyPageLimit}`,
++  ]);
++});
++
++test('fetchAllPages dừng khi cursor lặp lại thay vì vòng vô hạn', async () => {
++  const fake = fakeClient(() => ({ items: [comment(3, '2026-10-01T00:00:00.000Z')], nextCursor: id(3) }));
++  await assert.rejects(
++    fetchAllPages(fake.client, `/v2/tickets/${id(1)}/comments`, 'comment'),
++    (error: unknown) => error instanceof ApiFailure && error.code === 'PAGE_CURSOR_LOOP',
++  );
++  assert.equal(fake.paths.length, 2);
++});
++
++test('buildLegacyTimeline sắp theo createdAt rồi id, không theo thứ tự UUID', () => {
++  // UUID order is the reverse of chronology here.
++  const timeline = buildLegacyTimeline(
++    [comment(9, '2026-10-01T01:00:00.000Z'), comment(8, '2026-10-01T03:00:00.000Z')],
++    [decision(2, '2026-10-01T02:00:00.000Z'), decision(1, '2026-10-01T03:00:00.000Z')],
++  );
++  assert.deepEqual(
++    timeline.map((entry) => [entry.source, entry.id]),
++    [
++      ['comment', id(9)],
++      ['decision', id(2)],
++      ['decision', id(1)],
++      ['comment', id(8)],
++    ],
++  );
++  const recorded = timeline[1];
++  assert.equal(recorded?.source, 'decision');
++  if (recorded?.source === 'decision') {
++    assert.equal(recorded.kind, 'assessment');
++    assert.equal(recorded.rationale, 'lý do 2');
++    assert.deepEqual(recorded.sources, [{ kind: 'docs', id: id(55), path: 'docs/a.md' }]);
++    assert.deepEqual(recorded.actor, { kind: 'machine', id: id(77) });
++  }
++});
++
++test('ticketQueryOptions: response revision cũ không ghi đè revision mới trong cache', async () => {
++  const cache = new QueryClient();
++  const newer = ticket({ id: id(1), revision: 7, status: 'running' });
++  const older = ticket({ id: id(1), revision: 3, status: 'pending' });
++  cache.setQueryData(queryKeys.ticket(id(1)), newer);
++  const options = ticketQueryOptions(fakeClient(() => older).client, cache, id(1));
++  assert.deepEqual(options.queryKey, queryKeys.ticket(id(1)));
++  const signal = new AbortController().signal;
++  assert.equal((await options.queryFn({ signal })).revision, 7);
++  const fresher = ticket({ id: id(1), revision: 8, status: 'done' });
++  const next = ticketQueryOptions(fakeClient(() => fresher).client, cache, id(1));
++  assert.equal((await next.queryFn({ signal })).status, 'done');
++});
++
++test('ticketQueryOptions từ chối ticketId không phải UUID trước khi gọi mạng', async () => {
++  const fake = fakeClient(() => null);
++  const options = ticketQueryOptions(fake.client, new QueryClient(), '../v1');
++  await assert.rejects(
++    options.queryFn({ signal: new AbortController().signal }),
++    (error: unknown) => error instanceof ApiFailure && error.code === 'TICKET_ID_INVALID',
++  );
++  assert.equal(fake.paths.length, 0);
++});
++
++test('formatTime hiển thị theo Asia/Ho_Chi_Minh, chuỗi lỗi giữ nguyên', () => {
++  assert.equal(formatTime('2026-10-04T00:30:00.000Z'), '07:30 04/10/2026');
++  assert.equal(formatTime('không phải thời gian'), 'không phải thời gian');
++});
++
++test('actorLabel phân biệt chủ dự án và máy', () => {
++  assert.equal(actorLabel({ kind: 'owner', id: 'owner' }), 'Chủ dự án');
++  assert.equal(actorLabel({ kind: 'machine', id: id(77) }), `Máy ${id(77).slice(0, 8)}`);
++});
++
++test('pickReturnFocus: trả về trigger nếu còn trong DOM, nếu mất thì container dự phòng', () => {
++  const node = (connected: boolean) => ({ isConnected: connected, focus: () => undefined });
++  const trigger = node(true);
++  const lostTrigger = node(false);
++  const container = node(true);
++  const main = node(true);
++  assert.equal(pickReturnFocus([trigger, container, main]), trigger);
++  assert.equal(pickReturnFocus([lostTrigger, container, main]), container);
++  assert.equal(pickReturnFocus([lostTrigger, null, main]), main);
++  assert.equal(pickReturnFocus([lostTrigger, null]), null);
++});
