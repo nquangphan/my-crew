@@ -126,6 +126,7 @@ flows:
       - server/test/support/tickets.ts
       - server/test/ticket-events.unit.test.ts
       - server/test/ticket-reads.test.ts
+      - server/test/ticket-graph-snapshot.test.ts
       - server/test/deploy.test.ts
       - server/test/assistant-orchestration.test.ts
       - server/test/attachments-comment-factory.test.ts

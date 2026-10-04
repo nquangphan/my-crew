@@ -160,7 +160,9 @@ export async function readGraph(
   dependencies: Dependency[];
   repairLinks: RepairLink[];
 }> {
-  return db.begin(async (tx) => {
+  // One REPEATABLE READ snapshot starts at the root resolution, so nodes, edges and repair links
+  // always describe the same committed state of the whole root.
+  return db.begin('isolation level repeatable read read only', async (tx) => {
     const ticket = await requireTicket(tx, ticketId, actor);
     const nodes = await tx`select * from tickets where root_id=${ticket.rootId} order by id`;
     const dependencies = await tx`select d.ticket_id,d.predecessor_id from dependencies d
