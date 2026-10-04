@@ -255,3 +255,5 @@ G4w: minor (deferred, checklist T4): M1 isSourceEnabled trả true khi máy chư
 Backlog producer: Ticket DTO chưa có `updatedAt` (dòng phụ giờ cập nhật — delta 6); repair link chỉ có cycleId, chưa có số thứ tự vòng (nhãn "sửa vòng N"). Ruling: bỏ placeNewNodes do delta 2 (mọi thay đổi cây relayout + neo) — chấp nhận.
 
 11:05 Batch nhẹ: Codex (gpt-6-luna) docs/comment server-tickets/gateway/web-shell/test — commit; OpenCode Go (kimi-k2.6) docs server-gateway/web-tickets/web-data/web-attachments — commit. Đóng các minor: S3a M6 docs, G4w M2, Task2 m3, Task2 upload 5xx docs, P-G4r N2, G4w M3, Integration B3, P-G1a2 hook comment, B2b-i M3 flow.
+
+11:30 Task4 polish `47bbfe9`+`74f678b` review `task-4-polish-review.md`: khớp mockup phần lớn; Needs fixes Important1 (neo realtime dùng focusedTicketId cũ/root ngoài khung → vùng xem trượt) /Minor5. Fix round: I1 (hàm chọn neo: focus trong khung → gần tâm → root), M1–M5; cấp license trình bày history.tsx + docs/ticket-links.tsx cho thân dialog theo màn 2.
