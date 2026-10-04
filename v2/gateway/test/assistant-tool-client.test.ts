@@ -35,7 +35,7 @@ const canon = (value: unknown): string => {
 
 type Seen = { url: string; providerHeaders: string[]; auth: string | undefined; body: any };
 type Behavior =
-  | { kind: 'status'; status: number; body?: unknown; headers?: Record<string, string> }
+  | { kind: 'status'; status: number; body?: unknown; raw?: string; headers?: Record<string, string> }
   | { kind: 'drop' }
   | { kind: 'commit-then-drop' };
 type Stored = {
@@ -79,6 +79,10 @@ async function fakeServer() {
     const fail = (status: number, code: string) => send(status, { error: { code, message: 'x' } });
     const behavior = queue.shift();
     if (behavior?.kind === 'drop') return request.socket.destroy();
+    if (behavior?.kind === 'status' && behavior.raw !== undefined) {
+      response.writeHead(behavior.status, { 'content-type': 'text/html', ...behavior.headers });
+      return response.end(behavior.raw);
+    }
     if (behavior?.kind === 'status')
       return send(behavior.status, behavior.body ?? { error: { code: 'X' } }, behavior.headers);
     // Same order as the real route: body schema, bearer, machine, provider header, authorize
@@ -336,7 +340,7 @@ test('tool client: invalid events are rejected before any I/O', async () => {
       ['sequence leading zero', { ...catalogEvent(), sequence: '01' }],
       ['sequence over bigint', { ...catalogEvent(), sequence: '9223372036854775808' }],
       [
-        'secret-named key',
+        'unexpected key `token` outside the ask_owner shape (shape check, not a secret scan)',
         tool({
           name: 'ask_owner',
           input: {
@@ -975,5 +979,85 @@ test('tool client: a root already opened by another client is refused', async ()
     await assert.rejects(h.client());
   } finally {
     await h.done();
+  }
+});
+
+test('tool client: 404, 403, 400 and 409 without a route error code are not recorded and keep the operation open', async () => {
+  const fastify404 = {
+    message: 'Route POST:/v2/assistant/turns/x/tools not found',
+    error: 'Not Found',
+    statusCode: 404,
+  };
+  const cases: [string, Behavior][] = [
+    ['fastify default 404', { kind: 'status', status: 404, body: fastify404 }],
+    ['404 empty json', { kind: 'status', status: 404, body: {} }],
+    ['403 without a code', { kind: 'status', status: 403, body: { message: 'Forbidden' } }],
+    ['400 html from a proxy', { kind: 'status', status: 400, raw: '<html><body>Bad Request</body></html>' }],
+    [
+      '409 foreign code',
+      { kind: 'status', status: 409, body: { error: { code: 'PROXY_CONFLICT', message: 'x' } } },
+    ],
+    ['422 without a code', { kind: 'status', status: 422, raw: 'nope' }],
+    [
+      '404 with a code of another status',
+      { kind: 'status', status: 404, body: { error: { code: 'ASSISTANT_INPUT_STALE' } } },
+    ],
+  ];
+  for (const [label, behavior] of cases) {
+    const h = await harness();
+    try {
+      const c = await h.client();
+      const t = turn();
+      h.server.queue.push(behavior);
+      await assert.rejects(c.execute(t, catalogEvent()), (error) => {
+        assert.ok(error instanceof ToolClientError, label);
+        assert.equal(error.kind, 'misconfigured', label);
+        assert.equal(error.retryable, false, label);
+        return true;
+      });
+      assert.equal(sent(h), 1, `${label}: not retried`);
+      assert.deepEqual(h.sleeps, []);
+      assert.equal((await c.execute(t, catalogEvent())).state, 'completed', `${label}: not poisoned`);
+      assert.equal(sent(h), 2);
+    } finally {
+      await h.done();
+    }
+  }
+});
+
+test('tool client: Retry-After never shortens the backoff', async () => {
+  const h = await harness();
+  try {
+    const c = await h.client();
+    h.server.queue.push(
+      { kind: 'status', status: 429, headers: { 'retry-after': '0' } },
+      { kind: 'status', status: 429, headers: { 'retry-after': '0' } },
+      { kind: 'status', status: 429, headers: { 'retry-after': '1' } },
+    );
+    assert.equal((await c.execute(turn(), catalogEvent())).state, 'completed');
+    assert.deepEqual(h.sleeps, [1000, 2000, 4000]);
+  } finally {
+    await h.done();
+  }
+});
+
+test('tool client: an invalid credential is unauthorized, never sent and never retried', async () => {
+  for (const credential of ['', 'abc\r\nx-evil: 1', 'a b', 'tok\u00e9n', 'x\n']) {
+    const h = await harness();
+    try {
+      const c = await h.client();
+      h.auth.current = credential;
+      await assert.rejects(c.execute(turn(), catalogEvent()), (error) => {
+        assert.ok(error instanceof ToolClientError);
+        assert.equal(error.kind, 'unauthorized', JSON.stringify(credential));
+        assert.equal(error.retryable, true);
+        assert.ok(!error.message.includes('evil'));
+        return true;
+      });
+      assert.equal(sent(h), 0);
+      assert.deepEqual(h.sleeps, []);
+    } finally {
+      await h.done();
+    }
   }
 });

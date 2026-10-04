@@ -1,0 +1,11 @@
+# RED: fix round 2 tests against 7ffa25b client
+✖ tool client: 404, 403, 400 and 409 without a route error code are not recorded and keep the operation open (71.348ms)
+✖ tool client: Retry-After never shortens the backoff (72.877125ms)
+✖ tool client: an invalid credential is unauthorized, never sent and never retried (61.915375ms)
+ℹ tests 30
+ℹ pass 27
+ℹ fail 3
+✖ failing tests:
+✖ tool client: 404, 403, 400 and 409 without a route error code are not recorded and keep the operation open (71.348ms)
+✖ tool client: Retry-After never shortens the backoff (72.877125ms)
+✖ tool client: an invalid credential is unauthorized, never sent and never retried (61.915375ms)

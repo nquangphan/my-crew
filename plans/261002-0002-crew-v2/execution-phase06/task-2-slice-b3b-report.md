@@ -35,3 +35,15 @@ Server giả `node:http` trong process, dựng đúng hợp đồng route (heade
 - **M2:** body journal giữ `call` dạng canonical JSON text (`callJson`) nên `rejectSecrets` chỉ quét envelope cố định; transport dựng lại body đúng năm field. Cách này tránh sửa journal phase03 (ngoài ownership). Bearer vẫn không vào journal (test).
 
 Concerns: (1) journal tạo bởi 97737a1 có thể đã chứa 4xx hạ tầng bị ghi; chưa có migration vì chưa mount production. (2) `callJson` làm bản ghi journal khác định dạng body gửi đi; transport là nơi duy nhất đọc nó. (3) 408/425/429 dùng chung kind `unavailable` với 5xx.
+
+# FIX2 (N1, N3, N4, R3, R1)
+
+**Kết quả: DONE_WITH_CONCERNS.** RED trước: `task-2-slice-b3b-fix2-red.log` (3 test mới fail trên 7ffa25b, 27/30 còn lại pass). GREEN: `task-2-slice-b3b-fix2-green.log`, 42/42 (39 cũ cộng 3 mới, gồm route thật trên PostgreSQL 18.6 riêng đã xóa và hồi quy `http-operations` 4/4); typecheck sạch; Biome 0 lỗi. Lần chạy GREEN đầu còn 2 fail do chính em (một nhánh sửa credential không áp được, và tập mã quá rộng cho 404); đã sửa rồi chạy lại, log là lần cuối.
+
+- **N1:** chỉ ghi journal khi 200 hợp lệ hoặc status 400/403/404/409/422 mang đúng mã route cho status đó (bảng mã theo `tools.ts`, `store.ts`, `authority.ts`, cộng namespace `ORCHESTRATION_*`/`WORKFLOW_*` của consumer). Thiếu hoặc sai mã (404 mặc định của Fastify, 400 HTML của proxy, 403 không body, 409 mã lạ, 404 kèm mã của status khác) là `misconfigured`, không ghi, không retry, operation giữ mở và gọi lại được.
+- **N3:** độ trễ = max(Retry-After, backoff hiện tại), trần 60s; `Retry-After: 0` vẫn ngủ 1s, 2s, 4s.
+- **N4:** credential rỗng hoặc ngoài `[\x21-\x7e]` (CR/LF, khoảng trắng, ký tự ngoài ASCII) trả `unauthorized` (retryable sau khi sửa), không gửi, không retry.
+- **R3:** đổi nhãn case thành "unexpected key `token` outside the ask_owner shape (shape check, not a secret scan)"; ý "không còn quét secret trong payload" đã có test riêng (khóa `password`/`secret` hợp lệ).
+- **R1:** docs flow ghi journal `assistant-tools` của bản đầu không tương thích, phải xóa thư mục cũ trước khi mount; cũng ghi N2 (execute đồng thời có thể gửi hai request song song, server idempotent) và quy tắc N1/N3/N4.
+
+Concerns: bảng mã 400/403/404/409/422 phải cập nhật khi route thêm mã mới (mã thiếu bị coi là `misconfigured`, không đầu độc journal nhưng chặn lời gọi tới khi sửa bảng). N5 (test route thật dùng error handler tự viết thay `buildApp`) PM đã ghi ledger.

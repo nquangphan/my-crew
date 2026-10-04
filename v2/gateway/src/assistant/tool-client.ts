@@ -387,8 +387,46 @@ function parseResult(tool: RoutingTool['name'], operationId: Id, body: unknown):
 
 const phasePrefix = 'assistant-tool:';
 const maxBackoffMs = 60000;
-/** Only these statuses are business outcomes of the route; the journal records them for good. */
-const recordedStatuses = new Set([200, 400, 403, 404, 409, 422]);
+/**
+ * A status is a business outcome of the route only when the body carries one of the error codes
+ * the route emits for it; the journal records those for good. The same status without such a code
+ * (Fastify's default 404, a proxy page, an older server without the route) is not a verdict.
+ */
+const delegatedNamespace = /^(ORCHESTRATION|WORKFLOW)_[A-Z0-9_]{1,48}$/;
+const routeCodes: Record<number, ReadonlySet<string>> = {
+  400: new Set([
+    'INVALID_INPUT',
+    'VALIDATION',
+    'PATH_INVALID',
+    'PROVIDER_CALL_ID_INVALID',
+    'ASSISTANT_FENCE_INVALID',
+    'ASSISTANT_ID_INVALID',
+  ]),
+  403: new Set(['ASSISTANT_MACHINE_REQUIRED', 'ASSISTANT_TOOL_NOT_IN_SCOPE']),
+  404: new Set(['NOT_FOUND', 'ASSISTANT_SCOPE_NOT_FOUND']),
+  409: new Set([
+    'IDEMPOTENCY_CONFLICT',
+    'ASSISTANT_OPERATION_CONFLICT',
+    'ASSISTANT_INPUT_STALE',
+    'ASSISTANT_TOOL_BUDGET_EXHAUSTED',
+    'ASSISTANT_TURN_STALE',
+    'ASSISTANT_TURN_IN_USE',
+    'ASSISTANT_SCOPE_STALE',
+    'ASSISTANT_CALIBRATION_ACTIVE',
+    'ASSISTANT_REASSIGNMENT_PENDING',
+    'ASSISTANT_GENERATION_EXHAUSTED',
+    'ASSISTANT_REVISION_EXHAUSTED',
+    'REVISION_CONFLICT',
+  ]),
+  422: new Set(['DOCS_ENCODING_INVALID']),
+};
+function isRouteOutcome(status: number, serverCode: string | null): boolean {
+  if (status === 200) return true;
+  const codes = routeCodes[status];
+  if (!codes || serverCode === null) return false;
+  // Consumer services (orchestration, workflow) own their code namespaces on any of these statuses.
+  return codes.has(serverCode) || delegatedNamespace.test(serverCode);
+}
 /** 503 codes that are server configuration, not load: stop retrying, keep the operation open. */
 const notConfigured = new Set(['ASSISTANT_TOOLS_NOT_CONFIGURED', 'ASSISTANT_POLICY_INVALID']);
 
@@ -460,6 +498,12 @@ function toolTransport(
         false,
       );
     }
+    // A malformed credential would make fetch throw, which would look like network loss.
+    if (typeof credential !== 'string' || !/^[\x21-\x7e]+$/.test(credential))
+      throw new SendFailure(
+        new ToolClientError('unauthorized', 'credential invalid', { retryable: true }),
+        false,
+      );
     let response: Response;
     try {
       response = await fetchImpl(new URL(request.route, base), {
@@ -492,7 +536,14 @@ function toolTransport(
       }
       return { status, body };
     }
-    if (recordedStatuses.has(status)) return { status, body };
+    if (status === 400 || status === 403 || status === 404 || status === 409 || status === 422) {
+      if (isRouteOutcome(status, serverCode)) return { status, body };
+      // Same status, but not the route's own error shape: wrong URL, proxy or an older server.
+      throw new SendFailure(
+        new ToolClientError('misconfigured', `${detail} not a route error`, extra),
+        false,
+      );
+    }
     if (status >= 300 && status < 400)
       throw new SendFailure(new ToolClientError('misconfigured', `${detail} redirect`, extra), false);
     if (status === 401)
@@ -564,7 +615,8 @@ export async function createToolClient(options: ToolClientOptions): Promise<Tool
       } catch (error) {
         if (!(error instanceof SendFailure)) throw error;
         if (!error.retry || attempt + 1 >= attempts) throw error.error;
-        await sleep(error.delayMs ?? Math.min(maxBackoffMs, 1000 * 2 ** attempt));
+        // Retry-After may lengthen the backoff, never shorten it.
+        await sleep(Math.max(error.delayMs ?? 0, Math.min(maxBackoffMs, 1000 * 2 ** attempt)));
       }
     }
   }
