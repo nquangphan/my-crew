@@ -1,0 +1,855 @@
+d2ab486 fix(v2): executor render BMAD kiểm closure renderer và trả chẩn đoán log khi dừng
+ v2/docs/flows/assistant-workflows.md        |   8 +-
+ v2/gateway/src/assistant/render-executor.ts | 216 +++++++++++++++++++++++-----
+ v2/gateway/test/render-executor.test.ts     | 186 +++++++++++++++++++++---
+ 3 files changed, 353 insertions(+), 57 deletions(-)
+diff --git a/v2/docs/flows/assistant-workflows.md b/v2/docs/flows/assistant-workflows.md
+index 0c7f728..22ad497 100644
+--- a/v2/docs/flows/assistant-workflows.md
++++ b/v2/docs/flows/assistant-workflows.md
+@@ -18,23 +18,23 @@ Gắn định nghĩa workflow với đúng source và projection bất biến tr
+ 
+ ## Các bước
+ 
+ 1. Chụp sâu `SourcePin` và `ProjectionPin`, kể cả `derivation.options`, trước mọi lần chờ. Kiểm hai snapshot và dùng chính chúng cho `WorkflowRegistry.resolve`, so manifest và tính digest. Caller sửa object sau lời gọi không thể đổi identity đã xác thực.
+ 2. Chọn các `skills/*/SKILL.md` từ manifest source chính thức. Mỗi path phải là regular file trong cả source và projection, có cùng SHA-256. Adapter đọc lại bytes ở hai root, kiểm hash thực tế và so toàn bộ manifest source/projection với pin. File được mở với `O_NOFOLLOW | O_NONBLOCK`; `fstat` loại FIFO và file không regular trước khi đọc; FD được đóng trong `finally`.
+ 3. `customizationSha256` là SHA-256 của canonical `{schema: 'crew-v2:workflow-customization:1', workflow, sourceTreeSha256, projectionTreeSha256, layers}`. Superpowers có `layers = {}`: projection đã pin không chứa layer tùy biến nào, và phát biểu đó gắn vào `projectionTreeSha256`, nên đổi projection thì đổi digest; thứ tự key không ảnh hưởng. BMAD có đủ 7 layer path (SHA-256 hoặc `null`) đo từ projection. Hàm kiểm lại pin, từ chối source/projection lệch nhau, layer thừa/thiếu và layer bắt buộc bằng `null`.
+ 4. BMAD chỉ nhận runtime `claude`. Từ manifest projection, adapter chọn mọi file `.md` dưới `.claude/skills/bmad-build/` (kể cả thư mục con, không lấy `bmad-build-auto`), `customize.toml` và `_bmad/scripts/{render_skill,config_utils}.py`. Thiếu `SKILL.md`, `workflow.md`, `customize.toml`, một trong hai script, layer bắt buộc `_bmad/config.toml`, hoặc gặp symlink/không phải file ở cây skill hay layer path đều trả `WORKFLOW_SKILL_MISMATCH`. Script không phải file thường cũng trả `WORKFLOW_SKILL_MISMATCH`. Trước khi đọc bytes, adapter gọi `validateRenderDefinition` với kích thước khai trong manifest: quá 128 file được chọn, tên `.md` dài hơn 512 ký tự hoặc chưa chuẩn hóa, source tree khác cây BMAD đã chấp nhận, file trên 16 MiB hoặc tổng trên 32 MiB đều bị từ chối bằng mã của bộ kiểm tra (`RENDER_ARTIFACT_MISMATCH`/`RENDER_ARTIFACT_TOO_LARGE`), nên adapter không trả định nghĩa mà bộ kiểm tra luôn từ chối. Mọi file được chọn và mọi layer có mặt được đọc lại bytes thật trong projection root; kích thước thật phải bằng kích thước đã pin. `skills` là các `.md` được chọn trừ `SKILL.md`. `render = {source, projection, selectedProjectionSha256, layers}` đúng bằng expectation của bộ kiểm tra artifact khi bỏ `projectRoot`/`generationRoot` do host gắn sau.
+ 5. `sha256` của định nghĩa là SHA-256 của canonical `{source, projection, skills, customizationSha256, render}` (Superpowers: `render = null`). Identity này chỉ chứng minh định nghĩa manifest đã đọc; nó không cấp quyền chạy model, phát lệnh hay chứng nhận runtime isolation. Adapter không chạy renderer, `uv` hay process con nào.
+ 6. Bộ kiểm tra artifact nhận byte manifest, projected sources, config layers và output. Nó từ chối proxy/accessor trước khi đọc, giới hạn tổng byte trước copy và kiểm hai quan sát của cùng `customize.toml` nhất quán. Path identity phải là Unicode hợp lệ; manifest schema1 và generation identity khớp canonical JSON của renderer Python. `resolved_values` chỉ nhận key từ token source đã chụp và loại scalar/string-list/review-layer chính thức của exact BMAD tree được chấp nhận. Unknown pin/category, key thừa hoặc short token mơ hồ đều bị từ chối.
+ 7. Adapter không còn trả `RENDER_ARTIFACT_REQUIRED`. Việc từ chối BMAD chưa có artifact thuộc server: run BMAD được tạo với `rendered_artifact_id = null` và admission từ chối dispatch khi giá trị này còn `null`. Không dùng hash/path do client khai báo làm bằng chứng renderer.
+-   - Executor render BMAD chạy trên máy B. Định nghĩa không có `render` (Superpowers) trả `RENDER_NOT_BMAD` mà không đặt chỗ hay spawn gì. Trước mọi effect, executor kiểm `attemptId`/`operationId` là UUID chữ thường, `projectRoot` và đường dẫn `uv` là path tuyệt đối đã chuẩn hóa, không có ký tự điều khiển, `"` hay `\`, tên thư mục project là ASCII in được (`RENDER_REQUEST_INVALID`). Nó chụp định nghĩa, chạy `validateRenderDefinition`, tính lại `customizationSha256` và `sha256` theo đúng công thức của adapter (`RENDER_DEFINITION_MISMATCH`). `projectRoot` phải là thư mục thật và bằng `realpath` của chính nó (`RENDER_PROJECT_ROOT_MISMATCH`). Mọi file được chọn và 7 layer được đọc trong `projectRoot` không theo symlink ở bất kỳ cấp nào (file thường, một link, có giới hạn byte) và phải khớp hash của định nghĩa, layer vắng phải vẫn vắng (`RENDER_INPUT_MISMATCH`). Bytes của `uv` phải khớp SHA-256 đã ghi (`RENDER_UV_UNAVAILABLE`). Các bước này không spawn gì.
+-   - Executor chạy đúng một lần argv chính thức `uv run --no-cache {root}/_bmad/scripts/render_skill.py --project-root {root} --skill {root}/.claude/skills/bmad-build` qua `OwnedOperations.execute` trên stage riêng `stages/render-{operationId}`; receipt hay stage đã tồn tại thì trả `RENDER_OPERATION_REUSED`, không chạy lại. Thao tác owned cấp env riêng (HOME/XDG/TMPDIR trong stage, `PATH=/usr/bin:/bin`), giới hạn thời gian (mặc định 60 s, tối đa 120 s), giới hạn ghi và theo dõi process; executor thêm `UV_OFFLINE=1`, `UV_NO_CONFIG=1`, `UV_PYTHON_DOWNLOADS=never`, `PYTHONDONTWRITEBYTECODE=1` và profile `sandbox-exec` cấm mọi network, chỉ cho ghi vào stage và `{root}/_bmad/render`. Thao tác báo không chứng minh được vòng đời con trả `RENDER_LIFETIME_UNKNOWN`; helper lỗi trả `RENDER_OPERATION_UNAVAILABLE`; hai trường hợp này giữ stage lại để đối soát. Hết giờ trả `RENDER_TIMED_OUT`, exit 127 trả `RENDER_UV_UNAVAILABLE`, exit khác 0 trả `RENDER_EXIT_NONZERO`.
+-   - Output gộp stdout/stderr (≤64 KiB) phải đúng một dòng `read and follow {G}/workflow.md`, với `G = {root}/_bmad/render/bmad-build/{slug}-{sha256(root)[:12]}/{20 hex}` và `{G}/workflow.md` là file thường (`RENDER_STDOUT_MISMATCH`). Thư mục generation chỉ được chứa `manifest.json` và đúng các output tên theo source `.md` (không symlink, không file thừa). Executor đọc lại input sau khi chạy rồi đưa cả bộ bytes cho bộ kiểm tra artifact; lệch bất kỳ, kể cả generation khác hash thật hay layer đổi trong lúc render, trả `RENDER_ARTIFACT_MISMATCH`. Executor không bao giờ ghi vào generation, nên lần render thứ hai gặp generation byte-identical để renderer chính thức tự kiểm và giữ nguyên. Stage chỉ bị thu hồi khi thao tác owned đã chứng minh process con đóng; thu hồi lỗi trả `RENDER_CLEANUP_FAILED`. Thành công trả `{kind: 'workflow_render_receipt', attemptId, data: {definitionSha256, customizationSha256, projectRoot, generationPath, inspection, witness: {uvPath, uvSha256, uvVersion, argv, exitCode, stdoutPath, startedAt, endedAt, operationId}}}`; `witness.argv` là argv `uv` chính thức, không gồm lớp `env`/`sandbox-exec`. Executor không gọi server; receipt chỉ là object để lát đăng ký gửi đi.
++   - Executor render BMAD chạy trên máy B. Định nghĩa không có `render` (Superpowers) trả `RENDER_NOT_BMAD` mà không đặt chỗ hay spawn gì. Trước mọi effect, executor kiểm `attemptId`/`operationId` là UUID chữ thường, `projectRoot` và đường dẫn `uv` là path tuyệt đối đã chuẩn hóa, không có ký tự điều khiển, `"` hay `\`, tên thư mục project là ASCII in được (`RENDER_REQUEST_INVALID`). Nó chụp định nghĩa, chạy `validateRenderDefinition`, tính lại `customizationSha256` và `sha256` theo đúng công thức của adapter (`RENDER_DEFINITION_MISMATCH`). `projectRoot` phải là thư mục thật và bằng `realpath` của chính nó (`RENDER_PROJECT_ROOT_MISMATCH`). Closure quanh renderer phải đúng projection: `_bmad/scripts/` chỉ có `render_skill.py` và `config_utils.py` (script đứng đầu `sys.path`, nên module thừa như `json.py` hay `__pycache__` sẽ chạy thay stdlib), `_bmad/` chỉ có `scripts`, `render`, `custom` và các layer config đã khai, `_bmad/custom/` chỉ có layer đã khai, thư mục skill đúng tập file được chọn; symlink hay file đặc biệt ở các chỗ này đều bị từ chối. Mọi file được chọn và 7 layer được đọc trong `projectRoot` không theo symlink ở bất kỳ cấp nào (file thường, một link, có giới hạn byte) và phải khớp hash của định nghĩa, layer vắng phải vẫn vắng (`RENDER_INPUT_MISMATCH`). `uv` được resolve `realpath` (chấp nhận symlink kiểu Homebrew), file thật ≤256 MiB phải khớp SHA-256 đã ghi và chính file đó được chạy (`RENDER_UV_UNAVAILABLE`); `witness.uvPath` giữ path đã ghi, `argv[0]` là path đã resolve. Các bước này không spawn gì.
++   - Executor chạy đúng một lần argv chính thức `uv run --no-cache {root}/_bmad/scripts/render_skill.py --project-root {root} --skill {root}/.claude/skills/bmad-build` qua `OwnedOperations.execute` trên stage riêng `stages/render-{operationId}`; owned root phải canonical (`realpath`) để profile sandbox khớp path của stage, nếu không thì `RENDER_OPERATION_UNAVAILABLE`. Receipt hay stage đã tồn tại (helper thoát 22) thì trả `RENDER_OPERATION_REUSED`, không chạy lại; owned root đang bị thao tác khác khóa (helper thoát 20) thì trả `RENDER_OPERATION_BUSY`. Thao tác owned cấp env riêng (HOME/XDG/TMPDIR trong stage, `PATH=/usr/bin:/bin`), giới hạn thời gian (mặc định 60 s, tối đa 120 s), giới hạn ghi và theo dõi process; executor thêm `UV_OFFLINE=1`, `UV_NO_CONFIG=1`, `UV_PYTHON_DOWNLOADS=never`, `PYTHONDONTWRITEBYTECODE=1` và profile `sandbox-exec` cấm mọi network, chỉ cho ghi vào stage và `{root}/_bmad/render`. Thao tác báo không chứng minh được vòng đời con trả `RENDER_LIFETIME_UNKNOWN`; helper lỗi trả `RENDER_OPERATION_UNAVAILABLE`; hai trường hợp này giữ stage lại để đối soát. Hết giờ trả `RENDER_TIMED_OUT`, exit 127 trả `RENDER_UV_UNAVAILABLE`, exit khác 0 trả `RENDER_EXIT_NONZERO`.
++   - Output gộp stdout/stderr (≤64 KiB) phải đúng một dòng `read and follow {G}/workflow.md`, với `G = {root}/_bmad/render/bmad-build/{slug}-{sha256(root)[:12]}/{20 hex}` và `{G}/workflow.md` là file thường (`RENDER_STDOUT_MISMATCH`). Thư mục generation chỉ được chứa `manifest.json` và đúng các output tên theo source `.md` (không symlink, không file thừa). Closure được kiểm lại sau khi chạy. Executor đọc lại input sau khi chạy rồi đưa cả bộ bytes cho bộ kiểm tra artifact; lệch bất kỳ, kể cả generation khác hash thật hay layer đổi trong lúc render, trả `RENDER_ARTIFACT_MISMATCH`. Executor không bao giờ ghi vào generation, nên lần render thứ hai gặp generation byte-identical để renderer chính thức tự kiểm và giữ nguyên. Mọi HALT sau khi đã có `execution.log` trả kèm `log = {sha256, firstLine}`: digest của toàn bộ log và dòng đầu đã làm sạch (path đã biết thành nhãn như `{project-root}`, `NAME=value` mất giá trị, path tuyệt đối khác thành `{path}`, chỉ ASCII in được, ≤256 ký tự), tính trước khi stage bị thu hồi. Stage chỉ bị thu hồi khi thao tác owned đã chứng minh process con đóng; thu hồi lỗi trả `RENDER_CLEANUP_FAILED`. Thành công trả `{kind: 'workflow_render_receipt', attemptId, data: {definitionSha256, customizationSha256, projectRoot, generationPath, inspection, witness: {uvPath, uvSha256, uvVersion, argv, exitCode, stdoutPath, startedAt, endedAt, operationId}}}`; `witness.argv` là argv `uv` chính thức, không gồm lớp `env`/`sandbox-exec`. Executor không gọi server; receipt chỉ là object để lát đăng ký gửi đi.
+ 8. `createRun` kiểm input, khóa root (phải là request) rồi project, rồi mới gọi resolver Actor persisted (turn chưa admit 503, admission lệch 403, không ghi row). Actor luôn là máy Trợ lý A do resolver trả, không lấy từ caller.
+ 9. Definition tra theo máy B đang gắn với project. Lookup chỉ đọc `gateway_applied.workflow_status` của máy đó: slot projection và slot source phải `current`, digest phải tính lại đúng trên pin của slot, skills, customization và render. Không suy definition từ applied revision. BMAD chỉ có ở runtime `claude` và luôn có `render`; Superpowers không có `render`. Hash không có, slot không current, digest lệch hoặc chỉ máy khác báo đều trả 422 `WORKFLOW_DEFINITION_UNKNOWN`. Definition khác workflow của path trả 422 `WORKFLOW_PATH_MISMATCH`; nguồn của một bước không có trong definition trả 422 `WORKFLOW_SKILL_MISSING`. Pin hoặc `workflowChoice` của root khác workflow trả 409; root đã có run trả 409 `WORKFLOW_RUN_EXISTS`.
+ 10. Graph là bảng ánh xạ cố định từ nguồn đã pin (bảng bên dưới). Mỗi bước là một ticket `step` con của root với `stepOperationId` cấp trước. Criteria của ticket ghi `workflowRun = {runId, path, stepKey, stepOperationId, sourcePath, citation, gates:[{id, kind, requiredActor, trigger, citation}]}`. `trigger` là `on_stage` (run nào cũng qua) hoặc `after_three_failed_fixes` (gate `architecture_discussion`, chỉ materialize sau ba lần sửa hỏng). Bước execution của architectural còn có `executionChoices` (skill, source path, SHA của từng lựa chọn) và `resolvedByGateId` = gate kế hoạch; bước này chưa dispatch được khi gate chưa chọn. UUID gate được giữ chỗ trong `workflow_steps.gate_ids`; không tạo `workflow_gates` khi chưa có artifact. Mặc định tuần tự: mỗi bước chỉ chờ bước liền trước.
+ 11. Chạy song song chỉ khi `assistant_config.policy.parallelApprovalId` trỏ tới quyết định `approval` của owner trong cùng root, với `scope.parallel = {rootTicketId, path, definitionSha256, units:[{key,title,ownershipKeys}]}` khớp chính yêu cầu. Quyết định của root khác không phải override cho root này: run chạy tuần tự, `parallel_approval_id` null. Trong cùng root, quyết định không phải `approval` của owner trả 403 `WORKFLOW_PARALLEL_APPROVAL_INVALID`. Scope lệch hoặc path khác `bounded` trả 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH` (duyệt song song cho architectural cần kế hoạch đã viết, thuộc gate kế hoạch); danh sách `units` (có thể kèm `dependsOn`) đi qua luật chung `parallelUnits` của `gates.ts` (bước 17), nên path trùng hoặc lồng nhau trả 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`, phụ thuộc trả 409 `WORKFLOW_PARALLEL_DEPENDENCY`. Khi hợp lệ, bước triển khai tách thành từng phần với `stepOperationId` và ownership riêng, cùng chờ bước trước; bước review chờ đủ mọi phần.
+ 12. Mọi ID của run (run, step, `stepOperationId`, gate, khóa cạnh) được dẫn xuất từ `operationId` của proof, nên graph là hàm thuần của operation, input và các row đã đọc. `runs.createRunRequest(tx, operationId, input)` trả đúng request `{action:'create_run', payload:{rootTicketId, path, definitionSha256, graphSha256}}` mà transport băm vào `request_hash`. `createRun` dựng lại graph, rồi trong một savepoint nội bộ gọi `port.authorizeGraph(sp, actor, proof, input, graph)` một lần; port tự tính lại digest và so `request_hash`. Lỗi bất kỳ sau lần ghi đầu (lỗi JS của port hay lỗi DB) rollback toàn bộ ghi của `createRun` và cả lần dùng operation, transaction của caller vẫn dùng được. Trong savepoint: insert `workflow_runs` (revision 1, `rendered_artifact_id` null). Mỗi ticket con đi qua session của port; sau khi ticket và step tồn tại thì ghi `assistant_operation_ids` (`action_kind='create_ticket'`, `target_identity` = ticket ID). Mỗi cạnh dependency cũng đi qua session rồi ghi operation riêng (`target_identity = ticketId:predecessorId`). `precondition_sha256` là hash của graph; `effect_id = sha256(canonicalJson([runId, stepOperationId, actionKind, targetIdentity, preconditionSha256]))`, cùng công thức `deriveEffectId` của gateway. Session phải được `close` với mọi phần tử đã dùng.
+ 13. `latchRenderedArtifact` chỉ cho run `bmad-*` chưa latch (409 `WORKFLOW_RENDER_NOT_REQUIRED` / `WORKFLOW_RENDER_ALREADY_LATCHED`). Evidence phải là `workflow_render_receipt` có attempt. Attempt phải thuộc ticket bước của chính run, đang `active`, cùng máy và `binding_revision` hiện hành của project. `definitionSha256` và `customizationSha256` trong `data` phải khớp run. `generationPath` phải đúng `{projectRoot}/_bmad/render/bmad-build/{slug}-{sha256(projectRoot)[:12]}/{20 hex}` như renderer chính thức. Lệch bất kỳ điều nào trả 409 `WORKFLOW_RENDER_RECEIPT_INVALID`. Đúng thì set `rendered_artifact_id` và tăng revision trong cùng một câu UPDATE có điều kiện. Server chưa có bản ghi workspace nên chưa đối chiếu được `projectRoot` với workspace thật; việc đó thuộc lát đăng ký receipt trên máy B.
+ 
+ 14. `createOwnerQuestion` là tool `ask_owner` của Trợ lý. Câu hỏi phải gắn một ticket (thiếu thì 422 `WORKFLOW_QUESTION_TICKET_REQUIRED`). Thứ tự khóa root → project → resolver Actor persisted, rồi scope của proof phải đúng root và có tool `ask_owner` (thiếu thì 403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`). Row operation pending phải được ghi trong chính Tx, cùng turn và snapshot của scope, với `request_hash = operationRequestSha256({action:'ask_owner', payload: proposal})` trên đúng proposal đã gửi; lệch thì 403 `ORCHESTRATION_REQUEST_MISMATCH`, row từ Tx trước thì 404. ID câu hỏi dẫn xuất từ `operationId`, nên một operation chỉ hỏi được một lần (lần hai 409 `ASSISTANT_OPERATION_CONSUMED`). `conversationId` phải là hội thoại của turn đang hỏi.
+ 15. Câu hỏi gắn gate chỉ hợp lệ khi gate ID nằm trong `workflow_steps.gate_ids` của bước, ticket là ticket của bước, và stage trong criteria khớp bảng nguồn đã pin cùng row bước bất biến (source, skill, số gate, kind); lệch trả 409 `WORKFLOW_GATE_UNKNOWN`. Thiếu `artifactSha256` trả 409 `WORKFLOW_ARTIFACT_REQUIRED`. Artifact được coi là đã xác minh khi có evidence `artifact` trên chính ticket bước với đúng `data.sha256`, do attempt của máy và `binding_revision` hiện hành của project ghi; nếu không thì 409 `WORKFLOW_ARTIFACT_UNVERIFIED`. Chỉ artifact mới nhất của bước (theo `fence` của attempt, rồi `created_at` của evidence; cùng mốc thì mọi row phải cùng SHA) được hỏi hoặc duyệt; bytes cũ hơn trả 409 `WORKFLOW_ARTIFACT_SUPERSEDED`. Mỗi gate có đúng một artifact hiện hành; bước sinh nhiều file phải gói chúng thành một artifact. Run có run mới hơn trên cùng root (theo thứ tự journal `ticket.created` của ticket bước, đọc qua index `events(project_id, cursor)`) trả 409 `WORKFLOW_RUN_SUPERSEDED` khi hỏi hoặc trả lời; nếu run này hoặc một run khác của root không có event `ticket.created` thì thứ tự không xác định và cũng trả 409 (đóng an toàn). Definition của run phải còn đúng thứ máy dự án đang chứng minh (cùng source, projection, customization), nếu không thì 409 `WORKFLOW_DEFINITION_STALE`. Run BMAD chưa latch render trả 409 `WORKFLOW_RENDER_REQUIRED`. Gate `on_stage` không nhận `cycleId` (400). Gate `after_three_failed_fixes` chỉ mở khi run có ít nhất ba kết quả review `initial_review`/`repair_review` thất bại và `cycleId` là một trong các cycle đó; review hạ tầng hoặc review đạt không tính (409 `WORKFLOW_GATE_NOT_TRIGGERED`).
+ 16. Digest phạm vi do server tự tính: gate là `sha256(canonicalJson(['crew-v2:workflow-gate-scope:1', {rootTicketId, runId, stepId, gateId, kind, requiredActor, trigger, sourcePath, sourceSha256, artifactSha256, cycleId, definitionSha256, customizationSha256, renderedArtifactId}]))`; câu hỏi không gate là `['crew-v2:owner-question-scope:1', {conversationId, rootTicketId, ticketId, runId, stepId}]`. `scopeSha256` của proposal khác giá trị này trả 409 `WORKFLOW_QUESTION_SCOPE_MISMATCH`. Lần hỏi đầu materialize row `workflow_gates` bất biến (`pending`, `decision_id` null) rồi mới tạo câu hỏi revision 1. Câu hỏi mới cho cùng gate đánh dấu câu đang mở là `superseded` và lấy revision kế tiếp. Gate đã ghim artifact khác trả 409 `WORKFLOW_GATE_ARTIFACT_MISMATCH`: artifact mới cần run mới thay run cũ. Gate đã quyết định trả 409 `WORKFLOW_GATE_DECIDED`, nên duyệt đã có hiệu lực không bị hỏi lại. Câu hỏi không gate không mang artifact hay cycle.
+@@ -82,21 +82,21 @@ TDD và review là kỷ luật bên trong skill thực thi của architectural,
+ ## Dữ liệu
+ 
+ `workflow_runs` giữ source/projection/definition/customization/path bất biến; chỉ `rendered_artifact_id` và `revision` đổi được (trigger SQL011). `workflow_steps` và `assistant_operation_ids` bất biến hoàn toàn. Render receipt là `evidence` loại `workflow_render_receipt` với `data = {definitionSha256, customizationSha256, projectRoot, generationPath, inspection, witness}`; executor trên máy B dựng object này; lát đăng ký lên server chưa có. Gate chỉ materialize khi artifact thật đã được xác minh; UUID đặt trước không thay cho `workflow_gates.artifact_sha256` bắt buộc. `workflow_gates` chỉ đổi `decision_id` (latch một lần) và `state`; `assistant_questions` chỉ đổi `state`; `assistant_answers` bất biến và duy nhất theo `(question_id, question_revision)`. Lựa chọn thực thi và duyệt song song nằm trong `scope` của decision owner mà `workflow_gates.decision_id` trỏ tới; T4 phải đọc từ đó, không từ `workflow_steps.skill`/`source_path` của bước execute.
+ 
+ ## Flow liên quan
+ 
+ `gateway-workflows` giữ registry và pin source/projection; `server-gateway` lưu install report kèm definition; `server-assistant` giữ scope/TurnFence, resolver và graph authorization của port; `server-tickets` giữ root ticket và owner decisions. Native workflow runtime/admission vẫn cần chứng cứ riêng, không suy ra từ unit fixture này.
+ 
+ ## Tests
+ 
+-Từ `v2/gateway`: `node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts test/render-executor.test.ts`. Superpowers dùng archive 6.4.2 và projection đã audit. BMAD dùng fixture `workflow-definitions/bmad-claude-projection.json`: bytes `bmad-build`, `customize.toml` và script lấy từ archive 6.12.0 đã pin và khớp hash projection build độc lập; config layer là bytes tổng hợp vì bytes installer sinh ra không được giữ lại. Test tính lại `ProjectionPin` trên cây tập con, nên chỉ chứng minh logic chọn/đo, không chứng nhận projection thật. Các case: digest Superpowers đổi theo `projection.treeSha256` và không đổi theo thứ tự key; BMAD đúng 7 layer, thiếu layer bắt buộc hoặc layer là symlink bị từ chối; layer tùy chọn xuất hiện làm đổi digest dù skill và token giữ nguyên; `skills` đúng tập `.md` trừ `SKILL.md` và phải có `workflow.md`; pin lệch trả `SOURCE_PROJECTION_MISMATCH` trước khi gọi registry; spy `child_process` xác nhận không có process con. Test ở `render-artifacts.test.ts` xác nhận `render` của adapter đúng bằng expectation D1 trừ hai root và inspector vẫn là bước riêng. Regression snapshot pin và FIFO giữ nguyên. Chưa có test renderer thực; unit fixture không phải production acceptance. Test executor dựng định nghĩa qua chính adapter trên cây `bmad-build` tổng hợp không token (pin source thật 6.12.0) và dùng test double của `OwnedOperations` theo hợp đồng của primitive thật (stage độc quyền, log gộp `execution.log`, receipt độc quyền, fork → `EXECUTOR_LIFETIME_UNKNOWN`, helper lỗi → `EXECUTOR_RECEIPT_MISSING`, timeout là receipt `timedOut`); process con là renderer giả mô phỏng `render_skill.py` (identity, đường dẫn generation, không ghi đè generation có sẵn, in đường dẫn entry). Các case: không phải BMAD thì không gọi thao tác nào; argv, env, profile sandbox, stage được thu hồi và receipt đúng từng trường so với inspection độc lập; lần render thứ hai không đổi inode/mtime/bytes của generation; operation dùng lại không chạy lần hai; exit khác 0, 127, timeout, fork, helper lỗi không có receipt và chỉ thu hồi stage khi vòng đời đã chứng minh; 9 biến thể stdout; generation giả ở hash khác, output đổi/thừa/thiếu/symlink, layer đổi trong lúc render; input trôi trước khi chạy, alias symlink của root, `uv` sai bytes/symlink, định nghĩa sai digest hoặc quá 128 file, ID sai đều dừng trước mọi thao tác. Chưa chạy `uv` thật; tích hợp `uv` thuộc lát sau.
++Từ `v2/gateway`: `node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts test/render-executor.test.ts`. Superpowers dùng archive 6.4.2 và projection đã audit. BMAD dùng fixture `workflow-definitions/bmad-claude-projection.json`: bytes `bmad-build`, `customize.toml` và script lấy từ archive 6.12.0 đã pin và khớp hash projection build độc lập; config layer là bytes tổng hợp vì bytes installer sinh ra không được giữ lại. Test tính lại `ProjectionPin` trên cây tập con, nên chỉ chứng minh logic chọn/đo, không chứng nhận projection thật. Các case: digest Superpowers đổi theo `projection.treeSha256` và không đổi theo thứ tự key; BMAD đúng 7 layer, thiếu layer bắt buộc hoặc layer là symlink bị từ chối; layer tùy chọn xuất hiện làm đổi digest dù skill và token giữ nguyên; `skills` đúng tập `.md` trừ `SKILL.md` và phải có `workflow.md`; pin lệch trả `SOURCE_PROJECTION_MISMATCH` trước khi gọi registry; spy `child_process` xác nhận không có process con. Test ở `render-artifacts.test.ts` xác nhận `render` của adapter đúng bằng expectation D1 trừ hai root và inspector vẫn là bước riêng. Regression snapshot pin và FIFO giữ nguyên. Chưa có test renderer thực; unit fixture không phải production acceptance. Test executor dựng định nghĩa qua chính adapter trên cây `bmad-build` tổng hợp không token (pin source thật 6.12.0) và dùng test double của `OwnedOperations` theo hợp đồng của primitive thật (stage độc quyền, log gộp `execution.log`, receipt độc quyền, fork → `EXECUTOR_LIFETIME_UNKNOWN`, helper lỗi → `EXECUTOR_RECEIPT_MISSING`, timeout là receipt `timedOut`); process con là renderer giả mô phỏng `render_skill.py` (identity, đường dẫn generation, không ghi đè generation có sẵn, in đường dẫn entry). Các case: không phải BMAD thì không gọi thao tác nào; argv, env, profile sandbox, stage được thu hồi và receipt đúng từng trường so với inspection độc lập; lần render thứ hai không đổi inode/mtime/bytes của generation; operation dùng lại không chạy lần hai; exit khác 0, 127, timeout, fork, helper lỗi không có receipt và chỉ thu hồi stage khi vòng đời đã chứng minh; 9 biến thể stdout; generation giả ở hash khác, output đổi/thừa/thiếu/symlink, layer đổi trong lúc render; input trôi trước khi chạy, alias symlink của root, `uv` sai bytes/symlink, định nghĩa sai digest hoặc quá 128 file, ID sai đều dừng trước mọi thao tác. Thêm các case: file `.py` thừa, `__pycache__`, symlink trong `_bmad/scripts`, file thừa trong thư mục skill, `_bmad` hay `_bmad/custom`, `_bmad/render` là symlink đều dừng trước mọi thao tác, và file thừa xuất hiện trong lúc render cũng dừng; lock bận khác với operation dùng lại; digest và dòng đầu đã làm sạch của log khi HALT; `uv` qua symlink; owned root không canonical. Chưa chạy `uv` thật. Với cấu hình hiện tại, render thật luôn dừng: renderer pin cần Python ≥3.11 mà env của executor chỉ thấy Python 3.9.6 của CLT, và `uv run` chạy Python như process con nên primitive báo vòng đời không chứng minh được; tích hợp `uv` thuộc lát sau.
+ 
+ Từ repo, `node --test v2/server/test/assistant-workflows.test.ts` cần PostgreSQL riêng (`CREW_V2_TEST_DATABASE_URL`, `CREW_V2_TEST_CONTAINER_ID`). Definition của máy B được seed bằng đúng vector chung `install-report-vector.json` của S3b. Turn đã admit dùng `seedAdmittedTurn` (receipt PASS của verifier fixture) và tool operation ghi trong cùng Tx; không có authority test-trust. Ánh xạ được đối chiếu với chính bytes archive đã pin: test đọc từng dòng trích dẫn bằng `tar`, kiểm marker của gate (`User approves design?`, `User Review Gate`, `Which execution approach`, `If 3+ Fixes Failed`, `CHECKPOINT 1`…), lấy lựa chọn execution từ các dòng `REQUIRED SUB-SKILL` của writing-plans, skill hoàn tất từ handoff `Final review clean` của hai skill thực thi, và chuỗi BMAD từ `FIRST STEP`/`NEXT`/`EARLY EXIT`. Các case: hash không chứng minh trên máy B (hash lạ, slot mismatch, digest lệch, chỉ máy khác có) trả 422 và không row; resolver 503/403 không row; ánh xạ đủ 6 path với source SHA khớp definition; ticket con do máy A tạo, DAG đúng predecessor, operation ID riêng và effect ID tính lại được, không có `workflow_gates`; operation không đúng request `create_run` này (tool khác, mutation đơn lẻ, path khác, digest do caller chọn, digest của operation khác) trả 403 không row; lỗi JS của port hoặc lỗi DB sau lần ghi đầu không để lại row và caller vẫn commit được; latch sai máy/binding revision/attempt không active/attempt ngoài run/definition/customization/project root/loại evidence trả 409, đúng thì revision 2, lần hai 409; UPDATE/DELETE identity bị trigger chặn; duyệt song song của máy hoặc không phải `approval` trong cùng root 403 (kiểm cả qua `createRunRequest` lẫn trong chính `createRun` với row operation ghi sẵn), của root khác thì chạy tuần tự, trùng ownership 409, owner hợp lệ thì tách phần và join review.
+ 
+ Gate (cùng file, nhóm `assistant gates:`) dùng cùng fixture với scope có tool `ask_owner`; artifact được seed như attempt đã dừng của máy B ghi. Digest phạm vi được tính lại độc lập trong test từ tag và context. Các case: gate chưa có artifact, artifact của máy khác, binding cũ, bước khác hoặc kind khác không tạo row; gate lạ/của bước khác, `cycleId` trên gate `on_stage`, scope lệch đều bị từ chối; hỏi đúng thì tạo đúng row gate rồi câu hỏi, và UPDATE/DELETE identity bị trigger chặn. Operation `ask_owner` phải đúng proposal, có tool trong scope, cùng hội thoại, cùng root, ghi trong chính Tx và chỉ dùng một lần. Máy (A hoặc B) trả lời trả 403; decision của máy, `delegated`, `owner_answer` trên gate, hoặc approval không có answer của owner không làm gate tiến. Revision, scope, artifact lệch và lựa chọn/verdict sai không ghi gì. Câu trả lời đúng ghi decision `approval` với scope chính xác và answer bất biến, latch gate một lần; replay 409 và gate đã duyệt không bị hỏi lại. Câu hỏi bị thay trả 409; artifact mới không duyệt qua gate đã ghim. Customization đổi chặn câu trả lời; lỗi DB sau khi có decision không để lại gì và caller vẫn commit được. Gate kế hoạch bắt chọn phương pháp chính thức, kiểm SHA lựa chọn với definition, từ chối phần song song trùng ownership hoặc phụ thuộc nhau. Gate `architecture_discussion` chỉ mở sau ba lần sửa thất bại. Câu hỏi không gate nhận `owner_answer`. Gate BMAD cần render đã latch, và render là một phần của scope.
+ 
+ Vòng sửa 1 thêm: duyệt artifact đã bị thay trả 409 và gate vẫn `pending`, còn `reject` vẫn được; hỏi lại bytes cũ cũng 409. Run có run mới hơn trên cùng root không hỏi, không trả lời được. `recordGateAnswer` trong Tx trần giữ `event_cursor` trước khi chờ root (kiểm bằng `NOWAIT` từ kết nối khác). Ownership song song so trên path đã chuẩn hóa và quan hệ thư mục, cho cả gate lẫn run `bounded`. Decision của gate khác hoặc của root khác không làm câu hỏi tiến. `ask_owner` là thành viên của union `OperationRequest`.
+ 
+ Vòng sửa 2 thêm: ownership khác hoa thường, khác dạng NFC/NFD hoặc percent-encoding (`%2F`, `%61`) vẫn là xung đột và scope lưu giữ key gốc; run không có event `ticket.created` không được hỏi (409).
+ 
+ Từ `v2/gateway`: `node --test test/assistant-tool-client.test.ts` chạy client với server HTTP giả trong process, dựng theo route thật (thứ tự schema → bearer → header provider → authorize trước replay → idempotency; mã `INVALID_INPUT`, `IDEMPOTENCY_CONFLICT`, `ASSISTANT_*`; turnId so lowercase). Các case: event sai bị từ chối không I/O, restart dùng lại cùng ID/body, mất mạng/mất reply sau commit, đếm đúng một request mỗi attempt, bảng từng mã (401 làm mới bearer rồi gửi lại cùng operation, 408/425/429/503, `Retry-After`, 413, 503 chưa cấu hình, 3xx, các mã terminal phát lại không I/O), kind kết quả sai, kết quả completed của docs/run/question, chuẩn hóa UUID hoa, khóa nghiệp vụ kiểu `password` hợp lệ, bearer không nằm trong journal hay lỗi.
+diff --git a/v2/gateway/src/assistant/render-executor.ts b/v2/gateway/src/assistant/render-executor.ts
+index 11d9191..f046672 100644
+--- a/v2/gateway/src/assistant/render-executor.ts
++++ b/v2/gateway/src/assistant/render-executor.ts
+@@ -1,12 +1,13 @@
++import { createHash } from 'node:crypto';
+ import { constants } from 'node:fs';
+-import { lstat, mkdir, open, readdir, readFile, realpath, writeFile } from 'node:fs/promises';
++import { lstat, mkdir, open, readdir, realpath, writeFile } from 'node:fs/promises';
+ import { join, posix } from 'node:path';
+ import { canonicalJson, hash } from '../journal/atomic-records.ts';
+ import type { ExecutionReceipt, OwnedIdentity, OwnedOperations } from '../workflows/operations.ts';
+ import {
+   createBmadArtifactInspector,
+   type RenderArtifactInspection,
+   type RenderLayerPath,
+   validateRenderDefinition,
+ } from './render-artifacts.ts';
+ import { customizationContext, type RenderDefinition, type WorkflowDefinition } from './workflow-manifest.ts';
+@@ -51,48 +52,61 @@ export type WorkflowRenderReceipt = {
+   };
+ };
+ export type RenderHaltReason =
+   | 'RENDER_NOT_BMAD'
+   | 'RENDER_REQUEST_INVALID'
+   | 'RENDER_DEFINITION_MISMATCH'
+   | 'RENDER_PROJECT_ROOT_MISMATCH'
+   | 'RENDER_INPUT_MISMATCH'
+   | 'RENDER_UV_UNAVAILABLE'
+   | 'RENDER_OPERATION_REUSED'
++  | 'RENDER_OPERATION_BUSY'
+   | 'RENDER_OPERATION_UNAVAILABLE'
+   | 'RENDER_LIFETIME_UNKNOWN'
+   | 'RENDER_TIMED_OUT'
+   | 'RENDER_EXIT_NONZERO'
+   | 'RENDER_STDOUT_MISMATCH'
+   | 'RENDER_ARTIFACT_MISMATCH'
+   | 'RENDER_CLEANUP_FAILED'
+   | 'RENDER_UNEXPECTED_FAILURE';
+-export type RenderOutcome = { receipt: WorkflowRenderReceipt } | { halt: true; reason: RenderHaltReason };
++/** Present on a halt once an execution log exists: its digest and a sanitized first line. */
++export type RenderLogDiagnostics = { sha256: string; firstLine: string };
++export type RenderOutcome =
++  | { receipt: WorkflowRenderReceipt }
++  | { halt: true; reason: RenderHaltReason; log?: RenderLogDiagnostics };
+ 
+ const skillRoot = '.claude/skills/bmad-build';
+ const rendererPath = '_bmad/scripts/render_skill.py';
+ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+ const digest = /^[0-9a-f]{64}$/;
+ const entryPrefix = 'read and follow ';
+ const entrySuffix = '/workflow.md';
+ // Per-file and per-snapshot read bounds match the artifact inspector, which re-applies them.
+ const maxFileBytes = 16 * 1024 * 1024;
+ const maxSnapshotBytes = 32 * 1024 * 1024;
+ const maxLogBytes = 64 * 1024;
+-const maxGenerationEntries = 512;
+-const maxGenerationDepth = 32;
++const maxTreeEntries = 512;
++const maxTreeDepth = 32;
++const maxUvBytes = 256 * 1024 * 1024;
++// The owned executor caps every file it lets the child write at 64 MiB (RLIMIT_FSIZE).
++const maxDigestLogBytes = 64 * 1024 * 1024;
++const maxFirstLine = 256;
++// `render_skill.py` puts its own directory first on `sys.path`; nothing else may sit beside it.
++const scriptNames = ['config_utils.py', 'render_skill.py'];
+ 
+ class RenderHalt extends Error {
+   readonly reason: RenderHaltReason;
+-  constructor(reason: RenderHaltReason) {
++  readonly log: RenderLogDiagnostics | undefined;
++  constructor(reason: RenderHaltReason, log?: RenderLogDiagnostics) {
+     super(reason);
+     this.reason = reason;
++    this.log = log;
+   }
+ }
+ 
+ function halt(reason: RenderHaltReason): never {
+   throw new RenderHalt(reason);
+ }
+ 
+ async function guard<T>(reason: RenderHaltReason, work: () => T | Promise<T>): Promise<T> {
+   try {
+     return await work();
+@@ -230,34 +244,134 @@ function inputsMatch(render: RenderDefinition, inputs: InputBytes): boolean {
+ }
+ 
+ /** Skill-relative output names the official renderer derives: every selected `.md` except SKILL.md. */
+ function outputNames(render: RenderDefinition): string[] {
+   return Object.keys(render.selectedProjectionSha256)
+     .filter((path) => path.startsWith(`${skillRoot}/`) && path.endsWith('.md'))
+     .map((path) => path.slice(skillRoot.length + 1))
+     .filter((name) => posix.basename(name) !== 'SKILL.md');
+ }
+ 
+-async function listGeneration(
+-  generation: string,
+-  prefix: string,
+-  depth: number,
+-  found: string[],
+-): Promise<void> {
+-  if (depth > maxGenerationDepth) throw new Error('RENDER_GENERATION_SHAPE');
+-  for (const entry of await readdir(join(generation, prefix), { withFileTypes: true })) {
++/** Lists regular files under `root` (itself a real directory); any symlink or special file throws. */
++async function listFiles(root: string, prefix = '', depth = 0, found: string[] = []): Promise<string[]> {
++  if (depth > maxTreeDepth) throw new Error('RENDER_TREE_SHAPE');
++  if (depth === 0) await realDirectory(root);
++  for (const entry of await readdir(join(root, prefix), { withFileTypes: true })) {
+     const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+-    if (found.length >= maxGenerationEntries) throw new Error('RENDER_GENERATION_SHAPE');
+-    if (entry.isDirectory()) await listGeneration(generation, relative, depth + 1, found);
++    if (found.length >= maxTreeEntries) throw new Error('RENDER_TREE_SHAPE');
++    if (entry.isDirectory()) await listFiles(root, relative, depth + 1, found);
+     else if (entry.isFile()) found.push(relative);
+-    else throw new Error('RENDER_GENERATION_SHAPE');
++    else throw new Error('RENDER_TREE_SHAPE');
+   }
++  return found;
++}
++
++async function realDirectory(path: string): Promise<void> {
++  const stat = await lstat(path);
++  if (!stat.isDirectory()) throw new Error('RENDER_TREE_SHAPE');
++}
++
++function sameSet(actual: readonly string[], expected: readonly string[]): boolean {
++  const wanted = new Set(expected);
++  return actual.length === wanted.size && actual.every((name) => wanted.has(name));
++}
++
++/**
++ * The executable closure around the renderer equals the pinned projection: `_bmad/scripts` holds
++ * exactly the two pinned scripts, `_bmad/` only `scripts`, `render`, `custom` and declared config
++ * layers, `_bmad/custom` only declared layers, and the skill directory exactly the selected files.
++ * Generations under `_bmad/render` are measured separately.
++ */
++async function checkClosure(projectRoot: string, render: RenderDefinition): Promise<void> {
++  const present = (Object.keys(render.layers) as RenderLayerPath[]).filter(
++    (path) => render.layers[path] !== null,
++  );
++  const allowed = new Map<string, 'directory' | 'file'>([
++    ['scripts', 'directory'],
++    ['render', 'directory'],
++    ['custom', 'directory'],
++  ]);
++  for (const path of present) {
++    const name = path.slice('_bmad/'.length);
++    if (path.startsWith('_bmad/') && !name.includes('/')) allowed.set(name, 'file');
++  }
++  const bmad = join(projectRoot, '_bmad');
++  await realDirectory(bmad);
++  for (const entry of await readdir(bmad, { withFileTypes: true })) {
++    const kind = entry.isDirectory() ? 'directory' : entry.isFile() ? 'file' : 'other';
++    if (allowed.get(entry.name) !== kind) throw new Error('RENDER_CLOSURE_MISMATCH');
++  }
++  if (!sameSet(await listFiles(join(bmad, 'scripts')), scriptNames))
++    throw new Error('RENDER_CLOSURE_MISMATCH');
++  const custom = await lstat(join(bmad, 'custom')).catch(() => null);
++  if (custom !== null) {
++    const declared = present.filter((path) => path.startsWith('_bmad/custom/')).map((path) => path.slice(13));
++    for (const name of await listFiles(join(bmad, 'custom')))
++      if (!declared.includes(name)) throw new Error('RENDER_CLOSURE_MISMATCH');
++  }
++  const selected = Object.keys(render.selectedProjectionSha256)
++    .filter((path) => path.startsWith(`${skillRoot}/`))
++    .map((path) => path.slice(skillRoot.length + 1));
++  if (!sameSet(await listFiles(join(projectRoot, skillRoot)), selected))
++    throw new Error('RENDER_CLOSURE_MISMATCH');
++}
++
++/** SHA-256 of a single-link regular file read without following a final symlink, within `maxBytes`. */
++async function digestFile(path: string, maxBytes: number): Promise<{ sha256: string; head: Buffer }> {
++  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
++  try {
++    const stat = await handle.stat();
++    if (!stat.isFile() || stat.size > maxBytes) throw new Error('RENDER_FILE_UNBOUNDED');
++    const digest = createHash('sha256');
++    const chunk = Buffer.alloc(1024 * 1024);
++    let head = Buffer.alloc(0);
++    let length = 0;
++    for (;;) {
++      const { bytesRead } = await handle.read(chunk, 0, chunk.length, length);
++      if (bytesRead === 0) break;
++      length += bytesRead;
++      if (length > stat.size) throw new Error('RENDER_FILE_UNBOUNDED');
++      if (head.length < 4096)
++        head = Buffer.concat([head, chunk.subarray(0, Math.min(bytesRead, 4096 - head.length))]);
++      digest.update(chunk.subarray(0, bytesRead));
++    }
++    if (length !== stat.size) throw new Error('RENDER_FILE_UNBOUNDED');
++    return { sha256: digest.digest('hex'), head };
++  } finally {
++    await handle.close();
++  }
++}
++
++/**
++ * First log line safe to hand to the server or owner: known host paths become labels, `NAME=value`
++ * assignments lose their value, any other absolute path becomes `{path}`, then printable ASCII only.
++ */
++function sanitizeFirstLine(head: Buffer, labels: readonly [string, string][]): string {
++  const newline = head.indexOf(0x0a);
++  let line = new TextDecoder('utf-8').decode(newline < 0 ? head : head.subarray(0, newline));
++  for (const [value, label] of [...labels].sort((a, b) => b[0].length - a[0].length))
++    line = line.split(value).join(label);
++  line = line.replace(/\b([A-Za-z_][A-Za-z0-9_]*)=\S*/g, '$1={redacted}');
++  line = line.replace(/(^|[\s'"(:,=])\/[^\s'"]*/g, '$1{path}');
++  return [...line]
++    .map((character) => (/^[\x20-\x7e]$/.test(character) ? character : '?'))
++    .join('')
++    .slice(0, maxFirstLine);
++}
++
++/** `NativeHelper.run` rejects with the execFile error; its numeric `code` is the helper exit status. */
++function helperFailure(error: unknown, existing: RenderHaltReason): RenderHaltReason {
++  const code = (error as { code?: unknown } | null)?.code;
++  if (code === 22) return existing;
++  // 20: another owned operation holds `.operations.guard` (flock LOCK_NB).
++  if (code === 20) return 'RENDER_OPERATION_BUSY';
++  return 'RENDER_OPERATION_UNAVAILABLE';
+ }
+ 
+ function policy(stage: string, projectRoot: string): string {
+   // The renderer runs as uv's child Python; process creation stays allowed and is bounded by the
+   // owned executor, while every network operation and any write outside the stage or the render
+   // destination is denied.
+   return `(version 1) (allow default)
+ (deny network*)
+ (deny file-write*)
+ (allow file-write* (subpath ${JSON.stringify(stage)}) (subpath ${JSON.stringify(`${projectRoot}/_bmad/render`)}) (literal "/dev/null"))
+@@ -340,50 +454,63 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
+ 
+     // `{project-root}` must be the canonical workspace directory the runtime will use.
+     await guard('RENDER_PROJECT_ROOT_MISMATCH', async () => {
+       const stat = await lstat(projectRoot);
+       if (!stat.isDirectory() || (await realpath(projectRoot)) !== projectRoot)
+         throw new Error('RENDER_PROJECT_ROOT');
+     });
+ 
+     // Refuse drifted inputs before reserving anything or spawning.
+     await guard('RENDER_INPUT_MISMATCH', async () => {
++      await checkClosure(projectRoot, render);
+       const inputs = await readInputs(projectRoot, render, { remaining: maxSnapshotBytes });
+       validateRenderDefinition(render, inputs.sizes);
+       if (!inputsMatch(render, inputs)) throw new Error('RENDER_INPUT_DRIFT');
+     });
+ 
+-    await guard('RENDER_UV_UNAVAILABLE', async () => {
+-      const stat = await lstat(uv.path);
+-      if (!stat.isFile() || hash(await readFile(uv.path)) !== uv.sha256)
++    // A package-manager symlink is accepted: the resolved file is hashed (bounded) and executed.
++    const uvExecutable = await guard('RENDER_UV_UNAVAILABLE', async () => {
++      const resolved = await realpath(uv.path);
++      if (!lexicalPath(resolved) || (await digestFile(resolved, maxUvBytes)).sha256 !== uv.sha256)
+         throw new Error('RENDER_UV_IDENTITY');
++      return resolved;
+     });
+ 
+     const argv = [
+-      uv.path,
++      uvExecutable,
+       'run',
+       '--no-cache',
+       `${projectRoot}/${rendererPath}`,
+       '--project-root',
+       projectRoot,
+       '--skill',
+       `${projectRoot}/${skillRoot}`,
+     ];
+     const stageName = `render-${operationId}`;
+     const stage = join(operations.root, 'stages', stageName);
+-    await guard('RENDER_OPERATION_REUSED', async () => {
++    // The stage is quoted into the sandbox profile, which matches canonical paths only.
++    await guard('RENDER_OPERATION_UNAVAILABLE', async () => {
++      if (!lexicalPath(stage) || (await realpath(operations.root)) !== operations.root)
++        throw new Error('RENDER_STAGE_NOT_CANONICAL');
++    });
++    try {
+       await operations.absent('receipts', `${stageName}.json`);
+       await operations.absent('stages', stageName);
+-    });
+-    const identity: OwnedIdentity = await guard('RENDER_OPERATION_UNAVAILABLE', () =>
+-      operations.create(stageName),
+-    );
++    } catch (error) {
++      halt(helperFailure(error, 'RENDER_OPERATION_REUSED'));
++    }
++    let identity: OwnedIdentity;
++    try {
++      identity = await operations.create(stageName);
++    } catch (error) {
++      halt(helperFailure(error, 'RENDER_OPERATION_UNAVAILABLE'));
++    }
+     const reclaim = () => operations.remove('stages', stageName, identity);
+     const policyPath = join(stage, 'render.sb');
+     try {
+       // The owned executor points HOME/XDG/TMPDIR inside its working directory: the stage.
+       for (const name of ['home', 'tmp']) await mkdir(join(stage, name), { mode: 0o700 });
+       await writeFile(policyPath, policy(stage, projectRoot), { flag: 'wx', mode: 0o600 });
+     } catch {
+       await reclaim().catch(() => undefined);
+       halt('RENDER_OPERATION_UNAVAILABLE');
+     }
+@@ -403,38 +530,61 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
+           'PYTHONDONTWRITEBYTECODE=1',
+           '/usr/bin/sandbox-exec',
+           '-f',
+           policyPath,
+           ...argv,
+         ],
+         timeoutSeconds,
+       );
+     } catch (error) {
+       // Child closure is unproven: the stage stays for owned-operation reconciliation.
+-      halt(
++      throw new RenderHalt(
+         error instanceof Error && error.message === 'EXECUTOR_LIFETIME_UNKNOWN'
+           ? 'RENDER_LIFETIME_UNKNOWN'
+           : 'RENDER_OPERATION_UNAVAILABLE',
++        await diagnostics(),
+       );
+     }
+     const endedAt = clock().toISOString();
++    // Measured before any reclaim so a halt can still name what the child printed.
++    const log = await diagnostics();
+ 
+     let result: WorkflowRenderReceipt;
+     try {
+       result = await measure(receipt);
+     } catch (error) {
+       await reclaim().catch(() => undefined);
+-      throw error;
++      throw new RenderHalt(error instanceof RenderHalt ? error.reason : 'RENDER_UNEXPECTED_FAILURE', log);
++    }
++    try {
++      await reclaim();
++    } catch {
++      throw new RenderHalt('RENDER_CLEANUP_FAILED', log);
+     }
+-    await guard('RENDER_CLEANUP_FAILED', reclaim);
+     return result;
+ 
++    async function diagnostics(): Promise<RenderLogDiagnostics | undefined> {
++      try {
++        const { sha256, head } = await digestFile(join(stage, 'execution.log'), maxDigestLogBytes);
++        const labels: [string, string][] = [
++          [projectRoot, '{project-root}'],
++          [stage, '{stage}'],
++          [operations.root, '{operations}'],
++          [uvExecutable, '{uv}'],
++          [uv.path, '{uv}'],
++        ];
++        return { sha256, firstLine: sanitizeFirstLine(head, labels) };
++      } catch {
++        return undefined;
++      }
++    }
++
+     async function measure(execution: ExecutionReceipt): Promise<WorkflowRenderReceipt> {
+       if (execution.timedOut) halt('RENDER_TIMED_OUT');
+       if (execution.exitCode === 127) halt('RENDER_UV_UNAVAILABLE');
+       if (execution.exitCode !== 0) halt('RENDER_EXIT_NONZERO');
+ 
+       const rootHash = hash(Buffer.from(projectRoot, 'utf8')).slice(0, 12);
+       const generationParent = `${projectRoot}/_bmad/render/bmad-build/${slug}-${rootHash}/`;
+       const generationPath = await guard('RENDER_STDOUT_MISMATCH', async () => {
+         const log = await readContained(stage, 'execution.log', maxLogBytes, { remaining: maxLogBytes });
+         if (log === null) throw new Error('RENDER_STDOUT_ABSENT');
+@@ -453,24 +603,24 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
+           projectRoot,
+           `${generation.slice(projectRoot.length + 1)}${entrySuffix}`,
+           maxFileBytes,
+           { remaining: maxFileBytes },
+         );
+         if (printed === null) throw new Error('RENDER_STDOUT_PATH');
+         return generation;
+       });
+ 
+       const inspection = await guard('RENDER_ARTIFACT_MISMATCH', async () => {
++        await checkClosure(projectRoot, render);
+         const relative = generationPath.slice(projectRoot.length + 1);
+         const names = outputNames(render);
+-        const listed: string[] = [];
+-        await listGeneration(generationPath, '', 0, listed);
++        const listed = await listFiles(generationPath);
+         const expected = new Set(['manifest.json', ...names]);
+         if (listed.length !== expected.size || listed.some((name) => !expected.has(name)))
+           throw new Error('RENDER_GENERATION_SHAPE');
+         // Re-read the inputs so a change during the render cannot inherit the earlier identity.
+         const budget = { remaining: maxSnapshotBytes };
+         const inputs = await readInputs(projectRoot, render, budget);
+         const manifestBytes = await readContained(
+           projectRoot,
+           `${relative}/manifest.json`,
+           maxFileBytes,
+@@ -519,18 +669,16 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
+         },
+       };
+     }
+   }
+ 
+   return {
+     async render(request) {
+       try {
+         return { receipt: await produce(request) };
+       } catch (error) {
+-        return {
+-          halt: true,
+-          reason: error instanceof RenderHalt ? error.reason : 'RENDER_UNEXPECTED_FAILURE',
+-        };
++        if (!(error instanceof RenderHalt)) return { halt: true, reason: 'RENDER_UNEXPECTED_FAILURE' };
++        return { halt: true, reason: error.reason, ...(error.log ? { log: error.log } : {}) };
+       }
+     },
+   };
+ }
+diff --git a/v2/gateway/test/render-executor.test.ts b/v2/gateway/test/render-executor.test.ts
+index 097c638..c900280 100644
+--- a/v2/gateway/test/render-executor.test.ts
++++ b/v2/gateway/test/render-executor.test.ts
+@@ -206,36 +206,44 @@ type ExecuteCall = { id: string; cwd: string; command: string[]; timeoutSeconds:
+ /**
+  * Test double of `OwnedOperations` mirroring the reviewed primitive's contract:
+  * `absent` throws when the name exists under the owned parent; `create` makes a private,
+  * exclusive `stages/{id}` and returns its identity; `execute` requires that exact stage identity,
+  * a timeout of 1–120 s and an absolute command, sends merged stdout/stderr to
+  * `stages/{id}/execution.log` (O_EXCL), writes one exclusive receipt `receipts/{id}.json`, throws
+  * `EXECUTOR_LIFETIME_UNKNOWN` when a fork is observed and `EXECUTOR_RECEIPT_MISSING` when the helper
+  * fails; a timeout is a receipt with `timedOut` and signal exit code; `remove` deletes only that
+  * stage identity. The child itself is the scripted `behaviour`, never a real process.
+  */
++// `NativeHelper.run` rejects with the promisified execFile error, whose `code` is the exit status.
++function helperExit(code: number): Error {
++  return Object.assign(new Error(`Command failed with exit code ${code}`), { code });
++}
++
+ class FakeOperations implements RenderOperations {
+   readonly root: string;
+   readonly calls: string[] = [];
+   readonly executions: ExecuteCall[] = [];
+   behaviour: (call: ExecuteCall) => Promise<ChildResult>;
++  /** Another owned operation holds `.operations.guard`: the helper exits 20 for every action. */
++  busy = false;
+   constructor(root: string, behaviour: (call: ExecuteCall) => Promise<ChildResult>) {
+     this.root = root;
+     this.behaviour = behaviour;
+   }
+   async absent(parent: 'stages' | 'sources' | 'projections' | 'quarantine' | 'receipts', id: string) {
+     this.calls.push(`absent:${parent}:${id}`);
+-    if (await lstat(join(this.root, parent, id)).catch(() => null))
+-      throw new Error('OPERATION_HELPER_FAILED');
++    if (this.busy) throw helperExit(20);
++    if (await lstat(join(this.root, parent, id)).catch(() => null)) throw helperExit(22);
+   }
+   async create(id: string): Promise<OwnedIdentity> {
+     this.calls.push(`create:${id}`);
++    if (this.busy) throw helperExit(20);
+     const path = join(this.root, 'stages', id);
+     await mkdir(path, { mode: 0o700 });
+     const s = await lstat(path);
+     return {
+       device: String(s.dev),
+       inode: String(s.ino),
+       ownerUid: s.uid,
+       kind: 'directory',
+       linkCount: s.nlink,
+     };
+@@ -357,22 +365,26 @@ async function withHarness(run: (h: Harness) => Promise<void>, files = projected
+           attemptId,
+           operationId: operationIds[next++ % operationIds.length],
+           ...overrides,
+         }),
+     });
+   } finally {
+     await rm(base, { recursive: true, force: true });
+   }
+ }
+ 
+-function halted(outcome: RenderOutcome, reason: string): void {
+-  assert.deepEqual(outcome, { halt: true, reason });
++/** A halt carries log diagnostics exactly when an execution log exists to measure. */
++function halted(outcome: RenderOutcome, reason: string, logged = false): void {
++  assert(!('receipt' in outcome), JSON.stringify(outcome));
++  assert.equal(outcome.reason, reason);
++  assert.equal(outcome.halt, true);
++  assert.equal('log' in outcome, logged, `${reason} log diagnostics`);
+ }
+ 
+ function expectedArgv(projectRoot: string, uvPath: string): string[] {
+   return [
+     uvPath,
+     'run',
+     '--no-cache',
+     `${projectRoot}/_bmad/scripts/render_skill.py`,
+     '--project-root',
+     projectRoot,
+@@ -518,32 +530,32 @@ test('render executor leaves an existing byte-identical generation untouched on
+ 
+ test('render executor never runs one operation twice', async () => {
+   await withHarness(async (h) => {
+     assert('receipt' in (await h.render({ operationId: operationIds[2] })));
+     halted(await h.render({ operationId: operationIds[2] }), 'RENDER_OPERATION_REUSED');
+     assert.equal(h.operations.executions.length, 1);
+   });
+ });
+ 
+ test('render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children', async () => {
+-  const cases: [ChildResult, string, boolean][] = [
+-    [{ kind: 'exit', exitCode: 1, stdout: 'HALT: config missing\n' }, 'RENDER_EXIT_NONZERO', true],
+-    [{ kind: 'exit', exitCode: 2, stdout: '' }, 'RENDER_EXIT_NONZERO', true],
+-    [{ kind: 'exit', exitCode: 127, stdout: '' }, 'RENDER_UV_UNAVAILABLE', true],
+-    [{ kind: 'timeout' }, 'RENDER_TIMED_OUT', true],
+-    [{ kind: 'fork' }, 'RENDER_LIFETIME_UNKNOWN', false],
+-    [{ kind: 'helper-failure' }, 'RENDER_OPERATION_UNAVAILABLE', false],
++  const cases: [ChildResult, string, boolean, boolean][] = [
++    [{ kind: 'exit', exitCode: 1, stdout: 'HALT: config missing\n' }, 'RENDER_EXIT_NONZERO', true, true],
++    [{ kind: 'exit', exitCode: 2, stdout: '' }, 'RENDER_EXIT_NONZERO', true, true],
++    [{ kind: 'exit', exitCode: 127, stdout: '' }, 'RENDER_UV_UNAVAILABLE', true, true],
++    [{ kind: 'timeout' }, 'RENDER_TIMED_OUT', true, true],
++    [{ kind: 'fork' }, 'RENDER_LIFETIME_UNKNOWN', false, true],
++    [{ kind: 'helper-failure' }, 'RENDER_OPERATION_UNAVAILABLE', false, false],
+   ];
+-  for (const [result, reason, reclaimed] of cases) {
++  for (const [result, reason, reclaimed, logged] of cases) {
+     await withHarness(async (h) => {
+       h.operations.behaviour = async () => result;
+-      halted(await h.render(), reason);
++      halted(await h.render(), reason, logged);
+       assert.equal(h.operations.executions.length, 1, reason);
+       const stage = join(h.operations.root, 'stages', `render-${operationIds[0]}`);
+       // A stage is reclaimed only when the primitive proved the child closed.
+       assert.equal((await lstat(stage).catch(() => null)) === null, reclaimed, reason);
+     });
+   }
+ });
+ 
+ test('render executor halts when stdout does not name exactly the rendered workflow entry', async () => {
+   const variants: ((stdout: string) => string)[] = [
+@@ -556,36 +568,36 @@ test('render executor halts when stdout does not name exactly the rendered workf
+     (stdout) => stdout.replace(/\/_bmad\/render\//, '/_bmad/render/../render/'),
+     () => `read and follow /tmp/elsewhere/workflow.md\n`,
+     (stdout) => `${stdout}${' '.repeat(70 * 1024)}`,
+   ];
+   for (const variant of variants) {
+     await withHarness(async (h) => {
+       h.operations.behaviour = async (call) => {
+         const result = await officialRender(officialArgv(call.command));
+         return { kind: 'exit', exitCode: result.exitCode, stdout: variant(result.stdout) };
+       };
+-      halted(await h.render(), 'RENDER_STDOUT_MISMATCH');
++      halted(await h.render(), 'RENDER_STDOUT_MISMATCH', true);
+     });
+   }
+ });
+ 
+ test('render executor halts when the printed generation does not match its measured bytes', async () => {
+   // A copy of a real generation at another well-formed generation hash fails the D1 identity.
+   await withHarness(async (h) => {
+     h.operations.behaviour = async (call) => {
+       const result = await officialRender(officialArgv(call.command));
+       const real = result.stdout.slice('read and follow '.length, -'/workflow.md\n'.length);
+       const forged = `${posix.dirname(real)}/${'a'.repeat(20)}`;
+       await writeTree(forged, await readTreeFiles(real));
+       return { kind: 'exit', exitCode: 0, stdout: `read and follow ${forged}/workflow.md\n` };
+     };
+-    halted(await h.render(), 'RENDER_ARTIFACT_MISMATCH');
++    halted(await h.render(), 'RENDER_ARTIFACT_MISMATCH', true);
+   });
+   const tamper: [string, (generation: string) => Promise<void>][] = [
+     ['changed output', (g) => writeFile(join(g, 'workflow.md'), 'Changed.\n')],
+     ['extra file', (g) => writeFile(join(g, 'extra.md'), 'Extra.\n')],
+     ['missing output', (g) => rm(join(g, 'steps/step-01.md'))],
+     [
+       'symlinked output',
+       async (g) => {
+         await writeFile(join(g, 'elsewhere.txt'), 'Next.\n');
+         await rm(join(g, 'steps/step-01.md'));
+@@ -601,21 +613,22 @@ test('render executor halts when the printed generation does not match its measu
+   for (const [label, edit] of tamper) {
+     await withHarness(async (h) => {
+       currentRoot = h.projectRoot;
+       await mkdir(join(h.projectRoot, '_bmad/custom'), { recursive: true });
+       h.operations.behaviour = async (call) => {
+         const result = await officialRender(officialArgv(call.command));
+         await edit(result.stdout.slice('read and follow '.length, -'/workflow.md\n'.length));
+         return { kind: 'exit', ...result };
+       };
+       const outcome = await h.render();
+-      assert.deepEqual(outcome, { halt: true, reason: 'RENDER_ARTIFACT_MISMATCH' }, label);
++      assert.equal('reason' in outcome && outcome.reason, 'RENDER_ARTIFACT_MISMATCH', label);
++      halted(outcome, 'RENDER_ARTIFACT_MISMATCH', true);
+     });
+   }
+ });
+ 
+ async function readTreeFiles(root: string, prefix = ''): Promise<TreeFile[]> {
+   const files: TreeFile[] = [];
+   for (const entry of await readdir(join(root, prefix), { withFileTypes: true })) {
+     const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+     if (entry.isDirectory()) files.push(...(await readTreeFiles(root, path)));
+     else files.push({ path, type: 'file', mode: 0o644, body: await readFile(join(root, path)) });
+@@ -649,21 +662,22 @@ test('render executor refuses drifted workspace inputs before reserving or spawn
+         const { rename } = await import('node:fs/promises');
+         await rename(join(root, skillRoot), join(root, 'skill-copy'));
+         await symlink('../../skill-copy', join(root, skillRoot));
+       },
+     ],
+   ];
+   for (const [label, edit] of edits) {
+     await withHarness(async (h) => {
+       await edit(h.projectRoot);
+       const outcome = await h.render();
+-      assert.deepEqual(outcome, { halt: true, reason: 'RENDER_INPUT_MISMATCH' }, label);
++      assert.equal('reason' in outcome && outcome.reason, 'RENDER_INPUT_MISMATCH', label);
++      halted(outcome, 'RENDER_INPUT_MISMATCH');
+       assert.deepEqual(h.operations.calls, [], label);
+     });
+   }
+ });
+ 
+ test('render executor binds the project root to the canonical workspace directory', async () => {
+   await withHarness(async (h) => {
+     const alias = join(h.base, 'alias');
+     await symlink(h.projectRoot, alias);
+     halted(await h.render({ projectRoot: alias }), 'RENDER_PROJECT_ROOT_MISMATCH');
+@@ -680,22 +694,28 @@ test('render executor binds the project root to the canonical workspace director
+     ])
+       halted(await h.render({ projectRoot }), 'RENDER_REQUEST_INVALID');
+     assert.deepEqual(h.operations.calls, []);
+   });
+ });
+ 
+ test('render executor requires the recorded uv bytes before spawning', async () => {
+   await withHarness(async (h) => {
+     halted(await h.render({}, { ...h.uv, sha256: '0'.repeat(64) }), 'RENDER_UV_UNAVAILABLE');
+     halted(await h.render({}, { ...h.uv, path: join(h.base, 'bin', 'missing-uv') }), 'RENDER_UV_UNAVAILABLE');
+-    await symlink(h.uv.path, join(h.base, 'bin', 'uv-link'));
+-    halted(await h.render({}, { ...h.uv, path: join(h.base, 'bin', 'uv-link') }), 'RENDER_UV_UNAVAILABLE');
++    await mkdir(join(h.base, 'bin', 'uv-dir'));
++    halted(await h.render({}, { ...h.uv, path: join(h.base, 'bin', 'uv-dir') }), 'RENDER_UV_UNAVAILABLE');
++    // Bounded read: an oversized executable is refused from its size, before hashing.
++    const huge = join(h.base, 'bin', 'uv-huge');
++    const handle = await open(huge, 'w');
++    await handle.truncate(256 * 1024 * 1024 + 1);
++    await handle.close();
++    halted(await h.render({}, { ...h.uv, path: huge }), 'RENDER_UV_UNAVAILABLE');
+     halted(await h.render({}, { ...h.uv, path: 'uv' }), 'RENDER_REQUEST_INVALID');
+     halted(await h.render({}, { ...h.uv, version: '' }), 'RENDER_REQUEST_INVALID');
+     assert.deepEqual(h.operations.calls, []);
+   });
+ });
+ 
+ test('render executor refuses an inconsistent or unacceptable definition before spawning', async () => {
+   await withHarness(async (h) => {
+     halted(
+       await h.render({ definition: { ...h.definition, sha256: '0'.repeat(64) } }),
+@@ -720,10 +740,138 @@ test('render executor validates attempt and operation identifiers before any eff
+     for (const overrides of [
+       { attemptId: '' },
+       { attemptId: 'not-a-uuid' },
+       { operationId: '../escape' },
+       { operationId: operationIds[0].toUpperCase() },
+     ])
+       halted(await h.render(overrides), 'RENDER_REQUEST_INVALID');
+     assert.deepEqual(h.operations.calls, []);
+   });
+ });
++
++test('render executor refuses unpinned files beside the renderer, skill and config before spawning', async () => {
++  const edits: [string, (root: string) => Promise<void>][] = [
++    ['shadowing module in scripts', (root) => writeFile(join(root, '_bmad/scripts/json.py'), 'import os\n')],
++    [
++      'bytecode cache in scripts',
++      async (root) => {
++        await mkdir(join(root, '_bmad/scripts/__pycache__'));
++        await writeFile(join(root, '_bmad/scripts/__pycache__/re.cpython-312.pyc'), 'x');
++      },
++    ],
++    [
++      'symlink in scripts',
++      async (root) => {
++        await writeFile(join(root, 'outside.py'), 'print(1)\n');
++        await symlink('../../outside.py', join(root, '_bmad/scripts/typing.py'));
++      },
++    ],
++    ['extra file in skill directory', (root) => writeFile(join(root, skillRoot, 'notes.txt'), 'x\n')],
++    [
++      'extra nested file in skill directory',
++      (root) => writeFile(join(root, skillRoot, 'steps/helper.py'), 'x\n'),
++    ],
++    ['unknown file in _bmad', (root) => writeFile(join(root, '_bmad/other.toml'), 'x = 1\n')],
++    ['unknown directory in _bmad', (root) => mkdir(join(root, '_bmad/core'))],
++    [
++      'unknown file in _bmad/custom',
++      async (root) => {
++        await mkdir(join(root, '_bmad/custom'));
++        await writeFile(join(root, '_bmad/custom/.gitignore'), '*\n');
++      },
++    ],
++    [
++      'render directory is a symlink',
++      async (root) => {
++        await mkdir(join(root, 'elsewhere'));
++        await symlink('../elsewhere', join(root, '_bmad/render'));
++      },
++    ],
++  ];
++  for (const [label, edit] of edits) {
++    await withHarness(async (h) => {
++      await edit(h.projectRoot);
++      const outcome = await h.render();
++      assert.equal('reason' in outcome && outcome.reason, 'RENDER_INPUT_MISMATCH', label);
++      assert.deepEqual(h.operations.calls, [], label);
++    });
++  }
++});
++
++test('render executor refuses unpinned files that appear beside the renderer during the render', async () => {
++  for (const relative of ['_bmad/scripts/json.py', `${skillRoot}/extra.txt`, '_bmad/extra.toml']) {
++    await withHarness(async (h) => {
++      h.operations.behaviour = async (call) => {
++        const result = await officialRender(officialArgv(call.command));
++        await writeFile(join(h.projectRoot, relative), 'x\n');
++        return { kind: 'exit', ...result };
++      };
++      halted(await h.render(), 'RENDER_ARTIFACT_MISMATCH', true);
++    });
++  }
++});
++
++test('render executor tells owned-operation lock contention apart from operation reuse', async () => {
++  await withHarness(async (h) => {
++    h.operations.busy = true;
++    halted(await h.render({ operationId: operationIds[2] }), 'RENDER_OPERATION_BUSY');
++    h.operations.busy = false;
++    assert('receipt' in (await h.render({ operationId: operationIds[2] })));
++    halted(await h.render({ operationId: operationIds[2] }), 'RENDER_OPERATION_REUSED');
++    assert.equal(h.operations.executions.length, 1);
++  });
++});
++
++test('render executor returns the log digest and a sanitized first line when a run halts', async () => {
++  await withHarness(async (h) => {
++    const stdout =
++      `HALT: config missing at ${h.projectRoot}/_bmad/config.toml HOME=/Users/owner/secret ` +
++      `seen /Users/owner/.ssh/id_ed25519 caf\u00e9 ${'x'.repeat(400)}\nsecond line /Users/owner\n`;
++    h.operations.behaviour = async () => ({ kind: 'exit', exitCode: 1, stdout });
++    const outcome = await h.render();
++    halted(outcome, 'RENDER_EXIT_NONZERO', true);
++    assert('log' in outcome && outcome.log);
++    assert.equal(outcome.log.sha256, sha256(stdout));
++    assert.equal(
++      outcome.log.firstLine,
++      `HALT: config missing at {project-root}/_bmad/config.toml HOME={redacted} seen {path} caf? ${'x'.repeat(400)}`.slice(
++        0,
++        256,
++      ),
++    );
++    assert.doesNotMatch(outcome.log.firstLine, /Users|owner|secret|second/);
++  });
++  await withHarness(async (h) => {
++    h.operations.behaviour = async () => ({ kind: 'fork' });
++    const outcome = await h.render();
++    halted(outcome, 'RENDER_LIFETIME_UNKNOWN', true);
++    assert.deepEqual('log' in outcome && outcome.log, { sha256: sha256(''), firstLine: '' });
++  });
++});
++
++test('render executor accepts a symlinked uv by hashing and running the resolved executable', async () => {
++  await withHarness(async (h) => {
++    const link = join(h.base, 'bin', 'uv-link');
++    await symlink(h.uv.path, link);
++    const outcome = await h.render({}, { ...h.uv, path: link });
++    assert('receipt' in outcome, JSON.stringify(outcome));
++    assert.equal(outcome.receipt.data.witness.uvPath, link);
++    assert.deepEqual(outcome.receipt.data.witness.argv, expectedArgv(h.projectRoot, h.uv.path));
++    assert.deepEqual(h.operations.executions[0].command.slice(-8), expectedArgv(h.projectRoot, h.uv.path));
++  });
++});
++
++test('render executor requires a canonical owned-operation root before reserving a stage', async () => {
++  await withHarness(async (h) => {
++    const alias = join(h.base, 'ops-alias');
++    await symlink(h.operations.root, alias);
++    const operations = new FakeOperations(alias, officialChild);
++    const outcome = await createRenderExecutor({ operations, uv: h.uv, clock: () => new Date() }).render({
++      definition: structuredClone(h.definition),
++      projectRoot: h.projectRoot,
++      attemptId,
++      operationId: operationIds[0],
++    });
++    halted(outcome, 'RENDER_OPERATION_UNAVAILABLE');
++    assert.deepEqual(operations.calls, []);
++  });
++});
