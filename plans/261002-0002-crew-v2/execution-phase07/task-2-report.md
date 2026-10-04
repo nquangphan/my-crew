@@ -188,3 +188,65 @@ Hash source: `v2/web/src/lib/api.ts` `54ac911dc59c56c728025298996ee7a4a2b2fa46e0
 **Còn lại:**
 - Guard in-flight nằm trong `PendingStore` của tab, chưa chặn hai tab cùng gửi một operation. Với operation tab, sessionStorage là riêng cho mỗi tab nên tình huống này không xảy ra.
 - Khi payload nhập lại bị đưa về tombstone, panel hiện “Máy chủ từ chối yêu cầu (code)” cùng dòng tombstone. Câu chữ có thể làm rõ hơn trong vòng UX (cùng nhóm với N3).
+
+## 9. Follow-up sau A5/A3 (ruling ledger 00:20; P-G1a 16:05/17:00; B1 S5a 17:25)
+
+### Thay đổi
+
+- **503 cấu hình** (`api.ts`, `pending-operation.ts`, `session-boundary.tsx`):
+  - Mọi mã `*_NOT_CONFIGURED` (503, hoặc 409 như `INPUT_SERVICES_NOT_CONFIGURED`) giờ là kết quả cuối của lượt gửi: client không auto-retry, không nhả key, không cấp key mới.
+  - Operation giữ `ambiguous` và được đánh dấu bằng `PendingStore.configurationError(id)`. Lỗi trả `ApiFailure{status, code: <mã server>, kind: 'configuration', message: <lời server>}`, không còn quy về `UNCONFIRMED`.
+  - Panel khôi phục hiện “Lỗi cấu hình máy chủ (mã)”. Lượt gửi chủ động sau đó dùng cùng key và xóa dấu.
+  - GET và upload gặp mã cấu hình cũng không retry. 5xx khác giữ hành vi cũ.
+- **Header Date**: `OwnerClient.lastServerDate?()` trả giờ server lấy từ header `Date` của response owner gần nhất (GET, mutation hay upload, kể cả response lỗi); header không parse được bị bỏ qua. Method này optional trên interface vì `test/tickets.test.ts` có fake object literal; client thật luôn có (PM đã đồng ý). Composer chưa dùng; việc đó thuộc slice S5a sau.
+- **`/v2/events/latest`** (`events.ts`, `contracts/http.ts` thêm `decodeLatestCursor`):
+  - Tab chưa có cursor gọi latest trước catch-up, nên không đọc journal từ 0. 401 làm phiên hết hạn; lỗi khác tính vào ngân sách thử lại.
+  - Trước khi ghi cursor, client enqueue `['v2']` để refetch mọi query đã GET trước khi biết cursor. Nhờ vậy latest đứng trước data GET mà vẫn không bỏ sót event của khoảng giữa.
+  - Tab đã có cursor không gọi latest.
+- **`warmUp`** (`compose.spec.ts`): bỏ `waitForTimeout(1500)`. Thay bằng vòng tối đa 5 lượt: import các module ticket trong một trang, chờ `networkidle`, rồi kiểm cờ trên `window` còn nguyên (không bị optimizer reload). Hết 5 lượt mà chưa ổn định thì ném `VITE_WARM_UP_UNSTABLE`.
+
+### File ngoài phạm vi ban đầu (PM đã cho phép, kèm lý do)
+
+- `v2/web/test/app-wiring.test.ts`: fakeApi trả `{cursor:'0'}` cho `/v2/events/latest`. Assertion lấy request `/v2/events*` đầu tiên (latest hoặc catch-up) phải đứng trước GET dữ liệu đầu tiên, và thêm assert rằng sau latest có invalidate `['v2']`. Bất biến listener-trước-GET giữ nguyên.
+- `v2/web/e2e/app-router.spec.ts`: hai assert “GET đầu tiên sau login là `/v2/events`” đổi thành regex `^GET /v2/events(/latest)?$`; data GET vẫn phải đứng sau request event-sync đầu tiên.
+- `v2/web/e2e/events.spec.ts` (file của Task2): request đầu là `/v2/events/latest`, request thứ hai là catch-up `?after=<cursor>&limit=100`, và có invalidate `['v2']`.
+- `v2/web/test/compose-submit.test.ts:589` (Task5): chỉ đổi một dòng, `UNCONFIRMED` → `EXTRACTION_NOT_CONFIGURED`. Dòng đó khóa đúng hành vi cũ mà ruling 00:20 bỏ; mọi assertion khác giữ nguyên.
+- Docs: `v2/docs/flows/web-data.md` và `v2/docs/flows/web-attachments.md` (dòng nói 503 giữ `UNCONFIRMED`, và kịch bản PNG). Câu thông báo riêng cho `*_NOT_CONFIGURED` trong `compose/composer.tsx` thuộc Task5; em không sửa.
+
+### Test
+
+- `client.test.ts` +4:
+  - 503 `EXTRACTION_NOT_CONFIGURED`: 1 request, không sleep, giữ key, `configurationError`, `begin` cùng intent ném lỗi; gửi lại cùng key → accepted và dấu được xóa.
+  - 409 `INPUT_SERVICES_NOT_CONFIGURED` trên operation mới giữ key; 503 `SERVICE_UNAVAILABLE` vẫn retry.
+  - GET 503 cấu hình không retry.
+  - `lastServerDate`: null trước response đầu, cập nhật cả theo response lỗi, bỏ qua header hỏng.
+- `events.test.ts` +2:
+  - Tab mới: latest → catch-up từ cursor > MAX_SAFE → stream với Last-Event-ID, cursor được ghi, invalidate `['v2']`.
+  - latest 401 → expire; tab có cursor thì không gọi latest.
+- E2E `compose.spec.ts` (kịch bản PNG): đúng 1 POST submit, và response HTTP là `{status: 503, code: 'EXTRACTION_NOT_CONFIGURED'}` (bắt qua `page.on('response')`).
+
+Ghi chú về test `lastServerDate`: bản đầu dùng giá trị header không phải ASCII (“không phải ngày”). `Headers` từ chối giá trị đó ngay khi tạo response, nên GREEN đầu báo `NETWORK_UNAVAILABLE`. Em đã đổi sang `not-a-date`. Trong RED, test này đã đỏ trước dòng đó với lỗi thật (`lastServerDate` chưa có).
+
+| Lệnh (heap 384 MiB, watchdog; slot chỉ lấy khi `heavyEligible`, chain bằng `&&`) | Kết quả | Log, SHA-256 |
+|---|---|---|
+| RED `node --test test/client.test.ts test/events.test.ts test/app-wiring.test.ts` | exit 1, tests 40, fail 6, đều do assertion hành vi | `task-2-followup-red-unit.log` `e1c49eebe8231bc97d5f3638c5e544638fe3f223d9836f8ead970635f950dad1` |
+| RED E2E `playwright test e2e/compose.spec.ts --grep EXTRACTION_NOT_CONFIGURED` | exit 1: `expect.poll` số response submit `Expected: 1, Received: 4` | `task-2-followup-red-e2e.log` `7648d16ec8cf2a3350f2ef398fff6177321667ec50bbbce18533730e1d332ca4` |
+| GREEN cùng lệnh unit | exit 0, 40/40 | `task-2-followup-green-unit.log` `3bdd2f44b88f68b8880f819872f12d32098b8d988ccf6531d3436d5ae1de2874` |
+| `tsc --noEmit` | exit 0 | `task-2-followup-typecheck.log` `551ba5b17d54b7f7c4a98ec980c96250a33747006b9e36c69cbcf984ff5d489f` |
+| `biome check` 20 file (lib/contracts/auth, test, e2e liên quan) và `compose-submit.test.ts` | exit 0, không diagnostic | `task-2-followup-biome.log` `1438c850a9c553f5abf144efff03d362bf6cb0f09d14f84f54052162c9381bb8` |
+| `node --test test/*.test.ts` (sau khi sửa dòng 589) | exit 0, 232/232 | `task-2-followup-unit-full.log` `078b05a535cb1c0fca02eee5ed95922c38e258161b8822f86580b322297cafab` |
+| E2E `compose.spec.ts auth.spec.ts events.spec.ts app-router.spec.ts` | exit 0, 10 passed (45,1 giây); kịch bản PNG GREEN với 1 POST/HTTP 503 | `task-2-followup-e2e.log` `1b829b60bfbd1fd020e0d1999dd888e52d3f899b11bc27d15aea85a97a1f1930` |
+
+Lần chạy toàn unit đầu (trước khi sửa dòng 589) cho 231/232, và test đỏ duy nhất là dòng đó; log đã bị ghi đè bởi lượt sau.
+
+Telemetry khi lấy slot (GiB khả dụng / pressure / CPU idle % / đĩa GiB): RED 4,6/1/83,5/748,1; GREEN và E2E 5,126/1/85,22/748,1. Slot đã trả; `ls` xác nhận lock không còn. Scratch riêng `$TMPDIR/crew-v2-web-task2/` chứa runner, slot script và file tạm.
+
+Cleanup: danh sách `docker ps -a` trước và sau mỗi lượt E2E trùng nhau. Trong TMPDIR chỉ còn scratch của các worker khác (`crew-v2-web-controller`, `-s3b`, `-s5a`) và scratch của em; không còn scratch fixture. Kiểm import tương đối của mọi file đã đổi: không có import tới file untracked.
+
+Hash source: `api.ts` `ee5229311eee30fce55b529ed3ca6eec46d42ff9200b7e272d5dd9016283fa2c`, `events.ts` `61ee548f79c9496bf82b9a87c699bc2ad526a54fd6a3018a2ec0ef197b70697f`, `pending-operation.ts` `7ba8184f1ed16c9c1678683651bdd4af2e4ecdda5468041b237d8721321793d6`, `contracts/http.ts` `e54307418e523fb3a3e86718bfa6f524dda7807d15757f4de79bcbdba648aa3f`, `session-boundary.tsx` `5fa8c86354c707a6c8d2abda16f65503f00059aebc410be2d2218186b2141021`.
+
+### Còn lại
+
+- `configurationError` chỉ sống trong memory của tab; sau reload, operation hiện lại là “Chưa xác nhận” cho tới lần gửi kế tiếp. Lưu mã này vào record của tab thì phải đổi schema version, nên để sau.
+- Composer chưa có câu riêng cho mã cấu hình (Task5, đã vào ledger) và chưa dùng `lastServerDate` (S5a).
+- E2E PNG mới chạy GREEN một lượt trong lần chạy đầy đủ, chưa chạy lặp.

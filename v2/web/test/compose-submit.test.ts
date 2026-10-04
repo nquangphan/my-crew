@@ -586,7 +586,7 @@ test('503 EXTRACTION_NOT_CONFIGURED khi gửi kèm tệp: giữ khóa, hiện l�
   assert.equal(await env.controller.submit('none'), null);
   const view = env.controller.view();
   assert.equal(view.draft.state, 'ambiguous');
-  assert.equal(view.errorCode, 'UNCONFIRMED');
+  assert.equal(view.errorCode, 'EXTRACTION_NOT_CONFIGURED');
   assert.match(view.errorMessage ?? '', /Chưa cấu hình xử lý tệp/);
   const key = view.draft.submitOperation?.id;
   assert.ok(key && env.pending.get(key), 'khóa không bị nhả');

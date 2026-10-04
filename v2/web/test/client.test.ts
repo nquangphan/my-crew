@@ -680,3 +680,145 @@ test('caller abort trước khi làm mới CSRF hoặc trong lúc làm mới →
   assert.equal(session.csrf(), freshCsrf);
   assert.equal(pending.get(second.id)?.id, second.id);
 });
+
+const notConfigured = (code: string, status = 503) =>
+  json(status, { error: { code, message: 'Chưa cấu hình xử lý tệp trên máy chủ' } });
+
+test('503 *_NOT_CONFIGURED: một request, giữ key, đánh dấu lỗi cấu hình máy chủ, không phải chưa xác nhận', async () => {
+  const waits: number[] = [];
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    () => notConfigured('EXTRACTION_NOT_CONFIGURED'),
+    () => json(201, { id: 'p1' }),
+  );
+  const session = await authenticated(server.fetch);
+  const pending = new PendingStore(null);
+  const client = createOwnerClient({
+    session,
+    pending,
+    fetch: server.fetch,
+    sleep: async (ms) => void waits.push(ms),
+  });
+  const operation = pending.begin({
+    intentId: 'a',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'AB' },
+    storage: 'tab',
+  });
+  await assert.rejects(client.mutate(operation), (error: unknown) => {
+    assert.ok(error instanceof ApiFailure);
+    assert.equal(error.status, 503);
+    assert.equal(error.code, 'EXTRACTION_NOT_CONFIGURED');
+    assert.equal(error.kind, 'configuration');
+    assert.equal(error.message, 'Chưa cấu hình xử lý tệp trên máy chủ');
+    return true;
+  });
+  assert.equal(server.calls.length, 2, 'không auto-retry');
+  assert.deepEqual(waits, []);
+  assert.equal(pending.get(operation.id)?.id, operation.id, 'giữ key');
+  assert.equal(pending.configurationError(operation.id), 'EXTRACTION_NOT_CONFIGURED');
+  assert.throws(
+    () =>
+      pending.begin({
+        intentId: 'a',
+        method: 'POST',
+        path: '/v2/projects',
+        body: { key: 'AB' },
+        storage: 'tab',
+      }),
+    IntentUnresolvedError,
+  );
+  // Explicit resend after the server is configured uses the same key and clears the marker.
+  assert.deepEqual(await client.mutate(operation), { id: 'p1' });
+  assert.equal(server.calls[2]?.headers.get('idempotency-key'), operation.id);
+  assert.equal(pending.configurationError(operation.id), null);
+});
+
+test('409 INPUT_SERVICES_NOT_CONFIGURED trên operation mới cũng giữ key; 503 khác vẫn retry', async () => {
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    () => notConfigured('INPUT_SERVICES_NOT_CONFIGURED', 409),
+    () => json(503, { error: { code: 'SERVICE_UNAVAILABLE', message: 'x' } }),
+    () => json(201, { id: 'p2' }),
+  );
+  const session = await authenticated(server.fetch);
+  const pending = new PendingStore(null);
+  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
+  const first = pending.begin({
+    intentId: 'a',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'AB' },
+    storage: 'tab',
+  });
+  await assert.rejects(
+    client.mutate(first),
+    (error: unknown) => error instanceof ApiFailure && error.kind === 'configuration',
+  );
+  assert.equal(pending.configurationError(first.id), 'INPUT_SERVICES_NOT_CONFIGURED');
+  const second = pending.begin({
+    intentId: 'b',
+    method: 'POST',
+    path: '/v2/projects',
+    body: { key: 'CD' },
+    storage: 'tab',
+  });
+  assert.deepEqual(await client.mutate(second), { id: 'p2' });
+  assert.equal(server.calls.length, 4, '503 không phải cấu hình vẫn thử lại');
+});
+
+test('GET 503 lỗi cấu hình không thử lại', async () => {
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    () => notConfigured('ATTACHMENT_STORAGE_NOT_CONFIGURED'),
+  );
+  const session = await authenticated(server.fetch);
+  const client = createOwnerClient({
+    session,
+    pending: new PendingStore(null),
+    fetch: server.fetch,
+    sleep: noSleep,
+  });
+  await assert.rejects(client.get('/v2/attachment-policy'), (error: unknown) => {
+    return (
+      error instanceof ApiFailure &&
+      error.code === 'ATTACHMENT_STORAGE_NOT_CONFIGURED' &&
+      error.kind === 'configuration'
+    );
+  });
+  assert.equal(server.calls.length, 2);
+});
+
+test('lastServerDate theo header Date của response gần nhất, bỏ qua header hỏng', async () => {
+  const dated = (status: number, body: unknown, date: string) =>
+    new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', date } });
+  const server = scripted(
+    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
+    () => dated(200, { ok: 1 }, 'Sun, 05 Oct 2026 01:00:00 GMT'),
+    () => dated(404, { error: { code: 'NOT_FOUND', message: 'x' } }, 'Sun, 05 Oct 2026 01:00:05 GMT'),
+    () => dated(200, { ok: 2 }, 'not-a-date'),
+  );
+  const session = await authenticated(server.fetch);
+  const client = createOwnerClient({
+    session,
+    pending: new PendingStore(null),
+    fetch: server.fetch,
+    sleep: noSleep,
+  });
+  assert.equal(client.lastServerDate?.(), null);
+  await client.get('/v2/a');
+  assert.equal(client.lastServerDate?.()?.toISOString(), '2026-10-05T01:00:00.000Z');
+  await assert.rejects(client.get('/v2/b'));
+  assert.equal(
+    client.lastServerDate?.()?.toISOString(),
+    '2026-10-05T01:00:05.000Z',
+    'response lỗi vẫn mang giờ server',
+  );
+  await client.get('/v2/c');
+  assert.equal(
+    client.lastServerDate?.()?.toISOString(),
+    '2026-10-05T01:00:05.000Z',
+    'header hỏng không ghi đè',
+  );
+});

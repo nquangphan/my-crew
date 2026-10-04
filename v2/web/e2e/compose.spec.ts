@@ -132,16 +132,29 @@ const ticketModules = [
 
 /** The Vite dev server may reload once after discovering Radix; import first, then start from a fresh page. */
 async function warmUp(page: Page, crew: FixtureHandle): Promise<void> {
-  await page.goto(`${crew.webOrigin}/crew-v2/`);
-  await page.waitForSelector('.app-shell');
-  await page
-    .evaluate(async (modules) => {
-      for (const name of modules) await import(/* @vite-ignore */ `/crew-v2/src/tickets/${name}`);
-    }, ticketModules)
-    .catch(() => undefined);
-  await page.waitForTimeout(1500);
-  await page.goto(`${crew.webOrigin}/crew-v2/`);
-  await page.waitForSelector('.app-shell');
+  // Stable when every ticket module imports in one page and that page survives until the network is idle
+  // (no optimizer reload replaced it); then start again from a fresh page.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await page.goto(`${crew.webOrigin}/crew-v2/`);
+    await page.waitForSelector('.app-shell');
+    const imported = await page
+      .evaluate(async (modules) => {
+        (window as unknown as { crewWarm?: boolean }).crewWarm = true;
+        for (const name of modules) await import(/* @vite-ignore */ `/crew-v2/src/tickets/${name}`);
+        return true;
+      }, ticketModules)
+      .catch(() => false);
+    if (!imported) continue;
+    await page.waitForLoadState('networkidle');
+    const stable = await page
+      .evaluate(() => (window as unknown as { crewWarm?: boolean }).crewWarm === true)
+      .catch(() => false);
+    if (!stable) continue;
+    await page.goto(`${crew.webOrigin}/crew-v2/`);
+    await page.waitForSelector('.app-shell');
+    return;
+  }
+  throw new Error('VITE_WARM_UP_UNSTABLE');
 }
 
 /** Mounts only production components inside the app's own runtime; the host owns no network or entity logic. */
@@ -563,6 +576,18 @@ test('A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION
   crew,
 }) => {
   const requests = capture(page);
+  const submitResponses: { status: number; code: string | null }[] = [];
+  page.on('response', async (response) => {
+    const request = response.request();
+    if (request.method() !== 'POST' || new URL(response.url()).pathname !== ticketSubmitPath) return;
+    let code: string | null = null;
+    try {
+      code = ((await response.json()) as { error?: { code?: string } }).error?.code ?? null;
+    } catch {
+      code = null;
+    }
+    submitResponses.push({ status: response.status(), code });
+  });
   await mountHost(page, crew);
   await login(page, crew);
   await seedProject(page, 'CMPE');
@@ -577,9 +602,13 @@ test('A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION
   await form.getByRole('button', { name: 'Tạo ticket', exact: true }).click();
   await expect(form.getByRole('alert')).toContainText('Chưa cấu hình xử lý tệp', { timeout: 40_000 });
 
+  // A configuration 503 is deterministic: exactly one submit, no blind retry, and the HTTP answer itself is
+  // the producer's 503 with its code (not a transport failure dressed up as one).
+  await expect.poll(() => submitResponses.length).toBe(1);
   const attempts = posts(requests, ticketSubmitPath);
-  expect(attempts.length).toBeGreaterThanOrEqual(1);
-  evidence('files-503', { posts: attempts.length });
+  expect(attempts).toHaveLength(1);
+  expect(submitResponses).toEqual([{ status: 503, code: 'EXTRACTION_NOT_CONFIGURED' }]);
+  evidence('files-503', { posts: attempts.length, responses: submitResponses });
   const key = attempts[0]?.headers['idempotency-key'] ?? '';
   expect(new Set(attempts.map((request) => request.headers['idempotency-key']))).toEqual(new Set([key]));
   expect(new Set(attempts.map((request) => request.body)).size).toBe(1);

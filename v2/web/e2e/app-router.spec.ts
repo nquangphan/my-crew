@@ -20,6 +20,9 @@ const test = base.extend<Record<never, never>, { crew: FixtureHandle }>({
 });
 test.describe.configure({ timeout: 120_000 });
 
+/** First event-sync request of a verified session: latest cursor (fresh tab) or the journal catch-up. */
+const eventSyncCall = /^GET \/v2\/events(\/latest)?$/;
+
 test('router thật: guest chuyển login, quay về đúng path, stream trước GET dữ liệu, returnTo ngoài bị bác, logout đóng stream', async ({
   page,
   crew,
@@ -53,10 +56,11 @@ test('router thật: guest chuyển login, quay về đúng path, stream trướ
   expect(here()).toBe('/crew-v2/projects/abc?x=1');
   await expect.poll(() => calls.some((call) => call === 'GET /v2/events/stream')).toBe(true);
 
-  // After the session is verified, the first owner GET must be the event catch-up, before any view data.
+  // After the session is verified, the first owner GET must be the event sync (latest cursor for a tab
+  // without a stored cursor, otherwise the catch-up), before any view data.
   const verified = calls.lastIndexOf('GET /v2/auth/session');
   const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
-  expect(afterLogin[0]).toBe('GET /v2/events');
+  expect(afterLogin[0]).toMatch(eventSyncCall);
   expect(afterLogin.filter((call) => call === 'GET /v2/events/stream')).toHaveLength(1);
   // The sidebar's project list is real data: it must be requested after the catch-up, never before it.
   await expect.poll(() => calls.includes('GET /v2/projects')).toBe(true);
@@ -65,7 +69,7 @@ test('router thật: guest chuyển login, quay về đúng path, stream trướ
     .filter((call) => call.startsWith('GET '))
     .indexOf('GET /v2/projects');
   expect(projectsAfterLogin).toBeGreaterThan(0);
-  expect(projectsAfterLogin).toBeGreaterThan(afterLogin.indexOf('GET /v2/events'));
+  expect(projectsAfterLogin).toBeGreaterThan(afterLogin.findIndex((call) => eventSyncCall.test(call)));
 
   await page.getByRole('button', { name: 'Đăng xuất' }).click();
   await expect(heading).toBeVisible();
@@ -101,6 +105,8 @@ test('router thật: GET ticket của route deep link đứng sau catch-up /v2/e
   const verified = calls.lastIndexOf('GET /v2/auth/session');
   const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
   const ticketGet = `GET /v2/tickets/${seeded.ticketId}`;
-  expect(afterLogin[0]).toBe('GET /v2/events');
-  expect(afterLogin.indexOf(ticketGet)).toBeGreaterThan(afterLogin.indexOf('GET /v2/events'));
+  expect(afterLogin[0]).toMatch(eventSyncCall);
+  expect(afterLogin.indexOf(ticketGet)).toBeGreaterThan(
+    afterLogin.findIndex((call) => eventSyncCall.test(call)),
+  );
 });

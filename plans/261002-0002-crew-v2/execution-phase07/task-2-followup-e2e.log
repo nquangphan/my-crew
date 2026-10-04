@@ -1,0 +1,26 @@
+$ node_modules/.bin/playwright test e2e/compose.spec.ts e2e/auth.spec.ts e2e/events.spec.ts e2e/app-router.spec.ts --reporter=list
+
+Running 10 tests using 1 worker
+
+{"level":30,"time":1791098639771,"pid":45668,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:58678"}
+  ✓   1 [chromium] › e2e/app-router.spec.ts:26:1 › router thật: guest chuyển login, quay về đúng path, stream trước GET dữ liệu, returnTo ngoài bị bác, logout đóng stream (829ms)
+  ✓   2 [chromium] › e2e/app-router.spec.ts:90:1 › router thật: GET ticket của route deep link đứng sau catch-up /v2/events của phiên vừa xác minh (399ms)
+{"level":30,"time":1791098643223,"pid":46041,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:59104"}
+  ✓   3 [chromium] › e2e/auth.spec.ts:162:1 › A2: mất response → phiên hết hạn → đăng nhập lại cùng owner → replay đúng key/body → một project/receipt (1.1s)
+  ✓   4 [chromium] › e2e/auth.spec.ts:274:1 › logout chỉ giữ tombstone; payload khác cùng key bị 409 và giữ tombstone; secret không vào sessionStorage (593ms)
+{"level":30,"time":1791098647171,"pid":46337,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:59509"}
+  ✓   5 [chromium] › e2e/compose.spec.ts:315:1 › A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt (1.4s)
+EVIDENCE ticket-replay {"posts":6,"droppedAfterCommit":[201,201,201,201]}
+  ✓   6 [chromium] › e2e/compose.spec.ts:393:1 › A5/A3 text-only: mất response sau commit → phiên hết hạn → đăng nhập lại → replay cùng key/body → một ticket (8.8s)
+EVIDENCE comment-replay {"posts":6,"droppedAfterCommit":[201,201,201,201]}
+  ✓   7 [chromium] › e2e/compose.spec.ts:459:1 › A5/A3 text-only: bình luận mất response → hết phiên → đăng nhập lại → replay cùng key → một bình luận (8.8s)
+  ✓   8 [chromium] › e2e/compose.spec.ts:522:1 › A5 text-only: bỏ bản nháp khi chưa xác nhận hiện cảnh báo trùng, giữ khóa cũ và không mất ticket đã lưu (8.5s)
+EVIDENCE files-503 {"posts":1,"responses":[{"status":503,"code":"EXTRACTION_NOT_CONFIGURED"}]}
+  ✓   9 [chromium] › e2e/compose.spec.ts:574:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket (1.2s)
+{"level":30,"time":1791098678347,"pid":47205,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:60301"}
+{"level":30,"time":1791098680771,"pid":47205,"hostname":"Phans-Mac-mini.local","reqId":"req-7","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+  ✓  10 [chromium] › e2e/events.spec.ts:125:1 › SSE thật: latest cursor, catch-up rồi stream Last-Event-ID, event làm stale query, hết phiên đóng stream và nối lại sau reauth (3.8s)
+
+  10 passed (45.1s)
+
+[watchdog] pid=45641 exit=0 timeout=False wall=45.37s

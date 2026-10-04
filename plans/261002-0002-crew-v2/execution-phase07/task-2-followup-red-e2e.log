@@ -1,0 +1,33 @@
+$ node_modules/.bin/playwright test e2e/compose.spec.ts --grep EXTRACTION_NOT_CONFIGURED --reporter=list
+
+Running 1 test using 1 worker
+
+{"level":30,"time":1791098505947,"pid":40601,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:56614"}
+  ✘  1 [chromium] › e2e/compose.spec.ts:574:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket (13.7s)
+
+
+  1) [chromium] › e2e/compose.spec.ts:574:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 4
+
+    Call Log:
+    - Timeout 5000ms exceeded while waiting on the predicate
+
+      605 |   // A configuration 503 is deterministic: exactly one submit, no blind retry, and the HTTP answer itself is
+      606 |   // the producer's 503 with its code (not a transport failure dressed up as one).
+    > 607 |   await expect.poll(() => submitResponses.length).toBe(1);
+          |                                                   ^
+      608 |   const attempts = posts(requests, ticketSubmitPath);
+      609 |   expect(attempts).toHaveLength(1);
+      610 |   expect(submitResponses).toEqual([{ status: 503, code: 'EXTRACTION_NOT_CONFIGURED' }]);
+        at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/e2e/compose.spec.ts:607:51
+
+    Error Context: test-results/compose-A5-gửi-kèm-tệp-khi-38e8f-D-giữ-khóa-không-tạo-ticket-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/compose.spec.ts:574:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket 
+
+[watchdog] pid=40586 exit=1 timeout=False wall=16.91s

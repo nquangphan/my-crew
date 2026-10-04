@@ -201,6 +201,7 @@ export class PendingStore {
   readonly #listeners = new Set<() => void>();
   readonly #resumed = new Set<string>();
   readonly #sending = new Set<string>();
+  readonly #configuration = new Map<string, string>();
   #listSnapshot: readonly PendingOperation[] | null = null;
   #tombstoneSnapshot: readonly RecoveryTombstone[] | null = null;
   #unknownVersion = false;
@@ -303,7 +304,23 @@ export class PendingStore {
   }
 
   markPending(id: string): void {
+    this.#configuration.delete(id);
     this.#setState(id, 'pending');
+  }
+
+  /**
+   * The server answered with a deterministic `*_NOT_CONFIGURED`: the key stays held (state `ambiguous`) and
+   * the operation is shown as a server configuration error until the next explicit send.
+   */
+  markConfigurationError(id: string, code: string): void {
+    if (!this.#operations.has(id)) return;
+    this.#configuration.set(id, code);
+    this.#setState(id, 'ambiguous');
+  }
+
+  /** Configuration code blocking this operation, or null. */
+  configurationError(id: string): string | null {
+    return this.#configuration.get(id) ?? null;
   }
 
   markAmbiguous(id: string): void {
@@ -412,6 +429,8 @@ export class PendingStore {
   }
 
   #commit(): void {
+    for (const id of this.#configuration.keys())
+      if (!this.#operations.has(id)) this.#configuration.delete(id);
     this.#listSnapshot = null;
     this.#tombstoneSnapshot = null;
     if (this.#storage && !this.#unknownVersion) {

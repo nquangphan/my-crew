@@ -122,7 +122,7 @@ const observe = (page: Page): Promise<Observed> =>
     };
   });
 
-test('SSE thật: catch-up rồi stream Last-Event-ID, event làm stale query, hết phiên đóng stream và nối lại sau reauth', async ({
+test('SSE thật: latest cursor, catch-up rồi stream Last-Event-ID, event làm stale query, hết phiên đóng stream và nối lại sau reauth', async ({
   page,
   crew,
 }) => {
@@ -142,7 +142,11 @@ test('SSE thật: catch-up rồi stream Last-Event-ID, event làm stale query, h
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await expect(page.getByTestId('protected')).toBeVisible();
   await expect.poll(() => observe(page).then((value) => value.status)).toBe('live');
-  expect(requests[0]).toMatchObject({ path: '/v2/events', search: '?after=0&limit=100' });
+  // A fresh tab anchors at the journal head instead of replaying from 0, then catches up from that cursor.
+  expect(requests[0]).toMatchObject({ path: '/v2/events/latest', search: '' });
+  expect(requests[1]?.path).toBe('/v2/events');
+  expect(requests[1]?.search).toMatch(/^\?after=(0|[1-9][0-9]*)&limit=100$/);
+  expect(await observe(page).then((value) => value.invalidated)).toContain(JSON.stringify(['v2']));
   const firstStream = requests.find((request) => request.path === '/v2/events/stream');
   expect(firstStream?.headers['last-event-id']).toMatch(/^(0|[1-9][0-9]*)$/);
   expect(requests.filter((request) => request.path === '/v2/events/stream')).toHaveLength(1);

@@ -1,9 +1,16 @@
 /**
- * Journal event sync: catch-up through GET `/v2/events?after=&limit=100` until empty, then one fetch-based
+ * Journal event sync: a tab without a stored cursor first anchors at `GET /v2/events/latest` (and marks the
+ * whole cache stale); then catch-up through GET `/v2/events?after=&limit=100` until empty, then one fetch-based
  * SSE stream per app/session with `Last-Event-ID`. Events only mark queries stale; event payloads are never
  * merged into business data. Cursors stay decimal strings compared with BigInt.
  */
-import { decodeEventPage, decodeJournalEvent, isCursor, type JournalEvent } from '../contracts/http.ts';
+import {
+  decodeEventPage,
+  decodeJournalEvent,
+  decodeLatestCursor,
+  isCursor,
+  type JournalEvent,
+} from '../contracts/http.ts';
 import { queryRoots } from './query-keys.ts';
 import type { HttpFetch } from './session.ts';
 
@@ -295,6 +302,7 @@ export class EventSync {
   #status: SyncStatus = 'idle';
   #applied: string;
   #run: AbortController | null = null;
+  #anchored = false;
 
   constructor(options: EventSyncOptions) {
     this.#fetch = options.fetch ?? ((input, init) => fetch(input, init));
@@ -306,6 +314,7 @@ export class EventSync {
     this.#maxFailures = options.maxFailures ?? 6;
     this.#retryMs = options.invalidationRetryMs ?? 1000;
     const stored = this.#cursorStore.read();
+    this.#anchored = isCursor(stored);
     this.#applied = isCursor(stored) ? stored : '0';
   }
 
@@ -355,6 +364,7 @@ export class EventSync {
       const signal = AbortSignal.any([runSignal, this.#session.signal(), connection.signal]);
       try {
         this.#setStatus(connected ? 'reconnecting' : 'catching_up');
+        if (!this.#anchored) await this.#anchor(signal);
         await this.#catchUp(signal);
         if (connected) this.#enqueue([queryRoots.all]);
         connected = true;
@@ -381,6 +391,28 @@ export class EventSync {
         connection.abort();
       }
     }
+  }
+
+  /**
+   * A tab without a stored cursor starts at the journal head (`GET /v2/events/latest`) instead of replaying
+   * from 0. Views may already have fetched before the head was known, so the whole owner cache is marked
+   * stale before the cursor is persisted; later events then arrive through catch-up and the stream.
+   */
+  async #anchor(signal: AbortSignal): Promise<void> {
+    const response = await this.#fetch('/v2/events/latest', {
+      method: 'GET',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { accept: 'application/json' },
+      signal,
+    });
+    if (response.status === 401) throw new AuthLost();
+    if (!response.ok) throw new Error(`EVENTS_LATEST_HTTP_${response.status}`);
+    const { cursor } = decodeLatestCursor(await response.json());
+    this.#enqueue([queryRoots.all]);
+    if (compareCursor(cursor, this.#applied) > 0) this.#applied = cursor;
+    this.#cursorStore.write(this.#applied);
+    this.#anchored = true;
   }
 
   async #catchUp(signal: AbortSignal): Promise<void> {

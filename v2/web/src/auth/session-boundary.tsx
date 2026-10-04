@@ -75,6 +75,8 @@ const buttonStyle: CSSProperties = {
 
 function failureMessage(error: unknown, kept: boolean): string {
   if (error instanceof ApiFailure) {
+    if (error.kind === 'configuration')
+      return `Lỗi cấu hình máy chủ (${error.code}). Yêu cầu vẫn giữ khóa cũ; gửi lại sau khi máy chủ được cấu hình.`;
     if (kept && (error.code === 'CSRF_INVALID' || error.code === 'ORIGIN_INVALID'))
       return 'Máy chủ chưa nhận mã bảo vệ của tab này. Yêu cầu vẫn giữ nguyên khóa cũ; hãy thử gửi lại hoặc tải lại trang.';
     if (error.code === 'IDEMPOTENCY_CONFLICT')
@@ -139,8 +141,12 @@ export function RecoveryPanel({ pending, client }: { pending: PendingStore; clie
         {unresolved.map((operation) => (
           <li key={operation.id} data-operation-id={operation.id}>
             <p>
-              <strong>{stateLabel[operation.state]}</strong> · {operation.method}{' '}
-              <code>{operation.path}</code>
+              <strong>
+                {pending.configurationError(operation.id)
+                  ? `Lỗi cấu hình máy chủ (${pending.configurationError(operation.id)})`
+                  : stateLabel[operation.state]}
+              </strong>{' '}
+              · {operation.method} <code>{operation.path}</code>
             </p>
             <button
               type="button"

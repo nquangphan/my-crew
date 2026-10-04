@@ -1,0 +1,3 @@
+$ node_modules/.bin/tsc --noEmit
+
+[watchdog] pid=44048 exit=0 timeout=False wall=0.59s

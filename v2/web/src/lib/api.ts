@@ -6,12 +6,15 @@
  * A 4xx releases the key only when it proves rejection: always for body-deterministic errors, otherwise only
  * when no earlier send of this key could have committed; a payload re-entered from a tombstone returns to the
  * tombstone instead. One send per operation is in flight at a time. Only a confirmed 2xx clears the draft.
+ * A `*_NOT_CONFIGURED` answer is final for the attempt: no auto-retry, key kept, operation flagged with the
+ * configuration code. The `Date` header of the latest response is exposed as `lastServerDate()`.
  */
 import { type Decoder, decodeApiErrorBody, isUuid } from '../contracts/http.ts';
 import type { PendingOperation, PendingStore } from './pending-operation.ts';
 import type { HttpFetch, SessionController } from './session.ts';
 
-export type FailureKind = 'http' | 'transport' | 'aborted' | 'local' | 'shape';
+/** `configuration`: the producer reported a missing server configuration (`*_NOT_CONFIGURED`). */
+export type FailureKind = 'http' | 'transport' | 'aborted' | 'local' | 'shape' | 'configuration';
 
 export class ApiFailure extends Error {
   readonly status: number | null;
@@ -33,6 +36,11 @@ export interface OwnerClient {
   get<T>(path: string, options?: RequestOptions): Promise<T>;
   mutate<T>(operation: PendingOperation, options?: RequestOptions): Promise<T>;
   upload<T>(uploadId: string, file: File, signal: AbortSignal): Promise<T>;
+  /**
+   * Server clock from the `Date` header of the most recent owner response (success or error), or null before
+   * any dated response. Optional so test doubles need not model a clock; the real client always provides it.
+   */
+  lastServerDate?(): Date | null;
 }
 
 export type OwnerClientOptions = {
@@ -106,6 +114,16 @@ function bodyDeterministic(failure: ApiFailure): boolean {
   return failure.status === 400 || failure.status === 413 || failure.status === 415;
 }
 
+/**
+ * Deterministic missing-configuration answer (`*_NOT_CONFIGURED`, 503 or 409). Retrying cannot change it,
+ * and it says nothing about earlier sends of the same key.
+ */
+function configurationFailure(failure: ApiFailure): ApiFailure | null {
+  return /^[A-Z][A-Z0-9_]*_NOT_CONFIGURED$/.test(failure.code)
+    ? new ApiFailure(failure.status, failure.code, 'configuration', failure.message)
+    : null;
+}
+
 function combined(...signals: (AbortSignal | undefined)[]): AbortSignal {
   return AbortSignal.any(signals.filter((signal): signal is AbortSignal => signal !== undefined));
 }
@@ -120,6 +138,13 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
     if (!session.isAuthenticated() || !csrf) throw new ApiFailure(null, 'SESSION_REQUIRED', 'local');
     return csrf;
   };
+  let serverDate: Date | null = null;
+  const observe = (response: Response): Response => {
+    const header = response.headers.get('date');
+    const value = header ? new Date(header) : null;
+    if (value && !Number.isNaN(value.getTime())) serverDate = value;
+    return response;
+  };
   const unauthorized = (status: number): ApiFailure => {
     session.expire();
     return new ApiFailure(status, 'UNAUTHENTICATED', 'http');
@@ -132,12 +157,14 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
       const signal = combined(session.signal(), request.signal);
       let response: Response;
       try {
-        response = await send(path, {
-          method: 'GET',
-          credentials: 'same-origin',
-          headers: { accept: 'application/json' },
-          signal,
-        });
+        response = observe(
+          await send(path, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { accept: 'application/json' },
+            signal,
+          }),
+        );
       } catch {
         if (signal.aborted) throw new ApiFailure(null, 'ABORTED', 'aborted');
         if (attempt >= maxRetries) throw new ApiFailure(null, 'NETWORK_UNAVAILABLE', 'transport');
@@ -145,11 +172,16 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
         continue;
       }
       if (response.status === 401) throw unauthorized(401);
-      if (response.status >= 500 && attempt < maxRetries) {
-        await sleep(backoff[attempt] ?? 4000, signal);
-        continue;
+      if (!response.ok) {
+        const failure = await failureFrom(response);
+        const configuration = configurationFailure(failure);
+        if (configuration) throw configuration;
+        if (response.status >= 500 && attempt < maxRetries) {
+          await sleep(backoff[attempt] ?? 4000, signal);
+          continue;
+        }
+        throw failure;
       }
-      if (!response.ok) throw await failureFrom(response);
       try {
         return (await response.json()) as T;
       } catch {
@@ -201,18 +233,20 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
       const signal = combined(session.signal(), request.signal);
       let response: Response;
       try {
-        response = await send(current.path, {
-          method: current.method,
-          credentials: 'same-origin',
-          headers: {
-            accept: 'application/json',
-            'content-type': 'application/json',
-            'x-csrf-token': csrf,
-            'idempotency-key': current.id,
-          },
-          body: current.bodyJson,
-          signal,
-        });
+        response = observe(
+          await send(current.path, {
+            method: current.method,
+            credentials: 'same-origin',
+            headers: {
+              accept: 'application/json',
+              'content-type': 'application/json',
+              'x-csrf-token': csrf,
+              'idempotency-key': current.id,
+            },
+            body: current.bodyJson,
+            signal,
+          }),
+        );
       } catch {
         uncertain = true;
         if (session.signal().aborted) {
@@ -243,17 +277,21 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
         pending.markSuspended(current.id);
         throw unauthorized(401);
       }
+      const failure = await failureFrom(response);
+      const configuration = configurationFailure(failure);
+      if (configuration) {
+        // Deterministic: no blind retry, keep the key (an earlier send may still have committed).
+        pending.markConfigurationError(current.id, configuration.code);
+        throw configuration;
+      }
       if (response.status >= 500) {
         uncertain = true;
         pending.markAmbiguous(current.id);
-        if (attempt >= maxRetries) {
-          const failure = await failureFrom(response);
+        if (attempt >= maxRetries)
           throw new ApiFailure(failure.status, 'UNCONFIRMED', 'http', failure.message);
-        }
         await sleep(backoff[attempt] ?? 4000, request.signal);
         continue;
       }
-      const failure = await failureFrom(response);
       if (failure.code === 'IDEMPOTENCY_CONFLICT') {
         pending.conflict(current.id);
         throw failure;
@@ -290,17 +328,19 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
     const combinedSignal = combined(session.signal(), signal);
     let response: Response;
     try {
-      response = await send(`/v2/attachment-uploads/${uploadId}/content`, {
-        method: 'PUT',
-        credentials: 'same-origin',
-        headers: {
-          accept: 'application/json',
-          'content-type': 'application/octet-stream',
-          'x-csrf-token': csrf,
-        },
-        body: file,
-        signal: combinedSignal,
-      });
+      response = observe(
+        await send(`/v2/attachment-uploads/${uploadId}/content`, {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/octet-stream',
+            'x-csrf-token': csrf,
+          },
+          body: file,
+          signal: combinedSignal,
+        }),
+      );
     } catch {
       throw new ApiFailure(
         null,
@@ -311,6 +351,8 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
     if (response.status === 401) throw unauthorized(401);
     if (!response.ok) {
       const failure = await failureFrom(response);
+      const configuration = configurationFailure(failure);
+      if (configuration) throw configuration;
       // Bytes replay is safe per upload ID; refresh the token so the caller's next attempt can succeed.
       if (staleCredential(failure)) await refreshCsrf();
       throw failure;
@@ -322,7 +364,7 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
     }
   }
 
-  return { get, mutate, upload };
+  return { get, mutate, upload, lastServerDate: () => serverDate };
 }
 
 /** GET + runtime decoding; shape mismatch surfaces as `RESPONSE_SHAPE_INVALID`. */

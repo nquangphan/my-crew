@@ -194,3 +194,6 @@ export type JournalEvent = {
 /** GET `/v2/events` — `v2/server/src/journal/routes.ts:72`. */
 export const decodeEventPage = obj({ items: arr(decodeJournalEvent), cursor });
 export type EventPage = { items: JournalEvent[]; cursor: string };
+
+/** GET `/v2/events/latest` (owner only) — `v2/server/src/journal/routes.ts:77`. */
+export const decodeLatestCursor = obj({ cursor });

@@ -338,3 +338,68 @@ test('reconnect invalidation rộng; invalidation lỗi khi mất kết nối v�
   assert.equal(server.calls[4]?.headers.get('last-event-id'), '2');
   sync.stop();
 });
+
+test('tab chưa có cursor: GET /v2/events/latest rồi catch-up từ cursor đó, invalidation toàn bộ dữ liệu ban đầu', async () => {
+  let live: ReturnType<typeof liveStream> | undefined;
+  const server = scripted(
+    () => json(200, { cursor: '9007199254740993' }),
+    () => json(200, { items: [], cursor: '9007199254740993' }),
+    (call) => {
+      live = liveStream(call.signal);
+      return live.response;
+    },
+  );
+  const writes: string[] = [];
+  const invalidated: string[] = [];
+  const sync = new EventSync({
+    fetch: server.fetch,
+    session: fakeSession(),
+    invalidate: async (keys) => void invalidated.push(...keys.map((key) => JSON.stringify(key))),
+    cursorStore: { read: () => null, write: (value) => void writes.push(value) },
+    sleep: async () => undefined,
+  });
+  sync.start();
+  await until(() => sync.status() === 'live', 'live');
+  assert.equal(server.calls[0]?.url, '/v2/events/latest');
+  assert.equal(server.calls[1]?.url, '/v2/events?after=9007199254740993&limit=100');
+  assert.equal(server.calls[2]?.headers.get('last-event-id'), '9007199254740993');
+  assert.equal(sync.applied(), '9007199254740993');
+  assert.deepEqual(writes, ['9007199254740993']);
+  await until(() => sync.pendingInvalidations() === 0, 'flush');
+  assert.ok(
+    invalidated.includes(JSON.stringify(['v2'])),
+    'dữ liệu đã GET trước khi có cursor phải được refetch',
+  );
+  sync.stop();
+});
+
+test('tab đã có cursor không gọi latest; latest 401 làm hết phiên', async () => {
+  const session = fakeSession();
+  const server = scripted(() => json(401, { error: { code: 'UNAUTHENTICATED', message: 'x' } }));
+  const sync = new EventSync({
+    fetch: server.fetch,
+    session,
+    invalidate: async () => undefined,
+    cursorStore: { read: () => null, write: () => undefined },
+    sleep: async () => undefined,
+  });
+  sync.start();
+  await until(() => sync.status() === 'stopped', 'stopped');
+  assert.equal(server.calls[0]?.url, '/v2/events/latest');
+  assert.equal(session.expired, 1);
+  const stored = scripted(
+    () => json(200, { items: [], cursor: '7' }),
+    () => new Response(null, { status: 503 }),
+  );
+  const resumed = new EventSync({
+    fetch: stored.fetch,
+    session: fakeSession(),
+    invalidate: async () => undefined,
+    cursorStore: { read: () => '7', write: () => undefined },
+    sleep: async () => undefined,
+    maxFailures: 1,
+  });
+  resumed.start();
+  await until(() => resumed.status() === 'failed', 'failed');
+  assert.equal(stored.calls[0]?.url, '/v2/events?after=7&limit=100');
+});

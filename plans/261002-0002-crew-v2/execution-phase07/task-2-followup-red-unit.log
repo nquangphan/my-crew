@@ -1,0 +1,173 @@
+$ node --test test/client.test.ts test/events.test.ts test/app-wiring.test.ts
+✔ the event stream starts before the first protected GET (125.127167ms)
+✔ query defaults disable retry because OwnerClient.get retries itself, and keep focus/reconnect refetch (0.8645ms)
+✔ an unauthenticated protected route is sent to login with an internal return path (0.928417ms)
+✔ the login return route accepts only internal /crew-v2/ paths (0.093375ms)
+✔ logout wipes the query cache and closes the event stream (21.756417ms)
+✔ session expiry stops the stream and drops the cache so the route boundary asks for re-authentication (0.470833ms)
+✔ GET chỉ gọi same-origin /v2/ kèm cookie và từ chối path ngoài (11.891459ms)
+✔ không mutation hoặc upload trước khi có phiên (0.782625ms)
+✔ mutation JSON gửi CSRF, Idempotency-Key = operation.id và đúng bodyJson đã freeze (0.604542ms)
+✔ upload bytes thô gửi CSRF, octet-stream, không Idempotency-Key (0.386875ms)
+✔ 503 không phải JSON thành ApiFailure, GET thử lại tối đa 3 lần (0.478791ms)
+✔ AbortError khi mutation đang gửi → ambiguous, không đổi key, không tự gửi lại (0.361375ms)
+✔ hai lần thử lại sau lỗi transport/503 giữ cùng key và cùng body (0.423375ms)
+✔ lỗi transport hết lượt → Chưa xác nhận, operation vẫn ambiguous với cùng key (0.331625ms)
+✔ 401 khi gửi → phiên expired, khóa write, operation suspended giữ nguyên key/body (0.31275ms)
+✔ IDEMPOTENCY_CONFLICT giữ operation; lỗi 400 là từ chối cuối cho phép key mới (1.139541ms)
+✔ GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ qua (0.14225ms)
+✔ decoder từ chối thiếu field, sai primitive và field lạ chưa review (0.163208ms)
+✔ 403 CSRF_INVALID trên operation ambiguous không nhả key; làm mới CSRF rồi replay đúng key/body (0.351667ms)
+✔ 403 CSRF_INVALID mà làm mới phiên nhận 401 → expired, operation suspended giữ key (0.209167ms)
+✔ 403 ORIGIN_INVALID lặp lại sau một lần làm mới → dừng, operation suspended giữ key (0.196666ms)
+✔ 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không nhả key; 400 theo body vẫn là terminal (0.349667ms)
+✔ payload nhập lại cho tombstone bị 400/413/404 → trở về tombstone, không nhả key cũ (0.350208ms)
+✔ hai lượt mutate song song trên cùng operation: lượt sau bị chặn, không gửi request (2.7675ms)
+✔ caller abort trước khi làm mới CSRF hoặc trong lúc làm mới → không replay, giữ key (0.3685ms)
+✖ 503 *_NOT_CONFIGURED: một request, giữ key, đánh dấu lỗi cấu hình máy chủ, không phải chưa xác nhận (0.47ms)
+✖ 409 INPUT_SERVICES_NOT_CONFIGURED trên operation mới cũng giữ key; 503 khác vẫn retry (0.205167ms)
+✖ GET 503 lỗi cấu hình không thử lại (0.188958ms)
+✖ lastServerDate theo header Date của response gần nhất, bỏ qua header hỏng (0.251958ms)
+✔ cursor bigint không bị làm tròn (0.587792ms)
+✔ SSE parser: CRLF/CR/LF, multiline, comment, tách chunk giữa UTF-8 và CRLF (0.860875ms)
+✔ SSE parser đóng khi frame vượt 1MiB hoặc UTF-8 hỏng (33.121792ms)
+✔ invalidations: ticket đánh stale detail/graph/list/attention; type lạ invalidation rộng trong scope (0.283458ms)
+✔ catch-up đọc /v2/events?after=&limit=100 tới rỗng rồi stream với Last-Event-ID; dedup trùng/out-of-order (13.281125ms)
+✔ frame hỏng đóng stream, resync qua GET và dừng sau số lần giới hạn (0.957292ms)
+✔ frame có event name khác type trong data bị coi là hỏng (0.436625ms)
+✔ phiên hết hạn (401) đóng stream và báo session expire (0.485666ms)
+✔ reconnect invalidation rộng; invalidation lỗi khi mất kết nối vẫn chờ và thử lại (1.906625ms)
+✖ tab chưa có cursor: GET /v2/events/latest rồi catch-up từ cursor đó, invalidation toàn bộ dữ liệu ban đầu (0.878292ms)
+✖ tab đã có cursor không gọi latest; latest 401 làm hết phiên (0.527375ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 34
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 313.304417
+
+✖ failing tests:
+
+test at test/client.test.ts:687:1
+✖ 503 *_NOT_CONFIGURED: một request, giữ key, đánh dấu lỗi cấu hình máy chủ, không phải chưa xác nhận (0.47ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:703:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:725:1
+✖ 409 INPUT_SERVICES_NOT_CONFIGURED trên operation mới cũng giữ key; 503 khác vẫn retry (0.205167ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  ApiFailure: Chưa cấu hình xử lý tệp trên máy chủ
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:736:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiFailure: Chưa cấu hình xử lý tệp trên máy chủ
+        at failureFrom (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:91:10)
+        at async deliver (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:256:23)
+        at async Object.mutate (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:182:14)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:736:3)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:743:1
+✖ GET 503 lỗi cấu hình không thử lại (0.188958ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  ApiFailure: NETWORK_UNAVAILABLE
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:750:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiFailure: NETWORK_UNAVAILABLE
+        at Object.get (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/lib/api.ts:143:42)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:750:3)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/client.test.ts:756:1
+✖ lastServerDate theo header Date của response gần nhất, bỏ qua header hỏng (0.251958ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - null
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/client.test.ts:767:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:342:1
+✖ tab chưa có cursor: GET /v2/events/latest rồi catch-up từ cursor đó, invalidation toàn bộ dữ liệu ban đầu (0.878292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '/v2/events?after=0&limit=100'
+  - '/v2/events/latest'
+               ^
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:363:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/v2/events?after=0&limit=100',
+    expected: '/v2/events/latest',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/events.test.ts:373:1
+✖ tab đã có cursor không gọi latest; latest 401 làm hết phiên (0.527375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '/v2/events?after=0&limit=100'
+  - '/v2/events/latest'
+               ^
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/events.test.ts:385:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/v2/events?after=0&limit=100',
+    expected: '/v2/events/latest',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+[watchdog] pid=40356 exit=1 timeout=False wall=0.37s

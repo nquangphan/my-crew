@@ -54,6 +54,7 @@ function fakeApi(authenticated = true) {
       });
       return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
     }
+    if (url === '/v2/events/latest') return json({ cursor: '0' });
     if (url.startsWith('/v2/events')) return json({ items: [], cursor: '0' });
     return json({ ok: true });
   };
@@ -63,6 +64,12 @@ function fakeApi(authenticated = true) {
 test('the event stream starts before the first protected GET', async () => {
   const api = fakeApi();
   const app = runtime.createAppRuntime({ fetch: api.fetch });
+  const invalidated: string[] = [];
+  const invalidate = app.queryClient.invalidateQueries.bind(app.queryClient);
+  app.queryClient.invalidateQueries = ((filters?: { queryKey?: readonly unknown[] }) => {
+    invalidated.push(JSON.stringify(filters?.queryKey ?? null));
+    return invalidate(filters);
+  }) as typeof app.queryClient.invalidateQueries;
   // A protected view mounts after the runtime and fetches as soon as the session is authenticated.
   app.session.subscribe(() => {
     if (app.session.snapshot().state === 'authenticated')
@@ -71,10 +78,13 @@ test('the event stream starts before the first protected GET', async () => {
   await app.session.bootstrap();
   await new Promise((resolve) => setTimeout(resolve, 20));
   const urls = api.log.map((entry) => entry.url);
-  const catchUp = urls.findIndex((url) => url.startsWith('/v2/events?after='));
+  // A fresh tab first asks for the latest cursor; a tab with a stored cursor starts with the catch-up.
+  const sync = urls.findIndex((url) => url === '/v2/events/latest' || url.startsWith('/v2/events?after='));
   const firstGet = urls.indexOf('/v2/projects/first');
-  assert.ok(catchUp >= 0 && firstGet >= 0, urls.join(','));
-  assert.ok(catchUp < firstGet, `catch-up ${catchUp} must precede first data GET ${firstGet}`);
+  assert.ok(sync >= 0 && firstGet >= 0, urls.join(','));
+  assert.ok(sync < firstGet, `event sync ${sync} must precede first data GET ${firstGet}`);
+  if (urls[sync] === '/v2/events/latest')
+    assert.ok(invalidated.includes(JSON.stringify(['v2'])), 'starting from latest must refetch initial data');
   app.dispose();
 });
 
