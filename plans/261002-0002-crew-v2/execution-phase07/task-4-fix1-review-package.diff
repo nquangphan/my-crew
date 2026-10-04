@@ -1,0 +1,1498 @@
+a297d3d fix(v2): sơ đồ ticket không chồng thẻ, đóng dialog không ghi history thừa
+ v2/docs/files.md                      |   3 +-
+ v2/docs/flows.yaml                    |   3 +-
+ v2/docs/flows/web-shell.md            |   6 +-
+ v2/docs/flows/web-ticket-map.md       |  25 +--
+ v2/docs/index.md                      |   2 +-
+ v2/web/e2e/ticket-map.spec.ts         | 118 ++++++++++++--
+ v2/web/src/graph/layout.ts            |  82 ++++++++--
+ v2/web/src/graph/ticket-map-route.tsx |   7 +
+ v2/web/src/graph/ticket-map.tsx       | 283 ++++++++++++++++++++++------------
+ v2/web/src/router.tsx                 |  29 +++-
+ v2/web/src/ticket-routes.tsx          |  17 +-
+ v2/web/test/graph-state.test.ts       |  35 +++++
+ v2/web/test/graph.test.ts             |  60 +++++++
+ 13 files changed, 510 insertions(+), 160 deletions(-)
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 89b5334..bcee930 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -407,21 +407,22 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `web/src/docs/links.ts` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/page.tsx` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/queries.ts` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/search.tsx` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/space.tsx` | [web-docs](flows/web-docs.md) (điểm vào) |
+ | `web/src/docs/ticket-links.tsx` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/graph/layout.ts` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+ | `web/src/graph/project.ts` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+ | `web/src/graph/state.ts` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+ | `web/src/graph/ticket-edge.tsx` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+-| `web/src/graph/ticket-map.tsx` | [web-ticket-map](flows/web-ticket-map.md) (điểm vào) |
++| `web/src/graph/ticket-map-route.tsx` | [web-ticket-map](flows/web-ticket-map.md) (điểm vào) |
++| `web/src/graph/ticket-map.tsx` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+ | `web/src/graph/ticket-node.tsx` | [web-ticket-map](flows/web-ticket-map.md) (file) |
+ | `web/src/lib/api.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/events.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/pending-operation.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/query-keys.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/session.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/machines/held-discard.tsx` | [web-machines](flows/web-machines.md) (file) |
+ | `web/src/machines/onboarding-state.ts` | [web-machines](flows/web-machines.md) (file) |
+ | `web/src/machines/onboarding.tsx` | [web-machines](flows/web-machines.md) (điểm vào) |
+ | `web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 0d4b569..8b6ef13 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -613,22 +613,23 @@ flows:
+       - web/src/machines/held-discard.tsx
+       - web/src/projects/setup.tsx
+       - web/src/projects/setup-state.ts
+     tests:
+       - web/test/onboarding.test.ts
+       - web/e2e/onboarding.spec.ts
+   web-ticket-map:
+     title: Sơ đồ ticket chỉ đọc theo yêu cầu gốc trên web Crew v2
+     doc: docs/flows/web-ticket-map.md
+     entrypoints:
+-      - web/src/graph/ticket-map.tsx
++      - web/src/graph/ticket-map-route.tsx
+     files:
++      - web/src/graph/ticket-map.tsx
+       - web/src/graph/project.ts
+       - web/src/graph/layout.ts
+       - web/src/graph/state.ts
+       - web/src/graph/ticket-node.tsx
+       - web/src/graph/ticket-edge.tsx
+     tests:
+       - web/test/graph.test.ts
+       - web/test/graph-state.test.ts
+       - web/e2e/ticket-map.spec.ts
+ shared: {}
+diff --git a/v2/docs/flows/web-shell.md b/v2/docs/flows/web-shell.md
+index b47a229..2e9c26c 100644
+--- a/v2/docs/flows/web-shell.md
++++ b/v2/docs/flows/web-shell.md
+@@ -1,24 +1,24 @@
+ # Khung web Crew v2
+ 
+ ## Mục đích
+ 
+ `v2/web` là ứng dụng React độc lập dưới `/crew-v2/`. Task 1 dựng khung điều hướng, trạng thái tải/lỗi/trống và fixture cô lập để các trang nghiệp vụ kế tiếp dùng chung. Nội dung guest hiện là **Bản minh họa**; chưa đại diện cho project hoặc ticket thật.
+ 
+ ## Điểm vào
+ 
+ - `v2/web/src/main.tsx` tạo React root, một `AppRuntime` (QueryClient, phiên, `PendingStore`, `OwnerClient`, `EventSync`) và router trong một lần mount của browser app.
+ - `v2/web/src/app-runtime.ts` → `createAppRuntime`: dựng runtime và gọi `wireSession` ngay lúc dựng, trước mọi subscriber React.
+-- `v2/web/src/router.tsx` khai báo root `Shell`, route `/login` và nhóm route được bảo vệ (`/`, `/machines`, `/setup/projects`, `/projects/$projectId`, `/projects/$projectId/tickets`, `/projects/$projectId/map`, `/projects/$projectId/docs`, `/tickets/$ticketId`) bọc bởi `SessionBoundary`, `ComposeServicesProvider` (dịch vụ composer lấy từ `AppRuntime.composeServices`: chính client, `PendingStore`, phiên và `sessionStorage` của runtime) và `TicketDraftStorageProvider` (cùng storage đó cho bản nháp form/bình luận).
++- `v2/web/src/router.tsx` khai báo root `Shell`, route `/login` và nhóm route được bảo vệ (`/`, `/machines`, `/setup/projects`, `/projects/$projectId`, `/projects/$projectId/tickets`, `/projects/$projectId/map`, `/requests/$rootId/map`, `/projects/$projectId/docs`, `/tickets/$ticketId`) bọc bởi `SessionBoundary`, `ComposeServicesProvider` (dịch vụ composer lấy từ `AppRuntime.composeServices`: chính client, `PendingStore`, phiên và `sessionStorage` của runtime) và `TicketDraftStorageProvider` (cùng storage đó cho bản nháp form/bình luận).
+ - `v2/web/src/shell.tsx` có thêm mục “Máy → Đăng ký máy” (`/machines`) và “Dự án → Tạo dự án/Gắn máy” (`/setup/projects`), mount `MachineOnboarding` và `ProjectSetup` của flow `web-machines`.
+-- `v2/web/src/ticket-routes.tsx` → `ProjectTicketsPage`, `TicketPage`, `useTicketDialog`: view URL cho bảng/danh sách/yêu cầu và deep link `/tickets/<id>`; chi tiết ở bước 5. Thanh chọn cách xem có thêm liên kết “Sơ đồ” tới `/projects/$projectId/map` (mang theo `root` khi đang lọc theo `rootId`).
+-- Route `/projects/$projectId/map?root&ticket` dùng `parseMapSearch` làm `validateSearch` và nạp `TicketMapPage` của flow `web-ticket-map` theo kiểu lazy (`lazyRouteComponent`), nên ReactFlow nằm ở chunk riêng. `router.tsx` import stylesheet `@xyflow/react/dist/style.css`, vì module sơ đồ phải nạp được trong `node --test` (Node không import được CSS). `v2/web/src/docs-route.tsx` → `ProjectDocsPage`: không gian tài liệu theo `?path=`.
++- `v2/web/src/ticket-routes.tsx` → `ProjectTicketsPage`, `TicketPage`, `useTicketDialog`: view URL cho bảng/danh sách/yêu cầu và deep link `/tickets/<id>`; chi tiết ở bước 5. Thanh chọn cách xem có thêm liên kết “Sơ đồ”: tới `/requests/<rootId>/map` khi đang lọc theo `rootId`, nếu không thì tới trang chọn yêu cầu `/projects/$projectId/map`.
++- Route sơ đồ (flow `web-ticket-map`): `/requests/$rootId/map?ticket` (search chỉ giữ `ticket` UUID) và `/projects/$projectId/map`. Route thứ hai là trang chọn yêu cầu; nếu có `?root=` (link cũ) thì `beforeLoad` redirect (replace) sang `/requests/<root>/map`, giữ `ticket`. Cả hai nạp lazy `web/src/graph/ticket-map-route.tsx`; module này tự import stylesheet của ReactFlow, nên router và bundle chính không chứa ReactFlow hay CSS của nó.
+ - `v2/web/vite.config.ts` đặt base `/crew-v2/` và nhận API origin loopback qua `CREW_V2_WEB_API_ORIGIN` cho chế độ dev.
+ - `v2/web/e2e/support/fixture.ts` khai báo `withFixture`, resource và cleanup. Coordinator đã qua test lifecycle PostgreSQL/API, active request shutdown và SIGTERM child thật (5/5); lượt MCP cuối đã kiểm shell guest, UI không đổi trong FIX1.
+ - `v2/web/scripts/e2e-fixture.ts --preview` giữ cùng fixture vật lý trong process cho browser MCP và nhận lệnh `close` sau khi tab đã đóng. Origin, nonce và registry không chứa credential được in trước khi điều hướng.
+ 
+ ## Các bước
+ 
+ 0. Wiring phiên: `createAppRuntime` đăng ký `wireSession` trước khi React render nên khi phiên thành `authenticated`, `EventSync.start` chạy (và gửi request catch-up) trước khi view được bảo vệ kịp GET dữ liệu đầu tiên. Route được bảo vệ chạy `authorizeRoute` trong `beforeLoad`: đợi `bootstrap`, rồi guest/expired bị chuyển tới `/login?returnTo=<path nội bộ>`. `returnTo` đi qua `safeReturnPath`, chỉ nhận path `/crew-v2/` nên URL ngoài hay `..` về `/crew-v2/`. Đăng nhập thành công đẩy history tới path đã kiểm. Nếu phiên hết hạn khi đang ở route được bảo vệ, `SessionBoundary` hiện màn hình đăng nhập lại tại chỗ. Nút “Đăng xuất” ở toolbar gọi `SessionController.logout`, xóa cache và đóng stream. Query mặc định `retry: false` vì `OwnerClient.get` đã tự retry; `refetchOnWindowFocus` và `refetchOnReconnect` bật.
+ 
+ 1. Browser mở `/crew-v2/`; router mount `Shell` với sidebar, toolbar và outlet. Guest thấy nhãn “Bản minh họa”; chưa có danh sách dự án từ API.
+ 2. Panel dùng cả biểu tượng và chữ cho loading, error, empty. Skip link, landmark, focus-visible và reduced-motion hỗ trợ bàn phím; CSS chia layout desktop/tablet/mobile.
+diff --git a/v2/docs/flows/web-ticket-map.md b/v2/docs/flows/web-ticket-map.md
+index 9cae7df..d875ecb 100644
+--- a/v2/docs/flows/web-ticket-map.md
++++ b/v2/docs/flows/web-ticket-map.md
+@@ -1,43 +1,44 @@
+ # Sơ đồ ticket chỉ đọc theo yêu cầu gốc trên web Crew v2
+ 
+ ## Mục đích
+ 
+-Flow này vẽ cả cây của một yêu cầu: yêu cầu gốc ở bên trái, các bước rồi công việc trải sang phải. Sơ đồ chỉ đọc. Bấm một thẻ mở đúng `TicketDialog`/`TicketDetail` dùng chung với bảng và danh sách (flow `web-tickets`). Bảng, danh sách, sơ đồ và hộp thoại đọc cùng query nên luôn hiện cùng phiên bản (`revision`). Mọi quan hệ của producer (cha/con, phụ thuộc, vòng sửa) được vẽ đúng một lần với đúng hai đầu thật. Sơ đồ không tự suy ra cạnh nào và không bỏ cạnh nào.
++Flow này vẽ cả cây của một yêu cầu: yêu cầu gốc ở bên trái, các bước rồi công việc trải sang phải. Sơ đồ chỉ đọc. Bấm một thẻ mở đúng `TicketDialog`/`TicketDetail` dùng chung với bảng và danh sách (flow `web-tickets`). Bảng và danh sách đọc list query (`queryKeys.tickets`), sơ đồ đọc graph query (`queryKeys.graph`), hộp thoại đọc ticket query. Các query khác nhau nhưng cùng producer và cùng event invalidation (`ticket.*` làm cũ cả `tickets`, `graphs` và `ticket`), nên sau mỗi event cả ba hiện cùng phiên bản (`revision`) cuối. Mọi quan hệ của producer (cha/con, phụ thuộc, vòng sửa) được vẽ đúng một lần với đúng hai đầu thật. Sơ đồ không tự suy ra cạnh nào và không bỏ cạnh nào.
+ 
+ ## Điểm vào
+ 
+-- `web/src/graph/ticket-map.tsx` → `TicketMapPage`: component của route `/projects/$projectId/map?root=<uuid>&ticket=<uuid>`. Router nạp module này theo kiểu lazy (`lazyRouteComponent`), nên ReactFlow nằm ở chunk riêng. Trang có ô chọn yêu cầu gốc (GET `/v2/tickets?level=request&…`, kèm “Tải thêm”) và liên kết về dạng bảng/danh sách. `TicketMap({ rootId, selectedTicketId, onSelectTicket, onRootResolved? })` là phần sơ đồ, dùng được độc lập với router.
++- `web/src/graph/ticket-map-route.tsx`: điểm vào mà router nạp lazy (`lazyRouteComponent`). Module này import stylesheet `@xyflow/react/dist/style.css` rồi re-export hai trang, nên cả ReactFlow lẫn CSS của nó nằm ở chunk riêng. `ticket-map.tsx` không import CSS để `node --test` nạp được.
++- `web/src/graph/ticket-map.tsx` → `RequestMapPage`: route `/requests/$rootId/map?ticket=<uuid>` (theo `phase-07-web.md`). Dự án lấy từ chính ticket gốc (liên kết dạng bảng/danh sách, ô chọn yêu cầu), nên sơ đồ không bao giờ hiện dưới trang của dự án khác. `ProjectMapPickerPage`: route `/projects/$projectId/map` là trang chọn yêu cầu của dự án (GET `/v2/tickets?level=request&…`, kèm “Tải thêm”). Link cũ dạng `/projects/<id>/map?root=<uuid>[&ticket=]` được router redirect (replace) sang `/requests/<root>/map[?ticket=]`. `TicketMap({ rootId, selectedTicketId, onSelectTicket, onRootResolved? })` là phần sơ đồ, dùng được độc lập với router.
+ - `web/src/graph/project.ts` → `projectGraph(input, rootId, expanded)`, `canonicalEdges`, `expandableIds`, `hiddenRelationCounts`, `nodeRelations`, `resolveRootId`: phép chiếu thuần từ `TicketGraph` sang `MapProjection`.
+ - `web/src/graph/layout.ts` → `layoutHierarchy`, `placeNewNodes`, `neighbourInDirection`: bố cục thuần và điều hướng bàn phím.
+ - `web/src/graph/state.ts` → `MapViewState`, `closeMapDialog`, `openMapDialog`, `moveMapViewport`, `toggleMapExpanded`, `setMapExpanded`, `readMapView`/`writeMapView`, `parseMapSearch`.
+ - `web/src/graph/ticket-node.tsx` → `TicketNode` và `web/src/graph/ticket-edge.tsx` → `ParentEdge`, `DependencyEdge`, `RepairEdge`.
+-- Lối vào từ giao diện: liên kết “Sơ đồ” trên thanh chọn cách xem của `/projects/$projectId/tickets` (flow `web-shell`). Nếu đang lọc theo `rootId` thì liên kết mang luôn `root`.
++- Lối vào từ giao diện: liên kết “Sơ đồ” trên thanh chọn cách xem của `/projects/$projectId/tickets` (flow `web-shell`). Nếu đang lọc theo `rootId` thì liên kết đi thẳng tới `/requests/<rootId>/map`, nếu không thì tới trang chọn yêu cầu của dự án.
+ 
+ ## Các bước
+ 
+-1. `parseMapSearch` (là `validateSearch` của route) chỉ giữ `root` và `ticket` khi là UUID, rồi đổi sang chữ thường. Giá trị khác bị bỏ trước khi kịp tạo request, nên `?ticket=` sai không gây request hay mutation nào.
+-2. `TicketMap` đọc GET `/v2/tickets/:root/graph` qua `useTicketGraph` (`queryKeys.graph(root)`). Producer trả một snapshot nhất quán của cả cây (P-G1a2, đọc trong một giao dịch REPEATABLE READ). Gọi bằng ID của một ticket con vẫn nhận cả cây: `resolveRootId` lấy `rootId` của node, `onRootResolved` báo trang thay `root` trên URL bằng gốc thật. Event `ticket.*`, `dependency.added`, `repair.recorded`, `comment.created`… invalidate prefix `graphs` (flow `web-data`). TanStack hủy GET đang chạy và đọc lại cả cây, nên không bao giờ vá từng cạnh lẻ.
++1. `parseMapSearch` (dùng trong `validateSearch` của hai route) chỉ giữ `root` và `ticket` khi là UUID, rồi đổi sang chữ thường; `rootId` trên path không phải UUID thì hiện “Không tìm thấy yêu cầu”. Giá trị khác bị bỏ trước khi kịp tạo request, nên `?ticket=` sai không gây request hay mutation nào.
++2. `TicketMap` đọc GET `/v2/tickets/:root/graph` qua `useTicketGraph` (`queryKeys.graph(root)`). Producer trả một snapshot nhất quán của cả cây (P-G1a2, đọc trong một giao dịch REPEATABLE READ). Gọi bằng ID của một ticket con vẫn nhận cả cây: `resolveRootId` lấy `rootId` của node, `onRootResolved` báo trang thay path bằng `/requests/<gốc thật>/map` (replace). Event `ticket.*`, `dependency.added`, `repair.recorded`, `comment.created`… invalidate prefix `graphs` (flow `web-data`). TanStack hủy GET đang chạy và đọc lại cả cây, nên không bao giờ vá từng cạnh lẻ.
+ 3. `projectGraph` gộp node trùng ID (giữ revision mới hơn), rồi dựng cạnh với ID cố định: `parent:<cha>:<con>`, `dependency:<predecessor>:<ticket>` (mũi tên từ việc phải xong trước sang việc phụ thuộc) và `repair:<cycle>:<check>:<fix>`. Hai cạnh khác loại nối cùng hai đầu (ví dụ bước kiểm tra là cha của task sửa và cũng có vòng sửa tới task đó) được giữ cả hai. Mặc định root và các bước hiện. Task chỉ hiện khi bước cha của nó được mở. Cạnh có một đầu là task đang ẩn chuyển sang `hiddenEdges`, giữ nguyên hai đầu thật, không gán sang bước. `hiddenRelationCounts` đếm số quan hệ phụ thuộc/vòng sửa chạm tới công việc đang thu gọn để hiện badge “n quan hệ tới công việc thu gọn” trên bước. “Mở tất cả” mở mọi bước có task (`expandableIds`), “Thu gọn tất cả” đóng hết.
+ 4. Kiểm tra dữ liệu ra `diagnostics` (đã sắp xếp): `DUPLICATE_ID`, `ROOT_MISSING`, `ROOT_MULTIPLE`, `ROOT_MISMATCH`, `PROJECT_MISMATCH`, `PARENT_MISSING`, `LEVEL_INVALID` (bước phải dưới yêu cầu, task phải dưới bước), `PARENT_CYCLE`, `DEPENDENCY_CYCLE` (chỉ các node trên vòng), `DEPENDENCY_DANGLING`, `REPAIR_DANGLING`. Node mồ côi hay sai cấp vẫn ở trong `nodes`, không bị bỏ. Vòng chỉ do quan hệ sửa lỗi (repair cộng phụ thuộc) không phải lỗi, vì đó là lịch sử chứ không phải DAG lập lịch. Khi có diagnostic, giao diện hiện cảnh báo “Dữ liệu sơ đồ chưa nhất quán”, nút “Tải lại” và danh sách thay thế chứa mọi ticket, không vẽ sơ đồ từ dữ liệu rách.
+-5. `layoutHierarchy` chỉ dùng cạnh cha/con. Cột theo độ sâu, mỗi cột cách nhau 320 + 100 px. Lá xếp theo ID anh em, hàng cách 24 px (thẻ cao 112 px). Cha nằm giữa con đầu và con cuối. Phụ thuộc và vòng sửa chỉ là lớp vẽ đè, không đổi vị trí. Duyệt cây bằng stack tường minh nên chuỗi cha rất sâu không tràn stack. Node không tới được từ gốc (mồ côi, vòng cha) được xếp bên dưới cây. Khi dữ liệu realtime về, `placeNewNodes` giữ nguyên vị trí cũ và đặt node mới cạnh cha, dưới con thấp nhất. Chỉ khi mở/thu gọn hoặc bấm “Sắp xếp lại” mới bố cục lại toàn bộ. Không dùng engine bố cục ngoài.
+-6. ReactFlow chạy chỉ đọc: tắt kéo node, nối cạnh, chọn và xóa (`deleteKeyCode=null`), tắt bàn phím mặc định của ReactFlow. Mỗi thẻ là một `<button>` có nhãn “<Cấp>: <tiêu đề>. Trạng thái: <nhãn>. Phiên bản <n>”. Trạng thái hiện bằng biểu tượng kèm chữ (`statusIcons`/`statusLabels`), không dựa vào màu. Enter/Space mở hộp thoại. Mũi tên trái về cha, phải tới con trên cùng, lên/xuống tới thẻ gần nhất cùng cột; thẻ ngoài khung nhìn được đưa vào giữa rồi mới nhận focus. Thẻ đang có focus hiện bảng “Quan hệ của …” liệt kê đủ ID cha, con, việc phải xong trước, việc phụ thuộc và vòng sửa. Cạnh cha/con là đường gấp khúc liền màu trung tính. Cạnh phụ thuộc là nét đứt có mũi tên và chữ “phải xong trước”. Cạnh vòng sửa là đường cong chấm, ghi “Vòng sửa <8 ký tự đầu của cycle>”. Thẻ có kích thước cố định nên khai báo `measured` và handle cố định cho ReactFlow; nhờ vậy “Vừa khung” tính đúng cả thẻ ngoài màn hình (ReactFlow chỉ mount thẻ trong khung nhìn, `onlyRenderVisibleElements`). Wrapper của thẻ đặt `pointerEvents: 'all'`, vì ReactFlow tắt pointer event của node không chọn được và không kéo được. Thanh điều khiển có “Phóng to”, “Thu nhỏ”, “Vừa khung”, “Sắp xếp lại”, “Mở tất cả”, “Thu gọn tất cả” và “Xem dạng danh sách”.
++5. `layoutHierarchy` chỉ dùng cạnh cha/con. Cột theo độ sâu, mỗi cột cách nhau 320 + 100 px. Lá xếp theo ID anh em, hàng cách 24 px (thẻ cao 112 px). Cha nằm giữa con đầu và con cuối. Phụ thuộc và vòng sửa chỉ là lớp vẽ đè, không đổi vị trí. Duyệt cây bằng stack tường minh nên chuỗi cha rất sâu không tràn stack. Node không tới được từ gốc (mồ côi, vòng cha) được xếp bên dưới cây. Khi dữ liệu realtime về, có node con mới, hoặc owner mở/thu gọn một bước, `placeNewNodes` giữ nguyên chỗ của mọi thẻ đang hiện và chỉ đặt thẻ mới: cạnh cha, dưới con thấp nhất của cha. Nếu ô đó đã có thẻ nào đang hiện (kể cả task của bước khác đang mở), thẻ mới dời xuống ô trống đầu tiên của cột. Ô bị chiếm được tra theo từng cột, không quét mọi thẻ, nên mở tất cả 801 node vẫn nhanh. Vì vậy bước vừa bấm đứng yên trên màn hình mà không cần dịch viewport. Chỉ nút “Sắp xếp lại” mới bố cục lại toàn bộ (ruling PM). Tải lại trang thì bố cục mới từ đầu, vì vị trí không được lưu. Vị trí là state dẫn xuất, được cập nhật trong lúc render theo projection (không ghi ref trong `useMemo`). Không dùng engine bố cục ngoài.
++6. ReactFlow chạy chỉ đọc: tắt kéo node, nối cạnh, chọn và xóa (`deleteKeyCode=null`), tắt bàn phím mặc định của ReactFlow. Mỗi thẻ là một `<button>` có nhãn “<Cấp>: <tiêu đề>. Trạng thái: <nhãn>. Phiên bản <n>”. Trạng thái hiện bằng biểu tượng kèm chữ (`statusIcons`/`statusLabels`), không dựa vào màu. Enter/Space mở hộp thoại. Mũi tên trái về cha, phải tới con trên cùng, lên/xuống tới thẻ gần nhất cùng cột; thẻ ngoài khung nhìn được đưa vào giữa rồi mới nhận focus. Thẻ đang có focus hiện bảng “Quan hệ của …” liệt kê đủ ID cha, con, việc phải xong trước, việc phụ thuộc và vòng sửa. Cạnh cha/con là đường gấp khúc liền màu trung tính. Cạnh phụ thuộc là nét đứt có mũi tên và chữ “phải xong trước”. Cạnh vòng sửa là đường cong chấm, ghi “Vòng sửa <8 ký tự đầu của cycle>”. Thẻ có kích thước cố định nên khai báo `measured` và handle cố định cho ReactFlow; nhờ vậy “Vừa khung” tính đúng cả thẻ ngoài màn hình (ReactFlow chỉ mount thẻ trong khung nhìn, `onlyRenderVisibleElements`). Wrapper của thẻ đặt `pointerEvents: 'all'`, vì ReactFlow tắt pointer event của node không chọn được và không kéo được. Khung sơ đồ cao vừa tới đáy cửa sổ (đo vị trí khung khi trang ở đầu, tối thiểu 352 px), nên “Vừa khung” hiện cả cây mà không phải cuộn. Thanh điều khiển có “Phóng to”, “Thu nhỏ”, “Vừa khung”, “Sắp xếp lại”, “Mở tất cả”, “Thu gọn tất cả” và “Xem dạng danh sách”.
+ 7. `MapViewState` (viewport, bước đang mở, thẻ đang chọn và thẻ có focus) được giữ theo từng root trong tab storage của runtime (`crew-v2:map-view:<rootId>`), dữ liệu chỉ gồm ID và số. `readMapView` kiểm tra lại dữ liệu khi đọc; dữ liệu hỏng bị bỏ. Storage đầy hoặc không có thì sơ đồ vẫn chạy bằng bộ nhớ. `onMoveEnd` lưu viewport. Root chưa có trạng thái được fit một lần; sau đó dữ liệu realtime không bao giờ fit lại, chỉ nút “Vừa khung” mới fit.
+-8. Thẻ đang mở nằm trong URL (`?ticket=`): mở thì push, đóng cũng push, nên Back mở lại, Forward đóng, reload mở lại đúng ticket. `TicketDialog` được render cạnh sơ đồ, nên sơ đồ vẫn mount khi hộp thoại mở. `closeMapDialog` chỉ đặt `selectedTicketId=null`; viewport, bước đang mở và thẻ có focus giữ nguyên. Khi đóng, focus về thẻ đã mở hộp thoại. Nếu thẻ đó đã biến mất (dữ liệu mới không còn node), focus về khung sơ đồ (`[data-focus-fallback]`, `tabIndex=-1`).
++8. Thẻ đang mở nằm trong URL (`?ticket=`). Mở trong app thì push một mục history; đóng (X/Escape) thì `history.back()` về đúng mục trước đó, nên Back không bao giờ mở lại thứ vừa đóng và mỗi lần xem ticket không để lại mục thừa. Dialog đến từ URL (deep link, reload) thì đóng bằng `replace`. Back khi dialog đang mở là đóng dialog (`phase-07-web.md`: Close X/Escape/Back bỏ query ticket); reload mở lại đúng ticket. `TicketDialog` được render cạnh sơ đồ, nên sơ đồ vẫn mount khi hộp thoại mở. `closeMapDialog` chỉ đặt `selectedTicketId=null`; viewport, bước đang mở và thẻ có focus giữ nguyên. Khi đóng, focus về thẻ đã mở hộp thoại. Nếu thẻ đó đã biến mất (dữ liệu mới không còn node), focus về khung sơ đồ (`[data-focus-fallback]`, `tabIndex=-1`).
+ 9. Màn hẹp (≤ 40rem, gồm 390 px và 1280 px ở zoom 200%) mặc định hiện danh sách tương đương: mọi ticket theo thứ tự cây, thụt lề theo độ sâu, kèm cấp, trạng thái, phiên bản, việc phải xong trước và vòng sửa. Mỗi dòng mở cùng hộp thoại. Dòng “Bước đang làm” chỉ dựa vào trạng thái `running`/`needs_input` của producer.
+ 
+ ## Dữ liệu
+ 
+ `MapEdge = { id, source, target, kind: 'parent' | 'dependency' | 'repair', cycleId? }`, `MapProjection = { rootId, nodes, edges, hiddenEdges, diagnostics }`, `MapViewState = { rootId, viewport: { x, y, zoom }, expanded, selectedTicketId, focusedTicketId }`. DTO lấy từ `web/src/contracts/tickets.ts` (`Ticket`, `TicketGraph`), không khai báo lại. Repair link không có thứ tự vòng: producer chỉ lưu `cycleId` (UUID), nên sơ đồ ghi cycle chứ không tự đánh số.
+ 
+ Hiệu năng: chiếu và bố cục 801 node (200 bước, 600 task, 599 phụ thuộc) chạy dưới 500 ms trong unit test (đo được khoảng 9 ms). Trên máy fixture (Apple M4, 10 nhân, 16 GiB, macOS 25.6, Chromium 153, fixture Task1 gồm PostgreSQL 18.6, Fastify và Vite dev), từ lúc bấm “Sơ đồ” tới khi thẻ gốc hiện và thanh điều khiển dùng được mất 193–203 ms; tải lại cả trang qua Vite dev mất 205–208 ms. Chưa đo trên máy của owner. Bằng chứng ở `plans/261002-0002-crew-v2/execution-phase07/ui-evidence/task-4/perf-801.json`.
+ 
+ ## Flow liên quan
+ 
+-`web-tickets.md` sở hữu `TicketDialog`, `TicketDetail`, `useTicketGraph`/`useTicketList` và nhãn trạng thái. `web-data.md` sở hữu query key và event invalidation. `web-shell.md` sở hữu router (route `/projects/$projectId/map`, stylesheet của ReactFlow) và liên kết “Sơ đồ”. `server-tickets.md` định nghĩa GET `/v2/tickets/:id/graph` và POST `/v2/tickets/:id/dependencies`.
++`web-tickets.md` sở hữu `TicketDialog`, `TicketDetail`, `useTicketGraph`/`useTicketList` và nhãn trạng thái. `web-data.md` sở hữu query key và event invalidation. `web-shell.md` sở hữu router (route `/requests/$rootId/map`, `/projects/$projectId/map` và redirect) và liên kết “Sơ đồ”. `server-tickets.md` định nghĩa GET `/v2/tickets/:id/graph` và POST `/v2/tickets/:id/dependencies`.
+ 
+ ## Tests
+ 
+-- `web/test/graph.test.ts` (14 test thuần): root → hai bước song song → bước join, so mọi cặp phụ thuộc trước và sau khi chiếu (không thêm, không mất, không chuỗi tự suy); cạnh task thu gọn giữ đầu thật trong `hiddenEdges`; mở một bước, mở tất cả; badge; vòng sửa 1–5 kèm cạnh cha cùng đầu và vòng repair/phụ thuộc không làm layout lặp; đọc từ ticket con; kết quả không phụ thuộc thứ tự input; số đo layout (cột 420, hàng 136, cha ở giữa); dữ liệu hỏng đủ 11 loại diagnostic mà không bỏ node, không chồng thẻ; thiếu root; chuỗi cha 20 000 tầng; 801 node dưới 500 ms; giữ vị trí khi có node mới; bảng quan hệ; điều hướng bàn phím.
+-- `web/test/graph-state.test.ts` (12 test): 5 test thuần (đóng hộp thoại giữ vùng đang xem, đúng regression của brief; mở/di chuyển; mở/thu gọn; lưu theo root và bỏ dữ liệu hỏng/storage đầy; search của route). 7 test component trên jsdom + RTL với client/session thật của Task2 và producer giả trong bộ nhớ: nhãn truy cập, badge, chữ “phải xong trước”, wrapper thẻ nhận pointer event, không có mutation; mở thẻ ra `TicketDetail` chung rồi đóng giữ viewport/bước đang mở và trả focus về thẻ; realtime đọc lại cả graph, hủy GET cũ, không fit lại và giữ vị trí; thẻ biến mất thì focus về khung; mũi tên và bảng quan hệ; dữ liệu rách hiện cảnh báo, “Tải lại” và danh sách thay thế; mở từ URL. File tự gắn stub `ResizeObserver`, `DOMMatrixReadOnly`, `requestAnimationFrame` và kích thước phần tử, vì jsdom không có layout.
+-- `web/e2e/ticket-map.spec.ts` (4 test) chạy trên API, PostgreSQL và Vite thật của fixture Task1. Ticket và phụ thuộc được tạo qua route owner thật. Riêng `repair_links` được ghi thẳng vào DB của fixture, vì route duy nhất ghi bảng này (`POST /v2/tickets/:id/repair-results`) là route của máy, cần bước kiểm tra đang chạy cùng attempt và evidence. A4: graph đọc từ ticket con bằng graph đọc từ gốc; mọi cạnh vẽ ra khớp đúng graph của producer; viewport zoom 1,7 khôi phục sau reload; kéo tay; mở thẻ ra hộp thoại chung, gửi bình luận thật; Escape thì lệch x/y ≤ 1 px, lệch zoom ≤ 0,001 và focus về thẻ; bước mới tạo lúc đang xem hiện mà không fit lại; Back/Forward/reload theo `?ticket`; `?ticket` sai không gửi request; bàn phím; ID con trên URL đổi về gốc. G1: sáu task và các phụ thuộc tạo đồng thời khi sơ đồ đang mở; sơ đồ khớp revision cuối, không cạnh treo; bảng và danh sách cùng revision. 390 px và 640 px: danh sách tương đương, không tràn ngang, mở hộp thoại, focus quay về dòng. Hiệu năng 801 node ghi `perf-801.json`. Ảnh bằng chứng nằm ở `plans/261002-0002-crew-v2/execution-phase07/ui-evidence/task-4/`.
++- `web/test/graph.test.ts` (17 test thuần, sau FIX1 thêm: task realtime không đè task của bước khác đang mở; mở bước giữ chỗ mọi thẻ và không chồng; mở tất cả 801 node bằng `placeNewNodes` không chồng và dưới 500 ms): root → hai bước song song → bước join, so mọi cặp phụ thuộc trước và sau khi chiếu (không thêm, không mất, không chuỗi tự suy); cạnh task thu gọn giữ đầu thật trong `hiddenEdges`; mở một bước, mở tất cả; badge; vòng sửa 1–5 kèm cạnh cha cùng đầu và vòng repair/phụ thuộc không làm layout lặp; đọc từ ticket con; kết quả không phụ thuộc thứ tự input; số đo layout (cột 420, hàng 136, cha ở giữa); dữ liệu hỏng đủ 11 loại diagnostic mà không bỏ node, không chồng thẻ; thiếu root; chuỗi cha 20 000 tầng; 801 node dưới 500 ms; giữ vị trí khi có node mới; bảng quan hệ; điều hướng bàn phím.
++- `web/test/graph-state.test.ts` (13 test, sau FIX1 thêm: mở/thu gọn/mở tất cả không dời thẻ đã hiện, không hai thẻ cùng chỗ, chỉ “Sắp xếp lại” mới bố cục lại): 5 test thuần (đóng hộp thoại giữ vùng đang xem, đúng regression của brief; mở/di chuyển; mở/thu gọn; lưu theo root và bỏ dữ liệu hỏng/storage đầy; search của route). 7 test component trên jsdom + RTL với client/session thật của Task2 và producer giả trong bộ nhớ: nhãn truy cập, badge, chữ “phải xong trước”, wrapper thẻ nhận pointer event, không có mutation; mở thẻ ra `TicketDetail` chung rồi đóng giữ viewport/bước đang mở và trả focus về thẻ; realtime đọc lại cả graph, hủy GET cũ, không fit lại và giữ vị trí; thẻ biến mất thì focus về khung; mũi tên và bảng quan hệ; dữ liệu rách hiện cảnh báo, “Tải lại” và danh sách thay thế; mở từ URL. File tự gắn stub `ResizeObserver`, `DOMMatrixReadOnly`, `requestAnimationFrame` và kích thước phần tử, vì jsdom không có layout.
++- `web/e2e/ticket-map.spec.ts` (4 test) chạy trên API, PostgreSQL và Vite thật của fixture Task1. Ticket và phụ thuộc được tạo qua route owner thật. Riêng `repair_links` được ghi thẳng vào DB của fixture, vì route duy nhất ghi bảng này (`POST /v2/tickets/:id/repair-results`) là route của máy, cần bước kiểm tra đang chạy cùng attempt và evidence. A4: graph đọc từ ticket con bằng graph đọc từ gốc; mọi cạnh vẽ ra khớp đúng graph của producer; viewport zoom 1,7 khôi phục sau reload; kéo tay; mở thẻ ra hộp thoại chung, gửi bình luận thật; Escape thì lệch x/y ≤ 1 px, lệch zoom ≤ 0,001 và focus về thẻ; bước mới tạo lúc đang xem hiện mà không fit lại; đóng dialog mở trong app rồi Forward mở lại, Back đóng; mở lại rồi Back đóng; deep link `?ticket` đóng bằng replace và Back/Forward không mở lại; link cũ `/projects/<id>/map?root=` redirect sang `/requests/<root>/map` và liên kết dạng bảng trỏ đúng dự án của gốc; sau “Vừa khung” khung nằm trong cửa sổ 1440×1000, mọi thẻ nằm trong khung và không hai thẻ nào chồng nhau; `?ticket` sai không gửi request; bàn phím; ID con trên URL đổi về gốc. G1: sáu task và các phụ thuộc tạo đồng thời khi sơ đồ đang mở; sơ đồ khớp revision cuối, không cạnh treo, không hai thẻ nào chồng nhau (so bounding box thật); “Sơ đồ” không có `rootId` mở trang chọn yêu cầu rồi tới route của gốc; bảng và danh sách cùng revision. 390 px và 640 px: danh sách tương đương, không tràn ngang, mở hộp thoại, focus quay về dòng. Hiệu năng 801 node ghi `perf-801.json`. Ảnh bằng chứng nằm ở `plans/261002-0002-crew-v2/execution-phase07/ui-evidence/task-4/`.
+ - Chưa kiểm: dán ảnh vào composer trong hộp thoại từ sơ đồ. Fixture chưa cấu hình extractor (submission có tệp trả 503 `EXTRACTION_NOT_CONFIGURED`), nên A4 chỉ dùng bình luận văn bản.
+diff --git a/v2/docs/index.md b/v2/docs/index.md
+index 5de94c5..518773c 100644
+--- a/v2/docs/index.md
++++ b/v2/docs/index.md
+@@ -46,19 +46,19 @@
+ | [Xác thực owner và gắn dự án với máy Crew v2](flows/server-identity.md) | `server-identity` | `server/src/auth/routes.ts`, `server/src/projects/routes.ts` |
+ | [Mutation và event journal bền vững Crew v2](flows/server-journal.md) | `server-journal` | `server/src/journal/routes.ts` |
+ | [Nguồn model, catalogue và provisioning credential Crew v2](flows/server-models.md) | `server-models` | `server/src/models/routes.ts` |
+ | [Nền tảng server và database riêng Crew v2](flows/server-platform.md) | `server-platform` | `server/src/db/migrate.ts` |
+ | [Cây ticket, phụ thuộc và bằng chứng hoàn tất](flows/server-tickets.md) | `server-tickets` | `server/src/tickets/routes.ts` |
+ | [Composer chung và tệp đính kèm web Crew v2](flows/web-attachments.md) | `web-attachments` | `web/src/compose/composer.tsx` |
+ | [Transport, phiên owner và đồng bộ sự kiện web Crew v2](flows/web-data.md) | `web-data` | `web/src/auth/session-boundary.tsx` |
+ | [Không gian tài liệu chỉ đọc trên web Crew v2](flows/web-docs.md) | `web-docs` | `web/src/docs/space.tsx` |
+ | [Onboarding owner Crew v2 trên web, gồm đăng ký máy, tạo dự án và gắn máy](flows/web-machines.md) | `web-machines` | `web/src/machines/onboarding.tsx` |
+ | [Khung web và fixture cô lập Crew v2](flows/web-shell.md) | `web-shell` | `web/src/main.tsx` |
+-| [Sơ đồ ticket chỉ đọc theo yêu cầu gốc trên web Crew v2](flows/web-ticket-map.md) | `web-ticket-map` | `web/src/graph/ticket-map.tsx` |
++| [Sơ đồ ticket chỉ đọc theo yêu cầu gốc trên web Crew v2](flows/web-ticket-map.md) | `web-ticket-map` | `web/src/graph/ticket-map-route.tsx` |
+ | [Bảng, danh sách và hộp thoại ticket dùng chung trên web Crew v2](flows/web-tickets.md) | `web-tickets` | `web/src/tickets/dialog.tsx` |
+ <!-- crew-docs:flows:end -->
+ 
+ ## Cách dùng docs
+ 
+ - [Kiến trúc](architecture.md) mô tả ranh giới của thư viện miền.
+ - [Bảng tra file](files.md) cho biết file thuộc flow nào.
+ - Mỗi trang trong `flows/` mô tả điểm vào, bước xử lý, dữ liệu và test của một flow.
+diff --git a/v2/web/e2e/ticket-map.spec.ts b/v2/web/e2e/ticket-map.spec.ts
+index cf79d04..a0574c7 100644
+--- a/v2/web/e2e/ticket-map.spec.ts
++++ b/v2/web/e2e/ticket-map.spec.ts
+@@ -174,21 +174,21 @@ test.describe.configure({ mode: 'serial', timeout: 240_000 });
+ 
+ /**
+  * The map pulls `@xyflow/react`, which the Vite dev server may discover on first import and re-optimize (a
+  * mid-load re-optimization mixes two React copies). Import the map module once, let it settle, then start from
+  * a fresh page.
+  */
+ async function warmUp(page: Page, crew: FixtureHandle): Promise<void> {
+   await page.goto(`${crew.webOrigin}/crew-v2/login`);
+   await page.waitForSelector('.app-shell');
+   await page
+-    .evaluate((url) => import(/* @vite-ignore */ url), '/crew-v2/src/graph/ticket-map.tsx')
++    .evaluate((url) => import(/* @vite-ignore */ url), '/crew-v2/src/graph/ticket-map-route.tsx')
+     .catch(() => undefined);
+   await page.waitForTimeout(1500);
+ }
+ 
+ async function signIn(page: Page, crew: FixtureHandle): Promise<void> {
+   await expect(page.getByRole('heading', { name: 'Đăng nhập Crew' })).toBeVisible();
+   await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
+   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+   await expect(page.getByRole('heading', { name: 'Đăng nhập Crew' })).toBeHidden({ timeout: 15_000 });
+ }
+@@ -205,22 +205,72 @@ async function viewport(page: Page): Promise<View> {
+   return { x: Number(match[1]), y: Number(match[2]), zoom: Number(match[3]) };
+ }
+ 
+ function expectSameView(after: View, before: View): void {
+   expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(1);
+   expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1);
+   expect(Math.abs(after.zoom - before.zoom)).toBeLessThanOrEqual(0.001);
+ }
+ 
+ const node = (page: Page, id: string) => page.locator(`button[data-map-node="${id}"]`);
+-const mapUrl = (crew: FixtureHandle, projectId: string, search: string) =>
+-  `${crew.webOrigin}/crew-v2/projects/${projectId}/map?${search}`;
++/** Map route of one request tree (`phase-07-web.md`: `/requests/:rootId/map`); `search` carries `ticket`. */
++const mapUrl = (crew: FixtureHandle, rootId: string, search = '') =>
++  `${crew.webOrigin}/crew-v2/requests/${rootId}/map${search ? `?${search}` : ''}`;
++const mapPath = (rootId: string) => `/crew-v2/requests/${rootId}/map`;
++
++/** Every pair of mounted cards: none may overlap (checked on real layout boxes). */
++async function expectNoOverlap(page: Page): Promise<void> {
++  const clashes = await page.locator('.react-flow__node').evaluateAll((elements) => {
++    const boxes = elements.map((element) => ({
++      id: element.getAttribute('data-id') ?? '',
++      rect: element.getBoundingClientRect(),
++    }));
++    const found: string[] = [];
++    for (let i = 0; i < boxes.length; i++)
++      for (let j = i + 1; j < boxes.length; j++) {
++        const a = boxes[i]?.rect as DOMRect;
++        const b = boxes[j]?.rect as DOMRect;
++        if (
++          a.left < b.right - 0.5 &&
++          b.left < a.right - 0.5 &&
++          a.top < b.bottom - 0.5 &&
++          b.top < a.bottom - 0.5
++        )
++          found.push(`${boxes[i]?.id}~${boxes[j]?.id}`);
++      }
++    return found;
++  });
++  expect(clashes).toEqual([]);
++}
++
++/** After “Vừa khung” the whole frame is inside the window and every card is inside the frame. */
++async function expectFittedInWindow(page: Page): Promise<void> {
++  const result = await page.evaluate(() => {
++    const frame = document.querySelector('.react-flow')?.getBoundingClientRect();
++    if (!frame) return { frame: false, outside: [] as string[], bottom: 0 };
++    const outside = [...document.querySelectorAll<HTMLElement>('.react-flow__node')]
++      .filter((element) => {
++        const rect = element.getBoundingClientRect();
++        return (
++          rect.left < frame.left - 1 ||
++          rect.top < frame.top - 1 ||
++          rect.right > frame.right + 1 ||
++          rect.bottom > frame.bottom + 1
++        );
++      })
++      .map((element) => element.getAttribute('data-id') ?? '');
++    return { frame: true, outside, bottom: frame.bottom - window.innerHeight };
++  });
++  expect(result.frame).toBe(true);
++  expect(result.bottom).toBeLessThanOrEqual(0);
++  expect(result.outside).toEqual([]);
++}
+ 
+ async function graphOf(page: Page, id: string): Promise<TicketGraph> {
+   return page.evaluate(async (ticketId) => {
+     const response = await fetch(`/v2/tickets/${ticketId}/graph`, { credentials: 'include' });
+     if (!response.ok) throw new Error(`GRAPH_${response.status}`);
+     return (await response.json()) as TicketGraph;
+   }, id);
+ }
+ 
+ /** Every relation of the producer graph is drawn once with its real endpoints, and nothing else is drawn. */
+@@ -251,22 +301,28 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
+   await warmUp(page, crew);
+   const seeded = await seedTree(crew, owner, 'MAPA');
+   const { root, steps, tasks } = seeded;
+   const requests: string[] = [];
+   page.on('request', (request) => {
+     const { pathname } = new URL(request.url());
+     if (pathname.startsWith('/v2/')) requests.push(`${request.method()} ${pathname}`);
+   });
+ 
+   // Graph read from a child ticket still describes the whole root (single coherent snapshot).
+-  await page.goto(mapUrl(crew, seeded.projectId, `root=${root.id}`));
++  // The old project route still works for existing links: it redirects to the request route.
++  await page.goto(`${crew.webOrigin}/crew-v2/projects/${seeded.projectId}/map?root=${root.id}`);
+   await signIn(page, crew);
++  await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe(mapPath(root.id));
++  await expect(page.getByRole('link', { name: 'Dạng bảng' })).toHaveAttribute(
++    'href',
++    `/crew-v2/projects/${seeded.projectId}/tickets?view=board`,
++  );
+   const map = page.getByRole('region', { name: 'Sơ đồ ticket' });
+   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
+   const fromChild = await graphOf(page, tasks.c1.id);
+   const fromRoot = await graphOf(page, root.id);
+   expect(fromChild).toEqual(fromRoot);
+   expect(fromRoot.nodes).toHaveLength(14);
+ 
+   // Default: root and steps visible, tasks collapsed with relation badges.
+   for (const step of Object.values(steps)) await expect(node(page, step.id)).toBeVisible();
+   await expect(node(page, tasks.a1.id)).toHaveCount(0);
+@@ -275,28 +331,34 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
+     'aria-label',
+     `Bước: ${steps.A.title}. Trạng thái: Chờ thực hiện. Phiên bản ${(fromRoot.nodes.find((row) => row.id === steps.A.id) as Ticket).revision}`,
+   );
+ 
+   // Expand everything, fit, and compare every drawn edge with the producer graph.
+   await map.getByRole('button', { name: 'Mở tất cả' }).click();
+   // Cards outside the viewport are not mounted, so fit before looking for the new tasks.
+   await map.getByRole('button', { name: 'Vừa khung' }).click();
+   await expect(node(page, tasks.c1.id)).toBeVisible();
+   await page.waitForTimeout(400);
++  await expectNoOverlap(page);
++  await expectFittedInWindow(page);
+   await shoot(page, 'map-root-fork-join-repair.png');
+   await expectEdgesMatch(page, fromRoot);
+   await expect(map.getByText('phải xong trước').first()).toBeVisible();
+   await expect(map.getByText(/^Vòng sửa /).first()).toBeVisible();
+   await expect(page.getByRole('alert')).toHaveCount(0);
+ 
+   // Restore a stored view at zoom 1.7 that puts step A at (120, 60) of the pane (reload path), then pan by
+   // hand from the empty gap left of A's column.
++  // A reload lays the tree out afresh; “Sắp xếp lại” produces that same layout, so read A's place after it.
++  await map.getByRole('button', { name: 'Sắp xếp lại' }).click();
++  await map.getByRole('button', { name: 'Vừa khung' }).click();
++  await expect(node(page, steps.A.id)).toBeVisible();
+   const placed = await page
+     .locator(`.react-flow__node[data-id="${steps.A.id}"]`)
+     .evaluate((element) => (element as HTMLElement).style.transform);
+   const flowAt = /translate\(([-\d.e]+)px,\s*([-\d.e]+)px\)/.exec(placed);
+   if (!flowAt) throw new Error(`NODE_POSITION_UNREADABLE:${placed}`);
+   const stored: View = { x: 120 - Number(flowAt[1]) * 1.7, y: 60 - Number(flowAt[2]) * 1.7, zoom: 1.7 };
+   await page.evaluate(
+     ({ rootId, expanded, view }) =>
+       sessionStorage.setItem(
+         `crew-v2:map-view:${rootId}`,
+@@ -348,35 +410,50 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
+   expectSameView(after, before);
+   expect(new URL(page.url()).searchParams.get('ticket')).toBeNull();
+   await shoot(page, 'viewport-restored-after-close.png');
+ 
+   // Realtime: a new step created elsewhere appears without refitting the view.
+   const extra = await create(owner, seeded.projectId, root.id, 'step', 'Bước E — tạo khi đang xem');
+   // The new card may sit outside the viewport (not mounted), so check the projected node count.
+   await expect(map).toHaveAttribute('data-nodes', '15', { timeout: 15_000 });
+   expectSameView(await viewport(page), after);
+ 
+-  // Back reopens the dialog from the URL, Forward closes it, reload with ?ticket reopens it.
+-  await page.goBack();
+-  await expect(dialog).toBeVisible();
++  // Closing an in-app dialog went back in history, so the dialog entry is forward and Back leaves the map
++  // state as it is (it never reopens what was just closed).
++  const mapEntry = page.url();
+   await page.goForward();
++  await expect(dialog).toBeVisible();
++  await page.goBack();
+   await expect(dialog).toBeHidden();
++  expect(page.url()).toBe(mapEntry);
+   expectSameView(await viewport(page), after);
+-  await page.goto(mapUrl(crew, seeded.projectId, `root=${root.id}&ticket=${target.id}`));
++  // Open again, then Back closes the dialog.
++  await node(page, target.id).click();
++  await expect(dialog).toBeVisible();
++  await page.goBack();
++  await expect(dialog).toBeHidden();
++  expect(page.url()).toBe(mapEntry);
++  // Deep link with ?ticket: closing replaces the entry, Back does not reopen it.
++  await page.goto(mapUrl(crew, root.id, `ticket=${target.id}`));
+   await expect(dialog).toBeVisible({ timeout: 30_000 });
+   await page.keyboard.press('Escape');
+   await expect(dialog).toBeHidden();
++  expect(new URL(page.url()).searchParams.get('ticket')).toBeNull();
+   expectSameView(await viewport(page), after);
++  await page.goBack();
++  await expect(dialog).toBeHidden();
++  await page.goForward();
++  await expect(dialog).toBeHidden();
+ 
+   // A malformed ticket query opens nothing and sends no ticket request or mutation.
+   requests.length = 0;
+-  await page.goto(mapUrl(crew, seeded.projectId, `root=${root.id}&ticket=..%2F..%2Fv2%2Fmachines`));
++  await page.goto(mapUrl(crew, root.id, 'ticket=..%2F..%2Fv2%2Fmachines'));
+   await expect(page.locator('button[data-map-node]').first()).toBeAttached({ timeout: 30_000 });
+   await expect(page.getByRole('dialog')).toHaveCount(0);
+   expect(
+     requests.filter((call) => call.startsWith('POST ') || /\/v2\/(machines|tickets\/[^/]*\.\.)/.test(call)),
+   ).toEqual([]);
+ 
+   // Fit so every card is rendered (cards off screen are not mounted), then use the keyboard.
+   await map.getByRole('button', { name: 'Vừa khung' }).click();
+   await page.waitForTimeout(400);
+ 
+@@ -387,36 +464,36 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
+     a.id < b.id ? -1 : 1,
+   )[0] as Ticket;
+   await expect(node(page, firstStep.id)).toBeFocused();
+   await page.keyboard.press('Enter');
+   await expect(page.getByRole('dialog', { name: firstStep.title })).toBeVisible();
+   await page.keyboard.press('Escape');
+   await expect(node(page, firstStep.id)).toBeFocused();
+   await expect(page.getByRole('region', { name: `Quan hệ của ${firstStep.title}` })).toContainText(root.id);
+ 
+   // A child ID in the URL resolves to its root.
+-  await page.goto(mapUrl(crew, seeded.projectId, `root=${tasks.a1.id}`));
+-  await expect.poll(() => new URL(page.url()).searchParams.get('root'), { timeout: 15_000 }).toBe(root.id);
++  await page.goto(mapUrl(crew, tasks.a1.id));
++  await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe(mapPath(root.id));
+   await expect(map).toHaveAttribute('data-nodes', '15');
+ });
+ 
+ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — không cạnh treo, bảng/danh sách/sơ đồ cùng revision cuối', async ({
+   page,
+   crew,
+ }) => {
+   test.setTimeout(240_000);
+   await page.setViewportSize({ width: 1440, height: 1000 });
+   const owner = await ownerApi(crew);
+   await warmUp(page, crew);
+   const seeded = await seedTree(crew, owner, 'MAPB');
+   const { root, steps, tasks } = seeded;
+-  await page.goto(mapUrl(crew, seeded.projectId, `root=${root.id}`));
++  await page.goto(mapUrl(crew, root.id));
+   await signIn(page, crew);
+   const map = page.getByRole('region', { name: 'Sơ đồ ticket' });
+   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
+   await map.getByRole('button', { name: 'Mở tất cả' }).click();
+ 
+   // Concurrent writers: new tasks under A and B, each depending on an existing task, all at once.
+   const created = await Promise.all(
+     Array.from({ length: 6 }, async (_, index) => {
+       const parent = index % 2 === 0 ? steps.A : steps.B;
+       const task = await create(owner, seeded.projectId, parent.id, 'task', `Việc song song ${index + 1}`);
+@@ -428,20 +505,22 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
+     depend(owner, tasks.c1.id, created[0]?.id ?? ''),
+     depend(owner, tasks.c1.id, created[1]?.id ?? ''),
+   ]);
+ 
+   const final = await graphOf(page, root.id);
+   expect(final.nodes).toHaveLength(20);
+   await expect(map).toHaveAttribute('data-nodes', String(final.nodes.length), { timeout: 20_000 });
+   await map.getByRole('button', { name: 'Vừa khung' }).click();
+   await page.waitForTimeout(400);
+   await expect(page.locator('button[data-map-node]')).toHaveCount(final.nodes.length);
++  // Cards that arrived by realtime keep the old cards in place and never cover them.
++  await expectNoOverlap(page);
+   for (const row of final.nodes)
+     await expect(node(page, row.id)).toHaveAttribute('data-revision', String(row.revision), {
+       timeout: 20_000,
+     });
+   await expect(page.getByRole('alert')).toHaveCount(0);
+   await expectEdgesMatch(page, final);
+   await shoot(page, 'map-after-concurrent-writes.png');
+ 
+   // Board and list read the same revisions.
+   await page.goto(`${crew.webOrigin}/crew-v2/projects/${seeded.projectId}/tickets?view=board`);
+@@ -452,35 +531,40 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
+       'data-revision',
+       String(row.revision),
+     );
+   await page.goto(`${crew.webOrigin}/crew-v2/projects/${seeded.projectId}/tickets?view=list`);
+   const list = page.getByRole('region', { name: 'Danh sách ticket' });
+   for (const row of final.nodes)
+     await expect(list.locator(`tr[data-ticket-id="${row.id}"]`)).toHaveAttribute(
+       'data-revision',
+       String(row.revision),
+     );
+-  await expect(page.getByRole('link', { name: 'Sơ đồ' })).toBeVisible();
++  // Without a root filter “Sơ đồ” opens the project's request picker, which leads to the request route.
++  await page.getByRole('link', { name: 'Sơ đồ' }).click();
++  await expect(page).toHaveURL(new RegExp(`/crew-v2/projects/${seeded.projectId}/map$`));
++  await page.getByRole('combobox', { name: 'Yêu cầu' }).selectOption(root.id);
++  await expect.poll(() => new URL(page.url()).pathname).toBe(mapPath(root.id));
++  await expect(node(page, root.id)).toBeAttached({ timeout: 15_000 });
+ });
+ 
+ test('390px và 640px (tương đương zoom 200%): danh sách tương đương, không tràn ngang, mở dialog chung', async ({
+   page,
+   crew,
+ }) => {
+   const owner = await ownerApi(crew);
+   await warmUp(page, crew);
+   const seeded = await seedTree(crew, owner, 'MAPC');
+-  await page.goto(mapUrl(crew, seeded.projectId, `root=${seeded.root.id}`));
++  await page.goto(mapUrl(crew, seeded.root.id));
+   await signIn(page, crew);
+   for (const width of [390, 640]) {
+     await page.setViewportSize({ width, height: 844 });
+-    await page.goto(mapUrl(crew, seeded.projectId, `root=${seeded.root.id}`));
++    await page.goto(mapUrl(crew, seeded.root.id));
+     const outline = page.getByRole('list', { name: 'Danh sách ticket thay cho sơ đồ' });
+     await expect(outline).toBeVisible({ timeout: 30_000 });
+     await expect(outline.locator('li[data-ticket-id]')).toHaveCount(14);
+     await expect(page.getByText(/^Bước đang làm|^Chưa có bước nào/)).toBeVisible();
+     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+     expect(overflow).toBeLessThanOrEqual(1);
+     await shoot(page, `map-list-${width}.png`);
+     await outline.getByRole('button', { name: seeded.steps.C.title }).click();
+     const dialog = page.getByRole('dialog', { name: seeded.steps.C.title });
+     await expect(dialog).toBeVisible();
+@@ -519,42 +603,42 @@ test('hiệu năng: 200 bước / 600 task — sơ đồ dùng được lần đ
+       ).id;
+   });
+   const pairs: [string, string][] = [];
+   for (let index = 1; index < 200; index++)
+     pairs.push([stepIds[index] as string, stepIds[index - 1] as string]);
+   for (const list of taskIds)
+     for (let task = 1; task < 3; task++) pairs.push([list[task] as string, list[task - 1] as string]);
+   await pool(pairs, 8, async ([ticket, predecessor]) => depend(owner, ticket, predecessor));
+   const seedSeconds = (Date.now() - seedStarted) / 1000;
+ 
+-  await page.goto(mapUrl(crew, project.id, `root=${root.id}`));
++  await page.goto(mapUrl(crew, root.id));
+   await signIn(page, crew);
+   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
+ 
+   // First usable = from the owner's click on “Sơ đồ” (in-app navigation, cold graph cache after a page load)
+   // until the root card is on screen and the controls respond. Full reloads through the Vite dev server are
+   // recorded too, but they mostly measure unbundled module loading, not the map.
+   const spaRuns: number[] = [];
+   for (let run = 0; run < 3; run++) {
+     await page.goto(`${crew.webOrigin}/crew-v2/projects/${project.id}/tickets?view=board&rootId=${root.id}`);
+     const link = page.getByRole('link', { name: 'Sơ đồ' });
+     await expect(link).toBeVisible({ timeout: 30_000 });
+     const started = Date.now();
+     await link.click();
+     await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
+     await expect(page.getByRole('button', { name: 'Mở tất cả' })).toBeEnabled();
+     spaRuns.push(Date.now() - started);
+   }
+   const reloadRuns: number[] = [];
+   for (let run = 0; run < 3; run++) {
+     const started = Date.now();
+-    await page.goto(mapUrl(crew, project.id, `root=${root.id}`));
++    await page.goto(mapUrl(crew, root.id));
+     await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
+     await expect(page.getByRole('button', { name: 'Mở tất cả' })).toBeEnabled();
+     reloadRuns.push(Date.now() - started);
+   }
+   const expandStarted = Date.now();
+   await page.getByRole('button', { name: 'Mở tất cả' }).click();
+   await page.getByRole('button', { name: 'Vừa khung' }).click();
+   await expect(page.locator('button[data-map-node]').first()).toBeVisible();
+   const expandMs = Date.now() - expandStarted;
+   const graph = await graphOf(page, root.id);
+diff --git a/v2/web/src/graph/layout.ts b/v2/web/src/graph/layout.ts
+index c38df17..3ba3e9c 100644
+--- a/v2/web/src/graph/layout.ts
++++ b/v2/web/src/graph/layout.ts
+@@ -84,50 +84,110 @@ export function layoutHierarchy(input: MapProjection): Record<string, Point> {
+     ) {
+       seen.add(up);
+       top = up;
+     }
+     place(top, levelDepth[byId.get(top)?.level ?? 'request']);
+   }
+   return positions;
+ }
+ 
+ /**
+- * Keeps every known position (realtime refetch, new child) and places only new nodes: next to their parent,
+- * below its lowest positioned child, or at their fresh layout position when the parent is unknown. An explicit
+- * “Sắp xếp lại” calls `layoutHierarchy` instead.
++ * Occupied card slots, indexed by column so a free slot is found without scanning every card. Two cards clash
++ * when their columns are closer than a card width and their rows closer than one pitch.
++ */
++class Occupancy {
++  readonly #columns = new Map<number, number[]>();
++
++  add(point: Point): void {
++    const rows = this.#columns.get(point.x);
++    if (!rows) {
++      this.#columns.set(point.x, [point.y]);
++      return;
++    }
++    let low = 0;
++    let high = rows.length;
++    while (low < high) {
++      const mid = (low + high) >> 1;
++      if ((rows[mid] as number) < point.y) low = mid + 1;
++      else high = mid;
++    }
++    rows.splice(low, 0, point.y);
++  }
++
++  /** Lowest row of a card that clashes with a card at `point`, or null when the slot is free. */
++  clash(point: Point): number | null {
++    let worst: number | null = null;
++    for (const [x, rows] of this.#columns) {
++      if (Math.abs(x - point.x) >= cardWidth) continue;
++      let low = 0;
++      let high = rows.length;
++      while (low < high) {
++        const mid = (low + high) >> 1;
++        if ((rows[mid] as number) <= point.y - pitch) low = mid + 1;
++        else high = mid;
++      }
++      for (let index = low; index < rows.length && (rows[index] as number) < point.y + pitch; index++)
++        worst = Math.max(worst ?? Number.NEGATIVE_INFINITY, rows[index] as number);
++    }
++    return worst;
++  }
++
++  /** First free slot at or below `point` in its column. */
++  free(point: Point): Point {
++    let y = point.y;
++    for (
++      let blocking = this.clash({ x: point.x, y });
++      blocking !== null;
++      blocking = this.clash({ x: point.x, y })
++    )
++      y = blocking + pitch;
++    return { x: point.x, y };
++  }
++}
++
++/**
++ * Keeps every known position (realtime refetch, new child, expanding a step) and places only new nodes: next
++ * to their parent, below its lowest positioned child, or at their fresh layout position when the parent is
++ * unknown; a slot taken by any visible card moves the new card down to the first free slot of its column.
++ * Only an explicit “Sắp xếp lại” calls `layoutHierarchy` instead.
+  */
+ export function placeNewNodes(
+   previous: Readonly<Record<string, Point>>,
+   input: MapProjection,
+ ): Record<string, Point> {
+   const { parent, children } = tree(input);
+   const result: Record<string, Point> = {};
++  const occupied = new Occupancy();
+   for (const row of input.nodes) {
+     const known = previous[row.id];
+-    if (known) result[row.id] = known;
++    if (!known) continue;
++    result[row.id] = known;
++    occupied.add(known);
+   }
+   const fresh = layoutHierarchy(input);
+   const added = input.nodes
+     .filter((row) => !result[row.id])
+     .map((row) => ({ id: row.id, at: fresh[row.id] ?? { x: 0, y: 0 } }))
+     .sort((a, b) => a.at.x - b.at.x || a.at.y - b.at.y || (a.id < b.id ? -1 : 1));
+   for (const { id, at } of added) {
+     const parentId = parent.get(id);
+     const anchor = parentId === undefined ? undefined : result[parentId];
+-    if (parentId === undefined || !anchor) {
+-      result[id] = at;
+-      continue;
++    let wanted = at;
++    if (parentId !== undefined && anchor) {
++      const siblings = (children.get(parentId) ?? [])
++        .filter((sibling) => sibling !== id && result[sibling])
++        .map((sibling) => (result[sibling] as Point).y);
++      wanted = { x: anchor.x + column, y: siblings.length > 0 ? Math.max(...siblings) + pitch : anchor.y };
+     }
+-    const siblings = (children.get(parentId) ?? [])
+-      .filter((sibling) => sibling !== id && result[sibling])
+-      .map((sibling) => (result[sibling] as Point).y);
+-    result[id] = { x: anchor.x + column, y: siblings.length > 0 ? Math.max(...siblings) + pitch : anchor.y };
++    const placed = occupied.free(wanted);
++    result[id] = placed;
++    occupied.add(placed);
+   }
+   return result;
+ }
+ 
+ export type MapDirection = 'left' | 'right' | 'up' | 'down';
+ 
+ /** Arrow-key traversal: left = parent, right = first child (top-most), up/down = nearest node in the column. */
+ export function neighbourInDirection(
+   input: MapProjection,
+   positions: Readonly<Record<string, Point>>,
+diff --git a/v2/web/src/graph/ticket-map-route.tsx b/v2/web/src/graph/ticket-map-route.tsx
+new file mode 100644
+index 0000000..dae9aca
+--- /dev/null
++++ b/v2/web/src/graph/ticket-map-route.tsx
+@@ -0,0 +1,7 @@
++/**
++ * Route entry of the ticket map, loaded lazily by the router. It owns the ReactFlow stylesheet so the CSS ships
++ * in the map chunk only; `ticket-map.tsx` stays free of CSS imports so `node --test` can load it.
++ */
++import '@xyflow/react/dist/style.css';
++
++export { ProjectMapPickerPage, RequestMapPage } from './ticket-map.tsx';
+diff --git a/v2/web/src/graph/ticket-map.tsx b/v2/web/src/graph/ticket-map.tsx
+index 644e8a4..7571772 100644
+--- a/v2/web/src/graph/ticket-map.tsx
++++ b/v2/web/src/graph/ticket-map.tsx
+@@ -1,30 +1,39 @@
+ /**
+  * Ticket map: the whole request tree from root (left) to steps and tasks (right), read-only. Data is the shared
+  * graph query (`queryKeys.graph`), so an event invalidation refetches the whole root (TanStack cancels the GET
+  * in flight) and board/list/map show the same revision; edges are never patched one by one. Clicking a card
+  * opens the shared `TicketDialog`; the map stays mounted behind it, and closing only clears the selection, so
+  * viewport, expanded steps and focus are exactly as before. The view state is kept per root in tab storage.
+  * A new root is fitted once; realtime updates never refit. Torn or malformed data shows a diagnostic and falls
+  * back to the equivalent list, which is also the narrow-screen view.
+  */
+-import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
++import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
+ import {
+   MarkerType,
+   Position,
+   ReactFlow,
+   ReactFlowProvider,
+   useNodesInitialized,
+   useReactFlow,
+   type Viewport,
+ } from '@xyflow/react';
+-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
++import {
++  type CSSProperties,
++  type ReactNode,
++  useCallback,
++  useEffect,
++  useLayoutEffect,
++  useMemo,
++  useRef,
++  useState,
++} from 'react';
+ import { routeUuid, useRuntime } from '../app-runtime.ts';
+ import type { Ticket, TicketGraph } from '../contracts/tickets.ts';
+ import { TicketDialog } from '../tickets/dialog.tsx';
+ import { TicketPagination } from '../tickets/list.tsx';
+ import { failureText, requestListFilters, useTicketGraph, useTicketList } from '../tickets/queries.ts';
+ import { levelLabels, mergeTicketPages, requestRoots, statusIcons, statusLabels } from '../tickets/status.ts';
+ import {
+   cardHeight,
+   cardWidth,
+   layoutHierarchy,
+@@ -36,21 +45,20 @@ import {
+ import {
+   expandableIds,
+   hiddenRelationCounts,
+   type MapProjection,
+   nodeRelations,
+   projectGraph,
+ } from './project.ts';
+ import {
+   closeMapDialog,
+   initialMapView,
+-  type MapSearch,
+   type MapViewState,
+   maxZoom,
+   minZoom,
+   moveMapViewport,
+   openMapDialog,
+   parseMapSearch,
+   readMapView,
+   setMapExpanded,
+   toggleMapExpanded,
+   writeMapView,
+@@ -67,23 +75,22 @@ export type TicketMapProps = {
+ };
+ 
+ const nodeTypes = { ticket: TicketNode };
+ const cardSize = { width: cardWidth, height: cardHeight };
+ const cardPointer: CSSProperties = { pointerEvents: 'all' };
+ /** Fixed handle geometry, so edges can be drawn before (or without) DOM measurement. */
+ const cardHandles: NonNullable<TicketFlowNode['handles']> = [
+   { type: 'target', position: Position.Left, x: 0, y: cardHeight / 2, width: 1, height: 1 },
+   { type: 'source', position: Position.Right, x: cardWidth, y: cardHeight / 2, width: 1, height: 1 },
+ ];
++const minFrameHeight = 352;
+ const flowStyle: CSSProperties = {
+-  height: 'min(70vh, 44rem)',
+-  minHeight: '22rem',
+   border: '1px solid rgb(148 163 184 / 0.6)',
+   borderRadius: '0.75rem',
+ };
+ const barStyle: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' };
+ const controlsStyle: CSSProperties = { ...barStyle, margin: 0, padding: 0, border: 'none', minWidth: 0 };
+ const buttonStyle: CSSProperties = {
+   font: 'inherit',
+   padding: '0.35rem 0.7rem',
+   borderRadius: '0.5rem',
+   border: '1px solid currentColor',
+@@ -131,20 +138,39 @@ export function diagnosticLabel(code: string): string {
+   const subject = split < 0 ? '' : code.slice(split + 1);
+   return `${diagnosticText[kind] ?? `Mã ${kind}`}${subject ? ` (${subject})` : ''}`;
+ }
+ 
+ function narrowScreen(): boolean {
+   return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+     ? window.matchMedia('(max-width: 40rem)').matches
+     : false;
+ }
+ 
++/**
++ * Height that ends the map frame at the bottom of the window (page scrolled to the top), so “Vừa khung” shows
++ * the whole tree without scrolling; never below `minFrameHeight`.
++ */
++function useFrameHeight(frame: HTMLElement | null): number {
++  const [height, setHeight] = useState(minFrameHeight);
++  useLayoutEffect(() => {
++    if (!frame) return;
++    const measure = () => {
++      const top = frame.getBoundingClientRect().top + window.scrollY;
++      setHeight(Math.max(minFrameHeight, Math.floor(window.innerHeight - top - 16)));
++    };
++    measure();
++    window.addEventListener('resize', measure);
++    return () => window.removeEventListener('resize', measure);
++  }, [frame]);
++  return height;
++}
++
+ export function TicketMap(props: TicketMapProps) {
+   return (
+     <ReactFlowProvider>
+       <MapView key={props.rootId} {...props} />
+     </ReactFlowProvider>
+   );
+ }
+ 
+ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: TicketMapProps) {
+   const { client, composeServices } = useRuntime();
+@@ -153,24 +179,24 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
+   const flow = useReactFlow<TicketFlowNode, TicketFlowEdge>();
+   const nodesReady = useNodesInitialized();
+   const [restored] = useState(() => readMapView(storage, rootId));
+   const [view, setView] = useState<MapViewState>(() => ({
+     ...(restored ?? initialMapView(rootId)),
+     selectedTicketId,
+   }));
+   const [listMode, setListMode] = useState(narrowScreen);
+   const [layoutRun, setLayoutRun] = useState(0);
+   const [container, setContainer] = useState<HTMLElement | null>(null);
++  const [frame, setFrame] = useState<HTMLElement | null>(null);
++  const frameHeight = useFrameHeight(frame);
+   const trigger = useRef<HTMLElement | null>(null);
+   const fitted = useRef(restored !== null);
+-  const relayout = useRef(true);
+-  const positionsRef = useRef<Record<string, Point>>({});
+ 
+   useEffect(() => {
+     setView((current) =>
+       current.selectedTicketId === selectedTicketId
+         ? current
+         : selectedTicketId === null
+           ? closeMapDialog(current)
+           : openMapDialog(current, selectedTicketId),
+     );
+   }, [selectedTicketId]);
+@@ -180,31 +206,40 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
+ 
+   const expanded = useMemo(() => new Set(view.expanded), [view.expanded]);
+   const projection = useMemo<MapProjection | null>(
+     () => (graph.data ? projectGraph(graph.data, rootId, expanded) : null),
+     [graph.data, rootId, expanded],
+   );
+   useEffect(() => {
+     if (projection && projection.rootId !== rootId && onRootResolved) onRootResolved(projection.rootId);
+   }, [projection, rootId, onRootResolved]);
+ 
+-  // Known nodes keep their place across refetches; only an expand/collapse or “Sắp xếp lại” lays out again.
+-  // biome-ignore lint/correctness/useExhaustiveDependencies: layoutRun only forces the explicit relayout.
+-  const positions = useMemo(() => {
+-    if (!projection) return {};
+-    const next = relayout.current
+-      ? layoutHierarchy(projection)
+-      : placeNewNodes(positionsRef.current, projection);
+-    relayout.current = false;
+-    positionsRef.current = next;
+-    return next;
+-  }, [projection, layoutRun]);
++  // Positions follow the projection as derived state (updated during render, React's pattern for state that
++  // tracks inputs): the first projection is laid out, later ones (refetch, new child, expand/collapse) keep
++  // every known card in place and only place new ones; “Sắp xếp lại” bumps `layoutRun` for a full layout.
++  const [layout, setLayout] = useState<{
++    projection: MapProjection | null;
++    run: number;
++    positions: Record<string, Point>;
++  }>({ projection: null, run: 0, positions: {} });
++  let positions = layout.positions;
++  if (projection && (layout.projection !== projection || layout.run !== layoutRun)) {
++    positions =
++      layout.projection === null || layout.run !== layoutRun
++        ? layoutHierarchy(projection)
++        : placeNewNodes(layout.positions, projection);
++    setLayout({ projection, run: layoutRun, positions });
++  }
++  const positionsRef = useRef(positions);
++  useEffect(() => {
++    positionsRef.current = positions;
++  }, [positions]);
+ 
+   const saveViewport = useCallback((viewport: Viewport) => {
+     setView((current) => moveMapViewport(current, viewport));
+   }, []);
+ 
+   const focusNode = useCallback(
+     (ticketId: string) => {
+       const button = container?.querySelector<HTMLButtonElement>(`button[data-map-node="${ticketId}"]`);
+       if (button) return button.focus();
+       const at = positionsRef.current[ticketId];
+@@ -214,39 +249,39 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
+         saveViewport(flow.getViewport());
+         requestAnimationFrame(() =>
+           container?.querySelector<HTMLButtonElement>(`button[data-map-node="${ticketId}"]`)?.focus(),
+         );
+       });
+     },
+     [container, flow, saveViewport],
+   );
+ 
+   const actionsRef = useRef<TicketNodeActions | null>(null);
+-  actionsRef.current = {
+-    open: (ticketId, element) => {
+-      trigger.current = element;
+-      onSelectTicket(ticketId);
+-    },
+-    toggle: (ticketId) => {
+-      relayout.current = true;
+-      setView((current) => toggleMapExpanded(current, ticketId));
+-    },
+-    navigate: (ticketId, direction: MapDirection) => {
+-      if (!projection) return;
+-      const next = neighbourInDirection(projection, positionsRef.current, ticketId, direction);
+-      if (next) focusNode(next);
+-    },
+-    focus: (ticketId) =>
+-      setView((current) =>
+-        current.focusedTicketId === ticketId ? current : { ...current, focusedTicketId: ticketId },
+-      ),
+-  };
++  // Card callbacks read the latest render's values; they run only from events, after commit.
++  useLayoutEffect(() => {
++    actionsRef.current = {
++      open: (ticketId, element) => {
++        trigger.current = element;
++        onSelectTicket(ticketId);
++      },
++      toggle: (ticketId) => setView((current) => toggleMapExpanded(current, ticketId)),
++      navigate: (ticketId, direction: MapDirection) => {
++        if (!projection) return;
++        const next = neighbourInDirection(projection, positionsRef.current, ticketId, direction);
++        if (next) focusNode(next);
++      },
++      focus: (ticketId) =>
++        setView((current) =>
++          current.focusedTicketId === ticketId ? current : { ...current, focusedTicketId: ticketId },
++        ),
++    };
++  });
+   const actions = useMemo<TicketNodeActions>(
+     () => ({
+       open: (id, element) => actionsRef.current?.open(id, element),
+       toggle: (id) => actionsRef.current?.toggle(id),
+       navigate: (id, direction) => actionsRef.current?.navigate(id, direction),
+       focus: (id) => actionsRef.current?.focus(id),
+     }),
+     [],
+   );
+ 
+@@ -319,28 +354,22 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
+   // A root seen for the first time in this tab is fitted once; later data changes never refit.
+   useEffect(() => {
+     if (fitted.current || !nodesReady || nodes.length === 0) return;
+     fitted.current = true;
+     void flow.fitView({ padding: 0.15, maxZoom: 1 }).then(() => saveViewport(flow.getViewport()));
+   }, [nodesReady, nodes.length, flow, saveViewport]);
+ 
+   const explicit = (action: Promise<boolean>) => {
+     void action.then(() => saveViewport(flow.getViewport()));
+   };
+-  const rearrange = () => {
+-    relayout.current = true;
+-    setLayoutRun((run) => run + 1);
+-  };
+-  const setExpandedIds = (ids: readonly string[]) => {
+-    relayout.current = true;
+-    setView((current) => setMapExpanded(current, ids));
+-  };
++  const rearrange = () => setLayoutRun((run) => run + 1);
++  const setExpandedIds = (ids: readonly string[]) => setView((current) => setMapExpanded(current, ids));
+ 
+   const diagnostics = projection?.diagnostics ?? [];
+   const showList = listMode || diagnostics.length > 0;
+   const selectedNode =
+     selectedTicketId === null
+       ? null
+       : container?.querySelector<HTMLElement>(`[data-map-node="${selectedTicketId}"]`);
+   const returnFocus = (trigger.current?.isConnected ? trigger.current : null) ?? selectedNode ?? container;
+   const focused = view.focusedTicketId;
+ 
+@@ -425,21 +454,21 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
+               </button>
+             )}
+           </fieldset>
+           {showList ? (
+             <TicketOutline
+               graph={graph.data}
+               rootId={projection.rootId}
+               onOpen={(id, element) => actionsRef.current?.open(id, element)}
+             />
+           ) : (
+-            <div style={flowStyle}>
++            <div ref={setFrame} style={{ ...flowStyle, height: frameHeight }}>
+               <ReactFlow<TicketFlowNode, TicketFlowEdge>
+                 nodes={nodes}
+                 edges={edges}
+                 nodeTypes={nodeTypes}
+                 edgeTypes={ticketEdgeTypes}
+                 defaultViewport={view.viewport}
+                 minZoom={minZoom}
+                 maxZoom={maxZoom}
+                 onMoveEnd={(_, viewport) => saveViewport(viewport)}
+                 nodesDraggable={false}
+@@ -637,74 +666,126 @@ function RootPicker({
+               {row.title}
+             </option>
+           ))}
+         </select>
+       </label>
+       <TicketPagination list={list} />
+     </div>
+   );
+ }
+ 
+-/** Route `/projects/$projectId/map?root=<uuid>&ticket=<uuid>`: the open dialog lives in the URL (Back/Forward/reload). */
+-export function TicketMapPage() {
+-  const params = useParams({ strict: false }) as { projectId?: string };
+-  const projectId = routeUuid(params.projectId);
+-  const search = parseMapSearch(useSearch({ strict: false }));
+-  const navigate = useNavigate();
+-  const go = useCallback(
+-    (next: MapSearch, replace = false) => {
+-      if (!projectId) return;
+-      void navigate({ to: '/projects/$projectId/map', params: { projectId }, search: next, replace });
+-    },
+-    [navigate, projectId],
+-  );
+-  const root = search.root;
+-  const onRootResolved = useCallback(
+-    (resolved: string) => go({ root: resolved, ...(search.ticket ? { ticket: search.ticket } : {}) }, true),
+-    [go, search.ticket],
+-  );
+-  if (!projectId)
+-    return (
+-      <section className="page-stack" aria-labelledby="map-heading">
+-        <h1 id="map-heading">Không tìm thấy dự án</h1>
+-        <Link className="nav-link" to="/">
+-          Về tổng quan
+-        </Link>
+-      </section>
+-    );
++function MapPageFrame({ projectId, children }: { projectId: string | null; children: ReactNode }) {
+   return (
+     <section className="page-stack" aria-labelledby="map-heading">
+       <div className="page-intro">
+         <h1 id="map-heading">Sơ đồ yêu cầu</h1>
+       </div>
+-      <nav style={barStyle} aria-label="Cách xem ticket">
+-        <Link
+-          className="nav-link"
+-          to="/projects/$projectId/tickets"
+-          params={{ projectId }}
+-          search={{ view: 'board' }}
+-        >
+-          Dạng bảng
+-        </Link>
+-        <Link
+-          className="nav-link"
+-          to="/projects/$projectId/tickets"
+-          params={{ projectId }}
+-          search={{ view: 'list' }}
+-        >
+-          Dạng danh sách
+-        </Link>
+-      </nav>
+-      <RootPicker projectId={projectId} rootId={root} onPick={(picked) => go({ root: picked })} />
+-      {root === undefined ? (
+-        <p>Chọn một yêu cầu để xem sơ đồ.</p>
+-      ) : (
+-        <TicketMap
+-          rootId={root}
+-          selectedTicketId={search.ticket ?? null}
+-          onSelectTicket={(ticketId) => go(ticketId === null ? { root } : { root, ticket: ticketId })}
+-          onRootResolved={onRootResolved}
+-        />
++      {projectId && (
++        <nav style={barStyle} aria-label="Cách xem ticket">
++          <Link
++            className="nav-link"
++            to="/projects/$projectId/tickets"
++            params={{ projectId }}
++            search={{ view: 'board' }}
++          >
++            Dạng bảng
++          </Link>
++          <Link
++            className="nav-link"
++            to="/projects/$projectId/tickets"
++            params={{ projectId }}
++            search={{ view: 'list' }}
++          >
++            Dạng danh sách
++          </Link>
++        </nav>
+       )}
++      {children}
+     </section>
+   );
+ }
++
++function MapNotFound({ what }: { what: string }) {
++  return (
++    <section className="page-stack" aria-labelledby="map-heading">
++      <h1 id="map-heading">Không tìm thấy {what}</h1>
++      <Link className="nav-link" to="/">
++        Về tổng quan
++      </Link>
++    </section>
++  );
++}
++
++/**
++ * Route `/requests/$rootId/map?ticket=<uuid>`. The project (board/list links, request picker) comes from the
++ * root ticket itself, so a map is never shown under another project's page. The open dialog lives in the URL.
++ */
++export function RequestMapPage() {
++  const params = useParams({ strict: false }) as { rootId?: string };
++  const rootId = routeUuid(params.rootId);
++  const ticket = parseMapSearch(useSearch({ strict: false })).ticket ?? null;
++  const navigate = useNavigate();
++  const graph = useTicketGraph(useRuntime().client, rootId ?? undefined);
++  const go = useCallback(
++    (root: string, nextTicket: string | null, replace = false) =>
++      void navigate({
++        to: '/requests/$rootId/map',
++        params: { rootId: root },
++        search: nextTicket === null ? {} : { ticket: nextTicket },
++        replace,
++      }),
++    [navigate],
++  );
++  const onRootResolved = useCallback((resolved: string) => go(resolved, ticket, true), [go, ticket]);
++  const history = useRouter().history;
++  // A dialog opened in the app pushed one history entry: closing goes back over it, so Back never reopens
++  // what was just closed. A dialog that came with the URL (deep link, reload) is closed by replacing it.
++  const openedInApp = useRef(false);
++  const selectTicket = (ticketId: string | null) => {
++    if (!rootId) return;
++    if (ticketId !== null) {
++      openedInApp.current = true;
++      go(rootId, ticketId);
++    } else if (openedInApp.current) {
++      openedInApp.current = false;
++      history.back();
++    } else go(rootId, null, true);
++  };
++  if (!rootId) return <MapNotFound what="yêu cầu" />;
++  const root = graph.data?.nodes.find((row) => row.id === rootId);
++  const projectId = root?.projectId ?? null;
++  return (
++    <MapPageFrame projectId={projectId}>
++      {projectId && (
++        <RootPicker
++          projectId={projectId}
++          rootId={root?.rootId ?? rootId}
++          onPick={(picked) => go(picked, null)}
++        />
++      )}
++      <TicketMap
++        rootId={rootId}
++        selectedTicketId={ticket}
++        onSelectTicket={selectTicket}
++        onRootResolved={onRootResolved}
++      />
++    </MapPageFrame>
++  );
++}
++
++/** Route `/projects/$projectId/map`: request picker of a project (links with `?root=` are redirected by the router). */
++export function ProjectMapPickerPage() {
++  const params = useParams({ strict: false }) as { projectId?: string };
++  const projectId = routeUuid(params.projectId);
++  const navigate = useNavigate();
++  if (!projectId) return <MapNotFound what="dự án" />;
++  return (
++    <MapPageFrame projectId={projectId}>
++      <RootPicker
++        projectId={projectId}
++        rootId={undefined}
++        onPick={(picked) => void navigate({ to: '/requests/$rootId/map', params: { rootId: picked } })}
++      />
++      <p>Chọn một yêu cầu để xem sơ đồ.</p>
++    </MapPageFrame>
++  );
++}
+diff --git a/v2/web/src/router.tsx b/v2/web/src/router.tsx
+index d0f9dd6..171fd49 100644
+--- a/v2/web/src/router.tsx
++++ b/v2/web/src/router.tsx
+@@ -2,23 +2,20 @@ import {
+   createRootRoute,
+   createRoute,
+   createRouter,
+   lazyRouteComponent,
+   Outlet,
+   redirect,
+   useRouter,
+   useSearch,
+ } from '@tanstack/react-router';
+ import { useEffect, useSyncExternalStore } from 'react';
+-// ReactFlow's base stylesheet for the ticket map; imported here so the map module itself stays loadable by
+-// `node --test` (which cannot import CSS).
+-import '@xyflow/react/dist/style.css';
+ import {
+   type AppRuntime,
+   authorizeRoute,
+   parseDocsSearch,
+   parseLoginSearch,
+   parseTicketsSearch,
+   useRuntime,
+ } from './app-runtime.ts';
+ import { LoginScreen } from './auth/login.tsx';
+ import { SessionBoundary } from './auth/session-boundary.tsx';
+@@ -128,26 +125,47 @@ export function createAppRouter(runtime: AppRuntime) {
+     getParentRoute: () => protectedRoute,
+     path: '/projects/$projectId',
+     component: ProjectHome,
+   });
+   const projectTicketsRoute = createRoute({
+     getParentRoute: () => protectedRoute,
+     path: '/projects/$projectId/tickets',
+     validateSearch: parseTicketsSearch,
+     component: ProjectTicketsPage,
+   });
++  // ReactFlow is only needed by the map routes; their entry (with its stylesheet) is a separate chunk.
++  const mapEntry = () => import('./graph/ticket-map-route.tsx');
++  const requestMapRoute = createRoute({
++    getParentRoute: () => protectedRoute,
++    path: '/requests/$rootId/map',
++    validateSearch: (search: Record<string, unknown>) => {
++      const { ticket } = parseMapSearch(search);
++      return ticket ? { ticket } : {};
++    },
++    component: lazyRouteComponent(mapEntry, 'RequestMapPage'),
++  });
++  // Earlier links used `/projects/<id>/map?root=<uuid>`: those redirect to the request route; without a root
++  // the page is the project's request picker.
+   const projectMapRoute = createRoute({
+     getParentRoute: () => protectedRoute,
+     path: '/projects/$projectId/map',
+     validateSearch: parseMapSearch,
+-    // ReactFlow is only needed on this route; keep it out of the main bundle.
+-    component: lazyRouteComponent(() => import('./graph/ticket-map.tsx'), 'TicketMapPage'),
++    beforeLoad: ({ search }) => {
++      if (search.root)
++        throw redirect({
++          to: '/requests/$rootId/map',
++          params: { rootId: search.root },
++          search: search.ticket ? { ticket: search.ticket } : {},
++          replace: true,
++        });
++    },
++    component: lazyRouteComponent(mapEntry, 'ProjectMapPickerPage'),
+   });
+   const projectDocsRoute = createRoute({
+     getParentRoute: () => protectedRoute,
+     path: '/projects/$projectId/docs',
+     validateSearch: parseDocsSearch,
+     component: ProjectDocsPage,
+   });
+   const machinesRoute = createRoute({
+     getParentRoute: () => protectedRoute,
+     path: '/machines',
+@@ -165,20 +183,21 @@ export function createAppRouter(runtime: AppRuntime) {
+   });
+   const routeTree = rootRoute.addChildren([
+     loginRoute,
+     protectedRoute.addChildren([
+       homeRoute,
+       machinesRoute,
+       projectSetupRoute,
+       projectRoute,
+       projectTicketsRoute,
+       projectMapRoute,
++      requestMapRoute,
+       projectDocsRoute,
+       ticketRoute,
+     ]),
+   ]);
+   return createRouter({ routeTree, basepath: '/crew-v2/' });
+ }
+ 
+ declare module '@tanstack/react-router' {
+   interface Register {
+     router: ReturnType<typeof createAppRouter>;
+diff --git a/v2/web/src/ticket-routes.tsx b/v2/web/src/ticket-routes.tsx
+index 2d8578d..3cd3e97 100644
+--- a/v2/web/src/ticket-routes.tsx
++++ b/v2/web/src/ticket-routes.tsx
+@@ -86,28 +86,29 @@ export function ProjectTicketsPage() {
+         {(Object.keys(viewLabels) as TicketView[]).map((candidate) => (
+           <button
+             key={candidate}
+             type="button"
+             aria-pressed={view === candidate}
+             onClick={() => void go({ view: candidate, ...filters })}
+           >
+             {viewLabels[candidate]}
+           </button>
+         ))}
+-        <Link
+-          className="nav-link"
+-          to="/projects/$projectId/map"
+-          params={{ projectId }}
+-          search={filters.rootId ? { root: filters.rootId } : {}}
+-        >
+-          Sơ đồ
+-        </Link>
++        {filters.rootId ? (
++          <Link className="nav-link" to="/requests/$rootId/map" params={{ rootId: filters.rootId }}>
++            Sơ đồ
++          </Link>
++        ) : (
++          <Link className="nav-link" to="/projects/$projectId/map" params={{ projectId }}>
++            Sơ đồ
++          </Link>
++        )}
+       </nav>
+       {view === 'board' ? (
+         <TicketBoard {...viewProps} />
+       ) : view === 'list' ? (
+         <TicketList {...viewProps} />
+       ) : (
+         <RequestList {...viewProps} />
+       )}
+       {dialog}
+     </section>
+diff --git a/v2/web/test/graph-state.test.ts b/v2/web/test/graph-state.test.ts
+index f3c715a..12d1635 100644
+--- a/v2/web/test/graph-state.test.ts
++++ b/v2/web/test/graph-state.test.ts
+@@ -374,20 +374,55 @@ test('sơ đồ: root và bước hiện mặc định, task ẩn có badge; nh
+   const toggle = screen.getByRole('button', { name: 'Mở công việc của Bước A' });
+   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+   await act(async () => fireEvent.click(toggle));
+   await until(() => nodeButton(taskA1) !== null, 'task A1 visible');
+   assert.equal(nodeButton(taskB1), null);
+   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở tất cả' })));
+   await until(() => nodeButton(taskB1) !== null, 'expand all');
+   assert.deepEqual(source.writes(), [], 'sơ đồ chỉ đọc, không mutation');
+ });
+ 
++const taskA2 = '0d0d0d0d-0000-4000-8000-000000000101';
++const cardAt = (id: string) =>
++  nodeButton(id)?.closest<HTMLElement>('.react-flow__node')?.style.transform ?? '';
++
++test('mở/thu gọn bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ; chỉ “Sắp xếp lại” mới bố cục toàn bộ', async () => {
++  const graph = baseGraph();
++  graph.nodes.push(row(taskA2, 'task', stepA, 'Việc A2'));
++  const source = graphServer(graph);
++  const storage = new MemoryStorage();
++  writeMapView(storage, { ...initialMapView(mapRoot), viewport: { x: 0, y: 0, zoom: 0.5 } });
++  await mountMap(source, storage);
++  const shown = [mapRoot, stepA, stepB];
++  const before = Object.fromEntries(shown.map((id) => [id, cardAt(id)]));
++  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở công việc của Bước A' })));
++  await until(() => nodeButton(taskA2) !== null, 'tasks of A');
++  for (const id of shown) assert.equal(cardAt(id), before[id], `mở bước không dời ${id}`);
++  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở tất cả' })));
++  await until(() => nodeButton(taskB1) !== null, 'expand all');
++  for (const id of shown) assert.equal(cardAt(id), before[id], `mở tất cả không dời ${id}`);
++  const cards = [...document.querySelectorAll<HTMLElement>('.react-flow__node')].map(
++    (el) => el.style.transform,
++  );
++  assert.equal(new Set(cards).size, cards.length, 'không có hai thẻ cùng chỗ');
++  await act(async () =>
++    fireEvent.click(screen.getByRole('button', { name: 'Thu gọn công việc của Bước A' })),
++  );
++  await until(() => nodeButton(taskA2) === null, 'collapse A');
++  for (const id of shown) assert.equal(cardAt(id), before[id], `thu gọn không dời ${id}`);
++  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Sắp xếp lại' })));
++  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở công việc của Bước A' })));
++  await until(() => nodeButton(taskA2) !== null, 'reopen A');
++  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Sắp xếp lại' })));
++  await until(() => cardAt(stepA) !== before[stepA], 'relayout moves step A between its two tasks');
++});
++
+ test('mở node bằng click mở TicketDetail chung; đóng giữ viewport, expanded và trả focus về node', async () => {
+   const source = graphServer(baseGraph());
+   const storage = new MemoryStorage();
+   writeMapView(storage, {
+     rootId: mapRoot,
+     viewport: { x: -480, y: 140, zoom: 1.7 },
+     expanded: [stepA],
+     selectedTicketId: null,
+     focusedTicketId: null,
+   });
+diff --git a/v2/web/test/graph.test.ts b/v2/web/test/graph.test.ts
+index 303c21d..50ff153 100644
+--- a/v2/web/test/graph.test.ts
++++ b/v2/web/test/graph.test.ts
+@@ -380,20 +380,80 @@ test('giữ vị trí cũ khi có node mới; node mới đặt cạnh cha; ch
+   const after = projectGraph(grown, root, new Set([id(10)]));
+   const kept = placeNewNodes(moved, after);
+   for (const row of before.nodes) assert.deepEqual(kept[row.id], moved[row.id], `giữ ${row.id}`);
+   assert.equal(kept[id(102)]?.x, column * 2);
+   assert.equal(kept[id(102)]?.y, Math.max(moved[id(100)]?.y ?? 0, moved[id(101)]?.y ?? 0) + pitch);
+   assert.ok(kept[id(13)], 'bước mới có vị trí');
+   assert.equal(Object.keys(kept).length, after.nodes.length, 'node đã biến mất không còn vị trí');
+   assert.notDeepEqual(layoutHierarchy(after)[id(10)], kept[id(10)]);
+ });
+ 
++/** Two cards overlap when they share a column band and their rows are closer than one pitch. */
++function overlaps(positions: Record<string, { x: number; y: number }>): string[] {
++  const entries = Object.entries(positions);
++  const found: string[] = [];
++  for (let i = 0; i < entries.length; i++)
++    for (let j = i + 1; j < entries.length; j++) {
++      const [a, pa] = entries[i] as [string, { x: number; y: number }];
++      const [b, pb] = entries[j] as [string, { x: number; y: number }];
++      if (Math.abs(pa.x - pb.x) < cardWidth && Math.abs(pa.y - pb.y) < pitch) found.push(`${a}~${b}`);
++    }
++  return found;
++}
++
++test('node mới không đè thẻ đang hiện của bước khác (task realtime dưới bước trên khi bước dưới cũng mở)', () => {
++  const graph = forkJoin();
++  const expanded = new Set([id(10), id(11)]);
++  const before = layoutHierarchy(projectGraph(graph, root, expanded));
++  // Step 10's tasks sit at rows 0 and 1, step 11's task at row 2: the natural slot for a new task of step 10.
++  assert.equal(before[id(110)]?.y, 2 * pitch);
++  const grown: TicketGraph = { ...graph, nodes: [...graph.nodes, ticket(102, 'task', 10)] };
++  const placed = placeNewNodes(before, projectGraph(grown, root, expanded));
++  for (const [key, point] of Object.entries(before)) assert.deepEqual(placed[key], point, `giữ ${key}`);
++  assert.equal(placed[id(102)]?.x, 2 * column);
++  assert.deepEqual(overlaps(placed), [], 'không có hai thẻ chồng nhau');
++});
++
++test('mở bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ, task mới cạnh bước, không chồng nhau', () => {
++  const graph = forkJoin();
++  const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
++  const opened = placeNewNodes(collapsed, projectGraph(graph, root, new Set(expandableIds(graph))));
++  for (const [key, point] of Object.entries(collapsed)) assert.deepEqual(opened[key], point, `giữ ${key}`);
++  assert.equal(Object.keys(opened).length, graph.nodes.length);
++  assert.equal(opened[id(100)]?.y, collapsed[id(10)]?.y, 'task đầu tiên ngang hàng bước của nó');
++  assert.deepEqual(overlaps(opened), []);
++});
++
++test('mở tất cả 200 bước / 600 task bằng placeNewNodes: không chồng thẻ, trong ngân sách thời gian', () => {
++  const nodes = [ticket(1, 'request', null)];
++  for (let s = 0; s < 200; s++) {
++    nodes.push(ticket(1000 + s, 'step', 1));
++    for (let t = 0; t < 3; t++) nodes.push(ticket(10_000 + s * 3 + t, 'task', 1000 + s));
++  }
++  const graph: TicketGraph = { nodes, dependencies: [], repairLinks: [] };
++  const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
++  const started = performance.now();
++  const opened = placeNewNodes(collapsed, projectGraph(graph, root, new Set(expandableIds(graph))));
++  const elapsed = performance.now() - started;
++  assert.equal(Object.keys(opened).length, 801);
++  const cells = new Set(Object.values(opened).map((point) => `${point.x}:${point.y}`));
++  assert.equal(cells.size, 801);
++  const byColumn = new Map<number, number[]>();
++  for (const point of Object.values(opened))
++    byColumn.set(point.x, [...(byColumn.get(point.x) ?? []), point.y]);
++  for (const ys of byColumn.values()) {
++    ys.sort((a, b) => a - b);
++    for (let i = 1; i < ys.length; i++) assert.ok((ys[i] as number) - (ys[i - 1] as number) >= pitch);
++  }
++  assert.ok(elapsed < 500, `placeNewNodes 801 node mất ${elapsed.toFixed(1)}ms`);
++});
++
+ test('quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID', () => {
+   const graph = forkJoin();
+   assert.deepEqual(nodeRelations(graph, id(120)), {
+     parentId: id(12),
+     children: [],
+     predecessors: [id(101), id(110)],
+     successors: [],
+     repairs: [],
+   });
+   assert.deepEqual(nodeRelations(graph, id(12)).predecessors, [id(10), id(11)]);
