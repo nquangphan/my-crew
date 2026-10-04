@@ -156,3 +156,8 @@ Ruling I3: parallelApprovalId khác root → tuần tự, không 403; tra theo r
 Ruling W3: consumed khóa theo pg_current_xact_id(); W4: createRun all-or-nothing.
 Ruling W5: BMAD path cố định lúc tạo run; quyết định step-02 ghi thành gate; đổi path = run mới supersede run cũ (S5/S6) — sai thì cần migration path. W6: không nối caller latch trước S6. W7: unit song song architectural chỉ được duyệt sau written plan + shared-input hashes (S5 gate).
 Task 3 S1: minor (deferred): M4 session không khóa sau lỗi/shape không chặn chu trình; M5 resolver 2+N+K lần mỗi createRun — T7 đo. W2 B3 phải so máy xác thực với actor resolver; W9 chống dò tồn tại thuộc A2/B3.
+
+21:25 S4 FIX1 `e4b8cd3` re-review `task-3-s1-fix1-re-review.md`: Approved, 8/8 ADDRESSED, Minor N1–N4.
+Task 3 S1 (S4): complete — e4b8cd3 (0d4f984 + e4b8cd3). Production vẫn deny.
+Ruling (brief T4 bắt buộc): N1 bước execute không dispatch khi gate chưa quyết; khi có thì nạp nguồn của lựa chọn và kiểm SHA với definition run; không bao giờ dispatch theo skill/source_path của bước này. N2 B3 chỉ gọi createRunRequest sau resolve proof→scope trong mutate().
+Follow-up nhỏ giao worker S4 ngay: N3 thêm tag phiên bản `crew-v2:operation-request:1` vào hash (trước khi có giá trị persisted); N4 thêm ca deny của chính createRun với request cố định.
