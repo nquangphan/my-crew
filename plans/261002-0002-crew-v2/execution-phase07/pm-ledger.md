@@ -44,3 +44,12 @@ Task 1: minor (deferred): M1 callback rejection falsy trong withFixture (`v2/web
 Task 1: minor (deferred): Biome 2 warning noNonNullAssertion `v2/web/scripts/e2e-fixture.ts:318,:391` có sẵn trước FIX2.
 
 09:48 Task2 dispatch (brief `execution-phase07/task-2-brief.md`, BASE ghi khi commit này). Ruling: sole heavy slot giữa các worker song song được điều phối bằng lock thư mục atomic `$TMPDIR/crew-v2-heavy-slot.lock` (mkdir, ghi owner/PID/thời điểm; rmdir khi trả) — việc tĩnh không cần lock — sai thì hai job nặng có thể chồng nhau nếu worker bỏ qua lock.
+
+10:55 04/10 Task2 full review `task-2-review.md`: Spec ❌, Needs fixes, Critical0/Important1/Minor6/⚠️5. FIX1/5 resume implementer gốc: I1 403 CSRF/ORIGIN nhả key → suspend + refresh CSRF + replay cùng key/body.
+Task 2: minor (deferred): abort khi backoff ném DOMException thô thay ApiFailure('ABORTED') (`api.ts:126,181,191,207`).
+Task 2: minor (deferred): containsSecret chỉ theo tên key — sót secret dưới key trung tính, bắt nhầm tokenBudget (`pending-operation.ts:52,75-83`); cần triage trước merge vì liên quan secret.
+Task 2: minor (deferred): record sai version/hỏng làm tab ngừng lưu operation im lặng (`pending-operation.ts:218-221,400`).
+Task 2: minor (deferred): stream chỉ heartbeat bị proxy đóng sớm tính failure, 6 lần → failed không có UI retry (`events.ts:362,373,442`).
+Task 2: minor (deferred): logout DELETE lỗi mạng xóa local nhưng session server còn sống (`session.ts:276-284`).
+Task 2: minor (deferred): upload 5xx không retry/ambiguous — chấp nhận tới G2, cần ghi docs flow (`api.ts:217-248`).
+Ruling: ⚠️ listener-before-GET, focus refetch, login/expired vào router thuộc lượt controller wiring `main.tsx`/`router.tsx` sau khi Task2 khép; ⚠️ tab mới đọc journal từ 0 cần producer server "latest cursor" — đưa vào backlog phase07 producer G, không chặn Task2 — sai thì tab mới chậm với journal lớn.
