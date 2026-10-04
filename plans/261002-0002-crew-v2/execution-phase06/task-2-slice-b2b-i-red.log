@@ -1,0 +1,717 @@
+✔ B2a decision scoped A→B verifies exact authority and preserves actual audit/journal (284.63275ms)
+✔ B2a decision rejects missing authority and atomically preserves state (191.502125ms)
+✔ B2a decision rejects owner authority and atomically preserves state (188.394292ms)
+✔ B2a decision rejects actor authority and atomically preserves state (193.705125ms)
+✔ B2a decision rejects operation authority and atomically preserves state (177.118417ms)
+✔ B2a decision rejects action authority and atomically preserves state (191.1725ms)
+✔ B2a decision rejects hash authority and atomically preserves state (188.510625ms)
+✔ B2a decision rejects root authority and atomically preserves state (183.850125ms)
+✔ B2a decision rejects project authority and atomically preserves state (172.138292ms)
+✔ B2a decision rejects tx authority and atomically preserves state (180.765583ms)
+✔ B2a decision prefix locks root, canonical sorted tickets and project before verify (191.767708ms)
+✔ B2a decision snapshots input actor proof before first await and during deferred verify (188.262166ms)
+✔ B2a decision captures factory authority and denies cross-Tx token reuse (183.343542ms)
+✔ B2a decision uppercase identities retain exact submitted hash and reject lowercase replay (182.266459ms)
+✔ B2a dependency scoped A→B verifies exact authority and preserves actual audit/journal (187.502625ms)
+✔ B2a dependency rejects missing authority and atomically preserves state (172.500208ms)
+✔ B2a dependency rejects owner authority and atomically preserves state (177.107708ms)
+✔ B2a dependency rejects actor authority and atomically preserves state (172.59375ms)
+✔ B2a dependency rejects operation authority and atomically preserves state (176.0175ms)
+✔ B2a dependency rejects action authority and atomically preserves state (195.156834ms)
+✔ B2a dependency rejects hash authority and atomically preserves state (174.732292ms)
+✔ B2a dependency rejects root authority and atomically preserves state (202.866666ms)
+✔ B2a dependency rejects project authority and atomically preserves state (175.600875ms)
+✔ B2a dependency rejects tx authority and atomically preserves state (188.553042ms)
+✔ B2a dependency prefix locks root, canonical sorted tickets and project before verify (178.373791ms)
+✔ B2a dependency snapshots input actor proof before first await and during deferred verify (169.562875ms)
+✔ B2a dependency captures factory authority and denies cross-Tx token reuse (182.371834ms)
+✔ B2a dependency uppercase identities retain exact submitted hash and reject lowercase replay (190.751083ms)
+✔ B2a real machine-authenticated generic decision/dependency routes keep A→B ACL (329.155333ms)
+✔ B2a dependency preserves revision invariant (171.776667ms)
+✔ B2a dependency preserves self invariant (179.143666ms)
+✔ B2a dependency preserves cross-root invariant (178.615708ms)
+✔ B2a dependency preserves duplicate invariant (186.1035ms)
+✔ B2a dependency preserves cycle invariant (171.273542ms)
+✔ B2a dependency preserves closed invariant (183.363583ms)
+✔ B2a dependency preserves ready invariant (196.815666ms)
+✔ B2a dependency preserves running invariant (174.068958ms)
+✔ B2a dependency preserves missing invariant (168.722375ms)
+✔ B2a concurrent opposite dependency requests cannot commit a cycle (183.695667ms)
+✔ B2a decision preserves owner-answer invariant (225.460167ms)
+✔ B2a decision preserves owner-approval invariant (199.241542ms)
+✔ B2a decision preserves empty-content invariant (174.725333ms)
+✔ B2a decision preserves long-content invariant (212.273625ms)
+✔ B2a decision preserves empty-rationale invariant (211.615375ms)
+✔ B2a decision preserves long-rationale invariant (206.463625ms)
+✔ B2a decision preserves too-many-sources invariant (180.357333ms)
+✔ B2a decision preserves unsafe-scope invariant (186.222625ms)
+✔ B2a decision preserves cross-root-source invariant (193.574541ms)
+✔ B2a decision preserves bad-locator invariant (191.307833ms)
+✔ B2a decision preserves missing-docs-reader invariant (186.622791ms)
+✔ B2a decision supports actual same-root ticket owner decision and reported artifact sources (189.763417ms)
+✔ B2a docs source validation completes before verify and is not repeated after verification (224.290208ms)
+✔ B2a decision rejects array getter before user code or authority (173.37675ms)
+✔ B2a decision rejects array iterator before user code or authority (169.84025ms)
+✔ B2a decision rejects array prototype before user code or authority (199.115792ms)
+✔ B2b-i real machine-authenticated generic signal route keeps A→B ACL (283.105666ms)
+✖ B2b-i signal without orchestration authority is unavailable and preserves revision (171.817584ms)
+✖ B2b-i signal rejects owner authority and atomically preserves state (168.977959ms)
+✖ B2b-i signal rejects actor authority and atomically preserves state (178.173667ms)
+✖ B2b-i signal rejects operation authority and atomically preserves state (185.958917ms)
+✖ B2b-i signal rejects action authority and atomically preserves state (202.957792ms)
+✖ B2b-i signal rejects hash authority and atomically preserves state (215.219333ms)
+✖ B2b-i signal rejects root authority and atomically preserves state (197.05375ms)
+✖ B2b-i signal rejects project authority and atomically preserves state (169.724667ms)
+✖ B2b-i signal rejects tx authority and atomically preserves state (162.074084ms)
+✖ B2b-i dependencies_ready requires done predecessors, then readies with exact audit and event (178.843292ms)
+✖ B2b-i wait_owner on pending moves to needs_input for owner input (179.712875ms)
+✖ B2b-i wait_owner on ready moves to needs_input for owner input (178.141ms)
+✖ B2b-i wait_owner on running ticket fails closed without synthetic owner command (173.215625ms)
+✖ B2b-i signal stale revision conflicts and preserves state (169.233709ms)
+✖ B2b-i scoped signal rejects resume as invalid input (180.478291ms)
+✖ B2b-i scoped signal rejects start as invalid input (175.220917ms)
+✖ B2b-i scoped signal rejects passed as invalid input (176.401709ms)
+✖ B2b-i scoped wait_owner on repair-limit ticket never consumes owner continuation (179.698709ms)
+✖ B2b-i scoped signal and dependency edge serialize on the root before verify (167.292584ms)
+✔ B1 trust fixture creates A→B child with actual A audit and unchanged raw journal hash (186.789833ms)
+✔ B1 generic A→B create remains 404 despite JSON-shaped forged capability (164.736166ms)
+✔ B1 missing captured authority denies 503 even for machine bound to target project (160.477375ms)
+✔ B1 owner cannot enter machine-only scoped creator (168.665834ms)
+✔ B1 test-only allowlist rejects exact actor mismatch (173.218209ms)
+✔ B1 test-only allowlist rejects exact operation mismatch (179.556833ms)
+✔ B1 test-only allowlist rejects exact fence mismatch (175.041041ms)
+✔ B1 test-only allowlist rejects exact hash mismatch (166.86625ms)
+✔ B1 test-only allowlist rejects exact action mismatch (166.66725ms)
+✔ B1 test-only allowlist rejects exact root mismatch (174.4625ms)
+✔ B1 test-only allowlist rejects exact project mismatch (174.02775ms)
+✔ B1 test-only allowlist rejects exact tx mismatch (157.995625ms)
+✔ B1 authority called anew per Tx; prior successful proof is not a reusable capability (177.104292ms)
+✔ B1 captures authority method at factory construction and does not follow later replacement (176.565166ms)
+✔ B1 snapshots input before deferred verify and uses original identity throughout (176.089458ms)
+✔ B1 snapshots actor before deferred verify and uses original identity throughout (178.577041ms)
+✔ B1 snapshots proof before deferred verify and uses original identity throughout (171.2995ms)
+✔ B1 root, parent and project prefix locks are held before authority verify (183.410583ms)
+✔ B1 snapshots input, actor and proof synchronously before the first authority-prefix await (177.639667ms)
+✔ B1 request target hashes exact submitted payload before defaults; omitted differs from null (183.826792ms)
+✔ B1 scoped create inherits parent pin and preserves submitted hash (169.453042ms)
+✔ B1 shared create invariant rejects parent-project (167.568167ms)
+✔ B1 shared create invariant rejects parent-level (173.608291ms)
+✔ B1 shared create invariant rejects missing-parent (177.08225ms)
+✔ B1 shared create invariant rejects closed-root (174.609125ms)
+✔ B1 shared create invariant rejects closed-parent (163.838708ms)
+✔ B1 shared create invariant rejects pin (176.172709ms)
+✔ B1 shared validation rejects missing-pin without writes (182.04725ms)
+✔ B1 shared validation rejects bad-pin without writes (169.710375ms)
+✔ B1 shared validation rejects empty-title without writes (178.657625ms)
+✔ B1 shared validation rejects bad-level without writes (164.521042ms)
+✔ B1 shared validation rejects bad-kind without writes (203.292417ms)
+✔ B1 shared validation rejects bad-json without writes (165.707417ms)
+✔ B1 shared validation rejects cycle without writes (164.163708ms)
+✔ B1 shared validation rejects accessor without writes (158.584ms)
+✔ B1 shared validation rejects prototype without writes (164.849375ms)
+✔ B1 shared validation rejects undefined without writes (167.5555ms)
+✔ B1 deploy request and unapproved child never gain owner intent from scoped authority (162.881541ms)
+✔ B1 deploy child requires exact persisted approval and rejects changed target (179.838291ms)
+✔ B1 FIX1 uppercase project identity creates step under exact submitted hash (164.134ms)
+✔ B1 FIX1 lowercase hash allowance cannot authorize uppercase step payload (174.91775ms)
+✔ B1 FIX1 uppercase project identity creates task under exact submitted hash (177.7125ms)
+✔ B1 FIX1 lowercase hash allowance cannot authorize uppercase task payload (168.143583ms)
+✔ B1 FIX1 array index-getter is rejected without executing user code or changing identity (172.193625ms)
+✔ B1 FIX1 array custom-iterator is rejected without executing user code or changing identity (161.348125ms)
+✔ B1 FIX1 array custom-prototype is rejected without executing user code or changing identity (172.306041ms)
+✔ B1 FIX1 ordinary nested JSON arrays remain supported with their exact submitted hash (176.014583ms)
+✔ hierarchy rejects a task directly under a request and cross-project parent (107.010666ms)
+✔ concurrent opposite edges cannot create a dependency cycle (88.274334ms)
+✔ dependencies_ready refuses a step whose predecessor is unfinished (85.452083ms)
+✔ closed request and completed step reject new descendants (81.813833ms)
+✔ concurrent request completion and child creation cannot leave done root with pending child (84.747208ms)
+✔ dependency graph rejects adding edge once target is ready or running (84.755416ms)
+✔ machine cannot create deploy request or unapproved deploy descendant (94.114583ms)
+✔ owner-created deploy request authorizes only itself; machine child needs exact action approval (105.582084ms)
+✔ machine deploy child under ordinary root needs exact persisted owner approval (88.86075ms)
+✔ deploy completion accepts owner-created request but requires approval for a child elsewhere (100.214042ms)
+✔ hierarchy schema stores a request root and rejects self dependency (78.859667ms)
+✔ machine cannot record an owner answer to unlock a repair limit (84.363ms)
+✔ docs links fail closed until a verified snapshot reader is supplied (78.39675ms)
+✔ ticket criteria rejects inherited-key payloads before persistence (78.867292ms)
+✔ comment during running is durable timeline data without changing execution status (84.554583ms)
+✔ ticket route rejects unknown JSON fields before mutation (125.002791ms)
+ℹ tests 138
+ℹ suites 0
+ℹ pass 119
+ℹ fail 19
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 24335.749583
+
+✖ failing tests:
+
+test at v2/server/test/assistant-mutations.test.ts:770:1
+✖ B2b-i signal without orchestration authority is unavailable and preserves revision (171.817584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'ORCHESTRATION_UNAVAILABLE'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:775:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'ORCHESTRATION_UNAVAILABLE' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:784:3
+✖ B2b-i signal rejects owner authority and atomically preserves state (168.977959ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:788:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: { code: 'ORCHESTRATION_MACHINE_REQUIRED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:784:3
+✖ B2b-i signal rejects actor authority and atomically preserves state (178.173667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:788:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:784:3
+✖ B2b-i signal rejects operation authority and atomically preserves state (185.958917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:788:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:784:3
+✖ B2b-i signal rejects action authority and atomically preserves state (202.957792ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:788:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:784:3
+✖ B2b-i signal rejects hash authority and atomically preserves state (215.219333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:788:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:784:3
+✖ B2b-i signal rejects root authority and atomically preserves state (197.05375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:788:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:784:3
+✖ B2b-i signal rejects project authority and atomically preserves state (169.724667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:788:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:784:3
+✖ B2b-i signal rejects tx authority and atomically preserves state (162.074084ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'TEST_TRUST_DENIED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:788:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'TEST_TRUST_DENIED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:808:1
+✖ B2b-i dependencies_ready requires done predecessors, then readies with exact audit and event (178.843292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'DEPENDENCIES_NOT_READY'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:813:5
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'DEPENDENCIES_NOT_READY' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:854:3
+✖ B2b-i wait_owner on pending moves to needs_input for owner input (179.712875ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+      at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:859:22 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:854:3
+✖ B2b-i wait_owner on ready moves to needs_input for owner input (178.141ms)
+  Error [ApiError]: Không tìm thấy dự án
+      at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+      at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:859:22 {
+    code: 'NOT_FOUND',
+    status: 404,
+    details: undefined
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:875:1
+✖ B2b-i wait_owner on running ticket fails closed without synthetic owner command (173.215625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'EXECUTION_PROOF_REQUIRED'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:900:5
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'EXECUTION_PROOF_REQUIRED' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:914:1
+✖ B2b-i signal stale revision conflicts and preserves state (169.233709ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'REVISION_CONFLICT'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:919:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'REVISION_CONFLICT' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:927:3
+✖ B2b-i scoped signal rejects resume as invalid input (180.478291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:933:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:927:3
+✖ B2b-i scoped signal rejects start as invalid input (175.220917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:933:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:927:3
+✖ B2b-i scoped signal rejects passed as invalid input (176.401709ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:933:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:942:1
+✖ B2b-i scoped wait_owner on repair-limit ticket never consumes owner continuation (179.698709ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    Comparison {
+  +   code: 'NOT_FOUND'
+  -   code: 'VALIDATION'
+    }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:965:5
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiError: Không tìm thấy dự án
+        at requireProjectScope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:55:11)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async requireTicket (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:63:3)
+        at async signalTicketWithDependencies (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/tickets/service.ts:338:18)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:202:23
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.run (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:161:20)
+        at async waitForActual (node:assert:646:5),
+    expected: { code: 'VALIDATION' },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-mutations.test.ts:987:1
+✖ B2b-i scoped signal and dependency edge serialize on the root before verify (167.292584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'settled'
+  - 'entered'
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-mutations.test.ts:1021:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'settled',
+    expected: 'entered',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+exit=1

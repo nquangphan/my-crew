@@ -26,10 +26,15 @@ import { inputTicket, owner, ticketFixture } from './support/tickets.ts';
 const withDatabase = databaseFixture(11);
 const clone = <T>(value: T): T => JSON.parse(canonicalJson(value));
 const hash = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
-type Action = 'decision' | 'dependency';
+type Action = 'decision' | 'dependency' | 'signal';
 type DecisionPayload = { ticketId: string; input: DecisionInput };
 type DependencyPayload = { ticketId: string; predecessorId: string; expectedRevision: number };
-type Payload = DecisionPayload | DependencyPayload;
+type SignalPayload = {
+  ticketId: string;
+  signal: 'dependencies_ready' | 'wait_owner';
+  expectedRevision: number;
+};
+type Payload = DecisionPayload | DependencyPayload | SignalPayload;
 const targetHash = (action: OrchestrationAction, payload: Payload) =>
   hash(['crew-v2:orchestration-target:1', action, payload]);
 const decisionInput = (changes: Partial<DecisionInput> = {}): DecisionInput => ({
@@ -140,7 +145,9 @@ async function fixture(db: Db, docsSource?: DocsSourceReader) {
   const payloadFor = (action: Action): Payload =>
     action === 'decision'
       ? { ticketId: f.a.id, input: decisionInput() }
-      : { ticketId: f.a.id, predecessorId: f.b.id, expectedRevision: 1 };
+      : action === 'dependency'
+        ? { ticketId: f.a.id, predecessorId: f.b.id, expectedRevision: 1 }
+        : { ticketId: f.a.id, signal: 'dependencies_ready', expectedRevision: 1 };
   const run = async (
     action: Action,
     payload = payloadFor(action),
@@ -177,26 +184,46 @@ async function fixture(db: Db, docsSource?: DocsSourceReader) {
         const pending =
           'input' in payload
             ? selected.assistantRecordDecision(tx, actualActor, actualProof, payload.ticketId, payload.input)
-            : selected.assistantAddDependency(
-                tx,
-                actualActor,
-                actualProof,
-                payload.ticketId,
-                payload.predecessorId,
-                payload.expectedRevision,
-              );
+            : 'predecessorId' in payload
+              ? selected.assistantAddDependency(
+                  tx,
+                  actualActor,
+                  actualProof,
+                  payload.ticketId,
+                  payload.predecessorId,
+                  payload.expectedRevision,
+                )
+              : selected.assistantSignalTicket(
+                  tx,
+                  actualActor,
+                  actualProof,
+                  payload.ticketId,
+                  payload.signal,
+                  payload.expectedRevision,
+                );
         options.afterStart?.();
         // Frozen dependency port returns void; HTTP/journal envelope is caller-owned.
-        return { status: 201, body: { id: (await pending) ?? null } };
+        const value = await pending;
+        return {
+          status: 201,
+          body: {
+            id: typeof value === 'string' ? value : null,
+            ticket: value && typeof value === 'object' ? value : null,
+          },
+        };
       },
     );
-    return { id: result.body.id, key };
+    return { id: result.body.id, ticket: result.body.ticket, key };
   };
   const state = async () => ({
     decisions: await db`select * from decisions order by id`,
     dependencies: await db`select * from dependencies order by ticket_id,predecessor_id`,
-    revisions: await db`select id,revision from tickets order by id`,
+    revisions:
+      await db`select id,revision,status,wait_reason,repair_limit_cycle_id,repair_limit_consumed_decision_id
+        from tickets order by id`,
     events: await db`select cursor,type from events order by cursor`,
+    commands: await db`select * from commands order by id`,
+    attempts: await db`select id,state,terminal_intent,terminal_reason from attempts order by id`,
   });
   return { ...f, actor, proof, machines, trust, services, payloadFor, run, state };
 }
@@ -369,7 +396,7 @@ for (const action of ['decision', 'dependency'] as const) {
           f.mutation('unlisted-tx', async (tx) => {
             if ('input' in payload)
               await f.services.assistantRecordDecision(tx, f.actor, f.proof, payload.ticketId, payload.input);
-            else
+            else if ('predecessorId' in payload)
               await f.services.assistantAddDependency(
                 tx,
                 f.actor,
@@ -692,3 +719,330 @@ for (const hostile of ['getter', 'iterator', 'prototype'] as const) {
       assert.deepEqual(await f.state(), before);
     }));
 }
+
+const signalPayload = (
+  ticketId: string,
+  signal: SignalPayload['signal'],
+  expectedRevision = 1,
+): SignalPayload => ({ ticketId, signal, expectedRevision });
+
+test('B2b-i real machine-authenticated generic signal route keeps A→B ACL', async () =>
+  withDatabase(async (db) => {
+    const f = await fixture(db);
+    await bootstrapOwner(db, 'test-only-owner-password');
+    const app = Fastify({ ajv: { customOptions: { removeAdditional: false } } });
+    const options = {
+      db,
+      publicOrigin: 'http://localhost',
+      secureCookies: false,
+      sessionEncryptionKey: Buffer.alloc(32),
+      now: () => new Date(),
+      authorizeDispatch: async () => {
+        throw new Error('NO_DISPATCH');
+      },
+      verifyFinalResult: async () => {
+        throw new Error('NO_FINALIZATION');
+      },
+    };
+    app.setErrorHandler((error, _request, reply) => {
+      if (error instanceof ApiError) return reply.status(error.status).send({ error: { code: error.code } });
+      return reply.status(500).send({ error: { code: 'UNEXPECTED' } });
+    });
+    registerTicketRoutes(app, options, {
+      auth: createAuthenticator(db, options),
+      mutator: createMutator(db),
+    });
+    const before = await f.state();
+    try {
+      for (const signal of ['dependencies_ready', 'wait_owner'] as const) {
+        const response = await app.inject({
+          method: 'POST',
+          url: `/v2/tickets/${f.a.id}/signals`,
+          headers: { authorization: `Bearer ${f.machines.a.token}`, 'idempotency-key': randomUUID() },
+          payload: { signal, expectedRevision: 1 },
+        });
+        assert.equal(response.statusCode, 404);
+        assert.equal(response.json().error.code, 'NOT_FOUND');
+      }
+      assert.deepEqual(await f.state(), before);
+      assert.equal(f.trust.observed.length, 0);
+    } finally {
+      await app.close();
+    }
+  }));
+
+test('B2b-i signal without orchestration authority is unavailable and preserves revision', async () =>
+  withDatabase(async (db) => {
+    const f = await fixture(db);
+    const before = await f.state();
+    for (const signal of ['dependencies_ready', 'wait_owner'] as const)
+      await assert.rejects(
+        () => f.run('signal', signalPayload(f.a.id, signal), { services: createTicketServices() }),
+        { code: 'ORCHESTRATION_UNAVAILABLE' },
+      );
+    assert.deepEqual(await f.state(), before);
+    assert.equal((await f.read(f.a.id)).revision, 1);
+  }));
+
+for (const invalid of ['owner', 'actor', 'operation', 'action', 'hash', 'root', 'project', 'tx'] as const) {
+  test(`B2b-i signal rejects ${invalid} authority and atomically preserves state`, async () =>
+    withDatabase(async (db) => {
+      const f = await fixture(db);
+      const before = await f.state();
+      await assert.rejects(
+        () =>
+          f.run('signal', signalPayload(f.a.id, 'wait_owner'), {
+            actor: invalid === 'owner' ? owner : undefined,
+            change(entry) {
+              if (invalid === 'actor') entry.actor = { kind: 'machine', id: f.machines.b.machine.id };
+              if (invalid === 'operation') entry.proof.operationId = randomUUID();
+              if (invalid === 'action') entry.action = 'dependency';
+              if (invalid === 'hash') entry.target = '0'.repeat(64);
+              if (invalid === 'root') entry.rootId = randomUUID();
+              if (invalid === 'project') entry.projectId = randomUUID();
+              if (invalid === 'tx') entry.tx = db as unknown as Tx;
+            },
+          }),
+        { code: invalid === 'owner' ? 'ORCHESTRATION_MACHINE_REQUIRED' : 'TEST_TRUST_DENIED' },
+      );
+      assert.deepEqual(await f.state(), before);
+    }));
+}
+
+test('B2b-i dependencies_ready requires done predecessors, then readies with exact audit and event', async () =>
+  withDatabase(async (db) => {
+    const f = await fixture(db);
+    await f.mutation('seed-edge', (tx) => f.services.addDependency(tx, f.a.id, f.b.id, 1));
+    const before = await f.state();
+    await assert.rejects(() => f.run('signal', signalPayload(f.a.id, 'dependencies_ready', 2)), {
+      code: 'DEPENDENCIES_NOT_READY',
+    });
+    assert.deepEqual(await f.state(), before);
+    assert.equal(f.trust.observed.length, 0);
+    await db`update tickets set status='done' where id=${f.b.id}`;
+    const payload = signalPayload(f.a.id, 'dependencies_ready', 2);
+    const original = clone(payload);
+    const actor = clone(f.actor);
+    const proof = clone(f.proof);
+    const cursor = (await db`select coalesce(max(cursor),0) as cursor from events`)[0]?.cursor;
+    const result = await f.run('signal', payload, {
+      actor,
+      proof,
+      afterStart() {
+        // Caller mutations after the call starts cannot alter the captured operation.
+        actor.id = f.machines.b.machine.id;
+        proof.operationId = randomUUID();
+        payload.signal = 'wait_owner';
+        payload.expectedRevision = 99;
+      },
+    });
+    assert.equal(f.trust.observed.length, 1);
+    assert.equal(f.trust.observed[0]?.target, targetHash('signal', original));
+    assert.equal(result.ticket?.status, 'ready');
+    assert.equal(result.ticket?.revision, 3);
+    const ticket = await f.read(f.a.id);
+    assert.deepEqual([ticket.status, ticket.revision, ticket.waitReason], ['ready', 3, null]);
+    const events = await db`select type,ticket_id,data from events where cursor>${cursor} order by cursor`;
+    assert.deepEqual(
+      events.map((row) => ({ ...row })),
+      [{ type: 'ticket.changed', ticket_id: f.a.id, data: { revision: 3, status: 'ready' } }],
+    );
+    const [journal] = await db`select actor_kind,actor_id,body_hash from idempotency where key=${result.key}`;
+    assert.deepEqual(
+      { ...journal },
+      { actor_kind: 'machine', actor_id: f.actor.id, body_hash: hash(original) },
+    );
+  }));
+
+for (const status of ['pending', 'ready'] as const) {
+  test(`B2b-i wait_owner on ${status} moves to needs_input for owner input`, async () =>
+    withDatabase(async (db) => {
+      const f = await fixture(db);
+      if (status === 'ready') await db`update tickets set status='ready' where id=${f.a.id}`;
+      const cursor = (await db`select coalesce(max(cursor),0) as cursor from events`)[0]?.cursor;
+      const result = await f.run('signal', signalPayload(f.a.id, 'wait_owner'));
+      assert.equal(f.trust.observed.length, 1);
+      const ticket = await f.read(f.a.id);
+      assert.deepEqual(
+        [ticket.status, ticket.waitReason, ticket.revision],
+        ['needs_input', 'owner_input', 2],
+      );
+      assert.equal(result.ticket?.status, 'needs_input');
+      const events = await db`select type,data from events where cursor>${cursor} order by cursor`;
+      assert.deepEqual(
+        events.map((row) => ({ ...row })),
+        [{ type: 'ticket.changed', data: { revision: 2, status: 'needs_input' } }],
+      );
+    }));
+}
+
+test('B2b-i wait_owner on running ticket fails closed without synthetic owner command', async () =>
+  withDatabase(async (db) => {
+    const f = await fixture(db);
+    const calls: string[] = [];
+    const services = createTicketServices({
+      assistant: f.trust.authority,
+      execution: {
+        async verifySignal() {
+          calls.push('verifySignal');
+        },
+        async requestTerminalIntent() {
+          calls.push('requestTerminalIntent');
+        },
+        async verifyRepairResult() {
+          calls.push('verifyRepairResult');
+        },
+      },
+    });
+    const commandId = randomUUID();
+    await db`insert into commands(id,machine_id,ticket_id,binding_revision,type,payload,state)
+      values(${commandId},${f.machines.b.machine.id},${f.a.id},1,'start','{}','received')`;
+    await db`insert into attempts(id,ticket_id,machine_id,command_id,fence,binding_revision,process_instance_id,state,lease_expires_at,workflow_pin)
+      values(${randomUUID()},${f.a.id},${f.machines.b.machine.id},${commandId},1,1,${randomUUID()},'active',now()+interval '60 seconds','{}')`;
+    await db`update tickets set status='running' where id=${f.a.id}`;
+    const before = await f.state();
+    await assert.rejects(() => f.run('signal', signalPayload(f.a.id, 'wait_owner'), { services }), {
+      code: 'EXECUTION_PROOF_REQUIRED',
+    });
+    assert.deepEqual(await f.state(), before);
+    assert.equal(before.commands.length, 1);
+    assert.deepEqual(
+      before.attempts.map((row) => [row.terminal_intent, row.terminal_reason]),
+      [['complete', null]],
+    );
+    assert.equal((await f.read(f.a.id)).revision, 1);
+    assert.deepEqual(calls, []);
+    assert.equal(f.trust.observed.length, 0);
+  }));
+
+test('B2b-i signal stale revision conflicts and preserves state', async () =>
+  withDatabase(async (db) => {
+    const f = await fixture(db);
+    const before = await f.state();
+    for (const signal of ['dependencies_ready', 'wait_owner'] as const)
+      await assert.rejects(() => f.run('signal', signalPayload(f.a.id, signal, 2)), {
+        code: 'REVISION_CONFLICT',
+      });
+    assert.deepEqual(await f.state(), before);
+    assert.equal(f.trust.observed.length, 0);
+  }));
+
+for (const signal of ['resume', 'start', 'passed'] as const) {
+  test(`B2b-i scoped signal rejects ${signal} as invalid input`, async () =>
+    withDatabase(async (db) => {
+      const f = await fixture(db);
+      await db`update tickets set status=${signal === 'resume' ? 'needs_input' : signal === 'start' ? 'ready' : 'running'}
+        where id=${f.a.id}`;
+      const before = await f.state();
+      await assert.rejects(
+        () => f.run('signal', signalPayload(f.a.id, signal as unknown as SignalPayload['signal'])),
+        { code: 'VALIDATION' },
+      );
+      assert.deepEqual(await f.state(), before);
+      assert.equal(f.trust.observed.length, 0);
+    }));
+}
+
+test('B2b-i scoped wait_owner on repair-limit ticket never consumes owner continuation', async () =>
+  withDatabase(async (db) => {
+    const f = await fixture(db);
+    const evidence = randomUUID();
+    const cycle = randomUUID();
+    await db`insert into evidence(id,ticket_id,kind,data) values(${evidence},${f.a.id},'artifact',${db.json({ observation: 'Không đạt' })})`;
+    await db`insert into repair_results(check_step_id,cycle_id,classification,passed,evidence_id)
+      values(${f.a.id},${cycle},'repair_review',false,${evidence})`;
+    await db`update tickets set repair_cycles=5,wait_reason='repair_limit',repair_limit_cycle_id=${cycle},
+      repair_limit_at=now()-interval '1 minute' where id=${f.a.id}`;
+    await f.mutation('owner-continuation', (tx) =>
+      f.services.recordDecision(
+        tx,
+        f.a.id,
+        decisionInput({
+          kind: 'owner_answer',
+          content: 'Tiếp tục sau vòng 5',
+          scope: { repairStepId: f.a.id, cycleId: cycle, continueAfterFive: true },
+        }),
+        owner,
+      ),
+    );
+    const before = await f.state();
+    await assert.rejects(
+      () => f.run('signal', signalPayload(f.a.id, 'resume' as unknown as SignalPayload['signal'], 1)),
+      { code: 'VALIDATION' },
+    );
+    assert.deepEqual(await f.state(), before);
+    await f.run('signal', signalPayload(f.a.id, 'wait_owner', 1));
+    const [row] =
+      await db`select status,wait_reason,revision,repair_limit_cycle_id,repair_limit_consumed_decision_id
+      from tickets where id=${f.a.id}`;
+    assert.deepEqual(
+      { ...row },
+      {
+        status: 'needs_input',
+        wait_reason: 'repair_limit',
+        revision: 2,
+        repair_limit_cycle_id: cycle,
+        repair_limit_consumed_decision_id: null,
+      },
+    );
+    assert.equal(f.trust.observed.length, 1);
+  }));
+
+test('B2b-i scoped signal and dependency edge serialize on the root before verify', async () =>
+  withDatabase(async (db) => {
+    const f = await fixture(db);
+    let enter!: () => void;
+    let release!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      enter = resolve;
+    });
+    const resume = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    f.trust.setHook(async (_tx, entry) => {
+      if (entry.action !== 'signal') return;
+      for (const id of [f.request.id, f.a.id])
+        await assert.rejects(
+          () =>
+            db.begin(async (peer) => {
+              await peer`select id from tickets where id=${id} for update nowait`;
+            }),
+          { code: '55P03' },
+        );
+      await assert.rejects(
+        () =>
+          db.begin(async (peer) => {
+            await peer`select id from projects where id=${f.project.id} for update nowait`;
+          }),
+        { code: '55P03' },
+      );
+      enter();
+      await resume;
+    });
+    const signal = f.run('signal', signalPayload(f.a.id, 'dependencies_ready'));
+    let dependency: Promise<unknown> | undefined;
+    try {
+      assert.equal(
+        await Promise.race([
+          entered.then(() => 'entered'),
+          signal.then(
+            () => 'settled',
+            () => 'settled',
+          ),
+        ]),
+        'entered',
+      );
+      dependency = f.run('dependency', { ticketId: f.a.id, predecessorId: f.b.id, expectedRevision: 1 });
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      assert.equal(f.trust.observed.length, 1);
+    } finally {
+      release();
+    }
+    const [signalled, added] = await Promise.allSettled([signal, dependency]);
+    assert.equal(signalled.status, 'fulfilled');
+    assert.equal(added.status, 'rejected');
+    assert.equal((added as PromiseRejectedResult).reason.code, 'REVISION_CONFLICT');
+    assert.equal((await db`select * from dependencies`).length, 0);
+    const ticket = await f.read(f.a.id);
+    assert.deepEqual([ticket.status, ticket.revision], ['ready', 2]);
+  }));

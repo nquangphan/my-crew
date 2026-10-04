@@ -1,0 +1,57 @@
+v2/server/src/tickets/service.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+    532 532 │       validateSignalRevision(payload.expectedRevision);
+    533 533 │       if (!verify) throw new ApiError('ORCHESTRATION_UNAVAILABLE', 503, 'Chưa có nguồn xác minh điều phối');
+    534     │ - ····const·prepared·=·await·prepareSignal(tx,·payload.ticketId,·payload.signal,·payload.expectedRevision,·null);
+        534 │ + ····const·prepared·=·await·prepareSignal(
+        535 │ + ······tx,
+        536 │ + ······payload.ticketId,
+        537 │ + ······payload.signal,
+        538 │ + ······payload.expectedRevision,
+        539 │ + ······null,
+        540 │ + ····);
+    535 541 │       const [project] = await tx`select id from projects where id=${prepared.ticket.projectId} for update`;
+    536 542 │       if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
+  
+
+v2/server/test/assistant-mutations.test.ts format ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Formatter would have printed the following content:
+  
+      30   30 │   type DecisionPayload = { ticketId: string; input: DecisionInput };
+      31   31 │   type DependencyPayload = { ticketId: string; predecessorId: string; expectedRevision: number };
+      32      │ - type·SignalPayload·=·{·ticketId:·string;·signal:·'dependencies_ready'·|·'wait_owner';·expectedRevision:·number·};
+           32 │ + type·SignalPayload·=·{
+           33 │ + ··ticketId:·string;
+           34 │ + ··signal:·'dependencies_ready'·|·'wait_owner';
+           35 │ + ··expectedRevision:·number;
+           36 │ + };
+      33   37 │   type Payload = DecisionPayload | DependencyPayload | SignalPayload;
+      34   38 │   const targetHash = (action: OrchestrationAction, payload: Payload) =>
+    ········· │ 
+     964  968 │       const before = await f.state();
+     965  969 │       await assert.rejects(
+     966      │ - ······()·=>
+     967      │ - ········f.run('signal',·signalPayload(f.a.id,·'resume'·as·unknown·as·SignalPayload['signal'],·1)),
+          970 │ + ······()·=>·f.run('signal',·signalPayload(f.a.id,·'resume'·as·unknown·as·SignalPayload['signal'],·1)),
+     968  971 │         { code: 'VALIDATION' },
+     969  972 │       );
+     970  973 │       assert.deepEqual(await f.state(), before);
+     971  974 │       await f.run('signal', signalPayload(f.a.id, 'wait_owner', 1));
+     972      │ - ····const·[row]·=·await·db`select·status,wait_reason,revision,repair_limit_cycle_id,repair_limit_consumed_decision_id
+          975 │ + ····const·[row]·=
+          976 │ + ······await·db`select·status,wait_reason,revision,repair_limit_cycle_id,repair_limit_consumed_decision_id
+     973  977 │         from tickets where id=${f.a.id}`;
+     974  978 │       assert.deepEqual(
+  
+
+Checked 3 files in 35ms. No fixes applied.
+Found 2 errors.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+
+exit=1

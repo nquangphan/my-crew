@@ -1,0 +1,15 @@
+# mirror HEAD=ed781fac23e351886fb182327945208e3724b16b overlay=4 owned files at 2026-10-04T03:03:31Z
+## generate
+unchanged docs/index.md
+unchanged docs/files.md
+generate exit=0
+ M docs/flows/server-tickets.md
+ M server/src/tickets/assistant-access.ts
+ M server/src/tickets/service.ts
+ M server/test/assistant-mutations.test.ts
+## check --all
+crew-docs check --all: ok
+check-all exit=0
+## check --staged
+crew-docs check --staged: ok
+check-staged exit=0

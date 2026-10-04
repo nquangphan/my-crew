@@ -90,8 +90,9 @@ export type VerifiedAssistantScope<T> = Readonly<{ [verifiedBrand]: T }>;
 const captures = new WeakSet<object>();
 const preparations = new WeakMap<object, { tx: Tx; owner: object; authorized: boolean }>();
 const permissions = new WeakMap<object, { tx: Tx; prepared: PreparedAssistantTarget<unknown> }>();
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const invalidScope = () => new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
+export const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const invalidScope = (): ApiError =>
+  new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
 
 export function captureAssistantOperation<T>(
   actor: Actor,

@@ -6,7 +6,14 @@ import type { OrchestrationProof } from '../assistant/contracts.ts';
 import { appendEvent } from '../journal/events.ts';
 import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
-import { immutableSnapshot, orchestrationTargetHash } from './assistant-access.ts';
+import type { CapturedAssistantOperation } from './assistant-access.ts';
+import {
+  captureAssistantOperation,
+  immutableSnapshot,
+  invalidScope,
+  orchestrationTargetHash,
+  uuid,
+} from './assistant-access.ts';
 import { readCompletionFacts } from './completion.ts';
 import type {
   AppendAttachmentComment,
@@ -110,8 +117,6 @@ function validPin(pin: CreateTicket['workflowPin']): boolean {
       /^[0-9a-f]{64}$/i.test(pin.checksum))
   );
 }
-
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function validateCreateTicket(input: CreateTicket): void {
   if (
@@ -252,7 +257,7 @@ async function createTicketCore(
       scope.projectId !== input.projectId.toLowerCase() ||
       scope.rootId !== scope.prepared.rootId
     )
-      throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
+      throw invalidScope();
     prepared = scope.prepared;
   } else {
     await requireProjectScope(tx, input.projectId, actor);
@@ -320,36 +325,56 @@ function scopedTicketCreator(verify: TicketServiceDependencies['assistant']) {
   };
 }
 
-async function signalTicketWithDependencies(
+type AssistantSignal = 'dependencies_ready' | 'wait_owner';
+type SignalPayload = { ticketId: Id; signal: AssistantSignal; expectedRevision: number };
+type PreparedSignal = Readonly<{
+  tx: Tx;
+  ticket: Ticket;
+  signal: Signal;
+  continuationDecisionId: Id | null;
+}>;
+type SignalOutcome = { next: Ticket['status']; waitReason: string | null; mergedCommit: string | null };
+
+const executionSignals: ReadonlySet<Signal> = new Set<Signal>([
+  'start',
+  'pause_confirmed',
+  'cancel_confirmed',
+  'reconciled_stopped',
+  'passed',
+]);
+const assistantSignals: ReadonlySet<unknown> = new Set<AssistantSignal>(['dependencies_ready', 'wait_owner']);
+// Module-private: only the scoped writer, after authority verification, can mark
+// a prepared signal as persistable for its captured operation, once.
+const verifiedSignals = new WeakMap<PreparedSignal, CapturedAssistantOperation<SignalPayload>>();
+
+function validateSignalRevision(expectedRevision: number): void {
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
+    throw new ApiError('VALIDATION', 400, 'Revision không hợp lệ');
+}
+
+// Shared CAS core for generic and scoped signals. Locks the root, then the target;
+// scoped callers lock the project next and only then enter their authority.
+// `actor` applies the generic ticket ACL; scoped callers pass null because the
+// orchestration authority, not machine binding, decides access.
+async function prepareSignal(
   tx: Tx,
   ticketId: Id,
   signal: Signal,
   expectedRevision: number,
-  evidenceId: Id | null,
-  actor: Actor,
-  deps: TicketServiceDependencies,
-  internal: boolean,
-): Promise<Ticket> {
-  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
-    throw new ApiError('VALIDATION', 400, 'Revision không hợp lệ');
+  actor: Actor | null,
+): Promise<PreparedSignal> {
   const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
   if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
   await tx`select id from tickets where id=${scope.root_id} for update`;
-  const ticket = await requireTicket(tx, ticketId, actor, true);
+  let ticket: Ticket;
+  if (actor) ticket = await requireTicket(tx, ticketId, actor, true);
+  else {
+    const [row] = await tx`select * from tickets where id=${ticketId} for update`;
+    if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
+    ticket = mapTicket(row);
+  }
   if (ticket.revision !== expectedRevision)
     throw new ApiError('REVISION_CONFLICT', 409, 'Ticket đã thay đổi');
-  const executionSignals = new Set<Signal>([
-    'start',
-    'pause_confirmed',
-    'cancel_confirmed',
-    'reconciled_stopped',
-    'passed',
-  ]);
-  if (executionSignals.has(signal)) {
-    if (!internal || !deps.execution)
-      throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận thực thi');
-    await deps.execution.verifySignal(tx, ticketId, signal, evidenceId);
-  }
   if (signal === 'dependencies_ready') {
     const [pending] = await tx`select 1 from dependencies d join tickets p on p.id=d.predecessor_id
       where d.ticket_id=${ticketId} and p.status<>'done' limit 1`;
@@ -375,6 +400,77 @@ async function signalTicketWithDependencies(
       continuationDecisionId = approval.id as Id;
     }
   }
+  return Object.freeze({ tx, ticket, signal, continuationDecisionId });
+}
+
+function signalTransition(ticket: Ticket, signal: Signal): Pick<SignalOutcome, 'next' | 'waitReason'> {
+  let next: Ticket['status'];
+  try {
+    next = transition(ticket.status, signal);
+  } catch {
+    throw new ApiError('INVALID_TICKET_TRANSITION', 409, 'Không thể chuyển trạng thái ticket');
+  }
+  const waitReason =
+    next === 'needs_input' ? (ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input') : null;
+  return { next, waitReason };
+}
+
+async function persistSignal(
+  tx: Tx,
+  prepared: PreparedSignal,
+  outcome: SignalOutcome,
+  operation?: CapturedAssistantOperation<SignalPayload>,
+): Promise<Ticket> {
+  if (prepared.tx !== tx) throw invalidScope();
+  if (operation) {
+    const verified = verifiedSignals.get(prepared);
+    verifiedSignals.delete(prepared);
+    if (
+      verified !== operation ||
+      operation.action !== 'signal' ||
+      operation.targetSha256 !== orchestrationTargetHash('signal', operation.payload) ||
+      operation.payload.ticketId.toLowerCase() !== prepared.ticket.id ||
+      operation.payload.signal !== prepared.signal ||
+      prepared.continuationDecisionId !== null
+    )
+      throw invalidScope();
+  }
+  const { ticket, continuationDecisionId } = prepared;
+  const [row] = await tx`update tickets set status=${outcome.next}, revision=revision+1,
+    merged_commit=${outcome.mergedCommit}, wait_reason=${outcome.waitReason},
+    repair_limit_cycle_id=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_cycle_id end,
+    repair_limit_at=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_at end,
+    repair_limit_consumed_decision_id=coalesce(${continuationDecisionId}::uuid,repair_limit_consumed_decision_id)
+    where id=${ticket.id} returning *`;
+  if (!row) throw new Error('TICKET_UPDATE_FAILED');
+  await appendEvent(tx, {
+    type: 'ticket.changed',
+    projectId: ticket.projectId,
+    ticketId: ticket.id,
+    audienceMachineId: null,
+    data: { revision: Number(row.revision), status: outcome.next },
+  });
+  return mapTicket(row);
+}
+
+async function signalTicketWithDependencies(
+  tx: Tx,
+  ticketId: Id,
+  signal: Signal,
+  expectedRevision: number,
+  evidenceId: Id | null,
+  actor: Actor,
+  deps: TicketServiceDependencies,
+  internal: boolean,
+): Promise<Ticket> {
+  validateSignalRevision(expectedRevision);
+  const prepared = await prepareSignal(tx, ticketId, signal, expectedRevision, actor);
+  const { ticket } = prepared;
+  if (executionSignals.has(signal)) {
+    if (!internal || !deps.execution)
+      throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận thực thi');
+    await deps.execution.verifySignal(tx, ticketId, signal, evidenceId);
+  }
   if (signal === 'wait_owner' && ticket.status === 'running') {
     if (!deps.execution)
       throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu quyền điều khiển tiến trình');
@@ -395,12 +491,7 @@ async function signalTicketWithDependencies(
       return mapTicket(row as Record<string, unknown>);
     }
   }
-  let next: Ticket['status'];
-  try {
-    next = transition(ticket.status, signal);
-  } catch {
-    throw new ApiError('INVALID_TICKET_TRANSITION', 409, 'Không thể chuyển trạng thái ticket');
-  }
+  const { next, waitReason } = signalTransition(ticket, signal);
   let mergedCommit = ticket.mergedCommit;
   if (signal === 'passed') {
     const facts = await readCompletionFacts(tx, ticket, deps.docsCompletion);
@@ -409,22 +500,53 @@ async function signalTicketWithDependencies(
   }
   if (signal === 'cancel_confirmed' && !internal)
     throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận dừng tiến trình');
-  const nextWaitReason =
-    next === 'needs_input' ? (ticket.waitReason === 'repair_limit' ? 'repair_limit' : 'owner_input') : null;
-  const [row] = await tx`update tickets set status=${next}, revision=revision+1,merged_commit=${mergedCommit},
-    wait_reason=${nextWaitReason},
-    repair_limit_cycle_id=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_cycle_id end,
-    repair_limit_at=case when ${continuationDecisionId}::uuid is not null then null else repair_limit_at end,
-    repair_limit_consumed_decision_id=coalesce(${continuationDecisionId}::uuid,repair_limit_consumed_decision_id)
-    where id=${ticketId} returning *`;
-  await appendEvent(tx, {
-    type: 'ticket.changed',
-    projectId: ticket.projectId,
-    ticketId,
-    audienceMachineId: null,
-    data: { revision: Number(row?.revision), status: next },
-  });
-  return mapTicket(row as Record<string, unknown>);
+  return persistSignal(tx, prepared, { next, waitReason, mergedCommit });
+}
+
+// Scoped A→B signal. Only dependencies_ready and wait_owner on a ticket that is not
+// running: stopping a running process needs an execution terminal intent bound to
+// this Actor, so that branch fails closed instead of borrowing an owner intent.
+function createAssistantSignalWriter(authority?: TicketServiceDependencies['assistant']) {
+  const verify = authority?.verify.bind(authority);
+  return async (
+    tx: Tx,
+    actor: Actor,
+    proof: OrchestrationProof,
+    ticketId: Id,
+    signal: AssistantSignal,
+    expectedRevision: number,
+  ): Promise<Ticket> => {
+    // Actor, proof and payload are captured synchronously, before any DB or producer wait.
+    const operation = captureAssistantOperation<SignalPayload>(actor, proof, 'signal', {
+      ticketId,
+      signal,
+      expectedRevision,
+    });
+    const payload = operation.payload;
+    if (
+      typeof payload.ticketId !== 'string' ||
+      !uuid.test(payload.ticketId) ||
+      !assistantSignals.has(payload.signal)
+    )
+      throw new ApiError('VALIDATION', 400, 'Tín hiệu điều phối không hợp lệ');
+    validateSignalRevision(payload.expectedRevision);
+    if (!verify) throw new ApiError('ORCHESTRATION_UNAVAILABLE', 503, 'Chưa có nguồn xác minh điều phối');
+    const prepared = await prepareSignal(
+      tx,
+      payload.ticketId,
+      payload.signal,
+      payload.expectedRevision,
+      null,
+    );
+    const [project] = await tx`select id from projects where id=${prepared.ticket.projectId} for update`;
+    if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
+    if (payload.signal === 'wait_owner' && prepared.ticket.status === 'running')
+      throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận thực thi');
+    const outcome = signalTransition(prepared.ticket, payload.signal);
+    await verify(tx, operation.actor, operation.proof, 'signal', operation.targetSha256);
+    verifiedSignals.set(prepared, operation);
+    return persistSignal(tx, prepared, { ...outcome, mergedCommit: prepared.ticket.mergedCommit }, operation);
+  };
 }
 
 export function createTicketServices(deps: TicketServiceDependencies = {}) {
@@ -440,6 +562,7 @@ export function createTicketServices(deps: TicketServiceDependencies = {}) {
     assistantCreateTicket: scopedTicketCreator(deps.assistant),
     assistantRecordDecision: createAssistantDecisionRecorder(deps.assistant, immutable.docsSource),
     assistantAddDependency: createAssistantDependencyWriter(deps.assistant),
+    assistantSignalTicket: createAssistantSignalWriter(deps.assistant),
     addDependency,
     appendComment,
     appendAttachmentComment: (
