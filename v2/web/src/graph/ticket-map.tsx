@@ -7,7 +7,7 @@
  * A new root is fitted once; realtime updates never refit. Torn or malformed data shows a diagnostic and falls
  * back to the equivalent list, which is also the narrow-screen view.
  */
-import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router';
+import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
 import {
   MarkerType,
   Position,
@@ -17,7 +17,16 @@ import {
   useReactFlow,
   type Viewport,
 } from '@xyflow/react';
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { routeUuid, useRuntime } from '../app-runtime.ts';
 import type { Ticket, TicketGraph } from '../contracts/tickets.ts';
 import { TicketDialog } from '../tickets/dialog.tsx';
@@ -43,7 +52,6 @@ import {
 import {
   closeMapDialog,
   initialMapView,
-  type MapSearch,
   type MapViewState,
   maxZoom,
   minZoom,
@@ -74,9 +82,8 @@ const cardHandles: NonNullable<TicketFlowNode['handles']> = [
   { type: 'target', position: Position.Left, x: 0, y: cardHeight / 2, width: 1, height: 1 },
   { type: 'source', position: Position.Right, x: cardWidth, y: cardHeight / 2, width: 1, height: 1 },
 ];
+const minFrameHeight = 352;
 const flowStyle: CSSProperties = {
-  height: 'min(70vh, 44rem)',
-  minHeight: '22rem',
   border: '1px solid rgb(148 163 184 / 0.6)',
   borderRadius: '0.75rem',
 };
@@ -138,6 +145,25 @@ function narrowScreen(): boolean {
     : false;
 }
 
+/**
+ * Height that ends the map frame at the bottom of the window (page scrolled to the top), so “Vừa khung” shows
+ * the whole tree without scrolling; never below `minFrameHeight`.
+ */
+function useFrameHeight(frame: HTMLElement | null): number {
+  const [height, setHeight] = useState(minFrameHeight);
+  useLayoutEffect(() => {
+    if (!frame) return;
+    const measure = () => {
+      const top = frame.getBoundingClientRect().top + window.scrollY;
+      setHeight(Math.max(minFrameHeight, Math.floor(window.innerHeight - top - 16)));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [frame]);
+  return height;
+}
+
 export function TicketMap(props: TicketMapProps) {
   return (
     <ReactFlowProvider>
@@ -160,10 +186,10 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
   const [listMode, setListMode] = useState(narrowScreen);
   const [layoutRun, setLayoutRun] = useState(0);
   const [container, setContainer] = useState<HTMLElement | null>(null);
+  const [frame, setFrame] = useState<HTMLElement | null>(null);
+  const frameHeight = useFrameHeight(frame);
   const trigger = useRef<HTMLElement | null>(null);
   const fitted = useRef(restored !== null);
-  const relayout = useRef(true);
-  const positionsRef = useRef<Record<string, Point>>({});
 
   useEffect(() => {
     setView((current) =>
@@ -187,17 +213,26 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
     if (projection && projection.rootId !== rootId && onRootResolved) onRootResolved(projection.rootId);
   }, [projection, rootId, onRootResolved]);
 
-  // Known nodes keep their place across refetches; only an expand/collapse or “Sắp xếp lại” lays out again.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: layoutRun only forces the explicit relayout.
-  const positions = useMemo(() => {
-    if (!projection) return {};
-    const next = relayout.current
-      ? layoutHierarchy(projection)
-      : placeNewNodes(positionsRef.current, projection);
-    relayout.current = false;
-    positionsRef.current = next;
-    return next;
-  }, [projection, layoutRun]);
+  // Positions follow the projection as derived state (updated during render, React's pattern for state that
+  // tracks inputs): the first projection is laid out, later ones (refetch, new child, expand/collapse) keep
+  // every known card in place and only place new ones; “Sắp xếp lại” bumps `layoutRun` for a full layout.
+  const [layout, setLayout] = useState<{
+    projection: MapProjection | null;
+    run: number;
+    positions: Record<string, Point>;
+  }>({ projection: null, run: 0, positions: {} });
+  let positions = layout.positions;
+  if (projection && (layout.projection !== projection || layout.run !== layoutRun)) {
+    positions =
+      layout.projection === null || layout.run !== layoutRun
+        ? layoutHierarchy(projection)
+        : placeNewNodes(layout.positions, projection);
+    setLayout({ projection, run: layoutRun, positions });
+  }
+  const positionsRef = useRef(positions);
+  useEffect(() => {
+    positionsRef.current = positions;
+  }, [positions]);
 
   const saveViewport = useCallback((viewport: Viewport) => {
     setView((current) => moveMapViewport(current, viewport));
@@ -221,25 +256,25 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
   );
 
   const actionsRef = useRef<TicketNodeActions | null>(null);
-  actionsRef.current = {
-    open: (ticketId, element) => {
-      trigger.current = element;
-      onSelectTicket(ticketId);
-    },
-    toggle: (ticketId) => {
-      relayout.current = true;
-      setView((current) => toggleMapExpanded(current, ticketId));
-    },
-    navigate: (ticketId, direction: MapDirection) => {
-      if (!projection) return;
-      const next = neighbourInDirection(projection, positionsRef.current, ticketId, direction);
-      if (next) focusNode(next);
-    },
-    focus: (ticketId) =>
-      setView((current) =>
-        current.focusedTicketId === ticketId ? current : { ...current, focusedTicketId: ticketId },
-      ),
-  };
+  // Card callbacks read the latest render's values; they run only from events, after commit.
+  useLayoutEffect(() => {
+    actionsRef.current = {
+      open: (ticketId, element) => {
+        trigger.current = element;
+        onSelectTicket(ticketId);
+      },
+      toggle: (ticketId) => setView((current) => toggleMapExpanded(current, ticketId)),
+      navigate: (ticketId, direction: MapDirection) => {
+        if (!projection) return;
+        const next = neighbourInDirection(projection, positionsRef.current, ticketId, direction);
+        if (next) focusNode(next);
+      },
+      focus: (ticketId) =>
+        setView((current) =>
+          current.focusedTicketId === ticketId ? current : { ...current, focusedTicketId: ticketId },
+        ),
+    };
+  });
   const actions = useMemo<TicketNodeActions>(
     () => ({
       open: (id, element) => actionsRef.current?.open(id, element),
@@ -326,14 +361,8 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
   const explicit = (action: Promise<boolean>) => {
     void action.then(() => saveViewport(flow.getViewport()));
   };
-  const rearrange = () => {
-    relayout.current = true;
-    setLayoutRun((run) => run + 1);
-  };
-  const setExpandedIds = (ids: readonly string[]) => {
-    relayout.current = true;
-    setView((current) => setMapExpanded(current, ids));
-  };
+  const rearrange = () => setLayoutRun((run) => run + 1);
+  const setExpandedIds = (ids: readonly string[]) => setView((current) => setMapExpanded(current, ids));
 
   const diagnostics = projection?.diagnostics ?? [];
   const showList = listMode || diagnostics.length > 0;
@@ -432,7 +461,7 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
               onOpen={(id, element) => actionsRef.current?.open(id, element)}
             />
           ) : (
-            <div style={flowStyle}>
+            <div ref={setFrame} style={{ ...flowStyle, height: frameHeight }}>
               <ReactFlow<TicketFlowNode, TicketFlowEdge>
                 nodes={nodes}
                 edges={edges}
@@ -644,67 +673,119 @@ function RootPicker({
   );
 }
 
-/** Route `/projects/$projectId/map?root=<uuid>&ticket=<uuid>`: the open dialog lives in the URL (Back/Forward/reload). */
-export function TicketMapPage() {
-  const params = useParams({ strict: false }) as { projectId?: string };
-  const projectId = routeUuid(params.projectId);
-  const search = parseMapSearch(useSearch({ strict: false }));
-  const navigate = useNavigate();
-  const go = useCallback(
-    (next: MapSearch, replace = false) => {
-      if (!projectId) return;
-      void navigate({ to: '/projects/$projectId/map', params: { projectId }, search: next, replace });
-    },
-    [navigate, projectId],
-  );
-  const root = search.root;
-  const onRootResolved = useCallback(
-    (resolved: string) => go({ root: resolved, ...(search.ticket ? { ticket: search.ticket } : {}) }, true),
-    [go, search.ticket],
-  );
-  if (!projectId)
-    return (
-      <section className="page-stack" aria-labelledby="map-heading">
-        <h1 id="map-heading">Không tìm thấy dự án</h1>
-        <Link className="nav-link" to="/">
-          Về tổng quan
-        </Link>
-      </section>
-    );
+function MapPageFrame({ projectId, children }: { projectId: string | null; children: ReactNode }) {
   return (
     <section className="page-stack" aria-labelledby="map-heading">
       <div className="page-intro">
         <h1 id="map-heading">Sơ đồ yêu cầu</h1>
       </div>
-      <nav style={barStyle} aria-label="Cách xem ticket">
-        <Link
-          className="nav-link"
-          to="/projects/$projectId/tickets"
-          params={{ projectId }}
-          search={{ view: 'board' }}
-        >
-          Dạng bảng
-        </Link>
-        <Link
-          className="nav-link"
-          to="/projects/$projectId/tickets"
-          params={{ projectId }}
-          search={{ view: 'list' }}
-        >
-          Dạng danh sách
-        </Link>
-      </nav>
-      <RootPicker projectId={projectId} rootId={root} onPick={(picked) => go({ root: picked })} />
-      {root === undefined ? (
-        <p>Chọn một yêu cầu để xem sơ đồ.</p>
-      ) : (
-        <TicketMap
-          rootId={root}
-          selectedTicketId={search.ticket ?? null}
-          onSelectTicket={(ticketId) => go(ticketId === null ? { root } : { root, ticket: ticketId })}
-          onRootResolved={onRootResolved}
+      {projectId && (
+        <nav style={barStyle} aria-label="Cách xem ticket">
+          <Link
+            className="nav-link"
+            to="/projects/$projectId/tickets"
+            params={{ projectId }}
+            search={{ view: 'board' }}
+          >
+            Dạng bảng
+          </Link>
+          <Link
+            className="nav-link"
+            to="/projects/$projectId/tickets"
+            params={{ projectId }}
+            search={{ view: 'list' }}
+          >
+            Dạng danh sách
+          </Link>
+        </nav>
+      )}
+      {children}
+    </section>
+  );
+}
+
+function MapNotFound({ what }: { what: string }) {
+  return (
+    <section className="page-stack" aria-labelledby="map-heading">
+      <h1 id="map-heading">Không tìm thấy {what}</h1>
+      <Link className="nav-link" to="/">
+        Về tổng quan
+      </Link>
+    </section>
+  );
+}
+
+/**
+ * Route `/requests/$rootId/map?ticket=<uuid>`. The project (board/list links, request picker) comes from the
+ * root ticket itself, so a map is never shown under another project's page. The open dialog lives in the URL.
+ */
+export function RequestMapPage() {
+  const params = useParams({ strict: false }) as { rootId?: string };
+  const rootId = routeUuid(params.rootId);
+  const ticket = parseMapSearch(useSearch({ strict: false })).ticket ?? null;
+  const navigate = useNavigate();
+  const graph = useTicketGraph(useRuntime().client, rootId ?? undefined);
+  const go = useCallback(
+    (root: string, nextTicket: string | null, replace = false) =>
+      void navigate({
+        to: '/requests/$rootId/map',
+        params: { rootId: root },
+        search: nextTicket === null ? {} : { ticket: nextTicket },
+        replace,
+      }),
+    [navigate],
+  );
+  const onRootResolved = useCallback((resolved: string) => go(resolved, ticket, true), [go, ticket]);
+  const history = useRouter().history;
+  // A dialog opened in the app pushed one history entry: closing goes back over it, so Back never reopens
+  // what was just closed. A dialog that came with the URL (deep link, reload) is closed by replacing it.
+  const openedInApp = useRef(false);
+  const selectTicket = (ticketId: string | null) => {
+    if (!rootId) return;
+    if (ticketId !== null) {
+      openedInApp.current = true;
+      go(rootId, ticketId);
+    } else if (openedInApp.current) {
+      openedInApp.current = false;
+      history.back();
+    } else go(rootId, null, true);
+  };
+  if (!rootId) return <MapNotFound what="yêu cầu" />;
+  const root = graph.data?.nodes.find((row) => row.id === rootId);
+  const projectId = root?.projectId ?? null;
+  return (
+    <MapPageFrame projectId={projectId}>
+      {projectId && (
+        <RootPicker
+          projectId={projectId}
+          rootId={root?.rootId ?? rootId}
+          onPick={(picked) => go(picked, null)}
         />
       )}
-    </section>
+      <TicketMap
+        rootId={rootId}
+        selectedTicketId={ticket}
+        onSelectTicket={selectTicket}
+        onRootResolved={onRootResolved}
+      />
+    </MapPageFrame>
+  );
+}
+
+/** Route `/projects/$projectId/map`: request picker of a project (links with `?root=` are redirected by the router). */
+export function ProjectMapPickerPage() {
+  const params = useParams({ strict: false }) as { projectId?: string };
+  const projectId = routeUuid(params.projectId);
+  const navigate = useNavigate();
+  if (!projectId) return <MapNotFound what="dự án" />;
+  return (
+    <MapPageFrame projectId={projectId}>
+      <RootPicker
+        projectId={projectId}
+        rootId={undefined}
+        onPick={(picked) => void navigate({ to: '/requests/$rootId/map', params: { rootId: picked } })}
+      />
+      <p>Chọn một yêu cầu để xem sơ đồ.</p>
+    </MapPageFrame>
   );
 }

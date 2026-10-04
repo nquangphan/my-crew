@@ -381,6 +381,41 @@ test('sơ đồ: root và bước hiện mặc định, task ẩn có badge; nh�
   assert.deepEqual(source.writes(), [], 'sơ đồ chỉ đọc, không mutation');
 });
 
+const taskA2 = '0d0d0d0d-0000-4000-8000-000000000101';
+const cardAt = (id: string) =>
+  nodeButton(id)?.closest<HTMLElement>('.react-flow__node')?.style.transform ?? '';
+
+test('mở/thu gọn bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ; chỉ “Sắp xếp lại” mới bố cục toàn bộ', async () => {
+  const graph = baseGraph();
+  graph.nodes.push(row(taskA2, 'task', stepA, 'Việc A2'));
+  const source = graphServer(graph);
+  const storage = new MemoryStorage();
+  writeMapView(storage, { ...initialMapView(mapRoot), viewport: { x: 0, y: 0, zoom: 0.5 } });
+  await mountMap(source, storage);
+  const shown = [mapRoot, stepA, stepB];
+  const before = Object.fromEntries(shown.map((id) => [id, cardAt(id)]));
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở công việc của Bước A' })));
+  await until(() => nodeButton(taskA2) !== null, 'tasks of A');
+  for (const id of shown) assert.equal(cardAt(id), before[id], `mở bước không dời ${id}`);
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở tất cả' })));
+  await until(() => nodeButton(taskB1) !== null, 'expand all');
+  for (const id of shown) assert.equal(cardAt(id), before[id], `mở tất cả không dời ${id}`);
+  const cards = [...document.querySelectorAll<HTMLElement>('.react-flow__node')].map(
+    (el) => el.style.transform,
+  );
+  assert.equal(new Set(cards).size, cards.length, 'không có hai thẻ cùng chỗ');
+  await act(async () =>
+    fireEvent.click(screen.getByRole('button', { name: 'Thu gọn công việc của Bước A' })),
+  );
+  await until(() => nodeButton(taskA2) === null, 'collapse A');
+  for (const id of shown) assert.equal(cardAt(id), before[id], `thu gọn không dời ${id}`);
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Sắp xếp lại' })));
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở công việc của Bước A' })));
+  await until(() => nodeButton(taskA2) !== null, 'reopen A');
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Sắp xếp lại' })));
+  await until(() => cardAt(stepA) !== before[stepA], 'relayout moves step A between its two tasks');
+});
+
 test('mở node bằng click mở TicketDetail chung; đóng giữ viewport, expanded và trả focus về node', async () => {
   const source = graphServer(baseGraph());
   const storage = new MemoryStorage();

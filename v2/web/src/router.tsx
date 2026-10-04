@@ -9,9 +9,6 @@ import {
   useSearch,
 } from '@tanstack/react-router';
 import { useEffect, useSyncExternalStore } from 'react';
-// ReactFlow's base stylesheet for the ticket map; imported here so the map module itself stays loadable by
-// `node --test` (which cannot import CSS).
-import '@xyflow/react/dist/style.css';
 import {
   type AppRuntime,
   authorizeRoute,
@@ -135,12 +132,33 @@ export function createAppRouter(runtime: AppRuntime) {
     validateSearch: parseTicketsSearch,
     component: ProjectTicketsPage,
   });
+  // ReactFlow is only needed by the map routes; their entry (with its stylesheet) is a separate chunk.
+  const mapEntry = () => import('./graph/ticket-map-route.tsx');
+  const requestMapRoute = createRoute({
+    getParentRoute: () => protectedRoute,
+    path: '/requests/$rootId/map',
+    validateSearch: (search: Record<string, unknown>) => {
+      const { ticket } = parseMapSearch(search);
+      return ticket ? { ticket } : {};
+    },
+    component: lazyRouteComponent(mapEntry, 'RequestMapPage'),
+  });
+  // Earlier links used `/projects/<id>/map?root=<uuid>`: those redirect to the request route; without a root
+  // the page is the project's request picker.
   const projectMapRoute = createRoute({
     getParentRoute: () => protectedRoute,
     path: '/projects/$projectId/map',
     validateSearch: parseMapSearch,
-    // ReactFlow is only needed on this route; keep it out of the main bundle.
-    component: lazyRouteComponent(() => import('./graph/ticket-map.tsx'), 'TicketMapPage'),
+    beforeLoad: ({ search }) => {
+      if (search.root)
+        throw redirect({
+          to: '/requests/$rootId/map',
+          params: { rootId: search.root },
+          search: search.ticket ? { ticket: search.ticket } : {},
+          replace: true,
+        });
+    },
+    component: lazyRouteComponent(mapEntry, 'ProjectMapPickerPage'),
   });
   const projectDocsRoute = createRoute({
     getParentRoute: () => protectedRoute,
@@ -172,6 +190,7 @@ export function createAppRouter(runtime: AppRuntime) {
       projectRoute,
       projectTicketsRoute,
       projectMapRoute,
+      requestMapRoute,
       projectDocsRoute,
       ticketRoute,
     ]),

@@ -387,6 +387,66 @@ test('giữ vị trí cũ khi có node mới; node mới đặt cạnh cha; ch�
   assert.notDeepEqual(layoutHierarchy(after)[id(10)], kept[id(10)]);
 });
 
+/** Two cards overlap when they share a column band and their rows are closer than one pitch. */
+function overlaps(positions: Record<string, { x: number; y: number }>): string[] {
+  const entries = Object.entries(positions);
+  const found: string[] = [];
+  for (let i = 0; i < entries.length; i++)
+    for (let j = i + 1; j < entries.length; j++) {
+      const [a, pa] = entries[i] as [string, { x: number; y: number }];
+      const [b, pb] = entries[j] as [string, { x: number; y: number }];
+      if (Math.abs(pa.x - pb.x) < cardWidth && Math.abs(pa.y - pb.y) < pitch) found.push(`${a}~${b}`);
+    }
+  return found;
+}
+
+test('node mới không đè thẻ đang hiện của bước khác (task realtime dưới bước trên khi bước dưới cũng mở)', () => {
+  const graph = forkJoin();
+  const expanded = new Set([id(10), id(11)]);
+  const before = layoutHierarchy(projectGraph(graph, root, expanded));
+  // Step 10's tasks sit at rows 0 and 1, step 11's task at row 2: the natural slot for a new task of step 10.
+  assert.equal(before[id(110)]?.y, 2 * pitch);
+  const grown: TicketGraph = { ...graph, nodes: [...graph.nodes, ticket(102, 'task', 10)] };
+  const placed = placeNewNodes(before, projectGraph(grown, root, expanded));
+  for (const [key, point] of Object.entries(before)) assert.deepEqual(placed[key], point, `giữ ${key}`);
+  assert.equal(placed[id(102)]?.x, 2 * column);
+  assert.deepEqual(overlaps(placed), [], 'không có hai thẻ chồng nhau');
+});
+
+test('mở bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ, task mới cạnh bước, không chồng nhau', () => {
+  const graph = forkJoin();
+  const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
+  const opened = placeNewNodes(collapsed, projectGraph(graph, root, new Set(expandableIds(graph))));
+  for (const [key, point] of Object.entries(collapsed)) assert.deepEqual(opened[key], point, `giữ ${key}`);
+  assert.equal(Object.keys(opened).length, graph.nodes.length);
+  assert.equal(opened[id(100)]?.y, collapsed[id(10)]?.y, 'task đầu tiên ngang hàng bước của nó');
+  assert.deepEqual(overlaps(opened), []);
+});
+
+test('mở tất cả 200 bước / 600 task bằng placeNewNodes: không chồng thẻ, trong ngân sách thời gian', () => {
+  const nodes = [ticket(1, 'request', null)];
+  for (let s = 0; s < 200; s++) {
+    nodes.push(ticket(1000 + s, 'step', 1));
+    for (let t = 0; t < 3; t++) nodes.push(ticket(10_000 + s * 3 + t, 'task', 1000 + s));
+  }
+  const graph: TicketGraph = { nodes, dependencies: [], repairLinks: [] };
+  const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
+  const started = performance.now();
+  const opened = placeNewNodes(collapsed, projectGraph(graph, root, new Set(expandableIds(graph))));
+  const elapsed = performance.now() - started;
+  assert.equal(Object.keys(opened).length, 801);
+  const cells = new Set(Object.values(opened).map((point) => `${point.x}:${point.y}`));
+  assert.equal(cells.size, 801);
+  const byColumn = new Map<number, number[]>();
+  for (const point of Object.values(opened))
+    byColumn.set(point.x, [...(byColumn.get(point.x) ?? []), point.y]);
+  for (const ys of byColumn.values()) {
+    ys.sort((a, b) => a - b);
+    for (let i = 1; i < ys.length; i++) assert.ok((ys[i] as number) - (ys[i - 1] as number) >= pitch);
+  }
+  assert.ok(elapsed < 500, `placeNewNodes 801 node mất ${elapsed.toFixed(1)}ms`);
+});
+
 test('quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID', () => {
   const graph = forkJoin();
   assert.deepEqual(nodeRelations(graph, id(120)), {

@@ -91,9 +91,64 @@ export function layoutHierarchy(input: MapProjection): Record<string, Point> {
 }
 
 /**
- * Keeps every known position (realtime refetch, new child) and places only new nodes: next to their parent,
- * below its lowest positioned child, or at their fresh layout position when the parent is unknown. An explicit
- * “Sắp xếp lại” calls `layoutHierarchy` instead.
+ * Occupied card slots, indexed by column so a free slot is found without scanning every card. Two cards clash
+ * when their columns are closer than a card width and their rows closer than one pitch.
+ */
+class Occupancy {
+  readonly #columns = new Map<number, number[]>();
+
+  add(point: Point): void {
+    const rows = this.#columns.get(point.x);
+    if (!rows) {
+      this.#columns.set(point.x, [point.y]);
+      return;
+    }
+    let low = 0;
+    let high = rows.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if ((rows[mid] as number) < point.y) low = mid + 1;
+      else high = mid;
+    }
+    rows.splice(low, 0, point.y);
+  }
+
+  /** Lowest row of a card that clashes with a card at `point`, or null when the slot is free. */
+  clash(point: Point): number | null {
+    let worst: number | null = null;
+    for (const [x, rows] of this.#columns) {
+      if (Math.abs(x - point.x) >= cardWidth) continue;
+      let low = 0;
+      let high = rows.length;
+      while (low < high) {
+        const mid = (low + high) >> 1;
+        if ((rows[mid] as number) <= point.y - pitch) low = mid + 1;
+        else high = mid;
+      }
+      for (let index = low; index < rows.length && (rows[index] as number) < point.y + pitch; index++)
+        worst = Math.max(worst ?? Number.NEGATIVE_INFINITY, rows[index] as number);
+    }
+    return worst;
+  }
+
+  /** First free slot at or below `point` in its column. */
+  free(point: Point): Point {
+    let y = point.y;
+    for (
+      let blocking = this.clash({ x: point.x, y });
+      blocking !== null;
+      blocking = this.clash({ x: point.x, y })
+    )
+      y = blocking + pitch;
+    return { x: point.x, y };
+  }
+}
+
+/**
+ * Keeps every known position (realtime refetch, new child, expanding a step) and places only new nodes: next
+ * to their parent, below its lowest positioned child, or at their fresh layout position when the parent is
+ * unknown; a slot taken by any visible card moves the new card down to the first free slot of its column.
+ * Only an explicit “Sắp xếp lại” calls `layoutHierarchy` instead.
  */
 export function placeNewNodes(
   previous: Readonly<Record<string, Point>>,
@@ -101,9 +156,12 @@ export function placeNewNodes(
 ): Record<string, Point> {
   const { parent, children } = tree(input);
   const result: Record<string, Point> = {};
+  const occupied = new Occupancy();
   for (const row of input.nodes) {
     const known = previous[row.id];
-    if (known) result[row.id] = known;
+    if (!known) continue;
+    result[row.id] = known;
+    occupied.add(known);
   }
   const fresh = layoutHierarchy(input);
   const added = input.nodes
@@ -113,14 +171,16 @@ export function placeNewNodes(
   for (const { id, at } of added) {
     const parentId = parent.get(id);
     const anchor = parentId === undefined ? undefined : result[parentId];
-    if (parentId === undefined || !anchor) {
-      result[id] = at;
-      continue;
+    let wanted = at;
+    if (parentId !== undefined && anchor) {
+      const siblings = (children.get(parentId) ?? [])
+        .filter((sibling) => sibling !== id && result[sibling])
+        .map((sibling) => (result[sibling] as Point).y);
+      wanted = { x: anchor.x + column, y: siblings.length > 0 ? Math.max(...siblings) + pitch : anchor.y };
     }
-    const siblings = (children.get(parentId) ?? [])
-      .filter((sibling) => sibling !== id && result[sibling])
-      .map((sibling) => (result[sibling] as Point).y);
-    result[id] = { x: anchor.x + column, y: siblings.length > 0 ? Math.max(...siblings) + pitch : anchor.y };
+    const placed = occupied.free(wanted);
+    result[id] = placed;
+    occupied.add(placed);
   }
   return result;
 }

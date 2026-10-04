@@ -620,8 +620,9 @@ flows:
     title: Sơ đồ ticket chỉ đọc theo yêu cầu gốc trên web Crew v2
     doc: docs/flows/web-ticket-map.md
     entrypoints:
-      - web/src/graph/ticket-map.tsx
+      - web/src/graph/ticket-map-route.tsx
     files:
+      - web/src/graph/ticket-map.tsx
       - web/src/graph/project.ts
       - web/src/graph/layout.ts
       - web/src/graph/state.ts

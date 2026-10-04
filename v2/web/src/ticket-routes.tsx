@@ -93,14 +93,15 @@ export function ProjectTicketsPage() {
             {viewLabels[candidate]}
           </button>
         ))}
-        <Link
-          className="nav-link"
-          to="/projects/$projectId/map"
-          params={{ projectId }}
-          search={filters.rootId ? { root: filters.rootId } : {}}
-        >
-          Sơ đồ
-        </Link>
+        {filters.rootId ? (
+          <Link className="nav-link" to="/requests/$rootId/map" params={{ rootId: filters.rootId }}>
+            Sơ đồ
+          </Link>
+        ) : (
+          <Link className="nav-link" to="/projects/$projectId/map" params={{ projectId }}>
+            Sơ đồ
+          </Link>
+        )}
       </nav>
       {view === 'board' ? (
         <TicketBoard {...viewProps} />

@@ -181,7 +181,7 @@ async function warmUp(page: Page, crew: FixtureHandle): Promise<void> {
   await page.goto(`${crew.webOrigin}/crew-v2/login`);
   await page.waitForSelector('.app-shell');
   await page
-    .evaluate((url) => import(/* @vite-ignore */ url), '/crew-v2/src/graph/ticket-map.tsx')
+    .evaluate((url) => import(/* @vite-ignore */ url), '/crew-v2/src/graph/ticket-map-route.tsx')
     .catch(() => undefined);
   await page.waitForTimeout(1500);
 }
@@ -212,8 +212,58 @@ function expectSameView(after: View, before: View): void {
 }
 
 const node = (page: Page, id: string) => page.locator(`button[data-map-node="${id}"]`);
-const mapUrl = (crew: FixtureHandle, projectId: string, search: string) =>
-  `${crew.webOrigin}/crew-v2/projects/${projectId}/map?${search}`;
+/** Map route of one request tree (`phase-07-web.md`: `/requests/:rootId/map`); `search` carries `ticket`. */
+const mapUrl = (crew: FixtureHandle, rootId: string, search = '') =>
+  `${crew.webOrigin}/crew-v2/requests/${rootId}/map${search ? `?${search}` : ''}`;
+const mapPath = (rootId: string) => `/crew-v2/requests/${rootId}/map`;
+
+/** Every pair of mounted cards: none may overlap (checked on real layout boxes). */
+async function expectNoOverlap(page: Page): Promise<void> {
+  const clashes = await page.locator('.react-flow__node').evaluateAll((elements) => {
+    const boxes = elements.map((element) => ({
+      id: element.getAttribute('data-id') ?? '',
+      rect: element.getBoundingClientRect(),
+    }));
+    const found: string[] = [];
+    for (let i = 0; i < boxes.length; i++)
+      for (let j = i + 1; j < boxes.length; j++) {
+        const a = boxes[i]?.rect as DOMRect;
+        const b = boxes[j]?.rect as DOMRect;
+        if (
+          a.left < b.right - 0.5 &&
+          b.left < a.right - 0.5 &&
+          a.top < b.bottom - 0.5 &&
+          b.top < a.bottom - 0.5
+        )
+          found.push(`${boxes[i]?.id}~${boxes[j]?.id}`);
+      }
+    return found;
+  });
+  expect(clashes).toEqual([]);
+}
+
+/** After “Vừa khung” the whole frame is inside the window and every card is inside the frame. */
+async function expectFittedInWindow(page: Page): Promise<void> {
+  const result = await page.evaluate(() => {
+    const frame = document.querySelector('.react-flow')?.getBoundingClientRect();
+    if (!frame) return { frame: false, outside: [] as string[], bottom: 0 };
+    const outside = [...document.querySelectorAll<HTMLElement>('.react-flow__node')]
+      .filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return (
+          rect.left < frame.left - 1 ||
+          rect.top < frame.top - 1 ||
+          rect.right > frame.right + 1 ||
+          rect.bottom > frame.bottom + 1
+        );
+      })
+      .map((element) => element.getAttribute('data-id') ?? '');
+    return { frame: true, outside, bottom: frame.bottom - window.innerHeight };
+  });
+  expect(result.frame).toBe(true);
+  expect(result.bottom).toBeLessThanOrEqual(0);
+  expect(result.outside).toEqual([]);
+}
 
 async function graphOf(page: Page, id: string): Promise<TicketGraph> {
   return page.evaluate(async (ticketId) => {
@@ -258,8 +308,14 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   });
 
   // Graph read from a child ticket still describes the whole root (single coherent snapshot).
-  await page.goto(mapUrl(crew, seeded.projectId, `root=${root.id}`));
+  // The old project route still works for existing links: it redirects to the request route.
+  await page.goto(`${crew.webOrigin}/crew-v2/projects/${seeded.projectId}/map?root=${root.id}`);
   await signIn(page, crew);
+  await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe(mapPath(root.id));
+  await expect(page.getByRole('link', { name: 'Dạng bảng' })).toHaveAttribute(
+    'href',
+    `/crew-v2/projects/${seeded.projectId}/tickets?view=board`,
+  );
   const map = page.getByRole('region', { name: 'Sơ đồ ticket' });
   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
   const fromChild = await graphOf(page, tasks.c1.id);
@@ -282,6 +338,8 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await map.getByRole('button', { name: 'Vừa khung' }).click();
   await expect(node(page, tasks.c1.id)).toBeVisible();
   await page.waitForTimeout(400);
+  await expectNoOverlap(page);
+  await expectFittedInWindow(page);
   await shoot(page, 'map-root-fork-join-repair.png');
   await expectEdgesMatch(page, fromRoot);
   await expect(map.getByText('phải xong trước').first()).toBeVisible();
@@ -290,6 +348,10 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
 
   // Restore a stored view at zoom 1.7 that puts step A at (120, 60) of the pane (reload path), then pan by
   // hand from the empty gap left of A's column.
+  // A reload lays the tree out afresh; “Sắp xếp lại” produces that same layout, so read A's place after it.
+  await map.getByRole('button', { name: 'Sắp xếp lại' }).click();
+  await map.getByRole('button', { name: 'Vừa khung' }).click();
+  await expect(node(page, steps.A.id)).toBeVisible();
   const placed = await page
     .locator(`.react-flow__node[data-id="${steps.A.id}"]`)
     .evaluate((element) => (element as HTMLElement).style.transform);
@@ -355,21 +417,36 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await expect(map).toHaveAttribute('data-nodes', '15', { timeout: 15_000 });
   expectSameView(await viewport(page), after);
 
-  // Back reopens the dialog from the URL, Forward closes it, reload with ?ticket reopens it.
-  await page.goBack();
-  await expect(dialog).toBeVisible();
+  // Closing an in-app dialog went back in history, so the dialog entry is forward and Back leaves the map
+  // state as it is (it never reopens what was just closed).
+  const mapEntry = page.url();
   await page.goForward();
+  await expect(dialog).toBeVisible();
+  await page.goBack();
   await expect(dialog).toBeHidden();
+  expect(page.url()).toBe(mapEntry);
   expectSameView(await viewport(page), after);
-  await page.goto(mapUrl(crew, seeded.projectId, `root=${root.id}&ticket=${target.id}`));
+  // Open again, then Back closes the dialog.
+  await node(page, target.id).click();
+  await expect(dialog).toBeVisible();
+  await page.goBack();
+  await expect(dialog).toBeHidden();
+  expect(page.url()).toBe(mapEntry);
+  // Deep link with ?ticket: closing replaces the entry, Back does not reopen it.
+  await page.goto(mapUrl(crew, root.id, `ticket=${target.id}`));
   await expect(dialog).toBeVisible({ timeout: 30_000 });
   await page.keyboard.press('Escape');
   await expect(dialog).toBeHidden();
+  expect(new URL(page.url()).searchParams.get('ticket')).toBeNull();
   expectSameView(await viewport(page), after);
+  await page.goBack();
+  await expect(dialog).toBeHidden();
+  await page.goForward();
+  await expect(dialog).toBeHidden();
 
   // A malformed ticket query opens nothing and sends no ticket request or mutation.
   requests.length = 0;
-  await page.goto(mapUrl(crew, seeded.projectId, `root=${root.id}&ticket=..%2F..%2Fv2%2Fmachines`));
+  await page.goto(mapUrl(crew, root.id, 'ticket=..%2F..%2Fv2%2Fmachines'));
   await expect(page.locator('button[data-map-node]').first()).toBeAttached({ timeout: 30_000 });
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(
@@ -394,8 +471,8 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await expect(page.getByRole('region', { name: `Quan hệ của ${firstStep.title}` })).toContainText(root.id);
 
   // A child ID in the URL resolves to its root.
-  await page.goto(mapUrl(crew, seeded.projectId, `root=${tasks.a1.id}`));
-  await expect.poll(() => new URL(page.url()).searchParams.get('root'), { timeout: 15_000 }).toBe(root.id);
+  await page.goto(mapUrl(crew, tasks.a1.id));
+  await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe(mapPath(root.id));
   await expect(map).toHaveAttribute('data-nodes', '15');
 });
 
@@ -409,7 +486,7 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
   await warmUp(page, crew);
   const seeded = await seedTree(crew, owner, 'MAPB');
   const { root, steps, tasks } = seeded;
-  await page.goto(mapUrl(crew, seeded.projectId, `root=${root.id}`));
+  await page.goto(mapUrl(crew, root.id));
   await signIn(page, crew);
   const map = page.getByRole('region', { name: 'Sơ đồ ticket' });
   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
@@ -435,6 +512,8 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
   await map.getByRole('button', { name: 'Vừa khung' }).click();
   await page.waitForTimeout(400);
   await expect(page.locator('button[data-map-node]')).toHaveCount(final.nodes.length);
+  // Cards that arrived by realtime keep the old cards in place and never cover them.
+  await expectNoOverlap(page);
   for (const row of final.nodes)
     await expect(node(page, row.id)).toHaveAttribute('data-revision', String(row.revision), {
       timeout: 20_000,
@@ -459,7 +538,12 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
       'data-revision',
       String(row.revision),
     );
-  await expect(page.getByRole('link', { name: 'Sơ đồ' })).toBeVisible();
+  // Without a root filter “Sơ đồ” opens the project's request picker, which leads to the request route.
+  await page.getByRole('link', { name: 'Sơ đồ' }).click();
+  await expect(page).toHaveURL(new RegExp(`/crew-v2/projects/${seeded.projectId}/map$`));
+  await page.getByRole('combobox', { name: 'Yêu cầu' }).selectOption(root.id);
+  await expect.poll(() => new URL(page.url()).pathname).toBe(mapPath(root.id));
+  await expect(node(page, root.id)).toBeAttached({ timeout: 15_000 });
 });
 
 test('390px và 640px (tương đương zoom 200%): danh sách tương đương, không tràn ngang, mở dialog chung', async ({
@@ -469,11 +553,11 @@ test('390px và 640px (tương đương zoom 200%): danh sách tương đương,
   const owner = await ownerApi(crew);
   await warmUp(page, crew);
   const seeded = await seedTree(crew, owner, 'MAPC');
-  await page.goto(mapUrl(crew, seeded.projectId, `root=${seeded.root.id}`));
+  await page.goto(mapUrl(crew, seeded.root.id));
   await signIn(page, crew);
   for (const width of [390, 640]) {
     await page.setViewportSize({ width, height: 844 });
-    await page.goto(mapUrl(crew, seeded.projectId, `root=${seeded.root.id}`));
+    await page.goto(mapUrl(crew, seeded.root.id));
     const outline = page.getByRole('list', { name: 'Danh sách ticket thay cho sơ đồ' });
     await expect(outline).toBeVisible({ timeout: 30_000 });
     await expect(outline.locator('li[data-ticket-id]')).toHaveCount(14);
@@ -526,7 +610,7 @@ test('hiệu năng: 200 bước / 600 task — sơ đồ dùng được lần đ
   await pool(pairs, 8, async ([ticket, predecessor]) => depend(owner, ticket, predecessor));
   const seedSeconds = (Date.now() - seedStarted) / 1000;
 
-  await page.goto(mapUrl(crew, project.id, `root=${root.id}`));
+  await page.goto(mapUrl(crew, root.id));
   await signIn(page, crew);
   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
 
@@ -547,7 +631,7 @@ test('hiệu năng: 200 bước / 600 task — sơ đồ dùng được lần đ
   const reloadRuns: number[] = [];
   for (let run = 0; run < 3; run++) {
     const started = Date.now();
-    await page.goto(mapUrl(crew, project.id, `root=${root.id}`));
+    await page.goto(mapUrl(crew, root.id));
     await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole('button', { name: 'Mở tất cả' })).toBeEnabled();
     reloadRuns.push(Date.now() - started);

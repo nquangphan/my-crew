@@ -414,7 +414,8 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/graph/project.ts` | [web-ticket-map](flows/web-ticket-map.md) (file) |
 | `web/src/graph/state.ts` | [web-ticket-map](flows/web-ticket-map.md) (file) |
 | `web/src/graph/ticket-edge.tsx` | [web-ticket-map](flows/web-ticket-map.md) (file) |
-| `web/src/graph/ticket-map.tsx` | [web-ticket-map](flows/web-ticket-map.md) (điểm vào) |
+| `web/src/graph/ticket-map-route.tsx` | [web-ticket-map](flows/web-ticket-map.md) (điểm vào) |
+| `web/src/graph/ticket-map.tsx` | [web-ticket-map](flows/web-ticket-map.md) (file) |
 | `web/src/graph/ticket-node.tsx` | [web-ticket-map](flows/web-ticket-map.md) (file) |
 | `web/src/lib/api.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/lib/events.ts` | [web-data](flows/web-data.md) (file) |
