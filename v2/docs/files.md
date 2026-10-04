@@ -121,6 +121,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `gateway/test/stop-control.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/audit-dependency-content.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
 | `gateway/test/support/audit-dependency-provenance.ts` | [gateway-workflows](flows/gateway-workflows.md) (test) |
+| `gateway/test/support/bmad-render-double.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
 | `gateway/test/support/bridge-crash-worker.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/bridge-fixture.ts` | [gateway-host](flows/gateway-host.md) (test) |
 | `gateway/test/support/compare-real-builds.py` | [gateway-workflows](flows/gateway-workflows.md) (test) |

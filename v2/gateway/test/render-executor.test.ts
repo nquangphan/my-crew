@@ -20,10 +20,12 @@ import test from 'node:test';
 import { createBmadArtifactInspector, type RenderLayerPath } from '../src/assistant/render-artifacts.ts';
 import {
   createRenderExecutor,
+  type ExecutableIdentity,
+  type RenderJournal,
   type RenderOperations,
   type RenderOutcome,
   type RenderRequest,
-  type UvIdentity,
+  type RenderStageUpdate,
 } from '../src/assistant/render-executor.ts';
 import { createWorkflowManifest, type WorkflowDefinition } from '../src/assistant/workflow-manifest.ts';
 import type { ExecutionReceipt, OwnedIdentity } from '../src/workflows/operations.ts';
@@ -34,6 +36,7 @@ import {
   type SourcePin,
 } from '../src/workflows/pins.ts';
 import { manifest, manifestHash, parseArchive, type TreeFile, writeTree } from '../src/workflows/stage.ts';
+import { officialRender } from './support/bmad-render-double.ts';
 
 const fixtures = new URL('./fixtures/', import.meta.url);
 const sha256 = (bytes: Uint8Array | string) => createHash('sha256').update(bytes).digest('hex');
@@ -113,110 +116,34 @@ async function bmadDefinition(base: string, files: TreeFile[]): Promise<Workflow
   }).loadDefinition(source, projection);
 }
 
-// Python json.dumps(ensure_ascii=False, sort_keys=True, separators=(",", ":")) for string trees.
-function pythonCanonical(value: unknown): string {
-  if (typeof value === 'string') return JSON.stringify(value);
-  const record = value as Record<string, unknown>;
-  return `{${Object.keys(record)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${pythonCanonical(record[key])}`)
-    .join(',')}}`;
-}
-
-async function markdownSources(directory: string, prefix = ''): Promise<Record<string, Buffer>> {
-  const found: Record<string, Buffer> = {};
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const name = prefix ? `${prefix}/${entry.name}` : entry.name;
-    if (entry.isDirectory()) Object.assign(found, await markdownSources(join(directory, entry.name), name));
-    else if (entry.name.endsWith('.md') && name !== 'SKILL.md')
-      found[name] = await readFile(join(directory, entry.name));
-  }
-  return found;
-}
-
-type RendererOutcome = { exitCode: number; stdout: string };
-
-/**
- * Behaviour of `_bmad/scripts/render_skill.py` for token-free sources: identity from the absolute
- * project root, renderer bytes and source hashes; publish `{root}/_bmad/render/{skill}/{slug}-{root12}/{gen20}`;
- * an existing generation is compared byte-for-byte and never overwritten; prints the entry path.
- */
-async function officialRender(argv: string[]): Promise<RendererOutcome> {
-  const projectRoot = argv[argv.indexOf('--project-root') + 1];
-  const skill = argv[argv.indexOf('--skill') + 1];
-  const sources = await markdownSources(skill);
-  if (!sources['workflow.md']) return { exitCode: 1, stdout: 'HALT: workflow.md missing\n' };
-  const sourceSha256 = Object.fromEntries(
-    Object.entries(sources).map(([name, body]) => [name, sha256(body)]),
-  );
-  const identity = {
-    project_root: projectRoot,
-    renderer_sha256: sha256(await readFile(join(projectRoot, '_bmad/scripts/render_skill.py'))),
-    resolved_values: {},
-    source_sha256: sourceSha256,
-  };
-  const rootHash = sha256(projectRoot).slice(0, 12);
-  const slug = posix
-    .basename(projectRoot)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-  const generationHash = sha256(pythonCanonical(identity)).slice(0, 20);
-  const destination = `${projectRoot}/_bmad/render/${posix.basename(skill)}/${slug}-${rootHash}/${generationHash}`;
-  const outputs: Record<string, Buffer> = { ...sources };
-  const manifestBytes = Buffer.from(
-    `${JSON.stringify(
-      {
-        schema_version: 1,
-        skill: posix.basename(skill),
-        project_root: projectRoot,
-        project_slug: slug,
-        root_hash: rootHash,
-        generation_hash: generationHash,
-        inputs: identity,
-        outputs: sourceSha256,
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  const published = { ...outputs, 'manifest.json': manifestBytes };
-  const existing = await lstat(destination).catch(() => null);
-  if (existing) {
-    for (const [name, body] of Object.entries(published)) {
-      const current = await readFile(join(destination, name)).catch(() => null);
-      if (!current?.equals(body)) return { exitCode: 1, stdout: `HALT: ${destination} differs\n` };
-    }
-  } else {
-    for (const [name, body] of Object.entries(published)) {
-      await mkdir(posix.dirname(join(destination, name)), { recursive: true });
-      await writeFile(join(destination, name), body, { flag: 'wx' });
-    }
-  }
-  return { exitCode: 0, stdout: `read and follow ${destination}/workflow.md\n` };
-}
-
 type ChildResult =
   | { kind: 'exit'; exitCode: number; stdout: string }
   | { kind: 'timeout' }
   | { kind: 'fork' }
-  | { kind: 'helper-failure' };
+  | { kind: 'helper-failure' }
+  | { kind: 'busy' }
+  | { kind: 'guard-invalid' };
 type ExecuteCall = { id: string; cwd: string; command: string[]; timeoutSeconds: number; policy: string };
 
 /**
  * Test double of `OwnedOperations` mirroring the reviewed primitive's contract:
  * `absent` throws when the name exists under the owned parent; `create` makes a private,
- * exclusive `stages/{id}` and returns its identity; `execute` requires that exact stage identity,
- * a timeout of 1–120 s and an absolute command, sends merged stdout/stderr to
- * `stages/{id}/execution.log` (O_EXCL), writes one exclusive receipt `receipts/{id}.json`, throws
- * `EXECUTOR_LIFETIME_UNKNOWN` when a fork is observed and `EXECUTOR_RECEIPT_MISSING` when the helper
- * fails; a timeout is a receipt with `timedOut` and signal exit code; `remove` deletes only that
- * stage identity. The child itself is the scripted `behaviour`, never a real process.
+ * exclusive `stages/{id}` and returns its identity; `executeTree` requires that exact stage identity,
+ * a timeout of 1–120 s and an absolute command. When `.operations.guard` is held it throws
+ * `EXECUTOR_BUSY`, and when the guard is not a private regular file `EXECUTOR_GUARD_INVALID`, both
+ * before writing anything. Otherwise it writes the session leader record `receipts/{id}.leader`
+ * (O_EXCL) before the child starts, sends merged stdout/stderr to `stages/{id}/execution.log`
+ * (O_EXCL), writes one exclusive receipt `receipts/{id}.json` (`mode: 'tree'`), throws
+ * `EXECUTOR_LIFETIME_UNKNOWN` when the session was not proven empty and `EXECUTOR_RECEIPT_MISSING`
+ * when the helper fails; a timeout is a receipt with `timedOut` and signal exit code; `remove` deletes
+ * only that stage identity. The child itself is the scripted `behaviour`, never a real process.
  */
 // `NativeHelper.run` rejects with the promisified execFile error, whose `code` is the exit status.
 function helperExit(code: number): Error {
   return Object.assign(new Error(`Command failed with exit code ${code}`), { code });
 }
+
+const leaderLine = '4242 1791072000.123456\n';
 
 class FakeOperations implements RenderOperations {
   readonly root: string;
@@ -248,14 +175,14 @@ class FakeOperations implements RenderOperations {
       linkCount: s.nlink,
     };
   }
-  async execute(
+  async executeTree(
     id: string,
     object: OwnedIdentity,
     cwd: string,
     command: string[],
     timeoutSeconds = 90,
   ): Promise<ExecutionReceipt> {
-    this.calls.push(`execute:${id}`);
+    this.calls.push(`executeTree:${id}`);
     const stage = join(this.root, 'stages', id);
     const s = await lstat(stage);
     if (String(s.dev) !== object.device || String(s.ino) !== object.inode)
@@ -272,6 +199,9 @@ class FakeOperations implements RenderOperations {
     const call = { id, cwd, command: [...command], timeoutSeconds, policy };
     this.executions.push(call);
     const result = await this.behaviour(call);
+    if (result.kind === 'busy') throw new Error('EXECUTOR_BUSY');
+    if (result.kind === 'guard-invalid') throw new Error('EXECUTOR_GUARD_INVALID');
+    await writeFile(join(this.root, 'receipts', `${id}.leader`), leaderLine, { flag: 'wx', mode: 0o600 });
     if (result.kind === 'helper-failure') throw new Error('EXECUTOR_RECEIPT_MISSING');
     const log = await open(
       join(stage, 'execution.log'),
@@ -285,10 +215,16 @@ class FakeOperations implements RenderOperations {
       operationId: id,
       device: object.device,
       inode: object.inode,
-      treeEmpty: result.kind !== 'fork',
-      forkObserved: result.kind === 'fork',
+      treeEmpty: true,
+      forkObserved: true,
       exitCode: result.kind === 'exit' ? result.exitCode : 137,
       timedOut: result.kind === 'timeout',
+      mode: 'tree',
+      sessionEmptyAtExit: result.kind !== 'fork',
+      survivors: result.kind === 'fork' ? 1 : 0,
+      escaped: 0,
+      maxSessionSize: 2,
+      groupsKnown: 1,
     };
     await writeFile(join(this.root, 'receipts', `${id}.json`), JSON.stringify(receipt), { flag: 'wx' });
     if (result.kind === 'fork') throw new Error('EXECUTOR_LIFETIME_UNKNOWN');
@@ -308,14 +244,35 @@ class FakeOperations implements RenderOperations {
   }
 }
 
+/** Durable render-stage record double: keeps every update in order and can refuse new renders. */
+class MemoryJournal implements RenderJournal {
+  readonly updates: [string, RenderStageUpdate][] = [];
+  reconcileRequired = false;
+  async blocked(): Promise<boolean> {
+    return this.reconcileRequired;
+  }
+  async record(operationId: string, update: RenderStageUpdate): Promise<void> {
+    this.updates.push([operationId, structuredClone(update)]);
+  }
+  states(): string[] {
+    return this.updates.map(([, update]) => update.state);
+  }
+}
+
 type Harness = {
   base: string;
   projectRoot: string;
   definition: WorkflowDefinition;
   operations: FakeOperations;
-  uv: UvIdentity;
+  journal: MemoryJournal;
+  uv: ExecutableIdentity;
+  python: ExecutableIdentity;
   times: string[];
-  render(overrides?: Partial<RenderRequest>, uv?: UvIdentity): Promise<RenderOutcome>;
+  render(
+    overrides?: Partial<RenderRequest>,
+    uv?: ExecutableIdentity,
+    python?: ExecutableIdentity,
+  ): Promise<RenderOutcome>;
 };
 
 const officialChild = async (call: ExecuteCall): Promise<ChildResult> => ({
@@ -340,8 +297,25 @@ async function withHarness(run: (h: Harness) => Promise<void>, files = projected
     await mkdir(join(base, 'bin'));
     const uvPath = join(base, 'bin', 'uv');
     await writeFile(uvPath, 'uv 0.9.0 test bytes\n', { mode: 0o755 });
-    const uv: UvIdentity = { path: uvPath, sha256: sha256('uv 0.9.0 test bytes\n'), version: 'uv 0.9.0' };
+    const uv: ExecutableIdentity = {
+      path: uvPath,
+      realpath: uvPath,
+      sha256: sha256('uv 0.9.0 test bytes\n'),
+      version: 'uv 0.9.0',
+    };
+    // Homebrew layout: the recorded path is a symlink into the versioned keg.
+    await mkdir(join(base, 'cellar'));
+    const pythonReal = join(base, 'cellar', 'python3.13');
+    await writeFile(pythonReal, 'python 3.13 test bytes\n', { mode: 0o755 });
+    await symlink(pythonReal, join(base, 'bin', 'python3'));
+    const python: ExecutableIdentity = {
+      path: join(base, 'bin', 'python3'),
+      realpath: pythonReal,
+      sha256: sha256('python 3.13 test bytes\n'),
+      version: '3.13.5',
+    };
     const operations = new FakeOperations(join(base, 'ops'), officialChild);
+    const journal = new MemoryJournal();
     const times: string[] = [];
     let tick = Date.parse('2026-10-04T00:00:00.000Z');
     const clock = () => {
@@ -356,10 +330,17 @@ async function withHarness(run: (h: Harness) => Promise<void>, files = projected
       projectRoot,
       definition,
       operations,
+      journal,
       uv,
+      python,
       times,
-      render: (overrides = {}, override = uv) =>
-        createRenderExecutor({ operations, uv: override, clock }).render({
+      render: (overrides = {}, uvOverride = uv, pythonOverride = python) =>
+        createRenderExecutor({
+          operations,
+          journal,
+          prerequisites: { uv: uvOverride, python: pythonOverride },
+          clock,
+        }).render({
           definition: structuredClone(definition),
           projectRoot,
           attemptId,
@@ -436,7 +417,7 @@ test('render executor runs the official uv argv once and returns the exact workf
   await withHarness(async (h) => {
     const outcome = await h.render();
     assert('receipt' in outcome, JSON.stringify(outcome));
-    const argv = expectedArgv(h.projectRoot, h.uv.path);
+    const argv = expectedArgv(h.projectRoot, h.uv.realpath);
     assert.equal(h.operations.executions.length, 1);
     const [call] = h.operations.executions;
     const stage = join(h.operations.root, 'stages', `render-${operationIds[0]}`);
@@ -447,6 +428,7 @@ test('render executor runs the official uv argv once and returns the exact workf
       'UV_OFFLINE=1',
       'UV_NO_CONFIG=1',
       'UV_PYTHON_DOWNLOADS=never',
+      `UV_PYTHON=${h.python.realpath}`,
       'PYTHONDONTWRITEBYTECODE=1',
       '/usr/bin/sandbox-exec',
       '-f',
@@ -460,12 +442,17 @@ test('render executor runs the official uv argv once and returns the exact workf
     assert(call.policy.includes(`(subpath ${JSON.stringify(`${h.projectRoot}/_bmad/render`)})`));
     assert.deepEqual(h.operations.calls, [
       `absent:receipts:render-${operationIds[0]}.json`,
+      `absent:receipts:render-${operationIds[0]}.leader`,
       `absent:stages:render-${operationIds[0]}`,
       `create:render-${operationIds[0]}`,
-      `execute:render-${operationIds[0]}`,
+      `executeTree:render-${operationIds[0]}`,
       `remove:stages:render-${operationIds[0]}`,
     ]);
     assert.equal(await lstat(stage).catch(() => null), null);
+    // The session leader record is reclaimed with the stage; the execution receipt stays as reuse proof.
+    const receipts = join(h.operations.root, 'receipts');
+    assert.equal(await lstat(join(receipts, `render-${operationIds[0]}.leader`)).catch(() => null), null);
+    assert(await lstat(join(receipts, `render-${operationIds[0]}.json`)));
 
     const generationPath = outcome.receipt.data.generationPath;
     assert.match(
@@ -488,6 +475,7 @@ test('render executor runs the official uv argv once and returns the exact workf
             uvPath: h.uv.path,
             uvSha256: h.uv.sha256,
             uvVersion: h.uv.version,
+            python: { path: h.python.path, sha256: h.python.sha256, version: h.python.version },
             argv,
             exitCode: 0,
             stdoutPath: `${generationPath}/workflow.md`,
@@ -711,6 +699,12 @@ test('render executor requires the recorded uv bytes before spawning', async () 
     halted(await h.render({}, { ...h.uv, path: huge }), 'RENDER_UV_UNAVAILABLE');
     halted(await h.render({}, { ...h.uv, path: 'uv' }), 'RENDER_REQUEST_INVALID');
     halted(await h.render({}, { ...h.uv, version: '' }), 'RENDER_REQUEST_INVALID');
+    halted(await h.render({}, { ...h.uv, realpath: 'uv' }), 'RENDER_REQUEST_INVALID');
+    // The recorded resolution is part of the identity: a re-pointed link is refused.
+    halted(
+      await h.render({}, { ...h.uv, realpath: join(h.base, 'bin', 'other-uv') }),
+      'RENDER_UV_UNAVAILABLE',
+    );
     assert.deepEqual(h.operations.calls, []);
   });
 });
@@ -839,12 +833,13 @@ test('render executor returns the log digest and a sanitized first line when a r
       ),
     );
     assert.doesNotMatch(outcome.log.firstLine, /Users|owner|secret|second/);
+    assert.equal(outcome.log.lastLine, 'second line {path}');
   });
   await withHarness(async (h) => {
     h.operations.behaviour = async () => ({ kind: 'fork' });
     const outcome = await h.render();
     halted(outcome, 'RENDER_LIFETIME_UNKNOWN', true);
-    assert.deepEqual('log' in outcome && outcome.log, { sha256: sha256(''), firstLine: '' });
+    assert.deepEqual('log' in outcome && outcome.log, { sha256: sha256(''), firstLine: '', lastLine: '' });
   });
 });
 
@@ -855,8 +850,11 @@ test('render executor accepts a symlinked uv by hashing and running the resolved
     const outcome = await h.render({}, { ...h.uv, path: link });
     assert('receipt' in outcome, JSON.stringify(outcome));
     assert.equal(outcome.receipt.data.witness.uvPath, link);
-    assert.deepEqual(outcome.receipt.data.witness.argv, expectedArgv(h.projectRoot, h.uv.path));
-    assert.deepEqual(h.operations.executions[0].command.slice(-8), expectedArgv(h.projectRoot, h.uv.path));
+    assert.deepEqual(outcome.receipt.data.witness.argv, expectedArgv(h.projectRoot, h.uv.realpath));
+    assert.deepEqual(
+      h.operations.executions[0].command.slice(-8),
+      expectedArgv(h.projectRoot, h.uv.realpath),
+    );
   });
 });
 
@@ -865,7 +863,12 @@ test('render executor requires a canonical owned-operation root before reserving
     const alias = join(h.base, 'ops-alias');
     await symlink(h.operations.root, alias);
     const operations = new FakeOperations(alias, officialChild);
-    const outcome = await createRenderExecutor({ operations, uv: h.uv, clock: () => new Date() }).render({
+    const outcome = await createRenderExecutor({
+      operations,
+      journal: h.journal,
+      prerequisites: { uv: h.uv, python: h.python },
+      clock: () => new Date(),
+    }).render({
       definition: structuredClone(h.definition),
       projectRoot: h.projectRoot,
       attemptId,
@@ -921,4 +924,206 @@ test('render executor detects a file added and removed beside the renderer durin
     const outcome = await h.render();
     assert.equal('reason' in outcome && outcome.reason, 'RENDER_ARTIFACT_MISMATCH', 'custom appeared');
   });
+});
+
+test('render executor pins the recorded Python through UV_PYTHON and refuses other interpreter bytes', async () => {
+  await withHarness(async (h) => {
+    const cases: [ExecutableIdentity, string][] = [
+      [{ ...h.python, sha256: '0'.repeat(64) }, 'RENDER_PYTHON_UNAVAILABLE'],
+      [{ ...h.python, path: join(h.base, 'bin', 'missing-python') }, 'RENDER_PYTHON_UNAVAILABLE'],
+      // The link now resolves somewhere else than the install report measured.
+      [{ ...h.python, realpath: join(h.base, 'cellar', 'python3.12') }, 'RENDER_PYTHON_UNAVAILABLE'],
+      [{ ...h.python, path: 'python3' }, 'RENDER_REQUEST_INVALID'],
+      [{ ...h.python, realpath: 'relative/python' }, 'RENDER_REQUEST_INVALID'],
+      [{ ...h.python, version: '' }, 'RENDER_REQUEST_INVALID'],
+      [{ ...h.python, sha256: 'not-a-digest' }, 'RENDER_REQUEST_INVALID'],
+    ];
+    for (const [python, reason] of cases) halted(await h.render({}, h.uv, python), reason);
+    assert.deepEqual(h.operations.calls, []);
+    assert.deepEqual(h.journal.updates, []);
+    const outcome = await h.render();
+    assert('receipt' in outcome, JSON.stringify(outcome));
+    assert(h.operations.executions[0].command.includes(`UV_PYTHON=${h.python.realpath}`));
+  });
+});
+
+test('render executor records every stage transition durably and frees the session leader record', async () => {
+  await withHarness(async (h) => {
+    const outcome = await h.render();
+    assert('receipt' in outcome, JSON.stringify(outcome));
+    assert.deepEqual(h.journal.states(), ['reserved', 'pending', 'complete', 'deleted']);
+    assert(h.journal.updates.every(([id]) => id === operationIds[0]));
+    const [, pending] = h.journal.updates[1];
+    const [, complete] = h.journal.updates[2];
+    assert.equal(pending.stageIdentity?.kind, 'directory');
+    assert.equal(complete.leader, leaderLine.trim());
+    assert.equal(complete.receipt?.mode, 'tree');
+    assert.equal(complete.receipt?.forkObserved, true);
+    assert.equal(complete.error, null);
+  });
+});
+
+test('render executor keeps the stage, leader record and an unknown record when closure is unproven', async () => {
+  for (const [kind, reason] of [
+    ['fork', 'RENDER_LIFETIME_UNKNOWN'],
+    ['helper-failure', 'RENDER_OPERATION_UNAVAILABLE'],
+  ] as const) {
+    await withHarness(async (h) => {
+      h.operations.behaviour = async () => ({ kind });
+      const outcome = await h.render();
+      assert.equal('reason' in outcome && outcome.reason, reason, kind);
+      assert.deepEqual(h.journal.states(), ['reserved', 'pending', 'unknown'], kind);
+      const [, unknown] = h.journal.updates[2];
+      assert.equal(unknown.leader, leaderLine.trim(), kind);
+      assert.match(unknown.error ?? '', /^EXECUTOR_/, kind);
+      const name = `render-${operationIds[0]}`;
+      assert(await lstat(join(h.operations.root, 'stages', name)), kind);
+      assert(await lstat(join(h.operations.root, 'receipts', `${name}.leader`)), kind);
+      assert(!h.operations.calls.some((call) => call.startsWith('remove:')), kind);
+    });
+  }
+});
+
+test('render executor reclaims the stage and keeps nothing when the executor never started the child', async () => {
+  for (const [kind, reason] of [
+    ['busy', 'RENDER_OPERATION_BUSY'],
+    ['guard-invalid', 'RENDER_OPERATION_GUARD_INVALID'],
+  ] as const) {
+    await withHarness(async (h) => {
+      h.operations.behaviour = async () => ({ kind });
+      halted(await h.render(), reason);
+      const name = `render-${operationIds[0]}`;
+      assert.equal(await lstat(join(h.operations.root, 'stages', name)).catch(() => null), null, kind);
+      assert.equal(
+        await lstat(join(h.operations.root, 'receipts', `${name}.leader`)).catch(() => null),
+        null,
+      );
+      assert.deepEqual(h.journal.states(), ['reserved', 'pending', 'complete', 'deleted'], kind);
+      const [, complete] = h.journal.updates[2];
+      assert.equal(complete.receipt, null, kind);
+      assert.equal(complete.leader, null, kind);
+    });
+  }
+  await withHarness(async (h) => {
+    // The guard check fails before anything is reserved as well.
+    h.operations.absent = async () => {
+      throw helperExit(24);
+    };
+    halted(await h.render(), 'RENDER_OPERATION_GUARD_INVALID');
+    assert.deepEqual(h.journal.updates, []);
+  });
+});
+
+test('render executor refuses a run whose session leader record already exists', async () => {
+  await withHarness(async (h) => {
+    // A crash between writing the leader record and starting the child leaves only that record.
+    await writeFile(join(h.operations.root, 'receipts', `render-${operationIds[0]}.leader`), leaderLine, {
+      mode: 0o600,
+    });
+    halted(await h.render(), 'RENDER_OPERATION_REUSED');
+    assert(!h.operations.calls.some((call) => call.startsWith('create:')));
+    assert.deepEqual(h.journal.updates, []);
+  });
+});
+
+test('render executor refuses new renders while an earlier render stage awaits reconciliation', async () => {
+  await withHarness(async (h) => {
+    h.journal.reconcileRequired = true;
+    halted(await h.render(), 'RENDER_RECONCILE_REQUIRED');
+    assert.deepEqual(h.operations.calls, []);
+    assert.deepEqual(h.journal.updates, []);
+    h.journal.reconcileRequired = false;
+    assert('receipt' in (await h.render()));
+  });
+});
+
+test('render executor halts without spawning when the durable stage record cannot be written', async () => {
+  await withHarness(async (h) => {
+    const record = h.journal.record.bind(h.journal);
+    h.journal.record = async (id, update) => {
+      if (update.state === 'pending') throw new Error('disk full');
+      await record(id, update);
+    };
+    halted(await h.render(), 'RENDER_OPERATION_UNAVAILABLE');
+    assert.deepEqual(h.operations.executions, []);
+    // Nothing ran, so the reserved stage is reclaimed rather than retained.
+    assert.equal(
+      await lstat(join(h.operations.root, 'stages', `render-${operationIds[0]}`)).catch(() => null),
+      null,
+    );
+  });
+});
+
+test('render executor returns the last non-empty log line, skipping blank lines at either end', async () => {
+  await withHarness(async (h) => {
+    const stdout =
+      '\n\n  \nTraceback (most recent call last):\n' +
+      `  File "${h.projectRoot}/_bmad/scripts/render_skill.py", line 9, in <module>\n` +
+      "KeyError: 'project_name'\n\n   \n";
+    h.operations.behaviour = async () => ({ kind: 'exit', exitCode: 1, stdout });
+    const outcome = await h.render();
+    halted(outcome, 'RENDER_EXIT_NONZERO', true);
+    assert('log' in outcome && outcome.log);
+    assert.equal(outcome.log.firstLine, 'Traceback (most recent call last):');
+    // Exception names that merely contain "key" are diagnostics, not credentials.
+    assert.equal(outcome.log.lastLine, "KeyError: 'project_name'");
+  });
+  await withHarness(async (h) => {
+    // A last line longer than the tail window is never returned as a fragment of its middle.
+    const stdout = `first\napi_key=${'s'.repeat(9000)}`;
+    h.operations.behaviour = async () => ({ kind: 'exit', exitCode: 1, stdout });
+    const outcome = await h.render();
+    assert('log' in outcome && outcome.log);
+    assert.equal(outcome.log.firstLine, 'first');
+    assert.equal(outcome.log.lastLine, '');
+  });
+});
+
+test('render executor redacts credentials that follow a known path in a halt line', async () => {
+  await withHarness(async (h) => {
+    const line =
+      `fetch ${h.projectRoot}/_bmad/render?token=abc123&x=1 then ${h.uv.path}?secret=zzz ` +
+      'keyword stays, apiKey: k1 ACCESS_KEY=k2 ssh-key k3 monkey: banana';
+    h.operations.behaviour = async () => ({ kind: 'exit', exitCode: 2, stdout: `${line}\n` });
+    const outcome = await h.render();
+    assert('log' in outcome && outcome.log);
+    assert.equal(
+      outcome.log.firstLine,
+      'fetch {project-root}/_bmad/render?token={redacted} then {uv}?secret={redacted} ' +
+        'keyword stays, apiKey: {redacted} ACCESS_KEY={redacted} ssh-key k3 monkey: banana',
+    );
+    assert.doesNotMatch(outcome.log.firstLine, /abc123|zzz|k1|k2/);
+  });
+});
+
+test('render executor detects a closure file rewritten and restored during the render', async () => {
+  const places = ['_bmad/config.toml', '_bmad/scripts/config_utils.py', `${skillRoot}/steps/step-01.md`];
+  for (const place of places) {
+    await withHarness(async (h) => {
+      h.operations.behaviour = async (call) => {
+        const result = await officialRender(officialArgv(call.command));
+        const path = join(h.projectRoot, place);
+        const original = await readFile(path);
+        await writeFile(path, 'import os\n');
+        await writeFile(path, original);
+        return { kind: 'exit', ...result };
+      };
+      const outcome = await h.render();
+      assert.equal('reason' in outcome && outcome.reason, 'RENDER_ARTIFACT_MISMATCH', place);
+    });
+  }
+  // An entry added and removed in the project root, `.claude` or `.claude/skills` is seen as well.
+  for (const place of ['', '.claude', '.claude/skills']) {
+    await withHarness(async (h) => {
+      h.operations.behaviour = async (call) => {
+        const result = await officialRender(officialArgv(call.command));
+        const transient = join(h.projectRoot, place, 'sitecustomize.py');
+        await writeFile(transient, 'import os\n');
+        await rm(transient);
+        return { kind: 'exit', ...result };
+      };
+      const outcome = await h.render();
+      assert.equal('reason' in outcome && outcome.reason, 'RENDER_ARTIFACT_MISMATCH', place || 'root');
+    });
+  }
 });

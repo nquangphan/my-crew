@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
-import { lstat, mkdir, open, readdir, realpath, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, open, readdir, realpath, unlink, writeFile } from 'node:fs/promises';
 import { join, posix } from 'node:path';
 import { canonicalJson, hash } from '../journal/atomic-records.ts';
 import type { ExecutionReceipt, OwnedIdentity, OwnedOperations } from '../workflows/operations.ts';
@@ -12,12 +12,39 @@ import {
 } from './render-artifacts.ts';
 import { customizationContext, type RenderDefinition, type WorkflowDefinition } from './workflow-manifest.ts';
 
-export type UvIdentity = { path: string; sha256: string; version: string };
-export type RenderOperations = Pick<OwnedOperations, 'root' | 'absent' | 'create' | 'execute' | 'remove'>;
+/**
+ * An owner executable as the install report measured it: the path as configured or found, its
+ * resolved path (a package-manager symlink is accepted), the SHA-256 of the resolved bytes and the
+ * version it printed. The version is a pass-through witness, never re-measured.
+ */
+export type ExecutableIdentity = { path: string; realpath: string; sha256: string; version: string };
+/** Render prerequisites recorded per BMAD projection in the install report. */
+export type RenderPrerequisites = { uv: ExecutableIdentity; python: ExecutableIdentity };
+export type RenderOperations = Pick<OwnedOperations, 'root' | 'absent' | 'create' | 'executeTree' | 'remove'>;
+/**
+ * Lifecycle of one render stage `stages/render-{operationId}`: `reserved` before the stage exists,
+ * `pending` once it does, `complete` when the child's closure is proven (or it never started),
+ * `unknown` when it is not, and `deleted` once the stage is reclaimed.
+ */
+export type RenderStageState = 'reserved' | 'pending' | 'complete' | 'unknown' | 'deleted';
+export type RenderStageUpdate = {
+  state: RenderStageState;
+  stageIdentity: OwnedIdentity | null;
+  /** `receipts/render-{operationId}.leader` as the executor wrote it: "pid start-seconds.micros". */
+  leader: string | null;
+  receipt: ExecutionReceipt | null;
+  error: string | null;
+};
+/** Durable owner of render-stage records; a render starts only when nothing awaits reconciliation. */
+export type RenderJournal = {
+  blocked(): Promise<boolean>;
+  record(operationId: string, update: RenderStageUpdate): Promise<void>;
+};
 export type RenderExecutorOptions = {
   operations: RenderOperations;
-  /** Owner-installed `uv` identity as recorded by the install report; bytes are re-hashed per render. */
-  uv: UvIdentity;
+  journal: RenderJournal;
+  /** Owner `uv` and Python identities as recorded by the install report; bytes are re-hashed per render. */
+  prerequisites: RenderPrerequisites;
   clock: () => Date;
   /** Wall-clock bound enforced by the owned executor, 1–120 s. */
   timeoutSeconds?: number;
@@ -32,6 +59,8 @@ export type RenderWitness = {
   uvPath: string;
   uvSha256: string;
   uvVersion: string;
+  /** Interpreter passed as UV_PYTHON; a witness only, the generation identity does not include it. */
+  python: { path: string; sha256: string; version: string };
   argv: string[];
   exitCode: number;
   stdoutPath: string;
@@ -58,8 +87,11 @@ export type RenderHaltReason =
   | 'RENDER_PROJECT_ROOT_MISMATCH'
   | 'RENDER_INPUT_MISMATCH'
   | 'RENDER_UV_UNAVAILABLE'
+  | 'RENDER_PYTHON_UNAVAILABLE'
+  | 'RENDER_RECONCILE_REQUIRED'
   | 'RENDER_OPERATION_REUSED'
   | 'RENDER_OPERATION_BUSY'
+  | 'RENDER_OPERATION_GUARD_INVALID'
   | 'RENDER_OPERATION_UNAVAILABLE'
   | 'RENDER_LIFETIME_UNKNOWN'
   | 'RENDER_TIMED_OUT'
@@ -68,8 +100,11 @@ export type RenderHaltReason =
   | 'RENDER_ARTIFACT_MISMATCH'
   | 'RENDER_CLEANUP_FAILED'
   | 'RENDER_UNEXPECTED_FAILURE';
-/** Present on a halt once an execution log exists: its digest and a sanitized first line. */
-export type RenderLogDiagnostics = { sha256: string; firstLine: string };
+/**
+ * Present on a halt once an execution log exists: its digest and its first and last non-empty lines,
+ * each sanitized. The lines remain untrusted text.
+ */
+export type RenderLogDiagnostics = { sha256: string; firstLine: string; lastLine: string };
 export type RenderOutcome =
   | { receipt: WorkflowRenderReceipt }
   | { halt: true; reason: RenderHaltReason; log?: RenderLogDiagnostics };
@@ -86,10 +121,13 @@ const maxSnapshotBytes = 32 * 1024 * 1024;
 const maxLogBytes = 64 * 1024;
 const maxTreeEntries = 512;
 const maxTreeDepth = 32;
-const maxUvBytes = 256 * 1024 * 1024;
+const maxExecutableBytes = 256 * 1024 * 1024;
 // The owned executor caps every file it lets the child write at 64 MiB (RLIMIT_FSIZE).
 const maxDigestLogBytes = 64 * 1024 * 1024;
-const maxFirstLine = 256;
+const maxLine = 256;
+// Head and tail windows of the log read for diagnostics.
+const lineWindow = 4096;
+const leaderRecord = /^\d{1,10} \d{1,20}\.\d{6}$/;
 // `render_skill.py` puts its own directory first on `sys.path`; nothing else may sit beside it.
 const scriptNames = ['config_utils.py', 'render_skill.py'];
 
@@ -315,8 +353,11 @@ async function checkClosure(projectRoot: string, render: RenderDefinition): Prom
     throw new Error('RENDER_CLOSURE_MISMATCH');
 }
 
-/** SHA-256 of a single-link regular file read without following a final symlink, within `maxBytes`. */
-async function digestFile(path: string, maxBytes: number): Promise<{ sha256: string; head: Buffer }> {
+/** SHA-256 of a regular file read without following a final symlink, within `maxBytes`, with head and tail windows. */
+async function digestFile(
+  path: string,
+  maxBytes: number,
+): Promise<{ sha256: string; head: Buffer; tail: Buffer; size: number }> {
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
   try {
     const stat = await handle.stat();
@@ -324,69 +365,122 @@ async function digestFile(path: string, maxBytes: number): Promise<{ sha256: str
     const digest = createHash('sha256');
     const chunk = Buffer.alloc(1024 * 1024);
     let head = Buffer.alloc(0);
+    let tail = Buffer.alloc(0);
     let length = 0;
     for (;;) {
       const { bytesRead } = await handle.read(chunk, 0, chunk.length, length);
       if (bytesRead === 0) break;
       length += bytesRead;
       if (length > stat.size) throw new Error('RENDER_FILE_UNBOUNDED');
-      if (head.length < 4096)
-        head = Buffer.concat([head, chunk.subarray(0, Math.min(bytesRead, 4096 - head.length))]);
-      digest.update(chunk.subarray(0, bytesRead));
+      const read = chunk.subarray(0, bytesRead);
+      if (head.length < lineWindow)
+        head = Buffer.concat([head, read.subarray(0, Math.min(bytesRead, lineWindow - head.length))]);
+      tail = Buffer.from(Buffer.concat([tail, read]).subarray(-lineWindow));
+      digest.update(read);
     }
     if (length !== stat.size) throw new Error('RENDER_FILE_UNBOUNDED');
-    return { sha256: digest.digest('hex'), head };
+    return { sha256: digest.digest('hex'), head, tail, size: length };
   } finally {
     await handle.close();
   }
 }
 
+/**
+ * First and last non-empty lines of a log from its head and tail windows. A tail window that does not
+ * start the file drops its leading partial line, so a last line longer than the window is reported
+ * empty rather than as a fragment of its middle.
+ */
+function logLines(head: Buffer, tail: Buffer, size: number): { first: string; last: string } {
+  const decode = (bytes: Buffer) => new TextDecoder('utf-8').decode(bytes);
+  const first = decode(head)
+    .split('\n')
+    .find((line) => line.trim() !== '');
+  let window = tail;
+  if (size > tail.length) {
+    const newline = tail.indexOf(0x0a);
+    window = newline < 0 ? Buffer.alloc(0) : tail.subarray(newline + 1);
+  }
+  const lines = decode(window).split('\n');
+  let last = '';
+  for (let index = lines.length - 1; index >= 0; index--)
+    if (lines[index].trim() !== '') {
+      last = lines[index];
+      break;
+    }
+  return { first: first ?? '', last };
+}
+
 // A path runs until whitespace, a quote, a backtick or a closing bracket.
 const pathRun = /(?:~[A-Za-z0-9_.-]*)?\/[^\s'"`\]>)}]*/g;
+// Only plain path characters may follow a known path into its label; anything else (a query string,
+// `=` or `:`) stays in the line for the credential rules.
+const labelSuffix = '(/[A-Za-z0-9._/-]*)?';
+// Field names that may carry a credential value; `key` counts only as a separate word or camel-case
+// suffix, so `KeyError`, `keyword` or `monkey` stay readable.
+const credentialField =
+  /\b([A-Za-z0-9_-]*(?:token|secret|passw(?:or)?d|credential|key)[A-Za-z0-9_-]*)(\s*[:=]\s*)("[^"]*"|'[^']*'|\S+)/gi;
+
+function credentialName(name: string): boolean {
+  return (
+    /token|secret|passw(?:or)?d|credential/i.test(name) ||
+    /(?:^|[_-])keys?(?:$|[_-])/i.test(name) ||
+    /[a-z0-9]Keys?$/.test(name)
+  );
+}
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
- * First log line safe to hand to the server or owner. Known host paths become labels (their
+ * A log line safe to hand to the server or owner. Known host paths become labels (their plain
  * workspace-relative suffix is kept); `Bearer` credentials and the values of `*token*`, `*secret*`,
- * `*key*` and `*password*` fields (`name: value` or `name=value`) and of any `NAME=value` are
- * redacted; every other `/…` or `~/…` path becomes `{path}` whatever precedes it; then printable
- * ASCII only. The result is still untrusted text.
+ * `*password*`, `*credential*` and `key` fields (`name: value` or `name=value`) and of any
+ * `NAME=value` are redacted; every other `/…` or `~/…` path becomes `{path}` whatever precedes it;
+ * then printable ASCII only. The result is still untrusted text.
  */
-function sanitizeFirstLine(head: Buffer, labels: readonly [string, string][]): string {
-  const newline = head.indexOf(0x0a);
-  let line = new TextDecoder('utf-8').decode(newline < 0 ? head : head.subarray(0, newline));
+function sanitizeLine(text: string, labels: readonly [string, string][]): string {
   // Finished fragments are parked behind private-use delimiters so later rules cannot touch them;
   // delimiters already present in the child's output are dropped first.
-  line = line.replace(/[\uE000\uE001]/g, '');
+  let line = text.replace(/[]/g, '');
   const kept: string[] = [];
-  const hold = (text: string) => `\uE000${kept.push(text) - 1}\uE001`;
+  const hold = (fragment: string) => `${kept.push(fragment) - 1}`;
   for (const [value, label] of [...labels].sort((a, b) => b[0].length - a[0].length))
-    line = line.replace(
-      new RegExp(`${escapeRegExp(value)}(/[^\\s'"\`\\]>)}]*)?`, 'g'),
-      (_match, suffix: string | undefined) => hold(`${label}${suffix ?? ''}`),
+    line = line.replace(new RegExp(`${escapeRegExp(value)}${labelSuffix}`, 'g'), (_match, suffix?: string) =>
+      hold(`${label}${suffix ?? ''}`),
     );
   line = line.replace(/\bBearer\s+\S+/gi, () => hold('Bearer {redacted}'));
-  line = line.replace(
-    /\b([A-Za-z0-9_-]*(?:token|secret|key|password)[A-Za-z0-9_-]*)(\s*[:=]\s*)("[^"]*"|'[^']*'|\S+)/gi,
-    (_match, name: string, separator: string) => `${name}${separator}${hold('{redacted}')}`,
-  );
+  let redacted = '';
+  let copied = 0;
+  credentialField.lastIndex = 0;
+  for (let match = credentialField.exec(line); match !== null; match = credentialField.exec(line)) {
+    const [, name, separator] = match;
+    if (!credentialName(name)) {
+      // Resume right after the name so a credential inside the skipped value is still found.
+      credentialField.lastIndex = match.index + name.length;
+      continue;
+    }
+    redacted += `${line.slice(copied, match.index)}${name}${separator}${hold('{redacted}')}`;
+    copied = credentialField.lastIndex;
+  }
+  line = redacted + line.slice(copied);
   line = line.replace(
     /\b([A-Za-z_][A-Za-z0-9_]*)=\S*/g,
     (_match, name: string) => `${name}=${hold('{redacted}')}`,
   );
   line = line.replace(pathRun, '{path}');
-  line = line.replace(/\uE000(\d+)\uE001/g, (_match, index: string) => kept[Number(index)] ?? '?');
+  line = line.replace(/(\d+)/g, (_match, index: string) => kept[Number(index)] ?? '?');
   return [...line]
     .map((character) => (/^[\x20-\x7e]$/.test(character) ? character : '?'))
     .join('')
-    .slice(0, maxFirstLine);
+    .slice(0, maxLine);
 }
 
-/** Directory identity (device, inode, mtime, ctime in ns); adding or removing an entry changes it. */
-async function directoryStamp(path: string): Promise<string | null> {
+/**
+ * Identity of a closure entry (device, inode, mtime and ctime in ns, size): rewriting a file, even
+ * back to its original bytes, or adding and removing a directory entry changes it.
+ */
+async function entryStamp(path: string, kind: 'directory' | 'file'): Promise<string | null> {
   let stat: Awaited<ReturnType<typeof lstat>> & { mtimeNs: bigint; ctimeNs: bigint };
   try {
     stat = await lstat(path, { bigint: true });
@@ -394,25 +488,37 @@ async function directoryStamp(path: string): Promise<string | null> {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
     throw error;
   }
-  if (!stat.isDirectory()) throw new Error('RENDER_CLOSURE_MISMATCH');
-  return `${stat.dev}:${stat.ino}:${stat.mtimeNs}:${stat.ctimeNs}`;
+  if (kind === 'directory' ? !stat.isDirectory() : !stat.isFile()) throw new Error('RENDER_CLOSURE_MISMATCH');
+  return `${stat.dev}:${stat.ino}:${stat.mtimeNs}:${stat.ctimeNs}:${stat.size}`;
 }
 
 /**
- * Stamps of every directory whose entries form the renderer's closure, so a file added and removed
- * between the two closure checks is still seen.
+ * Stamps of the project root, `.claude`, `.claude/skills`, every `_bmad` closure directory and the
+ * files directly in it, and the whole selected skill tree, so a change made and undone between the
+ * two closure checks is still seen. Generations under `_bmad/render` are measured separately.
  */
 async function closureStamps(projectRoot: string): Promise<string> {
   const stamps: [string, string | null][] = [];
-  for (const path of ['_bmad', '_bmad/scripts', '_bmad/custom'])
-    stamps.push([path, await directoryStamp(join(projectRoot, path))]);
+  const add = async (path: string, kind: 'directory' | 'file') => {
+    if (stamps.length >= 2 * maxTreeEntries) throw new Error('RENDER_TREE_SHAPE');
+    const stamp = await entryStamp(join(projectRoot, path), kind);
+    stamps.push([path, stamp]);
+    return stamp;
+  };
+  for (const path of ['', '.claude', '.claude/skills']) await add(path, 'directory');
+  for (const path of ['_bmad', '_bmad/scripts', '_bmad/custom']) {
+    if ((await add(path, 'directory')) === null) continue;
+    for (const entry of await readdir(join(projectRoot, path), { withFileTypes: true }))
+      if (entry.isFile()) await add(`${path}/${entry.name}`, 'file');
+  }
   const pending = [skillRoot];
   while (pending.length > 0) {
     const path = pending.shift() as string;
-    if (stamps.length > maxTreeEntries) throw new Error('RENDER_TREE_SHAPE');
-    stamps.push([path, await directoryStamp(join(projectRoot, path))]);
-    for (const entry of await readdir(join(projectRoot, path), { withFileTypes: true }))
+    if ((await add(path, 'directory')) === null) continue;
+    for (const entry of await readdir(join(projectRoot, path), { withFileTypes: true })) {
       if (entry.isDirectory()) pending.push(`${path}/${entry.name}`);
+      else await add(`${path}/${entry.name}`, 'file');
+    }
   }
   return JSON.stringify(stamps);
 }
@@ -423,7 +529,63 @@ function helperFailure(error: unknown, existing: RenderHaltReason): RenderHaltRe
   if (code === 22) return existing;
   // 20: another owned operation holds `.operations.guard` (flock LOCK_NB).
   if (code === 20) return 'RENDER_OPERATION_BUSY';
+  // 24: the guard is not a private regular file of this user; retrying cannot help.
+  if (code === 24) return 'RENDER_OPERATION_GUARD_INVALID';
   return 'RENDER_OPERATION_UNAVAILABLE';
+}
+
+function validIdentity(identity: ExecutableIdentity): boolean {
+  return (
+    isPlainRecord(identity) &&
+    lexicalPath(identity.path) &&
+    lexicalPath(identity.realpath) &&
+    typeof identity.sha256 === 'string' &&
+    digest.test(identity.sha256) &&
+    typeof identity.version === 'string' &&
+    /^[\x20-\x7e]{1,128}$/.test(identity.version)
+  );
+}
+
+/**
+ * The recorded path still resolves to the recorded file and its bytes (bounded) hash as recorded.
+ * A package-manager symlink is accepted; the resolved file is what runs.
+ */
+async function verifyExecutable(identity: ExecutableIdentity): Promise<string> {
+  const resolved = await realpath(identity.path);
+  if (
+    resolved !== identity.realpath ||
+    (await digestFile(resolved, maxExecutableBytes)).sha256 !== identity.sha256
+  )
+    throw new Error('RENDER_EXECUTABLE_IDENTITY');
+  return resolved;
+}
+
+/**
+ * Deletes `receipts/{name}.leader` once its stage is reclaimed: it is only reconcile evidence for a
+ * stage that still exists. The execution receipt `{name}.json` stays as proof the operation ran.
+ */
+async function removeLeader(root: string, name: string): Promise<void> {
+  const path = join(root, 'receipts', `${name}.leader`);
+  let stat: Awaited<ReturnType<typeof lstat>>;
+  try {
+    stat = await lstat(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+    throw error;
+  }
+  if (!stat.isFile() || stat.nlink !== 1 || stat.uid !== process.getuid?.())
+    throw new Error('RENDER_LEADER_UNSAFE');
+  await unlink(path);
+}
+
+/** Reclaims a render stage whose closure is proven, then its session leader record. */
+export async function reclaimRenderStage(
+  operations: Pick<RenderOperations, 'root' | 'remove'>,
+  name: string,
+  identity: OwnedIdentity,
+): Promise<void> {
+  await operations.remove('stages', name, identity);
+  await removeLeader(operations.root, name);
 }
 
 function policy(stage: string, projectRoot: string): string {
@@ -444,8 +606,9 @@ function policy(stage: string, projectRoot: string): string {
 export function createRenderExecutor(options: RenderExecutorOptions): {
   render(request: RenderRequest): Promise<RenderOutcome>;
 } {
-  const { operations, clock } = options;
-  const uv = { ...options.uv };
+  const { operations, journal, clock } = options;
+  const uv = { ...options.prerequisites?.uv } as ExecutableIdentity;
+  const python = { ...options.prerequisites?.python } as ExecutableIdentity;
   const timeoutSeconds = options.timeoutSeconds ?? 60;
   if (!Number.isInteger(timeoutSeconds) || timeoutSeconds < 1 || timeoutSeconds > 120)
     throw new Error('RENDER_EXECUTOR_TIMEOUT_INVALID');
@@ -465,11 +628,8 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
       typeof operationId !== 'string' ||
       !uuid.test(operationId) ||
       !lexicalPath(projectRoot) ||
-      !lexicalPath(uv.path) ||
-      typeof uv.sha256 !== 'string' ||
-      !digest.test(uv.sha256) ||
-      typeof uv.version !== 'string' ||
-      !/^[\x20-\x7e]{1,128}$/.test(uv.version)
+      !validIdentity(uv) ||
+      !validIdentity(python)
     )
       halt('RENDER_REQUEST_INVALID');
     const slug = projectSlug(projectRoot);
@@ -535,13 +695,10 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
       return before;
     });
 
-    // A package-manager symlink is accepted: the resolved file is hashed (bounded) and executed.
-    const uvExecutable = await guard('RENDER_UV_UNAVAILABLE', async () => {
-      const resolved = await realpath(uv.path);
-      if (!lexicalPath(resolved) || (await digestFile(resolved, maxUvBytes)).sha256 !== uv.sha256)
-        throw new Error('RENDER_UV_IDENTITY');
-      return resolved;
-    });
+    const uvExecutable = await guard('RENDER_UV_UNAVAILABLE', () => verifyExecutable(uv));
+    // `uv` itself would pick an interpreter from the owner's environment, which the executor hides;
+    // UV_PYTHON pins the one the install report measured, whose bytes must still match.
+    const pythonExecutable = await guard('RENDER_PYTHON_UNAVAILABLE', () => verifyExecutable(python));
 
     const argv = [
       uvExecutable,
@@ -560,33 +717,70 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
       if (!lexicalPath(stage) || (await realpath(operations.root)) !== operations.root)
         throw new Error('RENDER_STAGE_NOT_CANONICAL');
     });
+    // One render stage whose closure was never proven blocks every new render on this root.
+    if (await guard('RENDER_OPERATION_UNAVAILABLE', () => journal.blocked()))
+      halt('RENDER_RECONCILE_REQUIRED');
     try {
       await operations.absent('receipts', `${stageName}.json`);
+      await operations.absent('receipts', `${stageName}.leader`);
       await operations.absent('stages', stageName);
     } catch (error) {
       halt(helperFailure(error, 'RENDER_OPERATION_REUSED'));
     }
+
+    const record: RenderStageUpdate = {
+      state: 'reserved',
+      stageIdentity: null,
+      leader: null,
+      receipt: null,
+      error: null,
+    };
+    const note = (update: Partial<RenderStageUpdate>) => {
+      Object.assign(record, update);
+      return journal.record(operationId, { ...record });
+    };
+    await guard('RENDER_OPERATION_UNAVAILABLE', () => note({}));
     let identity: OwnedIdentity;
     try {
       identity = await operations.create(stageName);
     } catch (error) {
+      const code = (error as { code?: unknown } | null)?.code;
+      // 20 and 24 refuse before the stage directory is made; any other failure may leave it behind.
+      await note(
+        code === 20 || code === 24
+          ? { state: 'deleted', error: `HELPER_EXIT_${code}` }
+          : { state: 'unknown', error: 'RENDER_STAGE_CREATE_FAILED' },
+      ).catch(() => undefined);
       halt(helperFailure(error, 'RENDER_OPERATION_UNAVAILABLE'));
     }
-    const reclaim = () => operations.remove('stages', stageName, identity);
+    const reclaim = async () => {
+      await reclaimRenderStage(operations, stageName, identity);
+      await note({ state: 'deleted' });
+    };
+    // The child never started: the stage is reclaimed, or left `complete` for cleanup if that fails.
+    const abandon = async (reason: RenderHaltReason, error: string): Promise<never> => {
+      await note({ state: 'complete', error }).catch(() => undefined);
+      await reclaim().catch(() => undefined);
+      halt(reason);
+    };
+    try {
+      await note({ state: 'pending', stageIdentity: identity });
+    } catch {
+      await abandon('RENDER_OPERATION_UNAVAILABLE', 'RENDER_JOURNAL_FAILED');
+    }
     const policyPath = join(stage, 'render.sb');
     try {
       // The owned executor points HOME/XDG/TMPDIR inside its working directory: the stage.
       for (const name of ['home', 'tmp']) await mkdir(join(stage, name), { mode: 0o700 });
       await writeFile(policyPath, policy(stage, projectRoot), { flag: 'wx', mode: 0o600 });
     } catch {
-      await reclaim().catch(() => undefined);
-      halt('RENDER_OPERATION_UNAVAILABLE');
+      await abandon('RENDER_OPERATION_UNAVAILABLE', 'RENDER_STAGE_SETUP_FAILED');
     }
 
     const startedAt = clock().toISOString();
     let receipt: ExecutionReceipt;
     try {
-      receipt = await operations.execute(
+      receipt = await operations.executeTree(
         stageName,
         identity,
         stage,
@@ -595,6 +789,7 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
           'UV_OFFLINE=1',
           'UV_NO_CONFIG=1',
           'UV_PYTHON_DOWNLOADS=never',
+          `UV_PYTHON=${pythonExecutable}`,
           'PYTHONDONTWRITEBYTECODE=1',
           '/usr/bin/sandbox-exec',
           '-f',
@@ -604,17 +799,30 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
         timeoutSeconds,
       );
     } catch (error) {
-      // Child closure is unproven: the stage stays for owned-operation reconciliation.
+      const message = error instanceof Error ? error.message : '';
+      // The helper refused before forking or writing anything, so nothing ran.
+      if (message === 'EXECUTOR_BUSY') await abandon('RENDER_OPERATION_BUSY', message);
+      if (message === 'EXECUTOR_GUARD_INVALID') await abandon('RENDER_OPERATION_GUARD_INVALID', message);
+      // Child closure is unproven: the stage and its leader record stay for reconciliation.
+      await note({
+        state: 'unknown',
+        leader: await readLeader(),
+        error: /^EXECUTOR_[A-Z_]{1,48}$/.test(message) ? message : 'EXECUTOR_FAILED',
+      }).catch(() => undefined);
       throw new RenderHalt(
-        error instanceof Error && error.message === 'EXECUTOR_LIFETIME_UNKNOWN'
-          ? 'RENDER_LIFETIME_UNKNOWN'
-          : 'RENDER_OPERATION_UNAVAILABLE',
+        message === 'EXECUTOR_LIFETIME_UNKNOWN' ? 'RENDER_LIFETIME_UNKNOWN' : 'RENDER_OPERATION_UNAVAILABLE',
         await diagnostics(),
       );
     }
     const endedAt = clock().toISOString();
     // Measured before any reclaim so a halt can still name what the child printed.
     const log = await diagnostics();
+    try {
+      await note({ state: 'complete', leader: await readLeader(), receipt });
+    } catch {
+      await reclaim().catch(() => undefined);
+      throw new RenderHalt('RENDER_OPERATION_UNAVAILABLE', log);
+    }
 
     let result: WorkflowRenderReceipt;
     try {
@@ -630,17 +838,36 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
     }
     return result;
 
+    /** The leader record the helper wrote for this stage, or null when absent or malformed. */
+    async function readLeader(): Promise<string | null> {
+      try {
+        const bytes = await readContained(operations.root, `receipts/${stageName}.leader`, 64, {
+          remaining: 64,
+        });
+        const text = bytes === null ? '' : bytes.toString('latin1').replace(/\n$/, '');
+        return leaderRecord.test(text) ? text : null;
+      } catch {
+        return null;
+      }
+    }
+
     async function diagnostics(): Promise<RenderLogDiagnostics | undefined> {
       try {
-        const { sha256, head } = await digestFile(join(stage, 'execution.log'), maxDigestLogBytes);
+        const { sha256, head, tail, size } = await digestFile(
+          join(stage, 'execution.log'),
+          maxDigestLogBytes,
+        );
         const labels: [string, string][] = [
           [projectRoot, '{project-root}'],
           [stage, '{stage}'],
           [operations.root, '{operations}'],
           [uvExecutable, '{uv}'],
           [uv.path, '{uv}'],
+          [pythonExecutable, '{python}'],
+          [python.path, '{python}'],
         ];
-        return { sha256, firstLine: sanitizeFirstLine(head, labels) };
+        const { first, last } = logLines(head, tail, size);
+        return { sha256, firstLine: sanitizeLine(first, labels), lastLine: sanitizeLine(last, labels) };
       } catch {
         return undefined;
       }
@@ -728,6 +955,7 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
             uvPath: uv.path,
             uvSha256: uv.sha256,
             uvVersion: uv.version,
+            python: { path: python.path, sha256: python.sha256, version: python.version },
             argv,
             exitCode: execution.exitCode,
             stdoutPath: `${generationPath}${entrySuffix}`,
