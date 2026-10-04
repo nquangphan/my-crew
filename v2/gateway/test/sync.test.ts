@@ -501,6 +501,123 @@ test('sync carries the workflow definition on current projections only, and omit
   }
 });
 
+test('sync reports measured render prerequisites beside a BMAD render definition only', async () => {
+  const owned = await bridgeRoot(),
+    w = await workflowFixture(owned.root);
+  await w.install();
+  const command = {
+    id: randomUUID(),
+    machineId: randomUUID(),
+    type: 'sync_workflows',
+    payload: { configRevision: 1 },
+    state: 'queued',
+    result: null,
+    cursor: '1',
+  };
+  const definitions = {
+    async loadDefinition(
+      source: import('../src/host/status.ts').SourcePin,
+      projection: import('../src/host/status.ts').ProjectionPin,
+    ) {
+      if (source.name === 'bmad' && projection.runtime !== 'claude')
+        throw new Error('WORKFLOW_DEFINITION_UNAVAILABLE');
+      // Only the BMAD claude definition carries a render tier; its content is opaque to sync.
+      return {
+        sha256: projection.treeSha256,
+        skills: [],
+        customizationSha256: projection.manifestSha256,
+        ...(source.name === 'bmad' ? { render: { marker: 'render-tier' } } : {}),
+      } as unknown as import('../src/assistant/workflow-manifest.ts').WorkflowDefinition;
+    },
+  };
+  const measured = {
+    uv: {
+      path: '/opt/homebrew/bin/uv',
+      realpath: '/opt/homebrew/Cellar/uv/0.12.13/bin/uv',
+      sha256: 'a'.repeat(64),
+      version: 'uv 0.12.13',
+    },
+    python: {
+      path: '/opt/homebrew/bin/python3.13',
+      realpath: '/opt/homebrew/Cellar/python@3.13/3.13.5/bin/python3.13',
+      sha256: 'b'.repeat(64),
+      version: '3.13.5',
+    },
+  };
+  const run = async (probe?: (projectionRoot: string) => Promise<typeof measured>) => {
+    const reports: import('../src/commands/contracts.ts').InstallReport[] = [];
+    const home = await bridgeRoot();
+    const http = await HttpOperationJournal.open(home.root, async (req) => {
+      if (req.phase === 'install-report') {
+        reports.push(req.canonicalBody as (typeof reports)[number]);
+        return { status: 200, body: { accepted: true, appliedRevision: 1 } };
+      }
+      return { status: 200, body: command };
+    });
+    const sync = await GatewaySync.open(home.root, {
+      machineId: command.machineId,
+      bootId: randomUUID(),
+      bootGeneration: '1',
+      registry: w.registry,
+      http,
+      recipes: w.projections,
+      definitions,
+      ...(probe ? { prerequisites: probe } : {}),
+      read: async (route) =>
+        route === '/v2/gateway/config'
+          ? { revision: 1, desired: w.desired, maxJobs: 1, enabled: true }
+          : { items: [command], nextCursor: '1' },
+      archive: async () => {
+        throw new Error('HEALTHY_CACHE_MUST_NOT_DOWNLOAD');
+      },
+    });
+    try {
+      await sync.reconcile();
+    } finally {
+      await sync.close();
+      await http.close();
+      await home.cleanup();
+    }
+    assert.equal(reports.length, 1);
+    return reports[0].results as unknown as Record<
+      string,
+      { projections: Record<string, { state: string; definition?: unknown; prerequisites?: unknown }> }
+    >;
+  };
+  try {
+    const plain = await run();
+    const probed: string[] = [];
+    const results = await run(async (projectionRoot) => {
+      probed.push(projectionRoot);
+      return measured;
+    });
+    const expectedRoot = (await w.registry.resolve(w.desired.bmad.source, w.desired.bmad.projections.claude))
+      .projectionRoot;
+    assert.deepEqual(probed, [expectedRoot]);
+    assert.deepEqual(results.bmad.projections.claude.prerequisites, measured);
+    for (const [name, slots] of Object.entries(results))
+      for (const [runtime, slot] of Object.entries(slots.projections)) {
+        if (name !== 'bmad' || runtime !== 'claude')
+          assert.equal('prerequisites' in slot, false, `${name}:${runtime}`);
+        // The additive field never changes the definition the server matches against.
+        assert.deepEqual(slot.definition, plain[name].projections[runtime].definition, `${name}:${runtime}`);
+        assert.equal(slot.state, plain[name].projections[runtime].state);
+      }
+    assert.equal('prerequisites' in plain.bmad.projections.claude, false);
+
+    // A machine without uv or a usable Python still reports the projection and its definition.
+    const missing = await run(async () => {
+      throw new Error('RENDER_PYTHON_UNAVAILABLE');
+    });
+    assert.equal(missing.bmad.projections.claude.state, 'current');
+    assert.deepEqual(missing.bmad.projections.claude.definition, plain.bmad.projections.claude.definition);
+    assert.equal('prerequisites' in missing.bmad.projections.claude, false);
+  } finally {
+    await w.close();
+    await owned.cleanup();
+  }
+});
+
 // Shared golden vector: the server install-report test reads this exact file, so a definition produced
 // by the real gateway adapter is proven acceptable to the server digest check (and vice versa).
 const vectorUrl = new URL('./fixtures/workflow-definitions/install-report-vector.json', import.meta.url);

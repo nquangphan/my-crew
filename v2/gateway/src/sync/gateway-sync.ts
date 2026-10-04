@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
+import type { RenderPrerequisites } from '../assistant/render-executor.ts';
 import type { WorkflowDefinition } from '../assistant/workflow-manifest.ts';
 import type {
   GatewayCommand,
@@ -54,6 +55,12 @@ export type SyncOptions = {
   definitions?: {
     loadDefinition(source: SourcePin, projection: ProjectionPin): Promise<WorkflowDefinition>;
   };
+  /**
+   * Measures the render prerequisites for an installed projection root (for example
+   * `probeRenderPrerequisites`); consulted only beside a BMAD render definition. A failure only omits
+   * the field: a machine without `uv` or a usable Python still reports its projections.
+   */
+  prerequisites?: (projectionRoot: string) => Promise<RenderPrerequisites>;
   archive?: (source: SourcePin) => Promise<Readable>;
   now?: () => number;
   random?: () => number;
@@ -135,6 +142,14 @@ export class GatewaySync {
     } catch (error) {
       if ((error as Error)?.message === 'WORKFLOW_DEFINITION_UNAVAILABLE') return null;
       throw error;
+    }
+  }
+  private async prerequisites(source: SourcePin, pin: ProjectionPin): Promise<RenderPrerequisites | null> {
+    const { projectionRoot } = await this.options.registry.resolve(source, pin);
+    try {
+      return (await this.options.prerequisites?.(projectionRoot)) ?? null;
+    } catch {
+      return null;
     }
   }
   private async process(record: SyncRecord, config: GatewayConfig | null) {
@@ -223,6 +238,10 @@ export class GatewaySync {
               continue;
             }
             if (definition) results[name].projections[runtime].definition = definition;
+            if (definition?.render && this.options.prerequisites) {
+              const prerequisites = await this.prerequisites(desired.source, pin);
+              if (prerequisites) results[name].projections[runtime].prerequisites = prerequisites;
+            }
           } catch {
             results[name].projections[runtime] = {
               ...slot(),

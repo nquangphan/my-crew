@@ -21,6 +21,7 @@ import { createBmadArtifactInspector, type RenderLayerPath } from '../src/assist
 import {
   createRenderExecutor,
   type ExecutableIdentity,
+  probeRenderPrerequisites,
   type RenderJournal,
   type RenderOperations,
   type RenderOutcome,
@@ -1126,4 +1127,164 @@ test('render executor detects a closure file rewritten and restored during the r
       assert.equal('reason' in outcome && outcome.reason, 'RENDER_ARTIFACT_MISMATCH', place || 'root');
     });
   }
+});
+
+/** Owner machine double for the install-report probe: real files for hashing, scripted command output. */
+async function withProbeHost(
+  run: (host: {
+    base: string;
+    projectionRoot: string;
+    uvPath: string;
+    pythonLink: string;
+    pythonReal: string;
+    calls: [string, string[]][];
+    outputs: Map<string, string | Error>;
+    runner: (file: string, args: string[]) => Promise<string>;
+  }) => Promise<void>,
+): Promise<void> {
+  const base = await realpath(await mkdtemp(join(tmpdir(), 'crew-render-probe-')));
+  try {
+    const projectionRoot = join(base, 'projection', 'tree');
+    await mkdir(join(projectionRoot, '_bmad/scripts'), { recursive: true });
+    await writeFile(join(projectionRoot, '_bmad/scripts/render_skill.py'), '# requires-python >=3.11\n');
+    await mkdir(join(base, 'bin'));
+    await mkdir(join(base, 'cellar'));
+    const uvPath = join(base, 'bin', 'uv');
+    await writeFile(uvPath, 'uv bytes\n', { mode: 0o755 });
+    const pythonReal = join(base, 'cellar', 'python3.13');
+    await writeFile(pythonReal, 'python bytes\n', { mode: 0o755 });
+    const pythonLink = join(base, 'bin', 'python3.13');
+    await symlink(pythonReal, pythonLink);
+    const calls: [string, string[]][] = [];
+    const outputs = new Map<string, string | Error>([
+      ['--version', 'uv 0.12.13 (Homebrew 2026-09-30)\n'],
+      ['python', `${pythonLink}\n`],
+      ['-c', '3.13.5\n'],
+    ]);
+    const runner = async (file: string, args: string[]) => {
+      calls.push([file, [...args]]);
+      const output = outputs.get(args[0]);
+      if (output instanceof Error) throw output;
+      return output ?? '';
+    };
+    await run({ base, projectionRoot, uvPath, pythonLink, pythonReal, calls, outputs, runner });
+  } finally {
+    await rm(base, { recursive: true, force: true });
+  }
+}
+
+test('install-report probe measures uv and the interpreter uv finds for the pinned renderer', async () => {
+  await withProbeHost(async (host) => {
+    const measured = await probeRenderPrerequisites({
+      uvPath: host.uvPath,
+      projectionRoot: host.projectionRoot,
+      run: host.runner,
+    });
+    assert.deepEqual(measured, {
+      uv: {
+        path: host.uvPath,
+        realpath: host.uvPath,
+        sha256: sha256('uv bytes\n'),
+        version: 'uv 0.12.13 (Homebrew 2026-09-30)',
+      },
+      python: {
+        path: host.pythonLink,
+        realpath: host.pythonReal,
+        sha256: sha256('python bytes\n'),
+        version: '3.13.5',
+      },
+    });
+    assert.deepEqual(host.calls, [
+      [host.uvPath, ['--version']],
+      [host.uvPath, ['python', 'find', '--script', `${host.projectionRoot}/_bmad/scripts/render_skill.py`]],
+      [host.pythonReal, ['-c', 'import sys;print(sys.version.split()[0])']],
+    ]);
+  });
+});
+
+test('install-report probe refuses an interpreter the pinned renderer cannot run or an unusable answer', async () => {
+  const cases: [string, (host: { outputs: Map<string, string | Error>; base: string }) => void, RegExp][] = [
+    ['CLT Python 3.9', (h) => h.outputs.set('-c', '3.9.6\n'), /RENDER_PYTHON_UNSUPPORTED/],
+    ['Python 2', (h) => h.outputs.set('-c', '2.7.18\n'), /RENDER_PYTHON_UNSUPPORTED/],
+    ['garbled version', (h) => h.outputs.set('-c', 'Python three\n'), /RENDER_PYTHON_UNSUPPORTED/],
+    [
+      'no interpreter found',
+      (h) => h.outputs.set('python', new Error('error: No interpreter found for Python >=3.11')),
+      /RENDER_PYTHON_UNAVAILABLE/,
+    ],
+    ['relative interpreter path', (h) => h.outputs.set('python', 'python3\n'), /RENDER_PREREQUISITE_INVALID/],
+    [
+      'two interpreter lines',
+      (h) => h.outputs.set('python', '/a/python\n/b/python\n'),
+      /RENDER_PREREQUISITE_INVALID/,
+    ],
+    [
+      'missing interpreter file',
+      (h) => h.outputs.set('python', `${h.base}/bin/gone\n`),
+      /RENDER_PYTHON_UNAVAILABLE/,
+    ],
+    [
+      'uv version fails',
+      (h) => h.outputs.set('--version', new Error('spawn failed')),
+      /RENDER_UV_UNAVAILABLE/,
+    ],
+    [
+      'uv version not printable',
+      (h) => h.outputs.set('--version', 'uv \u0007\n'),
+      /RENDER_PREREQUISITE_INVALID/,
+    ],
+  ];
+  for (const [label, edit, expected] of cases) {
+    await withProbeHost(async (host) => {
+      edit(host);
+      await assert.rejects(
+        () =>
+          probeRenderPrerequisites({
+            uvPath: host.uvPath,
+            projectionRoot: host.projectionRoot,
+            run: host.runner,
+          }),
+        expected,
+        label,
+      );
+    });
+  }
+  await withProbeHost(async (host) => {
+    for (const [uvPath, projectionRoot] of [
+      ['uv', host.projectionRoot],
+      [host.uvPath, 'relative/root'],
+      [join(host.base, 'bin', 'missing-uv'), host.projectionRoot],
+    ])
+      await assert.rejects(
+        () => probeRenderPrerequisites({ uvPath, projectionRoot, run: host.runner }),
+        /RENDER_PREREQUISITE_INVALID|RENDER_UV_UNAVAILABLE/,
+      );
+    assert.deepEqual(host.calls, []);
+  });
+});
+
+test('install-report probe runs the owner executables without a shell by default', async () => {
+  await withProbeHost(async (host) => {
+    // Stand-in executables answering exactly the three probe invocations.
+    await writeFile(
+      host.uvPath,
+      `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "uv 0.12.13"; exit 0; fi\n` +
+        `if [ "$1 $2 $3 $4" = "python find --script ${host.projectionRoot}/_bmad/scripts/render_skill.py" ]; then echo "${host.pythonLink}"; exit 0; fi\nexit 2\n`,
+      { mode: 0o755 },
+    );
+    await writeFile(
+      host.pythonReal,
+      `#!/bin/sh\n[ "$1 $2" = "-c import sys;print(sys.version.split()[0])" ] && echo 3.12.12\n`,
+      { mode: 0o755 },
+    );
+    const measured = await probeRenderPrerequisites({
+      uvPath: host.uvPath,
+      projectionRoot: host.projectionRoot,
+    });
+    assert.equal(measured.uv.version, 'uv 0.12.13');
+    assert.equal(measured.python.path, host.pythonLink);
+    assert.equal(measured.python.realpath, host.pythonReal);
+    assert.equal(measured.python.version, '3.12.12');
+    assert.equal(measured.python.sha256, sha256(await readFile(host.pythonReal)));
+  });
 });

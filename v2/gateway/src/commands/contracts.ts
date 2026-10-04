@@ -1,3 +1,4 @@
+import type { RenderPrerequisites } from '../assistant/render-executor.ts';
 import type { WorkflowDefinition } from '../assistant/workflow-manifest.ts';
 import type {
   ProjectionPin,
@@ -21,8 +22,14 @@ export type GatewayConfig = {
   enabled: boolean;
 };
 export type Inventory = Record<Workflow, WorkflowStatus>;
-/** Install-report-only slot: a current projection may additionally carry its derived workflow definition. */
-export type ReportedProjectionSlot = SlotStatus<ProjectionPin> & { definition?: WorkflowDefinition };
+/**
+ * Install-report-only slot: a current projection may additionally carry its derived workflow definition
+ * and, beside a BMAD render definition, the measured `uv`/Python render prerequisites. Both are additive.
+ */
+export type ReportedProjectionSlot = SlotStatus<ProjectionPin> & {
+  definition?: WorkflowDefinition;
+  prerequisites?: RenderPrerequisites;
+};
 export type ReportedInventory = Record<
   Workflow,
   { source: WorkflowStatus['source']; projections: Record<Runtime, ReportedProjectionSlot> }

@@ -1,3 +1,4 @@
+import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, mkdir, open, readdir, realpath, unlink, writeFile } from 'node:fs/promises';
@@ -977,5 +978,98 @@ export function createRenderExecutor(options: RenderExecutorOptions): {
         return { halt: true, reason: error.reason, ...(error.log ? { log: error.log } : {}) };
       }
     },
+  };
+}
+
+/** Runs one owner executable (no shell) and resolves with its stdout; rejects on any failure. */
+export type ProbeRunner = (file: string, args: string[]) => Promise<string>;
+
+const pythonVersionProgram = 'import sys;print(sys.version.split()[0])';
+
+// The owner's own environment decides which interpreter `uv` finds, as for the runtime's own
+// `uv run`; only downloads and network are switched off. Bounded in time and output.
+const ownerRunner: ProbeRunner = (file, args) =>
+  new Promise((resolve, reject) => {
+    execFile(
+      file,
+      args,
+      {
+        env: { ...process.env, UV_OFFLINE: '1', UV_PYTHON_DOWNLOADS: 'never' },
+        timeout: 10_000,
+        maxBuffer: 64 * 1024,
+        encoding: 'utf8',
+      },
+      (error, stdout) => (error ? reject(error) : resolve(stdout)),
+    );
+  });
+
+/** One printable line of probe output (a trailing newline is allowed), or the error code. */
+function probeLine(output: unknown, pattern: RegExp): string {
+  if (typeof output !== 'string') throw new Error('RENDER_PREREQUISITE_INVALID');
+  const line = output.replace(/\r?\n$/, '');
+  if (line.includes('\n') || !/^[\x20-\x7e]+$/.test(line) || !pattern.test(line))
+    throw new Error('RENDER_PREREQUISITE_INVALID');
+  return line;
+}
+
+async function probeStep<T>(code: string, work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      /^RENDER_PREREQUISITE_INVALID$|^RENDER_PYTHON_UNSUPPORTED$/.test(error.message)
+    )
+      throw error;
+    throw new Error(code);
+  }
+}
+
+async function measuredIdentity(path: string): Promise<{ realpath: string; sha256: string }> {
+  const resolved = await realpath(path);
+  if (!lexicalPath(resolved)) throw new Error('RENDER_PREREQUISITE_INVALID');
+  return { realpath: resolved, sha256: (await digestFile(resolved, maxExecutableBytes)).sha256 };
+}
+
+/**
+ * Install-report measurement of the render prerequisites in the owner's environment: the `uv`
+ * at `uvPath` (path, resolved path, SHA-256 of the resolved bytes, `uv --version`), and the
+ * interpreter `uv python find --script` picks for the projection's pinned `render_skill.py` — the one
+ * the runtime's own `uv run` would use — with its version, which must be CPython 3.11 or newer.
+ * Rejects with RENDER_PREREQUISITE_INVALID, RENDER_UV_UNAVAILABLE, RENDER_PYTHON_UNAVAILABLE or
+ * RENDER_PYTHON_UNSUPPORTED. Versions are recorded as reported, not verified.
+ */
+export async function probeRenderPrerequisites(input: {
+  uvPath: string;
+  projectionRoot: string;
+  run?: ProbeRunner;
+}): Promise<RenderPrerequisites> {
+  const { uvPath, projectionRoot } = input;
+  const run = input.run ?? ownerRunner;
+  if (!lexicalPath(uvPath) || !lexicalPath(projectionRoot)) throw new Error('RENDER_PREREQUISITE_INVALID');
+  const uvMeasured = await probeStep('RENDER_UV_UNAVAILABLE', () => measuredIdentity(uvPath));
+  const uvVersion = await probeStep('RENDER_UV_UNAVAILABLE', async () =>
+    probeLine(await run(uvMeasured.realpath, ['--version']), /^.{1,128}$/),
+  );
+  const pythonPath = await probeStep('RENDER_PYTHON_UNAVAILABLE', async () => {
+    const found = probeLine(
+      await run(uvMeasured.realpath, ['python', 'find', '--script', `${projectionRoot}/${rendererPath}`]),
+      /^\/.{1,4095}$/,
+    );
+    if (!lexicalPath(found)) throw new Error('RENDER_PREREQUISITE_INVALID');
+    return found;
+  });
+  const pythonMeasured = await probeStep('RENDER_PYTHON_UNAVAILABLE', () => measuredIdentity(pythonPath));
+  const pythonVersion = await probeStep('RENDER_PYTHON_UNAVAILABLE', async () => {
+    const output = await run(pythonMeasured.realpath, ['-c', pythonVersionProgram]);
+    const version = typeof output === 'string' ? output.replace(/\r?\n$/, '') : '';
+    const match = /^3\.(\d{1,3})\.\d{1,3}(?:[a-z]+\d*)?$/.exec(version);
+    // The pinned renderer needs `tomllib`, new in Python 3.11.
+    if (!match || Number(match[1]) < 11) throw new Error('RENDER_PYTHON_UNSUPPORTED');
+    return version;
+  });
+  return {
+    uv: { path: uvPath, ...uvMeasured, version: uvVersion },
+    python: { path: pythonPath, ...pythonMeasured, version: pythonVersion },
   };
 }
