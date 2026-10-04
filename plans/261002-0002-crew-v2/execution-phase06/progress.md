@@ -161,3 +161,5 @@ Task 3 S1: minor (deferred): M4 session không khóa sau lỗi/shape không ch�
 Task 3 S1 (S4): complete — e4b8cd3 (0d4f984 + e4b8cd3). Production vẫn deny.
 Ruling (brief T4 bắt buộc): N1 bước execute không dispatch khi gate chưa quyết; khi có thì nạp nguồn của lựa chọn và kiểm SHA với definition run; không bao giờ dispatch theo skill/source_path của bước này. N2 B3 chỉ gọi createRunRequest sau resolve proof→scope trong mutate().
 Follow-up nhỏ giao worker S4 ngay: N3 thêm tag phiên bản `crew-v2:operation-request:1` vào hash (trước khi có giá trị persisted); N4 thêm ca deny của chính createRun với request cố định.
+
+21:45 S4 follow-up `01367a9` re-review `task-3-s1-fix2-re-review.md`: Approved, N3/N4 ADDRESSED. Task 3 S1 (S4): complete — 01367a9 (0d4f984 + e4b8cd3 + 01367a9). S5 (T3-S2 gates) đã dispatch trên BASE bbfebaf.
