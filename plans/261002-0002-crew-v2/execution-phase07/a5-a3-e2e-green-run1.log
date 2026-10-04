@@ -1,0 +1,14 @@
+
+Running 5 tests using 1 worker
+
+{"level":30,"time":1791098040545,"pid":22271,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:53319"}
+  ✓  1 [chromium] › e2e/compose.spec.ts:302:1 › A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt (2.4s)
+EVIDENCE ticket-replay {"posts":6,"droppedAfterCommit":[201,201,201,201]}
+  ✓  2 [chromium] › e2e/compose.spec.ts:380:1 › A5/A3 text-only: mất response sau commit → phiên hết hạn → đăng nhập lại → replay cùng key/body → một ticket (9.8s)
+EVIDENCE comment-replay {"posts":6,"droppedAfterCommit":[201,201,201,201]}
+  ✓  3 [chromium] › e2e/compose.spec.ts:446:1 › A5/A3 text-only: bình luận mất response → hết phiên → đăng nhập lại → replay cùng key → một bình luận (9.9s)
+  ✓  4 [chromium] › e2e/compose.spec.ts:509:1 › A5 text-only: bỏ bản nháp khi chưa xác nhận hiện cảnh báo trùng, giữ khóa cũ và không mất ticket đã lưu (9.6s)
+EVIDENCE files-503 {"posts":4}
+  ✓  5 [chromium] › e2e/compose.spec.ts:561:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket (9.6s)
+
+  5 passed (44.2s)

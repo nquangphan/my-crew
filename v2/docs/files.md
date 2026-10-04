@@ -364,6 +364,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
 | `web/e2e/app-router.spec.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/e2e/auth.spec.ts` | [web-data](flows/web-data.md) (test) |
+| `web/e2e/compose.spec.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/e2e/docs-assistant.spec.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/e2e/events.spec.ts` | [web-data](flows/web-data.md) (test) |
 | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |

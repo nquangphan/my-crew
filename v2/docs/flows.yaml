@@ -578,6 +578,7 @@ flows:
       - web/test/support/dom.ts
       - web/test/support/tsx-loader.ts
       - web/test/support/jsdom.d.ts
+      - web/e2e/compose.spec.ts
   web-docs:
     title: Không gian tài liệu chỉ đọc trên web Crew v2
     doc: docs/flows/web-docs.md

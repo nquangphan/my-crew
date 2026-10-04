@@ -1,0 +1,32 @@
+
+Running 5 tests using 1 worker
+
+{"level":30,"time":1791097908338,"pid":15589,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:51424"}
+  ✘  1 [chromium] › e2e/compose.spec.ts:299:1 › A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt (2.4s)
+  -  2 [chromium] › e2e/compose.spec.ts:369:1 › A5/A3 text-only: mất response sau commit → phiên hết hạn → đăng nhập lại → replay cùng key/body → một ticket
+  -  3 [chromium] › e2e/compose.spec.ts:434:1 › A5/A3 text-only: bình luận mất response → hết phiên → đăng nhập lại → replay cùng key → một bình luận
+  -  4 [chromium] › e2e/compose.spec.ts:496:1 › A5 text-only: bỏ bản nháp khi chưa xác nhận hiện cảnh báo trùng, giữ khóa cũ và không mất ticket đã lưu
+  -  5 [chromium] › e2e/compose.spec.ts:548:1 › A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket
+
+
+  1) [chromium] › e2e/compose.spec.ts:299:1 › A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      327 |   const createKey = created[0]?.headers['idempotency-key'] ?? '';
+      328 |   expect(createKey).not.toBe('');
+    > 329 |   expect(requests.some((request) => request.path === '/v2/attachment-compose')).toBe(false);
+          |                                                                                 ^
+      330 |   await withDb(crew, async (db) => {
+      331 |     const rows = await db`select id, project_id, kind, title, description, criteria from tickets where title = ${title}`;
+      332 |     expect(rows).toHaveLength(1);
+        at /Volumes/CORSAIR/Projects/my-crew-v2/v2/web/e2e/compose.spec.ts:329:81
+
+    Error Context: test-results/compose-A5-A3-text-only-tạ-9c5d5-g-một-entity-và-một-receipt-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/compose.spec.ts:299:1 › A5/A3 text-only: tạo yêu cầu bằng biểu mẫu rồi bình luận trong dialog, mỗi lần đúng một entity và một receipt 
+  4 did not run
