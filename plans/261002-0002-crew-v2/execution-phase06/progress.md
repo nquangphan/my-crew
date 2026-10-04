@@ -244,3 +244,5 @@ S6b-i: minor (deferred): docs bước 9 còn câu "Helper kill mọi group đã 
 
 12:45 OpenCode (kimi-k3) code-only + tester (sonnet) RED/GREEN: B2a M6 null input/sources → 400 VALIDATION + S2 N3 test deny — commit `accba5a` (163/163, tsc 0, PM biome --write + flow R3). PM tự review diff (nhỏ). Task 2 B2a: minor M6 — đóng. Task 2 C: minor N3 — đóng.
 OpenCode map N2/N4 (lane bỏ qua bracketRun, aria-hidden nhãn) — chờ tester chạy test web rồi commit.
+
+13:05 S6b-ii `b3ec7a8`/`33a209f`/`8689125`/`b00163d` DONE_WITH_CONCERNS (79/57/90 GREEN; full gateway 294/330, 36 lỗi môi trường: DB/dist/builder pin). Ruling: BMAD_TRACKED_IN_CHECKOUT — theo memo S6b 'mặc định từ chối khi owner checkout track _bmad/' → không được dời _bmad của owner, phải từ chối (fix nếu review xác nhận). prerequisites opt-in tới khi S6b-iii mở schema server. Probe từ chối Python <3.11 — chấp nhận (renderer cần tomllib).
