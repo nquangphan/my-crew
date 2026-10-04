@@ -1,0 +1,1296 @@
+cfc233c fix(v2-web): sửa docsState sau import, resolver khớp audit máy chủ và thêm sửa liên kết ticket-docs
+ .../execution-phase07/task-6-s6docs-report.md      |  12 +
+ v2/docs/files.md                                   |   2 +
+ v2/docs/flows.yaml                                 |   2 +
+ v2/docs/flows/web-docs.md                          |  15 +-
+ v2/web/src/docs/links.ts                           |  39 ++-
+ v2/web/src/docs/page.tsx                           | 116 ++++++---
+ v2/web/src/docs/queries.ts                         |  14 +-
+ v2/web/src/docs/space.tsx                          |  14 +-
+ v2/web/src/docs/ticket-links.tsx                   | 202 +++++++++++++++
+ v2/web/test/docs-links.test.ts                     |  55 ++++-
+ v2/web/test/docs-space-dom.test.ts                 |  82 ++++++-
+ v2/web/test/docs-ticket-links-dom.test.ts          | 271 +++++++++++++++++++++
+ 12 files changed, 751 insertions(+), 73 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/task-6-s6docs-report.md b/plans/261002-0002-crew-v2/execution-phase07/task-6-s6docs-report.md
+index 4d04927..0894ef7 100644
+--- a/plans/261002-0002-crew-v2/execution-phase07/task-6-s6docs-report.md
++++ b/plans/261002-0002-crew-v2/execution-phase07/task-6-s6docs-report.md
+@@ -17,10 +17,22 @@ BASE `1574c1e1d2293a716cd20ffc2b3f769de88ed735`. Phạm vi: không gian tài li
+ 
+ ## Không làm / chưa đạt
+ - `web/e2e/docs-assistant.spec.ts` chưa viết, A6docs không claim: route tài liệu chưa được controller mount, fixture Task1 chưa seed snapshot tài liệu (cần import `POST /v2/docs/imports` hoặc sync có attempt/fence thật).
+ - Cuộn tới fragment chưa làm (đích giữ `fragment`); chưa có tải ảnh/tệp nhị phân vì máy chủ chưa có API.
+ 
+ ## Controller cần làm
+ 1. Mount route, ví dụ `/projects/$projectId/docs?path=…`, render `<DocsSpace projectId path onPathChange onOpenTicket />`; thêm mục điều hướng “Tài liệu”.
+ 2. `onOpenTicket(ticketId, trigger)` gọi `TicketDialog` dùng chung.
+ 3. Ticket detail có thể dùng `useTicketDocsLinks(client, ticketId)` (key `['v2','ticket',id,'docs-links']`, nằm dưới prefix event của ticket).
+ 4. Fixture E2E: seed một snapshot tài liệu để mở A6docs.
++
++# Fix round 1 (theo review `task-6-s6docs-review.md`)
++
++Mỗi mục có test RED trước (5 test docs-links/space đỏ trước khi sửa; file `docs-ticket-links-dom.test.ts` đỏ vì thiếu module), rồi GREEN.
++
++- **I1** docsState chuyển sang `docsStateKey(projectId)` = `['v2','docs',projectId,'state']`, nằm dưới prefix mà `docs.synced` và `docs.imported` (`queryRoots.allDocs`) đã invalidate; không sửa `events.ts`. Test dùng chính `invalidations()` của event `docs.imported` rồi kiểm tra trạng thái đổi từ “Hiện hành” sang “Chưa xác minh”. Đã sửa câu sai trong `web-docs.md`.
++- **I2** Resolver khớp audit của máy chủ: chặn `%2e/%2f/%5c`, `/` đầu, `?`, `\`, `/` cuối, double-decode ra traversal; bỏ dự phòng thư mục → `index.md` và bỏ link `/abs`. Bảng 23 trường hợp trong `docs-links.test.ts` lấy từ kết quả chạy thật `auditLinks` của máy chủ (chạy trước khi viết). Lệch có chủ ý: máy chủ coi percent hỏng như “trang hiện hành”; web chặn.
++- **I3** `v2/web/src/docs/ticket-links.tsx` → `TicketDocsLinksEditor({ ticketId })`: PUT `{snapshotId, paths, expectedRevision}` qua `PendingStore.begin` + `OwnerClient.mutate` (intent cố định, mất phản hồi thì gửi lại đúng khóa/byte), 409 giữ bản nháp rồi lưu lại với revision mới và khóa mới, bắt buộc đọc hết `useTicketDocsLinks` trước khi lưu, báo liên kết snapshot cũ sẽ bị thay, chặn danh sách rỗng và >100, nút bỏ lần gửi treo. Consumer thật của `useTicketDocsLinks`. Cách nhúng: render `<TicketDocsLinksEditor ticketId={ticket.id} />` trong `TicketDetail`; `tickets/*` không bị sửa.
++- **Minor nâng**: `urlTransform` chỉ cho `href` của `<a>` đi thẳng (do resolver quyết), mọi URL khác qua `defaultUrlTransform`. Metadata (commit, kiểm tra, docsState, loại nội dung, phiên bản) vẫn hiện khi trang lỗi 422/404, chung một vùng `role=alert` với cảnh báo; cảnh báo kiểm tra không còn bị nuốt khi docsState khác current (trừ khi lặp đúng trạng thái đó). 404 của cây phân biệt “không tìm thấy dự án” và “chưa có tài liệu” theo thông điệp máy chủ.
++- Chưa làm (để PM ghi ledger): test đổi snapshot trong cùng dự án, href thật của router, bỏ `new Set(seen)` thừa, NFC/NFD, cuộn fragment.
++
++Kiểm chứng: toàn bộ web test 194/194 pass, `tsc --noEmit` sạch, `pnpm build` pass, Biome sạch trên file của slice. `crew-docs generate`/`check --all` trên bản sao: không có lỗi nào của `web-docs` (4 R2 còn lại của worker khác). Manifest: thêm `ticket-links.tsx` và test mới vào flow `web-docs`; `files.md` +2 dòng.
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 9d32089..e8cefe0 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -380,20 +380,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `web/src/contracts/attachments.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/contracts/docs.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/contracts/http.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/contracts/machines.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/contracts/tickets.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/docs/links.ts` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/page.tsx` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/queries.ts` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/search.tsx` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/docs/space.tsx` | [web-docs](flows/web-docs.md) (điểm vào) |
++| `web/src/docs/ticket-links.tsx` | [web-docs](flows/web-docs.md) (file) |
+ | `web/src/lib/api.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/events.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/pending-operation.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/query-keys.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/lib/session.ts` | [web-data](flows/web-data.md) (file) |
+ | `web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
+ | `web/src/router.tsx` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/shell.tsx` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
+ | `web/src/tickets/board.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+@@ -408,20 +409,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `web/src/tickets/status.ts` | [web-tickets](flows/web-tickets.md) (file) |
+ | `web/test/app-wiring.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/compose-submit.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/compose.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/composer-dom.test.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/create-request.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/docs-links.test.ts` | [web-docs](flows/web-docs.md) (test) |
+ | `web/test/docs-space-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
++| `web/test/docs-ticket-links-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
+ | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
+ | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
+ | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/support/dom-events.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/support/dom.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/support/jsdom.d.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/support/tsx-loader.ts` | [web-attachments](flows/web-attachments.md) (test) |
+ | `web/test/ticket-detail-dom.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
+ | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index fc30a67..5aac682 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -567,15 +567,17 @@ flows:
+   web-docs:
+     title: Không gian tài liệu chỉ đọc trên web Crew v2
+     doc: docs/flows/web-docs.md
+     entrypoints:
+       - web/src/docs/space.tsx
+     files:
+       - web/src/docs/page.tsx
+       - web/src/docs/search.tsx
+       - web/src/docs/links.ts
+       - web/src/docs/queries.ts
++      - web/src/docs/ticket-links.tsx
+     tests:
+       - web/test/docs-links.test.ts
+       - web/test/docs-space-dom.test.ts
++      - web/test/docs-ticket-links-dom.test.ts
+ shared: {}
+ unassigned: []
+diff --git a/v2/docs/flows/web-docs.md b/v2/docs/flows/web-docs.md
+index 4a4444f..72e5ea4 100644
+--- a/v2/docs/flows/web-docs.md
++++ b/v2/docs/flows/web-docs.md
+@@ -4,41 +4,44 @@
+ 
+ Flow này cho owner đọc tài liệu của một dự án: cây trang, nội dung markdown, tìm kiếm và liên kết giữa các trang. Mọi thứ chỉ đọc, bám đúng `snapshotId` mà cây tài liệu trả về, và luôn hiện commit, thời điểm nhận, trạng thái kiểm tra, trạng thái tài liệu và loại nội dung. Phần Trợ lý/câu hỏi/việc cần xử lý không thuộc flow này vì chờ gate G3.
+ 
+ ## Điểm vào
+ 
+ - `web/src/docs/space.tsx` → `DocsSpace({ projectId, path, onPathChange, onOpenTicket? })`: trang tài liệu của một dự án. `path` và `onPathChange` do caller giữ (router có thể đưa vào URL); khi `path` là `null`, hiện trang mặc định `docs/index.md`, rồi `README.md`, rồi trang đầu tiên.
+ - `web/src/docs/page.tsx` → `DocsPageView`: một trang, gồm khối thông tin phiên bản, cảnh báo, markdown và ticket liên quan.
+ - `web/src/docs/search.tsx` → `DocsSearch`: ô tìm kiếm trên đúng snapshot đang xem.
+ - `web/src/docs/links.ts` → `resolveDocLink(...)`: hàm thuần biến một `href` thành trang trong snapshot, liên kết ngoài hoặc liên kết bị chặn kèm lý do.
+ - `web/src/docs/queries.ts`: hook đọc tree, page, search, trạng thái tài liệu của dự án và docs-links của ticket.
++- `web/src/docs/ticket-links.tsx` → `TicketDocsLinksEditor({ ticketId })`: sửa các trang tài liệu gắn với một ticket. `TicketDetail` nhúng bằng `<TicketDocsLinksEditor ticketId={ticket.id} />`; chưa nhúng vì `web/src/tickets/*` đang do S3b sửa.
+ 
+ ## Các bước
+ 
+ 1. `useDocsTree` đọc GET `/v2/projects/:id/docs/tree` (bản mới nhất), key `queryKeys.docsTree(projectId, null)`. Cây dựng theo `parentPath` của máy chủ, không tự suy ra từ đường dẫn. Trang có `contentClass = workflow_artifact` được ghi “(Thiết kế/kế hoạch)”. Dự án không có tài liệu (404) hiện trạng thái rỗng rõ ràng, không phải lỗi.
+ 2. `snapshotId` của cây được ghim cho mọi lần đọc tiếp theo: `useDocsPage` gọi `/docs/page?snapshotId=…&path=…` và `useDocsSearch` gọi `/v2/docs/search?q&projectId&snapshotId`. Đường dẫn và `q` luôn qua `URLSearchParams`, nên Unicode và ký tự dành riêng được mã hóa đúng; cursor tìm kiếm là chuỗi mờ, chỉ gửi lại nguyên văn.
+ 3. Đổi dự án đặt `key` mới cho view nên truy vấn cũ bị hủy bằng `AbortSignal`, ô tìm kiếm được xóa và không có byte nào của dự án cũ hiện dưới commit mới. Khi cây được đồng bộ sang snapshot mới, trang được đọc lại theo snapshot mới.
+ 4. `DocsPageView` luôn hiện khối “Thông tin phiên bản tài liệu”: commit (hoặc “Không có commit”), giờ nhận theo Asia/Ho_Chi_Minh, trạng thái kiểm tra (`auditState`), trạng thái tài liệu (`docsState` đọc từ GET `/v2/projects/:id`) và loại nội dung. “Hiện hành” chỉ hiện khi `docsState = current`. Tài liệu `stale`, chưa xác minh, không hợp lệ hoặc không xác định được trạng thái đều có cảnh báo; HTTP 200 không làm tài liệu thành hiện hành. Trang thiết kế/kế hoạch không bao giờ được ghi “Đã triển khai”.
+-5. Markdown dùng `react-markdown` + `remark-gfm`, không bật `rehype-raw`, nên HTML thô không thành phần tử. Mỗi liên kết đi qua `resolveDocLink`: giải theo thư mục của trang hiện hành, giải mã percent một lần (tiếng Việt, khoảng trắng), bỏ query, giữ nguyên chữ hoa/thường của fragment, ghim `projectId` và `snapshotId` đầu vào, từ chối thoát khỏi thư mục gốc và mọi giao thức khác `http(s)` (`javascript:`, `data:`, `file:`, ký tự điều khiển, `//host`, dấu `\`). Trang không có trong snapshot bị chặn kèm lý do, không đoán đích. Liên kết ngoài mở tab mới với `rel="noopener noreferrer nofollow"`. Ảnh không bao giờ được tải; chỉ hiện mô tả và, với ảnh http(s), một liên kết mở ảnh gốc.
+-6. Lỗi 422 `DOCS_ENCODING_INVALID` hiện thông báo rõ và không hiện nội dung nào, kể cả nội dung của trang trước đó. Các lỗi khác hiện lý do theo `docsFailureText`.
+-7. Ticket liên quan hiện đúng danh sách `relatedTicketIds` mà máy chủ trả về. Máy chủ giới hạn 20 nên khi đủ 20, giao diện nói rõ danh sách có thể chưa đầy đủ. `useTicketDocsLinks` đọc phân trang GET `/v2/tickets/:id/docs-links` (limit 20, cursor mờ) cho phía ticket.
++5. Markdown dùng `react-markdown` + `remark-gfm`, không bật `rehype-raw`, nên HTML thô không thành phần tử. Mỗi liên kết đi qua `resolveDocLink`: giải theo thư mục của trang hiện hành, giải mã percent một lần (tiếng Việt, khoảng trắng), giữ nguyên chữ hoa/thường của fragment, ghim `projectId` và `snapshotId` đầu vào. Quy tắc khớp bộ audit liên kết của máy chủ (`server/src/docs/links.ts`): `%2e`, `%2f`, `%5c`, đường dẫn bắt đầu bằng `/`, ký tự `?`, dấu `\`, dấu `/` cuối (thư mục) và thoát khỏi thư mục gốc đều bị chặn, không có dự phòng thư mục → `index.md`; mọi giao thức khác `http(s)` (`javascript:`, `data:`, `file:`, ký tự điều khiển, `//host`) cũng bị chặn. Trang không có trong snapshot bị chặn kèm lý do, không đoán đích. Markdown dùng `defaultUrlTransform` cho mọi URL trừ `href` của `<a>`, vốn do `resolveDocLink` quyết định. Liên kết ngoài mở tab mới với `rel="noopener noreferrer nofollow"`. Ảnh không bao giờ được tải; chỉ hiện mô tả và, với ảnh http(s), một liên kết mở ảnh gốc.
++6. Lỗi 422 `DOCS_ENCODING_INVALID` hiện thông báo rõ và không hiện nội dung nào, kể cả nội dung của trang trước đó. Khối thông tin phiên bản vẫn hiện (commit, kiểm tra, trạng thái tài liệu, loại nội dung lấy từ cây; “Nhận lúc” ghi chưa đọc được), cùng cảnh báo trong một vùng `role=alert`. Cảnh báo kiểm tra của trang vẫn hiện khi trạng thái tài liệu không phải hiện hành, trừ khi lặp lại đúng trạng thái đó. 404 của cây được phân biệt theo thông điệp máy chủ: “không tìm thấy dự án” khác “chưa có tài liệu”. Các lỗi khác hiện lý do theo `docsFailureText`.
++7. Ticket liên quan hiện đúng danh sách `relatedTicketIds` mà máy chủ trả về. Máy chủ giới hạn 20 nên khi đủ 20, giao diện nói rõ danh sách có thể chưa đầy đủ. `useTicketDocsLinks` đọc phân trang GET `/v2/tickets/:id/docs-links` (limit 20, cursor mờ) và là nguồn của `TicketDocsLinksEditor`.
++8. `TicketDocsLinksEditor` gửi `PUT /v2/tickets/:id/docs-links` với `{ snapshotId, paths, expectedRevision }`: `snapshotId` là snapshot của cây, `paths` chọn từ cây đó (1 đến 100 trang, máy chủ thay toàn bộ tập), `expectedRevision` là revision ticket đang đọc. Mỗi lần lưu là một `PendingOperation` (intent `ticket-docs-links:<ticketId>`) qua `OwnerClient.mutate`, nên mất phản hồi rồi bấm lại gửi đúng khóa và đúng byte. Nút Lưu chỉ bật khi đã đọc hết các trang liên kết hiện có; liên kết thuộc snapshot cũ được báo là sẽ bị thay. Bản nháp nằm trong state của component và không mất khi lỗi: 409 `REVISION_CONFLICT` giữ nguyên lựa chọn, đọc lại ticket và lần lưu sau dùng revision mới với khóa mới; chỉ lần lưu xác nhận đúng byte của bản nháp mới xóa nó. Có nút “Bỏ lần gửi treo” khi một lần lưu chưa xác nhận.
+ 
+ ## Dữ liệu
+ 
+-DTO lấy từ `web/src/contracts/docs.ts` (`DocsTree`, `DocsPage`, `DocsHit`) và `web/src/contracts/machines.ts` (`Project.docsState`), không khai báo lại. Query key dùng `queryKeys.docsTree/docsPage/docsSearch/project`, nên event `docs.synced`, `docs.imported` và `project.*` làm mới đúng các view này (flow `web-data`). Không có dữ liệu nào ngoài query cache; không lưu nội dung tài liệu vào storage.
++DTO lấy từ `web/src/contracts/docs.ts` (`DocsTree`, `DocsPage`, `DocsHit`) và `web/src/contracts/machines.ts` (`Project.docsState`), không khai báo lại. Query key dùng `queryKeys.docsTree/docsPage/docsSearch`; trạng thái tài liệu của dự án nằm dưới `docsStateKey(projectId)` = `['v2','docs',projectId,'state']`, cùng prefix docs của dự án. Nhờ đó cả `docs.synced` (theo dự án) lẫn `docs.imported` (`queryRoots.allDocs`) làm mới tree, page và trạng thái tài liệu, nên sau import không còn hiện “Hiện hành” từ cache cũ (flow `web-data`). Không có dữ liệu nào ngoài query cache; không lưu nội dung tài liệu vào storage.
+ 
+ Giới hạn đã biết:
+ 
+ - Fragment được giữ trong đích liên kết nhưng chưa cuộn tới tiêu đề.
+ - Máy chủ chưa có API tải ảnh/tệp nhị phân của tài liệu, nên không có tải về.
+ - Danh sách ticket của một trang bị giới hạn 20 và chưa có phân trang phía docs → ticket.
+ - Phần “Trợ lý”, câu hỏi và việc cần xử lý chờ gate G3.
+ 
+ ## Flow liên quan
+ 
+ `web-data.md` sở hữu `OwnerClient`, query key và event invalidation. `web-shell.md` sở hữu router và app runtime (controller mount route tài liệu và truyền `onOpenTicket` tới `TicketDialog` của `web-tickets.md`). `server-docs-view.md` là nguồn đọc tree/page/search; `server-tickets.md` định nghĩa docs-links của ticket.
+ 
+ ## Tests
+ 
+-- `web/test/docs-links.test.ts`: bộ resolver (thư mục hiện hành, `../`, percent-encoding tiếng Việt và khoảng trắng, fragment, query, thư mục → `index.md`, trang thiếu, thoát root kể cả `%2e%2e`, các URL nguy hiểm và biến thể che dấu, cùng path khác snapshot), rel của liên kết ngoài, đường dẫn tìm kiếm Unicode và cursor mờ, đường dẫn docs-links của ticket, thông báo lỗi 422.
+-- `web/test/docs-space-dom.test.ts`: component thật với jsdom/RTL trên fake server theo route của máy chủ: cây theo `parentPath`, đủ metadata, nhãn thiết kế/kế hoạch, docs cũ/không rõ trạng thái, HTML thô và URL nguy hiểm, liên kết nội bộ ghim snapshot, 422, trạng thái rỗng, đổi dự án hủy GET cũ, tìm kiếm Unicode có phân trang, ticket liên quan giới hạn 20.
++- `web/test/docs-links.test.ts`: bộ resolver (thư mục hiện hành, `../`, percent-encoding tiếng Việt và khoảng trắng, fragment, trang thiếu, bảng đối chiếu từng trường hợp với kết quả chạy audit của máy chủ, thoát root kể cả `%2e%2e`, các URL nguy hiểm và biến thể che dấu, cùng path khác snapshot), rel của liên kết ngoài, đường dẫn tìm kiếm Unicode và cursor mờ, đường dẫn docs-links của ticket, thông báo lỗi 422.
++- `web/test/docs-ticket-links-dom.test.ts`: PUT với CAS và khóa cố định, 409 giữ bản nháp rồi lưu lại với revision mới, gửi lại đúng khóa và byte sau khi mất phản hồi, bắt buộc đọc hết liên kết hiện có, báo liên kết snapshot cũ, chặn danh sách rỗng.
++- `web/test/docs-space-dom.test.ts`: component thật với jsdom/RTL trên fake server theo route của máy chủ: cây theo `parentPath`, đủ metadata, nhãn thiết kế/kế hoạch, docs cũ/không rõ trạng thái, HTML thô và URL nguy hiểm, liên kết nội bộ ghim snapshot, 422, trạng thái rỗng, docsState đọc lại sau `docs.imported`, metadata và cảnh báo vẫn hiện khi trang lỗi, 404 dự án khác chưa có tài liệu, đổi dự án hủy GET cũ, tìm kiếm Unicode có phân trang, ticket liên quan giới hạn 20.
+ - E2E trên API và PostgreSQL thật chưa chạy: route tài liệu chưa được controller mount và fixture chưa seed snapshot tài liệu.
+diff --git a/v2/web/src/docs/links.ts b/v2/web/src/docs/links.ts
+index 0c5f348..be25499 100644
+--- a/v2/web/src/docs/links.ts
++++ b/v2/web/src/docs/links.ts
+@@ -51,49 +51,66 @@ export function resolveDocLink(input: ResolveDocLinkInput): DocDestination {
+       url = new URL(href);
+     } catch {
+       return blocked('Liên kết ngoài không hợp lệ');
+     }
+     return url.protocol === 'http:' || url.protocol === 'https:'
+       ? { kind: 'external', href }
+       : blocked(`Giao thức ${url.protocol} không được phép mở từ tài liệu`);
+   }
+   if (href.startsWith('//')) return blocked('Liên kết theo giao thức tương đối không được phép');
+ 
++  // Same rules as the producer's link audit (`v2/server/src/docs/links.ts`): a link the server flags as
++  // LINK_PATH_ESCAPE, or that names no page of this snapshot, is never clickable here.
++  if (href.includes('?')) return blocked('Liên kết có query không được hỗ trợ');
+   const hashAt = href.indexOf('#');
+   const rawFragment = hashAt === -1 ? '' : href.slice(hashAt + 1);
+-  const beforeFragment = hashAt === -1 ? href : href.slice(0, hashAt);
+-  const queryAt = beforeFragment.indexOf('?');
+-  const rawPath = queryAt === -1 ? beforeFragment : beforeFragment.slice(0, queryAt);
++  const rawPath = hashAt === -1 ? href : href.slice(0, hashAt);
+ 
+   const fragmentDecoded = rawFragment === '' ? '' : (decode(rawFragment) ?? rawFragment);
+   const fragment = fragmentDecoded === '' ? null : fragmentDecoded;
+   const target = (path: string): DocDestination => ({
+     kind: 'page',
+     projectId: input.projectId,
+     snapshotId: input.snapshotId,
+     path,
+     fragment,
+   });
+ 
+   if (rawPath === '') return target(input.currentPath);
++  if (/%(?:2e|2f|5c)/i.test(rawPath) || rawPath.startsWith('/'))
++    return blocked('Đường dẫn liên kết không an toàn (mã hóa dấu chấm, dấu gạch hoặc bắt đầu bằng "/")');
+ 
+   const decoded = decode(rawPath);
+   if (decoded === null) return blocked('Liên kết có mã hóa phần trăm không hợp lệ');
+-  if (controlCharacters.test(decoded) || decoded.includes('\\'))
+-    return blocked('Liên kết chứa ký tự không an toàn');
++  if (controlCharacters.test(decoded)) return blocked('Liên kết chứa ký tự không an toàn');
+ 
+-  const absolute = decoded.startsWith('/');
+-  const segments: string[] = absolute ? [] : input.currentPath.split('/').slice(0, -1);
++  const segments = input.currentPath.split('/').slice(0, -1);
+   for (const segment of decoded.split('/')) {
+     if (segment === '' || segment === '.') continue;
+     if (segment === '..') {
+       if (segments.pop() === undefined) return blocked('Liên kết trỏ ra ngoài thư mục gốc của dự án');
+       continue;
+     }
+     segments.push(segment);
+   }
+   const normalized = segments.join('/');
+-  const index = normalized === '' ? 'index.md' : `${normalized}/index.md`;
+-  if (normalized !== '' && input.pages.has(normalized)) return target(normalized);
+-  if (input.pages.has(index)) return target(index);
+-  return blocked('Trang này không có trong phiên bản tài liệu đang xem');
++  // A trailing slash names a directory, which the producer rejects; there is no `index.md` fallback.
++  if (normalized === '' || decoded.endsWith('/') || !safeDecodedPath(normalized))
++    return blocked('Đường dẫn liên kết không an toàn');
++  return input.pages.has(normalized)
++    ? target(normalized)
++    : blocked('Trang này không có trong phiên bản tài liệu đang xem');
++}
++
++/** Second decoding pass of the producer's `validPath`: a path that decodes into traversal is rejected. */
++function safeDecodedPath(path: string): boolean {
++  const again = decode(path);
++  if (again === null) return false;
++  return [path, again].every(
++    (item) =>
++      !item.includes('?') &&
++      !item.includes('#') &&
++      !item.includes('\\') &&
++      !item.startsWith('/') &&
++      item.split('/').every((part) => part !== '' && part !== '.' && part !== '..'),
++  );
+ }
+diff --git a/v2/web/src/docs/page.tsx b/v2/web/src/docs/page.tsx
+index 0cb2172..9416746 100644
+--- a/v2/web/src/docs/page.tsx
++++ b/v2/web/src/docs/page.tsx
+@@ -1,18 +1,18 @@
+ /**
+  * One docs page. The metadata block (commit, receive time, audit, docs state, content class) is always
+  * rendered next to the text, and a page that is not verified/current is flagged instead of being presented
+  * as the current truth. Markdown is rendered with GFM only: raw HTML is never enabled, every link goes through
+  * `resolveDocLink`, external links open with noopener/noreferrer, and images are never fetched.
+  */
+ import type { CSSProperties, MouseEvent, ReactNode } from 'react';
+-import ReactMarkdown, { type Components } from 'react-markdown';
++import ReactMarkdown, { type Components, defaultUrlTransform } from 'react-markdown';
+ import remarkGfm from 'remark-gfm';
+ import { useRuntime } from '../app-runtime.ts';
+ import type { DocsPage, DocsTree } from '../contracts/docs.ts';
+ import { formatTime } from '../tickets/queries.ts';
+ import { externalLinkRel, isRemoteImage, resolveDocLink } from './links.ts';
+ import { docsFailureText, relatedTicketsCap, useDocsPage, useProjectDocsState } from './queries.ts';
+ 
+ export const auditLabels = {
+   unverified: 'Chưa xác minh',
+   invalid: 'Không hợp lệ',
+@@ -53,39 +53,59 @@ const textStyle: CSSProperties = { overflowWrap: 'anywhere', minWidth: 0 };
+ 
+ export type DocsPageViewProps = {
+   projectId: string;
+   snapshotId: string;
+   path: string;
+   tree: DocsTree;
+   onNavigate: (path: string) => void;
+   onOpenTicket?: (ticketId: string, trigger: HTMLElement) => void;
+ };
+ 
+-function Metadata({ page, docsState }: { page: DocsPage; docsState: ReactNode }) {
++type MetadataFields = {
++  commit: string | null;
++  receivedAt: string | null;
++  auditState: DocsPage['auditState'];
++  contentClass: DocsPage['contentClass'] | DocsTree['contentClass'];
++  snapshotId: string;
++  sha256: string | null;
++  docsState: ReactNode;
++};
++
++function Metadata({ fields }: { fields: MetadataFields }) {
+   return (
+     <section aria-label="Thông tin phiên bản tài liệu">
+       <dl style={gridStyle}>
+         <dt>Commit</dt>
+-        <dd style={textStyle}>{page.sourceCommit ?? 'Không có commit'}</dd>
++        <dd style={textStyle}>{fields.commit ?? 'Không có commit'}</dd>
+         <dt>Nhận lúc</dt>
+         <dd>
+-          <time dateTime={page.receivedAt}>{formatTime(page.receivedAt)}</time>
++          {fields.receivedAt ? (
++            <time dateTime={fields.receivedAt}>{formatTime(fields.receivedAt)}</time>
++          ) : (
++            'Không có (trang chưa đọc được)'
++          )}
+         </dd>
+         <dt>Kiểm tra</dt>
+-        <dd>{auditLabels[page.auditState]}</dd>
++        <dd>{auditLabels[fields.auditState]}</dd>
+         <dt>Trạng thái tài liệu</dt>
+-        <dd>{docsState}</dd>
++        <dd>{fields.docsState}</dd>
+         <dt>Loại nội dung</dt>
+-        <dd>{contentClassLabels[page.contentClass]}</dd>
++        <dd>{contentClassLabels[fields.contentClass]}</dd>
+         <dt>Phiên bản</dt>
+         <dd style={textStyle}>
+-          <code>{page.snapshotId}</code> · sha256 <code>{page.sha256.slice(0, 12)}</code>
++          <code>{fields.snapshotId}</code>
++          {fields.sha256 ? (
++            <>
++              {' '}
++              · sha256 <code>{fields.sha256.slice(0, 12)}</code>
++            </>
++          ) : null}
+         </dd>
+       </dl>
+     </section>
+   );
+ }
+ 
+ function RelatedTickets({
+   ids,
+   onOpenTicket,
+ }: {
+@@ -175,61 +195,85 @@ function markdownComponents(props: DocsPageViewProps, pages: ReadonlySet<string>
+         </span>
+       );
+     },
+   };
+ }
+ 
+ export function DocsPageView(props: DocsPageViewProps) {
+   const { client } = useRuntime();
+   const page = useDocsPage(client, props.projectId, props.snapshotId, props.path);
+   const state = useProjectDocsState(client, props.projectId);
+-  const title = props.tree.pages.find((row) => row.path === props.path)?.title ?? props.path;
++  const row = props.tree.pages.find((candidate) => candidate.path === props.path);
++  const title = row?.title ?? props.path;
+ 
+   if (page.isPending) return <p role="status">Đang tải trang tài liệu…</p>;
+-  if (page.isError)
+-    return (
+-      <p role="alert" style={noticeStyle}>
+-        {docsFailureText(page.error)}
+-      </p>
+-    );
+   const data = page.data;
++  const audit = data?.auditState ?? props.tree.auditState;
++  const contentClass = data?.contentClass ?? row?.contentClass ?? props.tree.contentClass;
+   const docsState = state.data;
+   const stateLabel = docsState
+     ? docsStateLabels[docsState]
+     : state.isError
+       ? 'Chưa xác định'
+       : 'Đang xác định…';
+   const warnings: string[] = [];
+   if (docsState && docsState !== 'current') warnings.push(docsStateWarnings[docsState]);
+   else if (!docsState && state.isError)
+     warnings.push('Không xác định được trạng thái tài liệu; chưa thể coi đây là bản hiện hành.');
+-  if (data.auditState !== 'verified' && !(docsState && docsState !== 'current'))
+-    warnings.push(`Trang này ${auditLabels[data.auditState].toLowerCase()}; không dùng làm nguồn sự thật.`);
+-  if (data.contentClass === 'workflow_artifact')
++  // The audit warning stays even when the docs state is also not current, unless it would repeat it.
++  if (audit !== 'verified' && docsState !== audit)
++    warnings.push(`Trang này ${auditLabels[audit].toLowerCase()}; không dùng làm nguồn sự thật.`);
++  if (contentClass === 'workflow_artifact')
+     warnings.push('Đây là tài liệu thiết kế/kế hoạch, chưa chắc đã được triển khai.');
+-  const pages = new Set(props.tree.pages.map((row) => row.path));
++  const fields: MetadataFields = {
++    commit: data?.sourceCommit ?? props.tree.sourceCommit,
++    receivedAt: data?.receivedAt ?? null,
++    auditState: audit,
++    contentClass,
++    snapshotId: props.snapshotId,
++    sha256: data?.sha256 ?? null,
++    docsState: stateLabel,
++  };
++  const notices = (
++    <>
++      {page.isError && <p style={{ margin: 0 }}>{docsFailureText(page.error)}</p>}
++      {warnings.map((warning) => (
++        <p key={warning} style={{ margin: 0 }}>
++          {warning}
++        </p>
++      ))}
++    </>
++  );
++  const hasNotice = page.isError || warnings.length > 0;
++  const pages = new Set(props.tree.pages.map((candidate) => candidate.path));
+ 
+   return (
+-    <div data-testid="docs-page" data-path={data.path} data-snapshot-id={data.snapshotId}>
++    <div data-testid="docs-page" data-path={props.path} data-snapshot-id={props.snapshotId}>
+       <h2 style={{ marginTop: 0 }}>{title}</h2>
+       <p style={textStyle}>
+-        <code>{data.path}</code>
++        <code>{props.path}</code>
+       </p>
+-      <Metadata page={data} docsState={stateLabel} />
+-      {warnings.length > 0 && (
+-        <p role="alert" style={noticeStyle}>
+-          {warnings.join(' ')}
+-        </p>
++      <Metadata fields={fields} />
++      {hasNotice && (
++        <div role="alert" style={noticeStyle}>
++          {notices}
++        </div>
++      )}
++      {data && (
++        <>
++          <article style={textStyle}>
++            <ReactMarkdown
++              remarkPlugins={[remarkGfm]}
++              urlTransform={(url, key, node) =>
++                node.tagName === 'a' && key === 'href' ? url : defaultUrlTransform(url)
++              }
++              components={markdownComponents(props, pages)}
++            >
++              {data.text}
++            </ReactMarkdown>
++          </article>
++          <RelatedTickets ids={data.relatedTicketIds} onOpenTicket={props.onOpenTicket} />
++        </>
+       )}
+-      <article style={textStyle}>
+-        <ReactMarkdown
+-          remarkPlugins={[remarkGfm]}
+-          urlTransform={(url) => url}
+-          components={markdownComponents(props, pages)}
+-        >
+-          {data.text}
+-        </ReactMarkdown>
+-      </article>
+-      <RelatedTickets ids={data.relatedTicketIds} onOpenTicket={props.onOpenTicket} />
+     </div>
+   );
+ }
+diff --git a/v2/web/src/docs/queries.ts b/v2/web/src/docs/queries.ts
+index 78aeb20..115b7f5 100644
+--- a/v2/web/src/docs/queries.ts
++++ b/v2/web/src/docs/queries.ts
+@@ -7,21 +7,21 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+ import {
+   type DocsPage,
+   type DocsTree,
+   decodeDocsPage,
+   decodeDocsSearchPage,
+   decodeDocsTree,
+ } from '../contracts/docs.ts';
+ import { type Infer, isUuid, matching, obj, page, str, uuid } from '../contracts/http.ts';
+ import { decodeProject } from '../contracts/machines.ts';
+ import { ApiFailure, getDecoded, type OwnerClient } from '../lib/api.ts';
+-import { queryKeys } from '../lib/query-keys.ts';
++import { queryKeys, queryRoots } from '../lib/query-keys.ts';
+ 
+ export const docsSearchPageLimit = 50;
+ /** `relatedTicketIds` of tree/page is capped by the producer (`read.ts` `limit 20`). */
+ export const relatedTicketsCap = 20;
+ export const ticketDocsLinksPageLimit = 20;
+ 
+ export type DocsSearchFilters = { q: string; projectId: string; snapshotId: string };
+ 
+ function requireUuid(value: string, code: string): string {
+   if (!isUuid(value)) throw new ApiFailure(null, code, 'local');
+@@ -71,24 +71,32 @@ export function useDocsPage(
+   path: string | null,
+ ) {
+   return useQuery({
+     queryKey: queryKeys.docsPage(projectId, snapshotId ?? '', path ?? ''),
+     enabled: snapshotId !== null && path !== null,
+     queryFn: ({ signal }): Promise<DocsPage> =>
+       getDecoded(client, docsPagePath(projectId, snapshotId ?? '', path ?? ''), decodeDocsPage, signal),
+   });
+ }
+ 
+-/** Project docs state (`current`/`stale`/...) comes from the project DTO, not from the HTTP status of a page. */
++/**
++ * Project docs state (`current`/`stale`/...) comes from the project DTO, not from the HTTP status of a page.
++ * It lives under the project's docs prefix so every docs event (`docs.synced`, `docs.imported`) refreshes it
++ * together with the tree and pages.
++ */
++export function docsStateKey(projectId: string) {
++  return [...queryRoots.docs(projectId), 'state'] as const;
++}
++
+ export function useProjectDocsState(client: OwnerClient, projectId: string) {
+   return useQuery({
+-    queryKey: queryKeys.project(projectId),
++    queryKey: docsStateKey(projectId),
+     queryFn: ({ signal }) =>
+       getDecoded(
+         client,
+         `/v2/projects/${requireUuid(projectId, 'PROJECT_ID_INVALID')}`,
+         decodeProject,
+         signal,
+       ),
+     select: (project) => project.docsState,
+   });
+ }
+diff --git a/v2/web/src/docs/space.tsx b/v2/web/src/docs/space.tsx
+index 4538882..8d8aeba 100644
+--- a/v2/web/src/docs/space.tsx
++++ b/v2/web/src/docs/space.tsx
+@@ -88,25 +88,29 @@ function DocsSpaceInner({ projectId, path, onPathChange, onOpenTicket }: DocsSpa
+     for (const row of rows ?? []) {
+       const parent = row.parentPath !== null && known.has(row.parentPath) ? row.parentPath : null;
+       map.set(parent, [...(map.get(parent) ?? []), row]);
+     }
+     return map;
+   }, [rows]);
+ 
+   if (tree.isPending) return <p role="status">Đang tải cây tài liệu…</p>;
+   if (tree.isError) {
+     const failure = tree.error as ApiFailure;
+-    return failure instanceof ApiFailure && failure.status === 404 ? (
+-      <p role="status">Dự án này chưa có tài liệu nào được đồng bộ hoặc nhập vào.</p>
+-    ) : (
+-      <p role="alert">{docsFailureText(failure)}</p>
+-    );
++    // The producer answers 404 both for an unknown/out-of-scope project and for a project without a snapshot;
++    // only the message tells them apart (`docs/read.ts` `requireDocsScope` / `selectSnapshot`).
++    if (failure instanceof ApiFailure && failure.status === 404)
++      return /dự án/i.test(failure.message) ? (
++        <p role="alert">Không tìm thấy dự án hoặc bạn không có quyền xem.</p>
++      ) : (
++        <p role="status">Dự án này chưa có tài liệu nào được đồng bộ hoặc nhập vào.</p>
++      );
++    return <p role="alert">{docsFailureText(failure)}</p>;
+   }
+   const data = tree.data;
+   if (data.pages.length === 0) return <p role="status">Phiên bản tài liệu này chưa có trang nào.</p>;
+   const selected = path ?? defaultPagePath(data.pages);
+ 
+   return (
+     <div style={layoutStyle}>
+       <div>
+         <DocsSearch projectId={projectId} snapshotId={data.snapshotId} onSelect={onPathChange} />
+         <nav aria-label="Cây tài liệu">
+diff --git a/v2/web/src/docs/ticket-links.tsx b/v2/web/src/docs/ticket-links.tsx
+new file mode 100644
+index 0000000..f06ee85
+--- /dev/null
++++ b/v2/web/src/docs/ticket-links.tsx
+@@ -0,0 +1,202 @@
++/**
++ * Editor of the pages a ticket is linked to (`PUT /v2/tickets/:id/docs-links`). The server replaces the whole
++ * set with pages of ONE snapshot, guarded by the ticket revision (`expectedRevision`). Rules kept here:
++ * - paths are chosen from the tree of the real snapshot the tree query returned;
++ * - the save is one `PendingOperation` per intent, so a retry after a lost response re-sends the same key and
++ *   bytes, and a new key is only issued after the previous one was confirmed or terminally rejected;
++ * - the draft (selected paths) lives in component state and is never dropped by a failure, in particular by
++ *   409 `REVISION_CONFLICT`; only a confirmed save of exactly the saved bytes clears it;
++ * - saving needs every page of the existing links to be read first, otherwise links on unread pages would be
++ *   silently dropped.
++ * To embed, render `<TicketDocsLinksEditor ticketId={id} />` inside `TicketDetail`.
++ */
++import { useQueryClient } from '@tanstack/react-query';
++import { type CSSProperties, useEffect, useState, useSyncExternalStore } from 'react';
++import { useRuntime } from '../app-runtime.ts';
++import { ApiFailure } from '../lib/api.ts';
++import { IntentUnresolvedError, type PendingOperation } from '../lib/pending-operation.ts';
++import { queryKeys } from '../lib/query-keys.ts';
++import { useTicket } from '../tickets/queries.ts';
++import { docsFailureText, useDocsTree, useTicketDocsLinks } from './queries.ts';
++
++/** Producer limit of `paths` (`tickets/routes.ts` `docsLinksBody`). */
++export const maxTicketDocPaths = 100;
++
++const noticeStyle: CSSProperties = {
++  margin: 0,
++  padding: '0.6rem 0.8rem',
++  border: '1px solid currentColor',
++  borderRadius: '0.5rem',
++};
++
++function saveFailureText(error: unknown): string {
++  if (error instanceof ApiFailure) {
++    if (error.status === 409)
++      return 'Ticket đã thay đổi (revision mới). Bản nháp của bạn được giữ; kiểm tra lại rồi lưu lần nữa.';
++    if (error.status === 422)
++      return 'Trang tài liệu hoặc phiên bản này chưa được xác minh nên chưa thể liên kết.';
++    if (error.status === 400) return `Danh sách trang không hợp lệ (cần 1 đến ${maxTicketDocPaths} trang).`;
++    if (error.kind === 'transport' || error.kind === 'shape' || (error.status ?? 0) >= 500)
++      return 'Lần lưu chưa xác nhận được kết quả. Bấm Lưu để gửi lại đúng yêu cầu đó.';
++  }
++  return docsFailureText(error);
++}
++
++export function TicketDocsLinksEditor({ ticketId }: { ticketId: string }) {
++  const { client } = useRuntime();
++  const ticket = useTicket(client, ticketId);
++  if (ticket.isPending) return <p role="status">Đang tải ticket…</p>;
++  if (ticket.isError) return <p role="alert">{docsFailureText(ticket.error)}</p>;
++  return (
++    <Editor ticketId={ticket.data.id} projectId={ticket.data.projectId} revision={ticket.data.revision} />
++  );
++}
++
++function Editor({
++  ticketId,
++  projectId,
++  revision,
++}: {
++  ticketId: string;
++  projectId: string;
++  revision: number;
++}) {
++  const { client, pending } = useRuntime();
++  const cache = useQueryClient();
++  const tree = useDocsTree(client, projectId);
++  const links = useTicketDocsLinks(client, ticketId);
++  const [draft, setDraft] = useState<ReadonlySet<string> | null>(null);
++  const [busy, setBusy] = useState(false);
++  const [message, setMessage] = useState<string | null>(null);
++  const intentId = `ticket-docs-links:${ticketId}`;
++  const operations = useSyncExternalStore(
++    (listener) => pending.subscribe(listener),
++    () => pending.list(),
++  );
++  const stuck = operations.find((operation) => operation.intentId === intentId);
++
++  const { hasNextPage, isFetchingNextPage, fetchNextPage } = links;
++  useEffect(() => {
++    if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
++  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
++
++  if (tree.isPending || links.isPending) return <p role="status">Đang tải liên kết tài liệu…</p>;
++  if (tree.isError) return <p role="alert">{docsFailureText(tree.error)}</p>;
++  if (links.isError) return <p role="alert">{docsFailureText(links.error)}</p>;
++
++  const snapshotId = tree.data.snapshotId;
++  const existing = links.data.pages.flatMap((entry) => entry.items);
++  const complete = !hasNextPage;
++  const current = existing.filter((link) => link.snapshotId === snapshotId).map((link) => link.path);
++  const replaced = existing.length - current.length;
++  const selected = draft ?? new Set(current);
++  const paths = [...selected].sort();
++  const body = { snapshotId, paths, expectedRevision: revision };
++  const dirty = draft !== null && (draft.size !== current.length || current.some((path) => !draft.has(path)));
++  const canSave =
++    complete &&
++    !busy &&
++    paths.length >= 1 &&
++    paths.length <= maxTicketDocPaths &&
++    (dirty || stuck !== undefined);
++
++  const toggle = (path: string) => {
++    const next = new Set(selected);
++    if (next.has(path)) next.delete(path);
++    else next.add(path);
++    setDraft(next);
++  };
++
++  async function save() {
++    setBusy(true);
++    setMessage(null);
++    let operation: PendingOperation | undefined = stuck;
++    try {
++      if (!operation) {
++        try {
++          operation = pending.begin({
++            intentId,
++            method: 'PUT',
++            path: `/v2/tickets/${ticketId}/docs-links`,
++            body,
++            storage: 'tab',
++          });
++        } catch (error) {
++          if (!(error instanceof IntentUnresolvedError)) throw error;
++          operation = pending.get(error.operationId);
++          if (!operation) {
++            setMessage('Có một lần lưu trước chưa xác nhận và cần khôi phục; chưa thể lưu lần mới.');
++            return;
++          }
++        }
++      }
++      await client.mutate(operation);
++      // The saved bytes may be an older payload re-sent under its original key; only an identical save
++      // may clear the draft.
++      if (operation.bodyJson === JSON.stringify(body)) {
++        setDraft(null);
++        setMessage('Đã lưu liên kết tài liệu.');
++      } else {
++        setMessage(
++          'Đã gửi lại lần lưu trước với nội dung cũ của nó. Bản nháp hiện tại được giữ; kiểm tra rồi lưu lại.',
++        );
++      }
++    } catch (error) {
++      setMessage(saveFailureText(error));
++    } finally {
++      await cache.invalidateQueries({ queryKey: queryKeys.ticket(ticketId) });
++      setBusy(false);
++    }
++  }
++
++  return (
++    <section aria-label="Tài liệu liên kết với ticket">
++      <h3>Tài liệu liên kết</h3>
++      <p>
++        Phiên bản tài liệu: <code>{snapshotId}</code> (commit {tree.data.sourceCommit ?? 'không có'}). Ticket
++        revision {revision}.
++      </p>
++      {!complete && <p role="status">Đang đọc hết các liên kết hiện có trước khi cho sửa…</p>}
++      {replaced > 0 && (
++        <p style={noticeStyle}>
++          {replaced} liên kết thuộc phiên bản tài liệu cũ sẽ bị thay khi lưu, vì máy chủ chỉ giữ liên kết của
++          một phiên bản.
++        </p>
++      )}
++      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
++        {tree.data.pages.map((page) => (
++          <li key={page.path}>
++            <label>
++              <input
++                type="checkbox"
++                checked={selected.has(page.path)}
++                disabled={!complete}
++                onChange={() => toggle(page.path)}
++              />{' '}
++              {page.title} <code>{page.path}</code>
++            </label>
++          </li>
++        ))}
++      </ul>
++      {paths.length === 0 && <p>Cần chọn ít nhất một trang; máy chủ chưa hỗ trợ xóa hết liên kết.</p>}
++      {paths.length > maxTicketDocPaths && <p>Tối đa {maxTicketDocPaths} trang cho mỗi lần lưu.</p>}
++      {stuck && (
++        <p role="status" style={noticeStyle}>
++          Lần lưu trước chưa xác nhận kết quả. Bấm Lưu để gửi lại đúng yêu cầu đó (cùng khóa chống trùng),
++          hoặc bỏ nó nếu bạn đã kiểm tra rằng nó không được áp dụng.{' '}
++          <button type="button" disabled={busy} onClick={() => pending.reject(stuck.id)}>
++            Bỏ lần gửi treo
++          </button>
++        </p>
++      )}
++      <button type="button" disabled={!canSave} onClick={() => void save()}>
++        Lưu liên kết
++      </button>
++      {message && (
++        <p role="status" style={noticeStyle}>
++          {message}
++        </p>
++      )}
++    </section>
++  );
++}
+diff --git a/v2/web/test/docs-links.test.ts b/v2/web/test/docs-links.test.ts
+index 4b89fc3..7742e57 100644
+--- a/v2/web/test/docs-links.test.ts
++++ b/v2/web/test/docs-links.test.ts
+@@ -7,20 +7,22 @@ import { ApiFailure } from '../src/lib/api.ts';
+ const projectId = '11111111-1111-4111-8111-111111111111';
+ const snapshotId = '22222222-2222-4222-8222-222222222222';
+ const otherSnapshot = '33333333-3333-4333-8333-333333333333';
+ const pages = new Set([
+   'docs/index.md',
+   'docs/flows/đăng-nhập.md',
+   'docs/flows/tạo yêu cầu.md',
+   'docs/Kiến-trúc.md',
+   'README.md',
+   'docs/guide/index.md',
++  'docs/a.md',
++  'docs/đ ê.md',
+ ]);
+ 
+ function resolve(href: string, currentPath = 'docs/index.md', snapshot = snapshotId): DocDestination {
+   return resolveDocLink({ href, currentPath, projectId, snapshotId: snapshot, pages });
+ }
+ 
+ const page = (path: string, fragment: string | null = null, snapshot = snapshotId): DocDestination => ({
+   kind: 'page',
+   projectId,
+   snapshotId: snapshot,
+@@ -49,30 +51,20 @@ test('percent-encoding tiếng Việt và khoảng trắng được giải mã 
+ test('fragment giữ nguyên chữ hoa/thường và giải mã percent; #only ở lại trang hiện hành', () => {
+   assert.deepEqual(resolve('Kiến-trúc.md#Tổng-Quan'), page('docs/Kiến-trúc.md', 'Tổng-Quan'));
+   assert.deepEqual(resolve('Kiến-trúc.md#T%E1%BB%95ng-Quan'), page('docs/Kiến-trúc.md', 'Tổng-Quan'));
+   assert.deepEqual(
+     resolve('#Mục-Một', 'docs/flows/đăng-nhập.md'),
+     page('docs/flows/đăng-nhập.md', 'Mục-Một'),
+   );
+   assert.deepEqual(resolve('Kiến-trúc.md#'), page('docs/Kiến-trúc.md', null));
+ });
+ 
+-test('query bị bỏ; thư mục có index.md trỏ tới index.md', () => {
+-  assert.deepEqual(resolve('Kiến-trúc.md?x=1#A'), page('docs/Kiến-trúc.md', 'A'));
+-  assert.deepEqual(resolve('guide/'), page('docs/guide/index.md'));
+-  assert.deepEqual(resolve('guide'), page('docs/guide/index.md'));
+-});
+-
+-test('đường dẫn gốc "/" tính từ root của dự án', () => {
+-  assert.deepEqual(resolve('/README.md', 'docs/flows/đăng-nhập.md'), page('README.md'));
+-});
+-
+ test('trang không có trong snapshot bị chặn kèm lý do, không đoán đích', () => {
+   const result = resolve('khong-co.md');
+   assert.equal(result.kind, 'blocked');
+   assert.match((result as { reason: string }).reason, /không có trong/);
+ });
+ 
+ test('thoát khỏi root bị chặn, kể cả qua percent-encoding', () => {
+   for (const href of ['../../README.md', '../../../etc/passwd', '%2e%2e/%2e%2e/README.md', '/../README.md'])
+     assert.equal(resolve(href, 'docs/index.md').kind, 'blocked', href);
+ });
+@@ -144,10 +136,53 @@ test('đường dẫn docs-links của ticket đi theo cursor mờ, limit 20 và
+   assert.throws(() => ticketDocsLinksPath('../x', null), { code: 'TICKET_ID_INVALID' });
+ });
+ 
+ test('lỗi 422 mã hóa được nói rõ; lỗi khác không đổ cho ticket', () => {
+   assert.match(
+     docsFailureText(new ApiFailure(422, 'DOCS_ENCODING_INVALID', 'http', 'x')),
+     /không phải UTF-8 hợp lệ/,
+   );
+   assert.match(docsFailureText(new ApiFailure(404, 'NOT_FOUND', 'http')), /Không tìm thấy tài liệu/);
+ });
++
++/**
++ * Mirrors `auditLinks` (`v2/server/src/docs/links.ts:150-170`). Each row was produced by running the server on
++ * `[x](href)` from `docs/index.md`; `ok` links are clickable pages, everything else (LINK_PATH_ESCAPE, missing,
++ * unsupported) must not be clickable here.
++ */
++const serverParity: [href: string, serverStatus: string, expected: string | null][] = [
++  ['a.md', 'ok', 'docs/a.md'],
++  ['./a.md', 'ok', 'docs/a.md'],
++  ['../README.md', 'ok', 'README.md'],
++  ['guide/index.md', 'ok', 'docs/guide/index.md'],
++  ['đ%20ê.md', 'ok', 'docs/đ ê.md'],
++  ['%C4%91%20%C3%AA.md', 'ok', 'docs/đ ê.md'],
++  ['a/../a.md', 'ok', 'docs/a.md'],
++  ['a.md#', 'ok', 'docs/a.md'],
++  ['../../README.md', 'LINK_PATH_ESCAPE', null],
++  ['a%2eb.md', 'LINK_PATH_ESCAPE', null],
++  ['%2e%2e/README.md', 'LINK_PATH_ESCAPE', null],
++  ['%2fa.md', 'LINK_PATH_ESCAPE', null],
++  ['%2Fa.md', 'LINK_PATH_ESCAPE', null],
++  ['a%5cb.md', 'LINK_PATH_ESCAPE', null],
++  ['/README.md', 'LINK_PATH_ESCAPE', null],
++  ['a.md?x=1', 'LINK_PATH_ESCAPE', null],
++  ['a.md#?q', 'LINK_PATH_ESCAPE', null],
++  ['guide/', 'LINK_PATH_ESCAPE', null],
++  ['%252e%252e/README.md', 'LINK_PATH_ESCAPE', null],
++  ['guide', 'LINK_MISSING', null],
++  ['.', 'LINK_MISSING', null],
++  ['x.md', 'LINK_MISSING', null],
++  ['', 'UNVERIFIED_LINK_SYNTAX', null],
++];
++
++test('resolver khớp từng trường hợp với hành vi audit của máy chủ: chỉ link ok mới bấm được', () => {
++  for (const [href, serverStatus, expected] of serverParity) {
++    const result = resolve(href);
++    if (expected === null) assert.equal(result.kind, 'blocked', `${href} (server ${serverStatus})`);
++    else assert.deepEqual(result, page(expected), `${href} (server ${serverStatus})`);
++  }
++});
++
++test('"#top" ở lại trang hiện hành; fragment giữ nguyên', () => {
++  assert.deepEqual(resolve('#top'), page('docs/index.md', 'top'));
++});
+diff --git a/v2/web/test/docs-space-dom.test.ts b/v2/web/test/docs-space-dom.test.ts
+index 0d5d071..57828ea 100644
+--- a/v2/web/test/docs-space-dom.test.ts
++++ b/v2/web/test/docs-space-dom.test.ts
+@@ -5,20 +5,21 @@ import { FakeComposeServer, harness, settle } from './support/compose-server.ts'
+ import { installDom } from './support/dom.ts';
+ import { useDomEventConstructors } from './support/dom-events.ts';
+ 
+ const closeDom = installDom();
+ // biome-ignore lint/correctness/useHookAtTopLevel: not a React hook; it binds jsdom event constructors.
+ useDomEventConstructors();
+ const { act, cleanup, fireEvent, render, screen, within } = await import('@testing-library/react');
+ const { createElement, useState } = await import('react');
+ const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
+ const { RuntimeContext } = await import('../src/app-runtime.ts');
++const { invalidations } = await import('../src/lib/events.ts');
+ const { DocsSpace } = await import('../src/docs/space.tsx');
+ 
+ afterEach(() => cleanup());
+ after(() => closeDom());
+ 
+ const projectA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ const projectB = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+ const snapA = '11111111-1111-4111-8111-111111111111';
+ const snapB = '22222222-2222-4222-8222-222222222222';
+ const ticket1 = '33333333-3333-4333-8333-333333333333';
+@@ -99,28 +100,33 @@ function docsServer(handler: Handler) {
+       requests.push(url);
+       const response = await handler(new URL(url, 'http://x'), init.signal ?? null);
+       if (response.status !== 599) return response;
+     }
+     return base(url, init);
+   };
+   return { server, requests };
+ }
+ 
+ type Env = Awaited<ReturnType<typeof harness>>;
+-type Mounted = { navigations: string[]; tickets: string[]; setProject: (id: string) => void };
++type Mounted = {
++  navigations: string[];
++  tickets: string[];
++  setProject: (id: string) => void;
++  queryClient: InstanceType<typeof QueryClient>;
++};
+ 
+ function mount(env: Env, initialProject = projectA, initialPath: string | null = null): Mounted {
+   const queryClient = new QueryClient({
+     defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
+   });
+   const runtime = { client: env.client, session: env.session, pending: env.pending } as unknown as AppRuntime;
+-  const out: Mounted = { navigations: [], tickets: [], setProject: () => undefined };
++  const out: Mounted = { navigations: [], tickets: [], setProject: () => undefined, queryClient };
+   function Host() {
+     const [id, setId] = useState(initialProject);
+     const [path, setPath] = useState<string | null>(initialPath);
+     out.setProject = (next) => {
+       setPath(null);
+       setId(next);
+     };
+     return createElement(DocsSpace, {
+       projectId: id,
+       path,
+@@ -404,10 +410,82 @@ test('ticket liên quan hiện đúng danh sách máy chủ trả về, nói rõ
+     { pageExtra: { relatedTicketIds: [ticket1, ...ids.slice(1)] } },
+   );
+   const mounted = mount(await harness(server));
+   await until(has('Ticket liên quan'), 'related');
+   assert.match(document.body.textContent ?? '', /giới hạn 20/);
+   await act(async () => {
+     fireEvent.click(screen.getAllByRole('button', { name: /Mở ticket/ })[0] as HTMLElement);
+   });
+   assert.deepEqual(mounted.tickets, [ticket1]);
+ });
++
++test('sau event docs.imported, docsState được đọc lại và không còn hiện "Hiện hành" từ cache cũ', async () => {
++  let state = 'current';
++  const { server } = standard(
++    { 'docs/index.md': 'trang' },
++    {
++      extra: (url) =>
++        url.pathname === `/v2/projects/${projectA}` ? json(project(projectA, state)) : undefined,
++    },
++  );
++  const mounted = mount(await harness(server));
++  await until(has('Hiện hành'), 'current');
++  state = 'unverified';
++  await act(async () => {
++    await Promise.all(
++      invalidations({
++        cursor: '9',
++        type: 'docs.imported',
++        projectId: null,
++        ticketId: null,
++        audienceMachineId: null,
++        occurredAt: '2026-10-04T05:30:00.000Z',
++        data: {},
++      }).map((queryKey) => mounted.queryClient.invalidateQueries({ queryKey })),
++    );
++  });
++  await until(() => !(document.body.textContent ?? '').includes('Hiện hành'), 'refetched');
++  assert.match(screen.getByLabelText('Thông tin phiên bản tài liệu').textContent ?? '', /Chưa xác minh/);
++});
++
++test('lỗi trang (422) vẫn hiện commit, kiểm tra, trạng thái tài liệu và loại nội dung của cây', async () => {
++  const { server } = standard(
++    { 'docs/index.md': 'x' },
++    {
++      docsState: 'stale',
++      extra: (url) =>
++        url.searchParams.get('path') === 'docs/plan.md'
++          ? apiError(422, 'DOCS_ENCODING_INVALID', 'Trang không phải UTF-8 hợp lệ')
++          : undefined,
++    },
++  );
++  mount(await harness(server), projectA, 'docs/plan.md');
++  await until(has('UTF-8'), 'error');
++  const meta = screen.getByLabelText('Thông tin phiên bản tài liệu').textContent ?? '';
++  assert.match(meta, /abc1234def/);
++  assert.match(meta, /Đã xác minh/);
++  assert.match(meta, /Đã cũ/);
++  assert.match(meta, /Thiết kế\/kế hoạch/);
++});
++
++test('docs cũ và trang chưa xác minh: cả hai cảnh báo cùng hiện', async () => {
++  const { server } = standard(
++    { 'docs/index.md': 'x' },
++    { docsState: 'stale', pageExtra: { auditState: 'invalid' } },
++  );
++  mount(await harness(server));
++  await until(has('Đã cũ'), 'warn');
++  const alert = screen.getByRole('alert').textContent ?? '';
++  assert.match(alert, /đã cũ/);
++  assert.match(alert, /không hợp lệ/);
++});
++
++test('404 của cây: "không có dự án" khác "chưa có tài liệu"', async () => {
++  const { server } = docsServer((url) =>
++    url.pathname.endsWith('/docs/tree')
++      ? apiError(404, 'NOT_FOUND', 'Không tìm thấy dự án')
++      : new Response('', { status: 599 }),
++  );
++  mount(await harness(server));
++  await until(has('Không tìm thấy dự án'), 'no project');
++  assert.doesNotMatch(document.body.textContent ?? '', /chưa có tài liệu/);
++});
+diff --git a/v2/web/test/docs-ticket-links-dom.test.ts b/v2/web/test/docs-ticket-links-dom.test.ts
+new file mode 100644
+index 0000000..fa716be
+--- /dev/null
++++ b/v2/web/test/docs-ticket-links-dom.test.ts
+@@ -0,0 +1,271 @@
++import assert from 'node:assert/strict';
++import { after, afterEach, test } from 'node:test';
++import type { AppRuntime } from '../src/app-runtime.ts';
++import { FakeComposeServer, harness, settle } from './support/compose-server.ts';
++import { installDom } from './support/dom.ts';
++import { useDomEventConstructors } from './support/dom-events.ts';
++
++const closeDom = installDom();
++// biome-ignore lint/correctness/useHookAtTopLevel: not a React hook; it binds jsdom event constructors.
++useDomEventConstructors();
++const { act, cleanup, fireEvent, render, screen } = await import('@testing-library/react');
++const { createElement } = await import('react');
++const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
++const { RuntimeContext } = await import('../src/app-runtime.ts');
++const { TicketDocsLinksEditor } = await import('../src/docs/ticket-links.tsx');
++
++afterEach(() => cleanup());
++after(() => closeDom());
++
++const projectId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
++const ticketId = '55555555-5555-4555-8555-555555555555';
++const snap = '11111111-1111-4111-8111-111111111111';
++const oldSnap = '22222222-2222-4222-8222-222222222222';
++
++const ticketBody = (revision: number) => ({
++  id: ticketId,
++  projectId,
++  parentId: null,
++  rootId: ticketId,
++  level: 'request',
++  kind: 'code',
++  title: 'T',
++  description: 'd',
++  mandatory: true,
++  criteria: {},
++  inputs: {},
++  outputs: {},
++  skill: null,
++  workflowPin: null,
++  status: 'running',
++  revision,
++  waitReason: null,
++  repairCycles: 0,
++  mergedCommit: null,
++});
++const tree = {
++  projectId,
++  snapshotId: snap,
++  sourceCommit: 'abc1234',
++  auditState: 'verified',
++  contentClass: 'implemented',
++  pages: [
++    { path: 'docs/index.md', title: 'Tổng quan', parentPath: null, contentClass: 'implemented' },
++    { path: 'docs/a.md', title: 'Trang A', parentPath: 'docs/index.md', contentClass: 'implemented' },
++    { path: 'docs/b.md', title: 'Trang B', parentPath: 'docs/index.md', contentClass: 'implemented' },
++  ],
++  links: [],
++  relatedTicketIds: [],
++};
++const json = (body: unknown, status = 200) =>
++  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
++const apiError = (status: number, code: string, message: string) =>
++  json({ error: { code, message } }, status);
++
++type Put = {
++  key: string;
++  body: { snapshotId: string; paths: string[]; expectedRevision: number };
++  csrf: string;
++};
++
++function setup(options: {
++  revision?: () => number;
++  linkPages: () => Record<
++    string,
++    { items: { snapshotId: string; path: string }[]; nextCursor: string | null }
++  >;
++  put: (put: Put, count: number) => Response | Promise<Response>;
++}) {
++  const server = new FakeComposeServer();
++  const base = server.fetch;
++  const puts: Put[] = [];
++  const getUrls: string[] = [];
++  server.fetch = async (url: string, init: RequestInit = {}) => {
++    const method = init.method ?? 'GET';
++    if (url.startsWith('/v2/') && !url.startsWith('/v2/auth/')) {
++      const parsed = new URL(url, 'http://x');
++      if (method === 'PUT' && parsed.pathname === `/v2/tickets/${ticketId}/docs-links`) {
++        const headers = new Headers(init.headers);
++        const put: Put = {
++          key: headers.get('idempotency-key') ?? '',
++          csrf: headers.get('x-csrf-token') ?? '',
++          body: JSON.parse(String(init.body)),
++        };
++        puts.push(put);
++        return options.put(put, puts.length);
++      }
++      if (method === 'GET') {
++        getUrls.push(url);
++        if (parsed.pathname === `/v2/tickets/${ticketId}`) return json(ticketBody(options.revision?.() ?? 2));
++        if (parsed.pathname === `/v2/projects/${projectId}/docs/tree`) return json(tree);
++        if (parsed.pathname === `/v2/tickets/${ticketId}/docs-links`)
++          return json(options.linkPages()[parsed.searchParams.get('cursor') ?? '']);
++      }
++    }
++    return base(url, init);
++  };
++  return { server, puts, getUrls };
++}
++
++function mount(env: Awaited<ReturnType<typeof harness>>) {
++  const queryClient = new QueryClient({
++    defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
++  });
++  const runtime = { client: env.client, session: env.session, pending: env.pending } as unknown as AppRuntime;
++  render(
++    createElement(
++      RuntimeContext.Provider,
++      { value: runtime },
++      createElement(
++        QueryClientProvider,
++        { client: queryClient },
++        createElement(TicketDocsLinksEditor, { ticketId }),
++      ),
++    ),
++  );
++}
++
++async function until(predicate: () => boolean, label: string) {
++  await act(async () => {
++    await settle(predicate, label);
++  });
++}
++const box = (name: RegExp) => screen.getByRole('checkbox', { name }) as HTMLInputElement;
++const saveButton = () => screen.getByRole('button', { name: /^Lưu liên kết/ }) as HTMLButtonElement;
++const ready = () => screen.queryByRole('checkbox', { name: /Trang A/ }) !== null;
++
++test('lưu gửi PUT với CAS expectedRevision, snapshot của cây, đường dẫn đã chọn và khóa cố định', async () => {
++  let saved = false;
++  const { server, puts } = setup({
++    linkPages: () => ({
++      '': { items: [{ snapshotId: snap, path: 'docs/a.md' }], nextCursor: null },
++    }),
++    put: () => {
++      saved = true;
++      return json(ticketBody(3));
++    },
++  });
++  mount(await harness(server));
++  await until(() => ready() && box(/Trang A/).checked, 'ready');
++  assert.equal(saveButton().disabled, true);
++  await act(async () => {
++    fireEvent.click(box(/Trang B/));
++  });
++  assert.equal(saveButton().disabled, false);
++  await act(async () => {
++    fireEvent.click(saveButton());
++  });
++  await until(() => saved, 'put');
++  assert.equal(puts.length, 1);
++  assert.deepEqual(puts[0]?.body, {
++    snapshotId: snap,
++    paths: ['docs/a.md', 'docs/b.md'],
++    expectedRevision: 2,
++  });
++  assert.match(puts[0]?.key ?? '', /^[0-9a-f-]{36}$/);
++  assert.match(puts[0]?.csrf ?? '', /^c{64}$/);
++  await until(() => /Đã lưu/.test(document.body.textContent ?? ''), 'saved text');
++});
++
++test('409 giữ nguyên bản nháp, đọc lại revision và lần lưu sau dùng revision mới với khóa mới', async () => {
++  let revision = 2;
++  const { server, puts, getUrls } = setup({
++    revision: () => revision,
++    linkPages: () => ({ '': { items: [{ snapshotId: snap, path: 'docs/a.md' }], nextCursor: null } }),
++    put: (_put, count) => {
++      if (count === 1) {
++        revision = 3;
++        return apiError(409, 'REVISION_CONFLICT', 'Ticket đã thay đổi');
++      }
++      return json(ticketBody(4));
++    },
++  });
++  mount(await harness(server));
++  await until(ready, 'ready');
++  await act(async () => {
++    fireEvent.click(box(/Trang B/));
++  });
++  await act(async () => {
++    fireEvent.click(saveButton());
++  });
++  await until(() => /Ticket đã thay đổi/.test(document.body.textContent ?? ''), '409');
++  assert.equal(box(/Trang B/).checked, true, 'bản nháp phải được giữ');
++  assert.equal(box(/Trang A/).checked, true);
++  await until(
++    () => getUrls.filter((url) => url === `/v2/tickets/${ticketId}`).length >= 2,
++    'ticket refetched',
++  );
++  await act(async () => {
++    fireEvent.click(saveButton());
++  });
++  await until(() => puts.length === 2, 'second put');
++  assert.equal(puts[1]?.body.expectedRevision, 3);
++  assert.deepEqual(puts[1]?.body.paths, ['docs/a.md', 'docs/b.md']);
++  assert.notEqual(puts[1]?.key, puts[0]?.key);
++});
++
++test('mất phản hồi: lần bấm lại gửi lại đúng khóa và đúng byte, không tạo thao tác mới', async () => {
++  const { server, puts } = setup({
++    linkPages: () => ({ '': { items: [{ snapshotId: snap, path: 'docs/a.md' }], nextCursor: null } }),
++    put: (_put, count) => {
++      if (count === 1) throw new TypeError('network down');
++      return json(ticketBody(3));
++    },
++  });
++  mount(await harness(server));
++  await until(ready, 'ready');
++  await act(async () => {
++    fireEvent.click(box(/Trang B/));
++  });
++  await act(async () => {
++    fireEvent.click(saveButton());
++  });
++  await until(() => /chưa xác nhận/.test(document.body.textContent ?? ''), 'ambiguous');
++  await act(async () => {
++    fireEvent.click(saveButton());
++  });
++  await until(() => puts.length === 2, 'resend');
++  assert.equal(puts[1]?.key, puts[0]?.key);
++  assert.deepEqual(puts[1]?.body, puts[0]?.body);
++});
++
++test('chỉ cho lưu khi đã đọc hết các trang liên kết hiện có; liên kết snapshot cũ được báo sẽ bị thay', async () => {
++  const { server, puts } = setup({
++    linkPages: () => ({
++      '': { items: [{ snapshotId: snap, path: 'docs/a.md' }], nextCursor: 'Y3Vy' },
++      Y3Vy: {
++        items: [
++          { snapshotId: snap, path: 'docs/b.md' },
++          { snapshotId: oldSnap, path: 'docs/cu.md' },
++        ],
++        nextCursor: null,
++      },
++    }),
++    put: () => json(ticketBody(3)),
++  });
++  mount(await harness(server));
++  await until(() => ready() && box(/Trang B/).checked, 'both pages read');
++  assert.match(document.body.textContent ?? '', /1 liên kết thuộc phiên bản tài liệu cũ/);
++  await act(async () => {
++    fireEvent.click(box(/Trang A/));
++  });
++  await act(async () => {
++    fireEvent.click(saveButton());
++  });
++  await until(() => puts.length === 1, 'put');
++  assert.deepEqual(puts[0]?.body.paths, ['docs/b.md']);
++});
++
++test('không cho lưu danh sách rỗng (producer yêu cầu ít nhất một trang)', async () => {
++  const { server } = setup({
++    linkPages: () => ({ '': { items: [{ snapshotId: snap, path: 'docs/a.md' }], nextCursor: null } }),
++    put: () => json(ticketBody(3)),
++  });
++  mount(await harness(server));
++  await until(ready, 'ready');
++  await act(async () => {
++    fireEvent.click(box(/Trang A/));
++  });
++  assert.equal(saveButton().disabled, true);
++  assert.match(document.body.textContent ?? '', /ít nhất một trang/);
++});
