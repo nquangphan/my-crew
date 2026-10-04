@@ -115,3 +115,9 @@ P-G2: minor (deferred): M1 uuidPattern chỉ nhận chữ thường cho storageH
 16:15 P-G1a review `producer-g1a-review.md`: Needs fixes, Important2 (latest cursor lộ bộ đếm toàn cục cho machine; thiếu test machine/401) /Minor4. FIX1/5 resume.
 Ruling: `/v2/events/latest` owner-only — web owner là consumer duy nhất — sai thì machine phải dùng readEvents scoped.
 P-G1a: minor (deferred): history lộ actor.id owner/machine (nhất quán per-resource); docs-links order collate "C" không khớp PK index, thiếu test limit biên.
+
+16:25 S5a FIX2 re-review `task-5-s5a-fix2-re-review.md`: Approved; N1–N5/I5 ADDRESSED, 7 mismatch G2 khớp server.
+Task 5 S5a: complete — 8c5ce41 (aa98e43 + 99cbff8 + 8c5ce41). A5 BLOCKED: fixture Task1 chưa truyền AttachmentAssembly; file thật cần extractor phase05 Task5.
+Task 5 S5a: minor (PHẢI sửa trước A5): B1 #refresh nhả khóa submit theo đồng hồ client khi compose "hết hạn" — có thể trùng nếu request cũ còn chạy; không release khi sending, dùng giờ server/biên lệch.
+Task 5 S5a: minor (PHẢI sửa trước A5): B2 nút gửi còn bật trong lúc discard() chờ abandon; lỗi transport DELETE abandon bị nuốt — cờ discarding khóa nút ngay đầu discard.
+Task 5 S5a: minor (deferred): B3 tsx-loader là cơ chế biên dịch thứ hai không dùng config Vite; register()/jsdom global toàn process; peer @testing-library/dom chưa khai báo trong package.json. I5 còn trống: dispose/StrictMode, reconcile sau login, invalidate sau receipt, nút abandon/chọn lại tệp, preventDefault onDrop khi khóa. Minor cũ M1/M2/M4/M6 vẫn mở.
