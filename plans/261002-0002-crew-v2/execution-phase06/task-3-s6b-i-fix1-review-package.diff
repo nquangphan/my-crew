@@ -1,0 +1,673 @@
+4c4e0aa fix(v2): execute-tree không bao giờ PASS khi còn phải kill, leader ghi ngoài stage
+ v2/docs/flows/gateway-workflows.md               |   4 +-
+ v2/gateway/src/workflows/operation-native.c      | 149 ++++++++++++++++-------
+ v2/gateway/src/workflows/operations.ts           |  16 ++-
+ v2/gateway/test/workflow-operations-tree.test.ts | 140 ++++++++++++++++++++-
+ 4 files changed, 253 insertions(+), 56 deletions(-)
+diff --git a/v2/docs/flows/gateway-workflows.md b/v2/docs/flows/gateway-workflows.md
+index 9a07120..aa78eeb 100644
+--- a/v2/docs/flows/gateway-workflows.md
++++ b/v2/docs/flows/gateway-workflows.md
+@@ -15,39 +15,39 @@ Giữ BMAD và Superpowers cạnh nhau trong registry riêng của host. Exact o
+ 
+ 1. `pins.ts`, `fetch.ts`: validate strict SourcePin/ProjectionPin và URL HTTPS exact repository/release/revision; kiểm từng redirect, tối đa ba redirect, archive 32 MiB và download 30 giây. BMAD npm kiểm cả payload SHA-256 và SHA-512 SRI trước extract. URL allowlist không tự chứng minh provenance của stream do caller cung cấp.
+ 2. `stage.ts`: parser tar-stream ghim 3.1.7; chặn traversal, Unicode NFC/case collision, duplicate, special/hardlink entries và executable ngoài audit. Tree tối đa 128 MiB/20.000 entries, gzip có expanded bound. Ghi link sau files/directories; canonical target phải trong tree, không dangling/cycle/escape. Directory 0755, regular file 0644/0755 theo audit, symlink mode null.
+ 3. Canonical entries sort byte UTF-8 theo path slash/NFC. Manifest ghi path/type/mode/bytes/sha256/target; loại filesystem mtime/UID/GID/xattrs/archive order. Source tree hash bind sourceManifestSha256/sourceRevision/packageIntegrity/payloadSha256. Projection tree hash bind sourceTreeSha256/runtime/manifestSha256/derivation tool/version/options/layoutSchema/policySha256. Pin/manifest/current pointer nằm ngoài counted tree. Exact payload khác vẫn tạo source tree pin khác dù manifest giống.
+ 4. `registry.ts`: AtomicRecords OS writer lock và transaction queue serialize reserve/build/publish/activation. Durable intent trước create, ownership marker và device/inode/UID trước build; fsync tree/record/parent rồi rename. Verify immutable path nếu đã tồn tại; không overwrite. Abort được kiểm trước operation và ngay trước activation, kể cả cached source A sau current B; cached projection cũng kiểm cancellation.
+ 5. `builder.ts`: exact BMAD package-local official `bmad-cli.js install --directory <owned> --yes --modules bmm --tools claude-code --no-shims`, fixed user/language inputs. Frozen 13 direct dependencies/99 direct+transitive packages, exact lock/package/payload hashes/SRI/file-byte evidence. Node 24.14.0 và uv 0.11.3 được bind bằng binary hash; không global install. Child HOME/TMP/XDG riêng, không inherited env/credential/proxy/module path. Sandbox deny network/fork, giới hạn writes trong stage. Upstream update/module lookup không được ra ngoài sandbox; installer bytes không sửa.
+ 6. BMAD generated operational dates chỉ normalize tại `_bmad/_config/manifest.yaml`, `_bmad/core/config.yaml`, `_bmad/bmm/config.yaml` về epoch; cập nhật tương ứng hash của đúng các file ấy trong files-manifest.csv. Skill text/config/script/renderer gốc giữ byte. Hai build độc lập phải cho cùng canonical manifest và exact expected pin. `_bmad/scripts/render_skill.py` giữ nguyên; original SKILL vẫn yêu cầu `uv run --no-cache` khi workflow chạy. Task 4 không chạy renderer thay cho runtime hay tuyên bố workflow thực đã PASS.
+ 7. Superpowers Claude giữ `.claude-plugin/plugin.json`, `skills`, `hooks` original. API giữ exact official skill/script/support bytes và adapter-policy có toàn bộ officialInventory, skills, scripts có đuôi và executable không đuôi như `sdd-workspace`/`review-package`. BMAD API giữ output installer/config/renderer cùng policy riêng. Policy bind manifest, effect ledger, per-call grants và certified boundary; model/tool execution disabled, isolationCertificate null. Không prompt PM/dev/QC của Crew.
+ 8. Superpowers Codex native `superpowers-codex-native-skills-v1`: giữ full upstream tree byte/mode, `.agents`/marketplace manifest đã có nguyên vẹn; thêm đúng `.agents/skills` và 15 relative links `<name> -> ../../skills/<name>`. Hai owned build roots kiểm actual hash, target và sibling scripts. Native policy nằm ngoài counted tree, được reverify khi resolve. Consumer cố định: P ở sibling ngoài project CWD/ancestors, scratch `.agents/skills -> P/.agents/skills`; không transplant links, không nạp root AGENTS/hook/marketplace từ P. Không YAML/source rewrite/alias router. Runtime bootstrap/namespace/tools/child/isolation vẫn UNVERIFIED; marketplace 6.4.2 thiếu immutable package/metadata vẫn là gate riêng.
+ 9. `operations.ts`, `operation-native.c`: attested private parent/objects; native FD no-follow traversal/quarantine/delete kiểm device/inode/UID/type, regular nlink1, foreign mount/hardlink fail closed; symlink được unlink như entry. Directory nlink chỉ quan sát. Bounded installer executor 90 giây, disk accounting 256 MiB/30.000 entries/depth128, log/file bound64 MiB. Arm kqueue NOTE_FORK/NOTE_EXIT trước gated exec rồi actual waitpid. Protected receipt bind operation ID + device/inode; bất kỳ fork/lost receipt giữ UNKNOWN. Không sửa Task2 ProcessJournal/ResourceRegistry để giả stopped.
+-   Verb `execute-tree` (`OwnedOperations.executeTree`) dành cho cây tiến trình có giới hạn (`uv` → Python); verb `execute` của installer giữ nguyên ngữ nghĩa (mọi fork → UNKNOWN). Leader gọi `setsid()`; parent ghi `{stage}/.leader` = `pid start-giây.micro-giây` (O_EXCL, 0600, fsync) trước khi mở gate để reconcile sau crash. Mỗi tick và mỗi event, helper liệt kê session và gắn `NOTE_EXIT` riêng cho từng thành viên. macOS hiện tại trả ENOENT cho `KERN_PROC_SESSION`, nên thành viên là mọi tiến trình từ `KERN_PROC_ALL` có `getsid()` bằng pid leader; zombie không còn session nên không tính. Leader chưa được reap trong suốt quá trình theo dõi, nên pid của nó không thể thành session id của tiến trình khác. Khi leader thoát, trước `waitpid`: thành viên còn trong session là `survivors`; thành viên đã theo dõi chưa có `NOTE_EXIT` nhưng không còn trong session (đã `setsid` rời đi) hoặc không theo dõi được là `escaped`. Helper kill mọi thứ còn lại và chờ tối đa 2 giây tới khi session rỗng và mọi thành viên đã theo dõi đều thoát; `treeEmpty` của receipt tree mang nghĩa đó. Receipt thêm `mode:"tree"`, `sessionEmptyAtExit`, `survivors`, `escaped`, `maxSessionSize`, `formatVersion` vẫn là 1. PASS chỉ khi `treeEmpty` và session đã rỗng lúc leader thoát (`survivors=0`, `escaped=0`); timeout kill cả session và chỉ trả receipt khi `treeEmpty`; ngoài ra là `EXECUTOR_LIFETIME_UNKNOWN`, receipt giữ lại cho reconcile. Phần dư đã chấp nhận: hậu duệ gọi `setsid()` trước lần quan sát đầu tiên thì không tick nào thấy, cũng như kill theo pid có cửa sổ tái dùng pid rất hẹp. Helper thoát 20 (`.operations.guard` bận, trước fork và trước mọi ghi vào stage) ở cả hai verb trả `EXECUTOR_BUSY`: không có tiến trình nào chạy, caller thu hồi stage ngay thay vì giữ như UNKNOWN.
++   Verb `execute-tree` (`OwnedOperations.executeTree`) dành cho cây tiến trình có giới hạn (`uv` → Python); verb `execute` của installer giữ nguyên ngữ nghĩa (mọi fork → UNKNOWN). Leader gọi `setsid()`. Trước khi mở gate, parent ghi `receipts/{id}.leader` = `pid start-giây.micro-giây` (O_EXCL, 0600, fsync file và thư mục) để reconcile sau crash. File nằm ngoài stage mà child ghi được, nên reconcile chỉ tin bản này; một `.leader` trong stage chỉ là dữ liệu của child. Không ghi được bản này thì helper thoát 36 trước khi child chạy. macOS hiện tại trả ENOENT cho `KERN_PROC_SESSION`. Vì vậy thành viên session là tiến trình còn sống (không phải zombie) trong một snapshot `KERN_PROC_ALL` mà process group của nó đã biết thuộc session, hoặc có `getsid()` bằng pid leader. Phép thử group đọc snapshot nguyên tử, nên chuỗi fork-thoát nhanh trong một group đã biết không lọt qua khe giữa liệt kê và `getsid`. Group được học từ thành viên đã xác nhận bằng `getsid` và không bao giờ đổi session. Mỗi thành viên được gắn `NOTE_FORK|NOTE_EXIT`, nên mỗi fork trong cây đánh thức vòng lặp và liệt kê ngay. Thành viên có `getsid()` trả về một session sống khác được ghi là đã rời session ngay lúc thấy, nên việc kill sau đó không xoá được bằng chứng. Leader chưa được reap trong suốt quá trình theo dõi, nên pid của nó không thể thành session id hay group id của tiến trình khác. Khi leader thoát, trước `waitpid`: thành viên còn trong session là `survivors`; thành viên đã rời session cộng phần không theo dõi được là `escaped`. Helper kill mọi group đã học, mọi thành viên và mọi thành viên đã theo dõi chưa thoát, rồi chờ tối đa 2 giây tới khi session rỗng; `treeEmpty` của receipt tree mang nghĩa đó. Nếu vòng chờ này còn phải kill thứ gì trong khi phán quyết lúc leader thoát là rỗng, `survivors` bị nâng lên ít nhất 1: run đó không bao giờ PASS. Mọi đường lỗi sau khi mở gate đều kill và chờ như vậy (tối đa 2 giây) rồi thoát không receipt. Receipt thêm `mode:"tree"`, `sessionEmptyAtExit`, `survivors`, `escaped`, `maxSessionSize`; `formatVersion` vẫn là 1. PASS khi `treeEmpty`, `escaped=0` và session rỗng lúc leader thoát (`survivors=0`). Timeout kill cả session và chỉ trả receipt khi `treeEmpty` và `escaped=0`, vì hậu duệ của thành viên đã rời session không chứng minh được là đã hết. Các trường hợp khác là `EXECUTOR_LIFETIME_UNKNOWN`, receipt giữ lại cho reconcile. Trần 256 áp cho số thành viên cùng lúc trong một lần liệt kê, cho số group đã học, và cho tổng số thành viên được theo dõi **cộng dồn** suốt một lần chạy (slot đã thoát không được dùng lại). Lệnh sinh hơn 256 tiến trình trong cả vòng đời luôn ra UNKNOWN; vượt trần khi liệt kê thì helper thoát 32 không receipt. Phần dư đã chấp nhận: hậu duệ ở group chưa biết gọi `setsid()` trước lần quan sát đầu tiên thì không thấy được; kill theo pid hoặc group có cửa sổ tái dùng id rất hẹp (pid macOS cấp tuần tự, muốn tái dùng phải quay vòng không gian pid). Guard: helper thoát 20 khi `.operations.guard` đang bị giữ → `EXECUTOR_BUSY`; thoát 24 khi guard không phải file thường riêng của user (symlink, sai mode/uid/nlink, mở lỗi) → `EXECUTOR_GUARD_INVALID`. Cả hai xảy ra trước fork và trước mọi ghi vào stage, ở mọi verb: không có tiến trình nào chạy, caller thu hồi stage ngay thay vì giữ như UNKNOWN; chỉ BUSY là tín hiệu có thể thử lại.
+ 10. Pure operations có closure proof khi exclusive writer được reacquire; restart reconcile reserve/create/rename/receipt/quarantine windows. Completed failed stages có byte accounting và reclaim/retry theo identity; unresolved stages tối đa8 trước STAGING_RETRY_LIMIT. Published GC xử lý projection trước source, giữ current source, projection dependency, registry refs và mọi recovered ProcessJournal refs. `retentionInventory` ghi exact pair/bytes/reason/release requirement; accepted005-finalization producer chưa có thì giữ riêng nhóm process references, không khóa cleanup của pure/unreferenced groups. Heartbeat/stopped/ACK không phải terminal release authority.
+    FIX2 admission authority: managed `ProcessJournal.reserve` giữ cùng journal transaction mà GC/recovered publication reclaim giữ xuyên snapshot → native quarantine → delete. Registry queue luôn đứng trước journal queue; reserve validator chỉ resolve immutable pair, không lấy registry queue. GC-first làm reserve sau đó reject trước LaunchRecord nếu pair đã mất; reserve-first ghi durable pin admission intent rồi actual LaunchRecord dưới barrier, nên GC phải thấy protected ref. Bind marker/binding bền vững chặn unbound/reopened journal; bind chờ standalone transaction đang chạy. Missing journal attachment từ chối published GC và giữ recovered publication quarantine, nhưng pure-stage reclaim vẫn có closure authority riêng. `pendingPinAdmissions` bảo vệ intent crash chưa commit, dedupe exact committed records và inventory `durable-pin-admission-intent`; không TTL/closed boolean/fake release. Consumer Task5/04 phải dùng bound registry+journal cùng host root; cross-process writers vẫn bị OS guard loại trừ.
+ 11. `resolve` recheck full pins, payload/SRI, manifest/tree và native policy/geometry. HTTP desired/applied/boot/dispatch/companion integration thuộc Task3/5; Task4 không mutate server state hoặc bypass admission.
+ 12. Task6 clone độc lập tại exact HEAD bằng Git trực tiếp, không fork: xuất reachable pack qua stdin commit bất biến và stdout độc quyền, kiểm giới hạn64 MiB/header/trailer, index strict single-thread, update-ref/checkout chỉ trong scratch. HEAD/tree/common-dir/clean checkout và no-alternates/no-hardlink được kiểm trước loại discovery. Giữ product docs; inventory từng đường dẫn `.agents`, `.claude`, `.codex`, `_bmad`, instruction/config bị chuyển ra sibling `excluded`. Git object database vẫn chứa bytes bị loại; policy chặn toàn bộ `.git` và probe đo denial trực tiếp. Owner linked-worktree ngoài read root hiện fail closed; trusted common-dir binding cần composition/review riêng.
+ 13. Private HOME/config/TMP/XDG, frozen source/projection/policy/executable identities; sandbox deny data mặc định, network/fork và securityd, chỉ grant paths hệ thống cần chạy cùng workspace/home/P/stage riêng. Literal `/` phục vụ dyld openat, không grant descendants. Nofork kernel EXIT+wait receipt của `OwnedOperations` là authority; PID/start numeric không có trong API này nên evidence ghi unavailable. Intent command bền vững trước execute; missing receipt giữ workspace/pins và chặn probe sau reopen. Lock order isolation queue → registry read/reference; registry không gọi ngược isolation.
+ 14. No-model probes đọc exact selected SKILL bytes và canaries; absolute, symlink, `..`, Git config/objectdb bị deny, alias/hardlink/config/pin tamper fail trước runtime. Claude CLI plugin list chỉ thấy selected Superpowers, SDK control initialize chưa trả inventory trong bounded run. Codex stdin initialize trả metadata nhưng EOF chưa có skills/list/hooks/list/config/read responses. Lịch sử Unix socket EPERM không chứng minh runtime thiếu hỗ trợ IPC. Native Read/Skill/MCP/child/renderer invoke/full-tree đều UNVERIFIED; overall luôn UNVERIFIED khi các canary sạch, FAIL khi integrity/cross-source lỗi, `productionEnabled:false`. API chỉ inventory artifact; không gọi provider/model.
+ 
+ ## Files
+ 
+ | Đường dẫn | Vai trò |
+ |---|---|
+ | `gateway/src/workflows/pins.ts`, `fetch.ts`, `stage.ts` | Frozen DTO/URL/hash/download/parser/tree |
+ | `gateway/src/workflows/registry.ts`, `retention.ts` | Publish/recover/reclaim/GC/reference inventory |
+ | `gateway/src/workflows/audit.ts`, `api-policy.ts`, `native-projection.ts` | Official artifact audit và policy từng runtime |
+ | `gateway/src/workflows/builder.ts`, `operations.ts`, `operation-native.c` | Frozen actual installer và native operation authority |
+ | `gateway/test/workflow-registry.test.ts`, `workflow-fix.test.ts`, `workflow-admission.test.ts` | Matrix/supply chain/cached cancellation/repeated stage failures |
+ | `gateway/test/workflow-build.test.ts`, `workflow-native-projection.test.ts`, `workflow-operations.test.ts` | Actual builds/policy/native links/lifetime/crash/FD cleanup/GC |
+-| `gateway/test/workflow-operations-tree.test.ts` | `execute-tree` thật: con thoát trước leader PASS, survivor/escape bị kill và UNKNOWN, timeout kill session, `.leader`, guard bận → `EXECUTOR_BUSY` |
++| `gateway/test/workflow-operations-tree.test.ts` | `execute-tree` thật: con thoát trước leader PASS; survivor, escape, cháu escape (NOTE_FORK), chuỗi fork-thoát nhanh, timeout kèm escape đều bị kill và UNKNOWN; timeout kill session; `receipts/{id}.leader` không bị child giả mạo, exit 36; session >256 kill cả group riêng và member đã escape; guard bận → `EXECUTOR_BUSY`, guard sai → `EXECUTOR_GUARD_INVALID` |
+ | `gateway/test/support/workflow-archives.ts`, `workflow-crash-worker.ts`, `workflow-admission-crash-worker.ts` | Synthetic matrix và actual crash checkpoints |
+ | `gateway/test/support/audit-dependency-content.ts`, `audit-dependency-provenance.ts` | Primary npm exact metadata/SRI/file byte audits |
+ | `gateway/test/support/freeze-dependencies.py`, `freeze-real-projections.ts`, `compare-real-builds.py` | Frozen dependency payload/two-build pins/comparison |
+ | `gateway/test/support/probe-bmad-build.ts`, `reclaim-proven-build-probes.ts` | Owned actual installer probe và identity-bound receipt cleanup |
+ | `gateway/test/fixtures/workflows/*` | Exact official archives và original source/Claude golden |
+ | `gateway/test/fixtures/workflow-builder/*` | Frozen dependencies/lock/provenance/file hashes/real projection golden |
+ | `gateway/src/isolation/workspace.ts`, `policy.ts`, `inventory.ts`, `preflight.ts` | Bound clean workspace, candidate sandbox và no-model evidence |
+ | `gateway/test/isolation.test.ts`, `isolation-workspace.test.ts`, `support/isolation-probe.ts`, `support/isolation-typecheck.json` | Actual canary/discovery, durable missing-proof/reopen và strict scoped checker |
+ 
+ ## Dữ liệu
+diff --git a/v2/gateway/src/workflows/operation-native.c b/v2/gateway/src/workflows/operation-native.c
+index 5b21f78..d963c3c 100644
+--- a/v2/gateway/src/workflows/operation-native.c
++++ b/v2/gateway/src/workflows/operation-native.c
+@@ -95,78 +95,131 @@ static int tree(int fd,dev_t dev,int remove_entries){
+     }
+     else{
+       result=-1;
+       break;
+     }
+   }
+   closedir(d);
+   scan_depth--;
+   return result;
+ }
+-/* execute-tree session tracking. KERN_PROC_SESSION answers ENOENT on current macOS, so a member is any listed
+-   process whose getsid() equals the leader pid; exited (zombie) processes report no session and are not members.
+-   The leader stays unreaped (running or zombie) until tracking ends, so its pid cannot name another session. */
++/* execute-tree session tracking. KERN_PROC_SESSION answers ENOENT on current macOS. A member is a live (non-zombie)
++   process from one KERN_PROC_ALL snapshot whose process group is known to belong to the session, or whose getsid()
++   equals the leader pid. The group test reads the atomic snapshot, so a fork chain inside a known group cannot
++   slip between listing and getsid(). Groups are learned from getsid()-confirmed members; a group never changes
++   session. The leader stays unreaped (running or zombie) until tracking ends, so its pid cannot name another
++   session or group. Caps (256 listed, 256 watched in total over the run, 256 groups) fail closed. */
+ #define SESSION_MAX 256
+ static struct kinfo_proc *proc_table;
+ static size_t proc_capacity;
+ static pid_t session_pids[SESSION_MAX];
+-static struct{pid_t pid;int exited;}members[SESSION_MAX];
+-static int member_count,untracked;
+-static int session_list(pid_t leader){
++static pid_t groups[SESSION_MAX];
++static struct{pid_t pid;int exited,left;}members[SESSION_MAX];
++static int member_count,group_count,untracked;
++static int snapshot(void){
+   int mib[3]={CTL_KERN,KERN_PROC,KERN_PROC_ALL};
+   for(int attempt=0;attempt<4;attempt++){
+     size_t size=0;if(sysctl(mib,3,NULL,&size,NULL,0))return -1;
+     size+=size/4+16*sizeof(struct kinfo_proc);
+     if(size>proc_capacity){struct kinfo_proc *grown=realloc(proc_table,size);if(!grown)return -1;proc_table=grown;proc_capacity=size;}
+     size=proc_capacity;
+     if(sysctl(mib,3,proc_table,&size,NULL,0)){if(errno==ENOMEM)continue;return -1;}
+-    int count=0;
+-    for(size_t i=0;i<size/sizeof(struct kinfo_proc);i++){
+-      pid_t pid=proc_table[i].kp_proc.p_pid;
+-      if(pid<=0||pid==leader||getsid(pid)!=leader)continue;
+-      if(count==SESSION_MAX)return -1;
+-      session_pids[count++]=pid;
+-    }
+-    return count;
++    return (int)(size/sizeof(struct kinfo_proc));
+   }
+   return -1;
+ }
+-/* Each member gets its own NOTE_EXIT so leaving the session alive (setsid) is told apart from exiting. */
++static void learn_group(pid_t leader,pid_t pid){
++  pid_t group=getpgid(pid);
++  // The group is taken only if the same pid is still a member afterwards.
++  if(group<=0||getsid(pid)!=leader)return;
++  for(int i=0;i<group_count;i++)if(groups[i]==group)return;
++  if(group_count==SESSION_MAX){untracked=1;return;}
++  groups[group_count++]=group;
++}
++static int in_session(struct kinfo_proc *entry,pid_t leader){
++  pid_t pid=entry->kp_proc.p_pid;
++  if(pid<=0||pid==leader||entry->kp_proc.p_stat==SZOMB)return 0;
++  for(int i=0;i<group_count;i++)if(entry->kp_eproc.e_pgid==groups[i])return 1;
++  if(getsid(pid)!=leader)return 0;
++  learn_group(leader,pid);
++  return 1;
++}
++static int session_list(pid_t leader){
++  int entries=snapshot();if(entries<0)return -1;
++  int count=0;
++  for(int i=0;i<entries;i++){
++    if(!in_session(&proc_table[i],leader))continue;
++    if(count==SESSION_MAX)return -1;
++    session_pids[count++]=proc_table[i].kp_proc.p_pid;
++  }
++  return count;
++}
++/* A watched member whose getsid() names a live session other than the leader's left the session alive. Recorded
++   when seen, so a later kill cannot erase the evidence. A dead or zombie member answers -1. */
++static void note_escapes(pid_t leader){
++  for(int i=0;i<member_count;i++){
++    if(members[i].exited||members[i].left)continue;
++    pid_t session=getsid(members[i].pid);
++    if(session>0&&session!=leader)members[i].left=1;
++  }
++}
++static int escapes(void){
++  int count=untracked;
++  for(int i=0;i<member_count;i++)if(members[i].left)count++;
++  return count;
++}
++/* Every tree-mode kill: the leader's group and every learned group, each member of a fresh uncapped listing, and
++   every watched member that has not exited (including ones that left the session). */
++static void kill_session(pid_t leader){
++  note_escapes(leader);
++  for(int i=0;i<group_count;i++)kill(-groups[i],SIGKILL);
++  kill(leader,SIGKILL);
++  int entries=snapshot();
++  for(int i=0;i<entries;i++)if(in_session(&proc_table[i],leader))kill(proc_table[i].kp_proc.p_pid,SIGKILL);
++  for(int i=0;i<group_count;i++)kill(-groups[i],SIGKILL);
++  for(int i=0;i<member_count;i++)if(!members[i].exited)kill(members[i].pid,SIGKILL);
++}
++/* Each member gets NOTE_EXIT, so leaving the session alive (setsid) is told apart from exiting, and NOTE_FORK, so
++   a fork anywhere in the tree wakes the loop and lists the session at once. */
+ static void watch(int queue,pid_t leader,pid_t pid){
+   for(int i=0;i<member_count;i++)if(members[i].pid==pid&&!members[i].exited)return;
+   if(member_count==SESSION_MAX){untracked=1;return;}
+-  struct kevent change;EV_SET(&change,pid,EVFILT_PROC,EV_ADD|EV_ONESHOT,NOTE_EXIT,0,(void*)(intptr_t)(member_count+1));
++  struct kevent change;EV_SET(&change,pid,EVFILT_PROC,EV_ADD|EV_CLEAR,NOTE_FORK|NOTE_EXIT,0,(void*)(intptr_t)(member_count+1));
+   if(kevent(queue,&change,1,NULL,0,NULL)<0){if(errno!=ESRCH)untracked=1;return;}
+   // Re-checked after arming so the watch belongs to the session member, not a pid reused in between.
+   if(getsid(pid)!=leader){EV_SET(&change,pid,EVFILT_PROC,EV_DELETE,0,0,NULL);kevent(queue,&change,1,NULL,0,NULL);return;}
+   members[member_count].pid=pid;members[member_count].exited=0;member_count++;
+ }
++static void absorb(int queue,pid_t leader,long millis);
++/* Error exits: kill until an uncapped listing shows no member and every watched member exited, at most 2 s. */
++static void settle(int queue,pid_t leader){
++  struct timespec start,now;if(clock_gettime(CLOCK_MONOTONIC,&start))start.tv_sec=0;
++  for(;;){
++    kill_session(leader);
++    absorb(queue,leader,20);
++    int entries=snapshot(),alive=entries<0;
++    for(int i=0;i<entries&&!alive;i++)if(in_session(&proc_table[i],leader))alive=1;
++    for(int i=0;i<member_count&&!alive;i++)if(!members[i].exited&&getsid(members[i].pid)>0)alive=1;
++    if(!alive||clock_gettime(CLOCK_MONOTONIC,&now)||now.tv_sec-start.tv_sec>=2)return;
++  }
++}
+ static void member_event(struct kevent *event){
+   intptr_t index=(intptr_t)event->udata;
+   if(index>0&&index<=member_count&&members[index-1].pid==(pid_t)event->ident&&(event->fflags&NOTE_EXIT))members[index-1].exited=1;
+ }
+ static void absorb(int queue,pid_t leader,long millis){
+   struct kevent event;struct timespec wait={millis/1000,(millis%1000)*1000000};
+   while(kevent(queue,NULL,0,&event,1,&wait)==1){
+     if(event.ident!=(uintptr_t)leader)member_event(&event);
+     wait.tv_sec=0;wait.tv_nsec=0;
+   }
+ }
+-static int unexited_outside(int listed){
+-  int count=0;
+-  for(int i=0;i<member_count;i++){
+-    if(members[i].exited)continue;
+-    int inside=0;for(int j=0;j<listed;j++)if(session_pids[j]==members[i].pid)inside=1;
+-    if(!inside)count++;
+-  }
+-  return count;
+-}
+ static int execute_owned(int root,int fd,int argc,char **argv,int as_tree){
+   if(argc<18)return 2;
+   int receipts=dir_at(root,"receipts",argv[12],argv[13]);if(receipts<0)return 34;
+   // execute ABI appends working-directory, timeout-seconds, absolute command and arguments.
+   int seconds=atoi(argv[15]); if(seconds<1||seconds>120||argv[16][0]!='/')return 2;
+   int gate[2]; if(pipe(gate))return 30;
+   int queue=kqueue(); if(queue<0)return 30;
+   pid_t child=fork(); if(child<0)return 30;
+   if(child==0){
+     close(gate[1]); close(queue); char byte;
+@@ -184,89 +237,97 @@ static int execute_owned(int root,int fd,int argc,char **argv,int as_tree){
+     char cache[4096];snprintf(cache,sizeof(cache),"XDG_CACHE_HOME=%s/home",argv[14]);
+     char config[4096];snprintf(config,sizeof(config),"XDG_CONFIG_HOME=%s/home",argv[14]);
+     char data[4096];snprintf(data,sizeof(data),"XDG_DATA_HOME=%s/home",argv[14]);
+     char *environment[]={home,temp,cache,config,data,"PATH=/usr/bin:/bin","CI=1","TZ=UTC","LANG=C",NULL};
+     execve(argv[16],&argv[16],environment);_exit(127);
+   }
+   close(gate[0]);struct kevent change;
+   EV_SET(&change,child,EVFILT_PROC,EV_ADD|EV_CLEAR,NOTE_FORK|NOTE_EXIT,0,NULL);
+   if(kevent(queue,&change,1,NULL,0,NULL)<0){close(gate[1]);waitpid(child,NULL,0);return 31;}
+   if(as_tree){
+-    // `.leader` names the session leader ("pid start-seconds.microseconds") for reconcile after a crash.
++    groups[0]=child;group_count=1;
++    // `receipts/{id}.leader` names the session leader ("pid start-seconds.microseconds") for reconcile after a
++    // crash. It is written outside the stage, which the child can write, before the child is released.
+     struct kinfo_proc info;size_t size=sizeof(info);int mib[4]={CTL_KERN,KERN_PROC,KERN_PROC_PID,child};
+-    int leader=openat(fd,".leader",O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
+-    if(leader<0||sysctl(mib,4,&info,&size,NULL,0)||size!=sizeof(info)||info.kp_proc.p_pid!=child||dprintf(leader,"%d %lld.%06d\n",child,(long long)info.kp_proc.p_starttime.tv_sec,(int)info.kp_proc.p_starttime.tv_usec)<0||fsync(leader)||fsync(fd)){
++    char leader_name[256];snprintf(leader_name,sizeof(leader_name),"%s.leader",argv[8]);
++    int leader=openat(receipts,leader_name,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
++    if(leader<0||sysctl(mib,4,&info,&size,NULL,0)||size!=sizeof(info)||info.kp_proc.p_pid!=child||dprintf(leader,"%d %lld.%06d\n",child,(long long)info.kp_proc.p_starttime.tv_sec,(int)info.kp_proc.p_starttime.tv_usec)<0||fsync(leader)||fsync(receipts)){
+       if(leader>=0)close(leader);close(gate[1]);waitpid(child,NULL,0);return 36;
+     }
+     close(leader);
+   }
+   char byte=1;if(write(gate[1],&byte,1)!=1){close(gate[1]);waitpid(child,NULL,0);return 31;}close(gate[1]);
+-  struct stat owned;if(fstat(fd,&owned))return 35;
+-  int forked=0,exited=0,timed=0,listed=0,max_session=1;struct timespec now;if(clock_gettime(CLOCK_MONOTONIC,&now))return 35;time_t deadline=now.tv_sec+seconds;
++  struct stat owned;if(fstat(fd,&owned)){if(as_tree){settle(queue,child);waitpid(child,NULL,0);}return 35;}
++  int forked=0,exited=0,timed=0,listed=0,max_session=1;struct timespec now;if(clock_gettime(CLOCK_MONOTONIC,&now)){if(as_tree){settle(queue,child);waitpid(child,NULL,0);}return 35;}time_t deadline=now.tv_sec+seconds;
+   while(!exited){struct kevent event;struct timespec tick={1,0};int count=kevent(queue,NULL,0,&event,1,&tick);
+     if(count<0&&errno==EINTR)continue;
+-    if(count<0||(count==1&&(event.flags&EV_ERROR))){kill(child,SIGKILL);waitpid(child,NULL,0);return 32;}
++    if(count<0||(count==1&&(event.flags&EV_ERROR))){if(as_tree)settle(queue,child);kill(child,SIGKILL);waitpid(child,NULL,0);return 32;}
+     if(count==1&&event.ident!=(uintptr_t)child)member_event(&event);
+     else if(count==1){if(event.fflags&NOTE_FORK)forked=1;if(event.fflags&NOTE_EXIT)exited=1;}
+     if(as_tree&&!exited){
+       listed=session_list(child);
+-      if(listed<0){kill(-child,SIGKILL);kill(child,SIGKILL);waitpid(child,NULL,0);return 32;}
++      if(listed<0){settle(queue,child);waitpid(child,NULL,0);return 32;}
+       if(listed+1>max_session)max_session=listed+1;
+       for(int i=0;i<listed;i++)watch(queue,child,session_pids[i]);
++      note_escapes(child);
+     }
+     total_bytes=0;scanned_entries=0;scan_depth=0;scan_overflow=0;int accounted=tree(fd,owned.st_dev,0);
+-    if(clock_gettime(CLOCK_MONOTONIC,&now)){kill(child,SIGKILL);waitpid(child,NULL,0);return 35;}
+-    if(!exited&&(scan_overflow||(accounted==0&&total_bytes>256ULL*1024*1024)||now.tv_sec>=deadline)){timed=1;kill(-child,SIGKILL);kill(child,SIGKILL);if(as_tree)for(int i=0;i<listed;i++)kill(session_pids[i],SIGKILL);}
++    if(clock_gettime(CLOCK_MONOTONIC,&now)){if(as_tree)settle(queue,child);kill(child,SIGKILL);waitpid(child,NULL,0);return 35;}
++    if(!exited&&(scan_overflow||(accounted==0&&total_bytes>256ULL*1024*1024)||now.tv_sec>=deadline)){timed=1;kill(-child,SIGKILL);kill(child,SIGKILL);if(as_tree)kill_session(child);}
+   }
+   int survivors=0,escaped=0,drained=0;
+   if(as_tree){
+     // Judged at leader exit, before reaping it: members still in the session survived the leader.
+     absorb(queue,child,0);
+     survivors=session_list(child);
+     // A member may fork between the listing and its getsid(); an empty answer is confirmed once more.
+     if(survivors==0)survivors=session_list(child);
+-    if(survivors<0){kill(-child,SIGKILL);waitpid(child,NULL,0);return 32;}
+-    // Watched members without NOTE_EXIT that are no longer listed left the session alive.
+-    if(unexited_outside(survivors)){absorb(queue,child,100);}
+-    escaped=unexited_outside(survivors)+untracked;
+-    struct timespec started;if(clock_gettime(CLOCK_MONOTONIC,&started)){kill(-child,SIGKILL);waitpid(child,NULL,0);return 35;}
++    if(survivors<0){settle(queue,child);waitpid(child,NULL,0);return 32;}
++    note_escapes(child);
++    escaped=escapes();
++    struct timespec started;if(clock_gettime(CLOCK_MONOTONIC,&started)){settle(queue,child);waitpid(child,NULL,0);return 35;}
+     for(;;){
+-      int remaining=session_list(child);if(remaining<0)break;
++      int remaining=session_list(child);if(remaining<0){settle(queue,child);break;}
+       int alive=0;for(int i=0;i<member_count;i++)if(!members[i].exited)alive++;
+       if(remaining==0&&alive==0){drained=session_list(child)==0;break;}
++      // Anything still to kill after the leader exited means the session was not empty at that moment,
++      // even if both exit listings missed it; such a run is never proven.
++      if(!timed&&survivors==0&&escaped==0)survivors=remaining>0?remaining:1;
+       if(clock_gettime(CLOCK_MONOTONIC,&now)||now.tv_sec-started.tv_sec>=2)break;
+-      kill(-child,SIGKILL);
+-      for(int i=0;i<remaining;i++)kill(session_pids[i],SIGKILL);
+-      for(int i=0;i<member_count;i++)if(!members[i].exited)kill(members[i].pid,SIGKILL);
++      kill_session(child);
+       absorb(queue,child,20);
+     }
++    // An escape noticed while killing after the leader exit is reported as well.
++    if(escapes()>escaped)escaped=escapes();
+     if(untracked)drained=0;
+   }
+   int status;pid_t waited;do{waited=waitpid(child,&status,0);}while(waited<0&&errno==EINTR);close(queue);
+   if(waited!=child)return 32;int code=WIFEXITED(status)?WEXITSTATUS(status):128+(WIFSIGNALED(status)?WTERMSIG(status):0);
+   char receipt_name[256];snprintf(receipt_name,sizeof(receipt_name),"%s.json",argv[8]);
+   int receipt=openat(receipts,receipt_name,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);if(receipt<0)return 33;
+   // Tree receipts append their fields; treeEmpty there means the session was proven empty after the leader.
+   char extra[192]="";
+   if(as_tree)snprintf(extra,sizeof(extra),",\"mode\":\"tree\",\"sessionEmptyAtExit\":%s,\"survivors\":%d,\"escaped\":%d,\"maxSessionSize\":%d",survivors==0?"true":"false",survivors,escaped,max_session);
+   if(dprintf(receipt,"{\"formatVersion\":1,\"operationId\":\"%s\",\"device\":\"%llu\",\"inode\":\"%llu\",\"treeEmpty\":%s,\"forkObserved\":%s,\"exitCode\":%d,\"timedOut\":%s%s}",argv[8],(unsigned long long)owned.st_dev,(unsigned long long)owned.st_ino,as_tree?(drained?"true":"false"):(forked?"false":"true"),forked?"true":"false",code,timed?"true":"false",extra)<0||fsync(receipt)||fsync(receipts))return 33;
+   close(receipt);return 0;
+ }
+ int main(int argc,char **argv){
+   /* mode root root-dev root-ino parent parent-dev parent-ino name
+      [object-dev object-ino object-nlink destination-dev destination-ino] */
+   if(argc<9||!safe_name(argv[5])||!safe_name(argv[8]))return 2;
+   int root=open(argv[2],O_RDONLY|O_DIRECTORY|O_NOFOLLOW);
+   struct stat rs;
+   if(root<0||fstat(root,&rs)||!match(&rs,argv[3],argv[4]))return 3;
+   int guard=openat(root,".operations.guard",O_RDWR|O_CREAT|O_NOFOLLOW,0600);
+-  struct stat gs;if(guard<0||fstat(guard,&gs)||!S_ISREG(gs.st_mode)||gs.st_uid!=getuid()||gs.st_nlink!=1||(gs.st_mode&077)||flock(guard,LOCK_EX|LOCK_NB))return 20;
++  /* 24: the guard is not a private regular file of this user; 20: another operation holds it. */
++  struct stat gs;if(guard<0||fstat(guard,&gs)||!S_ISREG(gs.st_mode)||gs.st_uid!=getuid()||gs.st_nlink!=1||(gs.st_mode&077))return 24;
++  if(flock(guard,LOCK_EX|LOCK_NB))return errno==EWOULDBLOCK?20:24;
+   int parent=dir_at(root,argv[5],argv[6],argv[7]);
+   if(parent<0){
+     close(root);
+     return 3;
+   }
+   if(!strcmp(argv[1],"absent")){struct stat entry;if(fstatat(parent,argv[8],&entry,AT_SYMLINK_NOFOLLOW)==0||errno!=ENOENT)return 22;return fsync(parent)?23:0;}
+   if(!strcmp(argv[1],"create")){
+     if(mkdirat(parent,argv[8],0700)){
+       close(parent);
+       close(root);
+diff --git a/v2/gateway/src/workflows/operations.ts b/v2/gateway/src/workflows/operations.ts
+index 98d4591..080f082 100644
+--- a/v2/gateway/src/workflows/operations.ts
++++ b/v2/gateway/src/workflows/operations.ts
+@@ -131,36 +131,38 @@ export class OwnedOperations {
+     timeoutSeconds = 90,
+   ): Promise<ExecutionReceipt> {
+     const receipt = await this.run('execute', id, object, cwd, command, timeoutSeconds);
+     if (!receipt.treeEmpty || receipt.forkObserved) throw new Error('EXECUTOR_LIFETIME_UNKNOWN');
+     return receipt;
+   }
+   /**
+    * Bounded process tree: the leader runs in its own session and forks are allowed, but the session must
+    * already be empty when the leader exits and no watched member may have left it alive. Survivors are
+    * killed by the helper and still yield EXECUTOR_LIFETIME_UNKNOWN. A timeout kills the whole session and
+-   * returns the receipt only when the helper proved the session empty afterwards. A descendant that calls
+-   * setsid() before it is first observed cannot be seen by any tick and stays a documented residual.
++   * returns the receipt only when the helper proved the session empty afterwards and nothing escaped it: a
++   * descendant of an escaped member is outside the session and cannot be proven gone. A descendant that calls
++   * setsid() before it is first observed cannot be seen and stays a documented residual. The leader record
++   * for reconcile is `receipts/{id}.leader`, outside the stage the child can write.
+    */
+   async executeTree(
+     id: string,
+     object: OwnedIdentity,
+     cwd: string,
+     command: string[],
+     timeoutSeconds = 90,
+   ): Promise<ExecutionReceipt> {
+     const receipt = await this.run('execute-tree', id, object, cwd, command, timeoutSeconds);
+     const closed =
+       receipt.mode === 'tree' &&
+       receipt.treeEmpty === true &&
+-      (receipt.timedOut === true ||
+-        (receipt.sessionEmptyAtExit === true && receipt.survivors === 0 && receipt.escaped === 0));
++      receipt.escaped === 0 &&
++      (receipt.timedOut === true || (receipt.sessionEmptyAtExit === true && receipt.survivors === 0));
+     if (!closed) throw new Error('EXECUTOR_LIFETIME_UNKNOWN');
+     return receipt;
+   }
+   private async run(
+     verb: 'execute' | 'execute-tree',
+     id: string,
+     object: OwnedIdentity,
+     cwd: string,
+     command: string[],
+     timeoutSeconds: number,
+@@ -170,23 +172,25 @@ export class OwnedOperations {
+       this.layout.parents.receipts.device,
+       this.layout.parents.receipts.inode,
+       cwd,
+       String(timeoutSeconds),
+       ...command,
+     ]);
+     const code = await new Promise<number | null>((resolve, reject) => {
+       child.once('error', reject);
+       child.once('close', (exit) => resolve(exit));
+     });
+-    // 20: `.operations.guard` is held elsewhere. The helper exits before forking or writing the stage,
+-    // so nothing ran and the caller may reclaim the stage instead of retaining it as unknown.
++    // 20: `.operations.guard` is held elsewhere; 24: the guard is not a private regular file of this user.
++    // Both exit before forking or writing the stage, so nothing ran and the caller may reclaim the stage
++    // instead of retaining it as unknown. Only 20 is a retryable busy signal.
+     if (code === 20) throw new Error('EXECUTOR_BUSY');
++    if (code === 24) throw new Error('EXECUTOR_GUARD_INVALID');
+     if (code !== 0) throw new Error('EXECUTOR_RECEIPT_MISSING');
+     const receipt = await readRecord<ExecutionReceipt>(join(this.root, 'receipts', `${id}.json`));
+     if (
+       !receipt ||
+       receipt.operationId !== id ||
+       receipt.device !== object.device ||
+       receipt.inode !== object.inode
+     )
+       throw new Error('EXECUTOR_LIFETIME_UNKNOWN');
+     return receipt;
+diff --git a/v2/gateway/test/workflow-operations-tree.test.ts b/v2/gateway/test/workflow-operations-tree.test.ts
+index efd2cac..9217e53 100644
+--- a/v2/gateway/test/workflow-operations-tree.test.ts
++++ b/v2/gateway/test/workflow-operations-tree.test.ts
+@@ -1,25 +1,26 @@
+ import assert from 'node:assert/strict';
+ import { execFileSync, spawn } from 'node:child_process';
+-import { lstat, mkdtemp, readdir, readFile, realpath, rm } from 'node:fs/promises';
++import { chmod, lstat, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+ import { tmpdir } from 'node:os';
+ import { join } from 'node:path';
+ import { after, before, test } from 'node:test';
+ import { AtomicRecords, readRecord } from '../src/journal/atomic-records.ts';
+ import { type ExecutionReceipt, type OwnedIdentity, OwnedOperations } from '../src/workflows/operations.ts';
+ 
+ let root: string;
+ let path: string;
+ let store: AtomicRecords;
+ let ops: OwnedOperations;
+ // Every process these tests start carries a distinctive argv so cleanup never signals a reused pid.
+ const started: { pid: number; command: string }[] = [];
++const markers: string[] = [];
+ 
+ function alive(pid: number): boolean {
+   try {
+     process.kill(pid, 0);
+     return true;
+   } catch (error) {
+     return (error as NodeJS.ErrnoException).code === 'EPERM';
+   }
+ }
+ function commandOf(pid: number): string {
+@@ -33,33 +34,46 @@ async function stage(id: string): Promise<{ identity: OwnedIdentity; location: s
+   return { identity: await ops.create(id), location: join(path, 'stages', id) };
+ }
+ async function logLines(location: string): Promise<string[]> {
+   return (await readFile(join(location, 'execution.log'), 'utf8')).trim().split('\n');
+ }
+ function remember(pid: number, command: string): number {
+   assert(Number.isInteger(pid) && pid > 1, `pid ${pid}`);
+   started.push({ pid, command });
+   return pid;
+ }
++/** Registers an argv marker unique to this file before any process carrying it starts. */
++function own(marker: string): string {
++  markers.push(marker);
++  return marker;
++}
++/** Processes whose argv contains a marker; used where pids change (fork chains). */
++function marked(marker: string): number[] {
++  return execFileSync('/bin/ps', ['-axo', 'pid=,command='], { encoding: 'utf8' })
++    .split('\n')
++    .filter((line) => line.includes(marker) && !line.includes('/bin/ps'))
++    .map((line) => Number(line.trim().split(/\s+/)[0]));
++}
+ async function receiptOf(id: string): Promise<ExecutionReceipt | null> {
+   return readRecord<ExecutionReceipt>(join(path, 'receipts', `${id}.json`));
+ }
+ 
+ before(async () => {
+   root = await realpath(await mkdtemp(join(tmpdir(), 'crew-s6b-tree-')));
+   path = join(root, 'workflows');
+   store = await AtomicRecords.open(path);
+   ops = await OwnedOperations.open(path, store);
+ });
+ after(async () => {
+   for (const { pid, command } of started)
+     if (alive(pid) && commandOf(pid).includes(command)) process.kill(pid, 'SIGKILL');
++  for (const marker of markers) for (const pid of marked(marker)) process.kill(pid, 'SIGKILL');
+   await store.close();
+   await rm(root, { recursive: true, force: true });
+ });
+ 
+ test('execute-tree proves a forked child that exits before the leader and records the leader', async () => {
+   const startedMs = Date.now();
+   const { identity, location } = await stage('tree-pass');
+   const receipt = await ops.executeTree(
+     'tree-pass',
+     identity,
+@@ -69,26 +83,29 @@ test('execute-tree proves a forked child that exits before the leader and record
+   );
+   assert.equal(receipt.mode, 'tree');
+   assert.equal(receipt.forkObserved, true);
+   assert.equal(receipt.sessionEmptyAtExit, true);
+   assert.equal(receipt.survivors, 0);
+   assert.equal(receipt.escaped, 0);
+   assert.equal(receipt.treeEmpty, true);
+   assert.equal(receipt.timedOut, false);
+   assert.equal(receipt.exitCode, 0);
+   assert((receipt.maxSessionSize ?? 0) >= 2, `maxSessionSize ${receipt.maxSessionSize}`);
+-  // `.leader` lets a later reconcile name the session leader: "pid start-seconds.microseconds".
+-  const leaderStat = await lstat(join(location, '.leader'));
++  // `receipts/{id}.leader` names the session leader for reconcile: "pid start-seconds.microseconds".
++  // It lives outside the stage, which the child can write.
++  const leaderPath = join(path, 'receipts', 'tree-pass.leader');
++  const leaderStat = await lstat(leaderPath);
+   assert(leaderStat.isFile());
+   assert.equal(leaderStat.nlink, 1);
+   assert.equal(leaderStat.mode & 0o777, 0o600);
+-  const leader = /^(\d+) (\d+)\.(\d{6})\n$/.exec(await readFile(join(location, '.leader'), 'utf8'));
++  await assert.rejects(() => lstat(join(location, '.leader')), { code: 'ENOENT' });
++  const leader = /^(\d+) (\d+)\.(\d{6})\n$/.exec(await readFile(leaderPath, 'utf8'));
+   assert(leader, 'leader record format');
+   assert.equal(leader[1], (await logLines(location))[0]);
+   const startedAt = Number(leader[2]) * 1000;
+   assert(startedAt >= startedMs - 5000 && startedAt <= Date.now() + 5000, `start ${startedAt}`);
+ });
+ 
+ test('execute-tree kills a child left alive when the leader exits and reports LIFETIME_UNKNOWN', async () => {
+   const { identity, location } = await stage('tree-survivor');
+   await assert.rejects(
+     () =>
+@@ -143,20 +160,21 @@ test('execute keeps installer semantics: fork stays UNKNOWN and no leader record
+   const { identity, location } = await stage('plain-fork');
+   await assert.rejects(
+     () => ops.execute('plain-fork', identity, location, ['/bin/sh', '-c', '/bin/true & wait'], 5),
+     /EXECUTOR_LIFETIME_UNKNOWN/,
+   );
+   const receipt = await receiptOf('plain-fork');
+   assert.equal(receipt?.forkObserved, true);
+   assert.equal(receipt?.treeEmpty, false);
+   assert.equal(receipt?.mode, undefined);
+   await assert.rejects(() => lstat(join(location, '.leader')), { code: 'ENOENT' });
++  await assert.rejects(() => lstat(join(path, 'receipts', 'plain-fork.leader')), { code: 'ENOENT' });
+ });
+ 
+ test('a held operations guard yields EXECUTOR_BUSY before any process or stage write', async () => {
+   const { identity, location } = await stage('busy');
+   const holder = spawn(
+     '/usr/bin/perl',
+     [
+       '-MFcntl=:flock',
+       '-e',
+       '$|=1; open(my $f, "<", $ARGV[0]) or die; flock($f, LOCK_EX) or die; print "LOCKED\\n"; sleep 36',
+@@ -172,19 +190,133 @@ test('a held operations guard yields EXECUTOR_BUSY before any process or stage w
+       holder.stdout.on('data', (b) => {
+         out += b.toString();
+         if (out.includes('LOCKED')) resolve();
+       });
+       holder.once('close', (code) => reject(new Error(`lock holder exited ${code}`)));
+     });
+     const command = ['/bin/sh', '-c', 'echo ran'];
+     await assert.rejects(() => ops.execute('busy', identity, location, command, 5), /EXECUTOR_BUSY/);
+     await assert.rejects(() => ops.executeTree('busy', identity, location, command, 5), /EXECUTOR_BUSY/);
+     assert.equal(await receiptOf('busy'), null);
++    await assert.rejects(() => lstat(join(path, 'receipts', 'busy.leader')), { code: 'ENOENT' });
+     assert.deepEqual(await readdir(location), ['.operation-owner']);
+   } finally {
+     holder.kill('SIGTERM');
+     await closed;
+   }
+   // Nothing ran, so the stage is reclaimable at once instead of being retained as UNKNOWN.
+   await ops.remove('stages', 'busy', identity);
+   await assert.rejects(() => lstat(location), { code: 'ENOENT' });
+ });
++
++test('the leader record outside the stage is unaffected by a child that writes .leader in the stage', async () => {
++  const { identity, location } = await stage('tree-forged-leader');
++  await ops.executeTree(
++    'tree-forged-leader',
++    identity,
++    location,
++    ['/bin/sh', '-c', "echo $$; printf '1 0.000000\\n' > .leader"],
++    10,
++  );
++  assert.equal(await readFile(join(location, '.leader'), 'utf8'), '1 0.000000\n');
++  const leader = /^(\d+) /.exec(await readFile(join(path, 'receipts', 'tree-forged-leader.leader'), 'utf8'));
++  assert.equal(leader?.[1], (await logLines(location))[0]);
++});
++
++test('execute-tree exits 36 without running anything when the leader record cannot be written', async () => {
++  const { identity, location } = await stage('tree-no-leader');
++  await writeFile(join(path, 'receipts', 'tree-no-leader.leader'), 'occupied\n', { mode: 0o600 });
++  await assert.rejects(
++    () => ops.executeTree('tree-no-leader', identity, location, ['/bin/sh', '-c', 'echo ran'], 5),
++    /EXECUTOR_RECEIPT_MISSING/,
++  );
++  assert.equal(await receiptOf('tree-no-leader'), null);
++  assert.deepEqual(await readdir(location), ['.operation-owner']);
++});
++
++test('a fork chain that outruns per-pid listing is still a survivor: UNKNOWN and nothing left running', async () => {
++  // The chain moves to its own process group, is observed there, then hops: each hop forks and the
++  // parent exits at once, so a pid listed in one snapshot may be gone when it is checked. The leader
++  // exits mid-chain; the result must never be PASS and the whole group must be killed.
++  const marker = own('crew_s6b_tree_hopper');
++  const { identity, location } = await stage('tree-hopper');
++  const script = `/usr/bin/perl -e 'setpgrp(0, 0); select(undef, undef, undef, 1.5); for (1..2000) { my $p = fork; exit 0 if $p; last unless defined $p } sleep 30' ${marker} & /bin/sleep 2`;
++  await assert.rejects(
++    () => ops.executeTree('tree-hopper', identity, location, ['/bin/sh', '-c', script], 15),
++    /EXECUTOR_LIFETIME_UNKNOWN/,
++  );
++  assert.deepEqual(marked(marker), []);
++  const receipt = await receiptOf('tree-hopper');
++  assert.equal(receipt?.sessionEmptyAtExit, false);
++  // treeEmpty is not asserted: hops can exhaust the cumulative 256-member watch cap, which fails closed.
++});
++
++test('a timeout with an escaped member is UNKNOWN, not a reclaimable timeout receipt', async () => {
++  const marker = own('crew_s6b_tree_timeout_escape');
++  const { identity, location } = await stage('tree-timeout-escape');
++  own('sleep 30.0143');
++  const script = `/usr/bin/perl -MPOSIX -e 'sleep 1; POSIX::setsid() > 0 or exit 9; sleep 30' ${marker} & /bin/sleep 30.0143`;
++  await assert.rejects(
++    () => ops.executeTree('tree-timeout-escape', identity, location, ['/bin/sh', '-c', script], 3),
++    /EXECUTOR_LIFETIME_UNKNOWN/,
++  );
++  const receipt = await receiptOf('tree-timeout-escape');
++  assert.equal(receipt?.timedOut, true);
++  assert((receipt?.escaped ?? 0) >= 1, `escaped ${receipt?.escaped}`);
++  assert.deepEqual(marked(marker), []);
++  assert.deepEqual(marked('sleep 30.0143'), []);
++});
++
++test('a grandchild that leaves the session soon after its fork is observed through member NOTE_FORK', async () => {
++  // Without a fork watch on members the grandchild lives in the session between two 1-second ticks.
++  const marker = own('crew_s6b_tree_grandchild');
++  const { identity, location } = await stage('tree-grandchild');
++  const script = `/usr/bin/perl -MPOSIX -MTime::HiRes=sleep -e 'sleep 1.5; if (fork == 0) { sleep 0.3; POSIX::setsid(); sleep 30; exit } sleep 2' ${marker} & /bin/sleep 5`;
++  await assert.rejects(
++    () => ops.executeTree('tree-grandchild', identity, location, ['/bin/sh', '-c', script], 15),
++    /EXECUTOR_LIFETIME_UNKNOWN/,
++  );
++  const receipt = await receiptOf('tree-grandchild');
++  assert((receipt?.escaped ?? 0) >= 1, `escaped ${receipt?.escaped}`);
++  assert.deepEqual(marked(marker), []);
++});
++
++test('a session above 256 members fails closed and kills members in other groups and escaped ones', async () => {
++  const group = own('crew_s6b_tree_own_group');
++  const escapee = own('crew_s6b_tree_overflow_escape');
++  const { identity, location } = await stage('tree-overflow');
++  own('sleep 30.0257');
++  const script = [
++    `/usr/bin/perl -e 'setpgrp(0, 0); sleep 30' ${group} &`,
++    `/usr/bin/perl -MPOSIX -e 'sleep 1; POSIX::setsid() > 0 or exit 9; sleep 30' ${escapee} &`,
++    '/bin/sleep 2.5',
++    'i=0; while [ $i -lt 300 ]; do /bin/sleep 30.0257 & i=$((i+1)); done; wait',
++  ].join('\n');
++  await assert.rejects(
++    () => ops.executeTree('tree-overflow', identity, location, ['/bin/sh', '-c', script], 30),
++    /EXECUTOR_RECEIPT_MISSING/,
++  );
++  assert.equal(await receiptOf('tree-overflow'), null);
++  assert.deepEqual(marked(group), []);
++  assert.deepEqual(marked(escapee), []);
++  assert.deepEqual(marked('sleep 30.0257'), []);
++});
++
++test('an invalid operations guard is EXECUTOR_GUARD_INVALID, distinct from a busy guard', async () => {
++  const { identity, location } = await stage('guard-invalid');
++  const guard = join(path, '.operations.guard');
++  await chmod(guard, 0o644);
++  try {
++    const command = ['/bin/sh', '-c', 'echo ran'];
++    await assert.rejects(
++      () => ops.execute('guard-invalid', identity, location, command, 5),
++      /EXECUTOR_GUARD_INVALID/,
++    );
++    await assert.rejects(
++      () => ops.executeTree('guard-invalid', identity, location, command, 5),
++      /EXECUTOR_GUARD_INVALID/,
++    );
++    assert.deepEqual(await readdir(location), ['.operation-owner']);
++  } finally {
++    await chmod(guard, 0o600);
++  }
++});
