@@ -1,0 +1,1355 @@
+c4ab472 fix(v2-web): dừng retry khi máy chủ thiếu cấu hình, lộ giờ server và bắt đầu event từ cursor mới nhất
+ .../execution-phase07/task-2-report.md             |  62 +++++++++
+ v2/docs/flows/web-attachments.md                   |   4 +-
+ v2/docs/flows/web-data.md                          |   8 +-
+ v2/web/e2e/app-router.spec.ts                      |  16 ++-
+ v2/web/e2e/compose.spec.ts                         |  53 ++++++--
+ v2/web/e2e/events.spec.ts                          |   8 +-
+ v2/web/src/auth/session-boundary.tsx               |  10 +-
+ v2/web/src/contracts/http.ts                       |   3 +
+ v2/web/src/lib/api.ts                              | 120 +++++++++++------
+ v2/web/src/lib/events.ts                           |  36 +++++-
+ v2/web/src/lib/pending-operation.ts                |  19 +++
+ v2/web/test/app-wiring.test.ts                     |  16 ++-
+ v2/web/test/client.test.ts                         | 142 +++++++++++++++++++++
+ v2/web/test/compose-submit.test.ts                 |   2 +-
+ v2/web/test/events.test.ts                         |  65 ++++++++++
+ 15 files changed, 492 insertions(+), 72 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/task-2-report.md b/plans/261002-0002-crew-v2/execution-phase07/task-2-report.md
+index 3178228..a70b429 100644
+--- a/plans/261002-0002-crew-v2/execution-phase07/task-2-report.md
++++ b/plans/261002-0002-crew-v2/execution-phase07/task-2-report.md
+@@ -181,10 +181,72 @@ Hash source sau vòng sửa:
+ 
+ Telemetry (GiB khả dụng / pressure / CPU idle % / đĩa GiB): RED 4,888/1/72,8/753,3; GREEN và E2E 4,828/1/60,28/753,3. Slot đã trả; `ls` xác nhận lock không còn.
+ 
+ Cleanup: danh sách `docker ps -a` trước và sau E2E trùng nhau; TMPDIR không còn `crew-v2-web-*`; PID 275/299/543 không còn; không còn listener trên 55285/55691; `test-results` đã xóa.
+ 
+ Hash source: `v2/web/src/lib/api.ts` `54ac911dc59c56c728025298996ee7a4a2b2fa46e077875eec0ca87bccb5c599`, `v2/web/src/lib/pending-operation.ts` `27195508e2cb43f766c84839840ea9230100f2aeac160a1abfa6208bea36a786`, `v2/web/test/client.test.ts` `78074aa354579e6c333330e33550a3f194ce23030128d63758a275af56e61b69`.
+ 
+ **Còn lại:**
+ - Guard in-flight nằm trong `PendingStore` của tab, chưa chặn hai tab cùng gửi một operation. Với operation tab, sessionStorage là riêng cho mỗi tab nên tình huống này không xảy ra.
+ - Khi payload nhập lại bị đưa về tombstone, panel hiện “Máy chủ từ chối yêu cầu (code)” cùng dòng tombstone. Câu chữ có thể làm rõ hơn trong vòng UX (cùng nhóm với N3).
++
++## 9. Follow-up sau A5/A3 (ruling ledger 00:20; P-G1a 16:05/17:00; B1 S5a 17:25)
++
++### Thay đổi
++
++- **503 cấu hình** (`api.ts`, `pending-operation.ts`, `session-boundary.tsx`):
++  - Mọi mã `*_NOT_CONFIGURED` (503, hoặc 409 như `INPUT_SERVICES_NOT_CONFIGURED`) giờ là kết quả cuối của lượt gửi: client không auto-retry, không nhả key, không cấp key mới.
++  - Operation giữ `ambiguous` và được đánh dấu bằng `PendingStore.configurationError(id)`. Lỗi trả `ApiFailure{status, code: <mã server>, kind: 'configuration', message: <lời server>}`, không còn quy về `UNCONFIRMED`.
++  - Panel khôi phục hiện “Lỗi cấu hình máy chủ (mã)”. Lượt gửi chủ động sau đó dùng cùng key và xóa dấu.
++  - GET và upload gặp mã cấu hình cũng không retry. 5xx khác giữ hành vi cũ.
++- **Header Date**: `OwnerClient.lastServerDate?()` trả giờ server lấy từ header `Date` của response owner gần nhất (GET, mutation hay upload, kể cả response lỗi); header không parse được bị bỏ qua. Method này optional trên interface vì `test/tickets.test.ts` có fake object literal; client thật luôn có (PM đã đồng ý). Composer chưa dùng; việc đó thuộc slice S5a sau.
++- **`/v2/events/latest`** (`events.ts`, `contracts/http.ts` thêm `decodeLatestCursor`):
++  - Tab chưa có cursor gọi latest trước catch-up, nên không đọc journal từ 0. 401 làm phiên hết hạn; lỗi khác tính vào ngân sách thử lại.
++  - Trước khi ghi cursor, client enqueue `['v2']` để refetch mọi query đã GET trước khi biết cursor. Nhờ vậy latest đứng trước data GET mà vẫn không bỏ sót event của khoảng giữa.
++  - Tab đã có cursor không gọi latest.
++- **`warmUp`** (`compose.spec.ts`): bỏ `waitForTimeout(1500)`. Thay bằng vòng tối đa 5 lượt: import các module ticket trong một trang, chờ `networkidle`, rồi kiểm cờ trên `window` còn nguyên (không bị optimizer reload). Hết 5 lượt mà chưa ổn định thì ném `VITE_WARM_UP_UNSTABLE`.
++
++### File ngoài phạm vi ban đầu (PM đã cho phép, kèm lý do)
++
++- `v2/web/test/app-wiring.test.ts`: fakeApi trả `{cursor:'0'}` cho `/v2/events/latest`. Assertion lấy request `/v2/events*` đầu tiên (latest hoặc catch-up) phải đứng trước GET dữ liệu đầu tiên, và thêm assert rằng sau latest có invalidate `['v2']`. Bất biến listener-trước-GET giữ nguyên.
++- `v2/web/e2e/app-router.spec.ts`: hai assert “GET đầu tiên sau login là `/v2/events`” đổi thành regex `^GET /v2/events(/latest)?$`; data GET vẫn phải đứng sau request event-sync đầu tiên.
++- `v2/web/e2e/events.spec.ts` (file của Task2): request đầu là `/v2/events/latest`, request thứ hai là catch-up `?after=<cursor>&limit=100`, và có invalidate `['v2']`.
++- `v2/web/test/compose-submit.test.ts:589` (Task5): chỉ đổi một dòng, `UNCONFIRMED` → `EXTRACTION_NOT_CONFIGURED`. Dòng đó khóa đúng hành vi cũ mà ruling 00:20 bỏ; mọi assertion khác giữ nguyên.
++- Docs: `v2/docs/flows/web-data.md` và `v2/docs/flows/web-attachments.md` (dòng nói 503 giữ `UNCONFIRMED`, và kịch bản PNG). Câu thông báo riêng cho `*_NOT_CONFIGURED` trong `compose/composer.tsx` thuộc Task5; em không sửa.
++
++### Test
++
++- `client.test.ts` +4:
++  - 503 `EXTRACTION_NOT_CONFIGURED`: 1 request, không sleep, giữ key, `configurationError`, `begin` cùng intent ném lỗi; gửi lại cùng key → accepted và dấu được xóa.
++  - 409 `INPUT_SERVICES_NOT_CONFIGURED` trên operation mới giữ key; 503 `SERVICE_UNAVAILABLE` vẫn retry.
++  - GET 503 cấu hình không retry.
++  - `lastServerDate`: null trước response đầu, cập nhật cả theo response lỗi, bỏ qua header hỏng.
++- `events.test.ts` +2:
++  - Tab mới: latest → catch-up từ cursor > MAX_SAFE → stream với Last-Event-ID, cursor được ghi, invalidate `['v2']`.
++  - latest 401 → expire; tab có cursor thì không gọi latest.
++- E2E `compose.spec.ts` (kịch bản PNG): đúng 1 POST submit, và response HTTP là `{status: 503, code: 'EXTRACTION_NOT_CONFIGURED'}` (bắt qua `page.on('response')`).
++
++Ghi chú về test `lastServerDate`: bản đầu dùng giá trị header không phải ASCII (“không phải ngày”). `Headers` từ chối giá trị đó ngay khi tạo response, nên GREEN đầu báo `NETWORK_UNAVAILABLE`. Em đã đổi sang `not-a-date`. Trong RED, test này đã đỏ trước dòng đó với lỗi thật (`lastServerDate` chưa có).
++
++| Lệnh (heap 384 MiB, watchdog; slot chỉ lấy khi `heavyEligible`, chain bằng `&&`) | Kết quả | Log, SHA-256 |
++|---|---|---|
++| RED `node --test test/client.test.ts test/events.test.ts test/app-wiring.test.ts` | exit 1, tests 40, fail 6, đều do assertion hành vi | `task-2-followup-red-unit.log` `e1c49eebe8231bc97d5f3638c5e544638fe3f223d9836f8ead970635f950dad1` |
++| RED E2E `playwright test e2e/compose.spec.ts --grep EXTRACTION_NOT_CONFIGURED` | exit 1: `expect.poll` số response submit `Expected: 1, Received: 4` | `task-2-followup-red-e2e.log` `7648d16ec8cf2a3350f2ef398fff6177321667ec50bbbce18533730e1d332ca4` |
++| GREEN cùng lệnh unit | exit 0, 40/40 | `task-2-followup-green-unit.log` `3bdd2f44b88f68b8880f819872f12d32098b8d988ccf6531d3436d5ae1de2874` |
++| `tsc --noEmit` | exit 0 | `task-2-followup-typecheck.log` `551ba5b17d54b7f7c4a98ec980c96250a33747006b9e36c69cbcf984ff5d489f` |
++| `biome check` 20 file (lib/contracts/auth, test, e2e liên quan) và `compose-submit.test.ts` | exit 0, không diagnostic | `task-2-followup-biome.log` `1438c850a9c553f5abf144efff03d362bf6cb0f09d14f84f54052162c9381bb8` |
++| `node --test test/*.test.ts` (sau khi sửa dòng 589) | exit 0, 232/232 | `task-2-followup-unit-full.log` `078b05a535cb1c0fca02eee5ed95922c38e258161b8822f86580b322297cafab` |
++| E2E `compose.spec.ts auth.spec.ts events.spec.ts app-router.spec.ts` | exit 0, 10 passed (45,1 giây); kịch bản PNG GREEN với 1 POST/HTTP 503 | `task-2-followup-e2e.log` `1b829b60bfbd1fd020e0d1999dd888e52d3f899b11bc27d15aea85a97a1f1930` |
++
++Lần chạy toàn unit đầu (trước khi sửa dòng 589) cho 231/232, và test đỏ duy nhất là dòng đó; log đã bị ghi đè bởi lượt sau.
++
++Telemetry khi lấy slot (GiB khả dụng / pressure / CPU idle % / đĩa GiB): RED 4,6/1/83,5/748,1; GREEN và E2E 5,126/1/85,22/748,1. Slot đã trả; `ls` xác nhận lock không còn. Scratch riêng `$TMPDIR/crew-v2-web-task2/` chứa runner, slot script và file tạm.
++
++Cleanup: danh sách `docker ps -a` trước và sau mỗi lượt E2E trùng nhau. Trong TMPDIR chỉ còn scratch của các worker khác (`crew-v2-web-controller`, `-s3b`, `-s5a`) và scratch của em; không còn scratch fixture. Kiểm import tương đối của mọi file đã đổi: không có import tới file untracked.
++
++Hash source: `api.ts` `ee5229311eee30fce55b529ed3ca6eec46d42ff9200b7e272d5dd9016283fa2c`, `events.ts` `61ee548f79c9496bf82b9a87c699bc2ad526a54fd6a3018a2ec0ef197b70697f`, `pending-operation.ts` `7ba8184f1ed16c9c1678683651bdd4af2e4ecdda5468041b237d8721321793d6`, `contracts/http.ts` `e54307418e523fb3a3e86718bfa6f524dda7807d15757f4de79bcbdba648aa3f`, `session-boundary.tsx` `5fa8c86354c707a6c8d2abda16f65503f00059aebc410be2d2218186b2141021`.
++
++### Còn lại
++
++- `configurationError` chỉ sống trong memory của tab; sau reload, operation hiện lại là “Chưa xác nhận” cho tới lần gửi kế tiếp. Lưu mã này vào record của tab thì phải đổi schema version, nên để sau.
++- Composer chưa có câu riêng cho mã cấu hình (Task5, đã vào ledger) và chưa dùng `lastServerDate` (S5a).
++- E2E PNG mới chạy GREEN một lượt trong lần chạy đầy đủ, chưa chạy lặp.
+diff --git a/v2/docs/flows/web-attachments.md b/v2/docs/flows/web-attachments.md
+index 17c8627..6ea5617 100644
+--- a/v2/docs/flows/web-attachments.md
++++ b/v2/docs/flows/web-attachments.md
+@@ -18,21 +18,21 @@ Hợp đồng cho Task3 S3b/Task6: form tạo đủ `CreateTicket` (project/kind
+ 1. `web/src/compose/state.ts` → `filesFromTransfer`: một luồng nhận tệp chung cho `clipboardData.items`, `dataTransfer` khi thả và `<input multiple>`. Khi dán, composer chỉ `preventDefault` nếu clipboard có tệp; phần chữ đi kèm được chèn tại con trỏ nên giữ được cả chữ lẫn ảnh. Dán chữ thường vẫn để trình duyệt xử lý. `localFileName` đặt tên ảnh dán không tên (hoặc tên chung `image.png`) thành `anh-dan-YYYYMMDD-HHmmss-n.png`, giờ theo Asia/Ho_Chi_Minh và đuôi theo MIME.
+ 2. `checkIntake` kiểm số tệp, dung lượng từng tệp, tổng dung lượng, đuôi tệp và tên tệp theo `GET /v2/attachment-policy` *trước khi* băm; không gắn cứng 25 MiB. Tệp lớn hơn ngân sách băm của trình duyệt (`clientHashBudgetBytes` = 256 MiB) bị báo `CLIENT_HASH_LIMIT` chứ không bị bỏ qua âm thầm. Tệp vi phạm vẫn nằm trong danh sách ở trạng thái lỗi và chặn gửi cho tới khi owner bỏ nó.
+ 3. `web/src/compose/file-hash.ts` → `createWorkerHasher` băm tuần tự từng tệp trong worker riêng `file-hash.worker.ts` bằng `crypto.subtle.digest`. Mỗi lần chỉ giữ bytes của một tệp trong một `ArrayBuffer`, không tạo bản sao base64, và bỏ tham chiếu sau khi băm. Hủy, bỏ tệp hay đóng composer sẽ `terminate` worker và gỡ listener. Tệp trùng hash và size với tệp đã chọn bị đánh dấu `DUPLICATE_LOCAL` để owner bỏ.
+ 4. `web/src/compose/controller.ts` → `ComposeController`: lượt gửi được mở lười, `POST /v2/attachment-compose` với đúng một trong ba target. Mọi bước làm đổi revision (giữ chỗ, bỏ tệp, bỏ lượt gửi) chạy trong một hàng đợi tuần tự, nên `expectedRevision` luôn là revision mà bước trước trả về. Mỗi bước là một `PendingOperation` của Task2 với intent cố định theo bản nháp và tệp; intent giữ chỗ còn gắn với compose session nó giữ chỗ vào. Khi kết quả chưa xác nhận, composer gửi lại đúng key/body, không tạo reservation mới.
+ 5. Tải bytes dùng `OwnerClient.upload` (PUT octet-stream kèm CSRF, cùng upload ID). Composer không hiện phần trăm giả. Nếu lỗi transport, bận (`ATTACHMENT_UPLOAD_BUSY`) hoặc hết thời gian, composer `GET /v2/attachment-compose/:id`: trạng thái `ready` thắng; `receiving` thì chờ (1/2/4 giây) rồi gửi lại cùng bytes; `reserved` thì gửi lại; lỗi chắc chắn (sai nội dung, replay khác) thì đánh dấu lỗi. Lượt gửi hết hạn hoặc đã đóng. API owner không cho biết giờ server, nên tab chỉ coi `expiresAt` là đã qua sau biên lệch giờ `expirySkewMs` (5 phút) theo đồng hồ client. Tab không bao giờ kết luận hết hạn khi đang gửi hoặc khi khóa submit đang được gửi ở nơi khác (`pending`). Khi gặp gặp qua `ATTACHMENT_COMPOSE_CLOSED`, `ATTACHMENT_UPLOAD_EXPIRED` hay `SELECTION_CHANGED` rồi GET compose: tệp được chuyển sang lượt mới và tải lại, khóa submit chưa giải quyết của lượt đó được nhả (lượt mở đã hết hạn thì không thể commit), lỗi hiện là `COMPOSE_EXPIRED`. Sau 4 lần chưa xác nhận, tệp ở `unknown`; “Thử lại” đọc lại compose rồi chạy lại vòng chờ đó với cùng bytes. Server còn `receiving` mà tab không có bytes (tải lại trang) thì tệp thành `unknown`/`UPLOAD_RECEIVING` kèm nút “Thử lại”, không đứng mãi ở “Đang tải lên”.
+ 6. GET compose là nguồn sự thật. Upload còn hoạt động mà client chưa biết được nhận về theo SHA và size, hoặc thêm vào danh sách. Một reserve/remove chưa xác nhận được coi là đã commit nếu có dòng khớp hoặc upload đã `abandoned`. Nó được coi là chưa commit nếu revision đã vượt `expectedRevision` mà không có dòng khớp. Nếu GET chưa chứng minh được, nút “Thử lại” gửi lại operation cũ. Selection luôn bằng toàn bộ upload còn hoạt động; tệp lỗi không bị lọc bỏ để gửi cho được.
+ 7. Bỏ tệp: composer hủy công việc cục bộ trước, rồi `DELETE /v2/attachment-compose/:id/uploads/:uploadId {expectedRevision}`. Khi gặp 409 `ATTACHMENT_SELECTION_STALE`, composer đọc lại compose và gửi DELETE mới theo revision mới. Một reservation đã bị từ chối hẳn có thể bị bỏ để giữ chỗ lại bằng cùng bytes. Đổi project hoặc đích gửi khi đang soạn sẽ `DELETE /v2/attachment-compose/:id` lượt cũ rồi chuyển tệp sang lượt mới; lượt cũ không bao giờ được dùng lại. Khi rời lượt cũ, các khóa reserve/remove chưa giải quyết của lượt đó được nhả, vì lượt cũ đã đóng hoặc không bao giờ được dùng lại; file đi qua pipeline với khóa mới của lượt mới.
+ 8. Gửi: `submissionRequest`/`freezeSubmission` kiểm target khớp body (`TARGET_MISMATCH`/`TARGET_INVALID`), tiêu đề 1–200 code point, mô tả ≤ 65536, text ≤ 32768, kind/level/workflow enum, và text với tệp không cùng rỗng (riêng ticket không cần tệp). Body được serialize một lần: ticket `POST /v2/attachment-submissions/tickets {ticket,selection,assistantRead}`, bình luận `POST /v2/tickets/:ticketId/attachment-comments {text,selection,assistantRead}`, tin nhắn `POST /v2/attachment-submissions/messages {conversationId,clientMessageId,text,selection,assistantRead}`. `kind`, `target`, `draftKey` hay callback không bao giờ vào body. Ticket không tệp vẫn mở lượt gửi với `attachmentIds: []`.
+ 9. `assistantRead` chỉ là `selected-inputs` khi owner tự bật ô “Cho phép Trợ lý đọc các tệp đã chọn”; giá trị này không suy ra từ cấu hình. Trong lúc `sending`, `ambiguous` hay `suspended`, ô nội dung chỉ đọc, `setSubmission` bị từ chối và body đã đóng băng không đổi dù props hay realtime đổi. Retry dùng cùng `PendingOperation`. Body đã đóng băng (gồm `assistantRead`) được giữ trong bộ nhớ. Nếu khóa biến mất vì đã được gửi lại ở panel khôi phục, hoặc vì 201 không giải mã được, draft vẫn khóa (`ambiguous`) và composer gửi lại đúng body đó trên cùng lượt gửi; máy chủ trả lại receipt đã lưu, không tạo entity thứ hai. Khóa đang giữ mà biến mất khỏi `PendingStore` (panel replay sau khi composer được dựng lại) được phát hiện qua `PendingStore.subscribe`: không còn body thì draft vào `SUBMIT_UNCONFIRMED`, rồi GET compose đưa về `SUBMITTED_ELSEWHERE` hoặc mở khóa; bấm gửi lúc đó chỉ chờ GET, không gửi gì. Khi mở khóa, consent và key cũ cũng được xóa. Lượt gửi đã `submitted` mà tab không còn khóa hay body (ví dụ tải lại trang sau khi panel đã gửi), hoặc lần gửi gặp 409 `COMPOSE_ALREADY_SUBMITTED`, thì draft bị khóa với `SUBMITTED_ELSEWHERE`: không chuyển file sang lượt mới, không cấp khóa mới. Chỉ khi owner bấm “Bỏ bản nháp này” (`discard`, owner đã duyệt kèm cảnh báo có thể tạo bản trùng), bản nháp cục bộ mới bị xóa. `discard` bị chặn khi đang gửi, và trong suốt lúc `discard` chạy thì không gửi được (nút gửi tắt, nút bỏ ẩn). Nếu DELETE bỏ lượt gửi chưa xác nhận (lỗi transport/5xx), bản nháp được giữ, composer báo `DISCARD_UNCONFIRMED`, khóa DELETE hiện ở panel, và bấm bỏ lần nữa gửi lại đúng khóa đó; nó bỏ lượt gửi cũ nếu còn mở và nhả khóa reserve/remove của lượt đó. Riêng khóa submit vẫn hiện ở panel khôi phục. Kết quả của một lần gửi thuộc draft đã bỏ không bao giờ được gắn vào draft mới (bộ đếm thế hệ).
+ 10. Phiên hết hạn thì operation ở `suspended`; sau khi đăng nhập lại cùng owner, composer đọc lại compose và gửi lại cùng key. Tải lại tab: `sessionStorage` `crew-v2:compose:<draftKey>` chỉ giữ intent, compose ID, revision, tên/size/SHA/upload ID của tệp và key operation; không giữ chữ, bytes hay bí mật. Tệp chưa sẵn sàng phải được chọn lại đúng size và SHA (`NEEDS_RESELECT`/`RESELECT_MISMATCH`). Record còn giữ `assistantRead` đã đóng băng (không phải bí mật). Sau đăng xuất, Task2 chỉ giữ tombstone; composer không cấp key mới cho ý định đó mà yêu cầu nhập lại đúng nội dung rồi `PendingStore.resume` với khóa cũ. Trạng thái file lấy từ GET compose (kể cả khi lượt đã `submitted`, revision giữ đúng giá trị trong body cũ), còn consent lấy từ record và hiện ở dạng đã khóa. Nhập sai thì `IDEMPOTENCY_CONFLICT` trả về tombstone với khóa cũ. Owner cũng có lối thoát “Bỏ bản nháp này”.
+-11. Khi được chấp nhận, receipt được giải mã theo loại (`decodeComposeReceipt`), cache ticket/comment/attachment bị invalidate, bản nháp được xóa đúng một lần, Lỗi 5xx (ví dụ 503 `EXTRACTION_NOT_CONFIGURED` khi máy chủ chưa có extractor) giữ khóa (`UNCONFIRMED`) và composer hiện kèm lý do máy chủ gửi về. 404 `NOT_FOUND` khi selection có tệp máy chủ không còn dẫn tới GET compose và đánh dấu tệp thiếu. 403 `ORIGIN_INVALID` làm mới phiên một lần rồi giữ khóa ở `suspended`; 403 `OWNER_REQUIRED` trên lần gửi đầu là từ chối hẳn. 401 (`UNAUTHENTICATED` hay `SESSION_INVALID`) đều làm phiên hết hạn và giữ khóa. `takeReceipt` trao receipt cho `onAccepted` đúng một lần, và `receiptSummary` chỉ nói máy chủ đã lưu gì, không bao giờ nói Trợ lý “đã đọc”.
++11. Khi được chấp nhận, receipt được giải mã theo loại (`decodeComposeReceipt`), cache ticket/comment/attachment bị invalidate, bản nháp được xóa đúng một lần, Lỗi 5xx tạm thời giữ khóa (`UNCONFIRMED`) sau khi client thử lại. Mã cấu hình xác định `*_NOT_CONFIGURED` (ví dụ 503 `EXTRACTION_NOT_CONFIGURED` khi máy chủ chưa có extractor) chỉ có một lần gửi, không auto-retry, vẫn giữ khóa và trả đúng mã đó (`kind: 'configuration'`); composer hiện kèm lý do máy chủ gửi về. 404 `NOT_FOUND` khi selection có tệp máy chủ không còn dẫn tới GET compose và đánh dấu tệp thiếu. 403 `ORIGIN_INVALID` làm mới phiên một lần rồi giữ khóa ở `suspended`; 403 `OWNER_REQUIRED` trên lần gửi đầu là từ chối hẳn. 401 (`UNAUTHENTICATED` hay `SESSION_INVALID`) đều làm phiên hết hạn và giữ khóa. `takeReceipt` trao receipt cho `onAccepted` đúng một lần, và `receiptSummary` chỉ nói máy chủ đã lưu gì, không bao giờ nói Trợ lý “đã đọc”.
+ 12. `web/src/attachments/queries.ts` → `fetchVerifiedBytes`: chỉ xem trước bytes đã được cấp quyền khi SHA-256 và size khớp record, và MIME theo magic bytes khớp MIME trong record hoặc manifest (không tin tên tệp hay content-type). Nội dung inline chỉ gồm ảnh PNG/JPEG và bản text đã xác minh (React escape, giới hạn 64 KiB ký tự, công thức/macro hiện nguyên văn). PDF/OOXML chỉ có link tải; không iframe/object HTML, SVG hay PDF cùng origin. Object URL bị thu hồi khi preview unmount. `summarizeExtraction` hiện trạng thái pending/running/complete/partial/encrypted/corrupt/unsupported/blocked/failed, các phần còn thiếu theo trang/trang tính/ô/dòng, kèm lời nhắc rằng byte đã xác minh không có nghĩa là mô hình đã đọc.
+ 
+ ## Dữ liệu
+ 
+ `DraftFile`, `ComposeSubmission`, `ComposeDraft` và `ComposeReceipt` đúng interface của brief Task5. `ComposeTarget` được suy từ decoder `ComposeSession` của Task2 (`web/src/contracts/attachments.ts`). Decoder `AssistantMessage` (`server/src/attachments/contracts.ts:270`) tạm nằm trong `state.ts` vì contracts Task2 chưa có; controller có thể chuyển nó vào `contracts/attachments.ts`. Danh sách `GET /v2/tickets/:id/attachments` là danh sách phẳng, không có `commentId` hay nhãn nguồn: UI liệt kê không nhóm và không suy luận nhóm từ thứ tự, chờ projection G2.
+ 
+ Lifetime: mỗi `draftKey` có một controller, bị `dispose` khi unmount (dừng worker, hủy upload, gỡ listener). File bytes chỉ nằm trong bộ nhớ. Key và body đã đóng băng nằm trong `PendingStore` của tab. Payload chứa field giống bí mật bị Task2 từ chối lưu (`SECRET_PAYLOAD`) và composer báo lỗi, không gửi.
+ 
+ ## Flow liên quan
+ 
+@@ -40,11 +40,11 @@ Lifetime: mỗi `draftKey` có một controller, bị `dispose` khi unmount (d
+ 
+ ## Tests
+ 
+ - `web/test/compose-submit.test.ts`: `freezeSubmission` cho cả ba loại với đúng path/body; target sai và giới hạn field bị chặn; selection rỗng hợp lệ cho ticket không tệp; bytes khớp `PendingStore.begin`; `canSubmit`. Controller chạy trên `OwnerClient`/`PendingStore` thật của Task2 với producer giả trong bộ nhớ (`web/test/support/compose-server.ts`): mất phản hồi sau commit thì form bị khóa, retry cùng key/body và chỉ có một ticket; hết phiên rồi đăng nhập lại giữ key và `clientMessageId`; tải lại tab giữ compose/key, không lưu chữ; đăng xuất chỉ còn tombstone và nhập lại đúng nội dung thì dùng khóa cũ; bình luận chỉ có ảnh.
+ - `web/test/compose.test.ts`: tên ảnh dán, giữ cả chữ lẫn ảnh khi dán, giới hạn policy, digest và worker (tuần tự, abort/dispose dừng worker và gỡ listener), reserve tuần tự theo revision, tệp lỗi và tệp trùng chặn gửi, DELETE kèm refetch khi 409, mất phản hồi reserve (GET nhận lại upload) và reserve chưa tới server (retry cùng key), PUT bận và lỗi transport, đổi project, chọn lại sau reload, cùng preview an toàn (magic bytes, SHA/MIME, 401) và tóm tắt trích xuất.
+ - Vòng sửa 1 (review I1–I5, M5): RED trước khi sửa: 11/44 test mới fail theo hành vi. Ví dụ, sau 201 không giải mã được, state về `editing`; tombstone có file thì file ở `unknown`; đổi project khi reserve chưa xác nhận thì `TIMEOUT:moved`; `receiving` thì `TIMEOUT:ready`/`uploading`; panel replay gửi body khác consent; các helper UI `pasteDecision`/`fileActions`/`composeLocks` sai. Sau khi sửa: GREEN 44/44, web unit không DB 83/83. Bốn test cho nhánh vốn đúng (SELECTION_CHANGED, PUT 401, nhả DELETE chưa commit, abandon gặp stale) được chứng minh có tác dụng bằng đột biến: mỗi đột biến làm đúng test đó fail. Hành vi UI của `composer.tsx` được kiểm qua các helper thuần; repo chưa có môi trường React/DOM test.
+ - Vòng sửa 2 (re-review N1–N5, I5, khớp hợp đồng G2): fake producer được sửa cho đúng server (by-comment, 503 extraction, 404 id lạ, 403 Origin/owner, login 200, hết hạn, 401 `SESSION_INVALID`). RED trước khi sửa: 5 test N và consent DOM fail, rồi 7 test G2 fail. GREEN: focused 63/63, web unit không DB 102/102. Component test thật `web/test/composer-dom.test.ts` chạy trên jsdom và React Testing Library, nạp `.tsx` bằng hook `web/test/support/tsx-loader.ts` (Oxc của Vite) và `web/test/support/dom.ts`. Test phủ: paste gọi `preventDefault` và chèn tại caret, kéo thả khi khóa, `readOnly` và consent `checked`/`disabled`, chuỗi receipt → `onAccepted` → bản nháp mới (consent tắt), nhãn và trạng thái của nút gửi và nút bỏ bản nháp, lý do 503. Mỗi điểm nối dây có đột biến làm đúng test đó fail.
+ - Lượt `discardDraft`/`onHandle`: RED 5/73 (đang soạn, DELETE lỗi transport, chưa xác nhận còn khóa, tombstone, handle trên component), GREEN 73/73, web unit không DB 112/112. Nhánh `blocked` khi đang gửi được chứng minh bằng đột biến.
+ - Vòng sửa 3 (B1/B2): RED 4/67 (lệch giờ client nhanh hơn server, hết hạn trong lúc gửi, gửi trong lúc bỏ bản nháp, DELETE bỏ bị lỗi transport), GREEN 67/67, web unit không DB 106/106.
+ - Lượt đầu chạy 25/25 PASS vì source viết trước test. Kiểm tra đột biến cho thấy 3 trên 4 đột biến bị bắt. Đột biến còn lại phát hiện lỗi thật: reserve chưa xác nhận bị kẹt. Test mới cho lỗi này RED trên source cũ (`TIMEOUT:ready`), GREEN sau khi sửa. Kết quả cuối: focused 29/29, web unit không DB 68/68, `tsc` và `vite build` PASS.
+-- `web/e2e/compose.spec.ts` (A5 đường chỉ có văn bản và phần văn bản của A3) chạy trên API, PostgreSQL và Vite thật của fixture Task1, không mock mạng, không dựng dữ liệu giả. Host chỉ mount `TicketBoard` (có nút “Tạo yêu cầu”) và `TicketDialog` vào runtime thật của app; Playwright route chỉ cắt phía trình duyệt của response sau khi máy chủ đã commit. Năm kịch bản: (1) tạo yêu cầu bằng biểu mẫu chỉ có chữ (một lượt mở compose rỗng, `attachmentIds: []`, `assistantRead: 'none'`) → đúng một ticket, một receipt idempotency, một event `ticket.created`, không tệp nào được liên kết; dialog mở đúng ticket trả về, rồi bình luận trong dialog → đúng một bình luận, một receipt, một event `comment.created`; (2) mất response sau commit → form khóa ở trạng thái chưa xác nhận → phiên hết hạn qua DB fixture → đăng nhập lại cùng owner → nhập lại bản nháp đã khóa → gửi lại đúng key/body với CSRF mới → vẫn một ticket, một receipt, một event; (3) như (2) cho bình luận trong dialog; (4) bỏ bản nháp khi chưa xác nhận: hiện cảnh báo bản trùng, “Giữ lại” không đổi gì, “Vẫn bỏ bản nháp” xóa form nhưng ticket đã lưu và receipt vẫn một, khóa cũ vẫn còn trong `PendingStore`; (5) gửi kèm một ảnh PNG thật (reserve, PUT, hash qua worker đều chạy trên fixture) → máy chủ trả 503 `EXTRACTION_NOT_CONFIGURED` vì chưa chứng nhận extractor: không có ticket, không có receipt, không có tệp được liên kết, mọi lần gửi dùng cùng key/body, form giữ khóa. Phần còn bị chặn: gửi thành công kèm tệp (cần extractor đã chứng nhận), nhóm tệp theo bình luận và lịch sử/câu hỏi (projection G3), attempt/model (G1b).
++- `web/e2e/compose.spec.ts` (A5 đường chỉ có văn bản và phần văn bản của A3) chạy trên API, PostgreSQL và Vite thật của fixture Task1, không mock mạng, không dựng dữ liệu giả. Host chỉ mount `TicketBoard` (có nút “Tạo yêu cầu”) và `TicketDialog` vào runtime thật của app; Playwright route chỉ cắt phía trình duyệt của response sau khi máy chủ đã commit. Năm kịch bản: (1) tạo yêu cầu bằng biểu mẫu chỉ có chữ (một lượt mở compose rỗng, `attachmentIds: []`, `assistantRead: 'none'`) → đúng một ticket, một receipt idempotency, một event `ticket.created`, không tệp nào được liên kết; dialog mở đúng ticket trả về, rồi bình luận trong dialog → đúng một bình luận, một receipt, một event `comment.created`; (2) mất response sau commit → form khóa ở trạng thái chưa xác nhận → phiên hết hạn qua DB fixture → đăng nhập lại cùng owner → nhập lại bản nháp đã khóa → gửi lại đúng key/body với CSRF mới → vẫn một ticket, một receipt, một event; (3) như (2) cho bình luận trong dialog; (4) bỏ bản nháp khi chưa xác nhận: hiện cảnh báo bản trùng, “Giữ lại” không đổi gì, “Vẫn bỏ bản nháp” xóa form nhưng ticket đã lưu và receipt vẫn một, khóa cũ vẫn còn trong `PendingStore`; (5) gửi kèm một ảnh PNG thật (reserve, PUT, hash qua worker đều chạy trên fixture) → máy chủ trả 503 `EXTRACTION_NOT_CONFIGURED` vì chưa chứng nhận extractor: không có ticket, không có receipt, không có tệp được liên kết, đúng một POST submit và response HTTP là 503 với `code` `EXTRACTION_NOT_CONFIGURED` (không retry mù), form giữ khóa. `warmUp` chờ đến khi các module import được trong một trang đứng yên tới lúc mạng rảnh, không dùng sleep cố định. Phần còn bị chặn: gửi thành công kèm tệp (cần extractor đã chứng nhận), nhóm tệp theo bình luận và lịch sử/câu hỏi (projection G3), attempt/model (G1b).
+diff --git a/v2/docs/flows/web-data.md b/v2/docs/flows/web-data.md
+index 0ea6c11..880c58c 100644
+--- a/v2/docs/flows/web-data.md
++++ b/v2/docs/flows/web-data.md
+@@ -7,32 +7,32 @@ Lớp dữ liệu của `v2/web` gửi mọi request owner tới `/v2/` cùng or
+ ## Điểm vào
+ 
+ - `web/src/auth/session-boundary.tsx` → `SessionBoundary`: chặn route được bảo vệ. Guest thấy đăng nhập, phiên hết hạn thấy đăng nhập lại, owner đã xác thực thấy `RecoveryPanel` và nội dung.
+ - `web/src/auth/session-boundary.tsx` → `wireSession`: nối vòng đời phiên với `PendingStore`, cache và `EventSync` cho mỗi lần mount app.
+ 
+ ## Các bước
+ 
+ 1. `web/src/lib/session.ts` → `SessionController.bootstrap`: GET `/v2/auth/session` đúng một lần, kể cả khi StrictMode gọi hai lần. Nếu được 200 thì phiên `authenticated`. Nếu được 401 thì `guest`. Nếu được 503 `OWNER_NOT_BOOTSTRAPPED` thì `guest` kèm thông báo máy chủ chưa khởi tạo owner.
+ 2. `web/src/auth/login.tsx` → `LoginScreen`: mật khẩu 1–4096 ký tự, chỉ nằm trong state của form và bị xóa sau mỗi request hoặc khi đóng form. `SessionController.login` gửi POST `{password}`; trình duyệt tự gắn Origin, request không có CSRF hay Idempotency-Key. Sau đó web GET lại session để xác minh đúng `owner`. Lỗi 401, 429, 503 hoặc mất kết nối hiện thành thông báo, và 429 không tự gửi lại. `safeReturnPath` chỉ chấp nhận path nội bộ `/crew-v2/`.
+ 3. `web/src/lib/pending-operation.ts` → `PendingStore.begin`: `bodyJson` được serialize một lần và đóng băng. `id` vừa là Idempotency-Key vừa giữ `intentId`/`ownerId`. Mỗi intent chỉ có một khóa chưa giải quyết. Khóa mới chỉ được cấp sau khi khóa cũ đã được xác nhận hoặc bị từ chối hẳn. Payload thường dùng `storage: 'tab'` và lưu trong sessionStorage `crew-v2:pending` version 1. Payload có key dạng password/secret/token/credential/apiKey bắt buộc dùng `memory`. `serializePending` từ chối operation memory, secret, token và hash của secret.
+-4. `web/src/lib/api.ts` → `createOwnerClient`: GET chỉ nhận path `/v2/...` mà URL parser giữ nguyên byte; request gửi kèm cookie same-origin và signal của epoch phiên. Mutation gửi đúng `bodyJson`, `X-CSRF-Token` và `Idempotency-Key = id`. Lỗi transport, abort, 5xx hoặc 2xx không đọc được đưa operation về `ambiguous` và giữ khóa. Client gửi lại cùng key/body tối đa 3 lần với backoff 1/2/4 giây, rồi báo “Chưa xác nhận”. 403 `CSRF_INVALID`/`ORIGIN_INVALID` do `requireOwner` ném trước bước tra idempotency nên không chứng minh gì về các lần gửi trước. Khi gặp lỗi này, operation chuyển sang `suspended`, `SessionController.refresh` GET lại session của cùng owner để lấy CSRF mới (nếu nhận 401 hoặc owner khác thì phiên thành expired), rồi web replay đúng key/body một lần. Nếu vẫn 403, web dừng và giữ khóa. Lỗi 4xx chỉ giải phóng khóa khi nó chứng minh request bị từ chối: 400, 413 và 415 phụ thuộc hoàn toàn vào bytes của request nên luôn là terminal. Các 4xx khác (403/404/409/422…) có thể đến từ callback `authorize` chạy trước bước tra idempotency, nên chỉ là terminal khi chưa từng có lần gửi nào của khóa này có thể đã commit; trường hợp còn lại giữ operation `ambiguous`. Payload nhập lại cho tombstone (`resume`) có thể khác bytes gốc, nên mọi 4xx của nó (kể cả 400/413/415) đưa operation về tombstone với key cũ, không nhả key. Mỗi operation chỉ có một lượt gửi đang chạy (`PendingStore.claim`); lượt trùng nhận `OPERATION_IN_FLIGHT` mà không gửi request. Nhánh làm mới CSRF kiểm `request.signal` trước và sau khi làm mới; caller đã abort thì web không replay, operation giữ khóa ở trạng thái `ambiguous`. `IDEMPOTENCY_CONFLICT` giữ operation, hoặc trả nó về tombstone nếu payload vừa được nhập lại. Upload gặp 403 CSRF thì làm mới CSRF rồi báo lỗi để lần thử sau dùng token mới. Upload bytes dùng PUT octet-stream kèm CSRF, không có Idempotency-Key.
++4. `web/src/lib/api.ts` → `createOwnerClient`: GET chỉ nhận path `/v2/...` mà URL parser giữ nguyên byte; request gửi kèm cookie same-origin và signal của epoch phiên. Mutation gửi đúng `bodyJson`, `X-CSRF-Token` và `Idempotency-Key = id`. Lỗi transport, abort, 5xx hoặc 2xx không đọc được đưa operation về `ambiguous` và giữ khóa. Client gửi lại cùng key/body tối đa 3 lần với backoff 1/2/4 giây, rồi báo “Chưa xác nhận”. 403 `CSRF_INVALID`/`ORIGIN_INVALID` do `requireOwner` ném trước bước tra idempotency nên không chứng minh gì về các lần gửi trước. Khi gặp lỗi này, operation chuyển sang `suspended`, `SessionController.refresh` GET lại session của cùng owner để lấy CSRF mới (nếu nhận 401 hoặc owner khác thì phiên thành expired), rồi web replay đúng key/body một lần. Nếu vẫn 403, web dừng và giữ khóa. Lỗi 4xx chỉ giải phóng khóa khi nó chứng minh request bị từ chối: 400, 413 và 415 phụ thuộc hoàn toàn vào bytes của request nên luôn là terminal. Các 4xx khác (403/404/409/422…) có thể đến từ callback `authorize` chạy trước bước tra idempotency, nên chỉ là terminal khi chưa từng có lần gửi nào của khóa này có thể đã commit; trường hợp còn lại giữ operation `ambiguous`. Payload nhập lại cho tombstone (`resume`) có thể khác bytes gốc, nên mọi 4xx của nó (kể cả 400/413/415) đưa operation về tombstone với key cũ, không nhả key. Mỗi operation chỉ có một lượt gửi đang chạy (`PendingStore.claim`); lượt trùng nhận `OPERATION_IN_FLIGHT` mà không gửi request. Nhánh làm mới CSRF kiểm `request.signal` trước và sau khi làm mới; caller đã abort thì web không replay, operation giữ khóa ở trạng thái `ambiguous`. `IDEMPOTENCY_CONFLICT` giữ operation, hoặc trả nó về tombstone nếu payload vừa được nhập lại. Upload gặp 403 CSRF thì làm mới CSRF rồi báo lỗi để lần thử sau dùng token mới. Upload bytes dùng PUT octet-stream kèm CSRF, không có Idempotency-Key. Mã cấu hình xác định `*_NOT_CONFIGURED` (503, hoặc 409 như `INPUT_SERVICES_NOT_CONFIGURED`) là kết quả cuối của lượt gửi: client không auto-retry, giữ key và đánh dấu operation bằng `PendingStore.configurationError`. Lỗi trả `kind: 'configuration'` cùng đúng mã server, không quy về `UNCONFIRMED`, và panel hiện “Lỗi cấu hình máy chủ (mã)”. Lượt gửi chủ động sau đó dùng lại cùng key và xóa dấu này. GET gặp mã cấu hình cũng không retry. `OwnerClient.lastServerDate()` trả giờ server lấy từ header `Date` của response gần nhất, kể cả response lỗi; header hỏng bị bỏ qua.
+ 5. Mọi phản hồi 401 gọi `SessionController.expire`. Bước này hủy GET và stream của epoch, xóa CSRF, xóa cache owner, chặn write và chuyển operation chưa giải quyết sang `suspended` mà vẫn giữ key/body. Payload secret chỉ nằm trong bộ nhớ của tab. Màn hình đăng nhập lại không hiển thị payload. Sau khi owner đăng nhập lại đúng owner, panel “Tiếp tục yêu cầu chưa xác nhận” cho owner chủ động gửi lại cùng key/body với CSRF mới; server vẫn authorize route trước khi replay.
+ 6. `SessionController.logout`: gửi DELETE kèm CSRF (gặp 403 `CSRF_INVALID` thì GET session lấy CSRF mới và DELETE lại một lần), rồi hủy request/stream và xóa cache, kể cả khi DELETE thất bại. `PendingStore.tombstoneAll` chỉ giữ `RecoveryTombstone` gồm key, intent, owner, method, path, target UUID trong path và `expectedRevision`. Tombstone không chứa title, text, file, secret hay response. Reload tab hoặc đóng form secret (`discardMemory`) cũng biến operation memory thành tombstone. Owner phải nhập lại đúng nội dung (`PendingStore.resume`) để gửi bằng khóa cũ. Nếu không nhập lại được, panel giữ dòng “Chưa thể xác nhận yêu cầu cũ”; web không tự tra receipt.
+-7. `web/src/lib/events.ts` → `EventSync.start`: mỗi app/phiên chỉ có một vòng đồng bộ, và vòng này phải chạy trước GET dữ liệu đầu tiên. Bước catch-up đọc `/v2/events?after=<applied>&limit=100` tới khi trang rỗng. Sau đó web mở stream `/v2/events/stream` bằng fetch, gửi `Last-Event-ID`. `SseParser` giải mã UTF-8 strict theo từng chunk, nhận CRLF/CR/LF và comment, và giới hạn mỗi frame 1 MiB. Frame hỏng (JSON sai, `event:` khác `type`, `id` khác `cursor`, vượt giới hạn) làm đóng stream rồi resync. Backoff tăng tới 30 giây; sau `maxFailures` lần lỗi, trạng thái thành `failed` để owner thử lại.
++7. `web/src/lib/events.ts` → `EventSync.start`: mỗi app/phiên chỉ có một vòng đồng bộ, và vòng này phải chạy trước GET dữ liệu đầu tiên. Tab chưa có cursor đã lưu gọi `GET /v2/events/latest` (chỉ owner) để bắt đầu từ đầu journal hiện tại thay vì đọc lại từ 0. Trước khi ghi cursor đó, client invalidate `['v2']`, để dữ liệu đã GET trước khi biết cursor được refetch. Bước catch-up đọc `/v2/events?after=<applied>&limit=100` tới khi trang rỗng. Sau đó web mở stream `/v2/events/stream` bằng fetch, gửi `Last-Event-ID`. `SseParser` giải mã UTF-8 strict theo từng chunk, nhận CRLF/CR/LF và comment, và giới hạn mỗi frame 1 MiB. Frame hỏng (JSON sai, `event:` khác `type`, `id` khác `cursor`, vượt giới hạn) làm đóng stream rồi resync. Backoff tăng tới 30 giây; sau `maxFailures` lần lỗi, trạng thái thành `failed` để owner thử lại.
+ 8. `compareCursor` so sánh cursor bằng BigInt nên cursor lớn hơn `Number.MAX_SAFE_INTEGER` vẫn chính xác. Event trùng hoặc đến sai thứ tự bị bỏ qua. `invalidations` ánh xạ type đã review sang prefix query (`queryRoots`). Type lạ được invalidate rộng theo thứ tự ticket → project → máy → toàn bộ cache, không bị bỏ qua. Cursor chỉ được ghi sau khi invalidation đã vào hàng đợi. Nếu invalidation lỗi, nó ở lại hàng đợi và được thử lại. Mỗi lần nối lại, web invalidate `['v2']` để refetch view hiện tại.
+ 9. `web/src/lib/api.ts` → `LatestRequest` hủy GET cũ khi view bắt đầu GET mới. `web/src/contracts/tickets.ts` → `newerTicket` từ chối row có revision cũ hơn. Graph luôn được refetch nguyên root; client không vá một phần cạnh.
+ 
+ ## Dữ liệu
+ 
+ `web/src/contracts/*.ts` mirror DTO producer tại HEAD: Session/Event (`server/src/platform/contracts.ts:13`, `auth/routes.ts:141`), Ticket/Dependency/RepairLink/graph/comment/decision (`tickets/contracts.ts:8-47`, `service.ts:28`), docs tree/page/search (`docs/read.ts:9,21`, `search.ts:8`), Machine/Project/model sources desired+applied/pool (`auth/machine.ts:7`, `projects/service.ts:13`, `models/config.ts:108`, `models/contracts.ts:40`) và attachment (`attachments/contracts.ts:28-56`, chưa mount production tới G2). Decoder runtime từ chối field thiếu, sai primitive và field lạ; field bổ sung chỉ được nhận khi khai báo `additive` sau review. Gateway status chưa có decoder vì DTO còn chờ G4.
+ 
+ Lifetime: mỗi app có một `SessionController` và một `EventSync`; cache bị xóa khi phiên kết thúc; `PendingStore` sống theo tab; mỗi request có `AbortController` riêng. Password, CSRF, token máy và secret API không vào query cache, logger hay storage. Query key luôn bắt đầu bằng `'v2'`. Runtime của app tắt retry mặc định của TanStack Query vì `OwnerClient.get` đã tự retry tối đa 3 lần.
+ 
+ ## Flow liên quan
+ 
+ `web-shell.md` sở hữu shell, router và fixture. `server-identity.md` định nghĩa route session. `server-journal.md` định nghĩa idempotency, event và SSE.
+ 
+ ## Tests
+ 
+-- `web/test/client.test.ts`, `web/test/events.test.ts`, `web/test/auth-recovery.test.ts`: RED đầu tiên trên deny scaffold có 30/31 test thất bại theo hành vi, ví dụ cursor `9007199254740993` so với `…992` trả 0 thay vì 1. Sau triển khai, 31/31 PASS; toàn bộ web unit 38/38. Vòng sửa 1 thêm 5 test (403 CSRF trên operation ambiguous làm mới rồi replay cùng key/body; làm mới gặp 401 thì expired và vẫn giữ khóa; ORIGIN lặp lại chỉ làm mới một lần; 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn giữ khóa còn 400 vẫn terminal; logout với CSRF cũ). RED 5/27 fail, GREEN 27/27, toàn web unit 43/43. Vòng sửa 2 thêm 3 test: payload nhập lại bị 400/413/404 thì về tombstone; hai lượt mutate song song bị chặn; caller abort quanh bước làm mới CSRF thì không replay. RED 3/19 fail, GREEN 19/19, toàn web unit 46/46.
++- `web/test/client.test.ts`, `web/test/events.test.ts`, `web/test/auth-recovery.test.ts`: RED đầu tiên trên deny scaffold có 30/31 test thất bại theo hành vi, ví dụ cursor `9007199254740993` so với `…992` trả 0 thay vì 1. Sau triển khai, 31/31 PASS; toàn bộ web unit 38/38. Vòng sửa 1 thêm 5 test (403 CSRF trên operation ambiguous làm mới rồi replay cùng key/body; làm mới gặp 401 thì expired và vẫn giữ khóa; ORIGIN lặp lại chỉ làm mới một lần; 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn giữ khóa còn 400 vẫn terminal; logout với CSRF cũ). RED 5/27 fail, GREEN 27/27, toàn web unit 43/43. Vòng sửa 2 thêm 3 test: payload nhập lại bị 400/413/404 thì về tombstone; hai lượt mutate song song bị chặn; caller abort quanh bước làm mới CSRF thì không replay. RED 3/19 fail, GREEN 19/19, toàn web unit 46/46. Follow-up (503 cấu hình, Date, latest) thêm 6 unit test. RED 6/40 fail; E2E PNG `compose.spec.ts` RED với 4 POST thay vì 1. GREEN 40/40, toàn web unit 232/232, E2E compose/auth/events/app-router 10/10; E2E PNG chỉ còn đúng 1 POST và nhận HTTP 503 `EXTRACTION_NOT_CONFIGURED`.
+ - `web/e2e/auth.spec.ts` chạy trên PostgreSQL 18.6, API và Vite thật của fixture Task1. Kịch bản đầu: server commit rồi response bị cắt; phiên bị hết hạn qua DB fixture; owner đăng nhập lại cùng owner; panel gửi lại cùng key/body với CSRF mới. Kết quả có đúng một project, một receipt idempotency và một event `project.created`; write bị chặn khi hết phiên; screenshot login/expired/recovery được lưu. Kịch bản thứ hai kiểm logout chỉ để lại tombstone, nhập payload khác với cùng key bị 409 mà tombstone vẫn giữ, nhập lại đúng thì được chấp nhận, và secret không vào sessionStorage.
+-- `web/e2e/events.spec.ts` chạy SSE thật qua proxy `/v2`: catch-up `after=0` rồi stream; event `project.created` invalidate query project; cursor khớp DB; phiên hết hạn trong DB thì server đóng stream, client dừng ở `expired`; sau khi đăng nhập lại, web catch-up từ cursor đã áp dụng và gửi `Last-Event-ID` đúng cursor đó.
++- `web/e2e/events.spec.ts` chạy SSE thật qua proxy `/v2`: `/v2/events/latest`, invalidate `["v2"]`, catch-up từ cursor đó rồi stream; event `project.created` invalidate query project; cursor khớp DB; phiên hết hạn trong DB thì server đóng stream, client dừng ở `expired`; sau khi đăng nhập lại, web catch-up từ cursor đã áp dụng và gửi `Last-Event-ID` đúng cursor đó.
+diff --git a/v2/web/e2e/app-router.spec.ts b/v2/web/e2e/app-router.spec.ts
+index d379342..b089dcc 100644
+--- a/v2/web/e2e/app-router.spec.ts
++++ b/v2/web/e2e/app-router.spec.ts
+@@ -13,20 +13,23 @@ const test = base.extend<Record<never, never>, { crew: FixtureHandle }>({
+     async ({}, use) => {
+       await withFixture(async (handle) => {
+         await use(handle);
+       });
+     },
+     { scope: 'worker', timeout: 180_000 },
+   ],
+ });
+ test.describe.configure({ timeout: 120_000 });
+ 
++/** First event-sync request of a verified session: latest cursor (fresh tab) or the journal catch-up. */
++const eventSyncCall = /^GET \/v2\/events(\/latest)?$/;
++
+ test('router thật: guest chuyển login, quay về đúng path, stream trước GET dữ liệu, returnTo ngoài bị bác, logout đóng stream', async ({
+   page,
+   crew,
+ }) => {
+   const calls: string[] = [];
+   const streamsClosed: string[] = [];
+   page.on('request', (request) => {
+     const { pathname } = new URL(request.url());
+     if (pathname.startsWith('/v2/')) calls.push(`${request.method()} ${pathname}`);
+   });
+@@ -46,33 +49,34 @@ test('router thật: guest chuyển login, quay về đúng path, stream trướ
+   await expect(heading).toBeVisible();
+   expect(here()).toBe('/crew-v2/login?returnTo=%2Fcrew-v2%2Fprojects%2Fabc%3Fx%3D1');
+   expect(calls.some((call) => call.startsWith('GET /v2/events'))).toBe(false);
+ 
+   await password.fill(crew.ownerPassword);
+   await signIn.click();
+   await expect(page.getByRole('heading', { name: 'Dự án' })).toBeVisible();
+   expect(here()).toBe('/crew-v2/projects/abc?x=1');
+   await expect.poll(() => calls.some((call) => call === 'GET /v2/events/stream')).toBe(true);
+ 
+-  // After the session is verified, the first owner GET must be the event catch-up, before any view data.
++  // After the session is verified, the first owner GET must be the event sync (latest cursor for a tab
++  // without a stored cursor, otherwise the catch-up), before any view data.
+   const verified = calls.lastIndexOf('GET /v2/auth/session');
+   const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
+-  expect(afterLogin[0]).toBe('GET /v2/events');
++  expect(afterLogin[0]).toMatch(eventSyncCall);
+   expect(afterLogin.filter((call) => call === 'GET /v2/events/stream')).toHaveLength(1);
+   // The sidebar's project list is real data: it must be requested after the catch-up, never before it.
+   await expect.poll(() => calls.includes('GET /v2/projects')).toBe(true);
+   const projectsAfterLogin = calls
+     .slice(verified + 1)
+     .filter((call) => call.startsWith('GET '))
+     .indexOf('GET /v2/projects');
+   expect(projectsAfterLogin).toBeGreaterThan(0);
+-  expect(projectsAfterLogin).toBeGreaterThan(afterLogin.indexOf('GET /v2/events'));
++  expect(projectsAfterLogin).toBeGreaterThan(afterLogin.findIndex((call) => eventSyncCall.test(call)));
+ 
+   await page.getByRole('button', { name: 'Đăng xuất' }).click();
+   await expect(heading).toBeVisible();
+   await expect.poll(() => streamsClosed.length).toBe(1);
+   const afterLogout = calls.length;
+ 
+   await page.goto(`${crew.webOrigin}/crew-v2/login?returnTo=${encodeURIComponent('https://evil.example/')}`);
+   await expect(heading).toBeVisible();
+   // As a guest, neither the logout nor the fresh page load opens any event request.
+   expect(calls.slice(afterLogout).filter((call) => call.startsWith('GET /v2/events'))).toEqual([]);
+@@ -94,13 +98,15 @@ test('router thật: GET ticket của route deep link đứng sau catch-up /v2/e
+     if (pathname.startsWith('/v2/')) calls.push(`${request.method()} ${pathname}`);
+   });
+   await page.goto(`${crew.webOrigin}/crew-v2/tickets/${seeded.ticketId}`);
+   await page.getByLabel('Mật khẩu').fill(crew.ownerPassword);
+   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+   await expect(page.getByRole('heading', { name: seeded.title, level: 1 })).toBeVisible();
+ 
+   const verified = calls.lastIndexOf('GET /v2/auth/session');
+   const afterLogin = calls.slice(verified + 1).filter((call) => call.startsWith('GET '));
+   const ticketGet = `GET /v2/tickets/${seeded.ticketId}`;
+-  expect(afterLogin[0]).toBe('GET /v2/events');
+-  expect(afterLogin.indexOf(ticketGet)).toBeGreaterThan(afterLogin.indexOf('GET /v2/events'));
++  expect(afterLogin[0]).toMatch(eventSyncCall);
++  expect(afterLogin.indexOf(ticketGet)).toBeGreaterThan(
++    afterLogin.findIndex((call) => eventSyncCall.test(call)),
++  );
+ });
+diff --git a/v2/web/e2e/compose.spec.ts b/v2/web/e2e/compose.spec.ts
+index 1975008..721de5d 100644
+--- a/v2/web/e2e/compose.spec.ts
++++ b/v2/web/e2e/compose.spec.ts
+@@ -125,30 +125,43 @@ const ticketModules = [
+   'board.tsx',
+   'list.tsx',
+   'dialog.tsx',
+   'queries.ts',
+   'requests.tsx',
+   'create-request.tsx',
+ ] as const;
+ 
+ /** The Vite dev server may reload once after discovering Radix; import first, then start from a fresh page. */
+ async function warmUp(page: Page, crew: FixtureHandle): Promise<void> {
+-  await page.goto(`${crew.webOrigin}/crew-v2/`);
+-  await page.waitForSelector('.app-shell');
+-  await page
+-    .evaluate(async (modules) => {
+-      for (const name of modules) await import(/* @vite-ignore */ `/crew-v2/src/tickets/${name}`);
+-    }, ticketModules)
+-    .catch(() => undefined);
+-  await page.waitForTimeout(1500);
+-  await page.goto(`${crew.webOrigin}/crew-v2/`);
+-  await page.waitForSelector('.app-shell');
++  // Stable when every ticket module imports in one page and that page survives until the network is idle
++  // (no optimizer reload replaced it); then start again from a fresh page.
++  for (let attempt = 0; attempt < 5; attempt++) {
++    await page.goto(`${crew.webOrigin}/crew-v2/`);
++    await page.waitForSelector('.app-shell');
++    const imported = await page
++      .evaluate(async (modules) => {
++        (window as unknown as { crewWarm?: boolean }).crewWarm = true;
++        for (const name of modules) await import(/* @vite-ignore */ `/crew-v2/src/tickets/${name}`);
++        return true;
++      }, ticketModules)
++      .catch(() => false);
++    if (!imported) continue;
++    await page.waitForLoadState('networkidle');
++    const stable = await page
++      .evaluate(() => (window as unknown as { crewWarm?: boolean }).crewWarm === true)
++      .catch(() => false);
++    if (!stable) continue;
++    await page.goto(`${crew.webOrigin}/crew-v2/`);
++    await page.waitForSelector('.app-shell');
++    return;
++  }
++  throw new Error('VITE_WARM_UP_UNSTABLE');
+ }
+ 
+ /** Mounts only production components inside the app's own runtime; the host owns no network or entity logic. */
+ async function mountHost(page: Page, crew: FixtureHandle): Promise<void> {
+   await warmUp(page, crew);
+   await page.evaluate(async () => {
+     const load = (url: string): Promise<unknown> => import(/* @vite-ignore */ url);
+     const entry = await (await fetch('/crew-v2/src/main.tsx')).text();
+     const dep = async (name: string) => {
+       const url = [...entry.matchAll(/["']([^"']*\/\.vite\/deps\/[^"']+)["']/g)]
+@@ -556,37 +569,53 @@ test('A5 text-only: bỏ bản nháp khi chưa xác nhận hiện cảnh báo tr
+ const tinyPng = Buffer.from(
+   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+   'base64',
+ );
+ 
+ test('A5: gửi kèm tệp khi chưa chứng nhận extractor → 503 EXTRACTION_NOT_CONFIGURED, giữ khóa, không tạo ticket', async ({
+   page,
+   crew,
+ }) => {
+   const requests = capture(page);
++  const submitResponses: { status: number; code: string | null }[] = [];
++  page.on('response', async (response) => {
++    const request = response.request();
++    if (request.method() !== 'POST' || new URL(response.url()).pathname !== ticketSubmitPath) return;
++    let code: string | null = null;
++    try {
++      code = ((await response.json()) as { error?: { code?: string } }).error?.code ?? null;
++    } catch {
++      code = null;
++    }
++    submitResponses.push({ status: response.status(), code });
++  });
+   await mountHost(page, crew);
+   await login(page, crew);
+   await seedProject(page, 'CMPE');
+   const title = 'Yêu cầu có tệp A5';
+ 
+   const form = await openCreateForm(page);
+   await fillRequest(form, title, 'Có kèm một ảnh PNG.');
+   await form
+     .getByLabel('Đính kèm tệp')
+     .setInputFiles({ name: 'anh-a5.png', mimeType: 'image/png', buffer: tinyPng });
+   await expect(form.locator('li[data-state="ready"]')).toHaveCount(1, { timeout: 30_000 });
+   await form.getByRole('button', { name: 'Tạo ticket', exact: true }).click();
+   await expect(form.getByRole('alert')).toContainText('Chưa cấu hình xử lý tệp', { timeout: 40_000 });
+ 
++  // A configuration 503 is deterministic: exactly one submit, no blind retry, and the HTTP answer itself is
++  // the producer's 503 with its code (not a transport failure dressed up as one).
++  await expect.poll(() => submitResponses.length).toBe(1);
+   const attempts = posts(requests, ticketSubmitPath);
+-  expect(attempts.length).toBeGreaterThanOrEqual(1);
+-  evidence('files-503', { posts: attempts.length });
++  expect(attempts).toHaveLength(1);
++  expect(submitResponses).toEqual([{ status: 503, code: 'EXTRACTION_NOT_CONFIGURED' }]);
++  evidence('files-503', { posts: attempts.length, responses: submitResponses });
+   const key = attempts[0]?.headers['idempotency-key'] ?? '';
+   expect(new Set(attempts.map((request) => request.headers['idempotency-key']))).toEqual(new Set([key]));
+   expect(new Set(attempts.map((request) => request.body)).size).toBe(1);
+   expect(await ticketsWithTitle(crew, title)).toBe(0);
+   expect(await receiptsForKey(crew, ticketRoute, key)).toBe(0);
+   await withDb(crew, async (db) => {
+     const [linked] =
+       await db`select count(*)::int as count from attachment_uploads where owner_id = 'owner' and linked_at is not null`;
+     expect(linked?.count).toBe(0);
+   });
+diff --git a/v2/web/e2e/events.spec.ts b/v2/web/e2e/events.spec.ts
+index 6170ffb..d9b8852 100644
+--- a/v2/web/e2e/events.spec.ts
++++ b/v2/web/e2e/events.spec.ts
+@@ -115,41 +115,45 @@ const observe = (page: Page): Promise<Observed> =>
+   page.evaluate(() => {
+     const harness = (window as unknown as { crewTest: Harness }).crewTest;
+     return {
+       status: harness.events.status(),
+       applied: harness.events.applied(),
+       state: harness.session.snapshot().state,
+       invalidated: [...harness.invalidated],
+     };
+   });
+ 
+-test('SSE thật: catch-up rồi stream Last-Event-ID, event làm stale query, hết phiên đóng stream và nối lại sau reauth', async ({
++test('SSE thật: latest cursor, catch-up rồi stream Last-Event-ID, event làm stale query, hết phiên đóng stream và nối lại sau reauth', async ({
+   page,
+   crew,
+ }) => {
+   const requests: Captured[] = [];
+   page.on('request', (request) => {
+     const url = new URL(request.url());
+     if (url.pathname.startsWith('/v2/events'))
+       requests.push({
+         method: request.method(),
+         path: url.pathname,
+         search: url.search,
+         headers: request.headers(),
+       });
+   });
+   await mountHarness(page, crew);
+   await page.locator('#task2-harness').getByLabel('Mật khẩu').fill(crew.ownerPassword);
+   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+   await expect(page.getByTestId('protected')).toBeVisible();
+   await expect.poll(() => observe(page).then((value) => value.status)).toBe('live');
+-  expect(requests[0]).toMatchObject({ path: '/v2/events', search: '?after=0&limit=100' });
++  // A fresh tab anchors at the journal head instead of replaying from 0, then catches up from that cursor.
++  expect(requests[0]).toMatchObject({ path: '/v2/events/latest', search: '' });
++  expect(requests[1]?.path).toBe('/v2/events');
++  expect(requests[1]?.search).toMatch(/^\?after=(0|[1-9][0-9]*)&limit=100$/);
++  expect(await observe(page).then((value) => value.invalidated)).toContain(JSON.stringify(['v2']));
+   const firstStream = requests.find((request) => request.path === '/v2/events/stream');
+   expect(firstStream?.headers['last-event-id']).toMatch(/^(0|[1-9][0-9]*)$/);
+   expect(requests.filter((request) => request.path === '/v2/events/stream')).toHaveLength(1);
+ 
+   const created = await page.evaluate(async () => {
+     const harness = (window as unknown as { crewTest: Harness }).crewTest;
+     const operation = harness.pending.begin({
+       intentId: 'create-project-events',
+       method: 'POST',
+       path: '/v2/projects',
+diff --git a/v2/web/src/auth/session-boundary.tsx b/v2/web/src/auth/session-boundary.tsx
+index 41dc1ce..c28ed6d 100644
+--- a/v2/web/src/auth/session-boundary.tsx
++++ b/v2/web/src/auth/session-boundary.tsx
+@@ -68,20 +68,22 @@ const buttonStyle: CSSProperties = {
+   padding: '0.4rem 0.75rem',
+   borderRadius: '0.5rem',
+   border: '1px solid currentColor',
+   background: 'transparent',
+   color: 'inherit',
+   cursor: 'pointer',
+ };
+ 
+ function failureMessage(error: unknown, kept: boolean): string {
+   if (error instanceof ApiFailure) {
++    if (error.kind === 'configuration')
++      return `Lỗi cấu hình máy chủ (${error.code}). Yêu cầu vẫn giữ khóa cũ; gửi lại sau khi máy chủ được cấu hình.`;
+     if (kept && (error.code === 'CSRF_INVALID' || error.code === 'ORIGIN_INVALID'))
+       return 'Máy chủ chưa nhận mã bảo vệ của tab này. Yêu cầu vẫn giữ nguyên khóa cũ; hãy thử gửi lại hoặc tải lại trang.';
+     if (error.code === 'IDEMPOTENCY_CONFLICT')
+       return 'Nội dung khác với yêu cầu cũ. Yêu cầu cũ vẫn được giữ; hãy nhập lại đúng nội dung ban đầu.';
+     if (
+       error.code === 'UNAUTHENTICATED' ||
+       error.code === 'SESSION_REQUIRED' ||
+       error.code === 'SESSION_ENDED'
+     )
+       return 'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục.';
+@@ -132,22 +134,26 @@ export function RecoveryPanel({ pending, client }: { pending: PendingStore; clie
+     }
+   };
+ 
+   return (
+     <section style={panelStyle} aria-labelledby="recovery-heading" data-testid="recovery-panel">
+       <h2 id="recovery-heading">Tiếp tục yêu cầu chưa xác nhận</h2>
+       <ul style={{ display: 'grid', gap: '0.75rem', margin: 0, paddingLeft: '1.25rem' }}>
+         {unresolved.map((operation) => (
+           <li key={operation.id} data-operation-id={operation.id}>
+             <p>
+-              <strong>{stateLabel[operation.state]}</strong> · {operation.method}{' '}
+-              <code>{operation.path}</code>
++              <strong>
++                {pending.configurationError(operation.id)
++                  ? `Lỗi cấu hình máy chủ (${pending.configurationError(operation.id)})`
++                  : stateLabel[operation.state]}
++              </strong>{' '}
++              · {operation.method} <code>{operation.path}</code>
+             </p>
+             <button
+               type="button"
+               style={buttonStyle}
+               disabled={busy !== null}
+               onClick={() => void replay(operation)}
+             >
+               {busy === operation.id ? 'Đang gửi lại…' : 'Gửi lại đúng yêu cầu cũ'}
+             </button>
+             {messages[operation.id] && <p role="status">{messages[operation.id]}</p>}
+diff --git a/v2/web/src/contracts/http.ts b/v2/web/src/contracts/http.ts
+index 2b926cd..1733696 100644
+--- a/v2/web/src/contracts/http.ts
++++ b/v2/web/src/contracts/http.ts
+@@ -187,10 +187,13 @@ export type JournalEvent = {
+   projectId: string | null;
+   ticketId: string | null;
+   audienceMachineId: string | null;
+   occurredAt: string;
+   data: Record<string, unknown>;
+ };
+ 
+ /** GET `/v2/events` — `v2/server/src/journal/routes.ts:72`. */
+ export const decodeEventPage = obj({ items: arr(decodeJournalEvent), cursor });
+ export type EventPage = { items: JournalEvent[]; cursor: string };
++
++/** GET `/v2/events/latest` (owner only) — `v2/server/src/journal/routes.ts:77`. */
++export const decodeLatestCursor = obj({ cursor });
+diff --git a/v2/web/src/lib/api.ts b/v2/web/src/lib/api.ts
+index 4fc52c7..1d4f376 100644
+--- a/v2/web/src/lib/api.ts
++++ b/v2/web/src/lib/api.ts
+@@ -1,24 +1,27 @@
+ /**
+  * Same-origin owner transport for `/v2/`. GETs carry the cookie and an AbortSignal tied to the session epoch;
+  * JSON mutations send the frozen `PendingOperation` bytes with `X-CSRF-Token` and `Idempotency-Key = id`.
+  * Unconfirmed outcomes (transport error, abort, 5xx, unreadable 2xx) keep the operation ambiguous with the
+  * same key. A stale CSRF/Origin 403 suspends it, refreshes the session once and replays the same bytes.
+  * A 4xx releases the key only when it proves rejection: always for body-deterministic errors, otherwise only
+  * when no earlier send of this key could have committed; a payload re-entered from a tombstone returns to the
+  * tombstone instead. One send per operation is in flight at a time. Only a confirmed 2xx clears the draft.
++ * A `*_NOT_CONFIGURED` answer is final for the attempt: no auto-retry, key kept, operation flagged with the
++ * configuration code. The `Date` header of the latest response is exposed as `lastServerDate()`.
+  */
+ import { type Decoder, decodeApiErrorBody, isUuid } from '../contracts/http.ts';
+ import type { PendingOperation, PendingStore } from './pending-operation.ts';
+ import type { HttpFetch, SessionController } from './session.ts';
+ 
+-export type FailureKind = 'http' | 'transport' | 'aborted' | 'local' | 'shape';
++/** `configuration`: the producer reported a missing server configuration (`*_NOT_CONFIGURED`). */
++export type FailureKind = 'http' | 'transport' | 'aborted' | 'local' | 'shape' | 'configuration';
+ 
+ export class ApiFailure extends Error {
+   readonly status: number | null;
+   readonly code: string;
+   readonly kind: FailureKind;
+ 
+   constructor(status: number | null, code: string, kind: FailureKind, message = code) {
+     super(message);
+     this.name = 'ApiFailure';
+     this.status = status;
+@@ -26,20 +29,25 @@ export class ApiFailure extends Error {
+     this.kind = kind;
+   }
+ }
+ 
+ export type RequestOptions = { signal?: AbortSignal; operation?: PendingOperation };
+ 
+ export interface OwnerClient {
+   get<T>(path: string, options?: RequestOptions): Promise<T>;
+   mutate<T>(operation: PendingOperation, options?: RequestOptions): Promise<T>;
+   upload<T>(uploadId: string, file: File, signal: AbortSignal): Promise<T>;
++  /**
++   * Server clock from the `Date` header of the most recent owner response (success or error), or null before
++   * any dated response. Optional so test doubles need not model a clock; the real client always provides it.
++   */
++  lastServerDate?(): Date | null;
+ }
+ 
+ export type OwnerClientOptions = {
+   session: SessionController;
+   pending: PendingStore;
+   fetch?: HttpFetch;
+   sleep?: (milliseconds: number, signal?: AbortSignal) => Promise<void>;
+   /** Retries after the first attempt for GET and unconfirmed mutations; backoff 1s/2s/4s. */
+   maxRetries?: number;
+ };
+@@ -99,64 +107,88 @@ function staleCredential(failure: ApiFailure): boolean {
+ /**
+  * Errors decided by the request bytes alone (schema, body validation, key format, size, media type). The
+  * same frozen bytes failed the earlier sends too, so the key never committed. This does not hold for a
+  * payload re-entered from a tombstone, which is handled separately. Other 4xx (403/404/409/422...) can
+  * come from route `authorize` callbacks that run before the idempotency lookup and depend on current state.
+  */
+ function bodyDeterministic(failure: ApiFailure): boolean {
+   return failure.status === 400 || failure.status === 413 || failure.status === 415;
+ }
+ 
++/**
++ * Deterministic missing-configuration answer (`*_NOT_CONFIGURED`, 503 or 409). Retrying cannot change it,
++ * and it says nothing about earlier sends of the same key.
++ */
++function configurationFailure(failure: ApiFailure): ApiFailure | null {
++  return /^[A-Z][A-Z0-9_]*_NOT_CONFIGURED$/.test(failure.code)
++    ? new ApiFailure(failure.status, failure.code, 'configuration', failure.message)
++    : null;
++}
++
+ function combined(...signals: (AbortSignal | undefined)[]): AbortSignal {
+   return AbortSignal.any(signals.filter((signal): signal is AbortSignal => signal !== undefined));
+ }
+ 
+ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
+   const { session, pending } = options;
+   const send: HttpFetch = options.fetch ?? ((input, init) => fetch(input, init));
+   const sleep = options.sleep ?? delay;
+   const maxRetries = Math.max(0, Math.min(options.maxRetries ?? 3, backoff.length));
+   const requireSession = (): string => {
+     const csrf = session.csrf();
+     if (!session.isAuthenticated() || !csrf) throw new ApiFailure(null, 'SESSION_REQUIRED', 'local');
+     return csrf;
+   };
++  let serverDate: Date | null = null;
++  const observe = (response: Response): Response => {
++    const header = response.headers.get('date');
++    const value = header ? new Date(header) : null;
++    if (value && !Number.isNaN(value.getTime())) serverDate = value;
++    return response;
++  };
+   const unauthorized = (status: number): ApiFailure => {
+     session.expire();
+     return new ApiFailure(status, 'UNAUTHENTICATED', 'http');
+   };
+ 
+   async function get<T>(path: string, request: RequestOptions = {}): Promise<T> {
+     assertOwnerPath(path);
+     requireSession();
+     for (let attempt = 0; ; attempt++) {
+       const signal = combined(session.signal(), request.signal);
+       let response: Response;
+       try {
+-        response = await send(path, {
+-          method: 'GET',
+-          credentials: 'same-origin',
+-          headers: { accept: 'application/json' },
+-          signal,
+-        });
++        response = observe(
++          await send(path, {
++            method: 'GET',
++            credentials: 'same-origin',
++            headers: { accept: 'application/json' },
++            signal,
++          }),
++        );
+       } catch {
+         if (signal.aborted) throw new ApiFailure(null, 'ABORTED', 'aborted');
+         if (attempt >= maxRetries) throw new ApiFailure(null, 'NETWORK_UNAVAILABLE', 'transport');
+         await sleep(backoff[attempt] ?? 4000, signal);
+         continue;
+       }
+       if (response.status === 401) throw unauthorized(401);
+-      if (response.status >= 500 && attempt < maxRetries) {
+-        await sleep(backoff[attempt] ?? 4000, signal);
+-        continue;
++      if (!response.ok) {
++        const failure = await failureFrom(response);
++        const configuration = configurationFailure(failure);
++        if (configuration) throw configuration;
++        if (response.status >= 500 && attempt < maxRetries) {
++          await sleep(backoff[attempt] ?? 4000, signal);
++          continue;
++        }
++        throw failure;
+       }
+-      if (!response.ok) throw await failureFrom(response);
+       try {
+         return (await response.json()) as T;
+       } catch {
+         throw new ApiFailure(response.status, 'RESPONSE_INVALID', 'shape');
+       }
+     }
+   }
+ 
+   /**
+    * Refresh a stale CSRF token once per call. Failures keep the operation suspended with its key; a 401 or
+@@ -194,32 +226,34 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
+       let csrf: string;
+       try {
+         csrf = requireSession();
+       } catch (error) {
+         pending.markSuspended(current.id);
+         throw error;
+       }
+       const signal = combined(session.signal(), request.signal);
+       let response: Response;
+       try {
+-        response = await send(current.path, {
+-          method: current.method,
+-          credentials: 'same-origin',
+-          headers: {
+-            accept: 'application/json',
+-            'content-type': 'application/json',
+-            'x-csrf-token': csrf,
+-            'idempotency-key': current.id,
+-          },
+-          body: current.bodyJson,
+-          signal,
+-        });
++        response = observe(
++          await send(current.path, {
++            method: current.method,
++            credentials: 'same-origin',
++            headers: {
++              accept: 'application/json',
++              'content-type': 'application/json',
++              'x-csrf-token': csrf,
++              'idempotency-key': current.id,
++            },
++            body: current.bodyJson,
++            signal,
++          }),
++        );
+       } catch {
+         uncertain = true;
+         if (session.signal().aborted) {
+           pending.markSuspended(current.id);
+           throw new ApiFailure(null, 'SESSION_ENDED', 'aborted');
+         }
+         pending.markAmbiguous(current.id);
+         if (request.signal?.aborted) throw new ApiFailure(null, 'ABORTED', 'aborted');
+         if (attempt >= maxRetries) throw new ApiFailure(null, 'UNCONFIRMED', 'transport');
+         await sleep(backoff[attempt] ?? 4000, request.signal);
+@@ -236,31 +270,35 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
+           await sleep(backoff[attempt] ?? 4000, request.signal);
+           continue;
+         }
+         pending.accept(current.id);
+         return body;
+       }
+       if (response.status === 401) {
+         pending.markSuspended(current.id);
+         throw unauthorized(401);
+       }
++      const failure = await failureFrom(response);
++      const configuration = configurationFailure(failure);
++      if (configuration) {
++        // Deterministic: no blind retry, keep the key (an earlier send may still have committed).
++        pending.markConfigurationError(current.id, configuration.code);
++        throw configuration;
++      }
+       if (response.status >= 500) {
+         uncertain = true;
+         pending.markAmbiguous(current.id);
+-        if (attempt >= maxRetries) {
+-          const failure = await failureFrom(response);
++        if (attempt >= maxRetries)
+           throw new ApiFailure(failure.status, 'UNCONFIRMED', 'http', failure.message);
+-        }
+         await sleep(backoff[attempt] ?? 4000, request.signal);
+         continue;
+       }
+-      const failure = await failureFrom(response);
+       if (failure.code === 'IDEMPOTENCY_CONFLICT') {
+         pending.conflict(current.id);
+         throw failure;
+       }
+       if (staleCredential(failure)) {
+         // `requireOwner` rejects before the idempotency lookup: say nothing about earlier commits.
+         pending.markSuspended(current.id);
+         if (refreshed) throw failure;
+         refreshed = true;
+         const aborted = () => {
+@@ -283,53 +321,57 @@ export function createOwnerClient(options: OwnerClientOptions): OwnerClient {
+       throw failure;
+     }
+   }
+ 
+   async function upload<T>(uploadId: string, file: File, signal: AbortSignal): Promise<T> {
+     if (!isUuid(uploadId)) throw new ApiFailure(null, 'UPLOAD_ID_INVALID', 'local');
+     const csrf = requireSession();
+     const combinedSignal = combined(session.signal(), signal);
+     let response: Response;
+     try {
+-      response = await send(`/v2/attachment-uploads/${uploadId}/content`, {
+-        method: 'PUT',
+-        credentials: 'same-origin',
+-        headers: {
+-          accept: 'application/json',
+-          'content-type': 'application/octet-stream',
+-          'x-csrf-token': csrf,
+-        },
+-        body: file,
+-        signal: combinedSignal,
+-      });
++      response = observe(
++        await send(`/v2/attachment-uploads/${uploadId}/content`, {
++          method: 'PUT',
++          credentials: 'same-origin',
++          headers: {
++            accept: 'application/json',
++            'content-type': 'application/octet-stream',
++            'x-csrf-token': csrf,
++          },
++          body: file,
++          signal: combinedSignal,
++        }),
++      );
+     } catch {
+       throw new ApiFailure(
+         null,
+         combinedSignal.aborted ? 'ABORTED' : 'UNCONFIRMED',
+         combinedSignal.aborted ? 'aborted' : 'transport',
+       );
+     }
+     if (response.status === 401) throw unauthorized(401);
+     if (!response.ok) {
+       const failure = await failureFrom(response);
++      const configuration = configurationFailure(failure);
++      if (configuration) throw configuration;
+       // Bytes replay is safe per upload ID; refresh the token so the caller's next attempt can succeed.
+       if (staleCredential(failure)) await refreshCsrf();
+       throw failure;
+     }
+     try {
+       return (await response.json()) as T;
+     } catch {
+       throw new ApiFailure(response.status, 'UNCONFIRMED', 'shape');
+     }
+   }
+ 
+-  return { get, mutate, upload };
++  return { get, mutate, upload, lastServerDate: () => serverDate };
+ }
+ 
+ /** GET + runtime decoding; shape mismatch surfaces as `RESPONSE_SHAPE_INVALID`. */
+ export async function getDecoded<T>(
+   client: OwnerClient,
+   path: string,
+   decoder: Decoder<T>,
+   signal?: AbortSignal,
+ ): Promise<T> {
+   const value = await client.get<unknown>(path, { signal });
+diff --git a/v2/web/src/lib/events.ts b/v2/web/src/lib/events.ts
+index d2adae1..10bcc98 100644
+--- a/v2/web/src/lib/events.ts
++++ b/v2/web/src/lib/events.ts
+@@ -1,16 +1,23 @@
+ /**
+- * Journal event sync: catch-up through GET `/v2/events?after=&limit=100` until empty, then one fetch-based
++ * Journal event sync: a tab without a stored cursor first anchors at `GET /v2/events/latest` (and marks the
++ * whole cache stale); then catch-up through GET `/v2/events?after=&limit=100` until empty, then one fetch-based
+  * SSE stream per app/session with `Last-Event-ID`. Events only mark queries stale; event payloads are never
+  * merged into business data. Cursors stay decimal strings compared with BigInt.
+  */
+-import { decodeEventPage, decodeJournalEvent, isCursor, type JournalEvent } from '../contracts/http.ts';
++import {
++  decodeEventPage,
++  decodeJournalEvent,
++  decodeLatestCursor,
++  isCursor,
++  type JournalEvent,
++} from '../contracts/http.ts';
+ import { queryRoots } from './query-keys.ts';
+ import type { HttpFetch } from './session.ts';
+ 
+ export type { JournalEvent } from '../contracts/http.ts';
+ export type QueryKeyPrefix = readonly unknown[];
+ export type SseFrame = { id: string | null; event: string; data: string };
+ export type SyncStatus = 'idle' | 'catching_up' | 'live' | 'reconnecting' | 'failed' | 'stopped';
+ export type CursorStore = { read(): string | null; write(cursor: string): void };
+ export type SyncSession = { signal(): AbortSignal; expire(): void };
+ 
+@@ -288,31 +295,33 @@ export class EventSync {
+   readonly #maxFailures: number;
+   readonly #retryMs: number;
+   readonly #listeners = new Set<() => void>();
+   readonly #queue = new Map<string, QueryKeyPrefix>();
+   #inFlight = 0;
+   #flushing = false;
+   #retryTimer: ReturnType<typeof setTimeout> | undefined;
+   #status: SyncStatus = 'idle';
+   #applied: string;
+   #run: AbortController | null = null;
++  #anchored = false;
+ 
+   constructor(options: EventSyncOptions) {
+     this.#fetch = options.fetch ?? ((input, init) => fetch(input, init));
+     this.#session = options.session;
+     this.#invalidate = options.invalidate;
+     this.#cursorStore = options.cursorStore ?? tabCursorStore(null);
+     this.#sleep = options.sleep ?? abortableDelay;
+     this.#now = options.now ?? Date.now;
+     this.#maxFailures = options.maxFailures ?? 6;
+     this.#retryMs = options.invalidationRetryMs ?? 1000;
+     const stored = this.#cursorStore.read();
++    this.#anchored = isCursor(stored);
+     this.#applied = isCursor(stored) ? stored : '0';
+   }
+ 
+   status(): SyncStatus {
+     return this.#status;
+   }
+ 
+   applied(): string {
+     return this.#applied;
+   }
+@@ -348,20 +357,21 @@ export class EventSync {
+   }
+ 
+   async #loop(runSignal: AbortSignal): Promise<void> {
+     let failures = 0;
+     let connected = false;
+     while (!runSignal.aborted) {
+       const connection = new AbortController();
+       const signal = AbortSignal.any([runSignal, this.#session.signal(), connection.signal]);
+       try {
+         this.#setStatus(connected ? 'reconnecting' : 'catching_up');
++        if (!this.#anchored) await this.#anchor(signal);
+         await this.#catchUp(signal);
+         if (connected) this.#enqueue([queryRoots.all]);
+         connected = true;
+         const healthy = await this.#stream(signal);
+         if (healthy) failures = 0;
+         throw new StreamEnded();
+       } catch (error) {
+         if (runSignal.aborted) return;
+         if (error instanceof AuthLost || this.#session.signal().aborted) {
+           this.#run = null;
+@@ -376,20 +386,42 @@ export class EventSync {
+           return;
+         }
+         this.#setStatus('reconnecting');
+         await this.#sleep(Math.min(1000 * 2 ** (failures - 1), maxBackoffMs), runSignal);
+       } finally {
+         connection.abort();
+       }
+     }
+   }
+ 
++  /**
++   * A tab without a stored cursor starts at the journal head (`GET /v2/events/latest`) instead of replaying
++   * from 0. Views may already have fetched before the head was known, so the whole owner cache is marked
++   * stale before the cursor is persisted; later events then arrive through catch-up and the stream.
++   */
++  async #anchor(signal: AbortSignal): Promise<void> {
++    const response = await this.#fetch('/v2/events/latest', {
++      method: 'GET',
++      credentials: 'same-origin',
++      cache: 'no-store',
++      headers: { accept: 'application/json' },
++      signal,
++    });
++    if (response.status === 401) throw new AuthLost();
++    if (!response.ok) throw new Error(`EVENTS_LATEST_HTTP_${response.status}`);
++    const { cursor } = decodeLatestCursor(await response.json());
++    this.#enqueue([queryRoots.all]);
++    if (compareCursor(cursor, this.#applied) > 0) this.#applied = cursor;
++    this.#cursorStore.write(this.#applied);
++    this.#anchored = true;
++  }
++
+   async #catchUp(signal: AbortSignal): Promise<void> {
+     for (;;) {
+       const response = await this.#fetch(`/v2/events?after=${this.#applied}&limit=${eventPageLimit}`, {
+         method: 'GET',
+         credentials: 'same-origin',
+         cache: 'no-store',
+         headers: { accept: 'application/json' },
+         signal,
+       });
+       if (response.status === 401) throw new AuthLost();
+diff --git a/v2/web/src/lib/pending-operation.ts b/v2/web/src/lib/pending-operation.ts
+index b4474b2..3573344 100644
+--- a/v2/web/src/lib/pending-operation.ts
++++ b/v2/web/src/lib/pending-operation.ts
+@@ -194,20 +194,21 @@ function parseRecord(
+ }
+ 
+ export class PendingStore {
+   readonly #storage: TabStorage | null;
+   readonly #newId: () => string;
+   readonly #operations = new Map<string, PendingOperation>();
+   readonly #tombstones = new Map<string, RecoveryTombstone>();
+   readonly #listeners = new Set<() => void>();
+   readonly #resumed = new Set<string>();
+   readonly #sending = new Set<string>();
++  readonly #configuration = new Map<string, string>();
+   #listSnapshot: readonly PendingOperation[] | null = null;
+   #tombstoneSnapshot: readonly RecoveryTombstone[] | null = null;
+   #unknownVersion = false;
+ 
+   constructor(storage: TabStorage | null, newId: () => string = () => crypto.randomUUID()) {
+     this.#storage = storage;
+     this.#newId = newId;
+     const raw = storage?.getItem(pendingStorageKey) ?? null;
+     if (raw === null) return;
+     let record: ReturnType<typeof parseRecord>;
+@@ -296,23 +297,39 @@ export class PendingStore {
+     if (this.#sending.has(id)) return false;
+     this.#sending.add(id);
+     return true;
+   }
+ 
+   release(id: string): void {
+     this.#sending.delete(id);
+   }
+ 
+   markPending(id: string): void {
++    this.#configuration.delete(id);
+     this.#setState(id, 'pending');
+   }
+ 
++  /**
++   * The server answered with a deterministic `*_NOT_CONFIGURED`: the key stays held (state `ambiguous`) and
++   * the operation is shown as a server configuration error until the next explicit send.
++   */
++  markConfigurationError(id: string, code: string): void {
++    if (!this.#operations.has(id)) return;
++    this.#configuration.set(id, code);
++    this.#setState(id, 'ambiguous');
++  }
++
++  /** Configuration code blocking this operation, or null. */
++  configurationError(id: string): string | null {
++    return this.#configuration.get(id) ?? null;
++  }
++
+   markAmbiguous(id: string): void {
+     this.#setState(id, 'ambiguous');
+   }
+ 
+   markSuspended(id: string): void {
+     this.#setState(id, 'suspended');
+   }
+ 
+   /** Confirmed acceptance: the draft and its key are released. */
+   accept(id: string): void {
+@@ -405,20 +422,22 @@ export class PendingStore {
+   }
+ 
+   #setState(id: string, state: 'pending' | 'ambiguous' | 'suspended'): void {
+     const operation = this.#operations.get(id);
+     if (!operation) return;
+     this.#operations.set(id, Object.freeze({ ...operation, state }));
+     this.#commit();
+   }
+ 
+   #commit(): void {
++    for (const id of this.#configuration.keys())
++      if (!this.#operations.has(id)) this.#configuration.delete(id);
+     this.#listSnapshot = null;
+     this.#tombstoneSnapshot = null;
+     if (this.#storage && !this.#unknownVersion) {
+       const operations = [...this.#operations.values()];
+       const record = serializePending({
+         operations: operations.filter((operation) => operation.storage === 'tab'),
+         // Memory operations persist only as tombstones so reload never resurrects a secret.
+         tombstones: [
+           ...this.#tombstones.values(),
+           ...operations.filter((operation) => operation.storage === 'memory').map(tombstoneOf),
+diff --git a/v2/web/test/app-wiring.test.ts b/v2/web/test/app-wiring.test.ts
+index d5c4a47..64d068b 100644
+--- a/v2/web/test/app-wiring.test.ts
++++ b/v2/web/test/app-wiring.test.ts
+@@ -47,41 +47,51 @@ function fakeApi(authenticated = true) {
+             try {
+               controller.error(new DOMException('aborted', 'AbortError'));
+             } catch {
+               // already closed
+             }
+           });
+         },
+       });
+       return new Response(body, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+     }
++    if (url === '/v2/events/latest') return json({ cursor: '0' });
+     if (url.startsWith('/v2/events')) return json({ items: [], cursor: '0' });
+     return json({ ok: true });
+   };
+   return { fetch, log };
+ }
+ 
+ test('the event stream starts before the first protected GET', async () => {
+   const api = fakeApi();
+   const app = runtime.createAppRuntime({ fetch: api.fetch });
++  const invalidated: string[] = [];
++  const invalidate = app.queryClient.invalidateQueries.bind(app.queryClient);
++  app.queryClient.invalidateQueries = ((filters?: { queryKey?: readonly unknown[] }) => {
++    invalidated.push(JSON.stringify(filters?.queryKey ?? null));
++    return invalidate(filters);
++  }) as typeof app.queryClient.invalidateQueries;
+   // A protected view mounts after the runtime and fetches as soon as the session is authenticated.
+   app.session.subscribe(() => {
+     if (app.session.snapshot().state === 'authenticated')
+       void app.client.get('/v2/projects/first').catch(() => undefined);
+   });
+   await app.session.bootstrap();
+   await new Promise((resolve) => setTimeout(resolve, 20));
+   const urls = api.log.map((entry) => entry.url);
+-  const catchUp = urls.findIndex((url) => url.startsWith('/v2/events?after='));
++  // A fresh tab first asks for the latest cursor; a tab with a stored cursor starts with the catch-up.
++  const sync = urls.findIndex((url) => url === '/v2/events/latest' || url.startsWith('/v2/events?after='));
+   const firstGet = urls.indexOf('/v2/projects/first');
+-  assert.ok(catchUp >= 0 && firstGet >= 0, urls.join(','));
+-  assert.ok(catchUp < firstGet, `catch-up ${catchUp} must precede first data GET ${firstGet}`);
++  assert.ok(sync >= 0 && firstGet >= 0, urls.join(','));
++  assert.ok(sync < firstGet, `event sync ${sync} must precede first data GET ${firstGet}`);
++  if (urls[sync] === '/v2/events/latest')
++    assert.ok(invalidated.includes(JSON.stringify(['v2'])), 'starting from latest must refetch initial data');
+   app.dispose();
+ });
+ 
+ test('query defaults disable retry because OwnerClient.get retries itself, and keep focus/reconnect refetch', async () => {
+   const api = fakeApi();
+   const app = runtime.createAppRuntime({ fetch: api.fetch });
+   const options = app.queryClient.getDefaultOptions().queries;
+   assert.equal(options?.retry, false);
+   assert.equal(options?.refetchOnWindowFocus, true);
+   assert.equal(options?.refetchOnReconnect, true);
+diff --git a/v2/web/test/client.test.ts b/v2/web/test/client.test.ts
+index 1a03899..7d83ebf 100644
+--- a/v2/web/test/client.test.ts
++++ b/v2/web/test/client.test.ts
+@@ -673,10 +673,152 @@ test('caller abort trước khi làm mới CSRF hoặc trong lúc làm mới →
+     storage: 'tab',
+   });
+   await assert.rejects(
+     client.mutate(second, { signal: during.signal }),
+     (error: unknown) => error instanceof ApiFailure && error.kind === 'aborted',
+   );
+   assert.equal(server.calls.length, 4, 'đã làm mới nhưng không replay');
+   assert.equal(session.csrf(), freshCsrf);
+   assert.equal(pending.get(second.id)?.id, second.id);
+ });
++
++const notConfigured = (code: string, status = 503) =>
++  json(status, { error: { code, message: 'Chưa cấu hình xử lý tệp trên máy chủ' } });
++
++test('503 *_NOT_CONFIGURED: một request, giữ key, đánh dấu lỗi cấu hình máy chủ, không phải chưa xác nhận', async () => {
++  const waits: number[] = [];
++  const server = scripted(
++    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
++    () => notConfigured('EXTRACTION_NOT_CONFIGURED'),
++    () => json(201, { id: 'p1' }),
++  );
++  const session = await authenticated(server.fetch);
++  const pending = new PendingStore(null);
++  const client = createOwnerClient({
++    session,
++    pending,
++    fetch: server.fetch,
++    sleep: async (ms) => void waits.push(ms),
++  });
++  const operation = pending.begin({
++    intentId: 'a',
++    method: 'POST',
++    path: '/v2/projects',
++    body: { key: 'AB' },
++    storage: 'tab',
++  });
++  await assert.rejects(client.mutate(operation), (error: unknown) => {
++    assert.ok(error instanceof ApiFailure);
++    assert.equal(error.status, 503);
++    assert.equal(error.code, 'EXTRACTION_NOT_CONFIGURED');
++    assert.equal(error.kind, 'configuration');
++    assert.equal(error.message, 'Chưa cấu hình xử lý tệp trên máy chủ');
++    return true;
++  });
++  assert.equal(server.calls.length, 2, 'không auto-retry');
++  assert.deepEqual(waits, []);
++  assert.equal(pending.get(operation.id)?.id, operation.id, 'giữ key');
++  assert.equal(pending.configurationError(operation.id), 'EXTRACTION_NOT_CONFIGURED');
++  assert.throws(
++    () =>
++      pending.begin({
++        intentId: 'a',
++        method: 'POST',
++        path: '/v2/projects',
++        body: { key: 'AB' },
++        storage: 'tab',
++      }),
++    IntentUnresolvedError,
++  );
++  // Explicit resend after the server is configured uses the same key and clears the marker.
++  assert.deepEqual(await client.mutate(operation), { id: 'p1' });
++  assert.equal(server.calls[2]?.headers.get('idempotency-key'), operation.id);
++  assert.equal(pending.configurationError(operation.id), null);
++});
++
++test('409 INPUT_SERVICES_NOT_CONFIGURED trên operation mới cũng giữ key; 503 khác vẫn retry', async () => {
++  const server = scripted(
++    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
++    () => notConfigured('INPUT_SERVICES_NOT_CONFIGURED', 409),
++    () => json(503, { error: { code: 'SERVICE_UNAVAILABLE', message: 'x' } }),
++    () => json(201, { id: 'p2' }),
++  );
++  const session = await authenticated(server.fetch);
++  const pending = new PendingStore(null);
++  const client = createOwnerClient({ session, pending, fetch: server.fetch, sleep: noSleep });
++  const first = pending.begin({
++    intentId: 'a',
++    method: 'POST',
++    path: '/v2/projects',
++    body: { key: 'AB' },
++    storage: 'tab',
++  });
++  await assert.rejects(
++    client.mutate(first),
++    (error: unknown) => error instanceof ApiFailure && error.kind === 'configuration',
++  );
++  assert.equal(pending.configurationError(first.id), 'INPUT_SERVICES_NOT_CONFIGURED');
++  const second = pending.begin({
++    intentId: 'b',
++    method: 'POST',
++    path: '/v2/projects',
++    body: { key: 'CD' },
++    storage: 'tab',
++  });
++  assert.deepEqual(await client.mutate(second), { id: 'p2' });
++  assert.equal(server.calls.length, 4, '503 không phải cấu hình vẫn thử lại');
++});
++
++test('GET 503 lỗi cấu hình không thử lại', async () => {
++  const server = scripted(
++    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
++    () => notConfigured('ATTACHMENT_STORAGE_NOT_CONFIGURED'),
++  );
++  const session = await authenticated(server.fetch);
++  const client = createOwnerClient({
++    session,
++    pending: new PendingStore(null),
++    fetch: server.fetch,
++    sleep: noSleep,
++  });
++  await assert.rejects(client.get('/v2/attachment-policy'), (error: unknown) => {
++    return (
++      error instanceof ApiFailure &&
++      error.code === 'ATTACHMENT_STORAGE_NOT_CONFIGURED' &&
++      error.kind === 'configuration'
++    );
++  });
++  assert.equal(server.calls.length, 2);
++});
++
++test('lastServerDate theo header Date của response gần nhất, bỏ qua header hỏng', async () => {
++  const dated = (status: number, body: unknown, date: string) =>
++    new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', date } });
++  const server = scripted(
++    () => json(200, { owner: { id: 'owner' }, csrfToken: csrf }),
++    () => dated(200, { ok: 1 }, 'Sun, 05 Oct 2026 01:00:00 GMT'),
++    () => dated(404, { error: { code: 'NOT_FOUND', message: 'x' } }, 'Sun, 05 Oct 2026 01:00:05 GMT'),
++    () => dated(200, { ok: 2 }, 'not-a-date'),
++  );
++  const session = await authenticated(server.fetch);
++  const client = createOwnerClient({
++    session,
++    pending: new PendingStore(null),
++    fetch: server.fetch,
++    sleep: noSleep,
++  });
++  assert.equal(client.lastServerDate?.(), null);
++  await client.get('/v2/a');
++  assert.equal(client.lastServerDate?.()?.toISOString(), '2026-10-05T01:00:00.000Z');
++  await assert.rejects(client.get('/v2/b'));
++  assert.equal(
++    client.lastServerDate?.()?.toISOString(),
++    '2026-10-05T01:00:05.000Z',
++    'response lỗi vẫn mang giờ server',
++  );
++  await client.get('/v2/c');
++  assert.equal(
++    client.lastServerDate?.()?.toISOString(),
++    '2026-10-05T01:00:05.000Z',
++    'header hỏng không ghi đè',
++  );
++});
+diff --git a/v2/web/test/compose-submit.test.ts b/v2/web/test/compose-submit.test.ts
+index cdbde2c..54e6486 100644
+--- a/v2/web/test/compose-submit.test.ts
++++ b/v2/web/test/compose-submit.test.ts
+@@ -579,21 +579,21 @@ test('discard bỏ lượt gửi còn mở và chỉ giữ khóa submit ở pane
+ 
+ test('503 EXTRACTION_NOT_CONFIGURED khi gửi kèm tệp: giữ khóa, hiện lý do của máy chủ, gửi lại cùng key khi máy chủ sẵn sàng', async () => {
+   const server = new FakeComposeServer();
+   server.extractionConfigured = false;
+   const env = await controllerFor(server, commentSubmission('kèm tệp'));
+   await env.controller.addFiles([pngFile('a.png', 7)], 'input');
+   await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+   assert.equal(await env.controller.submit('none'), null);
+   const view = env.controller.view();
+   assert.equal(view.draft.state, 'ambiguous');
+-  assert.equal(view.errorCode, 'UNCONFIRMED');
++  assert.equal(view.errorCode, 'EXTRACTION_NOT_CONFIGURED');
+   assert.match(view.errorMessage ?? '', /Chưa cấu hình xử lý tệp/);
+   const key = view.draft.submitOperation?.id;
+   assert.ok(key && env.pending.get(key), 'khóa không bị nhả');
+   server.extractionConfigured = true;
+   const receipt = await env.controller.submit('none');
+   assert.equal(receipt?.kind, 'comment');
+   const posts = server.calls.filter((call) => call.url.endsWith('/attachment-comments'));
+   assert.ok(posts.every((call) => call.headers.get('idempotency-key') === key));
+   assert.equal(env.controller.view().errorMessage, null);
+ });
+diff --git a/v2/web/test/events.test.ts b/v2/web/test/events.test.ts
+index e98ef97..091e622 100644
+--- a/v2/web/test/events.test.ts
++++ b/v2/web/test/events.test.ts
+@@ -331,10 +331,75 @@ test('reconnect invalidation rộng; invalidation lỗi khi mất kết nối v
+   await until(() => sync.status() === 'live', 'live');
+   assert.ok(sync.pendingInvalidations() > 0 || delivered.length > 0);
+   live?.close();
+   await until(() => server.calls.length === 5 && sync.status() === 'live', 'reconnected');
+   await until(() => sync.pendingInvalidations() === 0, 'flushed');
+   assert.ok(delivered.includes(JSON.stringify(['v2', 'ticket', ticket])), 'invalidation lỗi không bị mất');
+   assert.ok(delivered.includes(JSON.stringify(['v2'])), 'reconnect refetch view hiện tại');
+   assert.equal(server.calls[4]?.headers.get('last-event-id'), '2');
+   sync.stop();
+ });
++
++test('tab chưa có cursor: GET /v2/events/latest rồi catch-up từ cursor đó, invalidation toàn bộ dữ liệu ban đầu', async () => {
++  let live: ReturnType<typeof liveStream> | undefined;
++  const server = scripted(
++    () => json(200, { cursor: '9007199254740993' }),
++    () => json(200, { items: [], cursor: '9007199254740993' }),
++    (call) => {
++      live = liveStream(call.signal);
++      return live.response;
++    },
++  );
++  const writes: string[] = [];
++  const invalidated: string[] = [];
++  const sync = new EventSync({
++    fetch: server.fetch,
++    session: fakeSession(),
++    invalidate: async (keys) => void invalidated.push(...keys.map((key) => JSON.stringify(key))),
++    cursorStore: { read: () => null, write: (value) => void writes.push(value) },
++    sleep: async () => undefined,
++  });
++  sync.start();
++  await until(() => sync.status() === 'live', 'live');
++  assert.equal(server.calls[0]?.url, '/v2/events/latest');
++  assert.equal(server.calls[1]?.url, '/v2/events?after=9007199254740993&limit=100');
++  assert.equal(server.calls[2]?.headers.get('last-event-id'), '9007199254740993');
++  assert.equal(sync.applied(), '9007199254740993');
++  assert.deepEqual(writes, ['9007199254740993']);
++  await until(() => sync.pendingInvalidations() === 0, 'flush');
++  assert.ok(
++    invalidated.includes(JSON.stringify(['v2'])),
++    'dữ liệu đã GET trước khi có cursor phải được refetch',
++  );
++  sync.stop();
++});
++
++test('tab đã có cursor không gọi latest; latest 401 làm hết phiên', async () => {
++  const session = fakeSession();
++  const server = scripted(() => json(401, { error: { code: 'UNAUTHENTICATED', message: 'x' } }));
++  const sync = new EventSync({
++    fetch: server.fetch,
++    session,
++    invalidate: async () => undefined,
++    cursorStore: { read: () => null, write: () => undefined },
++    sleep: async () => undefined,
++  });
++  sync.start();
++  await until(() => sync.status() === 'stopped', 'stopped');
++  assert.equal(server.calls[0]?.url, '/v2/events/latest');
++  assert.equal(session.expired, 1);
++  const stored = scripted(
++    () => json(200, { items: [], cursor: '7' }),
++    () => new Response(null, { status: 503 }),
++  );
++  const resumed = new EventSync({
++    fetch: stored.fetch,
++    session: fakeSession(),
++    invalidate: async () => undefined,
++    cursorStore: { read: () => '7', write: () => undefined },
++    sleep: async () => undefined,
++    maxFailures: 1,
++  });
++  resumed.start();
++  await until(() => resumed.status() === 'failed', 'failed');
++  assert.equal(stored.calls[0]?.url, '/v2/events?after=7&limit=100');
++});
