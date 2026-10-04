@@ -122,8 +122,21 @@ export function Shell() {
             Tổng quan
           </Link>
         </nav>
+        <nav aria-label="Điều hướng máy">
+          <p className="nav-heading">Máy</p>
+          <Link className="nav-link" activeProps={{ className: 'nav-link nav-link--active' }} to="/machines">
+            Đăng ký máy
+          </Link>
+        </nav>
         <nav aria-label="Điều hướng dự án">
           <p className="nav-heading">Dự án</p>
+          <Link
+            className="nav-link"
+            activeProps={{ className: 'nav-link nav-link--active' }}
+            to="/setup/projects"
+          >
+            Tạo dự án/Gắn máy
+          </Link>
           <ProjectNav />
         </nav>
       </aside>

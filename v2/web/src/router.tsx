@@ -21,6 +21,8 @@ import { SessionBoundary } from './auth/session-boundary.tsx';
 import { ComposeServicesProvider } from './compose/composer.tsx';
 import { ProjectDocsPage } from './docs-route.tsx';
 import { safeReturnPath } from './lib/session.ts';
+import { MachineOnboarding } from './machines/onboarding.tsx';
+import { ProjectSetup } from './projects/setup.tsx';
 import { EmptyPanel, ErrorPanel, LoadingPanel, Shell } from './shell.tsx';
 import { ProjectTicketsPage, TicketPage } from './ticket-routes.tsx';
 import { TicketDraftStorageProvider } from './tickets/create-request.tsx';
@@ -134,6 +136,16 @@ export function createAppRouter(runtime: AppRuntime) {
     validateSearch: parseDocsSearch,
     component: ProjectDocsPage,
   });
+  const machinesRoute = createRoute({
+    getParentRoute: () => protectedRoute,
+    path: '/machines',
+    component: MachineOnboarding,
+  });
+  const projectSetupRoute = createRoute({
+    getParentRoute: () => protectedRoute,
+    path: '/setup/projects',
+    component: ProjectSetup,
+  });
   const ticketRoute = createRoute({
     getParentRoute: () => protectedRoute,
     path: '/tickets/$ticketId',
@@ -141,7 +153,15 @@ export function createAppRouter(runtime: AppRuntime) {
   });
   const routeTree = rootRoute.addChildren([
     loginRoute,
-    protectedRoute.addChildren([homeRoute, projectRoute, projectTicketsRoute, projectDocsRoute, ticketRoute]),
+    protectedRoute.addChildren([
+      homeRoute,
+      machinesRoute,
+      projectSetupRoute,
+      projectRoute,
+      projectTicketsRoute,
+      projectDocsRoute,
+      ticketRoute,
+    ]),
   ]);
   return createRouter({ routeTree, basepath: '/crew-v2/' });
 }

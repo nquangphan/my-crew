@@ -372,6 +372,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/e2e/compose.spec.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/e2e/docs-assistant.spec.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/e2e/events.spec.ts` | [web-data](flows/web-data.md) (test) |
+| `web/e2e/onboarding.spec.ts` | [web-machines](flows/web-machines.md) (test) |
 | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/e2e/support/owner-seed.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/e2e/ticket-routes.spec.ts` | [web-shell](flows/web-shell.md) (test) |
@@ -409,7 +410,11 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/lib/pending-operation.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/lib/query-keys.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/lib/session.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/machines/onboarding-state.ts` | [web-machines](flows/web-machines.md) (file) |
+| `web/src/machines/onboarding.tsx` | [web-machines](flows/web-machines.md) (điểm vào) |
 | `web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
+| `web/src/projects/setup-state.ts` | [web-machines](flows/web-machines.md) (file) |
+| `web/src/projects/setup.tsx` | [web-machines](flows/web-machines.md) (file) |
 | `web/src/router.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/shell.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
@@ -438,6 +443,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/fixture-scratch.test.ts` | [web-shell](flows/web-shell.md) (test) |
+| `web/test/onboarding.test.ts` | [web-machines](flows/web-machines.md) (test) |
 | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |
 | `web/test/support/dom-events.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/support/dom.ts` | [web-attachments](flows/web-attachments.md) (test) |

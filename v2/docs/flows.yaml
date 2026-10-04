@@ -599,5 +599,17 @@ flows:
       - web/test/docs-links.test.ts
       - web/test/docs-space-dom.test.ts
       - web/test/docs-ticket-links-dom.test.ts
+  web-machines:
+    title: Onboarding owner Crew v2 trên web, gồm đăng ký máy, tạo dự án và gắn máy
+    doc: docs/flows/web-machines.md
+    entrypoints:
+      - web/src/machines/onboarding.tsx
+    files:
+      - web/src/machines/onboarding-state.ts
+      - web/src/projects/setup.tsx
+      - web/src/projects/setup-state.ts
+    tests:
+      - web/test/onboarding.test.ts
+      - web/e2e/onboarding.spec.ts
 shared: {}
 unassigned: []
