@@ -230,3 +230,5 @@ P-G4r: minor (deferred): M2 route đọc không từ chối máy revoked (nhất
 06:50 P-G4r follow-up `f100caf` re-review `producer-g4r-fix1-re-review.md`: Approved, I1/M1 ADDRESSED.
 Producer P-G4r: complete — f100caf (947ffb5 + f100caf).
 P-G4r: minor (deferred): N1 lease đo từ received_at lần đầu, không làm mới khi ack received lặp — có thể sinh command trùng chạy tuần tự (vô hại); N2 sửa lời "5 phút đủ cho cài chậm" — là heuristic server, không phải hợp đồng daemon.
+
+09:20 Task4 FIX1 `a297d3d` re-review `task-4-fix1-re-review.md`: I1/I2/route/ruling/M1/M3/M4/M6 ADDRESSED; mới B1 Important (sau Mở tất cả task xa bước cha) + B2/B3 Minor. FIX2/5: relayoutHierarchy + dịch viewport theo node neo (đúng ruling), ResizeObserver, guard history.back().
