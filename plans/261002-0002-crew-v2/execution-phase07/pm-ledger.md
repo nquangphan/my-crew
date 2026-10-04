@@ -175,3 +175,8 @@ Ruling: session.expire() giữ nháp (khớp brief Task2 "không xóa pending v�
 Ruling: RequestList mount dạng `view=requests` trong route tickets là chấp nhận — cùng dữ liệu board/list.
 Integration: minor (deferred): M5 toLowerCase thừa trên randomUUID; register macOS String(undefined) khi thiếu upload row.
 Kế tiếp A3/A5: viết E2E text-only create-request và compose trên fixture có attachments (owner Task3/Task5) sau khi integration FIX1 khép.
+
+23:55 Controller integration FIX1 `30a1d54` re-review `web-controller-integration-fix1-re-review.md`: Approved; I1, M1–M5, ruling expire/logout ADDRESSED; rủi ro E2E sau sửa cuối thấp.
+Web controller integration: complete — 30a1d54 (2b101ec + 30a1d54). Điều kiện S3b (TicketDraftStorageProvider + clearTicketDrafts onLogout) đã thỏa → Task 3 S3b: complete — ab1bb3a.
+Integration: minor (deferred): B1 test receivers dựng full fixture chạy song song lifecycle — chạy fixture tests --test-concurrency=1; B2 Record<string,any> có thể vướng noExplicitAny, round này thiếu kết quả Biome; B3 docs nói port chỉ import từ e2e-fixture; B4 row writer thừa; bản chép receivers còn — export dùng chung sau (requestAbort/abort path chưa test).
+Kế tiếp web: lượt nghiệm thu A5/A3 text-only trên fixture có attachments (compose.spec.ts + create-request E2E, lost-response→reauth→replay cùng key, một entity).
