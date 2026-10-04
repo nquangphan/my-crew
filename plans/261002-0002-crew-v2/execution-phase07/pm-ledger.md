@@ -224,3 +224,5 @@ Task4: minor (deferred): M2 label repair bị card che, 599 label "phải xong t
 06:20 P-G4r `947ffb5` review `producer-g4r-review.md`: Spec đạt, Approved; Important1 (command received kẹt chặn retry vĩnh viễn) /Minor3; không rò secret, race tuần tự hóa dưới khóa máy. Follow-up resume: I1 + M1.
 Ruling M1: retry khi nguồn/runtime enabled=false → 409 CONFIG_DISABLED, không xếp command (fail-closed).
 P-G4r: minor (deferred): M2 route đọc không từ chối máy revoked (nhất quán status cũ); M3 pattern limit tới 999 rồi service 400 >100. Pending: credential key read (phase04), pin digest chuẩn phía server (quyết định riêng), command ticket/attempt read thuộc G5.
+
+06:35 P-G4r follow-up `f100caf` (35/35): received lease 5 phút; enabled=false → 409 CONFIG_DISABLED. Lưu ý producer gap cho S7full: config gateway chỉ có MỘT cờ enabled cho cả máy, trong khi spec/S7full cần BA switch độc lập (Claude, Codex, OpenAI-compatible API) — cần slice producer G4w (desired switches theo nguồn) trước S7full.

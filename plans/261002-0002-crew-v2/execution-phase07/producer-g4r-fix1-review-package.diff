@@ -1,0 +1,179 @@
+f100caf fix(v2): retry workflow bỏ qua command received quá hạn và từ chối khi config tắt
+ .../execution-phase07/producer-g4r-report.md       |  7 +++
+ v2/docs/flows/server-gateway.md                    |  6 ++-
+ v2/server/src/gateway/service.ts                   | 14 ++++--
+ v2/server/test/gateway-owner-read.test.ts          | 53 ++++++++++++++++++++++
+ 4 files changed, 75 insertions(+), 5 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/producer-g4r-report.md b/plans/261002-0002-crew-v2/execution-phase07/producer-g4r-report.md
+index 48c0920..365e9a5 100644
+--- a/plans/261002-0002-crew-v2/execution-phase07/producer-g4r-report.md
++++ b/plans/261002-0002-crew-v2/execution-phase07/producer-g4r-report.md
+@@ -42,10 +42,17 @@ Log thô ở `$TMPDIR/crew-v2-g4r/` (không commit).
+ 
+ ## Tài nguyên và dọn
+ 
+ Slot nặng lấy lúc telemetry heavyEligible (5.04GiB, pressure 1, idle 76.8%), trả lại bằng `rm -rf` đúng lock. Postgres 18.6 `crew-v2-test-<uuid>` (ID `1e229e32...c4a`), memory 268435456, 1 CPU, pids 64, loopback 64026; dùng ~66MiB. Đã `docker stop` (--rm), `docker ps -a` lọc tên còn 0. Node heap 384, concurrency 1. Không đụng container/log của bên khác. Manifest lock chỉ giữ lúc generate/commit.
+ 
+ ## Còn chờ
+ 
+ - Đọc key credential active: chờ phase04 Keychain, chưa làm.
+ - Digest pin chuẩn (payload/tree/projection) server không có; web chỉ dùng pin đã nằm trong desired hoặc máy đã báo cài. Nếu muốn nút "cài bản chuẩn" từ trống cần nguồn pin tin cậy (gateway hoặc bảng seed), cần quyết định riêng.
+ - Owner đọc command/attempt thực thi ticket (G5) không thuộc slice này; chỉ đọc command máy gateway.
++
++## Follow-up sau review (I1, M1)
++
++- I1: command `received` chỉ chặn retry khi còn trong `RECEIVED_COMMAND_LEASE_MS = 5 phút` (hằng mới, không có hằng ack/lease sẵn có; gateway retry backoff tối đa 75 giây và giữ record cục bộ, 5 phút đủ cho cài chậm). `queued` luôn được coi là mở; `received` quá hạn thì retry xếp command mới.
++- M1: `enabled=false` trả 409 `CONFIG_DISABLED`, không xếp command (config chỉ có một cờ `enabled` cho cả máy, không có cờ riêng từng nguồn/runtime). Thứ tự kiểm: chưa cấu hình, revision lệch, disabled.
++- RED trên mã trước sửa: 8 test, 6 pass, 2 fail (hai test mới, đúng hành vi). GREEN: `gateway-owner-read.test.ts` + `gateway.test.ts` 35/35 exit 0; tsc gateway sạch, Biome sạch.
++- Postgres 18.6 mới, 256m/1CPU/pids64, loopback ngẫu nhiên; đã stop, dọn, trả slot. Gate dùng parse JSON.
+diff --git a/v2/docs/flows/server-gateway.md b/v2/docs/flows/server-gateway.md
+index 2ef9858..f567fd4 100644
+--- a/v2/docs/flows/server-gateway.md
++++ b/v2/docs/flows/server-gateway.md
+@@ -76,22 +76,24 @@ server cho phép; authority production mặc định vẫn từ chối đến ph
+    report mới nhất, `verdict` (`match|mismatch|not_installed|installing|error|not_desired`) và
+    `versionMismatch` của source. Verdict luôn so với desired hiện tại, không suy từ `appliedConfigRevision`,
+    nên pin cũ sau khi desired đổi thành `mismatch`. `definition` (slot `current`) chỉ được trả khi khớp đúng
+    pin desired và digest canonical (cùng `definitionMatches` lúc nhận report), nếu không là null. Kèm
+    `latestReport` `{reportId,configRevision,accepted,receivedAt}` để phân biệt partial và `official`
+    (version, revision, URL được phép). Server không giữ digest pin chuẩn; pin đầy đủ chỉ có khi đã nằm trong
+    desired hoặc được máy báo cài.
+ 10. Owner `POST /v2/gateway/machines/:id/workflows/retry` `{expectedRevision}` (CSRF + Idempotency-Key,
+     cùng khóa máy với PUT config) xếp thêm `sync_workflows {configRevision}` cho đúng revision hiện hành,
+     dùng khi PUT config no-op. Chưa cấu hình 409 `CONFIG_NOT_CONFIGURED`, revision lệch 409
+-    `CONFIG_REVISION_CONFLICT`; nếu đã có command sync chưa completed cho revision đó thì trả lại command
+-    ấy với `created:false`, không xếp chồng. Owner `GET /v2/gateway/machines/:id/commands?before&limit`
++    `CONFIG_REVISION_CONFLICT`, config `enabled=false` 409 `CONFIG_DISABLED` (không xếp command). Nếu đã có
++    command sync `queued`, hoặc `received` chưa quá 5 phút (`RECEIVED_COMMAND_LEASE_MS`, gateway giữ record
++    cục bộ và retry tối đa 75 giây mỗi lần) cho revision đó thì trả lại command ấy với `created:false`; `received`
++    quá hạn coi là bị bỏ, retry xếp command mới. Owner `GET /v2/gateway/machines/:id/commands?before&limit`
+     (default 50, max 100) đọc lịch sử command mới nhất trước kèm `result` đã làm sạch, `nextBefore` null khi
+     hết. Chưa có: đọc key credential đang active (chờ Keychain phase04).
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/007_gateway.sql` | 9 bảng, FK/CHECK/UNIQUE, retired boot và immutable receipts/report/pair |
+ | `server/src/gateway/catalogue.ts` | Catalogue workflow owner chỉ đọc: desired so với installed, verdict, definition tin cậy |
+ | `server/src/gateway/contracts.ts` | SourcePin, ProjectionPin, GatewayConfig, GatewayHeartbeat, InstallReport, DispatchSelection, AttemptProjectionPin, GatewayStatus, schemas |
+diff --git a/v2/server/src/gateway/service.ts b/v2/server/src/gateway/service.ts
+index a6dcccc..50450be 100644
+--- a/v2/server/src/gateway/service.ts
++++ b/v2/server/src/gateway/service.ts
+@@ -470,36 +470,44 @@ export async function listMachineCommands(
+   if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) fail('LIMIT_INVALID', 400);
+   const [machine] = await tx`select id from machines where id=${machineId}`;
+   if (!machine) fail('NOT_FOUND', 404);
+   const rows =
+     before === undefined
+       ? await tx`select * from gateway_commands where machine_id=${machineId} order by cursor desc limit ${limit + 1}`
+       : await tx`select * from gateway_commands where machine_id=${machineId} and cursor<${before} order by cursor desc limit ${limit + 1}`;
+   const items = rows.slice(0, limit).map(mapCommand);
+   return { items, nextBefore: rows.length > limit ? (items.at(-1)?.cursor ?? null) : null };
+ }
++/**
++ * A received command that never completed is treated as abandoned after this long. The gateway keeps
++ * received commands in its local store and retries with backoff of at most 75s per attempt, so 5 minutes
++ * covers a slow install while a lost local store cannot block retry forever.
++ */
++export const RECEIVED_COMMAND_LEASE_MS = 5 * 60_000;
+ /**
+  * Owner retry/reinstall intent for the current desired revision. Config PUT is a no-op when desired is
+- * unchanged, so this queues one more sync_workflows for the same revision. An unfinished command for that
+- * revision is returned instead of stacking duplicates.
++ * unchanged, so this queues one more sync_workflows for the same revision. A queued command, or a received one still
++ * inside the lease, is returned instead of stacking duplicates. A disabled config fails closed.
+  */
+ export async function requestWorkflowRetry(
+   tx: Tx,
+   machineId: Id,
+   input: { expectedRevision: number },
+   now: Date,
+ ): Promise<WorkflowRetryResult> {
+   const config = await readGatewayConfig(tx, machineId);
+   if (!config) fail('CONFIG_NOT_CONFIGURED');
+   if (config.revision !== input.expectedRevision) fail('CONFIG_REVISION_CONFLICT');
++  if (!config.enabled) fail('CONFIG_DISABLED');
++  const staleBefore = new Date(now.getTime() - RECEIVED_COMMAND_LEASE_MS);
+   const [open] =
+-    await tx`select * from gateway_commands where machine_id=${machineId} and type='sync_workflows' and state<>'completed' and (payload->>'configRevision')::int=${config.revision} order by cursor desc limit 1`;
++    await tx`select * from gateway_commands where machine_id=${machineId} and type='sync_workflows' and (state='queued' or (state='received' and received_at>${staleBefore})) and (payload->>'configRevision')::int=${config.revision} order by cursor desc limit 1`;
+   if (open) return { created: false, configRevision: config.revision, command: mapCommand(open) };
+   const [cursor] = await tx`update gateway_command_cursor set value=value+1 where singleton returning value`;
+   const commandId = randomUUID();
+   const [row] =
+     await tx`insert into gateway_commands(id,machine_id,type,payload,state,created_at,cursor) values(${commandId},${machineId},'sync_workflows',${tx.json({ configRevision: config.revision })},'queued',${now},${cursor?.value}) returning *`;
+   await event(tx, machineId, 'gateway.command.created', { commandId, type: 'sync_workflows' });
+   return {
+     created: true,
+     configRevision: config.revision,
+     command: mapCommand(row as Record<string, unknown>),
+diff --git a/v2/server/test/gateway-owner-read.test.ts b/v2/server/test/gateway-owner-read.test.ts
+index 53f4884..b000f8a 100644
+--- a/v2/server/test/gateway-owner-read.test.ts
++++ b/v2/server/test/gateway-owner-read.test.ts
+@@ -283,10 +283,63 @@ test('owner đọc lịch sử command máy kèm result, mới nhất trước,
+       assert.deepEqual(page2.items[0]?.result, { ok: true });
+       assert.equal(page2.nextBefore, null);
+       assert.equal((await f.owner.get(`${path}?limit=0`)).statusCode, 400);
+       assert.equal((await f.owner.get(`${path}?before=x`)).statusCode, 400);
+       assert.equal((await f.owner.get(`/v2/gateway/machines/${randomUUID()}/commands`)).statusCode, 404);
+       assert.equal((await f.machine.get(path)).statusCode, 403);
+     } finally {
+       await f.close();
+     }
+   }));
++
++test('retry workflow: command received quá hạn không chặn retry, còn trẻ thì vẫn trả lại command đang chạy', async () =>
++  databaseFixture(7)(async (db) => {
++    const f = await gatewayFixture(db);
++    try {
++      const retry = `/v2/gateway/machines/${f.machineId}/workflows/retry`;
++      await f.machine.post('/v2/gateway/boots', { bootId: randomUUID(), previousGeneration: '0' });
++      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
++      const first = (await f.machine.get('/v2/gateway/commands')).json<{ items: { id: string }[] }>()
++        .items[0];
++      assert.ok(first);
++      assert.equal(
++        (await f.machine.post(`/v2/gateway/commands/${first.id}/ack`, { phase: 'received' })).statusCode,
++        200,
++      );
++      const young = (await f.owner.post(retry, { expectedRevision: 1 })).json<WorkflowRetryResult>();
++      assert.equal(young.created, false);
++      assert.equal(young.command.id, first.id);
++      await db`update gateway_commands set received_at=now()-interval '10 minutes' where id=${first.id}`;
++      const stale = await f.owner.post(retry, { expectedRevision: 1 });
++      assert.equal(stale.statusCode, 200, stale.text);
++      const body = stale.json<WorkflowRetryResult>();
++      assert.equal(body.created, true);
++      assert.notEqual(body.command.id, first.id);
++      const [count] = await db`select count(*)::int as n from gateway_commands`;
++      assert.equal(count?.n, 2);
++    } finally {
++      await f.close();
++    }
++  }));
++
++test('retry workflow: config enabled=false bị từ chối CONFIG_DISABLED và không xếp command', async () =>
++  databaseFixture(7)(async (db) => {
++    const f = await gatewayFixture(db);
++    try {
++      const retry = `/v2/gateway/machines/${f.machineId}/workflows/retry`;
++      await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, nextConfig);
++      const off = await f.owner.put(`/v2/gateway/machines/${f.machineId}/config`, {
++        ...nextConfig,
++        expectedRevision: 1,
++        enabled: false,
++      });
++      assert.equal(off.statusCode, 200, off.text);
++      const [before] = await db`select count(*)::int as n from gateway_commands`;
++      const denied = await f.owner.post(retry, { expectedRevision: 2 });
++      assert.equal(denied.statusCode, 409);
++      assert.equal(code(denied), 'CONFIG_DISABLED');
++      const [after] = await db`select count(*)::int as n from gateway_commands`;
++      assert.equal(after?.n, before?.n);
++    } finally {
++      await f.close();
++    }
++  }));
