@@ -183,3 +183,8 @@ Kế tiếp web: lượt nghiệm thu A5/A3 text-only trên fixture có attachme
 
 00:20 05/10 A5/A3 text-only E2E `62fd150`: compose.spec.ts 5/5 hai lượt liên tiếp trên API/PG thật (create+comment một entity, lost response→expiry→reauth→replay cùng key một entity cho ticket và comment, discard ambiguous cảnh báo trùng giữ key, PNG → 503 EXTRACTION_NOT_CONFIGURED không entity). Sự cố quy trình: lượt đầu chạy không giữ slot (lệnh nối bằng `;`), 2.4s, không đụng tài nguyên b3a.
 Ruling sản phẩm: mã 503 cấu hình xác định (EXTRACTION_NOT_CONFIGURED, INPUT_SERVICES_NOT_CONFIGURED, …) → client dừng auto-retry, giữ key (không nhả), hiện lỗi cấu hình rõ ràng — giao follow-up Task2 (api.ts) cùng Date header (B1 S5a) và dùng /v2/events/latest — sai thì người dùng thấy "chưa xác nhận" thay vì lỗi cấu hình.
+
+00:35 A5/A3 E2E review `a5-a3-e2e-review.md`: Spec ✅, Approved kèm Important1 (assertion không retry mù chỉ >=1). DB count thật, mất response sau commit, expiry hợp lệ.
+A5 text-only + A3 text-only (create/comment/recovery): ĐẠT trên API/PG thật — 62fd150. A5/A3 đầy đủ còn: file thành công (phase05 extractor certified), group theo comment/history/question (G3), attempt/model (G1b), graph/pause/cancel (A3 phần còn lại).
+Important assertion gộp vào Task2 follow-up (resume implementer Task2): 503 cấu hình dừng retry giữ key, siết assertion 1 POST + HTTP code, Date header, /v2/events/latest, warmUp sleep.
+A5/A3 E2E: minor (deferred): host dò URL .vite/deps (harness Task1); đếm attachment_uploads theo owner; đếm DB theo title toàn DB; evidence chỉ stdout.
