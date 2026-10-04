@@ -192,3 +192,5 @@ A5/A3 E2E: minor (deferred): host dò URL .vite/deps (harness Task1); đếm att
 01:25 Task2 follow-up `c4ab472` review `task-2-followup-review.md`: Spec ✅, Approved, Minor3. 409 INPUT_SERVICES_NOT_CONFIGURED giữ key đúng; latest→catch-up không mất event; 401 latest → expired.
 Task 2 follow-up: complete — c4ab472. Important assertion A5/A3 E2E (1 POST + HTTP 503 code) đã đóng.
 Task 2 follow-up: minor (deferred): m1 cờ lỗi cấu hình chỉ ở memory (mất sau reload); m2 assert invalidate ['v2'] nằm trong if (app-wiring.test); m3 GET/upload 503 cấu hình đổi kind 'http'→'configuration' — ghi vào web-data.md cho Task5/G2.
+
+03:55 S7basic/A7basic `333468a` DONE (unit 243/243, E2E onboarding+app-router 5/5 x2 trên API/PG thật). Lưu ý TDD: RED là missing-module (không tính là RED semantic theo handover) — reviewer đánh giá test độc lập.
