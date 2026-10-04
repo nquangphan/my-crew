@@ -203,3 +203,8 @@ Task 2 B3b: minor (deferred): M3 pending journal phát lại vĩnh viễn, chưa
 Task 2 B3b: minor (deferred): N2 hai execute đồng thời cùng operation gửi song song (server idempotent); N5 test route thật tự dựng error handler lệch buildApp — 413/404 route-not-found chưa kiểm trên route thật (checklist T7 cùng M4 B3a); create_run/ask_owner completed chỉ kiểm qua fake.
 
 03:10 B3b FIX2 `24dfc7b` re-review `task-2-slice-b3b-fix2-re-review.md`: N1/N3/N4/R3/R1 ADDRESSED; mới G1 Important (thiếu 6 mã nghiệp vụ create_run/ask_owner → misconfigured lặp), G2/G3 Minor. FIX3/5: prefix ASSISTANT_* + mã tường minh, G2 not_configured, G3 test quét ApiError chống trôi. Ruling: mã transient phải dùng 5xx; 4xx trong namespace ASSISTANT_/ORCHESTRATION_/WORKFLOW_ là phán quyết tất định (được ghi journal).
+
+03:35 B3b FIX3 `586da9c` re-review `task-2-slice-b3b-fix3-re-review.md`: Approved; G1/G2/G3/docs ADDRESSED, không hồi quy idempotency.
+Task 2 Slice B3b: complete — 586da9c (97737a1 + 7ffa25b + 24dfc7b + 586da9c). Chưa mount production.
+Ruling (bắt buộc khi mở route_message/request_review): G3a xem lại danh sách loại trừ test chống trôi (MACHINE_REQUIRED, DEPLOY_OWNER_INTENT_REQUIRED sẽ tới được). G3c: quy tắc "4xx namespace ASSISTANT_ tất định" chỉ áp cho mã trên đường tool; mã trạng thái thời gian (ASSISTANT_WORK_HELD/NOT_DUE/TURN_IN_USE/CALIBRATION_ACTIVE/REASSIGNMENT_PENDING) không được đưa lên đường tool dưới 4xx — nếu cần thì dùng 5xx.
+Task 2 B3b: minor (deferred): G3b bộ quét bỏ sót fail('CODE',status) (docs/import.ts:379), mã dựng từ biến, journal/mutation.ts BODY_INVALID.
