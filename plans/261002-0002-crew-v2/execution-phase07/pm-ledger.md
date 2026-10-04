@@ -261,3 +261,5 @@ Backlog producer: Ticket DTO chưa có `updatedAt` (dòng phụ giờ cập nh�
 12:25 Task4 polish FIX `531892b` re-review `task-4-polish-fix1-re-review.md`: Approved, không Critical/Important; I1/M1–M4 ADDRESSED, M5 một phần.
 Task 4 polish (theo design owner duyệt): complete — 531892b (47bbfe9 + 74f678b + 531892b).
 Task 4: minor (deferred — ứng viên OpenCode sửa code + tester chạy test): N1 khi đang kéo nên hoãn cả bố cục mới lẫn độ dời viewport rồi áp cùng lúc khi thả (hiện thẻ nhảy hai lần) + assert vị trí neo khi kéo/sau thả; N2 làn 3 cạnh phụ thuộc/sửa (gap+28) trùng thân ngoặc cha–con (bracketRun 28); N3 nhãn mép phải bị cắt; N4 span nhãn cạnh thiếu aria-hidden. Thân dialog: bảng Thông tin/cỡ chữ vẫn khác màn 2; trang /tickets/:id dùng chung header mới.
+
+12:55 Map N2/N4 commit (OpenCode code + tester RED 1 fail semantic/GREEN 62/62/E2E ticket-map 4/4). Task 4: minor N2, N4 — đóng.
