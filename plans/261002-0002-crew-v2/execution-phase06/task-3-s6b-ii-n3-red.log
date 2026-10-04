@@ -1,0 +1,38 @@
+▶ isolation workspace materializes and renders BMAD inputs inside prepare
+  ✔ a prepare without a render request is unchanged (1382.991584ms)
+  ✔ BMAD prepare copies exactly the definition subset and renders before the audit (2129.029416ms)
+  ✔ a halted render fails prepare closed and still declares the render destination (1819.757416ms)
+  ✔ a BMAD prepare refuses an owner checkout that tracks _bmad and leaves it in place (1225.028958ms)
+  ✖ a BMAD prepare refuses an owner checkout that tracks a file under another render destination root (1482.002167ms)
+  ✔ a nested _bmad is not a render destination and does not refuse the prepare (1523.156125ms)
+  ✔ cleanup treats a proven render stage that is already gone as reclaimed (1641.842917ms)
+  ✔ an undeclared or altered injected path is an audit blocker (1661.223834ms)
+  ✔ requests that cannot render stop before any render stage is reserved (1325.492125ms)
+  ✔ a render stage left pending by a crash becomes unknown and blocks renders (4162.710125ms)
+✖ isolation workspace materializes and renders BMAD inputs inside prepare (22905.706625ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 9
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 23004.845458
+
+✖ failing tests:
+
+test at test/isolation-render.test.ts:383:13
+✖ a BMAD prepare refuses an owner checkout that tracks a file under another render destination root (1482.002167ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:387:9)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:383:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /BMAD_TRACKED_IN_CHECKOUT/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

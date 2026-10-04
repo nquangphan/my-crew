@@ -86,6 +86,9 @@ const attemptUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 const renderDestination = '_bmad/render';
 // Every render input lives under one of these roots of the official BMAD layout.
 const renderInputRoots = ['_bmad/', '.claude/skills/bmad-build/'];
+/** Whether `path` is a render destination root or lies below one; derived from `renderInputRoots`. */
+const isRenderDestination = (path: string): boolean =>
+  renderInputRoots.some((root) => path === root.slice(0, -1) || path.startsWith(root));
 const maxRenderInputBytes = 16 * 1024 * 1024;
 
 /** Bytes of `root/relative` with no symlink at any level: a single-link regular file within the bound. */
@@ -669,12 +672,9 @@ export class IsolationWorkspace {
         const before = await auditWorkspace(workspace, undefined, [], join(workspace, '.git'));
         if (before.blockers.length) throw new Error(before.blockers.join(';'));
         // The clone is clean at the owner commit, so every entry is tracked. A BMAD render would replace
-        // a tracked `_bmad` with the render subset and the runtime could commit that replacement, so the
-        // prepare refuses before anything of the owner's `_bmad` is moved.
-        if (
-          render !== undefined &&
-          before.entries.some((e) => e.path === '_bmad' || e.path.startsWith('_bmad/'))
-        )
+        // tracked entries at or below any render destination root with the render subset and the runtime
+        // could commit that replacement, so the prepare refuses before anything of the owner's is moved.
+        if (render !== undefined && before.entries.some((e) => isRenderDestination(e.path)))
           throw new Error('BMAD_TRACKED_IN_CHECKOUT');
         record.exclusions = before.entries.filter((e) => e.classification === 'discovery');
         const excludedRoots: string[] = [];

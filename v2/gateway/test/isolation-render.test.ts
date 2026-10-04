@@ -134,8 +134,20 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare', 
     // is materialized); `trackedOwner` also tracks `_bmad`, which a BMAD prepare must refuse.
     const owner = join(root, 'owner');
     const trackedOwner = join(root, 'tracked-owner');
+    // `skillOwner` tracks a file under a render destination root other than `_bmad`; `nestedOwner` tracks
+    // only a nested `_bmad`, which the render never overwrites.
+    const skillOwner = join(root, 'skill-owner');
+    const nestedOwner = join(root, 'nested-owner');
     const home = join(root, 'fixture-home');
-    for (const path of [owner, trackedOwner, home, join(home, 'template'), join(home, 'hooks')])
+    for (const path of [
+      owner,
+      trackedOwner,
+      skillOwner,
+      nestedOwner,
+      home,
+      join(home, 'template'),
+      join(home, 'hooks'),
+    ])
       await mkdir(path, { mode: 0o700 });
     const projectionRoot = (await registry.resolve(pin, projection)).projectionRoot;
     const repoGit = async (repo: string, ...args: string[]) => {
@@ -198,6 +210,14 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare', 
       'docs/product.md': 'product specifications remain\n',
       '_bmad/legacy.toml': 'owner = "tracked"\n',
       '.claude/settings.json': '{"owner":true}\n',
+    });
+    await commitOwner(skillOwner, {
+      'docs/product.md': 'product specifications remain\n',
+      [`${skill}/custom.md`]: 'owner skill file\n',
+    });
+    await commitOwner(nestedOwner, {
+      'docs/product.md': 'product specifications remain\n',
+      'sub/_bmad/x.toml': 'nested = true\n',
     });
 
     // Install-report prerequisites: `uv` and a Homebrew-style linked interpreter.
@@ -367,6 +387,34 @@ test('isolation workspace materializes and renders BMAD inputs inside prepare', 
         assert.equal(await service.cleanup(attemptId), 'deleted');
       },
     );
+
+    await t.test(
+      'a BMAD prepare refuses an owner checkout that tracks a file under another render destination root',
+      async () => {
+        const attemptId = randomUUID();
+        await assert.rejects(
+          () => service.prepareWorkspace(skillOwner, attemptId, pin, projection, render),
+          /BMAD_TRACKED_IN_CHECKOUT/,
+        );
+        const record = await service.get(attemptId);
+        assert(record);
+        assert.equal(record.state, 'retained');
+        assert.equal('injected' in record, false);
+        assert.equal('render' in record, false);
+        assert.deepEqual(record.exclusions, []);
+        assert.deepEqual(await filesBelow(record.workspace, skill), [`${skill}/custom.md`]);
+        assert.equal(await readFile(join(skillOwner, skill, 'custom.md'), 'utf8'), 'owner skill file\n');
+        assert.deepEqual(await service.renders(attemptId), []);
+        assert.equal(await service.cleanup(attemptId), 'deleted');
+      },
+    );
+
+    await t.test('a nested _bmad is not a render destination and does not refuse the prepare', async () => {
+      const attemptId = randomUUID();
+      const w = await service.prepareWorkspace(nestedOwner, attemptId, pin, projection, render);
+      assert(w.render?.receipt);
+      assert.equal(await service.cleanup(attemptId), 'deleted');
+    });
 
     await t.test('cleanup treats a proven render stage that is already gone as reclaimed', async () => {
       const attemptId = randomUUID();
