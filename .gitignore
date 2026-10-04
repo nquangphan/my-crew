@@ -23,3 +23,7 @@ apps/desktop/.e2e/
 /edge/
 e2e/.e2e/
 e2e/test-results/
+
+# Local Codex hook logs and runtime state.
+.codex/hooks/.logs/
+.codex/hooks/.agentkit-runtime.json
