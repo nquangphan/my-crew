@@ -246,3 +246,7 @@ OWNER: push.
 G4w `4998044`: tiền đề sai — ba switch đã có từ migration 008 (`model_source_configs`, `PUT/GET /v2/machines/:id/model-sources`, desired/applied, sync_models). Worker chỉ thêm `isSourceEnabled(tx,machineId,runtime)` (master enabled → per-source) và `runtime` tùy chọn cho retry (409 CONFIG_DISABLED). Chờ review. Ruling: S7full đọc/ghi switch qua model-sources, truyền runtime khi retry.
 
 10:55 OWNER DUYỆT design `ui-evidence/design-map-mockup.html` (local). Artifact publish trước đó owner đã xóa. Resume Task4 polish theo mockup; cấp license hẹp sửa `v2/web/src/tickets/dialog.tsx` + `v2/web/src/styles.css` cho delta 1 (dialog tối).
+
+11:05 G4w `4998044` review `producer-g4w-review.md`: Spec đạt, Approved, Minor4.
+Producer G4w: complete — 4998044. S7full dùng model-sources cho ba switch; truyền runtime khi retry.
+G4w: minor (deferred, checklist T4): M1 isSourceEnabled trả true khi máy chưa có model_source_configs trong khi trigger 008 từ chối — T4 không dùng làm cổng đủ, trigger là chốt cuối; M2 docs không gợi ý retry riêng một runtime (sync_workflows đồng bộ mọi runtime); M3 includes thừa; M4 report thiếu hash.
