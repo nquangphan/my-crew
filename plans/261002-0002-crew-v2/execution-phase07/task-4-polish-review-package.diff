@@ -1,0 +1,2676 @@
+74f678b feat(v2): hộp thoại ticket theo màn 2 của mockup sơ đồ
+8e6b148 docs(v2): ghi giới hạn đã biết và ngữ nghĩa lỗi cấu hình trong các flow
+a52d521 docs(v2): sửa đánh số flow, lời comment lease và ghi chú hook test
+47bbfe9 feat(v2): sơ đồ ticket theo mockup owner duyệt
+ v2/docs/flows/web-attachments.md |   3 +
+ v2/docs/flows/web-shell.md       |   6 +-
+ v2/docs/flows/web-ticket-map.md  |  16 +-
+ v2/docs/flows/web-tickets.md     |   4 +-
+ v2/web/e2e/ticket-map.spec.ts    |  97 +++++++--
+ v2/web/src/compose/composer.tsx  |   7 +-
+ v2/web/src/graph/layout.ts       | 120 ++---------
+ v2/web/src/graph/ticket-edge.tsx |  37 ++--
+ v2/web/src/graph/ticket-map.tsx  | 453 +++++++++++++++++++++++++++------------
+ v2/web/src/graph/ticket-node.tsx | 168 ++++++++++-----
+ v2/web/src/styles.css            |  52 +++++
+ v2/web/src/tickets/detail.tsx    | 130 +++++++++--
+ v2/web/src/tickets/dialog.tsx    |  45 ++--
+ v2/web/test/graph-state.test.ts  | 118 +++++++++-
+ v2/web/test/graph.test.ts        |  84 ++------
+ 15 files changed, 897 insertions(+), 443 deletions(-)
+diff --git a/v2/docs/flows/web-attachments.md b/v2/docs/flows/web-attachments.md
+index 6ea5617..bd48e07 100644
+--- a/v2/docs/flows/web-attachments.md
++++ b/v2/docs/flows/web-attachments.md
+@@ -5,16 +5,17 @@
+ Một composer dùng chung cho ba loại gửi: tạo ticket, bình luận ticket và tin nhắn cho Trợ lý. Composer nhận ảnh dán từ clipboard, tệp kéo thả và tệp chọn từ ô chọn tệp. Nó băm SHA-256 từng tệp, giữ chỗ và tải bytes lên lượt gửi (compose session) của máy chủ, rồi gửi nội dung cùng đúng danh sách tệp trong một yêu cầu nguyên tử. Mỗi ý định gửi chỉ có một khóa idempotency. Khi mất phản hồi, hết phiên hay tải lại trang, composer gửi lại đúng khóa và bytes cũ nên không tạo ticket, bình luận hay tệp trùng. Form của Task3/Task6 giữ đối tượng `ComposeSubmission`; composer chỉ sửa mô tả hoặc nội dung và quản lý tệp, lượt gửi và operation theo `draftKey`.
+ 
+ Trạng thái producer: `buildApp` mount route attachment khi được truyền `attachments` (`server/src/app.ts`, commit b39f2fb). `main.ts` production và fixture E2E Task1 (`web/scripts/e2e-fixture.ts`) chưa truyền cấu hình này. Vì vậy flow này mới đạt mốc source S5a; nghiệm thu A5 trên API/PostgreSQL thật vẫn bị chặn.
+ 
+ ## Điểm vào
+ 
+ - `web/src/compose/composer.tsx` → `AttachmentComposer(props: ComposerProps)`. Props gồm `draftKey`, `submission`, `onSubmissionChange`, `onStateChange` và `onAccepted`. App phải bọc composer trong `ComposeServicesProvider` (gồm `client`, `pending`, `session`, `storage` = `sessionStorage`) và `QueryClientProvider`, đặt bên trong vùng đã xác thực.
+ - `web/src/attachments/preview.tsx` → `TicketAttachments`: tệp của ticket nhóm theo bình luận (projection `GET /v2/tickets/:id/attachments/by-comment`), phần còn lại là tệp của ticket hoặc tệp kế thừa, kèm xem trước an toàn và trạng thái trích xuất.
++- Nút gửi của `AttachmentComposer` có class `compose-submit` (chỉ để trình bày); hộp thoại ticket tô màu nhấn qua `.ticket-dialog .compose-submit` trong `web/src/styles.css`. Hành vi composer không đổi.
+ 
+ Hợp đồng cho Task3 S3b/Task6: form tạo đủ `CreateTicket` (project/kind/title/workflow), hoặc cấp `projectId`/`ticketId`, hoặc cấp `conversationId`/`clientMessageId` (tạo một lần cho mỗi ý định). Mỗi lần người dùng sửa, form truyền lại cùng một đối tượng submission. Form khóa các field của mình theo `onStateChange`: chỉ `editing` mới cho sửa. Khi khóa cũ chỉ còn tombstone (sau đăng xuất), composer báo `editing` để owner nhập lại đúng nội dung ban đầu. `onHandle` (tùy chọn) trao cho form `ComposerHandle.discardDraft()`. Hàm trả `'blocked'` khi đang gửi hoặc đang bỏ, và không làm gì. Trả `'unconfirmed'` khi DELETE bỏ lượt gửi chưa xác nhận: bản nháp và khóa được giữ, báo `DISCARD_UNCONFIRMED`, gọi lại thì gửi lại đúng khóa. Trả `'discarded'` khi đã bỏ lượt gửi và tệp trên server rồi bắt đầu bản nháp mới. Form chỉ xóa field khi nhận `'discarded'`. Ở `editing`, hàm bỏ compose và tệp; ở trạng thái khóa hoặc tombstone, hàm làm như `discard()` (khóa submit ở lại panel, kèm cảnh báo trùng). Nút “Bỏ bản nháp tệp” dùng chung hàm này. `onAccepted` được gọi đúng một lần cho mỗi receipt; sau đó composer bắt đầu bản nháp mới, còn form tự reset (ví dụ cấp `clientMessageId` mới).
+ 
+ ## Các bước
+ 
+ 1. `web/src/compose/state.ts` → `filesFromTransfer`: một luồng nhận tệp chung cho `clipboardData.items`, `dataTransfer` khi thả và `<input multiple>`. Khi dán, composer chỉ `preventDefault` nếu clipboard có tệp; phần chữ đi kèm được chèn tại con trỏ nên giữ được cả chữ lẫn ảnh. Dán chữ thường vẫn để trình duyệt xử lý. `localFileName` đặt tên ảnh dán không tên (hoặc tên chung `image.png`) thành `anh-dan-YYYYMMDD-HHmmss-n.png`, giờ theo Asia/Ho_Chi_Minh và đuôi theo MIME.
+ 2. `checkIntake` kiểm số tệp, dung lượng từng tệp, tổng dung lượng, đuôi tệp và tên tệp theo `GET /v2/attachment-policy` *trước khi* băm; không gắn cứng 25 MiB. Tệp lớn hơn ngân sách băm của trình duyệt (`clientHashBudgetBytes` = 256 MiB) bị báo `CLIENT_HASH_LIMIT` chứ không bị bỏ qua âm thầm. Tệp vi phạm vẫn nằm trong danh sách ở trạng thái lỗi và chặn gửi cho tới khi owner bỏ nó.
+ 3. `web/src/compose/file-hash.ts` → `createWorkerHasher` băm tuần tự từng tệp trong worker riêng `file-hash.worker.ts` bằng `crypto.subtle.digest`. Mỗi lần chỉ giữ bytes của một tệp trong một `ArrayBuffer`, không tạo bản sao base64, và bỏ tham chiếu sau khi băm. Hủy, bỏ tệp hay đóng composer sẽ `terminate` worker và gỡ listener. Tệp trùng hash và size với tệp đã chọn bị đánh dấu `DUPLICATE_LOCAL` để owner bỏ.
+@@ -27,16 +28,18 @@ Hợp đồng cho Task3 S3b/Task6: form tạo đủ `CreateTicket` (project/kind
+ 10. Phiên hết hạn thì operation ở `suspended`; sau khi đăng nhập lại cùng owner, composer đọc lại compose và gửi lại cùng key. Tải lại tab: `sessionStorage` `crew-v2:compose:<draftKey>` chỉ giữ intent, compose ID, revision, tên/size/SHA/upload ID của tệp và key operation; không giữ chữ, bytes hay bí mật. Tệp chưa sẵn sàng phải được chọn lại đúng size và SHA (`NEEDS_RESELECT`/`RESELECT_MISMATCH`). Record còn giữ `assistantRead` đã đóng băng (không phải bí mật). Sau đăng xuất, Task2 chỉ giữ tombstone; composer không cấp key mới cho ý định đó mà yêu cầu nhập lại đúng nội dung rồi `PendingStore.resume` với khóa cũ. Trạng thái file lấy từ GET compose (kể cả khi lượt đã `submitted`, revision giữ đúng giá trị trong body cũ), còn consent lấy từ record và hiện ở dạng đã khóa. Nhập sai thì `IDEMPOTENCY_CONFLICT` trả về tombstone với khóa cũ. Owner cũng có lối thoát “Bỏ bản nháp này”.
+ 11. Khi được chấp nhận, receipt được giải mã theo loại (`decodeComposeReceipt`), cache ticket/comment/attachment bị invalidate, bản nháp được xóa đúng một lần, Lỗi 5xx tạm thời giữ khóa (`UNCONFIRMED`) sau khi client thử lại. Mã cấu hình xác định `*_NOT_CONFIGURED` (ví dụ 503 `EXTRACTION_NOT_CONFIGURED` khi máy chủ chưa có extractor) chỉ có một lần gửi, không auto-retry, vẫn giữ khóa và trả đúng mã đó (`kind: 'configuration'`); composer hiện kèm lý do máy chủ gửi về. 404 `NOT_FOUND` khi selection có tệp máy chủ không còn dẫn tới GET compose và đánh dấu tệp thiếu. 403 `ORIGIN_INVALID` làm mới phiên một lần rồi giữ khóa ở `suspended`; 403 `OWNER_REQUIRED` trên lần gửi đầu là từ chối hẳn. 401 (`UNAUTHENTICATED` hay `SESSION_INVALID`) đều làm phiên hết hạn và giữ khóa. `takeReceipt` trao receipt cho `onAccepted` đúng một lần, và `receiptSummary` chỉ nói máy chủ đã lưu gì, không bao giờ nói Trợ lý “đã đọc”.
+ 12. `web/src/attachments/queries.ts` → `fetchVerifiedBytes`: chỉ xem trước bytes đã được cấp quyền khi SHA-256 và size khớp record, và MIME theo magic bytes khớp MIME trong record hoặc manifest (không tin tên tệp hay content-type). Nội dung inline chỉ gồm ảnh PNG/JPEG và bản text đã xác minh (React escape, giới hạn 64 KiB ký tự, công thức/macro hiện nguyên văn). PDF/OOXML chỉ có link tải; không iframe/object HTML, SVG hay PDF cùng origin. Object URL bị thu hồi khi preview unmount. `summarizeExtraction` hiện trạng thái pending/running/complete/partial/encrypted/corrupt/unsupported/blocked/failed, các phần còn thiếu theo trang/trang tính/ô/dòng, kèm lời nhắc rằng byte đã xác minh không có nghĩa là mô hình đã đọc.
+ 
+ ## Dữ liệu
+ 
+ `DraftFile`, `ComposeSubmission`, `ComposeDraft` và `ComposeReceipt` đúng interface của brief Task5. `ComposeTarget` được suy từ decoder `ComposeSession` của Task2 (`web/src/contracts/attachments.ts`). Decoder `AssistantMessage` (`server/src/attachments/contracts.ts:270`) tạm nằm trong `state.ts` vì contracts Task2 chưa có; controller có thể chuyển nó vào `contracts/attachments.ts`. Danh sách `GET /v2/tickets/:id/attachments` là danh sách phẳng, không có `commentId` hay nhãn nguồn: UI liệt kê không nhóm và không suy luận nhóm từ thứ tự, chờ projection G2.
+ 
++Giới hạn đã biết: upload qua `OwnerClient.upload` gặp 5xx không retry tự động và không chuyển trạng thái `ambiguous`, vì upload không dùng `PendingStore`; lỗi trả ngay với `kind: 'http'` (hoặc `'configuration'` nếu là `*_NOT_CONFIGURED`). Điều này được chấp nhận tới khi route attachment chạy production đầy đủ.
++
+ Lifetime: mỗi `draftKey` có một controller, bị `dispose` khi unmount (dừng worker, hủy upload, gỡ listener). File bytes chỉ nằm trong bộ nhớ. Key và body đã đóng băng nằm trong `PendingStore` của tab. Payload chứa field giống bí mật bị Task2 từ chối lưu (`SECRET_PAYLOAD`) và composer báo lỗi, không gửi.
+ 
+ ## Flow liên quan
+ 
+ `web-data.md` sở hữu `OwnerClient`, `PendingStore`, phiên owner và query keys. `server-attachments.md` định nghĩa compose/upload/submission và trích xuất. `web-shell.md` sở hữu wiring app nơi `ComposeServicesProvider` được gắn.
+ 
+ ## Tests
+ 
+diff --git a/v2/docs/flows/web-shell.md b/v2/docs/flows/web-shell.md
+index 2e9c26c..3f98c17 100644
+--- a/v2/docs/flows/web-shell.md
++++ b/v2/docs/flows/web-shell.md
+@@ -19,36 +19,36 @@
+ ## Các bước
+ 
+ 0. Wiring phiên: `createAppRuntime` đăng ký `wireSession` trước khi React render nên khi phiên thành `authenticated`, `EventSync.start` chạy (và gửi request catch-up) trước khi view được bảo vệ kịp GET dữ liệu đầu tiên. Route được bảo vệ chạy `authorizeRoute` trong `beforeLoad`: đợi `bootstrap`, rồi guest/expired bị chuyển tới `/login?returnTo=<path nội bộ>`. `returnTo` đi qua `safeReturnPath`, chỉ nhận path `/crew-v2/` nên URL ngoài hay `..` về `/crew-v2/`. Đăng nhập thành công đẩy history tới path đã kiểm. Nếu phiên hết hạn khi đang ở route được bảo vệ, `SessionBoundary` hiện màn hình đăng nhập lại tại chỗ. Nút “Đăng xuất” ở toolbar gọi `SessionController.logout`, xóa cache và đóng stream. Query mặc định `retry: false` vì `OwnerClient.get` đã tự retry; `refetchOnWindowFocus` và `refetchOnReconnect` bật.
+ 
+ 1. Browser mở `/crew-v2/`; router mount `Shell` với sidebar, toolbar và outlet. Guest thấy nhãn “Bản minh họa”; chưa có danh sách dự án từ API.
+ 2. Panel dùng cả biểu tượng và chữ cho loading, error, empty. Skip link, landmark, focus-visible và reduced-motion hỗ trợ bàn phím; CSS chia layout desktop/tablet/mobile.
+ 3. Dev Vite chỉ proxy `/v2` khi caller cấp `CREW_V2_WEB_API_ORIGIN`; build production dự kiến dùng cùng origin. Khung Task1 không gọi API hay import app/schema/role runtime v1.
+ 5. Route ticket (đều sau `authorizeRoute`): `/projects/$projectId/tickets?view=board|list|requests&status&kind&rootId` render `TicketBoard`, `TicketList` hoặc `RequestList` và đúng một `TicketDialog`; `view` mặc định `board`, chỉ bốn bộ lọc của producer được giữ (`parseTicketsSearch`), đổi bộ lọc hay view ghi lại vào URL nên reload giữ nguyên. `/tickets/$ticketId` render `TicketDetail presentation="page"` cho deep link và reload, kèm liên kết quay lại danh sách khi đã biết project của ticket. `projectId`/`ticketId` không phải UUID hiện view “Không tìm thấy” (không bao giờ bỏ bộ lọc project để liệt kê mọi project); UUID hợp lệ nhưng không tồn tại hiện thông báo 404 của `TicketDetail`. Guest mở deep link được chuyển tới login rồi quay về đúng path. `/projects/$projectId/docs?path=` render `DocsSpace` (đường dẫn trang nằm trên URL nên reload giữ trang; ticket liên kết mở bằng cùng `TicketDialog`). Sidebar “Dự án” đọc `GET /v2/projects` chỉ khi đã đăng nhập và liệt kê mỗi dự án với liên kết “Ticket” và “Tài liệu”. Đăng xuất gọi `clearTicketDrafts` trên storage của runtime (qua `session.onLogout`), nên bản nháp bị xóa cả khi trang vừa reload mà chưa mở ticket nào; hết phiên (`session.expire()`) giữ nháp để đăng nhập lại và chỉ `logout()` mới xóa (ruling PM, khớp brief Task2). Đường “đăng xuất xong rồi reload ở guest” chỉ được kiểm trong trình duyệt (`ticket-routes.spec.ts`): trang guest không ghi nháp nên unit test của nó đúng cả khi thiếu logic xóa.
+-4. Coordinator web giữ một owner cho container PostgreSQL18.6, logical DB, Fastify và Vite trên một web listener. Nó chụp migration 001–011 một lần, bootstrap owner trong DB riêng, rồi kiểm HTTP session thực. Fixture cũng truyền `AttachmentAssembly` cho `buildApp`: storage root riêng `crew-v2-web-attachments-*` (resource `scratch` trong registry, xóa trước scratch chính khi đóng), `storageHostId` UUID chữ thường, writer native trên Linux hoặc cổng closed-ACK trong process (`web/scripts/e2e-attachment-receivers.ts`, không có bằng chứng process-gone native) trên host khác. Port đó không có bằng chứng native process-gone (định danh `fixture-only`), chỉ import từ `e2e-fixture.ts` (không entrypoint production nào import) và được `test/attachment-receivers.test.ts` chạy trọn giao thức register → run → closeAndAcknowledge → proveStopped trên DB fixture. Việc đóng scratch nằm ở `closeScratches` (attachment trước, UNKNOWN/deadline giữ cả scratch chính) và `createAttachmentScratch` (lỗi giữa `mkdtemp` và đăng ký thì xóa đúng thư mục vừa tạo), cả hai có test trong `test/fixture-scratch.test.ts`. Không truyền `extractorVersion` nên submission có tệp vẫn 503 `EXTRACTION_NOT_CONFIGURED`; port chưa có producer vẫn vắng (409/503). Cleanup hủy socket thuộc run, đặt deadline từng pha và xác minh exact identity trước stop/drop; trường hợp UNKNOWN giữ registry và tài nguyên để PM đối chiếu. MCP đã kiểm shell guest trên source UI này; literal zoom 200% còn giới hạn chứng cứ nêu dưới đây.
++4. Coordinator web giữ một owner cho container PostgreSQL 18.6, logical DB, Fastify và Vite trên một web listener. Nó chụp migration 001–011 một lần, bootstrap owner trong DB riêng, rồi kiểm HTTP session thực. Fixture cũng truyền `AttachmentAssembly` cho `buildApp`: storage root riêng `crew-v2-web-attachments-*` (resource `scratch` trong registry, xóa trước scratch chính khi đóng), `storageHostId` UUID chữ thường, writer native trên Linux hoặc cổng closed-ACK trong process (`web/scripts/e2e-attachment-receivers.ts`, không có bằng chứng process-gone native) trên host khác. Port đó không có bằng chứng native process-gone (định danh `fixture-only`), được import từ `e2e-fixture.ts` và `test/attachment-receivers.test.ts` (không entrypoint production nào import); test thứ hai chạy trọn giao thức register → run → closeAndAcknowledge → proveStopped trên DB fixture. Việc đóng scratch nằm ở `closeScratches` (attachment trước, UNKNOWN/deadline giữ cả scratch chính) và `createAttachmentScratch` (lỗi giữa `mkdtemp` và đăng ký thì xóa đúng thư mục vừa tạo), cả hai có test trong `test/fixture-scratch.test.ts`. Không truyền `extractorVersion` nên submission có tệp vẫn 503 `EXTRACTION_NOT_CONFIGURED`; port chưa có producer vẫn vắng (409/503). Cleanup hủy socket thuộc run, đặt deadline từng pha và xác minh exact identity trước stop/drop; trường hợp UNKNOWN giữ registry và tài nguyên để PM đối chiếu. MCP đã kiểm shell guest trên source UI này; literal zoom 200% còn giới hạn chứng cứ nêu dưới đây.
+ 
+ ## Files
+ 
+ | File | Vai trò |
+ |---|---|
+ | `v2/web/package.json`, `v2/web/pnpm-lock.yaml`, `v2/web/tsconfig.json` | Package, lock độc lập, typecheck strict; lock được pnpm sinh riêng trong `v2/web`. DevDependency chỉ dùng cho test component (owner duyệt): `jsdom` 30.1.1 và `@testing-library/react` 16.3.3; peer `@testing-library/dom` 10.4.2 được khai báo tường minh trong `devDependencies` |
+ | `v2/web/vite.config.ts`, `v2/web/index.html`, `v2/web/playwright.config.ts` | Base/proxy, HTML entry và browser runner một worker |
+-| `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive |
++| `v2/web/src/main.tsx`, `v2/web/src/app-runtime.ts`, `v2/web/src/router.tsx`, `v2/web/src/shell.tsx`, `v2/web/src/styles.css` | Mount, route, shell và giao diện responsive; `styles.css` có thêm class `.ticket-dialog` (`color-scheme: dark`, ô nhập, nút và tiêu đề mục tối; nút gửi `.compose-submit` màu nhấn) cho hộp thoại ticket dùng chung |
+ | `v2/web/test/workspace.test.ts`, `v2/web/test/fixture-lifecycle.test.ts` | Ranh giới workspace và lifecycle; RED lịch sử và GREEN PostgreSQL/API/SIGTERM thật đã ghi trong báo cáo |
+ | `v2/web/scripts/e2e-fixture.ts`, `v2/web/e2e/support/fixture.ts` | Coordinator/handle fixture đã qua test lifecycle, typecheck và build thực |
+ | `v2/web/scripts/e2e-attachment-receivers.ts`, `v2/web/e2e/support/owner-seed.ts`, `v2/web/test/attachment-receivers.test.ts`, `v2/web/test/fixture-scratch.test.ts` | Cổng writer upload cho host không phải Linux; seed project/ticket và snapshot tài liệu qua API owner thật cho e2e |
+ | `v2/web/src/ticket-routes.tsx`, `v2/web/src/docs-route.tsx` | View route ticket (bảng/danh sách/yêu cầu có URL state, dialog dùng chung, trang ticket deep link) và không gian tài liệu |
+ | `v2/web/test/ticket-routes.test.ts`, `v2/web/e2e/ticket-routes.spec.ts`, `v2/web/e2e/docs-assistant.spec.ts` | Match route, search, compose services, xóa nháp khi logout; deep link/reload/404/URL state/nháp và không gian tài liệu trên API/PG thật (snapshot import qua `POST /v2/docs/imports`; phần Trợ lý chờ producer) |
+ 
+ ## Dữ liệu
+ 
+ Mỗi lần mount có đúng một `AppRuntime`, nên một `QueryClient`, một phiên và một stream sự kiện; dữ liệu nhạy cảm không vào module-global state. Nội dung `/` và `/projects/$projectId` vẫn là bản minh họa phía sau đăng nhập, chưa đọc project/ticket/Assistant thật. Fixture chỉ xuất origin và resource identity không bí mật; owner password, cookie và token chỉ ở memory của run, không đưa vào screenshot/report/registry.
+ 
+ ## Flow liên quan
+ 
+ `v2/docs/flows/server-platform.md` định nghĩa migration và DB v2; `v2/docs/flows/server-identity.md` định nghĩa bootstrap/login owner. Các trang nghiệp vụ Phase07 Task2–8 sẽ dùng shell này sau khi producer gate tương ứng mở.
+ 
+ ## Tests
+ 
+-Workspace RED đầu tiên exit 1 bằng assertion thiếu `package.json`, sau scaffold workspace 1/1 PASS. Lifecycle RED trên deny scaffold có 3 assertion thất bại đúng hành vi thiếu callback/identity/STOP. Preview SIGTERM child từng RED thực: tài nguyên cleanup nhưng process không tự exit; đã GREEN. Review FIX1 phát hiện request gửi dở có thể giữ `close()` chờ vô hạn; test HTTP thật RED với `ACTIVE_REQUEST_CLOSE_DEADLINE`, sau sửa hủy socket thuộc fixture và deadline cleanup thì GREEN. Lượt final sau format đạt lifecycle 5/5 trên PostgreSQL18.6/API/web listener thật: POST login, GET session trực tiếp và qua proxy `/v2`, close lặp, active request, SIGTERM child exit0/cleanup; hai case UNKNOWN là unit policy. Scoped Biome và strict typecheck sau FIX1 exit0; web build 150 modules và workspace 1/1 thuộc freeze UI trước FIX1, vì FIX1 chỉ đổi harness/test. Exact container ID, image digest, DB, cổng, process, scratch và STOP độc lập, cùng raw logs có hash của FIX1, được ghi trong báo cáo Phase07. Preview Playwright MCP cuối trên source UI đã xác nhận Enter skip link chuyển focus vào `MAIN#main-content`, error console 0, viewport thật 1280/390/640 px đều không tràn. Viewport 640px là kiểm tra bố cục tương đương; literal browser zoom 200% chưa đo được vì shortcut không đổi zoom metrics. Fixture preview đã đóng và exact resource biến mất. FIX2 bổ sung guard sau stat để không khởi chạy rm sau REMOVE timeout; focused unit RED/GREEN và scoped Biome đã có. Full lifecycle6 và strict typecheck trên freeze FIX2 chưa chạy do resource gate, independent scoped FIX2 review chưa hoàn tất. Đây là checkpoint source, chưa nghiệm thu đầy đủ Task1; các trang nghiệp vụ Task2–8 nằm ngoài nghiệm thu shell này.
++Workspace RED đầu tiên exit 1 bằng assertion thiếu `package.json`, sau scaffold workspace 1/1 PASS. Lifecycle RED trên deny scaffold có 3 assertion thất bại đúng hành vi thiếu callback/identity/STOP. Preview SIGTERM child từng RED thực: tài nguyên cleanup nhưng process không tự exit; đã GREEN. Review FIX1 phát hiện request gửi dở có thể giữ `close()` chờ vô hạn; test HTTP thật RED với `ACTIVE_REQUEST_CLOSE_DEADLINE`, sau sửa hủy socket thuộc fixture và deadline cleanup thì GREEN. Lượt final sau format đạt lifecycle 5/5 trên PostgreSQL 18.6/API/web listener thật: POST login, GET session trực tiếp và qua proxy `/v2`, close lặp, active request, SIGTERM child exit0/cleanup; hai case UNKNOWN là unit policy. Scoped Biome và strict typecheck sau FIX1 exit0; web build 150 modules và workspace 1/1 thuộc freeze UI trước FIX1, vì FIX1 chỉ đổi harness/test. Exact container ID, image digest, DB, cổng, process, scratch và STOP độc lập, cùng raw logs có hash của FIX1, được ghi trong báo cáo Phase07. Preview Playwright MCP cuối trên source UI đã xác nhận Enter skip link chuyển focus vào `MAIN#main-content`, error console 0, viewport thật 1280/390/640 px đều không tràn. Viewport 640px là kiểm tra bố cục tương đương; literal browser zoom 200% chưa đo được vì shortcut không đổi zoom metrics. Fixture preview đã đóng và exact resource biến mất. FIX2 bổ sung guard sau stat để không khởi chạy rm sau REMOVE timeout; focused unit RED/GREEN và scoped Biome đã có. Full lifecycle6 và strict typecheck trên freeze FIX2 chưa chạy do resource gate, independent scoped FIX2 review chưa hoàn tất. Đây là checkpoint source, chưa nghiệm thu đầy đủ Task1; các trang nghiệp vụ Task2–8 nằm ngoài nghiệm thu shell này.
+ 
+ `web/test/app-wiring.test.ts` nạp `app-runtime.ts` qua Vite SSR (Node không đọc được JSX trong `session-boundary.tsx`) và kiểm: stream catch-up đi trước GET dữ liệu đầu tiên, query không retry mặc định, route chưa xác thực bị chuyển tới login kèm return path nội bộ, URL ngoài bị loại, logout và hết phiên xóa cache và dừng stream. Hai spec `auth.spec.ts` và `events.spec.ts` của flow web-data vẫn mount `SessionBoundary` vào root `#task2-harness` và ẩn app thật; vì app thật nay có form đăng nhập nên chúng chỉ tìm ô “Mật khẩu” trong root đó. `web/e2e/app-router.spec.ts` chạy router thật qua fixture PostgreSQL/API/Vite: guest vào `/crew-v2/projects/abc?x=1` bị chuyển tới `/crew-v2/login?returnTo=…`, đăng nhập quay về đúng path, request `GET /v2/events` đi trước mọi GET khác sau bước xác minh phiên, `returnTo` là URL ngoài rơi về `/crew-v2/`, và đăng xuất làm request stream bị hủy; test thứ hai của spec này mở deep link ticket và khẳng định `GET /v2/tickets/<id>` đứng sau `GET /v2/events` catch-up của phiên vừa xác minh; khi còn là guest (kể cả sau khi tải lại trang đăng nhập) không có request `/v2/events` nào được gửi.
+diff --git a/v2/docs/flows/web-ticket-map.md b/v2/docs/flows/web-ticket-map.md
+index a61bf69..c1269e6 100644
+--- a/v2/docs/flows/web-ticket-map.md
++++ b/v2/docs/flows/web-ticket-map.md
+@@ -4,41 +4,41 @@
+ 
+ Flow này vẽ cả cây của một yêu cầu: yêu cầu gốc ở bên trái, các bước rồi công việc trải sang phải. Sơ đồ chỉ đọc. Bấm một thẻ mở đúng `TicketDialog`/`TicketDetail` dùng chung với bảng và danh sách (flow `web-tickets`). Bảng và danh sách đọc list query (`queryKeys.tickets`), sơ đồ đọc graph query (`queryKeys.graph`), hộp thoại đọc ticket query. Các query khác nhau nhưng cùng producer và cùng event invalidation (`ticket.*` làm cũ cả `tickets`, `graphs` và `ticket`), nên sau mỗi event cả ba hiện cùng phiên bản (`revision`) cuối. Mọi quan hệ của producer (cha/con, phụ thuộc, vòng sửa) được vẽ đúng một lần với đúng hai đầu thật. Sơ đồ không tự suy ra cạnh nào và không bỏ cạnh nào.
+ 
+ ## Điểm vào
+ 
+ - `web/src/graph/ticket-map-route.tsx`: điểm vào mà router nạp lazy (`lazyRouteComponent`). Module này import stylesheet `@xyflow/react/dist/style.css` rồi re-export hai trang, nên cả ReactFlow lẫn CSS của nó nằm ở chunk riêng. `ticket-map.tsx` không import CSS để `node --test` nạp được.
+ - `web/src/graph/ticket-map.tsx` → `RequestMapPage`: route `/requests/$rootId/map?ticket=<uuid>` (theo `phase-07-web.md`). Dự án lấy từ chính ticket gốc (liên kết dạng bảng/danh sách, ô chọn yêu cầu), nên sơ đồ không bao giờ hiện dưới trang của dự án khác. `ProjectMapPickerPage`: route `/projects/$projectId/map` là trang chọn yêu cầu của dự án (GET `/v2/tickets?level=request&…`, kèm “Tải thêm”). Link cũ dạng `/projects/<id>/map?root=<uuid>[&ticket=]` được router redirect (replace) sang `/requests/<root>/map[?ticket=]`. `TicketMap({ rootId, selectedTicketId, onSelectTicket, onRootResolved? })` là phần sơ đồ, dùng được độc lập với router.
+ - `web/src/graph/project.ts` → `projectGraph(input, rootId, expanded)`, `canonicalEdges`, `expandableIds`, `hiddenRelationCounts`, `nodeRelations`, `resolveRootId`: phép chiếu thuần từ `TicketGraph` sang `MapProjection`.
+-- `web/src/graph/layout.ts` → `layoutHierarchy`, `placeNewNodes`, `neighbourInDirection`: bố cục thuần và điều hướng bàn phím.
++- `web/src/graph/layout.ts` → `layoutHierarchy`, `relayoutAround`, `followAnchor`, `initialViewport`, `neighbourInDirection`: bố cục thuần, neo viewport và điều hướng bàn phím.
+ - `web/src/graph/state.ts` → `MapViewState`, `closeMapDialog`, `openMapDialog`, `moveMapViewport`, `toggleMapExpanded`, `setMapExpanded`, `readMapView`/`writeMapView`, `parseMapSearch`.
+ - `web/src/graph/ticket-node.tsx` → `TicketNode` và `web/src/graph/ticket-edge.tsx` → `ParentEdge`, `DependencyEdge`, `RepairEdge`.
+ - Lối vào từ giao diện: liên kết “Sơ đồ” trên thanh chọn cách xem của `/projects/$projectId/tickets` (flow `web-shell`). Nếu đang lọc theo `rootId` thì liên kết đi thẳng tới `/requests/<rootId>/map`, nếu không thì tới trang chọn yêu cầu của dự án.
+ 
+ ## Các bước
+ 
+ 1. `parseMapSearch` (dùng trong `validateSearch` của hai route) chỉ giữ `root` và `ticket` khi là UUID, rồi đổi sang chữ thường; `rootId` trên path không phải UUID thì hiện “Không tìm thấy yêu cầu”. Giá trị khác bị bỏ trước khi kịp tạo request, nên `?ticket=` sai không gây request hay mutation nào.
+ 2. `TicketMap` đọc GET `/v2/tickets/:root/graph` qua `useTicketGraph` (`queryKeys.graph(root)`). Producer trả một snapshot nhất quán của cả cây (P-G1a2, đọc trong một giao dịch REPEATABLE READ). Gọi bằng ID của một ticket con vẫn nhận cả cây: `resolveRootId` lấy `rootId` của node, `onRootResolved` báo trang thay path bằng `/requests/<gốc thật>/map` (replace). Event `ticket.*`, `dependency.added`, `repair.recorded`, `comment.created`… invalidate prefix `graphs` (flow `web-data`). TanStack hủy GET đang chạy và đọc lại cả cây, nên không bao giờ vá từng cạnh lẻ.
+ 3. `projectGraph` gộp node trùng ID (giữ revision mới hơn), rồi dựng cạnh với ID cố định: `parent:<cha>:<con>`, `dependency:<predecessor>:<ticket>` (mũi tên từ việc phải xong trước sang việc phụ thuộc) và `repair:<cycle>:<check>:<fix>`. Hai cạnh khác loại nối cùng hai đầu (ví dụ bước kiểm tra là cha của task sửa và cũng có vòng sửa tới task đó) được giữ cả hai. Mặc định root và các bước hiện. Task chỉ hiện khi bước cha của nó được mở. Cạnh có một đầu là task đang ẩn chuyển sang `hiddenEdges`, giữ nguyên hai đầu thật, không gán sang bước. `hiddenRelationCounts` đếm số quan hệ phụ thuộc/vòng sửa chạm tới công việc đang thu gọn để hiện badge “n quan hệ tới công việc thu gọn” trên bước. “Mở tất cả” mở mọi bước có task (`expandableIds`), “Thu gọn tất cả” đóng hết.
+ 4. Kiểm tra dữ liệu ra `diagnostics` (đã sắp xếp): `DUPLICATE_ID`, `ROOT_MISSING`, `ROOT_MULTIPLE`, `ROOT_MISMATCH`, `PROJECT_MISMATCH`, `PARENT_MISSING`, `LEVEL_INVALID` (bước phải dưới yêu cầu, task phải dưới bước), `PARENT_CYCLE`, `DEPENDENCY_CYCLE` (chỉ các node trên vòng), `DEPENDENCY_DANGLING`, `REPAIR_DANGLING`. Node mồ côi hay sai cấp vẫn ở trong `nodes`, không bị bỏ. Vòng chỉ do quan hệ sửa lỗi (repair cộng phụ thuộc) không phải lỗi, vì đó là lịch sử chứ không phải DAG lập lịch. Khi có diagnostic, giao diện hiện cảnh báo “Dữ liệu sơ đồ chưa nhất quán”, nút “Tải lại” và danh sách thay thế chứa mọi ticket, không vẽ sơ đồ từ dữ liệu rách.
+-5. `layoutHierarchy` chỉ dùng cạnh cha/con. Cột theo độ sâu, mỗi cột cách nhau 320 + 100 px. Lá xếp theo ID anh em, hàng cách 24 px (thẻ cao 112 px). Cha nằm giữa con đầu và con cuối. Phụ thuộc và vòng sửa chỉ là lớp vẽ đè, không đổi vị trí. Duyệt cây bằng stack tường minh nên chuỗi cha rất sâu không tràn stack. Node không tới được từ gốc (mồ côi, vòng cha) được xếp bên dưới cây. Khi dữ liệu realtime về hoặc có node con mới trong lúc sơ đồ đang mở, `placeNewNodes` giữ nguyên chỗ của mọi thẻ đang hiện và chỉ đặt thẻ mới: cạnh cha, dưới con thấp nhất của cha. Nếu ô đó đã có thẻ nào đang hiện (kể cả task của bước khác đang mở), thẻ mới dời xuống ô trống đầu tiên của cột. Ô bị chiếm được tra theo từng cột. Khi owner đổi cấu trúc (mở/thu gọn một bước, “Mở tất cả”, “Thu gọn tất cả”), `relayoutAround` chạy `layoutHierarchy` cho cả cây, nên mọi task nằm liền bước cha. Sau đó viewport dịch đúng bằng độ lệch của node neo (`followAnchor`), nên node neo đứng yên trên màn hình. Node neo là bước vừa bấm; với “tất cả” là thẻ đang có focus, chưa có focus thì là root. Nếu node neo không còn hiện (task đang focus bị thu gọn) thì root làm neo. “Sắp xếp lại” bố cục toàn bộ mà không dịch viewport (ruling PM). Tải lại trang thì bố cục mới từ đầu, vì vị trí không được lưu. Vị trí là state dẫn xuất, được cập nhật trong lúc render theo projection và yêu cầu bố cục lại (không ghi ref trong `useMemo`). Viewport dịch trong `useLayoutEffect`, mỗi yêu cầu một lần. Không dùng engine bố cục ngoài.
+-6. ReactFlow chạy chỉ đọc: tắt kéo node, nối cạnh, chọn và xóa (`deleteKeyCode=null`), tắt bàn phím mặc định của ReactFlow. Mỗi thẻ là một `<button>` có nhãn “<Cấp>: <tiêu đề>. Trạng thái: <nhãn>. Phiên bản <n>”. Trạng thái hiện bằng biểu tượng kèm chữ (`statusIcons`/`statusLabels`), không dựa vào màu. Enter/Space mở hộp thoại. Mũi tên trái về cha, phải tới con trên cùng, lên/xuống tới thẻ gần nhất cùng cột; thẻ ngoài khung nhìn được đưa vào giữa rồi mới nhận focus. Thẻ đang có focus hiện bảng “Quan hệ của …” liệt kê đủ ID cha, con, việc phải xong trước, việc phụ thuộc và vòng sửa. Cạnh cha/con là đường gấp khúc liền màu trung tính. Cạnh phụ thuộc là nét đứt có mũi tên và chữ “phải xong trước”. Cạnh vòng sửa là đường cong chấm, ghi “Vòng sửa <8 ký tự đầu của cycle>”. Thẻ có kích thước cố định nên khai báo `measured` và handle cố định cho ReactFlow; nhờ vậy “Vừa khung” tính đúng cả thẻ ngoài màn hình (ReactFlow chỉ mount thẻ trong khung nhìn, `onlyRenderVisibleElements`). Wrapper của thẻ đặt `pointerEvents: 'all'`, vì ReactFlow tắt pointer event của node không chọn được và không kéo được. Khung sơ đồ cao vừa tới đáy cửa sổ (đo vị trí khung khi trang ở đầu, tối thiểu 352 px; đo lại bằng `ResizeObserver` trên trang và `body` khi nội dung phía trên đổi cỡ, và khi resize cửa sổ), nên “Vừa khung” hiện cả cây mà không phải cuộn. Thanh điều khiển có “Phóng to”, “Thu nhỏ”, “Vừa khung”, “Sắp xếp lại”, “Mở tất cả”, “Thu gọn tất cả” và “Xem dạng danh sách”.
+-7. `MapViewState` (viewport, bước đang mở, thẻ đang chọn và thẻ có focus) được giữ theo từng root trong tab storage của runtime (`crew-v2:map-view:<rootId>`), dữ liệu chỉ gồm ID và số. `readMapView` kiểm tra lại dữ liệu khi đọc; dữ liệu hỏng bị bỏ. Storage đầy hoặc không có thì sơ đồ vẫn chạy bằng bộ nhớ. `onMoveEnd` lưu viewport. Root chưa có trạng thái được fit một lần; sau đó dữ liệu realtime không bao giờ fit lại, chỉ nút “Vừa khung” mới fit.
++5. `layoutHierarchy` chỉ dùng cạnh cha/con. Mật độ theo mockup owner duyệt (`ui-evidence/design-map-mockup.html`): thẻ 280×48, cột cách 56 px, hàng cách 10 px. Lá xếp theo ID anh em; cha nằm giữa con đầu và con cuối. Phụ thuộc và vòng sửa chỉ là lớp vẽ đè, không đổi vị trí. Duyệt cây bằng stack tường minh nên chuỗi cha rất sâu không tràn stack. Node không tới được từ gốc (mồ côi, vòng cha) được xếp bên dưới cây. Mọi thay đổi của cây đang hiện đều bố cục lại toàn bộ bằng `relayoutAround`, gồm owner mở/thu gọn một bước, “Mở tất cả”, “Thu gọn tất cả”, và dữ liệu realtime (owner chốt delta 2, thay ruling cũ “giữ vị trí khi realtime”). Nhờ vậy cha luôn nằm giữa các con, task luôn liền bước cha và không thẻ nào chồng thẻ nào. Sau đó viewport dịch đúng bằng độ lệch của node neo (`followAnchor`), nên node neo đứng yên trên màn hình. Node neo là bước vừa bấm; với “tất cả” và với dữ liệu realtime là thẻ đang có focus, chưa có focus thì là root. Node neo không còn hiện thì root làm neo. “Sắp xếp lại” bố cục mà không dịch viewport. Tải lại trang thì bố cục mới từ đầu (vị trí không được lưu). Vị trí là state dẫn xuất, cập nhật trong lúc render theo projection và yêu cầu bố cục lại. Viewport dịch trong `useLayoutEffect`, mỗi lần bố cục một lần. Không dùng engine bố cục ngoài.
++6. ReactFlow chạy chỉ đọc: tắt kéo node, nối cạnh, chọn và xóa (`deleteKeyCode=null`), tắt bàn phím mặc định của ReactFlow. Cuộn chuột là cuộn (`panOnScroll`), zoom bằng pinch hoặc phím bổ trợ của ReactFlow. Thẻ theo mockup: nền `#1c1f23`, viền `#2b2f35` 1 px, bo 4 px; thẻ có focus viền `#8ab4ff` 2 px. Dòng trên là chấm trạng thái (màu: xong `#3fb27f`, đang chạy `#4c9aff`, chờ bạn/tạm dừng `#f0a24a`, còn lại `#6b7280`) kèm tiêu đề. Dòng phụ chỉ dùng trường producer: “Yêu cầu”/“Sửa” (đích của repair link)/cấp, workflow đã ghim nếu có, rồi nhãn trạng thái. Không có giờ cập nhật, vì `Ticket` chưa có trường thời gian; không bịa thời lượng hay token (delta 6). Chấm chỉ để trang trí (`aria-hidden`); trạng thái luôn có bằng chữ ở dòng phụ và trong nhãn truy cập. Mỗi thẻ là một `<button>` có nhãn “<Cấp>: <tiêu đề>. Trạng thái: <nhãn>. Phiên bản <n>”. Bước có task có nút “▸/▾ n việc” cao ≥ 24 px, cùng badge “⇄ n” mang nhãn “n quan hệ tới công việc thu gọn”. Enter/Space mở hộp thoại. Mũi tên trái về cha, phải tới con trên cùng, lên/xuống tới thẻ gần nhất cùng cột; thẻ ngoài khung nhìn được đưa vào giữa rồi mới nhận focus. Thẻ đang có focus hiện bảng “Quan hệ của …” liệt kê đủ ID cha, con, việc phải xong trước, việc phụ thuộc và vòng sửa. Cạnh cha/con là ngoặc vuông 1 px `#3a3f46`, thân dọc cách cha 28 px. Cạnh phụ thuộc là nét đứt `#8ab4ff` có mũi tên và chữ “phải xong trước”. Cạnh vòng sửa là đường cong chấm `#d4a72c`, ghi “sửa vòng <8 ký tự đầu của cycle>”: producer chỉ lưu `cycleId`, không có số thứ tự vòng, nên không đánh số. Thẻ có kích thước cố định nên khai báo `measured` và handle cố định cho ReactFlow; nhờ vậy “Vừa khung” tính đúng cả thẻ ngoài màn hình (`onlyRenderVisibleElements`). Wrapper của thẻ đặt `pointerEvents: 'all'`. Sơ đồ là một trang nhưng khung trông như modal của mockup (delta 11). Đầu trang có breadcrumb “Dự án › Yêu cầu › tiêu đề gốc”. Header khung có tiêu đề “Sơ đồ ticket”, phụ đề “N ticket · bấm vào thẻ để xem chi tiết” (N là số ticket của cả cây), nhóm chế độ xem Bảng/Danh sách/Sơ đồ (Sơ đồ là trang hiện tại), các nút “Vừa khung”, “Sắp xếp lại”, “Mở tất cả”, “Thu gọn tất cả”, “+”/“−” (nhãn “Phóng to”/“Thu nhỏ”) và “Xem dạng danh sách”. Đáy khung là chú giải trạng thái và ba loại cạnh. Khung cao vừa tới đáy cửa sổ, chừa chỗ cho chú giải (tối thiểu 352 px; đo lại bằng `ResizeObserver` trên trang và `body`, và khi resize cửa sổ).
++7. `MapViewState` (viewport, bước đang mở, thẻ đang chọn và thẻ có focus) được giữ theo từng root trong tab storage của runtime (`crew-v2:map-view:<rootId>`), dữ liệu chỉ gồm ID và số. `readMapView` kiểm tra lại dữ liệu khi đọc; dữ liệu hỏng bị bỏ. Storage đầy hoặc không có thì sơ đồ vẫn chạy bằng bộ nhớ. `onMoveEnd` lưu viewport. Root chưa có trạng thái mở ở 1:1 (`initialViewport`): root cách mép trái 24 px và nằm giữa chiều cao khung, cây dài thì cuộn như ảnh tham chiếu. Không fit mặc định; chỉ nút “Vừa khung” mới fit. Dữ liệu realtime không bao giờ fit, chỉ dịch theo neo.
+ 8. Thẻ đang mở nằm trong URL (`?ticket=`). Mở trong app thì push một mục history có state `crewMapDialog: <rootId>`. Khi đóng (X/Escape), `closeMapDialogNavigation` chỉ chọn `history.back()` khi mục hiện tại mang đúng dấu đó của root này, tức mục trước là chính sơ đồ. Vì vậy Back không bao giờ mở lại thứ vừa đóng, và mỗi lần xem ticket không để lại mục thừa. Mục không có dấu (deep link, mục do thứ khác push) thì đóng bằng `replace`. Back khi dialog đang mở là đóng dialog (`phase-07-web.md`: Close X/Escape/Back bỏ query ticket); reload mở lại đúng ticket. `TicketDialog` được render cạnh sơ đồ, nên sơ đồ vẫn mount khi hộp thoại mở. `closeMapDialog` chỉ đặt `selectedTicketId=null`; viewport, bước đang mở và thẻ có focus giữ nguyên. Khi đóng, focus về thẻ đã mở hộp thoại. Nếu thẻ đó đã biến mất (dữ liệu mới không còn node), focus về khung sơ đồ (`[data-focus-fallback]`, `tabIndex=-1`).
+-9. Màn hẹp (≤ 40rem, gồm 390 px và 1280 px ở zoom 200%) mặc định hiện danh sách tương đương: mọi ticket theo thứ tự cây, thụt lề theo độ sâu, kèm cấp, trạng thái, phiên bản, việc phải xong trước và vòng sửa. Mỗi dòng mở cùng hộp thoại. Dòng “Bước đang làm” chỉ dựa vào trạng thái `running`/`needs_input` của producer.
++9. Màn hẹp (≤ 40rem, gồm 390 px và 1280 px ở zoom 200%) mặc định hiện danh sách tương đương: mọi ticket theo thứ tự cây, thụt lề theo độ sâu, kèm cấp, trạng thái, phiên bản, việc phải xong trước và vòng sửa. Mỗi dòng mở cùng hộp thoại. Dòng “Bước đang làm” chỉ hiện ở dạng danh sách và chỉ dựa vào trạng thái `running`/`needs_input` của producer.
+ 
+ ## Dữ liệu
+ 
+ `MapEdge = { id, source, target, kind: 'parent' | 'dependency' | 'repair', cycleId? }`, `MapProjection = { rootId, nodes, edges, hiddenEdges, diagnostics }`, `MapViewState = { rootId, viewport: { x, y, zoom }, expanded, selectedTicketId, focusedTicketId }`. DTO lấy từ `web/src/contracts/tickets.ts` (`Ticket`, `TicketGraph`), không khai báo lại. Repair link không có thứ tự vòng: producer chỉ lưu `cycleId` (UUID), nên sơ đồ ghi cycle chứ không tự đánh số.
+ 
+ Hiệu năng: chiếu và bố cục 801 node (200 bước, 600 task, 599 phụ thuộc) chạy dưới 500 ms trong unit test (đo được khoảng 9 ms). Trên máy fixture (Apple M4, 10 nhân, 16 GiB, macOS 25.6, Chromium 153, fixture Task1 gồm PostgreSQL 18.6, Fastify và Vite dev), từ lúc bấm “Sơ đồ” tới khi thẻ gốc hiện và thanh điều khiển dùng được mất 193–203 ms; tải lại cả trang qua Vite dev mất 205–208 ms. Chưa đo trên máy của owner. Bằng chứng ở `plans/261002-0002-crew-v2/execution-phase07/ui-evidence/task-4/perf-801.json`.
+ 
+ ## Flow liên quan
+ 
+ `web-tickets.md` sở hữu `TicketDialog`, `TicketDetail`, `useTicketGraph`/`useTicketList` và nhãn trạng thái. `web-data.md` sở hữu query key và event invalidation. `web-shell.md` sở hữu router (route `/requests/$rootId/map`, `/projects/$projectId/map` và redirect) và liên kết “Sơ đồ”. `server-tickets.md` định nghĩa GET `/v2/tickets/:id/graph` và POST `/v2/tickets/:id/dependencies`.
+ 
+ ## Tests
+ 
+-- `web/test/graph.test.ts` (19 test thuần; FIX2 thêm: “Mở tất cả” bằng `relayoutAround` cho task liền bước, không chồng, root đứng yên trên màn hình; mở/thu gọn một bước thì bước đó đứng yên, neo vắng thì viewport giữ nguyên; FIX1 thêm: task realtime không đè task của bước khác đang mở; mở bước giữ chỗ mọi thẻ và không chồng; mở tất cả 801 node bằng `placeNewNodes` không chồng và dưới 500 ms): root → hai bước song song → bước join, so mọi cặp phụ thuộc trước và sau khi chiếu (không thêm, không mất, không chuỗi tự suy); cạnh task thu gọn giữ đầu thật trong `hiddenEdges`; mở một bước, mở tất cả; badge; vòng sửa 1–5 kèm cạnh cha cùng đầu và vòng repair/phụ thuộc không làm layout lặp; đọc từ ticket con; kết quả không phụ thuộc thứ tự input; số đo layout (cột 420, hàng 136, cha ở giữa); dữ liệu hỏng đủ 11 loại diagnostic mà không bỏ node, không chồng thẻ; thiếu root; chuỗi cha 20 000 tầng; 801 node dưới 500 ms; giữ vị trí khi có node mới; bảng quan hệ; điều hướng bàn phím.
+-- `web/test/graph-state.test.ts` (15 test; FIX2 thay test mở/thu gọn: bước vừa bấm đứng yên khi mở và thu gọn, task liền bước, root đứng yên khi “Mở tất cả”, thẻ đang focus đứng yên khi “Thu gọn tất cả”; thêm `closeMapDialogNavigation` chỉ lùi khi mục mang dấu của root, và khung đo lại chiều cao khi `ResizeObserver` báo): 5 test thuần (đóng hộp thoại giữ vùng đang xem, đúng regression của brief; mở/di chuyển; mở/thu gọn; lưu theo root và bỏ dữ liệu hỏng/storage đầy; search của route). 7 test component trên jsdom + RTL với client/session thật của Task2 và producer giả trong bộ nhớ: nhãn truy cập, badge, chữ “phải xong trước”, wrapper thẻ nhận pointer event, không có mutation; mở thẻ ra `TicketDetail` chung rồi đóng giữ viewport/bước đang mở và trả focus về thẻ; realtime đọc lại cả graph, hủy GET cũ, không fit lại và giữ vị trí; thẻ biến mất thì focus về khung; mũi tên và bảng quan hệ; dữ liệu rách hiện cảnh báo, “Tải lại” và danh sách thay thế; mở từ URL. File tự gắn stub `ResizeObserver`, `DOMMatrixReadOnly`, `requestAnimationFrame` và kích thước phần tử, vì jsdom không có layout.
+-- `web/e2e/ticket-map.spec.ts` (4 test) chạy trên API, PostgreSQL và Vite thật của fixture Task1. Ticket và phụ thuộc được tạo qua route owner thật. Riêng `repair_links` được ghi thẳng vào DB của fixture, vì route duy nhất ghi bảng này (`POST /v2/tickets/:id/repair-results`) là route của máy, cần bước kiểm tra đang chạy cùng attempt và evidence. A4: graph đọc từ ticket con bằng graph đọc từ gốc; mọi cạnh vẽ ra khớp đúng graph của producer; viewport zoom 1,7 khôi phục sau reload; kéo tay; mở thẻ ra hộp thoại chung, gửi bình luận thật; Escape thì lệch x/y ≤ 1 px, lệch zoom ≤ 0,001 và focus về thẻ; bước mới tạo lúc đang xem hiện mà không fit lại; đóng dialog mở trong app rồi Forward mở lại, Back đóng; mở lại rồi Back đóng; deep link `?ticket` đóng bằng replace và Back/Forward không mở lại; link cũ `/projects/<id>/map?root=` redirect sang `/requests/<root>/map` và liên kết dạng bảng trỏ đúng dự án của gốc; root đứng yên khi “Mở tất cả”, bước C đứng yên khi thu gọn rồi mở lại (sai số ≤ 1 px); sau “Vừa khung” khung nằm trong cửa sổ 1440×1000, mọi thẻ nằm trong khung, không hai thẻ nào chồng nhau và task nằm liền bước cha; `?ticket` sai không gửi request; bàn phím; ID con trên URL đổi về gốc. G1: sáu task và các phụ thuộc tạo đồng thời khi sơ đồ đang mở; sơ đồ khớp revision cuối, không cạnh treo, không hai thẻ nào chồng nhau (so bounding box thật); “Sơ đồ” không có `rootId` mở trang chọn yêu cầu rồi tới route của gốc; bảng và danh sách cùng revision. 390 px và 640 px: danh sách tương đương, không tràn ngang, mở hộp thoại, focus quay về dòng. Hiệu năng 801 node ghi `perf-801.json`. Ảnh bằng chứng nằm ở `plans/261002-0002-crew-v2/execution-phase07/ui-evidence/task-4/`.
++- `web/test/graph.test.ts` (19 test thuần; FIX2 thêm: “Mở tất cả” bằng `relayoutAround` cho task liền bước, không chồng, root đứng yên trên màn hình; mở/thu gọn một bước thì bước đó đứng yên, neo vắng thì viewport giữ nguyên; FIX1 thêm: task realtime không đè task của bước khác đang mở; mở bước giữ chỗ mọi thẻ và không chồng; mở tất cả 801 node bằng `placeNewNodes` không chồng và dưới 500 ms): root → hai bước song song → bước join, so mọi cặp phụ thuộc trước và sau khi chiếu (không thêm, không mất, không chuỗi tự suy); cạnh task thu gọn giữ đầu thật trong `hiddenEdges`; mở một bước, mở tất cả; badge; vòng sửa 1–5 kèm cạnh cha cùng đầu và vòng repair/phụ thuộc không làm layout lặp; đọc từ ticket con; kết quả không phụ thuộc thứ tự input; số đo layout (cột 336, hàng 58, cha ở giữa); dữ liệu hỏng đủ 11 loại diagnostic mà không bỏ node, không chồng thẻ; thiếu root; chuỗi cha 20 000 tầng; 801 node dưới 500 ms; bảng quan hệ; điều hướng bàn phím.
++- `web/test/graph-state.test.ts` (19 test; dialog mở từ sơ đồ theo màn 2: chấm trạng thái, dòng phụ “Công việc · Bước A · Yêu cầu gốc”, ô Trạng thái/Máy · model và không có ô Cập nhật khi chưa có dữ liệu; polish thêm: realtime làm cây căn lại với cha giữa các con, root hoặc thẻ đang focus làm neo đứng yên, zoom giữ nguyên; thẻ theo mockup (dòng tiêu đề/dòng phụ, chấm trạng thái `aria-hidden`, viền focus), header kiểu modal và chú giải; root mới mở 1:1 ở mép trái giữa khung; FIX2 thay test mở/thu gọn: bước vừa bấm đứng yên khi mở và thu gọn, task liền bước, root đứng yên khi “Mở tất cả”, thẻ đang focus đứng yên khi “Thu gọn tất cả”; thêm `closeMapDialogNavigation` chỉ lùi khi mục mang dấu của root, và khung đo lại chiều cao khi `ResizeObserver` báo): 5 test thuần (đóng hộp thoại giữ vùng đang xem, đúng regression của brief; mở/di chuyển; mở/thu gọn; lưu theo root và bỏ dữ liệu hỏng/storage đầy; search của route). 7 test component trên jsdom + RTL với client/session thật của Task2 và producer giả trong bộ nhớ: nhãn truy cập, badge, chữ “phải xong trước”, wrapper thẻ nhận pointer event, không có mutation; mở thẻ ra `TicketDetail` chung rồi đóng giữ viewport/bước đang mở và trả focus về thẻ; realtime đọc lại cả graph và hủy GET cũ; thẻ biến mất thì focus về khung; mũi tên và bảng quan hệ; dữ liệu rách hiện cảnh báo, “Tải lại” và danh sách thay thế; mở từ URL. File tự gắn stub `ResizeObserver`, `DOMMatrixReadOnly`, `requestAnimationFrame` và kích thước phần tử, vì jsdom không có layout.
++- `web/e2e/ticket-map.spec.ts` (4 test) chạy trên API, PostgreSQL và Vite thật của fixture Task1. Ticket và phụ thuộc được tạo qua route owner thật. Riêng `repair_links` được ghi thẳng vào DB của fixture, vì route duy nhất ghi bảng này (`POST /v2/tickets/:id/repair-results`) là route của máy, cần bước kiểm tra đang chạy cùng attempt và evidence. A4: graph đọc từ ticket con bằng graph đọc từ gốc; mọi cạnh vẽ ra khớp đúng graph của producer; viewport zoom 1,7 khôi phục sau reload; kéo tay; mở thẻ ra hộp thoại chung, gửi bình luận thật; Escape thì lệch x/y ≤ 1 px, lệch zoom ≤ 0,001 và focus về thẻ; bước mới tạo lúc đang xem làm cây căn lại, thẻ đang focus đứng yên, zoom giữ nguyên; đóng dialog mở trong app rồi Forward mở lại, Back đóng; mở lại rồi Back đóng; deep link `?ticket` đóng bằng replace và Back/Forward không mở lại; link cũ `/projects/<id>/map?root=` redirect sang `/requests/<root>/map` và liên kết dạng bảng trỏ đúng dự án của gốc; root đứng yên khi “Mở tất cả”, bước C đứng yên khi thu gọn rồi mở lại (sai số ≤ 1 px); sau “Vừa khung” khung nằm trong cửa sổ 1440×1000, mọi thẻ nằm trong khung, không hai thẻ nào chồng nhau và task nằm liền bước cha; `?ticket` sai không gửi request; bàn phím; ID con trên URL đổi về gốc. G1: sáu task và các phụ thuộc tạo đồng thời khi sơ đồ đang mở; root (neo) đứng yên; sơ đồ khớp revision cuối, không cạnh treo, không hai thẻ nào chồng nhau (so bounding box thật), mỗi bước nằm giữa các task của nó; “Sơ đồ” không có `rootId` mở trang chọn yêu cầu rồi tới route của gốc; bảng và danh sách cùng revision. 390 px và 640 px: danh sách tương đương, không tràn ngang, mở hộp thoại, focus quay về dòng. Hiệu năng 801 node ghi `perf-801.json`. Ảnh bằng chứng nằm ở `plans/261002-0002-crew-v2/execution-phase07/ui-evidence/task-4/`, kèm `side-by-side-map-vs-mockup.png` và `side-by-side-dialog-vs-mockup.png` (ảnh ứng dụng đặt cạnh mockup; ảnh dialog chụp phần đầu `dialog-header-from-map.png`).
+ - Chưa kiểm: dán ảnh vào composer trong hộp thoại từ sơ đồ. Fixture chưa cấu hình extractor (submission có tệp trả 503 `EXTRACTION_NOT_CONFIGURED`), nên A4 chỉ dùng bình luận văn bản.
+diff --git a/v2/docs/flows/web-tickets.md b/v2/docs/flows/web-tickets.md
+index f169f4e..6f36523 100644
+--- a/v2/docs/flows/web-tickets.md
++++ b/v2/docs/flows/web-tickets.md
+@@ -1,17 +1,17 @@
+ # Bảng, danh sách và hộp thoại ticket dùng chung trên web Crew v2
+ 
+ ## Mục đích
+ 
+ Flow này hiển thị ticket cho owner theo kiểu Jira: bảng theo trạng thái, danh sách dạng bảng và một hộp thoại chi tiết dùng chung. Mọi view đọc cùng query key, nên cùng một ticket luôn hiện cùng trạng thái và cùng phiên bản (`revision`). Ngoài phần đọc (S3a), flow có view danh sách yêu cầu, form “Tạo yêu cầu” và ô bình luận trong chi tiết (S3b). Cả hai ô nhập dùng chung `AttachmentComposer` của flow `web-attachments`, không có form soạn riêng.
+ 
+ ## Điểm vào
+ 
+-- `web/src/tickets/dialog.tsx` → `TicketDialog({ ticketId, onClose, returnFocus })`: hộp thoại Radix duy nhất cho mọi nơi mở ticket. Hộp thoại có Title/Description, giữ focus bên trong, làm nền trơ, đóng bằng Escape hoặc nút X. Khi đóng, focus quay về phần tử đã mở hộp thoại. Nếu phần tử đó không còn trong DOM, focus về container `[data-focus-fallback]` gần nhất được ghi nhận lúc mở, rồi tới `#main-content`.
++- `web/src/tickets/dialog.tsx` → `TicketDialog({ ticketId, onClose, returnFocus })`: hộp thoại Radix duy nhất cho mọi nơi mở ticket. Giao diện tối theo mockup sơ đồ owner duyệt: nền `#17191c`, viền `#2b2f35`, chữ `#e8e9eb`, `color-scheme: dark` (class `ticket-dialog`, CSS ở `web/src/styles.css`), overlay đen 60%, nút × có viền 36 px. Hành vi focus/URL/Back không đổi. Bên trong theo màn 2 của mockup (chỉ trình bày, không đổi logic/query/composer/focus/URL/draft): `TicketDetail` có header gồm chấm trạng thái (`aria-hidden`), tiêu đề và dòng phụ “cấp · bước · gốc”. Tiêu đề bước và gốc lấy từ graph query của cả cây, cùng key với `ChildTickets` nên không thêm request. Dưới header là danh sách “Thông tin nhanh” gồm hai ô: Trạng thái (nhãn chữ · phiên bản) và Máy · model (“Chưa có dữ liệu”). Ô Cập nhật chỉ hiện khi có dữ liệu thật; `Ticket` chưa có trường thời gian nên hiện chưa có ô này. Loại công việc chuyển vào mục Thông tin. Tiêu đề mục, nút và ô nhập trong dialog dùng CSS `.ticket-dialog` của `styles.css`; nút gửi của composer (class `compose-submit`) có màu nhấn `#3b6fd4`. Hộp thoại có Title/Description, giữ focus bên trong, làm nền trơ, đóng bằng Escape hoặc nút X. Khi đóng, focus quay về phần tử đã mở hộp thoại. Nếu phần tử đó không còn trong DOM, focus về container `[data-focus-fallback]` gần nhất được ghi nhận lúc mở, rồi tới `#main-content`.
+ - `web/src/tickets/detail.tsx` → `TicketDetail({ ticketId, presentation })`: phần chi tiết dùng chung. Với `presentation: 'dialog'`, tiêu đề và mô tả ngắn là `Dialog.Title`/`Dialog.Description`; với `'page'` là `h1`/`p`.
+ - `web/src/tickets/board.tsx` → `TicketBoard`, `web/src/tickets/list.tsx` → `TicketList` và `web/src/tickets/requests.tsx` → `RequestList`: cùng nhận `{ filters, onFiltersChange, onOpenTicket(ticketId, trigger) }`. Cả ba có nút “Tạo yêu cầu”.
+ - `web/src/tickets/create-request.tsx` → `CreateRequestAction({ projectId?, onOpenTicket })` (nút và hộp thoại Radix) và `CreateRequestForm({ initialProjectId?, onCreated })`. Phần thuần nằm ở `web/src/tickets/create-request-state.ts`: `makeRequestSubmission`, `defaultRequestFields`, `workflowOptions`, `requestFormLocked`, `formDrafts`.
+ 
+ ## Các bước
+ 
+ 1. Router (do controller sở hữu) đọc search params, gọi `parseTicketFilters` để chỉ giữ `projectId`, `status`, `kind`, `level`, `rootId` hợp lệ, rồi truyền vào board, list hoặc view yêu cầu. Filter nằm trong URL nên đổi chế độ xem vẫn giữ nguyên filter. `TicketFilterBar` cho chọn trạng thái, loại và cấp (view yêu cầu ẩn ô cấp vì luôn là `request`); bỏ lọc theo `rootId` khi có.
+ 2. `web/src/tickets/queries.ts` → `useTicketList(client, filters)`: infinite query trên `queryKeys.tickets(filters)`. Mỗi trang gọi GET `/v2/tickets?…&cursor=<UUID>&limit=50` qua `OwnerClient` của app runtime và giải mã bằng `decodeTicketPage`. Trang tiếp theo chỉ được tải khi owner bấm “Tải thêm”, cho tới khi `nextCursor` là `null`. Nếu còn trang, giao diện ghi rõ “danh sách chưa đầy đủ”. Các trang được gộp bằng `mergeTicketPages`: ID trùng thì giữ revision mới hơn.
+@@ -35,16 +35,18 @@ DTO lấy từ `web/src/contracts/tickets.ts` (Ticket, trang ticket, graph, comm
+ Phần còn chờ producer được hiện rõ là chưa có dữ liệu, không suy ra từ `criteria` hay prose:
+ 
+ - Máy, model, độ khó, lượt chạy hiện tại và bằng chứng: chờ projection có kiểu của G1/G3.
+ - Lịch sử review, phương án dự phòng, sản phẩm, commit và đồng bộ tài liệu: chờ history projection G1/G3. Hiện timeline chỉ gồm bình luận và quyết định.
+ - Lịch sử đầy đủ: producer đã có GET `/v2/tickets/:id/history` (P-G1a) nhưng `web/src/contracts` chưa có decoder cho route này, nên timeline vẫn chỉ gồm bình luận và quyết định.
+ 
+ Giới hạn đã biết:
+ 
++- Mỗi event `comment.created`/`decision.created` làm invalidate query comments/decisions nên `TicketHistory` đọc lại toàn bộ trang lịch sử từ đầu (`fetchAllPages` trong `queries.ts`).
++- Mỗi event ticket khi dialog đang mở làm tải lại graph cả root (`useTicketGraph` trong `detail.tsx`), vì `useTicketSubline` và `ChildTickets` đều dùng chung query key `queryKeys.graph(rootId)`.
+ - Ticket đã kết thúc mà còn một bình luận chưa xác nhận từ trước khi tải trang: ô bình luận không hiện; gửi lại qua panel khôi phục của Task2.
+ - Bản nháp bình luận của ticket đã kết thúc không được dọn tự động. Nó chỉ mất khi đăng xuất.
+ 
+ ## Wiring cho controller
+ 
+ Sáu nơi mở ticket phải dùng chung `TicketDialog`/`TicketDetail` và query trong flow này: thẻ trên bảng (`board.tsx`), dòng trong danh sách (`list.tsx`), chọn yêu cầu (`requests.tsx`), node trên graph (Task4), link ticket liên quan trong docs (Task6) và link ticket trong Trợ lý (Task6). `TicketDetail` và `CreateRequestForm` gọi `AttachmentComposer`, nên app phải bọc vùng đã xác thực bằng `ComposeServicesProvider` (`{ client, pending, session, storage: sessionStorage }`); thiếu provider thì composer báo `COMPOSE_SERVICES_MISSING`. Cùng chỗ đó cần bọc `TicketDraftStorageProvider storage={<storage của runtime>}`, và gọi `clearTicketDrafts(storage)` trong hook logout của session. Router cần một route trang chi tiết dùng `TicketDetail presentation="page"` cho deep link/reload, và route board/list lưu filter trong search params. Container của mỗi view cần `data-focus-fallback` và `tabIndex={-1}` để làm đích trả focus dự phòng.
+ 
+ ## Flow liên quan
+diff --git a/v2/web/e2e/ticket-map.spec.ts b/v2/web/e2e/ticket-map.spec.ts
+index 07fd34d..a1bdda3 100644
+--- a/v2/web/e2e/ticket-map.spec.ts
++++ b/v2/web/e2e/ticket-map.spec.ts
+@@ -1,22 +1,23 @@
+ /**
+  * Ticket map on the real app router with the Task1 fixture (PostgreSQL, API, Vite). Tickets and dependencies
+  * are created through the owner API (`POST /v2/tickets`, `POST /v2/tickets/:id/dependencies`). Repair links
+  * are the one exception: the only producer route that writes them (`POST /v2/tickets/:id/repair-results`) is a
+  * machine route that needs a running check step with a claimed attempt and evidence, so this spec inserts
+  * `repair_links` rows directly into the fixture database. Nothing on the network is mocked.
+  */
+ import { randomUUID } from 'node:crypto';
+-import { mkdir, writeFile } from 'node:fs/promises';
++import { mkdir, readFile, writeFile } from 'node:fs/promises';
+ import { arch, cpus, platform, release, totalmem } from 'node:os';
+-import { fileURLToPath } from 'node:url';
++import { fileURLToPath, pathToFileURL } from 'node:url';
+ import { test as base, expect, type Page } from '@playwright/test';
+ import { connectDb } from '../../server/src/db/client.ts';
+ import type { Ticket, TicketGraph } from '../src/contracts/tickets.ts';
++import { cardHeight, rowGap } from '../src/graph/layout.ts';
+ import { type FixtureHandle, withFixture } from './support/fixture.ts';
+ 
+ const evidenceDir = fileURLToPath(
+   new URL('../../../plans/261002-0002-crew-v2/execution-phase07/ui-evidence/task-4/', import.meta.url),
+ );
+ 
+ type Owner = {
+   post<T>(path: string, body: unknown): Promise<T>;
+@@ -256,42 +257,54 @@ function expectSameBox(
+ /** Every task card sits in its step's band: at most (tasks − 1) / 2 rows (pitch 136 × zoom) from the step. */
+ async function expectTasksBesideSteps(page: Page, graph: TicketGraph): Promise<void> {
+   const { zoom } = await viewport(page);
+   const far: string[] = [];
+   for (const step of graph.nodes.filter((row) => row.level === 'step')) {
+     const tasks = graph.nodes.filter((row) => row.parentId === step.id);
+     if (tasks.length === 0) continue;
+     const stepBox = await node(page, step.id).boundingBox();
+-    const band = ((tasks.length - 1) / 2) * 136 * zoom + 1;
++    const band = ((tasks.length - 1) / 2) * (cardHeight + rowGap) * zoom + 1;
++    // The step sits exactly between its first and last task (parents centred, like the reference map).
++    const boxes = (await Promise.all(tasks.map((task) => node(page, task.id).boundingBox()))).filter(
++      (box): box is NonNullable<typeof box> => box !== null,
++    );
++    const ys = boxes.map((box) => box.y).sort((a, b) => a - b);
++    if (
++      stepBox &&
++      ys.length === tasks.length &&
++      Math.abs(stepBox.y - ((ys[0] ?? 0) + (ys[ys.length - 1] ?? 0)) / 2) > 1
++    )
++      far.push(`${step.title} không nằm giữa các việc`);
+     for (const task of tasks) {
+       const box = await node(page, task.id).boundingBox();
+       if (!stepBox || !box || Math.abs(box.y - stepBox.y) > band) far.push(`${task.title} ↔ ${step.title}`);
+     }
+   }
+   expect(far).toEqual([]);
+ }
+ 
+-/** After “Vừa khung” the whole frame is inside the window and every card is inside the frame. */
++/** After “Vừa khung” the whole frame and the legend are inside the window and every card is inside the frame. */
+ async function expectFittedInWindow(page: Page): Promise<void> {
+   const result = await page.evaluate(() => {
+     const frame = document.querySelector('.react-flow')?.getBoundingClientRect();
+     if (!frame) return { frame: false, outside: [] as string[], bottom: 0 };
+     const outside = [...document.querySelectorAll<HTMLElement>('.react-flow__node')]
+       .filter((element) => {
+         const rect = element.getBoundingClientRect();
+         return (
+           rect.left < frame.left - 1 ||
+           rect.top < frame.top - 1 ||
+           rect.right > frame.right + 1 ||
+           rect.bottom > frame.bottom + 1
+         );
+       })
+       .map((element) => element.getAttribute('data-id') ?? '');
+-    return { frame: true, outside, bottom: frame.bottom - window.innerHeight };
++    const legend = document.querySelector('[aria-label="Chú giải"]')?.getBoundingClientRect();
++    return { frame: true, outside, bottom: Math.max(frame.bottom, legend?.bottom ?? 0) - window.innerHeight };
+   });
+   expect(result.frame).toBe(true);
+   expect(result.bottom).toBeLessThanOrEqual(0);
+   expect(result.outside).toEqual([]);
+ }
+ 
+ async function graphOf(page: Page, id: string): Promise<TicketGraph> {
+   return page.evaluate(async (ticketId) => {
+@@ -309,16 +322,50 @@ async function expectEdgesMatch(page: Page, graph: TicketGraph): Promise<void> {
+   const expected = [
+     ...graph.nodes.filter((row) => row.parentId !== null).map((row) => `parent:${row.parentId}:${row.id}`),
+     ...graph.dependencies.map((row) => `dependency:${row.predecessorId}:${row.ticketId}`),
+     ...graph.repairLinks.map((row) => `repair:${row.cycleId}:${row.checkStepId}:${row.fixTicketId}`),
+   ].sort();
+   expect([...drawn].sort()).toEqual(expected);
+ }
+ 
++const mockupPath = fileURLToPath(
++  new URL(
++    '../../../plans/261002-0002-crew-v2/execution-phase07/ui-evidence/design-map-mockup.html',
++    import.meta.url,
++  ),
++);
++
++/**
++ * Evidence: our screenshot next to the matching screen of the owner-approved mockup (screen 1 = map, screen 2 =
++ * dialog), both at 1440 px wide, composed into one image.
++ */
++async function sideBySide(page: Page, ours: string, screen: 1 | 2, name: string): Promise<void> {
++  const context = page.context();
++  const mock = await context.newPage();
++  try {
++    await mock.setViewportSize({ width: 1440, height: 1000 });
++    await mock.goto(pathToFileURL(mockupPath).href);
++    const label = mock.locator('.label').nth(screen - 1);
++    const section = label.locator('xpath=following-sibling::div[1]');
++    const mockShot = await section.screenshot();
++    const ourShot = await readFile(`${evidenceDir}${ours}`);
++    await mock.setViewportSize({ width: 2400, height: 900 });
++    await mock.setContent(
++      `<body style="margin:0;background:#08090a;color:#e8e9eb;font:14px sans-serif;display:flex;gap:16px;padding:16px">` +
++        `<figure style="margin:0;flex:1"><figcaption>Ứng dụng (${ours})</figcaption><img style="width:100%" src="data:image/png;base64,${ourShot.toString('base64')}"></figure>` +
++        `<figure style="margin:0;flex:1"><figcaption>Mockup owner duyệt — màn ${screen}</figcaption><img style="width:100%" src="data:image/png;base64,${mockShot.toString('base64')}"></figure>` +
++        `</body>`,
++    );
++    await mock.screenshot({ path: `${evidenceDir}${name}`, fullPage: true });
++  } finally {
++    await mock.close();
++  }
++}
++
+ async function shoot(page: Page, name: string): Promise<void> {
+   await mkdir(evidenceDir, { recursive: true });
+   await page.screenshot({ path: `${evidenceDir}${name}`, fullPage: false });
+ }
+ 
+ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng giữ viewport, realtime không tự fit, URL Back/Forward/reload', async ({
+   page,
+   crew,
+@@ -335,31 +382,32 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
+     if (pathname.startsWith('/v2/')) requests.push(`${request.method()} ${pathname}`);
+   });
+ 
+   // Graph read from a child ticket still describes the whole root (single coherent snapshot).
+   // The old project route still works for existing links: it redirects to the request route.
+   await page.goto(`${crew.webOrigin}/crew-v2/projects/${seeded.projectId}/map?root=${root.id}`);
+   await signIn(page, crew);
+   await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe(mapPath(root.id));
+-  await expect(page.getByRole('link', { name: 'Dạng bảng' })).toHaveAttribute(
+-    'href',
+-    `/crew-v2/projects/${seeded.projectId}/tickets?view=board`,
+-  );
++  await expect(
++    page.getByRole('navigation', { name: 'Chế độ xem' }).getByRole('link', { name: 'Bảng', exact: true }),
++  ).toHaveAttribute('href', `/crew-v2/projects/${seeded.projectId}/tickets?view=board`);
+   const map = page.getByRole('region', { name: 'Sơ đồ ticket' });
+   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
+   const fromChild = await graphOf(page, tasks.c1.id);
+   const fromRoot = await graphOf(page, root.id);
+   expect(fromChild).toEqual(fromRoot);
+   expect(fromRoot.nodes).toHaveLength(14);
+ 
+   // Default: root and steps visible, tasks collapsed with relation badges.
+   for (const step of Object.values(steps)) await expect(node(page, step.id)).toBeVisible();
+   await expect(node(page, tasks.a1.id)).toHaveCount(0);
+-  await expect(map.getByText('quan hệ tới công việc thu gọn').first()).toBeVisible();
++  await expect(map.getByRole('img', { name: /quan hệ tới công việc thu gọn/ }).first()).toBeVisible();
++  await expect(map.getByRole('heading', { name: 'Sơ đồ ticket', level: 1 })).toBeVisible();
++  await expect(map.getByText('14 ticket · bấm vào thẻ để xem chi tiết')).toBeVisible();
+   await expect(node(page, steps.A.id)).toHaveAttribute(
+     'aria-label',
+     `Bước: ${steps.A.title}. Trạng thái: Chờ thực hiện. Phiên bản ${(fromRoot.nodes.find((row) => row.id === steps.A.id) as Ticket).revision}`,
+   );
+ 
+   // Owner relayouts keep their anchor still on screen: the clicked step, or the root for “Mở tất cả”.
+   const rootBefore = await node(page, root.id).boundingBox();
+   await map.getByRole('button', { name: 'Mở tất cả' }).click();
+@@ -385,19 +433,20 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
+   // Cards outside the viewport are not mounted, so fit before looking for the new tasks.
+   await map.getByRole('button', { name: 'Vừa khung' }).click();
+   await expect(node(page, tasks.c1.id)).toBeVisible();
+   await page.waitForTimeout(400);
+   await expectNoOverlap(page);
+   await expectFittedInWindow(page);
+   await expectTasksBesideSteps(page, fromRoot);
+   await shoot(page, 'map-root-fork-join-repair.png');
++  await sideBySide(page, 'map-root-fork-join-repair.png', 1, 'side-by-side-map-vs-mockup.png');
+   await expectEdgesMatch(page, fromRoot);
+   await expect(map.getByText('phải xong trước').first()).toBeVisible();
+-  await expect(map.getByText(/^Vòng sửa /).first()).toBeVisible();
++  await expect(map.getByText(/^sửa vòng /).first()).toBeVisible();
+   await expect(page.getByRole('alert')).toHaveCount(0);
+ 
+   // Restore a stored view at zoom 1.7 that puts step A at (120, 60) of the pane (reload path), then pan by
+   // hand from the empty gap left of A's column.
+   // A reload lays the tree out afresh; “Sắp xếp lại” produces that same layout, so read A's place after it.
+   await map.getByRole('button', { name: 'Sắp xếp lại' }).click();
+   await map.getByRole('button', { name: 'Vừa khung' }).click();
+   await expect(node(page, steps.A.id)).toBeVisible();
+@@ -434,16 +483,21 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
+ 
+   // Open step A (on screen at this zoom): the shared dialog with TicketDetail.
+   const target = steps.A;
+   await node(page, target.id).click();
+   const dialog = page.getByRole('dialog', { name: target.title });
+   await expect(dialog).toBeVisible();
+   await expect(dialog.getByTestId('ticket-detail')).toHaveAttribute('data-ticket-id', target.id);
+   expect(new URL(page.url()).searchParams.get('ticket')).toBe(target.id);
++  // Screen 2 of the mockup: header (status dot, title, subline) and info tiles, before scrolling.
++  await expect(dialog.getByRole('list', { name: 'Thông tin nhanh' })).toBeVisible();
++  await page.waitForTimeout(300);
++  await shoot(page, 'dialog-header-from-map.png');
++  await sideBySide(page, 'dialog-header-from-map.png', 2, 'side-by-side-dialog-vs-mockup.png');
+   const comment = `Bình luận từ sơ đồ ${randomUUID().slice(0, 8)}`;
+   await dialog.getByRole('textbox', { name: 'Nội dung', exact: true }).fill(comment);
+   await dialog.getByRole('button', { name: 'Gửi bình luận', exact: true }).click();
+   await expect(dialog.getByTestId('timeline-entry').filter({ hasText: comment })).toHaveCount(1, {
+     timeout: 15_000,
+   });
+   await shoot(page, 'dialog-open-from-map.png');
+ 
+@@ -455,44 +509,49 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
+   await writeFile(
+     `${evidenceDir}viewport-a4.json`,
+     `${JSON.stringify({ storedOnReload: stored, beforeDialog: before, afterClose: after, delta: { x: after.x - before.x, y: after.y - before.y, zoom: after.zoom - before.zoom } }, null, 2)}\n`,
+   );
+   expectSameView(after, before);
+   expect(new URL(page.url()).searchParams.get('ticket')).toBeNull();
+   await shoot(page, 'viewport-restored-after-close.png');
+ 
+-  // Realtime: a new step created elsewhere appears without refitting the view.
++  // Realtime: a new step created elsewhere re-lays the tree out (parents centred) without refitting; the focused
++  // card (the one just closed) is the anchor and stays still on screen.
++  const focusedBefore = await node(page, target.id).boundingBox();
+   const extra = await create(owner, seeded.projectId, root.id, 'step', 'Bước E — tạo khi đang xem');
+   // The new card may sit outside the viewport (not mounted), so check the projected node count.
+   await expect(map).toHaveAttribute('data-nodes', '15', { timeout: 15_000 });
+-  expectSameView(await viewport(page), after);
++  await page.waitForTimeout(300);
++  expectSameBox(await node(page, target.id).boundingBox(), focusedBefore, 'thẻ đang focus khi có bước mới');
++  expect((await viewport(page)).zoom).toBeCloseTo(after.zoom, 3);
++  const afterRealtime = await viewport(page);
+ 
+   // Closing an in-app dialog went back in history, so the dialog entry is forward and Back leaves the map
+   // state as it is (it never reopens what was just closed).
+   const mapEntry = page.url();
+   await page.goForward();
+   await expect(dialog).toBeVisible();
+   await page.goBack();
+   await expect(dialog).toBeHidden();
+   expect(page.url()).toBe(mapEntry);
+-  expectSameView(await viewport(page), after);
++  expectSameView(await viewport(page), afterRealtime);
+   // Open again, then Back closes the dialog.
+   await node(page, target.id).click();
+   await expect(dialog).toBeVisible();
+   await page.goBack();
+   await expect(dialog).toBeHidden();
+   expect(page.url()).toBe(mapEntry);
+   // Deep link with ?ticket: closing replaces the entry, Back does not reopen it.
+   await page.goto(mapUrl(crew, root.id, `ticket=${target.id}`));
+   await expect(dialog).toBeVisible({ timeout: 30_000 });
+   await page.keyboard.press('Escape');
+   await expect(dialog).toBeHidden();
+   expect(new URL(page.url()).searchParams.get('ticket')).toBeNull();
+-  expectSameView(await viewport(page), after);
++  expectSameView(await viewport(page), afterRealtime);
+   await page.goBack();
+   await expect(dialog).toBeHidden();
+   await page.goForward();
+   await expect(dialog).toBeHidden();
+ 
+   // A malformed ticket query opens nothing and sends no ticket request or mutation.
+   requests.length = 0;
+   await page.goto(mapUrl(crew, root.id, 'ticket=..%2F..%2Fv2%2Fmachines'));
+@@ -535,16 +594,19 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
+   await warmUp(page, crew);
+   const seeded = await seedTree(crew, owner, 'MAPB');
+   const { root, steps, tasks } = seeded;
+   await page.goto(mapUrl(crew, root.id));
+   await signIn(page, crew);
+   const map = page.getByRole('region', { name: 'Sơ đồ ticket' });
+   await expect(node(page, root.id)).toBeVisible({ timeout: 30_000 });
+   await map.getByRole('button', { name: 'Mở tất cả' }).click();
++  await page.waitForTimeout(300);
++  // No card has focus: the root anchors every realtime relayout and must stay still on screen.
++  const rootBefore = await node(page, root.id).boundingBox();
+ 
+   // Concurrent writers: new tasks under A and B, each depending on an existing task, all at once.
+   const created = await Promise.all(
+     Array.from({ length: 6 }, async (_, index) => {
+       const parent = index % 2 === 0 ? steps.A : steps.B;
+       const task = await create(owner, seeded.projectId, parent.id, 'task', `Việc song song ${index + 1}`);
+       await depend(owner, task.id, index % 2 === 0 ? tasks.a1.id : tasks.b1.id);
+       return task;
+@@ -553,21 +615,24 @@ test('G1 race: tạo con và dependency đồng thời khi sơ đồ mở — kh
+   await Promise.all([
+     depend(owner, tasks.c1.id, created[0]?.id ?? ''),
+     depend(owner, tasks.c1.id, created[1]?.id ?? ''),
+   ]);
+ 
+   const final = await graphOf(page, root.id);
+   expect(final.nodes).toHaveLength(20);
+   await expect(map).toHaveAttribute('data-nodes', String(final.nodes.length), { timeout: 20_000 });
++  await page.waitForTimeout(500);
++  expectSameBox(await node(page, root.id).boundingBox(), rootBefore, 'root (neo) sau ghi đồng thời');
+   await map.getByRole('button', { name: 'Vừa khung' }).click();
+   await page.waitForTimeout(400);
+   await expect(page.locator('button[data-map-node]')).toHaveCount(final.nodes.length);
+-  // Cards that arrived by realtime keep the old cards in place and never cover them.
++  // Realtime relayout: every parent is centred between its children and no card covers another.
+   await expectNoOverlap(page);
++  await expectTasksBesideSteps(page, final);
+   for (const row of final.nodes)
+     await expect(node(page, row.id)).toHaveAttribute('data-revision', String(row.revision), {
+       timeout: 20_000,
+     });
+   await expect(page.getByRole('alert')).toHaveCount(0);
+   await expectEdgesMatch(page, final);
+   await shoot(page, 'map-after-concurrent-writes.png');
+ 
+diff --git a/v2/web/src/compose/composer.tsx b/v2/web/src/compose/composer.tsx
+index 915c2fc..d9285d9 100644
+--- a/v2/web/src/compose/composer.tsx
++++ b/v2/web/src/compose/composer.tsx
+@@ -471,17 +471,22 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
+       {view?.errorCode && (
+         <p role="alert">
+           {describe(view.errorCode)}
+           {view.errorMessage ? ` Máy chủ báo: ${view.errorMessage}.` : ''}
+         </p>
+       )}
+       {notice && <p aria-live="polite">{notice}</p>}
+       <div style={{ display: 'flex', gap: '0.75rem' }}>
+-        <button type="button" disabled={!view?.submittable || !authenticated} onClick={() => void submit()}>
++        <button
++          type="button"
++          className="compose-submit"
++          disabled={!view?.submittable || !authenticated}
++          onClick={() => void submit()}
++        >
+           {state === 'sending'
+             ? 'Đang gửi…'
+             : retrying && !reentry
+               ? 'Gửi lại đúng yêu cầu cũ'
+               : submitLabels[submission.kind]}
+         </button>
+         {locks.showAbandon && (
+           <button type="button" disabled={!authenticated} onClick={() => void handle.discardDraft()}>
+diff --git a/v2/web/src/graph/layout.ts b/v2/web/src/graph/layout.ts
+index 5219475..5f54739 100644
+--- a/v2/web/src/graph/layout.ts
++++ b/v2/web/src/graph/layout.ts
+@@ -1,23 +1,24 @@
+ /**
+  * Deterministic left→right hierarchy layout for the ticket map. Only parent edges shape the tree: columns follow
+- * depth (card 320 + gap 100), leaves stack in sibling-ID order with a 24px row gap, and each parent sits in the
++ * depth (card 280 + gap 56), leaves stack in sibling-ID order with a 10px row gap, and each parent sits in the
+  * middle of its children. Dependency and repair edges are overlays and never move a node. Traversal is
+  * iterative, so a pathological parent chain cannot overflow the stack; nodes unreachable from the root
+  * (orphans, parent cycles) are laid out below the tree instead of being dropped.
+  */
+ import type { Ticket } from '../contracts/tickets.ts';
+ import type { MapProjection } from './project.ts';
+ 
+ export type Point = { x: number; y: number };
+-export const cardWidth = 320;
+-export const cardHeight = 112;
+-export const columnGap = 100;
+-export const rowGap = 24;
++/** Density of the owner-approved mockup: 280×48 two-line cards, 10px rows, 56px between columns. */
++export const cardWidth = 280;
++export const cardHeight = 48;
++export const columnGap = 56;
++export const rowGap = 10;
+ const column = cardWidth + columnGap;
+ const pitch = cardHeight + rowGap;
+ const levelDepth: Record<Ticket['level'], number> = { request: 0, step: 1, task: 2 };
+ 
+ type Tree = { parent: Map<string, string>; children: Map<string, string[]> };
+ 
+ function tree(input: MapProjection): Tree {
+   const visible = new Set(input.nodes.map((row) => row.id));
+@@ -85,112 +86,16 @@ export function layoutHierarchy(input: MapProjection): Record<string, Point> {
+       seen.add(up);
+       top = up;
+     }
+     place(top, levelDepth[byId.get(top)?.level ?? 'request']);
+   }
+   return positions;
+ }
+ 
+-/**
+- * Occupied card slots, indexed by column so a free slot is found without scanning every card. Two cards clash
+- * when their columns are closer than a card width and their rows closer than one pitch.
+- */
+-class Occupancy {
+-  readonly #columns = new Map<number, number[]>();
+-
+-  add(point: Point): void {
+-    const rows = this.#columns.get(point.x);
+-    if (!rows) {
+-      this.#columns.set(point.x, [point.y]);
+-      return;
+-    }
+-    let low = 0;
+-    let high = rows.length;
+-    while (low < high) {
+-      const mid = (low + high) >> 1;
+-      if ((rows[mid] as number) < point.y) low = mid + 1;
+-      else high = mid;
+-    }
+-    rows.splice(low, 0, point.y);
+-  }
+-
+-  /** Lowest row of a card that clashes with a card at `point`, or null when the slot is free. */
+-  clash(point: Point): number | null {
+-    let worst: number | null = null;
+-    for (const [x, rows] of this.#columns) {
+-      if (Math.abs(x - point.x) >= cardWidth) continue;
+-      let low = 0;
+-      let high = rows.length;
+-      while (low < high) {
+-        const mid = (low + high) >> 1;
+-        if ((rows[mid] as number) <= point.y - pitch) low = mid + 1;
+-        else high = mid;
+-      }
+-      for (let index = low; index < rows.length && (rows[index] as number) < point.y + pitch; index++)
+-        worst = Math.max(worst ?? Number.NEGATIVE_INFINITY, rows[index] as number);
+-    }
+-    return worst;
+-  }
+-
+-  /** First free slot at or below `point` in its column. */
+-  free(point: Point): Point {
+-    let y = point.y;
+-    for (
+-      let blocking = this.clash({ x: point.x, y });
+-      blocking !== null;
+-      blocking = this.clash({ x: point.x, y })
+-    )
+-      y = blocking + pitch;
+-    return { x: point.x, y };
+-  }
+-}
+-
+-/**
+- * Keeps every known position (realtime refetch, new child arriving while the map is open) and places only new
+- * nodes: next
+- * to their parent, below its lowest positioned child, or at their fresh layout position when the parent is
+- * unknown; a slot taken by any visible card moves the new card down to the first free slot of its column.
+- * Owner actions that change the structure use `relayoutAround`; “Sắp xếp lại” uses `layoutHierarchy`.
+- */
+-export function placeNewNodes(
+-  previous: Readonly<Record<string, Point>>,
+-  input: MapProjection,
+-): Record<string, Point> {
+-  const { parent, children } = tree(input);
+-  const result: Record<string, Point> = {};
+-  const occupied = new Occupancy();
+-  for (const row of input.nodes) {
+-    const known = previous[row.id];
+-    if (!known) continue;
+-    result[row.id] = known;
+-    occupied.add(known);
+-  }
+-  const fresh = layoutHierarchy(input);
+-  const added = input.nodes
+-    .filter((row) => !result[row.id])
+-    .map((row) => ({ id: row.id, at: fresh[row.id] ?? { x: 0, y: 0 } }))
+-    .sort((a, b) => a.at.x - b.at.x || a.at.y - b.at.y || (a.id < b.id ? -1 : 1));
+-  for (const { id, at } of added) {
+-    const parentId = parent.get(id);
+-    const anchor = parentId === undefined ? undefined : result[parentId];
+-    let wanted = at;
+-    if (parentId !== undefined && anchor) {
+-      const siblings = (children.get(parentId) ?? [])
+-        .filter((sibling) => sibling !== id && result[sibling])
+-        .map((sibling) => (result[sibling] as Point).y);
+-      wanted = { x: anchor.x + column, y: siblings.length > 0 ? Math.max(...siblings) + pitch : anchor.y };
+-    }
+-    const placed = occupied.free(wanted);
+-    result[id] = placed;
+-    occupied.add(placed);
+-  }
+-  return result;
+-}
+-
+ export type MapDirection = 'left' | 'right' | 'up' | 'down';
+ 
+ /** Arrow-key traversal: left = parent, right = first child (top-most), up/down = nearest node in the column. */
+ export function neighbourInDirection(
+   input: MapProjection,
+   positions: Readonly<Record<string, Point>>,
+   id: string,
+   direction: MapDirection,
+@@ -213,19 +118,20 @@ export function neighbourInDirection(
+   const above = sameColumn.filter((other) => (positions[other]?.y ?? 0) < here.y);
+   const below = sameColumn.filter((other) => (positions[other]?.y ?? 0) > here.y);
+   return (direction === 'up' ? above[above.length - 1] : below[0]) ?? null;
+ }
+ 
+ export type Viewport = { x: number; y: number; zoom: number };
+ 
+ /**
+- * Structural change made by the owner (expand/collapse one step, expand/collapse all): lay the whole tree out
+- * again, so every task sits beside its step, and move the viewport by the anchor's displacement so the anchor
+- * stays exactly where it was on screen. Without an anchor present in both layouts the viewport is unchanged.
++ * Any change of the visible tree (owner expand/collapse, realtime data): lay the whole tree out again, so every
++ * parent sits between its children and every task beside its step, and move the viewport by the anchor's
++ * displacement so the anchor stays exactly where it was on screen. Without an anchor present in both layouts
++ * the viewport is unchanged.
+  */
+ export function relayoutAround(
+   previous: Readonly<Record<string, Point>>,
+   input: MapProjection,
+   anchor: string | null,
+   viewport: Viewport,
+ ): { positions: Record<string, Point>; viewport: Viewport } {
+   const positions = layoutHierarchy(input);
+@@ -238,8 +144,14 @@ export function relayoutAround(
+ /** Viewport that keeps a node moved from `from` to `to` (flow coordinates) at the same screen position. */
+ export function followAnchor(from: Point, to: Point, viewport: Viewport): Viewport {
+   return {
+     x: viewport.x - (to.x - from.x) * viewport.zoom,
+     y: viewport.y - (to.y - from.y) * viewport.zoom,
+     zoom: viewport.zoom,
+   };
+ }
++
++/** Opening view of a root seen for the first time: 1:1, root 24px from the left edge, centred vertically. */
++export function initialViewport(root: Point | undefined, frameHeight: number): Viewport {
++  if (!root) return { x: 24, y: 24, zoom: 1 };
++  return { x: 24 - root.x, y: frameHeight / 2 - (root.y + cardHeight / 2), zoom: 1 };
++}
+diff --git a/v2/web/src/graph/ticket-edge.tsx b/v2/web/src/graph/ticket-edge.tsx
+index 9ddec78..cbfb3ae 100644
+--- a/v2/web/src/graph/ticket-edge.tsx
++++ b/v2/web/src/graph/ticket-edge.tsx
+@@ -1,68 +1,67 @@
+ /**
+- * The three relation kinds of the map, distinguishable without colour: parent links are solid neutral
+- * step lines, dependencies are dashed with an arrow and the text “phải xong trước”, repair links are curved
+- * dotted lines labelled with their cycle. A repair link usually joins the same check step and fix task as a
+- * parent link, so it bends away from the straight parent line instead of hiding behind it.
++ * The three relation kinds of the map (owner-approved mockup), distinguishable without colour: parent links are
++ * square 1px grey brackets 28px from the parent, dependencies are dashed blue with an arrow and the text “phải
++ * xong trước”, repair links are dotted amber curves labelled “sửa vòng <cycle>”. A repair link usually joins the
++ * same check step and fix task as a parent link, so it bows away from the bracket instead of hiding behind it.
+  */
+ import {
+   BaseEdge,
+   type Edge,
+   EdgeLabelRenderer,
+   type EdgeProps,
+   getBezierPath,
+   getSmoothStepPath,
+ } from '@xyflow/react';
+ import type { CSSProperties } from 'react';
+ import type { MapEdge } from './project.ts';
+ 
+ export type TicketEdgeData = { cycleId?: string };
+ export type TicketFlowEdge = Edge<TicketEdgeData, MapEdge['kind']>;
+ 
+-const neutral = '#94a3b8';
++export const edgeColors = { parent: '#3a3f46', dependency: '#8ab4ff', repair: '#d4a72c' } as const;
+ const labelStyle: CSSProperties = {
+   position: 'absolute',
+   pointerEvents: 'none',
+-  padding: '0.05rem 0.35rem',
+-  borderRadius: '0.35rem',
+-  fontSize: '0.75rem',
+-  background: '#101827',
+-  color: '#e7edf7',
+-  border: `1px solid ${neutral}`,
++  padding: '0 3px',
++  fontSize: 11,
++  background: '#17191c',
+   whiteSpace: 'nowrap',
+ };
++/** Horizontal run from the parent to the vertical trunk of its bracket. */
++const bracketRun = 28;
+ /** How far the repair curve bows below the straight line between its endpoints. */
+ const repairBow = 56;
+ 
+-function Label({ x, y, text }: { x: number; y: number; text: string }) {
++function Label({ x, y, text, color }: { x: number; y: number; text: string; color: string }) {
+   return (
+     <EdgeLabelRenderer>
+-      <span style={{ ...labelStyle, transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}>
++      <span style={{ ...labelStyle, color, transform: `translate(-50%, -50%) translate(${x}px, ${y}px)` }}>
+         {text}
+       </span>
+     </EdgeLabelRenderer>
+   );
+ }
+ 
+ export function ParentEdge(props: EdgeProps<TicketFlowEdge>) {
+-  const [path] = getSmoothStepPath(props);
+-  return <BaseEdge path={path} style={{ stroke: neutral, strokeWidth: 1.5 }} />;
++  const [path] = getSmoothStepPath({ ...props, borderRadius: 0, centerX: props.sourceX + bracketRun });
++  return <BaseEdge path={path} style={{ stroke: edgeColors.parent, strokeWidth: 1 }} />;
+ }
+ 
+ export function DependencyEdge(props: EdgeProps<TicketFlowEdge>) {
+   const [path, labelX, labelY] = getBezierPath(props);
+   return (
+     <>
+       <BaseEdge
+         path={path}
+         markerEnd={props.markerEnd}
+-        style={{ stroke: '#e2e8f0', strokeWidth: 1.5, strokeDasharray: '8 5' }}
++        style={{ stroke: edgeColors.dependency, strokeWidth: 1, strokeDasharray: '4 3' }}
+       />
+-      <Label x={labelX} y={labelY} text="phải xong trước" />
++      <Label x={labelX} y={labelY} text="phải xong trước" color={edgeColors.dependency} />
+     </>
+   );
+ }
+ 
+ export function RepairEdge(props: EdgeProps<TicketFlowEdge>) {
+   const { sourceX, sourceY, targetX, targetY } = props;
+   const controlX = (sourceX + targetX) / 2;
+   const controlY = Math.max(sourceY, targetY) + repairBow;
+@@ -71,19 +70,19 @@ export function RepairEdge(props: EdgeProps<TicketFlowEdge>) {
+   const labelX = (sourceX + 2 * controlX + targetX) / 4;
+   const labelY = (sourceY + 2 * controlY + targetY) / 4;
+   const cycle = props.data?.cycleId?.slice(0, 8) ?? 'không rõ';
+   return (
+     <>
+       <BaseEdge
+         path={path}
+         markerEnd={props.markerEnd}
+-        style={{ stroke: '#fcd34d', strokeWidth: 1.5, strokeDasharray: '2 4' }}
++        style={{ stroke: edgeColors.repair, strokeWidth: 2, strokeDasharray: '2 3' }}
+       />
+-      <Label x={labelX} y={labelY} text={`Vòng sửa ${cycle}`} />
++      <Label x={labelX} y={labelY} text={`sửa vòng ${cycle}`} color={edgeColors.repair} />
+     </>
+   );
+ }
+ 
+ export const ticketEdgeTypes = { parent: ParentEdge, dependency: DependencyEdge, repair: RepairEdge };
+ 
+ const kindLabels: Record<MapEdge['kind'], string> = {
+   parent: 'thuộc',
+diff --git a/v2/web/src/graph/ticket-map.tsx b/v2/web/src/graph/ticket-map.tsx
+index 92ec805..006a8c1 100644
+--- a/v2/web/src/graph/ticket-map.tsx
++++ b/v2/web/src/graph/ticket-map.tsx
+@@ -2,23 +2,23 @@
+  * Ticket map: the whole request tree from root (left) to steps and tasks (right), read-only. Data is the shared
+  * graph query (`queryKeys.graph`), so an event invalidation refetches the whole root (TanStack cancels the GET
+  * in flight) and board/list/map show the same revision; edges are never patched one by one. Clicking a card
+  * opens the shared `TicketDialog`; the map stays mounted behind it, and closing only clears the selection, so
+  * viewport, expanded steps and focus are exactly as before. The view state is kept per root in tab storage.
+  * A new root is fitted once; realtime updates never refit. Torn or malformed data shows a diagnostic and falls
+  * back to the equivalent list, which is also the narrow-screen view.
+  */
++import { useQuery } from '@tanstack/react-query';
+ import { Link, useNavigate, useParams, useRouter, useSearch } from '@tanstack/react-router';
+ import {
+   MarkerType,
+   Position,
+   ReactFlow,
+   ReactFlowProvider,
+-  useNodesInitialized,
+   useReactFlow,
+   type Viewport,
+ } from '@xyflow/react';
+ import {
+   type CSSProperties,
+   type ReactNode,
+   useCallback,
+   useEffect,
+@@ -26,27 +26,33 @@ import {
+   useMemo,
+   useRef,
+   useState,
+ } from 'react';
+ import { routeUuid, useRuntime } from '../app-runtime.ts';
+ import type { Ticket, TicketGraph } from '../contracts/tickets.ts';
+ import { TicketDialog } from '../tickets/dialog.tsx';
+ import { TicketPagination } from '../tickets/list.tsx';
+-import { failureText, requestListFilters, useTicketGraph, useTicketList } from '../tickets/queries.ts';
++import {
++  failureText,
++  projectsQueryOptions,
++  requestListFilters,
++  useTicketGraph,
++  useTicketList,
++} from '../tickets/queries.ts';
+ import { levelLabels, mergeTicketPages, requestRoots, statusIcons, statusLabels } from '../tickets/status.ts';
+ import {
+   cardHeight,
+   cardWidth,
+   followAnchor,
++  initialViewport,
+   layoutHierarchy,
+   type MapDirection,
+   neighbourInDirection,
+   type Point,
+-  placeNewNodes,
+ } from './layout.ts';
+ import {
+   expandableIds,
+   hiddenRelationCounts,
+   type MapProjection,
+   nodeRelations,
+   projectGraph,
+ } from './project.ts';
+@@ -61,51 +67,115 @@ import {
+   moveMapViewport,
+   openMapDialog,
+   parseMapSearch,
+   readMapView,
+   setMapExpanded,
+   toggleMapExpanded,
+   writeMapView,
+ } from './state.ts';
+-import { edgeLabel, type TicketFlowEdge, ticketEdgeTypes } from './ticket-edge.tsx';
+-import { type TicketFlowNode, TicketNode, type TicketNodeActions } from './ticket-node.tsx';
++import { edgeColors, edgeLabel, type TicketFlowEdge, ticketEdgeTypes } from './ticket-edge.tsx';
++import { statusDotColors, type TicketFlowNode, TicketNode, type TicketNodeActions } from './ticket-node.tsx';
+ 
+ export type TicketMapProps = {
+   rootId: string;
+   selectedTicketId: string | null;
+   onSelectTicket: (ticketId: string | null) => void;
+   /** Called when the graph shows that `rootId` is a descendant; the caller can switch to the real root. */
+   onRootResolved?: (rootId: string) => void;
++  /** View switch (Bảng/Danh sách/Sơ đồ) rendered in the header; the page owns its links. */
++  viewSwitch?: ReactNode;
+ };
+ 
+ const nodeTypes = { ticket: TicketNode };
+ const cardSize = { width: cardWidth, height: cardHeight };
+ const cardPointer: CSSProperties = { pointerEvents: 'all' };
+ /** Fixed handle geometry, so edges can be drawn before (or without) DOM measurement. */
+ const cardHandles: NonNullable<TicketFlowNode['handles']> = [
+   { type: 'target', position: Position.Left, x: 0, y: cardHeight / 2, width: 1, height: 1 },
+   { type: 'source', position: Position.Right, x: cardWidth, y: cardHeight / 2, width: 1, height: 1 },
+ ];
+ const minFrameHeight = 352;
+-const flowStyle: CSSProperties = {
+-  border: '1px solid rgb(148 163 184 / 0.6)',
+-  borderRadius: '0.75rem',
++/** Modal-like shell of the owner-approved mockup. */
++const frameShellStyle: CSSProperties = {
++  display: 'flex',
++  flexDirection: 'column',
++  minWidth: 0,
++  background: '#17191c',
++  color: '#e8e9eb',
++  border: '1px solid #2b2f35',
++  borderRadius: 6,
++  overflow: 'hidden',
+ };
++const headerStyle: CSSProperties = {
++  display: 'flex',
++  flexWrap: 'wrap',
++  alignItems: 'center',
++  justifyContent: 'space-between',
++  gap: 12,
++  padding: '16px 20px',
++  borderBottom: '1px solid #2b2f35',
++};
++const innerStyle: CSSProperties = { margin: 0, padding: '12px 20px' };
++const flowStyle: CSSProperties = { background: '#17191c' };
+ const barStyle: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' };
+ const controlsStyle: CSSProperties = { ...barStyle, margin: 0, padding: 0, border: 'none', minWidth: 0 };
+ const buttonStyle: CSSProperties = {
+   font: 'inherit',
+-  padding: '0.35rem 0.7rem',
+-  borderRadius: '0.5rem',
+-  border: '1px solid currentColor',
+-  background: 'transparent',
+-  color: 'inherit',
++  fontSize: 13,
++  padding: '8px 12px',
++  minHeight: 36,
++  borderRadius: 4,
++  border: '1px solid #2b2f35',
++  background: '#1c1f23',
++  color: '#e8e9eb',
+   cursor: 'pointer',
+ };
++const iconButtonStyle: CSSProperties = { ...buttonStyle, minWidth: 36, padding: '8px 0' };
++const legendStyle: CSSProperties = {
++  display: 'flex',
++  flexWrap: 'wrap',
++  gap: '16px 24px',
++  margin: 0,
++  padding: '12px 20px',
++  listStyle: 'none',
++  borderTop: '1px solid #2b2f35',
++  fontSize: 12,
++  color: '#9aa0a6',
++};
++const legendItem: CSSProperties = { display: 'flex', alignItems: 'center', gap: 6 };
++const legendDot = (color: string): CSSProperties => ({
++  width: 8,
++  height: 8,
++  borderRadius: '50%',
++  background: color,
++});
++
++/** Legend of the mockup: status dots (the status is also written on every card) and the three edge kinds. */
++function Legend() {
++  const items: [string, CSSProperties][] = [
++    ['Xong', legendDot(statusDotColors.done)],
++    ['Đang làm', legendDot(statusDotColors.running)],
++    ['Đang chờ', legendDot(statusDotColors.needs_input)],
++    ['Chưa bắt đầu', legendDot(statusDotColors.pending)],
++    ['Cha – con', { width: 18, height: 1, background: edgeColors.parent }],
++    ['Phụ thuộc', { width: 18, height: 0, borderTop: `1px dashed ${edgeColors.dependency}` }],
++    ['Sửa lỗi', { width: 18, height: 0, borderTop: `2px dotted ${edgeColors.repair}` }],
++  ];
++  return (
++    <ul aria-label="Chú giải" style={legendStyle}>
++      {items.map(([label, swatch]) => (
++        <li key={label} style={legendItem}>
++          <span aria-hidden="true" style={swatch} />
++          {label}
++        </li>
++      ))}
++    </ul>
++  );
++}
+ const panelStyle: CSSProperties = {
+   display: 'grid',
+   gap: '0.35rem',
+   padding: '0.75rem',
+   borderRadius: '0.75rem',
+   border: '1px solid rgb(148 163 184 / 0.6)',
+   overflowWrap: 'anywhere',
+ };
+@@ -144,26 +214,30 @@ export function diagnosticLabel(code: string): string {
+ 
+ function narrowScreen(): boolean {
+   return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+     ? window.matchMedia('(max-width: 40rem)').matches
+     : false;
+ }
+ 
+ /**
+- * Height that ends the map frame at the bottom of the window (page scrolled to the top), so “Vừa khung” shows
+- * the whole tree without scrolling; never below `minFrameHeight`.
++ * Height that ends the map shell (frame plus legend) at the bottom of the window (page scrolled to the top), so
++ * “Vừa khung” shows the whole tree and the legend without scrolling; never below `minFrameHeight`.
+  */
+-function useFrameHeight(frame: HTMLElement | null): number {
+-  const [height, setHeight] = useState(minFrameHeight);
++function useFrameHeight(frame: HTMLElement | null): number | null {
++  const [height, setHeight] = useState<number | null>(null);
+   useLayoutEffect(() => {
+     if (!frame) return;
+     const measure = () => {
+-      const top = frame.getBoundingClientRect().top + window.scrollY;
+-      setHeight(Math.max(minFrameHeight, Math.floor(window.innerHeight - top - 16)));
++      const box = frame.getBoundingClientRect();
++      const top = box.top + window.scrollY;
++      // Leave room for what follows the frame inside the map shell (the legend), so it stays in the window.
++      const shell = frame.closest('[data-testid="ticket-map"]')?.getBoundingClientRect();
++      const below = shell ? Math.max(0, shell.bottom - box.bottom) : 0;
++      setHeight(Math.max(minFrameHeight, Math.floor(window.innerHeight - top - below - 16)));
+     };
+     measure();
+     // Content above the frame can change height after the first measure (picker paging, the current-step
+     // line wrapping): observe the page and the body, not only window resizes.
+     const observer = new ResizeObserver(measure);
+     observer.observe(document.body);
+     const page = frame.closest('.page-stack');
+     if (page) observer.observe(page);
+@@ -179,22 +253,21 @@ function useFrameHeight(frame: HTMLElement | null): number {
+ export function TicketMap(props: TicketMapProps) {
+   return (
+     <ReactFlowProvider>
+       <MapView key={props.rootId} {...props} />
+     </ReactFlowProvider>
+   );
+ }
+ 
+-function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: TicketMapProps) {
++function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved, viewSwitch }: TicketMapProps) {
+   const { client, composeServices } = useRuntime();
+   const storage = composeServices?.storage ?? null;
+   const graph = useTicketGraph(client, rootId);
+   const flow = useReactFlow<TicketFlowNode, TicketFlowEdge>();
+-  const nodesReady = useNodesInitialized();
+   const [restored] = useState(() => readMapView(storage, rootId));
+   const [view, setView] = useState<MapViewState>(() => ({
+     ...(restored ?? initialMapView(rootId)),
+     selectedTicketId,
+   }));
+   const [listMode, setListMode] = useState(narrowScreen);
+   // Owner relayout requests: “Sắp xếp lại” (no anchor) and structural changes (anchored).
+   const [relayout, setRelayout] = useState<{ run: number; anchor: string | null }>({ run: 0, anchor: null });
+@@ -222,61 +295,65 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
+     () => (graph.data ? projectGraph(graph.data, rootId, expanded) : null),
+     [graph.data, rootId, expanded],
+   );
+   useEffect(() => {
+     if (projection && projection.rootId !== rootId && onRootResolved) onRootResolved(projection.rootId);
+   }, [projection, rootId, onRootResolved]);
+ 
+   // Positions follow the projection as derived state (updated during render, React's pattern for state that
+-  // tracks inputs). The first projection is laid out; data changes (refetch, new child) keep every known card
+-  // and only place new ones; an owner relayout request (expand/collapse, “Sắp xếp lại”) lays the whole tree
+-  // out and, when it names an anchor, records the anchor's displacement so the viewport can follow it.
++  // tracks inputs). Every change of the visible tree is laid out again (parents always between their children,
++  // tasks beside their step), and the viewport then follows one anchor so it stays still on screen: the clicked
++  // step for expand/collapse, the focused card for “tất cả” and for realtime data, otherwise the root.
++  // “Sắp xếp lại” lays out without an anchor.
+   const [layout, setLayout] = useState<{
+     projection: MapProjection | null;
+     run: number;
++    seq: number;
+     positions: Record<string, Point>;
+-    anchor: { run: number; id: string; from: Point } | null;
+-  }>({ projection: null, run: 0, positions: {}, anchor: null });
++    anchor: { seq: number; id: string; from: Point } | null;
++  }>({ projection: null, run: 0, seq: 0, positions: {}, anchor: null });
+   let positions = layout.positions;
+   if (projection && (layout.projection !== projection || layout.run !== relayout.run)) {
+     const requested = layout.run !== relayout.run;
+-    positions =
+-      layout.projection === null || requested
+-        ? layoutHierarchy(projection)
+-        : placeNewNodes(layout.positions, projection);
+-    // The anchor must be on screen before and after; otherwise (e.g. a focused task hidden by “Thu gọn tất cả”)
+-    // the root anchors the move.
+-    const candidates = requested && relayout.anchor !== null ? [relayout.anchor, projection.rootId] : [];
+-    const anchorId = candidates.find((id) => layout.positions[id] && positions[id]);
++    positions = layoutHierarchy(projection);
++    const wanted =
++      layout.projection === null
++        ? []
++        : requested
++          ? relayout.anchor === null
++            ? []
++            : [relayout.anchor, projection.rootId]
++          : [view.focusedTicketId, projection.rootId];
++    const anchorId = wanted.find((id): id is string => !!id && !!layout.positions[id] && !!positions[id]);
++    const seq = layout.seq + 1;
+     setLayout({
+       projection,
+       run: relayout.run,
++      seq,
+       positions,
+       anchor:
+-        anchorId === undefined
+-          ? layout.anchor
+-          : { run: relayout.run, id: anchorId, from: layout.positions[anchorId] as Point },
++        anchorId === undefined ? null : { seq, id: anchorId, from: layout.positions[anchorId] as Point },
+     });
+   }
+   const positionsRef = useRef(positions);
+   useEffect(() => {
+     positionsRef.current = positions;
+   }, [positions]);
+ 
+   const saveViewport = useCallback((viewport: Viewport) => {
+     setView((current) => moveMapViewport(current, viewport));
+   }, []);
+ 
+-  // Keep the anchor of an owner relayout still on screen: shift the viewport by its displacement, once per run.
+-  const anchoredRun = useRef(0);
++  // Keep the anchor still on screen: shift the viewport by its displacement, once per layout.
++  const anchoredSeq = useRef(0);
+   useLayoutEffect(() => {
+     const anchor = layout.anchor;
+-    if (!anchor || anchoredRun.current === anchor.run) return;
+-    anchoredRun.current = anchor.run;
++    if (!anchor || anchoredSeq.current === anchor.seq) return;
++    anchoredSeq.current = anchor.seq;
+     const to = layout.positions[anchor.id];
+     if (!to) return;
+     void flow
+       .setViewport(followAnchor(anchor.from, to, flow.getViewport()))
+       .then(() => saveViewport(flow.getViewport()));
+   }, [layout, flow, saveViewport]);
+ 
+   const focusNode = useCallback(
+@@ -337,16 +414,20 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
+       if (row.parentId !== null && collapsible.has(row.parentId))
+         counts[row.parentId] = (counts[row.parentId] ?? 0) + 1;
+     return counts;
+   }, [graph.data]);
+   const badges = useMemo(
+     () => (graph.data && projection ? hiddenRelationCounts(graph.data, projection) : {}),
+     [graph.data, projection],
+   );
++  const fixIds = useMemo(
++    () => new Set((graph.data?.repairLinks ?? []).map((link) => link.fixTicketId)),
++    [graph.data],
++  );
+   const titles = useMemo(
+     () => new Map((graph.data?.nodes ?? []).map((row) => [row.id, row.title])),
+     [graph.data],
+   );
+ 
+   const nodes = useMemo<TicketFlowNode[]>(
+     () =>
+       (projection?.nodes ?? []).map((ticket) => ({
+@@ -365,47 +446,52 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
+         draggable: false,
+         connectable: false,
+         deletable: false,
+         selectable: false,
+         focusable: false,
+         data: {
+           ticket,
+           isRoot: ticket.id === projection?.rootId,
++          isFix: fixIds.has(ticket.id),
++          focused: ticket.id === view.focusedTicketId,
+           childCount: childCounts[ticket.id] ?? 0,
+           expanded: expanded.has(ticket.id),
+           hiddenRelations: badges[ticket.id] ?? 0,
+           actions,
+         },
+       })),
+-    [projection, positions, childCounts, expanded, badges, actions],
++    [projection, positions, childCounts, expanded, badges, actions, fixIds, view.focusedTicketId],
+   );
+   const edges = useMemo<TicketFlowEdge[]>(
+     () =>
+       (projection?.edges ?? []).map((edge) => ({
+         id: edge.id,
+         source: edge.source,
+         target: edge.target,
+         type: edge.kind,
+         data: edge.cycleId ? { cycleId: edge.cycleId } : {},
+-        markerEnd: edge.kind === 'parent' ? undefined : { type: MarkerType.ArrowClosed, color: '#e2e8f0' },
++        markerEnd:
++          edge.kind === 'parent' ? undefined : { type: MarkerType.ArrowClosed, color: edgeColors[edge.kind] },
+         focusable: false,
+         selectable: false,
+         deletable: false,
+         ariaLabel: edgeLabel(edge, (id) => titles.get(id) ?? id),
+       })),
+     [projection, titles],
+   );
+ 
+-  // A root seen for the first time in this tab is fitted once; later data changes never refit.
++  // A root seen for the first time in this tab opens 1:1 with the root at the left edge, centred vertically
++  // (the reference map scrolls instead of shrinking); “Vừa khung” stays available for the overview.
++  const rootAt = projection ? positions[projection.rootId] : undefined;
+   useEffect(() => {
+-    if (fitted.current || !nodesReady || nodes.length === 0) return;
++    if (fitted.current || !frame || !rootAt || frameHeight === null) return;
+     fitted.current = true;
+-    void flow.fitView({ padding: 0.15, maxZoom: 1 }).then(() => saveViewport(flow.getViewport()));
+-  }, [nodesReady, nodes.length, flow, saveViewport]);
++    void flow.setViewport(initialViewport(rootAt, frameHeight)).then(() => saveViewport(flow.getViewport()));
++  }, [frame, rootAt, frameHeight, flow, saveViewport]);
+ 
+   const explicit = (action: Promise<boolean>) => {
+     void action.then(() => saveViewport(flow.getViewport()));
+   };
+   const rearrange = () => setRelayout((current) => ({ run: current.run + 1, anchor: null }));
+   // “Mở/Thu gọn tất cả” anchor on the focused card, or on the root when no card has focus.
+   const setExpandedIds = (ids: readonly string[]) => {
+     setView((current) => setMapExpanded(current, ids));
+@@ -427,123 +513,157 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
+   return (
+     <section
+       ref={setContainer}
+       aria-label="Sơ đồ ticket"
+       data-testid="ticket-map"
+       data-nodes={projection?.nodes.length}
+       data-focus-fallback=""
+       tabIndex={-1}
+-      style={{ display: 'grid', gap: '0.75rem', minWidth: 0 }}
++      style={frameShellStyle}
+     >
+-      {graph.isPending && <p role="status">Đang tải sơ đồ…</p>}
++      <header style={headerStyle}>
++        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
++          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Sơ đồ ticket</h1>
++          {graph.data && (
++            <p style={{ margin: 0, fontSize: 13, color: '#9aa0a6' }}>
++              {mergeTicketPages([graph.data.nodes]).length} ticket · bấm vào thẻ để xem chi tiết
++            </p>
++          )}
++        </div>
++        <fieldset aria-label="Điều khiển sơ đồ" style={controlsStyle}>
++          {viewSwitch}
++          {graph.data && projection && !showList && (
++            <>
++              <button
++                type="button"
++                style={buttonStyle}
++                onClick={() => explicit(flow.fitView({ padding: 0.15, maxZoom: 1 }))}
++              >
++                Vừa khung
++              </button>
++              <button type="button" style={buttonStyle} onClick={rearrange}>
++                Sắp xếp lại
++              </button>
++              <button
++                type="button"
++                style={buttonStyle}
++                onClick={() => setExpandedIds(expandableIds(graph.data))}
++              >
++                Mở tất cả
++              </button>
++              <button type="button" style={buttonStyle} onClick={() => setExpandedIds([])}>
++                Thu gọn tất cả
++              </button>
++              <button
++                type="button"
++                style={iconButtonStyle}
++                aria-label="Phóng to"
++                onClick={() => explicit(flow.zoomIn())}
++              >
++                +
++              </button>
++              <button
++                type="button"
++                style={iconButtonStyle}
++                aria-label="Thu nhỏ"
++                onClick={() => explicit(flow.zoomOut())}
++              >
++                −
++              </button>
++            </>
++          )}
++          {graph.data && projection && diagnostics.length === 0 && (
++            <button
++              type="button"
++              style={buttonStyle}
++              aria-pressed={listMode}
++              onClick={() => setListMode(!listMode)}
++            >
++              {listMode ? 'Xem dạng sơ đồ' : 'Xem dạng danh sách'}
++            </button>
++          )}
++        </fieldset>
++      </header>
++      {graph.isPending && (
++        <p role="status" style={innerStyle}>
++          Đang tải sơ đồ…
++        </p>
++      )}
+       {graph.error && (
+-        <p role="alert">
++        <p role="alert" style={innerStyle}>
+           Không tải được sơ đồ: {failureText(graph.error)}{' '}
+           <button type="button" style={buttonStyle} onClick={() => void graph.refetch()}>
+             Thử lại
+           </button>
+         </p>
+       )}
+       {graph.data && projection && (
+         <>
+-          <CurrentSteps nodes={graph.data.nodes} />
+           {diagnostics.length > 0 && (
+-            <div role="alert" style={panelStyle}>
++            <div role="alert" style={{ ...panelStyle, margin: '12px 20px 0' }}>
+               <strong>
+                 Dữ liệu sơ đồ chưa nhất quán — đang hiện dạng danh sách để không mất ticket nào.
+               </strong>
+               <ul style={{ margin: 0 }}>
+                 {diagnostics.map((code) => (
+                   <li key={code}>{diagnosticLabel(code)}</li>
+                 ))}
+               </ul>
+               <div>
+                 <button type="button" style={buttonStyle} onClick={() => void graph.refetch()}>
+                   Tải lại
+                 </button>
+               </div>
+             </div>
+           )}
+-          <fieldset aria-label="Điều khiển sơ đồ" style={controlsStyle}>
+-            {!showList && (
+-              <>
+-                <button type="button" style={buttonStyle} onClick={() => explicit(flow.zoomIn())}>
+-                  Phóng to
+-                </button>
+-                <button type="button" style={buttonStyle} onClick={() => explicit(flow.zoomOut())}>
+-                  Thu nhỏ
+-                </button>
+-                <button
+-                  type="button"
+-                  style={buttonStyle}
+-                  onClick={() => explicit(flow.fitView({ padding: 0.15, maxZoom: 1 }))}
+-                >
+-                  Vừa khung
+-                </button>
+-                <button type="button" style={buttonStyle} onClick={rearrange}>
+-                  Sắp xếp lại
+-                </button>
+-                <button
+-                  type="button"
+-                  style={buttonStyle}
+-                  onClick={() => setExpandedIds(expandableIds(graph.data))}
+-                >
+-                  Mở tất cả
+-                </button>
+-                <button type="button" style={buttonStyle} onClick={() => setExpandedIds([])}>
+-                  Thu gọn tất cả
+-                </button>
+-              </>
+-            )}
+-            {diagnostics.length === 0 && (
+-              <button
+-                type="button"
+-                style={buttonStyle}
+-                aria-pressed={listMode}
+-                onClick={() => setListMode(!listMode)}
+-              >
+-                {listMode ? 'Xem dạng sơ đồ' : 'Xem dạng danh sách'}
+-              </button>
+-            )}
+-          </fieldset>
+           {showList ? (
+-            <TicketOutline
+-              graph={graph.data}
+-              rootId={projection.rootId}
+-              onOpen={(id, element) => actionsRef.current?.open(id, element)}
+-            />
+-          ) : (
+-            <div ref={setFrame} style={{ ...flowStyle, height: frameHeight }}>
+-              <ReactFlow<TicketFlowNode, TicketFlowEdge>
+-                nodes={nodes}
+-                edges={edges}
+-                nodeTypes={nodeTypes}
+-                edgeTypes={ticketEdgeTypes}
+-                defaultViewport={view.viewport}
+-                minZoom={minZoom}
+-                maxZoom={maxZoom}
+-                onMoveEnd={(_, viewport) => saveViewport(viewport)}
+-                nodesDraggable={false}
+-                nodesConnectable={false}
+-                nodesFocusable={false}
+-                edgesFocusable={false}
+-                elementsSelectable={false}
+-                deleteKeyCode={null}
+-                selectionKeyCode={null}
+-                multiSelectionKeyCode={null}
+-                disableKeyboardA11y
+-                zoomOnDoubleClick={false}
+-                onlyRenderVisibleElements
+-                colorMode="dark"
++            <div style={{ ...innerStyle, display: 'grid', gap: 12 }}>
++              <CurrentSteps nodes={graph.data.nodes} />
++              <TicketOutline
++                graph={graph.data}
++                rootId={projection.rootId}
++                onOpen={(id, element) => actionsRef.current?.open(id, element)}
+               />
+             </div>
++          ) : (
++            <>
++              <div ref={setFrame} style={{ ...flowStyle, height: frameHeight ?? minFrameHeight }}>
++                <ReactFlow<TicketFlowNode, TicketFlowEdge>
++                  nodes={nodes}
++                  edges={edges}
++                  nodeTypes={nodeTypes}
++                  edgeTypes={ticketEdgeTypes}
++                  defaultViewport={view.viewport}
++                  minZoom={minZoom}
++                  maxZoom={maxZoom}
++                  onMoveEnd={(_, viewport) => saveViewport(viewport)}
++                  nodesDraggable={false}
++                  nodesConnectable={false}
++                  nodesFocusable={false}
++                  edgesFocusable={false}
++                  elementsSelectable={false}
++                  deleteKeyCode={null}
++                  selectionKeyCode={null}
++                  multiSelectionKeyCode={null}
++                  disableKeyboardA11y
++                  zoomOnDoubleClick={false}
++                  panOnScroll
++                  onlyRenderVisibleElements
++                  colorMode="dark"
++                  style={{ background: '#17191c' }}
++                />
++              </div>
++              <Legend />
++            </>
+           )}
+           {focused !== null && titles.has(focused) && (
+-            <RelationsPanel graph={graph.data} ticketId={focused} titleOf={(id) => titles.get(id) ?? id} />
++            <div style={{ ...innerStyle, paddingTop: 0 }}>
++              <RelationsPanel graph={graph.data} ticketId={focused} titleOf={(id) => titles.get(id) ?? id} />
++            </div>
+           )}
+         </>
+       )}
+       <TicketDialog
+         ticketId={selectedTicketId}
+         returnFocus={returnFocus}
+         onClose={() => onSelectTicket(null)}
+       />
+@@ -719,16 +839,71 @@ function RootPicker({
+           ))}
+         </select>
+       </label>
+       <TicketPagination list={list} />
+     </div>
+   );
+ }
+ 
++const crumbStyle: CSSProperties = {
++  fontSize: 13,
++  color: '#9aa0a6',
++  display: 'flex',
++  gap: 6,
++  flexWrap: 'wrap',
++};
++const switchStyle: CSSProperties = {
++  display: 'flex',
++  border: '1px solid #2b2f35',
++  borderRadius: 4,
++  overflow: 'hidden',
++};
++const switchItem: CSSProperties = {
++  fontSize: 13,
++  padding: '8px 14px',
++  minHeight: 36,
++  boxSizing: 'border-box',
++  display: 'flex',
++  alignItems: 'center',
++  color: '#9aa0a6',
++  textDecoration: 'none',
++  borderRight: '1px solid #2b2f35',
++};
++
++/** Bảng/Danh sách/Sơ đồ of the mockup: links to the project's ticket views; the map is the current page. */
++function ViewSwitch({ projectId }: { projectId: string }) {
++  return (
++    <nav aria-label="Chế độ xem" style={switchStyle}>
++      <Link
++        style={switchItem}
++        to="/projects/$projectId/tickets"
++        params={{ projectId }}
++        search={{ view: 'board' }}
++      >
++        Bảng
++      </Link>
++      <Link
++        style={switchItem}
++        to="/projects/$projectId/tickets"
++        params={{ projectId }}
++        search={{ view: 'list' }}
++      >
++        Danh sách
++      </Link>
++      <span
++        aria-current="page"
++        style={{ ...switchItem, borderRight: 'none', background: '#262a30', color: '#e8e9eb' }}
++      >
++        Sơ đồ
++      </span>
++    </nav>
++  );
++}
++
+ function MapPageFrame({ projectId, children }: { projectId: string | null; children: ReactNode }) {
+   return (
+     <section className="page-stack" aria-labelledby="map-heading">
+       <div className="page-intro">
+         <h1 id="map-heading">Sơ đồ yêu cầu</h1>
+       </div>
+       {projectId && (
+         <nav style={barStyle} aria-label="Cách xem ticket">
+@@ -770,17 +945,19 @@ function MapNotFound({ what }: { what: string }) {
+  * Route `/requests/$rootId/map?ticket=<uuid>`. The project (board/list links, request picker) comes from the
+  * root ticket itself, so a map is never shown under another project's page. The open dialog lives in the URL.
+  */
+ export function RequestMapPage() {
+   const params = useParams({ strict: false }) as { rootId?: string };
+   const rootId = routeUuid(params.rootId);
+   const ticket = parseMapSearch(useSearch({ strict: false })).ticket ?? null;
+   const navigate = useNavigate();
+-  const graph = useTicketGraph(useRuntime().client, rootId ?? undefined);
++  const { client } = useRuntime();
++  const graph = useTicketGraph(client, rootId ?? undefined);
++  const projects = useQuery(projectsQueryOptions(client));
+   const go = useCallback(
+     (root: string, nextTicket: string | null, replace = false) =>
+       void navigate({
+         to: '/requests/$rootId/map',
+         params: { rootId: root },
+         search: nextTicket === null ? {} : { ticket: nextTicket },
+         replace,
+       }),
+@@ -802,32 +979,42 @@ export function RequestMapPage() {
+       });
+     } else if (closeMapDialogNavigation(router.history.location.state, rootId) === 'back')
+       router.history.back();
+     else go(rootId, null, true);
+   };
+   if (!rootId) return <MapNotFound what="yêu cầu" />;
+   const root = graph.data?.nodes.find((row) => row.id === rootId);
+   const projectId = root?.projectId ?? null;
++  const projectName = projects.data?.find((row) => row.id === projectId)?.name;
+   return (
+-    <MapPageFrame projectId={projectId}>
+-      {projectId && (
+-        <RootPicker
+-          projectId={projectId}
+-          rootId={root?.rootId ?? rootId}
+-          onPick={(picked) => go(picked, null)}
+-        />
+-      )}
++    <section className="page-stack" aria-label="Sơ đồ yêu cầu" style={{ gap: 16 }}>
++      <nav aria-label="Đường dẫn" style={crumbStyle}>
++        {projectId ? (
++          <>
++            <Link to="/projects/$projectId/tickets" params={{ projectId }} search={{ view: 'board' }}>
++              {projectName ?? 'Dự án'}
++            </Link>
++            <span aria-hidden="true">›</span>
++            <Link to="/projects/$projectId/tickets" params={{ projectId }} search={{ view: 'requests' }}>
++              Yêu cầu
++            </Link>
++            <span aria-hidden="true">›</span>
++          </>
++        ) : null}
++        <span style={{ color: '#e8e9eb' }}>{root?.title ?? 'Yêu cầu'}</span>
++      </nav>
+       <TicketMap
+         rootId={rootId}
+         selectedTicketId={ticket}
+         onSelectTicket={selectTicket}
+         onRootResolved={onRootResolved}
++        viewSwitch={projectId ? <ViewSwitch projectId={projectId} /> : null}
+       />
+-    </MapPageFrame>
++    </section>
+   );
+ }
+ 
+ /** Route `/projects/$projectId/map`: request picker of a project (links with `?root=` are redirected by the router). */
+ export function ProjectMapPickerPage() {
+   const params = useParams({ strict: false }) as { projectId?: string };
+   const projectId = routeUuid(params.projectId);
+   const navigate = useNavigate();
+diff --git a/v2/web/src/graph/ticket-node.tsx b/v2/web/src/graph/ticket-node.tsx
+index 50f8e41..b8bbe07 100644
+--- a/v2/web/src/graph/ticket-node.tsx
++++ b/v2/web/src/graph/ticket-node.tsx
+@@ -1,143 +1,203 @@
+ /**
+- * One ticket card on the map. The card is a real `<button>` (Enter/Space open the shared ticket dialog, arrow
+- * keys move between cards), labelled with level, title, status text and revision; status is shown as icon plus
+- * text, never by colour alone. Steps with tasks get an expand/collapse toggle and a badge with the number of
+- * dependency/repair relations that touch their collapsed tasks. Handles exist only so ReactFlow can attach
+- * edges; they are not connectable.
++ * One ticket card on the map, following the owner-approved mockup: 280×48, dark neutral card, title line with a
++ * status dot, then a secondary line (“level · status”, plus the pinned workflow when there is one). The dot is
++ * decoration only: the status is always written in the secondary line and in the accessible label. The card is
++ * a real `<button>` (Enter/Space open the shared ticket dialog, arrow keys move between cards). Steps with tasks
++ * get an expand/collapse toggle and, when collapsed tasks have relations, a badge with their count. Handles
++ * exist only so ReactFlow can attach edges; they are not connectable.
+  */
+ import { Handle, type Node, type NodeProps, Position } from '@xyflow/react';
+ import type { CSSProperties, KeyboardEvent } from 'react';
+-import type { Ticket } from '../contracts/tickets.ts';
+-import { levelLabels, statusIcons, statusLabels } from '../tickets/status.ts';
++import type { Ticket, TicketStatus } from '../contracts/tickets.ts';
++import { levelLabels, statusLabels } from '../tickets/status.ts';
+ import { cardHeight, cardWidth, type MapDirection } from './layout.ts';
+ 
+ export type TicketNodeData = {
+   ticket: Ticket;
+   isRoot: boolean;
++  /** Fix task of a repair cycle (target of a repair link). */
++  isFix: boolean;
+   /** Number of child tasks a toggle would show; 0 means the node is not collapsible. */
+   childCount: number;
+   expanded: boolean;
+   hiddenRelations: number;
++  focused: boolean;
+   actions: TicketNodeActions;
+ };
+ export type TicketNodeActions = {
+   open(ticketId: string, trigger: HTMLElement): void;
+   toggle(ticketId: string): void;
+   navigate(ticketId: string, direction: MapDirection): void;
+   focus(ticketId: string): void;
+ };
+ export type TicketFlowNode = Node<TicketNodeData, 'ticket'>;
+ 
++/** Mockup palette: done green, active blue, waiting amber, not started grey. */
++export const statusDotColors: Readonly<Record<TicketStatus, string>> = {
++  done: '#3fb27f',
++  running: '#4c9aff',
++  needs_input: '#f0a24a',
++  paused: '#f0a24a',
++  pending: '#6b7280',
++  ready: '#6b7280',
++  cancelled: '#6b7280',
++};
++
++const workflowLabels: Readonly<Record<string, string>> = { bmad: 'BMAD', superpowers: 'Superpowers' };
++
+ const arrowKeys: Readonly<Record<string, MapDirection>> = {
+   ArrowLeft: 'left',
+   ArrowRight: 'right',
+   ArrowUp: 'up',
+   ArrowDown: 'down',
+ };
+ 
+ const cardStyle: CSSProperties = {
++  position: 'relative',
+   width: cardWidth,
+   height: cardHeight,
+   boxSizing: 'border-box',
++  borderRadius: 4,
++  background: '#1c1f23',
++  color: '#e8e9eb',
+   overflow: 'hidden',
+-  display: 'grid',
+-  gridTemplateRows: '1fr auto',
+-  gap: '0.25rem',
+-  padding: '0.5rem 0.65rem',
+-  borderRadius: '0.6rem',
+-  border: '1px solid #64748b',
+-  background: '#172235',
+-  color: '#e7edf7',
+-  fontSize: '0.85rem',
+ };
+ const openStyle: CSSProperties = {
+-  display: 'grid',
+-  gap: '0.15rem',
++  position: 'absolute',
++  inset: 0,
++  display: 'flex',
++  flexDirection: 'column',
++  justifyContent: 'center',
++  gap: 2,
++  padding: '0 12px',
+   minWidth: 0,
+-  padding: 0,
+   textAlign: 'left',
+   font: 'inherit',
+   color: 'inherit',
+   background: 'transparent',
+   border: 'none',
+   cursor: 'pointer',
+ };
+-const titleStyle: CSSProperties = {
++const titleRow: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 };
++const titleText: CSSProperties = {
++  fontSize: 13,
++  fontWeight: 600,
++  whiteSpace: 'nowrap',
+   overflow: 'hidden',
+   textOverflow: 'ellipsis',
++};
++const subline: CSSProperties = {
++  fontSize: 11.5,
++  color: '#9aa0a6',
++  paddingLeft: 16,
+   whiteSpace: 'nowrap',
+-  fontSize: '0.95rem',
++  overflow: 'hidden',
++  textOverflow: 'ellipsis',
+ };
+-const footerStyle: CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: '0.4rem', alignItems: 'center' };
+-const smallButton: CSSProperties = {
++const toggleStyle: CSSProperties = {
++  position: 'absolute',
++  top: 4,
++  right: 6,
++  minHeight: 24,
++  padding: '0 6px',
+   font: 'inherit',
+-  fontSize: '0.8rem',
+-  padding: '0.1rem 0.45rem',
+-  borderRadius: '0.4rem',
+-  border: '1px solid currentColor',
+-  background: 'transparent',
+-  color: 'inherit',
++  fontSize: 11,
++  color: '#9aa0a6',
++  background: '#1c1f23',
++  border: '1px solid #2b2f35',
++  borderRadius: 4,
+   cursor: 'pointer',
+ };
++const badgeStyle: CSSProperties = {
++  position: 'absolute',
++  bottom: 3,
++  right: 8,
++  fontSize: 10.5,
++  color: '#8ab4ff',
++};
+ const hiddenHandle: CSSProperties = { opacity: 0, pointerEvents: 'none' };
+ 
+ export function ticketNodeLabel(ticket: Ticket): string {
+   return `${levelLabels[ticket.level]}: ${ticket.title}. Trạng thái: ${statusLabels[ticket.status]}. Phiên bản ${ticket.revision}`;
+ }
+ 
++/** Secondary line from producer fields only: level (or “Yêu cầu”/“Sửa”), pinned workflow, status. */
++export function ticketSubline(ticket: Ticket, isRoot: boolean, isFix: boolean): string {
++  const kind = isRoot ? 'Yêu cầu' : isFix ? 'Sửa' : levelLabels[ticket.level];
++  const workflow = ticket.workflowPin ? workflowLabels[ticket.workflowPin.workflow] : undefined;
++  return [kind, workflow, statusLabels[ticket.status]].filter(Boolean).join(' · ');
++}
++
+ export function TicketNode({ data }: NodeProps<TicketFlowNode>) {
+-  const { ticket, isRoot, childCount, expanded, hiddenRelations, actions } = data;
++  const { ticket, isRoot, isFix, childCount, expanded, hiddenRelations, focused, actions } = data;
+   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+     const direction = arrowKeys[event.key];
+     if (!direction) return;
+     event.preventDefault();
+     event.stopPropagation();
+     actions.navigate(ticket.id, direction);
+   };
++  const reserved = childCount > 0 ? 76 : hiddenRelations > 0 ? 40 : 12;
+   return (
+     <div
+-      style={{ ...cardStyle, borderWidth: isRoot ? 2 : 1 }}
++      style={{ ...cardStyle, border: focused ? '2px solid #8ab4ff' : '1px solid #2b2f35' }}
+       data-level={ticket.level}
+       data-root={isRoot ? '' : undefined}
++      data-focused={focused ? 'true' : undefined}
+     >
+       <Handle type="target" position={Position.Left} isConnectable={false} style={hiddenHandle} />
+       <button
+         type="button"
+         className="nodrag nopan"
+-        style={openStyle}
++        style={{ ...openStyle, paddingRight: reserved }}
+         data-map-node={ticket.id}
+         data-revision={ticket.revision}
+         aria-label={ticketNodeLabel(ticket)}
+         onClick={(event) => actions.open(ticket.id, event.currentTarget)}
+         onKeyDown={onKeyDown}
+         onFocus={() => actions.focus(ticket.id)}
+       >
+-        <span aria-hidden="true">
+-          {isRoot ? 'Yêu cầu gốc' : levelLabels[ticket.level]} · Phiên bản {ticket.revision}
++        <span style={titleRow} data-line="title">
++          <span
++            aria-hidden="true"
++            data-status-dot={ticket.status}
++            style={{
++              width: 8,
++              height: 8,
++              borderRadius: '50%',
++              flex: 'none',
++              background: statusDotColors[ticket.status],
++            }}
++          />
++          <span style={titleText}>{ticket.title}</span>
+         </span>
+-        <strong style={titleStyle} aria-hidden="true">
+-          {ticket.title}
+-        </strong>
+-        <span aria-hidden="true" data-status={ticket.status}>
+-          {statusIcons[ticket.status]} {statusLabels[ticket.status]}
++        <span style={subline} data-line="meta">
++          {ticketSubline(ticket, isRoot, isFix)}
+         </span>
+       </button>
+-      <div style={footerStyle}>
+-        {childCount > 0 && (
+-          <button
+-            type="button"
+-            className="nodrag nopan"
+-            style={smallButton}
+-            aria-expanded={expanded}
+-            aria-label={`${expanded ? 'Thu gọn' : 'Mở'} công việc của ${ticket.title}`}
+-            onClick={() => actions.toggle(ticket.id)}
+-          >
+-            <span aria-hidden="true">{expanded ? '▾' : '▸'}</span> {childCount} công việc
+-          </button>
+-        )}
+-        {hiddenRelations > 0 && <span>{`${hiddenRelations} quan hệ tới công việc thu gọn`}</span>}
+-      </div>
++      {childCount > 0 && (
++        <button
++          type="button"
++          className="nodrag nopan"
++          style={toggleStyle}
++          aria-expanded={expanded}
++          aria-label={`${expanded ? 'Thu gọn' : 'Mở'} công việc của ${ticket.title}`}
++          onClick={() => actions.toggle(ticket.id)}
++        >
++          <span aria-hidden="true">{expanded ? '▾' : '▸'}</span> {childCount} việc
++        </button>
++      )}
++      {hiddenRelations > 0 && (
++        <span
++          role="img"
++          style={badgeStyle}
++          aria-label={`${hiddenRelations} quan hệ tới công việc thu gọn`}
++          title={`${hiddenRelations} quan hệ tới công việc thu gọn`}
++        >
++          ⇄ {hiddenRelations}
++        </span>
++      )}
+       <Handle type="source" position={Position.Right} isConnectable={false} style={hiddenHandle} />
+     </div>
+   );
+ }
+diff --git a/v2/web/src/styles.css b/v2/web/src/styles.css
+index ad51fb2..7eea919 100644
+--- a/v2/web/src/styles.css
++++ b/v2/web/src/styles.css
+@@ -297,8 +297,60 @@ a {
+ @media (prefers-reduced-motion: no-preference) {
+   .nav-link {
+     transition: background-color 0.15s ease;
+   }
+   .skip-link {
+     transition: top 0.15s ease;
+   }
+ }
++
++/* Shared ticket dialog (dark, owner-approved map mockup): native controls follow the dark scheme. */
++.ticket-dialog {
++  color-scheme: dark;
++}
++
++.ticket-dialog textarea,
++.ticket-dialog input:not([type="file"]),
++.ticket-dialog select {
++  color: #e8e9eb;
++  background: #0f1113;
++  border: 1px solid #2b2f35;
++  border-radius: 4px;
++}
++
++.ticket-dialog a {
++  color: #8ab4ff;
++}
++
++.ticket-dialog h2,
++.ticket-dialog h3 {
++  margin: 0;
++  font-size: 13px;
++  font-weight: 600;
++  color: #9aa0a6;
++}
++
++.ticket-dialog button {
++  font: inherit;
++  font-size: 13px;
++  min-height: 36px;
++  padding: 8px 14px;
++  color: #e8e9eb;
++  background: transparent;
++  border: 1px solid #2b2f35;
++  border-radius: 4px;
++  cursor: pointer;
++}
++
++/* Accent submit of the composer inside the dialog (mockup “Gửi”). */
++.ticket-dialog .compose-submit {
++  color: #ffffff;
++  background: #3b6fd4;
++  border-color: #3b6fd4;
++}
++
++.ticket-dialog .compose-submit:disabled {
++  color: #9aa0a6;
++  background: #262a30;
++  border-color: #2b2f35;
++  cursor: not-allowed;
++}
+diff --git a/v2/web/src/tickets/detail.tsx b/v2/web/src/tickets/detail.tsx
+index 4b484cd..a4f60cc 100644
+--- a/v2/web/src/tickets/detail.tsx
++++ b/v2/web/src/tickets/detail.tsx
+@@ -39,49 +39,132 @@ const gridStyle: CSSProperties = {
+ const textStyle: CSSProperties = { margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
+ const noticeStyle: CSSProperties = {
+   margin: 0,
+   padding: '0.6rem 0.8rem',
+   border: '1px solid currentColor',
+   borderRadius: '0.5rem',
+ };
+ const missing = 'Chưa có dữ liệu — máy chủ chưa cung cấp thông tin này.';
++// Presentation of the dark dialog in the owner-approved mockup (screen 2).
++const titleRowStyle: CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 };
++const titleStyle: CSSProperties = { margin: 0, fontSize: 18, fontWeight: 600 };
++const sublineStyle: CSSProperties = { margin: 0, fontSize: 13, color: '#9aa0a6', overflowWrap: 'anywhere' };
++const headerStyle: CSSProperties = {
++  display: 'grid',
++  gap: 6,
++  paddingBottom: 16,
++  borderBottom: '1px solid #2b2f35',
++};
++const tilesStyle: CSSProperties = {
++  display: 'grid',
++  gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))',
++  gap: 12,
++  margin: 0,
++  padding: 0,
++  listStyle: 'none',
++};
++const tileStyle: CSSProperties = {
++  display: 'grid',
++  gap: 4,
++  padding: '10px 12px',
++  background: '#1c1f23',
++  border: '1px solid #2b2f35',
++  borderRadius: 4,
++};
++const tileLabelStyle: CSSProperties = { fontSize: 11.5, color: '#9aa0a6' };
++const tileValueStyle: CSSProperties = { fontSize: 13, fontWeight: 500 };
+ 
+ export function StatusBadge({ status }: { status: Ticket['status'] }) {
+   return (
+     <span data-status={status} style={{ whiteSpace: 'nowrap' }}>
+       <span aria-hidden="true">{statusIcons[status]}</span> {statusLabels[status]}
+     </span>
+   );
+ }
+ 
+ function Headings({
+   presentation,
+   title,
+   description,
++  leading,
+ }: {
+   presentation: TicketDetailProps['presentation'];
+   title: ReactNode;
+   description: ReactNode;
++  /** Shown before the title on the same line (status dot). */
++  leading?: ReactNode;
+ }) {
++  const row = (heading: ReactNode) =>
++    leading ? (
++      <div style={titleRowStyle}>
++        {leading}
++        {heading}
++      </div>
++    ) : (
++      heading
++    );
+   if (presentation === 'dialog')
+     return (
+       <>
+-        <Dialog.Title style={{ margin: 0 }}>{title}</Dialog.Title>
+-        <Dialog.Description style={textStyle}>{description}</Dialog.Description>
++        {row(<Dialog.Title style={titleStyle}>{title}</Dialog.Title>)}
++        <Dialog.Description style={sublineStyle} data-detail-subline="">
++          {description}
++        </Dialog.Description>
+       </>
+     );
+   return (
+     <>
+-      <h1 style={{ margin: 0 }}>{title}</h1>
+-      <p style={textStyle}>{description}</p>
++      {row(<h1 style={{ margin: 0 }}>{title}</h1>)}
++      <p style={sublineStyle} data-detail-subline="">
++        {description}
++      </p>
+     </>
+   );
+ }
+ 
++/** Status dot of the map mockup; decoration only, the status is written in the “Trạng thái” tile. */
++const dotColors: Readonly<Record<Ticket['status'], string>> = {
++  done: '#3fb27f',
++  running: '#4c9aff',
++  needs_input: '#f0a24a',
++  paused: '#f0a24a',
++  pending: '#6b7280',
++  ready: '#6b7280',
++  cancelled: '#6b7280',
++};
++
++/** “loại · bước · gốc” from the shared whole-root graph query (same key as `ChildTickets`, no extra request). */
++function useTicketSubline(ticket: Ticket): string {
++  const graph = useTicketGraph(useRuntime().client, ticket.rootId);
++  const titleOf = (id: string | null) =>
++    id === null ? undefined : graph.data?.nodes.find((node) => node.id === id)?.title;
++  const step = ticket.level === 'task' ? titleOf(ticket.parentId) : undefined;
++  const root = ticket.id === ticket.rootId ? undefined : titleOf(ticket.rootId);
++  return [levelLabels[ticket.level], step, root].filter(Boolean).join(' · ');
++}
++
++function InfoTiles({ ticket }: { ticket: Ticket }) {
++  // “Cập nhật” is shown only with real data; the Ticket DTO has no update time yet, so it is omitted.
++  const tiles: [string, ReactNode, boolean][] = [
++    ['Trạng thái', `${statusLabels[ticket.status]} · Phiên bản ${ticket.revision}`, false],
++    ['Máy · model', 'Chưa có dữ liệu', true],
++  ];
++  return (
++    <ul aria-label="Thông tin nhanh" style={tilesStyle}>
++      {tiles.map(([label, value, muted]) => (
++        <li key={label} style={tileStyle}>
++          <span style={tileLabelStyle}>{label}</span>
++          <span style={{ ...tileValueStyle, color: muted ? '#9aa0a6' : '#e8e9eb' }}>{value}</span>
++        </li>
++      ))}
++    </ul>
++  );
++}
++
+ function Field({ label, children }: { label: string; children: ReactNode }) {
+   return (
+     <>
+       <dt>{label}</dt>
+       <dd style={{ margin: 0, overflowWrap: 'anywhere' }}>{children}</dd>
+     </>
+   );
+ }
+@@ -236,41 +319,61 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
+             <button type="button" onClick={() => void query.refetch()}>
+               Thử lại
+             </button>
+           </div>
+         )}
+       </article>
+     );
+   }
+-  const ticket = query.data;
++  return <LoadedTicketDetail ticket={query.data} query={query} presentation={presentation} />;
++}
++
++function LoadedTicketDetail({
++  ticket,
++  query,
++  presentation,
++}: {
++  ticket: Ticket;
++  query: ReturnType<typeof useTicket>;
++  presentation: TicketDetailProps['presentation'];
++}) {
++  const runtime = useRuntime();
++  const subline = useTicketSubline(ticket);
+   const pin = ticket.workflowPin;
+   const wait = waitNotice(ticket.status, ticket.waitReason);
+   const terminal = isTerminal(ticket.status);
+   return (
+     <article
+       style={stackStyle}
+       data-testid="ticket-detail"
+       data-ticket-id={ticket.id}
+       data-revision={ticket.revision}
+     >
+-      <header style={{ display: 'grid', gap: '0.4rem' }}>
+-        <span>
+-          {levelLabels[ticket.level]} · {kindLabels[ticket.kind]}
+-        </span>
++      <header style={headerStyle}>
+         <Headings
+           presentation={presentation}
+           title={ticket.title}
+-          description={
+-            <>
+-              Trạng thái: <StatusBadge status={ticket.status} /> · Phiên bản {ticket.revision}
+-            </>
++          description={subline}
++          leading={
++            <span
++              aria-hidden="true"
++              data-status-dot={ticket.status}
++              style={{
++                width: 8,
++                height: 8,
++                borderRadius: '50%',
++                flex: 'none',
++                background: dotColors[ticket.status],
++              }}
++            />
+           }
+         />
+       </header>
++      <InfoTiles ticket={ticket} />
+       {query.error && (
+         <p role="status" style={noticeStyle}>
+           Đang hiển thị dữ liệu đã tải trước đó: {failureText(query.error)}
+         </p>
+       )}
+       {terminal && (
+         <p role="note" style={noticeStyle}>
+           Ticket đã kết thúc ({statusLabels[ticket.status]}), chỉ xem.
+@@ -290,16 +393,17 @@ export function TicketDetail({ ticketId, presentation }: TicketDetailProps) {
+         <dl style={gridStyle}>
+           <Field label="Mã ticket">
+             <code>{ticket.id}</code>
+           </Field>
+           <Field label="Ticket gốc">
+             <code>{ticket.rootId}</code>
+           </Field>
+           <Field label="Ticket cha">{ticket.parentId ? <code>{ticket.parentId}</code> : 'Không có'}</Field>
++          <Field label="Loại">{kindLabels[ticket.kind]}</Field>
+           <Field label="Bắt buộc">{ticket.mandatory ? 'Có' : 'Không'}</Field>
+           <Field label="Workflow đã ghim">
+             {pin ? `${pin.workflow === 'bmad' ? 'BMAD' : 'Superpowers'} ${pin.version}` : 'Chưa ghim'}
+           </Field>
+           <Field label="Skill">{ticket.skill ?? 'Không có'}</Field>
+           <Field label="Số vòng sửa">{ticket.repairCycles}/5</Field>
+           <Field label="Commit đã merge">
+             {ticket.mergedCommit ? <code>{ticket.mergedCommit}</code> : 'Chưa có'}
+diff --git a/v2/web/src/tickets/dialog.tsx b/v2/web/src/tickets/dialog.tsx
+index 66c4fc4..8f1e557 100644
+--- a/v2/web/src/tickets/dialog.tsx
++++ b/v2/web/src/tickets/dialog.tsx
+@@ -10,42 +10,48 @@ import { TicketDetail } from './detail.tsx';
+ import { pickReturnFocus } from './status.ts';
+ 
+ export type TicketDialogProps = {
+   ticketId: string | null;
+   onClose: () => void;
+   returnFocus: HTMLElement | null;
+ };
+ 
+-const overlayStyle: CSSProperties = { position: 'fixed', inset: 0, background: 'rgb(15 23 42 / 0.45)' };
++// Dark theme of the owner-approved map mockup (dialog surface #17191c, border #2b2f35).
++const overlayStyle: CSSProperties = { position: 'fixed', inset: 0, background: 'rgb(0 0 0 / 0.6)' };
+ const contentStyle: CSSProperties = {
+   position: 'fixed',
+   top: '4vh',
+   left: '50%',
+   transform: 'translateX(-50%)',
+   width: 'min(60rem, calc(100vw - 2rem))',
+   maxHeight: '92vh',
+   overflow: 'auto',
+   boxSizing: 'border-box',
+-  padding: '1.5rem',
+-  borderRadius: '0.75rem',
+-  background: 'Canvas',
+-  color: 'CanvasText',
+-  boxShadow: '0 1.5rem 3rem rgb(15 23 42 / 0.3)',
++  padding: '18px 20px',
++  borderRadius: 6,
++  border: '1px solid #2b2f35',
++  background: '#17191c',
++  color: '#e8e9eb',
++  colorScheme: 'dark',
++  boxShadow: '0 1.5rem 3rem rgb(0 0 0 / 0.45)',
+ };
+ const closeStyle: CSSProperties = {
+   float: 'right',
+-  font: 'inherit',
+-  fontSize: '1.25rem',
+-  lineHeight: 1,
+-  padding: '0.35rem 0.6rem',
+-  borderRadius: '0.5rem',
+-  border: '1px solid currentColor',
++  width: 36,
++  height: 36,
++  display: 'flex',
++  alignItems: 'center',
++  justifyContent: 'center',
++  marginLeft: 16,
++  padding: 0,
++  borderRadius: 4,
++  border: '1px solid #2b2f35',
+   background: 'transparent',
+-  color: 'inherit',
++  color: '#9aa0a6',
+   cursor: 'pointer',
+ };
+ 
+ export function TicketDialog({ ticketId, onClose, returnFocus }: TicketDialogProps) {
+   const fallback = useRef<HTMLElement | null>(null);
+   useEffect(() => {
+     if (ticketId !== null)
+       fallback.current = returnFocus?.parentElement?.closest<HTMLElement>('[data-focus-fallback]') ?? null;
+@@ -57,25 +63,36 @@ export function TicketDialog({ ticketId, onClose, returnFocus }: TicketDialogPro
+       onOpenChange={(open) => {
+         if (!open) onClose();
+       }}
+     >
+       <Dialog.Portal>
+         <Dialog.Overlay style={overlayStyle} />
+         <Dialog.Content
+           style={contentStyle}
++          className="ticket-dialog"
+           data-testid="ticket-dialog"
+           onCloseAutoFocus={(event) => {
+             event.preventDefault();
+             pickReturnFocus([returnFocus, fallback.current, document.getElementById('main-content')])?.focus({
+               preventScroll: true,
+             });
+           }}
+         >
+           <Dialog.Close style={closeStyle} aria-label="Đóng">
+-            <span aria-hidden="true">×</span>
++            <svg
++              width="14"
++              height="14"
++              viewBox="0 0 14 14"
++              fill="none"
++              stroke="currentColor"
++              strokeWidth="1.6"
++              aria-hidden="true"
++            >
++              <path d="M2 2l10 10M12 2L2 12" />
++            </svg>
+           </Dialog.Close>
+           {ticketId !== null && <TicketDetail key={ticketId} ticketId={ticketId} presentation="dialog" />}
+         </Dialog.Content>
+       </Dialog.Portal>
+     </Dialog.Root>
+   );
+ }
+diff --git a/v2/web/test/graph-state.test.ts b/v2/web/test/graph-state.test.ts
+index 8234d94..6e3de78 100644
+--- a/v2/web/test/graph-state.test.ts
++++ b/v2/web/test/graph-state.test.ts
+@@ -179,17 +179,17 @@ for (const [key, value] of Object.entries({
+ const elementProto = (view.HTMLElement as typeof HTMLElement).prototype;
+ Object.defineProperties(elementProto, {
+   offsetWidth: { configurable: true, get: () => 1024 },
+   offsetHeight: { configurable: true, get: () => 768 },
+ });
+ (elementProto as unknown as { getBoundingClientRect: () => DOMRect }).getBoundingClientRect = () =>
+   ({ x: 0, y: 0, top: 0, left: 0, right: 1024, bottom: 768, width: 1024, height: 768 }) as DOMRect;
+ 
+-const { act, cleanup, fireEvent, render, screen } = await import('@testing-library/react');
++const { act, cleanup, fireEvent, render, screen, within } = await import('@testing-library/react');
+ const { createElement, useState } = await import('react');
+ const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
+ const { ComposeServicesProvider } = await import('../src/compose/composer.tsx');
+ const { RuntimeContext } = await import('../src/app-runtime.ts');
+ const { TicketDraftStorageProvider } = await import('../src/tickets/create-request.tsx');
+ const { queryRoots } = await import('../src/lib/query-keys.ts');
+ const { TicketMap } = await import('../src/graph/ticket-map.tsx');
+ 
+@@ -392,17 +392,17 @@ test('sơ đồ: root và bước hiện mặc định, task ẩn có badge; nh
+       nodeButton(id)?.closest<HTMLElement>('.react-flow__node')?.style.pointerEvents,
+       'all',
+       'thẻ nhận click thật dù node không selectable/draggable',
+     );
+   assert.equal(
+     nodeButton(stepA)?.getAttribute('aria-label'),
+     'Bước: Bước A. Trạng thái: Đang chạy. Phiên bản 1',
+   );
+-  assert.ok(screen.getAllByText('1 quan hệ tới công việc thu gọn').length >= 2);
++  assert.ok(screen.getAllByLabelText('1 quan hệ tới công việc thu gọn').length >= 2);
+   assert.ok(screen.getAllByText('phải xong trước').length >= 1, 'cạnh dependency có nhãn chữ');
+   const toggle = screen.getByRole('button', { name: 'Mở công việc của Bước A' });
+   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+   await act(async () => fireEvent.click(toggle));
+   await until(() => nodeButton(taskA1) !== null, 'task A1 visible');
+   assert.equal(nodeButton(taskB1), null);
+   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở tất cả' })));
+   await until(() => nodeButton(taskB1) !== null, 'expand all');
+@@ -480,69 +480,119 @@ test('mở node bằng click mở TicketDetail chung; đóng giữ viewport, exp
+   const storage = new MemoryStorage();
+   writeMapView(storage, {
+     rootId: mapRoot,
+     viewport: { x: -480, y: 140, zoom: 1.7 },
+     expanded: [stepA],
+     selectedTicketId: null,
+     focusedTicketId: null,
+   });
+-  await mountMap(source, storage);
++  await mountMap(source, storage, null, () => nodeButton(stepB) !== null);
+   assert.equal(
+     viewportTransform(),
+     'translate(-480px,140px)scale(1.7)',
+     'khôi phục viewport đã lưu, không fit',
+   );
+   await until(() => nodeButton(taskA1) !== null, 'expanded restored');
+   const trigger = nodeButton(stepB) as HTMLButtonElement;
+   trigger.focus();
+   await act(async () => fireEvent.click(trigger));
+   await until(
+     () => document.querySelector(`[data-testid="ticket-detail"][data-ticket-id="${stepB}"]`) !== null,
+     'dialog open',
+   );
+   assert.ok(screen.getByRole('dialog', { name: 'Bước B' }));
+-  assert.ok(nodeButton(mapRoot), 'sơ đồ vẫn mount khi dialog mở');
++  assert.ok(nodeButton(stepB), 'sơ đồ vẫn mount khi dialog mở');
+   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Đóng' })));
+   await until(() => screen.queryByRole('dialog') === null, 'dialog closed');
+   assert.equal(viewportTransform(), 'translate(-480px,140px)scale(1.7)');
+   assert.deepEqual(storedView(storage)?.viewport, { x: -480, y: 140, zoom: 1.7 });
+   assert.deepEqual(storedView(storage)?.expanded, [stepA]);
+   assert.equal(storedView(storage)?.selectedTicketId, null);
+   assert.equal(storedView(storage)?.focusedTicketId, stepB);
+   await settleQuietly(() => document.activeElement === nodeButton(stepB));
+   assertFocused(nodeButton(stepB), 'stepB');
+ });
+ 
+-test('realtime: refetch cả graph (GET cũ bị hủy), node mới hiện mà viewport và vị trí cũ không đổi', async () => {
++test('realtime: refetch cả graph (GET cũ bị hủy), cây tự căn lại (cha giữa các con), root làm neo đứng yên, không fit', async () => {
+   const source = graphServer(baseGraph());
+   const storage = new MemoryStorage();
+-  writeMapView(storage, { ...initialMapView(mapRoot), viewport: { x: 30, y: -20, zoom: 0.9 } });
++  writeMapView(storage, { ...initialMapView(mapRoot), viewport: { x: 30, y: 200, zoom: 0.9 } });
+   const env = await mountMap(source, storage);
+-  const before = nodeButton(stepA)?.closest<HTMLElement>('.react-flow__node')?.style.transform;
++  const rootBefore = screenOf(mapRoot);
+   const reads = source.graphReads.length;
+   source.hold(true);
+   await act(async () => {
+     void env.queryClient.invalidateQueries({ queryKey: queryRoots.graphs });
+   });
+   await until(() => source.graphReads.length === reads + 1, 'first refetch started');
+   const grown = baseGraph();
+   grown.nodes.push(row('0d0d0d0d-0000-4000-8000-000000000012', 'step', mapRoot, 'Bước C'));
+-  grown.nodes[1] = row(stepA, 'step', mapRoot, 'Bước A', 2);
++  grown.nodes[2] = row(stepB, 'step', mapRoot, 'Bước B', 2);
+   source.setGraph(grown);
+   await act(async () => {
+     void env.queryClient.invalidateQueries({ queryKey: queryRoots.graphs });
+   });
+   await until(() => source.graphReads.length === reads + 2, 'second refetch started');
+   assert.equal(source.graphReads[reads]?.signal?.aborted, true, 'GET cũ bị hủy, không vá cạnh từng phần');
+   source.hold(false);
+   await until(() => nodeButton('0d0d0d0d-0000-4000-8000-000000000012') !== null, 'new step');
+-  assert.equal(nodeButton(stepA)?.dataset.revision, '2');
+-  assert.equal(viewportTransform(), 'translate(30px,-20px)scale(0.9)', 'realtime không tự fit');
+-  assert.equal(nodeButton(stepA)?.closest<HTMLElement>('.react-flow__node')?.style.transform, before);
++  // The viewport follows the anchor right after the relayout; let ReactFlow settle before reading cards.
++  await settleQuietly(() => false);
++  assert.equal(nodeButton(stepB)?.dataset.revision, '2');
++  assert.match(viewportTransform(), /scale\(0\.9\)$/, 'realtime không tự fit (zoom giữ nguyên)');
++  assertStill(mapRoot, rootBefore, 'root (neo khi chưa focus thẻ nào)');
++  const stepC = '0d0d0d0d-0000-4000-8000-000000000012';
++  const ys = [stepA, stepB, stepC].map(cardY).sort((a, b) => a - b);
++  assert.ok(
++    Math.abs(cardY(mapRoot) - ((ys[0] as number) + (ys[2] as number)) / 2) <= 0.5,
++    'root nằm giữa con đầu và con cuối sau khi căn lại',
++  );
++  const cards = [...document.querySelectorAll<HTMLElement>('.react-flow__node')].map(
++    (el) => el.style.transform,
++  );
++  assert.equal(new Set(cards).size, cards.length, 'không có hai thẻ cùng chỗ');
++});
++
++test('realtime với thẻ đang focus: thẻ đó làm neo, đứng yên trên màn hình', async () => {
++  const source = graphServer(baseGraph());
++  const env = await mountMap(source);
++  await act(async () => fireEvent.focus(nodeButton(stepB) as HTMLElement));
++  const before = screenOf(stepB);
++  const grown = baseGraph();
++  grown.nodes.push(row('0d0d0d0d-0000-4000-8000-000000000009', 'step', mapRoot, 'Bước 0'));
++  source.setGraph(grown);
++  await act(async () => {
++    await env.queryClient.invalidateQueries({ queryKey: queryRoots.graphs });
++  });
++  await until(() => nodeButton('0d0d0d0d-0000-4000-8000-000000000009') !== null, 'new step');
++  await settleQuietly(() => false);
++  assertStill(stepB, before, 'bước B đang focus');
++});
++
++test('thẻ và khung theo mockup: tiêu đề + chấm trạng thái, dòng phụ “cấp · trạng thái”, viền focus, header kiểu modal, chú giải', async () => {
++  const source = graphServer(baseGraph());
++  await mountMap(source);
++  const card = nodeButton(stepA) as HTMLButtonElement;
++  const lines = [...card.querySelectorAll<HTMLElement>('[data-line]')].map((el) => el.textContent?.trim());
++  assert.deepEqual(lines, ['Bước A', 'Bước · Đang chạy'], 'tiêu đề trên, dòng phụ dưới; không bịa giờ/token');
++  const dot = card.querySelector<HTMLElement>('[data-status-dot]');
++  assert.equal(dot?.getAttribute('aria-hidden'), 'true');
++  assert.equal(dot?.dataset.statusDot, 'running');
++  assert.equal(screen.getByRole('heading', { name: 'Sơ đồ ticket' }).tagName, 'H1');
++  assert.ok(screen.getByText('5 ticket · bấm vào thẻ để xem chi tiết'));
++  const legend = screen.getByRole('list', { name: 'Chú giải' });
++  for (const text of ['Xong', 'Đang làm', 'Đang chờ', 'Chưa bắt đầu', 'Cha – con', 'Phụ thuộc', 'Sửa lỗi'])
++    assert.ok(legend.textContent?.includes(text), `chú giải thiếu ${text}`);
++  await act(async () => fireEvent.focus(card));
++  assert.equal(
++    card.closest<HTMLElement>('[data-level]')?.dataset.focused,
++    'true',
++    'thẻ focus có đánh dấu viền',
++  );
+ });
+ 
+ test('node biến mất khi dialog đang mở: đóng trả focus về khung sơ đồ', async () => {
+   const source = graphServer(baseGraph());
+   const env = await mountMap(source);
+   const trigger = nodeButton(stepB) as HTMLButtonElement;
+   trigger.focus();
+   await act(async () => fireEvent.click(trigger));
+@@ -613,8 +663,54 @@ test('khung sơ đồ đo lại chiều cao khi nội dung phía trên đổi c
+   // Content above the frame grows: the frame now starts 300px down.
+   frame.getBoundingClientRect = () =>
+     ({ top: 300, left: 0, right: 1024, bottom: 768, width: 1024, height: 468, x: 0, y: 300 }) as DOMRect;
+   await act(async () => {
+     for (const observer of observers) observer.trigger();
+   });
+   assert.equal(frame.style.height, `${window.innerHeight - 300 - 16}px`, `trước: ${first}`);
+ });
++
++test('root mới (chưa có trạng thái): mở ở 1:1, root ở mép trái giữa khung, không dùng fitView; cuộn chuột là cuộn', async () => {
++  const source = graphServer(baseGraph());
++  const storage = new MemoryStorage();
++  await mountMap(source, storage);
++  await settleQuietly(() =>
++    /scale\(1\)/.test(document.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform ?? ''),
++  );
++  const view =
++    document.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform.replace(/\s+/g, '') ?? '';
++  const match = /translate\(([-\d.e]+)px,([-\d.e]+)px\)scale\(([-\d.e]+)\)/.exec(view);
++  assert.ok(match, view);
++  assert.equal(Number(match?.[3]), 1, 'zoom 1:1');
++  const rootScreen = screenOf(mapRoot);
++  assert.equal(rootScreen.x, 24, 'root cách mép trái 24px');
++  const frame = document.querySelector<HTMLElement>('.react-flow')?.parentElement as HTMLElement;
++  const height = Number.parseFloat(frame.style.height);
++  assert.ok(
++    Math.abs(rootScreen.y + 56 / 2 - height / 2) <= 4,
++    `root giữa khung: ${rootScreen.y} / ${height}`,
++  );
++  assert.deepEqual(storedView(storage)?.viewport, { x: Number(match?.[1]), y: Number(match?.[2]), zoom: 1 });
++});
++
++test('dialog mở từ sơ đồ theo màn 2: chấm trạng thái + tiêu đề, dòng phụ “loại · bước · gốc”, ô thông tin không bịa “Cập nhật”', async () => {
++  const graph = baseGraph();
++  const source = graphServer(graph);
++  await mountMap(source);
++  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở công việc của Bước A' })));
++  await until(() => nodeButton(taskA1) !== null, 'task A1');
++  await act(async () => fireEvent.click(nodeButton(taskA1) as HTMLButtonElement));
++  const dialog = await screen.findByRole('dialog', { name: 'Việc A1' });
++  await until(
++    () => dialog.querySelector('[data-detail-subline]')?.textContent?.includes('Bước A') === true,
++    'subline',
++  );
++  assert.equal(
++    dialog.querySelector('[data-detail-subline]')?.textContent,
++    'Công việc · Bước A · Yêu cầu gốc',
++  );
++  assert.equal(dialog.querySelector('[data-status-dot]')?.getAttribute('aria-hidden'), 'true');
++  const tiles = within(dialog).getByRole('list', { name: 'Thông tin nhanh' });
++  const text = [...tiles.querySelectorAll('li')].map((li) => li.textContent);
++  assert.deepEqual(text, ['Trạng tháiChờ thực hiện · Phiên bản 1', 'Máy · modelChưa có dữ liệu']);
++  assert.ok(!tiles.textContent?.includes('Cập nhật'), 'không có dữ liệu thời gian thì không hiện ô Cập nhật');
++});
+diff --git a/v2/web/test/graph.test.ts b/v2/web/test/graph.test.ts
+index 7541a9d..1f663f2 100644
+--- a/v2/web/test/graph.test.ts
++++ b/v2/web/test/graph.test.ts
+@@ -1,18 +1,18 @@
+ import assert from 'node:assert/strict';
+ import { test } from 'node:test';
+ import type { Dependency, RepairLink, Ticket, TicketGraph } from '../src/contracts/tickets.ts';
+ import {
+   cardHeight,
+   cardWidth,
+   columnGap,
++  initialViewport,
+   layoutHierarchy,
+   neighbourInDirection,
+-  placeNewNodes,
+   relayoutAround,
+   rowGap,
+ } from '../src/graph/layout.ts';
+ import {
+   canonicalEdges,
+   expandableIds,
+   hiddenRelationCounts,
+   type MapEdge,
+@@ -365,94 +365,29 @@ test('200 bước / 600 task: giữ mọi cặp dependency, layout xác định
+   const expected = dependencies.map((row) => `${row.predecessorId}>${row.ticketId}`).sort();
+   assert.deepEqual(pairs(allEdges(collapsed), 'dependency'), expected);
+   assert.deepEqual(pairs(expanded.edges, 'dependency'), expected);
+   assert.equal(Object.keys(positions).length, 801);
+   assert.deepEqual(layoutHierarchy(expanded), positions);
+   assert.ok(elapsed < 500, `chiếu+layout 801 node mất ${elapsed.toFixed(1)}ms`);
+ });
+ 
+-test('giữ vị trí cũ khi có node mới; node mới đặt cạnh cha; chỉ “Sắp xếp lại” mới layout lại', () => {
+-  const graph = forkJoin();
+-  const before = projectGraph(graph, root, new Set([id(10)]));
+-  const moved = { ...layoutHierarchy(before), [id(10)]: { x: column, y: -500 } };
+-  const grown: TicketGraph = {
+-    ...graph,
+-    nodes: [...graph.nodes, ticket(102, 'task', 10), ticket(13, 'step', 1)],
+-  };
+-  const after = projectGraph(grown, root, new Set([id(10)]));
+-  const kept = placeNewNodes(moved, after);
+-  for (const row of before.nodes) assert.deepEqual(kept[row.id], moved[row.id], `giữ ${row.id}`);
+-  assert.equal(kept[id(102)]?.x, column * 2);
+-  assert.equal(kept[id(102)]?.y, Math.max(moved[id(100)]?.y ?? 0, moved[id(101)]?.y ?? 0) + pitch);
+-  assert.ok(kept[id(13)], 'bước mới có vị trí');
+-  assert.equal(Object.keys(kept).length, after.nodes.length, 'node đã biến mất không còn vị trí');
+-  assert.notDeepEqual(layoutHierarchy(after)[id(10)], kept[id(10)]);
+-});
+-
+ /** Two cards overlap when they share a column band and their rows are closer than one pitch. */
+ function overlaps(positions: Record<string, { x: number; y: number }>): string[] {
+   const entries = Object.entries(positions);
+   const found: string[] = [];
+   for (let i = 0; i < entries.length; i++)
+     for (let j = i + 1; j < entries.length; j++) {
+       const [a, pa] = entries[i] as [string, { x: number; y: number }];
+       const [b, pb] = entries[j] as [string, { x: number; y: number }];
+       if (Math.abs(pa.x - pb.x) < cardWidth && Math.abs(pa.y - pb.y) < pitch) found.push(`${a}~${b}`);
+     }
+   return found;
+ }
+ 
+-test('node mới không đè thẻ đang hiện của bước khác (task realtime dưới bước trên khi bước dưới cũng mở)', () => {
+-  const graph = forkJoin();
+-  const expanded = new Set([id(10), id(11)]);
+-  const before = layoutHierarchy(projectGraph(graph, root, expanded));
+-  // Step 10's tasks sit at rows 0 and 1, step 11's task at row 2: the natural slot for a new task of step 10.
+-  assert.equal(before[id(110)]?.y, 2 * pitch);
+-  const grown: TicketGraph = { ...graph, nodes: [...graph.nodes, ticket(102, 'task', 10)] };
+-  const placed = placeNewNodes(before, projectGraph(grown, root, expanded));
+-  for (const [key, point] of Object.entries(before)) assert.deepEqual(placed[key], point, `giữ ${key}`);
+-  assert.equal(placed[id(102)]?.x, 2 * column);
+-  assert.deepEqual(overlaps(placed), [], 'không có hai thẻ chồng nhau');
+-});
+-
+-test('mở bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ, task mới cạnh bước, không chồng nhau', () => {
+-  const graph = forkJoin();
+-  const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
+-  const opened = placeNewNodes(collapsed, projectGraph(graph, root, new Set(expandableIds(graph))));
+-  for (const [key, point] of Object.entries(collapsed)) assert.deepEqual(opened[key], point, `giữ ${key}`);
+-  assert.equal(Object.keys(opened).length, graph.nodes.length);
+-  assert.equal(opened[id(100)]?.y, collapsed[id(10)]?.y, 'task đầu tiên ngang hàng bước của nó');
+-  assert.deepEqual(overlaps(opened), []);
+-});
+-
+-test('mở tất cả 200 bước / 600 task bằng placeNewNodes: không chồng thẻ, trong ngân sách thời gian', () => {
+-  const nodes = [ticket(1, 'request', null)];
+-  for (let s = 0; s < 200; s++) {
+-    nodes.push(ticket(1000 + s, 'step', 1));
+-    for (let t = 0; t < 3; t++) nodes.push(ticket(10_000 + s * 3 + t, 'task', 1000 + s));
+-  }
+-  const graph: TicketGraph = { nodes, dependencies: [], repairLinks: [] };
+-  const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
+-  const started = performance.now();
+-  const opened = placeNewNodes(collapsed, projectGraph(graph, root, new Set(expandableIds(graph))));
+-  const elapsed = performance.now() - started;
+-  assert.equal(Object.keys(opened).length, 801);
+-  const cells = new Set(Object.values(opened).map((point) => `${point.x}:${point.y}`));
+-  assert.equal(cells.size, 801);
+-  const byColumn = new Map<number, number[]>();
+-  for (const point of Object.values(opened))
+-    byColumn.set(point.x, [...(byColumn.get(point.x) ?? []), point.y]);
+-  for (const ys of byColumn.values()) {
+-    ys.sort((a, b) => a - b);
+-    for (let i = 1; i < ys.length; i++) assert.ok((ys[i] as number) - (ys[i - 1] as number) >= pitch);
+-  }
+-  assert.ok(elapsed < 500, `placeNewNodes 801 node mất ${elapsed.toFixed(1)}ms`);
+-});
+-
+ /** Every visible task sits inside its step's band: at most (tasks - 1) / 2 rows from the step. */
+ function tasksBesideParents(
+   projection: MapProjection,
+   positions: Record<string, { x: number; y: number }>,
+ ): string[] {
+   const far: string[] = [];
+   const parents = new Map<string, string[]>();
+   for (const edge of projection.edges)
+@@ -544,8 +479,25 @@ test('điều hướng bàn phím: trái về cha, phải tới con đầu, lên
+   assert.equal(neighbourInDirection(projection, at, id(100), 'left'), id(10));
+   assert.equal(neighbourInDirection(projection, at, id(10), 'right'), id(100));
+   assert.equal(neighbourInDirection(projection, at, id(1), 'right'), id(10));
+   assert.equal(neighbourInDirection(projection, at, id(10), 'down'), id(11));
+   assert.equal(neighbourInDirection(projection, at, id(11), 'up'), id(10));
+   assert.equal(neighbourInDirection(projection, at, id(1), 'left'), null);
+   assert.equal(neighbourInDirection(projection, at, id(11), 'right'), null, 'bước thu gọn không có con hiện');
+ });
++
++test('mật độ theo mockup owner duyệt: thẻ 280×48, hàng cách 10, cột cách 56, vẫn chạm được', () => {
++  assert.deepEqual(
++    { cardWidth, cardHeight, rowGap, columnGap },
++    { cardWidth: 280, cardHeight: 48, rowGap: 10, columnGap: 56 },
++  );
++  assert.ok(cardHeight >= 2 * 24, 'đủ hai dòng chạm được (≥ 24px mỗi dòng)');
++  const at = layoutHierarchy(projectGraph(forkJoin(), root, new Set([id(10)])));
++  assert.equal(at[id(101)]?.y, cardHeight + rowGap, 'hàng kế cách đúng pitch mới');
++  assert.equal(at[id(10)]?.x, cardWidth + columnGap);
++});
++
++test('khung nhìn ban đầu 1:1: root ở mép trái, giữa chiều cao khung, không fit toàn cây', () => {
++  const view = initialViewport({ x: 0, y: 500 }, 600);
++  assert.deepEqual(view, { x: 24, y: 300 - (500 + cardHeight / 2), zoom: 1 });
++  assert.deepEqual(initialViewport(undefined, 600), { x: 24, y: 24, zoom: 1 }, 'chưa có vị trí root');
++});
