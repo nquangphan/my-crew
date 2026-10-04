@@ -163,3 +163,7 @@ Ruling: B1 chia ranh giới — S3b export `clearTicketDrafts(storage)` (xóa pr
 Task 5 S5a API discardDraft: complete — bdf277d.
 Ruling: hợp đồng S3b — form/bình luận tự hiện cảnh báo trùng và chờ xác nhận trước discardDraft ở ambiguous/suspended; không gọi khi accepted.
 Task 5 S5a: minor (deferred, lượt A5 cùng C1–C3): D1 #reserve mở compose rỗng sau discard; D2 file kẹt hashing khi guard bỏ reserve + DELETE unconfirmed; D3 discardDraft không chặn accepted (mất receipt/onAccepted); D4 handle sau unmount vẫn gửi DELETE — trả blocked.
+
+21:05 S3b FIX2 `ab1bb3a` re-review `task-3-s3b-fix2-re-review.md`: Approved có điều kiện; B1/B2/B4/I3 ADDRESSED.
+Task 3 S3b: complete (source) — ab1bb3a (60f546e + f1cda08 + d9216cc + ab1bb3a), ĐIỀU KIỆN: controller bọc TicketDraftStorageProvider + gọi clearTicketDrafts trong onLogout (đang giao controller integration). A3 BLOCKED fixture attachments.
+Task 3 S3b: minor (deferred, lượt A3/A5): N1 re-entry tombstone (editing) bỏ thẳng không xác nhận trùng — cần S5a lộ needsPayload/discardable; N2 handle null coi như discarded (session/tệp còn); N3 nút bỏ bình luận luôn hiện; N4 confirming không reset khi accepted; N5 formDrafts gắn storage lần đầu (WeakMap). B3 vẫn mở.
