@@ -85,3 +85,13 @@ Ruling: implementer/reviewer Codex cũ không resume được trên máy này; f
 Ruling: gate quota trong recipe RED/GREEN cũ (quotaremaining>25%) thay bằng >5% theo owner; các gate RAM/CPU/disk/PG giữ nguyên.
 
 Dispatch kế tiếp: B2a GREEN118/strict/Biome (sole heavy slot), rồi full independent review B2a. Web Task1 FIX2 final6 chờ B2a freeze.
+
+09:55 04/10 B2a full independent review `task-2-slice-b2a-review.md`: Spec ✅, Quality Approved, Critical0/Important0/Minor6. PM xác minh ⚠️ GREEN log `task-2-slice-b2a-green-claude-final.log` SHA e4647ce9… khớp report, tests118/pass118/fail0.
+Task 2 Slice B2a: complete — 213cc5d.
+Task 2 B2a: minor (deferred): M1 guard unreachable trả 403 ORCHESTRATION_SCOPE_INVALID thay vì lỗi nội bộ (`assistant-access.ts:225`, `decisions.ts:444`).
+Task 2 B2a: minor (deferred): M2 ApiError scope dựng inline thay vì dùng invalidScope; regex uuid lặp (`assistant-access.ts:156`/`service.ts`).
+Task 2 B2a: minor (deferred): M3 test "cross-Tx token reuse" bị chặn bởi allowlist, các nhánh token Tx/single-use/owner (`assistant-access.ts:256,274–288`) chưa có test trực tiếp.
+Task 2 B2a: minor (deferred): M4 kiểm kind/shape decision có thể chuyển trước khi lock (`decisions.ts:443`).
+Task 2 B2a: minor (deferred): M5 flow `v2/docs/flows/server-tickets.md:25,47` chứa trạng thái tạm GREEN118/review pending.
+Task 2 B2a: minor (deferred): M6 `prepareDecision` với input null/sources chứa null ném TypeError → 500 thay vì 400 VALIDATION.
+Ruling: hai ⚠️ (dependency không ghi actor; lỗi 404/409/422 trước verify cho phép dò tồn tại) chuyển thành yêu cầu bắt buộc của brief B3 khi mở port ra transport — nằm ngoài phạm vi B2a — sai thì B3 có thể bỏ sót audit actor.
