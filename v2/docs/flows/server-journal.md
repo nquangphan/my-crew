@@ -22,6 +22,8 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
 
 9. `server/src/journal/event-contracts.ts` whitelist thêm gateway.config.changed, gateway.booted, gateway.install.reported, gateway.command.created và gateway.command.acknowledged. Event chỉ chứa revision/UUID/generation/type/phase/accepted, audience đích danh máy, project/ticket null; từ chối raw inventory, URL, result, error hay secret. Gateway service append cùng transaction CAS/ACK/report; heartbeat receipt không phát event và không thay attempt. Authorization recheck actual credential chạy trước cached replay, máy chưa gắn project chỉ đọc event dành riêng mình theo scope hiện hành.
 
+10. `server/src/journal/routes.ts` → `GET /v2/events/latest` (không nhận query) trả `{cursor}` là giá trị hiện tại của `event_cursor` dưới dạng chuỗi thập phân bigint (`"0"` khi journal trống). Cursor chỉ tăng khi transaction ghi event commit nên mọi event ≤ giá trị này đã hiển thị; tab mới đọc nó rồi dùng làm `after` hoặc `Last-Event-ID` thay vì đọc journal từ 0. Cần xác thực như `GET /v2/events`; không lộ nội dung event.
+
 ## Files
 
 | Đường dẫn từ `v2/` | Vai trò |
@@ -36,6 +38,7 @@ Journal Crew v2 lưu mutation và sự kiện trong cùng giao dịch PostgreSQL
 | `server/test/journal.test.ts` | Kiểm thử cạnh tranh, rollback, scope và reconnect |
 | `server/test/journal-scope.test.ts` | Kiểm thử rebind commit giữa hai bước đọc scope/event |
 | `server/test/ticket-events.unit.test.ts` | Kiểm thử whitelist metadata ticket và chặn nội dung dư |
+| `server/test/ticket-reads.test.ts` | Kiểm thử `GET /v2/events/latest` (chuỗi bigint, query lạ bị từ chối) cùng các read ticket |
 | `server/test/execution-events.unit.test.ts` | Kiểm thử whitelist metadata execution và chặn dữ liệu nhạy cảm |
 
 ## Dữ liệu

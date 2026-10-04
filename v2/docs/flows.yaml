@@ -61,6 +61,7 @@ flows:
       - server/test/attachments-events.unit.test.ts
       - server/test/journal-scope.test.ts
       - server/test/journal.test.ts
+      - server/test/ticket-reads.test.ts
   server-identity:
     title: Xác thực owner và gắn dự án với máy Crew v2
     doc: docs/flows/server-identity.md
@@ -111,6 +112,7 @@ flows:
       - server/src/tickets/dependencies.ts
       - server/src/tickets/deploy.ts
       - server/src/tickets/docs-links.ts
+      - server/src/tickets/history.ts
       - server/src/tickets/repair.ts
       - server/src/tickets/service.ts
       - server/migrations/004_tickets.sql
@@ -123,6 +125,7 @@ flows:
       - server/test/repair.test.ts
       - server/test/support/tickets.ts
       - server/test/ticket-events.unit.test.ts
+      - server/test/ticket-reads.test.ts
       - server/test/deploy.test.ts
       - server/test/assistant-orchestration.test.ts
       - server/test/attachments-comment-factory.test.ts

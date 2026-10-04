@@ -27,6 +27,8 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d�
 
 Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/actor/proof chụp trước await; authority xác minh exact submitted hash trong cùng Tx sau root/ticket/project locks. Shared decision/dependency core giữ invariant và actual machine audit, generic route ACL không nới. Prepare kiểm tập target không rỗng bằng guard tường minh trước khi đọc root/project. Mọi lỗi lệch phạm vi trong prefix và persist dùng chung `invalidScope` (403 `ORCHESTRATION_SCOPE_INVALID`).
 
+11. Đọc bổ sung (chỉ GET, cùng ACL scope ticket như các read hiện có, không migration): `GET /v2/tickets?level=request|step|task` lọc theo cấp, kết hợp `projectId/rootId/status/kind`; với `level=request` trang gốc request phân trang keyset theo `id` (`cursor` UUID, `limit` ≤100, `nextCursor` null ở trang cuối). `GET /v2/tickets/:id/history?cursor=<chuỗi thập phân>&limit=<1..100, mặc định 50>` trả `{items:[{cursor,type,occurredAt,actor|null,data}],nextCursor}` theo thứ tự tăng của journal cursor (`server/src/tickets/history.ts` → `readTicketHistory`), đọc trong transaction `REPEATABLE READ READ ONLY`. Nguồn là event của chính ticket; `actor` lấy từ bản ghi comment/decision tương ứng, còn nội dung comment/decision/rationale không được sao chép (chỉ `commentId`/`decisionId`/`kind` trong `data`). Owner thấy mọi event của ticket; máy chỉ thấy event không có audience hoặc gửi đích danh máy đó. `GET /v2/tickets/:id/docs-links?cursor=<opaque>&limit=<1..100, mặc định 20>` trả `{items:[{snapshotId,path}],nextCursor}` (`readTicketDocsLinks`), keyset theo `(snapshot_id, path)` với cursor base64url mờ. Tham số lạ hoặc cursor/limit sai bị 400; ticket ngoài scope hiện hành trả 404/403 như các read khác. Chưa có projection attempt/máy/model/assessment/evidence.
+
 10. `server/src/tickets/service.ts` → `assistantSignalTicket(tx,actor,proof,ticketId,signal,expectedRevision)` là entry scoped cho tín hiệu của Trợ lý, chỉ nhận `dependencies_ready` hoặc `wait_owner`; `resume`, `start`, `passed` và mọi giá trị khác bị 400 `VALIDATION` trước khi đọc DB. Entry chụp actor/proof/payload trước await, hash tuple `['crew-v2:orchestration-target:1','signal',{ticketId,signal,expectedRevision}]` theo đúng spelling gửi lên, rồi đi qua cùng prefix `access.prepare` của decision/dependency: không áp generic ACL máy (authority quyết định), khóa root → ticket → project và kiểm lại dưới khóa rằng ticket và root cùng gốc, cùng dự án (lệch thì 403 `ORCHESTRATION_SCOPE_INVALID` trước verify). Sau đó lõi `checkSignal` dùng chung với generic so revision và kiểm predecessor. Thiếu authority trả503. `wait_owner` trên ticket `running` luôn bị 409 `EXECUTION_PROOF_REQUIRED` trước verify, kể cả khi app có execution authority: entry không gọi `requestTerminalIntent`, không tạo command, không đổi `attempts.terminal_intent` và không dùng owner tổng hợp. `wait_owner` trên ticket chưa chạy chuyển `needs_input` với `owner_input` (giữ `repair_limit` nếu đang có) và không bao giờ tiêu quyết định tiếp tục vòng sửa. `access.authorize` gọi verify một lần; `persistSignal` tiêu scope bằng `consumeAssistantScope` một lần cho đúng Tx/operation/ticket/signal. Generic route `/v2/tickets/:id/signals` vẫn giữ ACL máy bound.
 
 ## Files
@@ -43,6 +45,7 @@ Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/a
 | `server/src/tickets/completion.ts` | Sự thật hoàn tất từ DB/reader |
 | `server/src/tickets/repair.ts` | Kết quả kiểm tra và tối đa năm vòng sửa |
 | `server/src/tickets/docs-links.ts` | Liên kết ticket với snapshot đã xác minh |
+| `server/src/tickets/history.ts` | Đọc timeline ticket theo journal cursor và danh sách docs liên kết có phân trang |
 | `server/src/tickets/authorization.ts` | Tx scope/current machine guard trước cached replay |
 | `server/src/tickets/routes.ts` | HTTP validation, scope và idempotency |
 | `server/test/support/tickets.ts` | Fixture dự án/ticket qua service và mutator |
@@ -55,6 +58,7 @@ Factory còn có `assistantRecordDecision` và `assistantAddDependency`. Input/a
 | `server/test/completion.test.ts` | Cổng bằng chứng và commit docs |
 | `server/test/repair.test.ts` | Bộ đếm, ý định dừng và fence |
 | `server/test/ticket-events.unit.test.ts` | Payload event metadata hợp lệ |
+| `server/test/ticket-reads.test.ts` | Filter `level`, history theo cursor/ACL/audience không lộ nội dung, docs-links >20 và latest cursor |
 | `server/test/attachments-comment-factory.test.ts` | Producer attachment comment: default deny, actual ready callback, atomic rollback, legacy whitespace và fanout009 |
 
 ## Dữ liệu

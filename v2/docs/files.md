@@ -258,6 +258,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/tickets/dependencies.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/deploy.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/docs-links.ts` | [server-tickets](flows/server-tickets.md) (file) |
+| `server/src/tickets/history.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
 | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
 | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
@@ -343,6 +344,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/support/model-observer.ts` | [server-models](flows/server-models.md) (test) |
 | `server/test/support/tickets.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/ticket-events.unit.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+| `server/test/ticket-reads.test.ts` | [server-journal](flows/server-journal.md) (test), [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/tickets.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
 | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |

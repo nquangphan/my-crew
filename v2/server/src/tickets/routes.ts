@@ -8,6 +8,7 @@ import type {
   RepairResultInput,
   TicketServiceDependencies,
 } from './contracts.ts';
+import { readTicketDocsLinks, readTicketHistory } from './history.ts';
 import { createTicketServices, requireProjectScope, requireTicket } from './service.ts';
 
 const uuid = { type: 'string', format: 'uuid' } as const;
@@ -196,7 +197,9 @@ export function registerTicketRoutes(
       return result.body;
     },
   );
-  app.get<{ Querystring: PageQuery & { projectId?: Id; status?: string; kind?: string; rootId?: Id } }>(
+  app.get<{
+    Querystring: PageQuery & { projectId?: Id; status?: string; kind?: string; rootId?: Id; level?: string };
+  }>(
     '/v2/tickets',
     {
       schema: {
@@ -211,6 +214,7 @@ export function registerTicketRoutes(
               enum: ['pending', 'ready', 'running', 'needs_input', 'paused', 'done', 'cancelled'],
             },
             kind: { type: 'string', enum: ['code', 'research', 'docs', 'deploy'] },
+            level: { type: 'string', enum: ['request', 'step', 'task'] },
             cursor: uuid,
             limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' },
           },
@@ -226,11 +230,13 @@ export function registerTicketRoutes(
       const status = request.query.status ?? null;
       const kind = request.query.kind ?? null;
       const rootId = request.query.rootId ?? null;
+      const level = request.query.level ?? null;
       const rows = await options.db`select t.* from tickets t join projects p on p.id=t.project_id
         where (${projectId}::uuid is null or t.project_id=${projectId})
           and (${status}::text is null or t.status=${status})
           and (${kind}::text is null or t.kind=${kind})
           and (${rootId}::uuid is null or t.root_id=${rootId})
+          and (${level}::text is null or t.level=${level})
           and (${cursor}::uuid is null or t.id>${cursor})
           and (${actor.kind === 'owner'} or p.machine_id=${actor.id === 'owner' ? null : actor.id}::uuid)
         order by t.id limit ${limit + 1}`;
@@ -248,6 +254,48 @@ export function registerTicketRoutes(
     async (request) => {
       const actor = await deps.auth.authenticate(request);
       return services.readGraph(options.db, request.params.id, actor);
+    },
+  );
+  app.get<{ Params: { id: Id }; Querystring: { cursor?: string; limit?: string } }>(
+    '/v2/tickets/:id/history',
+    {
+      schema: {
+        params: idParam,
+        querystring: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            cursor: { type: 'string', pattern: '^(0|[1-9][0-9]{0,18})$' },
+            limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const actor = await deps.auth.authenticate(request);
+      const { limit } = page({ limit: request.query.limit });
+      return readTicketHistory(options.db, request.params.id, actor, request.query.cursor ?? '0', limit);
+    },
+  );
+  app.get<{ Params: { id: Id }; Querystring: { cursor?: string; limit?: string } }>(
+    '/v2/tickets/:id/docs-links',
+    {
+      schema: {
+        params: idParam,
+        querystring: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            cursor: { type: 'string', minLength: 1, maxLength: 8192 },
+            limit: { type: 'string', pattern: '^[1-9][0-9]{0,2}$' },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const actor = await deps.auth.authenticate(request);
+      const { limit } = page({ limit: request.query.limit ?? '20' });
+      return readTicketDocsLinks(options.db, request.params.id, actor, request.query.cursor ?? null, limit);
     },
   );
   app.post<{ Params: { id: Id }; Body: { predecessorId: Id; expectedRevision: number } }>(
