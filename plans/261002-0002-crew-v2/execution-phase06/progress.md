@@ -172,3 +172,5 @@ Task 3 S2: ⚠️ ghi checklist: W2 ask_owner + wait intent (phase-06:226) chưa
 Ruling N1: một artifact hiện hành mỗi gate — bước nhiều file phải gói thành một artifact; giữ hành vi fail-closed hiện tại.
 Follow-up nhỏ giao worker S5: N3 run thiếu cursor ticket.created → 409 (fail-closed), N2 thêm project_id vào truy vấn events, N4 chuẩn hóa so xung đột (decodeURIComponent+NFC+lowercase).
 Task 3 S2: minor (deferred, checklist T7): N5 ownership_keys lưu bản thô — T7 dùng chung hàm chuẩn hóa khi so tập file thật.
+
+23:30 S5 follow-up `cb02a7d` re-review `task-3-s2-fix2-re-review.md`: Approved, N2/N3/N4 ADDRESSED. Task 3 S2 (S5 gates): complete — cb02a7d (2bdc332 + 4653b89 + cb02a7d). Production vẫn deny; route HTTP answer chưa có (W1 chờ ruling).
