@@ -1,0 +1,452 @@
+586da9c fix(v2-assistant): phân loại đủ mã lỗi tất định của route tool và chặn trôi bảng mã
+ .../execution-phase06/task-2-slice-b3b-report.md   |  11 ++
+ v2/docs/flows/assistant-workflows.md               |   4 +-
+ v2/gateway/src/assistant/tool-client.ts            | 158 ++++++++++++---------
+ v2/gateway/test/assistant-tool-client.test.ts      |  69 ++++++++-
+ 4 files changed, 172 insertions(+), 70 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3b-report.md b/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3b-report.md
+index 3b089a0..1947811 100644
+--- a/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3b-report.md
++++ b/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3b-report.md
+@@ -40,10 +40,21 @@ Concerns: (1) journal tạo bởi 97737a1 có thể đã chứa 4xx hạ tầng
+ 
+ **Kết quả: DONE_WITH_CONCERNS.** RED trước: `task-2-slice-b3b-fix2-red.log` (3 test mới fail trên 7ffa25b, 27/30 còn lại pass). GREEN: `task-2-slice-b3b-fix2-green.log`, 42/42 (39 cũ cộng 3 mới, gồm route thật trên PostgreSQL 18.6 riêng đã xóa và hồi quy `http-operations` 4/4); typecheck sạch; Biome 0 lỗi. Lần chạy GREEN đầu còn 2 fail do chính em (một nhánh sửa credential không áp được, và tập mã quá rộng cho 404); đã sửa rồi chạy lại, log là lần cuối.
+ 
+ - **N1:** chỉ ghi journal khi 200 hợp lệ hoặc status 400/403/404/409/422 mang đúng mã route cho status đó (bảng mã theo `tools.ts`, `store.ts`, `authority.ts`, cộng namespace `ORCHESTRATION_*`/`WORKFLOW_*` của consumer). Thiếu hoặc sai mã (404 mặc định của Fastify, 400 HTML của proxy, 403 không body, 409 mã lạ, 404 kèm mã của status khác) là `misconfigured`, không ghi, không retry, operation giữ mở và gọi lại được.
+ - **N3:** độ trễ = max(Retry-After, backoff hiện tại), trần 60s; `Retry-After: 0` vẫn ngủ 1s, 2s, 4s.
+ - **N4:** credential rỗng hoặc ngoài `[\x21-\x7e]` (CR/LF, khoảng trắng, ký tự ngoài ASCII) trả `unauthorized` (retryable sau khi sửa), không gửi, không retry.
+ - **R3:** đổi nhãn case thành "unexpected key `token` outside the ask_owner shape (shape check, not a secret scan)"; ý "không còn quét secret trong payload" đã có test riêng (khóa `password`/`secret` hợp lệ).
+ - **R1:** docs flow ghi journal `assistant-tools` của bản đầu không tương thích, phải xóa thư mục cũ trước khi mount; cũng ghi N2 (execute đồng thời có thể gửi hai request song song, server idempotent) và quy tắc N1/N3/N4.
+ 
+ Concerns: bảng mã 400/403/404/409/422 phải cập nhật khi route thêm mã mới (mã thiếu bị coi là `misconfigured`, không đầu độc journal nhưng chặn lời gọi tới khi sửa bảng). N5 (test route thật dùng error handler tự viết thay `buildApp`) PM đã ghi ledger.
++
++# FIX3 (G1, G2, G3, docs)
++
++**Kết quả: DONE_WITH_CONCERNS.** RED trước: `task-2-slice-b3b-fix3-red.log` (4 test fail trên 24dfc7b: bảng terminal thiếu mã, nhóm not_configured thiếu mã, test quét server, test phân loại). GREEN: `task-2-slice-b3b-fix3-green.log`, 44/44 (42 cũ cộng 2 mới, gồm route thật trên PostgreSQL 18.6 riêng đã xóa và hồi quy `http-operations` 4/4); typecheck sạch; Biome 0 lỗi.
++
++- **G1:** mọi `ASSISTANT_*` (cùng `ORCHESTRATION_*`, `WORKFLOW_*`) trên status 400/403/404/409/422 là phán quyết tất định, được ghi và có kind theo status (`ASSISTANT_OPERATION_CONSUMED/STALE` và `TICKET_CLOSED`/`PROJECT_NOT_BOUND` là `conflict`, `ASSISTANT_OPERATION_NOT_FOUND` là `not_found`, `ASSISTANT_ADMISSION_DENIED` là `forbidden`). Danh sách tường minh mã không prefix mở rộng theo kết quả quét: `TICKET_HIERARCHY`, `OWNER_*_REQUIRED`, các mã dependency, completion, repair, `INVALID_TICKET_TRANSITION`, `SOURCE_UNVERIFIED`, `DOCS_SOURCE_UNVERIFIED`. Case "404 mã của status khác" đổi sang mã không prefix `IDEMPOTENCY_CONFLICT` ở 404, vì `ASSISTANT_*` giờ hợp lệ trên mọi status nghiệp vụ theo yêu cầu.
++- **G2:** `ASSISTANT_STORE_MISSING`, `ASSISTANT_ADMISSION_NOT_CONFIGURED`, `ORCHESTRATION_COMMAND_NOT_RELEASED` vào nhóm `not_configured` (5xx: dừng ngay, không ghi, giữ operation). Có test từng mã.
++- **G3:** phân loại gom thành `classifyError(status, code) -> {kind, record, retry}` (export), transport và `terminalError` đều dùng nó. Test quét `new ApiError('CODE', status)` trong `server/src/{assistant,tickets,docs}` (read-only) và fail khi cặp nào ra `misconfigured`. Loại trừ có chủ đích (kiểm là còn tồn tại, nên loại trừ lỗi thời cũng fail): `400 CURSOR_INVALID/LIMIT_INVALID/QUERY_INVALID`, `403 DEPLOY_OWNER_INTENT_REQUIRED`, `403 MACHINE_REQUIRED` (query list và route owner/deploy, tool route không tới).
++- **Docs:** quy tắc "mã transient phải 5xx; 4xx trong `ASSISTANT_/ORCHESTRATION_/WORKFLOW_` là phán quyết tất định và được ghi" cùng danh sách mã mới và mô tả test quét.
++
++Concerns: bộ quét chỉ bắt `new ApiError('LITERAL', status)`; mã dựng từ biến hoặc ném bằng cách khác không được thấy. Danh sách mã không prefix vẫn là bảng thủ công, nhưng drift của mã mới trong ba thư mục đó sẽ làm test đỏ.
+diff --git a/v2/docs/flows/assistant-workflows.md b/v2/docs/flows/assistant-workflows.md
+index 938b952..7a08f0f 100644
+--- a/v2/docs/flows/assistant-workflows.md
++++ b/v2/docs/flows/assistant-workflows.md
+@@ -31,22 +31,22 @@ Gắn định nghĩa workflow với đúng source và projection bất biến tr
+ 12. Mọi ID của run (run, step, `stepOperationId`, gate, khóa cạnh) được dẫn xuất từ `operationId` của proof, nên graph là hàm thuần của operation, input và các row đã đọc. `runs.createRunRequest(tx, operationId, input)` trả đúng request `{action:'create_run', payload:{rootTicketId, path, definitionSha256, graphSha256}}` mà transport băm vào `request_hash`. `createRun` dựng lại graph, rồi trong một savepoint nội bộ gọi `port.authorizeGraph(sp, actor, proof, input, graph)` một lần; port tự tính lại digest và so `request_hash`. Lỗi bất kỳ sau lần ghi đầu (lỗi JS của port hay lỗi DB) rollback toàn bộ ghi của `createRun` và cả lần dùng operation, transaction của caller vẫn dùng được. Trong savepoint: insert `workflow_runs` (revision 1, `rendered_artifact_id` null). Mỗi ticket con đi qua session của port; sau khi ticket và step tồn tại thì ghi `assistant_operation_ids` (`action_kind='create_ticket'`, `target_identity` = ticket ID). Mỗi cạnh dependency cũng đi qua session rồi ghi operation riêng (`target_identity = ticketId:predecessorId`). `precondition_sha256` là hash của graph; `effect_id = sha256(canonicalJson([runId, stepOperationId, actionKind, targetIdentity, preconditionSha256]))`, cùng công thức `deriveEffectId` của gateway. Session phải được `close` với mọi phần tử đã dùng.
+ 13. `latchRenderedArtifact` chỉ cho run `bmad-*` chưa latch (409 `WORKFLOW_RENDER_NOT_REQUIRED` / `WORKFLOW_RENDER_ALREADY_LATCHED`). Evidence phải là `workflow_render_receipt` có attempt. Attempt phải thuộc ticket bước của chính run, đang `active`, cùng máy và `binding_revision` hiện hành của project. `definitionSha256` và `customizationSha256` trong `data` phải khớp run. `generationPath` phải đúng `{projectRoot}/_bmad/render/bmad-build/{slug}-{sha256(projectRoot)[:12]}/{20 hex}` như renderer chính thức. Lệch bất kỳ điều nào trả 409 `WORKFLOW_RENDER_RECEIPT_INVALID`. Đúng thì set `rendered_artifact_id` và tăng revision trong cùng một câu UPDATE có điều kiện. Server chưa có bản ghi workspace nên chưa đối chiếu được `projectRoot` với workspace thật; việc đó thuộc lát đăng ký receipt trên máy B.
+ 
+ 14. `createOwnerQuestion` là tool `ask_owner` của Trợ lý. Câu hỏi phải gắn một ticket (thiếu thì 422 `WORKFLOW_QUESTION_TICKET_REQUIRED`). Thứ tự khóa root → project → resolver Actor persisted, rồi scope của proof phải đúng root và có tool `ask_owner` (thiếu thì 403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`). Row operation pending phải được ghi trong chính Tx, cùng turn và snapshot của scope, với `request_hash = operationRequestSha256({action:'ask_owner', payload: proposal})` trên đúng proposal đã gửi; lệch thì 403 `ORCHESTRATION_REQUEST_MISMATCH`, row từ Tx trước thì 404. ID câu hỏi dẫn xuất từ `operationId`, nên một operation chỉ hỏi được một lần (lần hai 409 `ASSISTANT_OPERATION_CONSUMED`). `conversationId` phải là hội thoại của turn đang hỏi.
+ 15. Câu hỏi gắn gate chỉ hợp lệ khi gate ID nằm trong `workflow_steps.gate_ids` của bước, ticket là ticket của bước, và stage trong criteria khớp bảng nguồn đã pin cùng row bước bất biến (source, skill, số gate, kind); lệch trả 409 `WORKFLOW_GATE_UNKNOWN`. Thiếu `artifactSha256` trả 409 `WORKFLOW_ARTIFACT_REQUIRED`. Artifact được coi là đã xác minh khi có evidence `artifact` trên chính ticket bước với đúng `data.sha256`, do attempt của máy và `binding_revision` hiện hành của project ghi; nếu không thì 409 `WORKFLOW_ARTIFACT_UNVERIFIED`. Chỉ artifact mới nhất của bước (theo `fence` của attempt, rồi `created_at` của evidence; cùng mốc thì mọi row phải cùng SHA) được hỏi hoặc duyệt; bytes cũ hơn trả 409 `WORKFLOW_ARTIFACT_SUPERSEDED`. Mỗi gate có đúng một artifact hiện hành; bước sinh nhiều file phải gói chúng thành một artifact. Run có run mới hơn trên cùng root (theo thứ tự journal `ticket.created` của ticket bước, đọc qua index `events(project_id, cursor)`) trả 409 `WORKFLOW_RUN_SUPERSEDED` khi hỏi hoặc trả lời; nếu run này hoặc một run khác của root không có event `ticket.created` thì thứ tự không xác định và cũng trả 409 (đóng an toàn). Definition của run phải còn đúng thứ máy dự án đang chứng minh (cùng source, projection, customization), nếu không thì 409 `WORKFLOW_DEFINITION_STALE`. Run BMAD chưa latch render trả 409 `WORKFLOW_RENDER_REQUIRED`. Gate `on_stage` không nhận `cycleId` (400). Gate `after_three_failed_fixes` chỉ mở khi run có ít nhất ba kết quả review `initial_review`/`repair_review` thất bại và `cycleId` là một trong các cycle đó; review hạ tầng hoặc review đạt không tính (409 `WORKFLOW_GATE_NOT_TRIGGERED`).
+ 16. Digest phạm vi do server tự tính: gate là `sha256(canonicalJson(['crew-v2:workflow-gate-scope:1', {rootTicketId, runId, stepId, gateId, kind, requiredActor, trigger, sourcePath, sourceSha256, artifactSha256, cycleId, definitionSha256, customizationSha256, renderedArtifactId}]))`; câu hỏi không gate là `['crew-v2:owner-question-scope:1', {conversationId, rootTicketId, ticketId, runId, stepId}]`. `scopeSha256` của proposal khác giá trị này trả 409 `WORKFLOW_QUESTION_SCOPE_MISMATCH`. Lần hỏi đầu materialize row `workflow_gates` bất biến (`pending`, `decision_id` null) rồi mới tạo câu hỏi revision 1. Câu hỏi mới cho cùng gate đánh dấu câu đang mở là `superseded` và lấy revision kế tiếp. Gate đã ghim artifact khác trả 409 `WORKFLOW_GATE_ARTIFACT_MISMATCH`: artifact mới cần run mới thay run cũ. Gate đã quyết định trả 409 `WORKFLOW_GATE_DECIDED`, nên duyệt đã có hiệu lực không bị hỏi lại. Câu hỏi không gate không mang artifact hay cycle.
+ 17. `recordGateAnswer` chỉ nhận Actor owner; máy, kể cả Trợ lý, trả 403 `OWNER_REQUIRED` trước mọi truy vấn. Hàm tự khóa `event_cursor` trước (cùng thứ tự với `mutate()`, vì decision ghi event), rồi root → project → ticket câu hỏi → gate → câu hỏi; precondition cho caller (route sau này): không giữ các khóa đó theo thứ tự khác. Câu hỏi đã trả lời trả 409 `WORKFLOW_QUESTION_ANSWERED`; câu bị thay hoặc `expectedRevision` lệch trả 409 `WORKFLOW_QUESTION_STALE`; `scopeSha256` lệch trả 409 `WORKFLOW_QUESTION_SCOPE_MISMATCH`; `artifactSha256` lệch trả 409 `WORKFLOW_GATE_ARTIFACT_MISMATCH`. `answer = {verdict, option, executionMethod, parallel, text}`: câu hỏi gate nhận `approve`/`reject`, câu hỏi không gate nhận `answer`; `option` là `null` hoặc một lựa chọn của câu hỏi. Chỉ gate giải quyết bước execution (gate kế hoạch của architectural) nhận `executionMethod` và `parallel`. Khi duyệt, `executionMethod` phải là một `method` của `executionChoices`, và mỗi lựa chọn trong criteria phải khớp bảng nguồn lẫn SHA của definition hiện hành (409 `WORKFLOW_EXECUTION_CHOICE_INVALID`). `parallel = {units:[{key,title,ownershipKeys,dependsOn?}], sharedInputSha256}` chỉ được chấp nhận sau kế hoạch viết và cần hash input dùng chung. `units` theo luật chung `parallelUnits` (cũng áp cho duyệt song song của run `bounded`): 2–16 phần, key/title hợp lệ, không field lạ, ownership key là path tương đối hợp lệ theo `validPath` của server docs (bỏ segment `./` và một `/` cuối; `..`, path tuyệt đối, `//`, dấu `\` bị từ chối). Khi so xung đột, key được so theo `decodeURIComponent(path).normalize('NFC').toLowerCase()` vì FS dự án có thể không phân biệt hoa thường hay dạng Unicode; giá trị lưu giữ nguyên như owner gửi, `dependsOn` chỉ trỏ phần khác. Hai phần sở hữu cùng path hoặc path lồng nhau (thư mục cha/con) trả 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`; có phụ thuộc trả 409 `WORKFLOW_PARALLEL_DEPENDENCY`. Lỗi shape trả 400 ở gate, 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH` ở run. Ở gate khác, `parallel` trả 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH`. Trong một savepoint, server gọi `recordDecision` với Actor owner: `approval` cho gate, `owner_answer` cho câu hỏi; `scope = {questionId, questionRevision, gateId, runId, stepId, artifactSha256, scopeSha256, verdict}` cộng `executionChoice` và `parallel` khi có. Sau đó server ghi `assistant_answers` bất biến rồi gọi `answerGate`. Lỗi bất kỳ hoàn tác cả decision lẫn answer, còn Tx của caller vẫn dùng được.
+ 18. `answerGate(tx, questionId, decisionId)` khóa và đọc lại toàn bộ. Câu hỏi phải đang mở. Decision phải là của owner với kind đúng (`approval` cho gate owner bắt buộc, `owner_answer` cho câu hỏi); decision của máy, `delegated`, hay sai kind đều trả 403 `WORKFLOW_GATE_DECISION_INVALID`. Phải có row `assistant_answers` của owner cho đúng revision, trỏ tới decision này, nếu không thì 403 `WORKFLOW_ANSWER_REQUIRED`. `scope` của decision phải đúng bằng scope dựng lại từ câu hỏi và nội dung answer. Gate phải còn `pending`, artifact và digest phạm vi tính lại từ các row hiện hành phải khớp, artifact vẫn được máy hiện hành xác minh và còn là artifact mới nhất của bước khi duyệt (bytes đã bị thay chỉ được `reject`). Khi đủ điều kiện, server latch `decision_id`, đặt gate `approved`/`rejected` và câu hỏi `answered`, mỗi việc bằng UPDATE có điều kiện nên chỉ tiến một lần; gọi lại trả 409. Route HTTP `POST /v2/assistant/questions/:id/answers` là controller mỏng, chưa mở trong lát này.
+ 
+ 19. `tool-client.ts` là phía máy của route tool (driver, supervisor và model thuộc lát khác). `execute({fence, inputSnapshot}, event)` kiểm `RoutingEvent` theo union tool trước mọi I/O: tên tool lạ, field thừa/thiếu, UUID/digest/counter sai, `providerCallId` ngoài ASCII hiển thị 1–4096 ký tự hoặc có dấu phẩy, event `finished` đều trả `ToolClientError` kind `invalid` và không ghi journal. UUID của fence và `snapshotId` được chuẩn hóa lowercase trước khi dẫn xuất và journal, nên cách viết hoa/thường không tạo xung đột giả. `operationId` là UUID (layout v5) của SHA-256 canonical `['crew-v2:assistant-tool-operation:1', turnId, providerCallId, sequence]`, nên mọi lần chạy lại cùng lời gọi, kể cả sau restart, dùng cùng operationId. Request được ghi vào `HttpOperationJournal` (thư mục riêng `<root>/assistant-tools`, vì mỗi thư mục journal có đúng một writer) TRƯỚC lần gửi đầu. Body journal giữ `call` dạng canonical JSON text (`callJson`) nên phép quét khóa-tên-secret của journal chỉ áp cho phần envelope cố định, không áp cho khóa nghiệp vụ trong ticket/câu hỏi; transport dựng lại đúng body năm field. `providerCallId` nằm trong `phase` đã journal (`assistant-tool:<id>`) và được gửi đúng một lần ở header `x-crew-provider-call-id`, không nằm trong body hay request hash. `bearer` là chuỗi hoặc hàm được gọi ở mỗi lần gửi, nên credential đã làm mới đến ngay lần thử sau; bearer rỗng hoặc chứa ký tự ngoài ASCII hiển thị trả `unauthorized` ngay, không gửi, không retry; bearer không vào journal, lỗi hay log. Hai `execute` đồng thời cùng operation có thể gửi hai request song song (server idempotent, kết quả lưu giống nhau). Cùng operationId với request khác (fence/pin/payload đổi) trả kind `conflict` ngay, không I/O. Journal `assistant-tools` tạo bởi bản đầu (body có `call` trực tiếp, chưa có `callJson`) không tương thích: phải xóa thư mục `<root>/assistant-tools` cũ trước khi mount production.
+-20. Journal giữ vĩnh viễn phản hồi đầu của một operation, nên chỉ kết quả nghiệp vụ của route được ghi: 200 hợp lệ, hoặc 400/403/404/409/422 mà body mang đúng mã lỗi route phát ra cho status đó (`INVALID_INPUT`, `VALIDATION`, `PATH_INVALID`, `PROVIDER_CALL_ID_INVALID`, `NOT_FOUND`, `IDEMPOTENCY_CONFLICT`, `DOCS_ENCODING_INVALID` hoặc mã `ASSISTANT_*`/`ORCHESTRATION_*`/`WORKFLOW_*`); đó là terminal, không gửi lại, phát lại sau restart không I/O. Cùng status mà thiếu hoặc lạ mã (404 mặc định của Fastify, trang lỗi proxy, server cũ chưa có route) là `misconfigured`, không ghi, không retry. Mọi thứ còn lại được ném từ transport và KHÔNG ghi, operation giữ mở để gọi lại với cùng operationId và body: 401 (kind `unauthorized`, `retryable`, không tự thử lại; làm mới credential rồi gọi lại), 408/425/429/5xx kể cả 503 `SERVICE_UNAVAILABLE` và mất mạng/timeout (thử lại có giới hạn, một request thật mỗi lượt, lịch 1s nhân đôi tới 60s, `Retry-After` chỉ kéo dài, không rút ngắn backoff (lấy max) và chặn trần 60s; hết `maxAttempts`, mặc định 6, ghi đè theo lời gọi, trả `unavailable` retryable), 503 `ASSISTANT_TOOLS_NOT_CONFIGURED`/`ASSISTANT_POLICY_INVALID` (kind `not_configured`, dừng ngay, giữ operation), 3xx (kind `misconfigured`, không theo redirect, không thử lại), 413 và 4xx không liệt kê (kind `rejected`, không retry). Ánh xạ mã theo route thật: 400 `invalid`; 403 `forbidden`; 404 `not_found` (một hình dạng cho turn không tồn tại, máy khác và fence/turn không còn hiện hành, caller dừng turn); 409 `ASSISTANT_INPUT_STALE` `stale`, `ASSISTANT_TOOL_BUDGET_EXHAUSTED` `budget`, còn lại (`IDEMPOTENCY_CONFLICT`, `ASSISTANT_OPERATION_CONFLICT`, mã workflow) `conflict`; 422 `rejected`. Lỗi mang kind, status và mã server, không mang body.
+-21. Phản hồi 200 phải đúng envelope `{operationId, state, result, errorCode}` với operationId khớp, được kiểm trước khi ghi (phản hồi sai không bị ghi và kind là `response_invalid`). `completed` chỉ nhận đúng một kind giá trị theo tool (`read_catalog`→`catalog` có `truncated`, `read_docs`→`docs`, `route_message`→`route`, `read_execution_candidates`→`execution_candidates`, `assess_ticket`→`assessment`, `ask_owner`→`question`, `create_run`→`run`, `request_dispatch`→`dispatch`, `request_review`→`review`, `publish_reply`→`reply`) và đúng tập field của kind; `pending` và `rejected` không mang giá trị, `rejected` có `errorCode` (ví dụ `TOOL_NOT_RELEASED`). `pending` được trả nguyên, chờ GET `/v2/assistant/turns/:id/tools/:operationId` (chưa có; server hiện không phát sinh `pending`). Chưa có: ghi fsync kết quả rồi `driver.resolve`, dọn journal khi turn kết thúc và mount production.
++20. Journal giữ vĩnh viễn phản hồi đầu của một operation, nên chỉ kết quả nghiệp vụ của route được ghi: 200 hợp lệ, hoặc 400/403/404/409/422 mà body mang mã lỗi của route: mọi mã `ASSISTANT_*`, `ORCHESTRATION_*`, `WORKFLOW_*` trên các status đó, cùng danh sách tường minh mã không có prefix (`INVALID_INPUT`, `VALIDATION`, `PATH_INVALID`, `PROVIDER_CALL_ID_INVALID`, `NOT_FOUND`, `IDEMPOTENCY_CONFLICT`, `REVISION_CONFLICT`, `TICKET_CLOSED`, `PROJECT_NOT_BOUND`, `TICKET_HIERARCHY`, các mã dependency/repair/completion của ticket, `DOCS_ENCODING_INVALID`, `SOURCE_UNVERIFIED`...); đó là phán quyết tất định, terminal, không gửi lại, phát lại sau restart không I/O, và kind phân biệt theo status/mã (`invalid`, `forbidden`, `not_found`, `stale`, `budget`, `conflict`, `rejected`). Cùng status mà thiếu hoặc lạ mã (404 mặc định của Fastify, trang lỗi proxy, server cũ chưa có route) là `misconfigured`, không ghi, không retry. Mọi thứ còn lại được ném từ transport và KHÔNG ghi, operation giữ mở để gọi lại với cùng operationId và body: 401 (kind `unauthorized`, `retryable`, không tự thử lại; làm mới credential rồi gọi lại), 408/425/429/5xx kể cả 503 `SERVICE_UNAVAILABLE` và mất mạng/timeout (thử lại có giới hạn, một request thật mỗi lượt, lịch 1s nhân đôi tới 60s, `Retry-After` chỉ kéo dài, không rút ngắn backoff (lấy max) và chặn trần 60s; hết `maxAttempts`, mặc định 6, ghi đè theo lời gọi, trả `unavailable` retryable), 5xx mang mã cấu hình `ASSISTANT_TOOLS_NOT_CONFIGURED`, `ASSISTANT_POLICY_INVALID`, `ASSISTANT_STORE_MISSING`, `ASSISTANT_ADMISSION_NOT_CONFIGURED`, `ORCHESTRATION_COMMAND_NOT_RELEASED` (kind `not_configured`, dừng ngay, giữ operation), 3xx (kind `misconfigured`, không theo redirect, không thử lại), 413 và 4xx không liệt kê (kind `rejected`, không retry). Ánh xạ mã theo route thật: 400 `invalid`; 403 `forbidden`; 404 `not_found` (một hình dạng cho turn không tồn tại, máy khác và fence/turn không còn hiện hành, caller dừng turn); 409 `ASSISTANT_INPUT_STALE` `stale`, `ASSISTANT_TOOL_BUDGET_EXHAUSTED` `budget`, còn lại (`IDEMPOTENCY_CONFLICT`, `ASSISTANT_OPERATION_CONFLICT`, mã workflow) `conflict`; 422 `rejected`. Lỗi mang kind, status và mã server, không mang body.
++21. Phản hồi 200 phải đúng envelope `{operationId, state, result, errorCode}` với operationId khớp, được kiểm trước khi ghi (phản hồi sai không bị ghi và kind là `response_invalid`). `completed` chỉ nhận đúng một kind giá trị theo tool (`read_catalog`→`catalog` có `truncated`, `read_docs`→`docs`, `route_message`→`route`, `read_execution_candidates`→`execution_candidates`, `assess_ticket`→`assessment`, `ask_owner`→`question`, `create_run`→`run`, `request_dispatch`→`dispatch`, `request_review`→`review`, `publish_reply`→`reply`) và đúng tập field của kind; `pending` và `rejected` không mang giá trị, `rejected` có `errorCode` (ví dụ `TOOL_NOT_RELEASED`). `pending` được trả nguyên, chờ GET `/v2/assistant/turns/:id/tools/:operationId` (chưa có; server hiện không phát sinh `pending`). Quy tắc cho tác giả server: mã transient (hết thời gian khóa, serialization, quá tải) phải dùng 5xx; một 4xx trong namespace `ASSISTANT_`/`ORCHESTRATION_`/`WORKFLOW_` được coi là phán quyết tất định và sẽ được ghi vào journal vĩnh viễn. Test `every server error code of the tool path` quét `new ApiError('CODE', status)` trong `server/src/{assistant,tickets,docs}` và fail khi một cặp mới chưa được client phân loại. Chưa có: ghi fsync kết quả rồi `driver.resolve`, dọn journal khi turn kết thúc và mount production.
+ 
+ ### Ánh xạ nguồn → bước/gate
+ 
+ Superpowers 6.4.2 (revision `8ca22dba…`); dòng trích từ archive đã pin. BMAD 6.12.0 `bmad-build` (revision `05bfbd46…`); source path là file projection Claude đã audit.
+ 
+ | Path | Bước (skill, source) | Gate (owner) |
+ |---|---|---|
+ | architectural | design (`skills/brainstorming/SKILL.md:81-84,129-134,171-176`) → spec (`:135-138,237-261`) → plan (`skills/writing-plans/SKILL.md:179-204`) → execute (source `skills/writing-plans/SKILL.md`, lựa chọn `skills/subagent-driven-development/SKILL.md` hoặc `skills/executing-plans/SKILL.md` theo `:200-204`) → finish (`skills/finishing-a-development-branch/SKILL.md`, handoff `subagent-driven-development:120,487`, `executing-plans:104,304`) | `design_approval` (brainstorming `:45-49,134,174-176`), `spec_approval` (`:46-49,256-261`), `plan_approval_execution_method` (writing-plans `:181-198`) |
+ | bounded | design (brainstorming `:71-80,122-127`) → implement (TDD, `brainstorming:127`, `skills/test-driven-development/SKILL.md:31-34`) → review (`skills/requesting-code-review/SKILL.md:12-18`) → verify (`skills/verification-before-completion/SKILL.md:14-36`); không spec/plan | `design_approval` (`:45,76-80,126`) |
+ | bug | root_cause (`skills/systematic-debugging/SKILL.md:14-20,48-119`) → pattern (`:120-142`) → hypothesis (`:143-167`) → fix (`:168-196`) → review → verify | `architecture_discussion` trên fix (`:190-212`), chỉ materialize sau ba lần sửa thất bại |
+diff --git a/v2/gateway/src/assistant/tool-client.ts b/v2/gateway/src/assistant/tool-client.ts
+index 14bc14d..1357cb2 100644
+--- a/v2/gateway/src/assistant/tool-client.ts
++++ b/v2/gateway/src/assistant/tool-client.ts
+@@ -381,61 +381,111 @@ function parseResult(tool: RoutingTool['name'], operationId: Id, body: unknown):
+     if (result !== null || !text(1, 200)(errorCode)) throw bad('rejected shape');
+   } else throw bad('state');
+   return body as unknown as RoutingToolResult;
+ }
+ 
+ // ---- transport: the provider call ID travels in the journaled phase, so it is crash-safe ----
+ 
+ const phasePrefix = 'assistant-tool:';
+ const maxBackoffMs = 60000;
+ /**
+- * A status is a business outcome of the route only when the body carries one of the error codes
+- * the route emits for it; the journal records those for good. The same status without such a code
+- * (Fastify's default 404, a proxy page, an older server without the route) is not a verdict.
++ * A status is a business outcome of the route only when the body carries an error code the route
++ * emits for it; the journal records those for good. The same status without such a code (Fastify's
++ * default 404, a proxy page, an older server without the route) is not a verdict.
++ *
++ * Rule for server authors: a transient failure must use a 5xx status. A 4xx inside the
++ * `ASSISTANT_`, `ORCHESTRATION_` or `WORKFLOW_` namespaces is a deterministic verdict and is
++ * recorded, so the same call never reaches the server again.
+  */
+-const delegatedNamespace = /^(ORCHESTRATION|WORKFLOW)_[A-Z0-9_]{1,48}$/;
+-const routeCodes: Record<number, ReadonlySet<string>> = {
++const verdictNamespace = /^(ASSISTANT|ORCHESTRATION|WORKFLOW)_[A-Z0-9_]{1,56}$/;
++const businessStatuses = new Set([400, 403, 404, 409, 422]);
++/** Business codes of the route and its services that carry no namespace prefix. */
++const unprefixedCodes: Record<number, ReadonlySet<string>> = {
+   400: new Set([
+     'INVALID_INPUT',
+     'VALIDATION',
+     'PATH_INVALID',
+     'PROVIDER_CALL_ID_INVALID',
+-    'ASSISTANT_FENCE_INVALID',
+-    'ASSISTANT_ID_INVALID',
++    'TICKET_HIERARCHY',
+   ]),
+-  403: new Set(['ASSISTANT_MACHINE_REQUIRED', 'ASSISTANT_TOOL_NOT_IN_SCOPE']),
+-  404: new Set(['NOT_FOUND', 'ASSISTANT_SCOPE_NOT_FOUND']),
++  403: new Set(['OWNER_REQUIRED', 'OWNER_APPROVAL_REQUIRED', 'OWNER_DECISION_REQUIRED']),
++  404: new Set(['NOT_FOUND']),
+   409: new Set([
+     'IDEMPOTENCY_CONFLICT',
+-    'ASSISTANT_OPERATION_CONFLICT',
+-    'ASSISTANT_INPUT_STALE',
+-    'ASSISTANT_TOOL_BUDGET_EXHAUSTED',
+-    'ASSISTANT_TURN_STALE',
+-    'ASSISTANT_TURN_IN_USE',
+-    'ASSISTANT_SCOPE_STALE',
+-    'ASSISTANT_CALIBRATION_ACTIVE',
+-    'ASSISTANT_REASSIGNMENT_PENDING',
+-    'ASSISTANT_GENERATION_EXHAUSTED',
+-    'ASSISTANT_REVISION_EXHAUSTED',
+     'REVISION_CONFLICT',
++    'TICKET_CLOSED',
++    'PROJECT_NOT_BOUND',
++    'TICKET_HIERARCHY',
++    'INVALID_TICKET_TRANSITION',
++    'COMPLETION_GATE',
++    'DEPENDENCIES_NOT_READY',
++    'DEPENDENCY_CYCLE',
++    'DEPENDENCY_EDIT_NOT_ALLOWED',
++    'DEPENDENCY_EXISTS',
++    'DEPENDENCY_SCOPE',
++    'EXECUTION_PROOF_REQUIRED',
++    'REPAIR_CYCLE_CONFLICT',
++    'REPAIR_NOT_RUNNING',
++    'REPAIR_OWNER_DECISION_REQUIRED',
++    'REPAIR_STEP_REQUIRED',
+   ]),
+-  422: new Set(['DOCS_ENCODING_INVALID']),
++  422: new Set(['DOCS_ENCODING_INVALID', 'DOCS_SOURCE_UNVERIFIED', 'SOURCE_UNVERIFIED']),
+ };
+ function isRouteOutcome(status: number, serverCode: string | null): boolean {
+-  if (status === 200) return true;
+-  const codes = routeCodes[status];
+-  if (!codes || serverCode === null) return false;
+-  // Consumer services (orchestration, workflow) own their code namespaces on any of these statuses.
+-  return codes.has(serverCode) || delegatedNamespace.test(serverCode);
++  if (!businessStatuses.has(status) || serverCode === null) return false;
++  return verdictNamespace.test(serverCode) || (unprefixedCodes[status]?.has(serverCode) ?? false);
++}
++/** 5xx codes that are server configuration, not load: stop retrying, keep the operation open. */
++const notConfigured = new Set([
++  'ASSISTANT_TOOLS_NOT_CONFIGURED',
++  'ASSISTANT_POLICY_INVALID',
++  'ASSISTANT_STORE_MISSING',
++  'ASSISTANT_ADMISSION_NOT_CONFIGURED',
++  'ORCHESTRATION_COMMAND_NOT_RELEASED',
++]);
++
++export type ErrorVerdict = {
++  kind: ToolClientErrorKind;
++  /** True only for a deterministic business verdict, which the journal keeps for good. */
++  record: boolean;
++  /** True when the same request may be sent again within this call. */
++  retry: boolean;
++};
++/** The one place that decides what a non-200 reply means; exported so a test can guard drift. */
++export function classifyError(status: number, serverCode: string | null): ErrorVerdict {
++  const open = (kind: ToolClientErrorKind, retry = false): ErrorVerdict => ({ kind, record: false, retry });
++  if (status >= 300 && status < 400) return open('misconfigured');
++  if (status === 401) return open('unauthorized');
++  if (status >= 500 && serverCode !== null && notConfigured.has(serverCode)) return open('not_configured');
++  if ([408, 425, 429].includes(status) || status >= 500) return open('unavailable', true);
++  if (businessStatuses.has(status)) {
++    if (!isRouteOutcome(status, serverCode)) return open('misconfigured');
++    const kind: ToolClientErrorKind =
++      status === 400
++        ? 'invalid'
++        : status === 403
++          ? 'forbidden'
++          : // 404 is one shape for every unresolvable scope: unknown turn, other machine, stale fence.
++            status === 404
++            ? 'not_found'
++            : status === 422
++              ? 'rejected'
++              : serverCode === 'ASSISTANT_TOOL_BUDGET_EXHAUSTED'
++                ? 'budget'
++                : serverCode === 'ASSISTANT_INPUT_STALE'
++                  ? 'stale'
++                  : 'conflict';
++    return { kind, record: true, retry: false };
++  }
++  // 413 and every other unlisted status: infrastructure, not a business verdict.
++  return open('rejected');
+ }
+-/** 503 codes that are server configuration, not load: stop retrying, keep the operation open. */
+-const notConfigured = new Set(['ASSISTANT_TOOLS_NOT_CONFIGURED', 'ASSISTANT_POLICY_INVALID']);
+ 
+ /**
+  * A send that must not be recorded. The journal keeps the first response of an operation for
+  * good, so anything that is not a business outcome (credential, load, infrastructure, malformed
+  * reply) is thrown instead: the operation stays open and the same call can be executed again.
+  */
+ class SendFailure extends Error {
+   readonly error: ToolClientError;
+   readonly retry: boolean;
+   readonly delayMs: number | null;
+@@ -529,64 +579,42 @@ function toolTransport(
+     const extra = { status, serverCode };
+     if (status === 200) {
+       try {
+         parseResult(call.name, operationId, body);
+       } catch (error) {
+         if (error instanceof ToolClientError) throw new SendFailure(error, false);
+         throw error;
+       }
+       return { status, body };
+     }
+-    if (status === 400 || status === 403 || status === 404 || status === 409 || status === 422) {
+-      if (isRouteOutcome(status, serverCode)) return { status, body };
+-      // Same status, but not the route's own error shape: wrong URL, proxy or an older server.
+-      throw new SendFailure(
+-        new ToolClientError('misconfigured', `${detail} not a route error`, extra),
+-        false,
+-      );
+-    }
+-    if (status >= 300 && status < 400)
+-      throw new SendFailure(new ToolClientError('misconfigured', `${detail} redirect`, extra), false);
+-    if (status === 401)
+-      throw new SendFailure(
+-        new ToolClientError('unauthorized', detail, { ...extra, retryable: true }),
+-        false,
+-      );
+-    if (status === 503 && serverCode !== null && notConfigured.has(serverCode))
+-      throw new SendFailure(new ToolClientError('not_configured', detail, extra), false);
+-    if ([408, 425, 429].includes(status) || status >= 500)
+-      throw new SendFailure(
+-        new ToolClientError('unavailable', detail, { ...extra, retryable: true }),
+-        true,
+-        retryAfterMs(response.headers.get('retry-after'), now()),
+-      );
+-    // 413 and every other unlisted status: infrastructure, not a business verdict.
+-    throw new SendFailure(new ToolClientError('rejected', detail, extra), false);
++    const verdict = classifyError(status, serverCode);
++    if (verdict.record) return { status, body };
++    throw new SendFailure(
++      new ToolClientError(verdict.kind, detail, {
++        ...extra,
++        retryable: verdict.retry || verdict.kind === 'unauthorized',
++      }),
++      verdict.retry,
++      verdict.retry ? retryAfterMs(response.headers.get('retry-after'), now()) : null,
++    );
+   };
+ }
+ 
+-/** Business outcomes the journal records: the route contract's terminal statuses. */
++/** A recorded business verdict, replayed from the journal, as the error it stands for. */
+ function terminalError(status: number, body: unknown): ToolClientError {
+   const serverCode = serverCodeOf(body);
+-  const extra = { status, serverCode };
++  const verdict = classifyError(status, serverCode);
+   const detail = `HTTP ${status}${serverCode ? ` ${serverCode}` : ''}`;
+-  if (status === 403) return new ToolClientError('forbidden', detail, extra);
+-  // 404 is one shape for every unresolvable scope: unknown turn, other machine, stale fence.
+-  if (status === 404) return new ToolClientError('not_found', detail, extra);
+-  if (status === 409) {
+-    if (serverCode === 'ASSISTANT_TOOL_BUDGET_EXHAUSTED') return new ToolClientError('budget', detail, extra);
+-    if (serverCode === 'ASSISTANT_INPUT_STALE') return new ToolClientError('stale', detail, extra);
+-    return new ToolClientError('conflict', detail, extra);
+-  }
+-  if (status === 400) return new ToolClientError('invalid', detail, extra);
+-  if (status === 422) return new ToolClientError('rejected', detail, extra);
+-  return new ToolClientError('response_invalid', detail, extra);
++  return new ToolClientError(verdict.record ? verdict.kind : 'response_invalid', detail, {
++    status,
++    serverCode,
++  });
+ }
+ 
+ export type ToolClientOptions = {
+   /** Gateway private state root; the client owns the `assistant-tools` directory below it. */
+   root: string;
+   baseUrl: string;
+   /** A function is resolved on every send, so a refreshed credential reaches the next attempt. */
+   bearer: Bearer;
+   fetch?: typeof fetch;
+   /** Requests per `execute` before the call surfaces as retryable `unavailable`. Default 6. */
+diff --git a/v2/gateway/test/assistant-tool-client.test.ts b/v2/gateway/test/assistant-tool-client.test.ts
+index 4e174cd..69973bf 100644
+--- a/v2/gateway/test/assistant-tool-client.test.ts
++++ b/v2/gateway/test/assistant-tool-client.test.ts
+@@ -1,19 +1,20 @@
+ import assert from 'node:assert/strict';
+ import { createHash, randomUUID } from 'node:crypto';
+ import { mkdtemp, readdir, readFile, realpath, rm } from 'node:fs/promises';
+ import { createServer, type IncomingMessage, type Server } from 'node:http';
+ import type { AddressInfo } from 'node:net';
+ import { tmpdir } from 'node:os';
+ import { join } from 'node:path';
+ import test from 'node:test';
+ import {
++  classifyError,
+   createToolClient,
+   type RoutingEvent,
+   type ToolClient,
+   ToolClientError,
+   type ToolTurn,
+   toolOperationId,
+ } from '../src/assistant/tool-client.ts';
+ 
+ // Contract-faithful fake of `POST /v2/assistant/turns/:id/tools` (server/src/assistant/tools.ts):
+ // bearer machine, exactly one `x-crew-provider-call-id` header (visible ASCII, no comma, 1-4096),
+@@ -526,20 +527,26 @@ test('tool client: terminal HTTP statuses are not retried and are replayed after
+     [400, 'ASSISTANT_FENCE_INVALID', 'invalid'],
+     [400, 'PROVIDER_CALL_ID_INVALID', 'invalid'],
+     [403, 'ASSISTANT_MACHINE_REQUIRED', 'forbidden'],
+     [403, 'ASSISTANT_TOOL_NOT_IN_SCOPE', 'forbidden'],
+     [404, 'ASSISTANT_SCOPE_NOT_FOUND', 'not_found'],
+     [404, 'NOT_FOUND', 'not_found'],
+     [409, 'ASSISTANT_INPUT_STALE', 'stale'],
+     [409, 'IDEMPOTENCY_CONFLICT', 'conflict'],
+     [409, 'ASSISTANT_OPERATION_CONFLICT', 'conflict'],
+     [409, 'WORKFLOW_RUN_EXISTS', 'conflict'],
++    [409, 'ASSISTANT_OPERATION_CONSUMED', 'conflict'],
++    [409, 'ASSISTANT_OPERATION_STALE', 'conflict'],
++    [404, 'ASSISTANT_OPERATION_NOT_FOUND', 'not_found'],
++    [409, 'TICKET_CLOSED', 'conflict'],
++    [409, 'PROJECT_NOT_BOUND', 'conflict'],
++    [403, 'ASSISTANT_ADMISSION_DENIED', 'forbidden'],
+     [409, 'ASSISTANT_TOOL_BUDGET_EXHAUSTED', 'budget'],
+     [422, 'WORKFLOW_QUESTION_TICKET_REQUIRED', 'rejected'],
+   ];
+   for (const [status, code, expected] of table) {
+     const h = await harness();
+     try {
+       const c = await h.client();
+       const t = turn();
+       h.server.queue.push({ kind: 'status', status, body: { error: { code, message: 'secret-detail' } } });
+       await assert.rejects(c.execute(t, catalogEvent()), (error) => {
+@@ -764,21 +771,27 @@ test('tool client: 413 and unlisted 4xx are infrastructure errors that do not cl
+       });
+       assert.equal(sent(h), 1);
+       assert.equal((await c.execute(t, catalogEvent())).state, 'completed', `${status}: not poisoned`);
+     } finally {
+       await h.done();
+     }
+   }
+ });
+ 
+ test('tool client: 503 not-configured stops retrying but keeps the operation open', async () => {
+-  for (const code of ['ASSISTANT_TOOLS_NOT_CONFIGURED', 'ASSISTANT_POLICY_INVALID']) {
++  for (const code of [
++    'ASSISTANT_TOOLS_NOT_CONFIGURED',
++    'ASSISTANT_POLICY_INVALID',
++    'ASSISTANT_STORE_MISSING',
++    'ASSISTANT_ADMISSION_NOT_CONFIGURED',
++    'ORCHESTRATION_COMMAND_NOT_RELEASED',
++  ]) {
+     const h = await harness();
+     try {
+       const c = await h.client();
+       const t = turn();
+       h.server.queue.push({ kind: 'status', status: 503, body: { error: { code, message: 'x' } } });
+       await assert.rejects(c.execute(t, catalogEvent()), (error) => {
+         assert.ok(error instanceof ToolClientError);
+         assert.equal(error.kind, 'not_configured');
+         assert.equal(error.serverCode, code);
+         assert.equal(error.retryable, false);
+@@ -992,22 +1005,22 @@ test('tool client: 404, 403, 400 and 409 without a route error code are not reco
+     ['fastify default 404', { kind: 'status', status: 404, body: fastify404 }],
+     ['404 empty json', { kind: 'status', status: 404, body: {} }],
+     ['403 without a code', { kind: 'status', status: 403, body: { message: 'Forbidden' } }],
+     ['400 html from a proxy', { kind: 'status', status: 400, raw: '<html><body>Bad Request</body></html>' }],
+     [
+       '409 foreign code',
+       { kind: 'status', status: 409, body: { error: { code: 'PROXY_CONFLICT', message: 'x' } } },
+     ],
+     ['422 without a code', { kind: 'status', status: 422, raw: 'nope' }],
+     [
+-      '404 with a code of another status',
+-      { kind: 'status', status: 404, body: { error: { code: 'ASSISTANT_INPUT_STALE' } } },
++      '404 with an unprefixed code of another status',
++      { kind: 'status', status: 404, body: { error: { code: 'IDEMPOTENCY_CONFLICT' } } },
+     ],
+   ];
+   for (const [label, behavior] of cases) {
+     const h = await harness();
+     try {
+       const c = await h.client();
+       const t = turn();
+       h.server.queue.push(behavior);
+       await assert.rejects(c.execute(t, catalogEvent()), (error) => {
+         assert.ok(error instanceof ToolClientError, label);
+@@ -1054,10 +1067,60 @@ test('tool client: an invalid credential is unauthorized, never sent and never r
+         assert.ok(!error.message.includes('evil'));
+         return true;
+       });
+       assert.equal(sent(h), 0);
+       assert.deepEqual(h.sleeps, []);
+     } finally {
+       await h.done();
+     }
+   }
+ });
++
++// Drift guard: every error the tool route can emit through the Assistant, ticket and docs
++// services is read from the server source (read-only) and must classify to something other than
++// `misconfigured`. A new code with a business status fails here until the client knows it.
++test('tool client: every server error code of the tool path is classified, none as misconfigured', async () => {
++  const root = new URL('../../server/src/', import.meta.url);
++  const pairs = new Map<string, [string, number]>();
++  for (const dir of ['assistant', 'tickets', 'docs']) {
++    for (const entry of await readdir(new URL(`${dir}/`, root), { recursive: true })) {
++      if (!entry.endsWith('.ts')) continue;
++      const source = await readFile(new URL(`${dir}/${entry}`, root), 'utf8');
++      for (const match of source.matchAll(/new ApiError\(\s*'([A-Z][A-Z0-9_]*)',\s*([0-9]{3})/g))
++        pairs.set(`${match[2]} ${match[1]}`, [String(match[1]), Number(match[2])]);
++    }
++  }
++  assert.ok(pairs.size > 50, `scanned ${pairs.size} pairs`);
++  // Codes the tool route cannot reach: list-query validation and owner/deploy-only routes.
++  const unreachable = new Set([
++    '400 CURSOR_INVALID',
++    '400 LIMIT_INVALID',
++    '400 QUERY_INVALID',
++    '403 DEPLOY_OWNER_INTENT_REQUIRED',
++    '403 MACHINE_REQUIRED',
++  ]);
++  for (const key of unreachable) assert.ok(pairs.has(key), `stale exclusion ${key}`);
++  const unknown: string[] = [];
++  for (const [key, [code, status]] of pairs) {
++    if (unreachable.has(key)) continue;
++    const verdict = classifyError(status, code);
++    if (verdict.kind === 'misconfigured') unknown.push(key);
++  }
++  assert.deepEqual(unknown.sort(), []);
++});
++
++test('tool client: classification keeps the journal rule for ASSISTANT_* and transient statuses', () => {
++  const kindOf = (status: number, code: string | null) => classifyError(status, code);
++  for (const status of [400, 403, 404, 409, 422]) {
++    const verdict = kindOf(status, 'ASSISTANT_SOMETHING_NEW');
++    assert.equal(verdict.record, true, String(status));
++    assert.notEqual(verdict.kind, 'misconfigured');
++  }
++  // A transient code on a 5xx is never recorded, whatever its namespace.
++  for (const code of ['ASSISTANT_LOCK_TIMEOUT', 'ORCHESTRATION_BUSY', 'WORKFLOW_BUSY']) {
++    const verdict = kindOf(503, code);
++    assert.equal(verdict.record, false);
++    assert.equal(verdict.retry, true);
++  }
++  assert.equal(kindOf(404, null).kind, 'misconfigured');
++  assert.equal(kindOf(404, 'PROXY_NOT_FOUND').record, false);
++});
