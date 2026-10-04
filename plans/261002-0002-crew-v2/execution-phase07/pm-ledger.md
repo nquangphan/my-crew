@@ -129,3 +129,7 @@ Producer P-G1a: complete — 78bf6c3 (fa8ccbc + 78bf6c3).
 Kế tiếp: P-G1a2 (readGraph một snapshot nhất quán, `tickets/dependencies.ts`) dispatch; web lib/events.ts dùng `/v2/events/latest` (owner session) là follow-up Task2 sau khi controller integration khép.
 
 17:25 S5a follow-up `cccbae1` (B1 biên 5 phút + không release khi sending; B2 cờ discarding + lỗi DELETE hiện ra; peer @testing-library/dom 10.4.2). Sự cố quy trình lần 2: pnpm add chạy trước khi kiểm heavyEligible (3.77GiB) — nhỏ, đã trả slot; ghi nhận. Ruling: B1 dùng biên lệch giờ thay giờ server vì OwnerClient chưa trả header Date — follow-up Task2 lộ Date header (cùng lượt dùng /v2/events/latest) — sai thì đồng hồ client lệch >5 phút vẫn có rủi ro. tsc đỏ do test/ticket-routes.test.ts chưa track của controller integration.
+
+17:45 S5a B1/B2 re-review `task-5-s5a-fix3-re-review.md`: Approved; B1 (biên tạm) và B2 ADDRESSED.
+Task 5 S5a follow-up: complete — cccbae1. B1/B2 điều kiện trước A5 đã đóng (B1 còn phụ thuộc follow-up Date header Task2).
+Task 5 S5a: minor (deferred, xử lý cùng lượt A5): C1 trong biên 5 phút file không chuyển lượt gửi dù server đã chứng minh compose đóng; C2 tombstone DELETE abandon sau logout làm discard lặp DISCARD_UNCONFIRMED vô hạn; C3 #abandonSession coi rejected khi compose có thể còn open, #discarding không timeout.
