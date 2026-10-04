@@ -82,6 +82,8 @@ theo từng flow; agent đọc docs trước khi đọc code.
 
 ## Hướng dẫn
 
+- [Crew v2 — Ý tưởng, kiến trúc và cách vận hành](crew-v2-project-guide.md): tổng quan sản phẩm viết lại, các công cụ, luồng thực thi và bổ sung MVP2; phân biệt kế hoạch với phần đã nghiệm thu.
+
 - [Cài đặt môi trường dev](guides/dev-setup.md): từ máy trắng tới lúc chạy được API, web, daemon, app desktop ở chế độ dev.
 - [Hướng dẫn sử dụng](guides/user-guide.md): thao tác trên web cho chủ dự án, không cần biết code.
 - [Quy trình ticket](guides/workflow.md): một yêu cầu đi qua những bước nào từ lúc tạo tới lúc merge.

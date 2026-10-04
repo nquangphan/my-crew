@@ -71,6 +71,9 @@ thức. Cùng thư viện phổ biến với v1 không đồng nghĩa tái dùng
 
 ## Review và thực thi
 
+**Bổ sung MVP2 đã chốt ngày 04/10/2026:** [Docs, graph flow, lưu trữ, token usage và vòng đời agent](mvp2-docs-storage-usage.md).
+Tài liệu này bổ sung phạm vi yêu cầu, chưa phải phần đã triển khai hoặc nghiệm thu.
+
 Đọc spec, lộ trình và kế hoạch phần 01. Chọn native hoặc subagent-driven trước khi thực thi.
 Không bắt đầu phần kế tiếp chỉ vì phần trước xong: cần kế hoạch chi tiết được review cho phần đó.
 Không coi lộ trình này là đã hoàn thành kế hoạch task/code cho toàn bộ chín phần.
