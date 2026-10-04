@@ -171,6 +171,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/src/assistant/authority.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/contracts.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/inbox.ts` | [server-assistant](flows/server-assistant.md) (file) |
+| `server/src/assistant/orchestration.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/routes.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/assistant/store.ts` | [server-assistant](flows/server-assistant.md) (file) |
 | `server/src/attachments/access.ts` | [server-attachments](flows/server-attachments.md) (file) |
@@ -263,6 +264,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
 | `server/test/assistant-authority.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
 | `server/test/assistant-mutations.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+| `server/test/assistant-orchestration-port.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
 | `server/test/assistant-orchestration.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
 | `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
 | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |

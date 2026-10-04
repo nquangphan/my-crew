@@ -7,6 +7,7 @@ import {
   captureAssistantOperation,
   consumeAssistantScope,
   createAssistantAccess,
+  invalidScope,
 } from './assistant-access.ts';
 import type { Dependency, RepairLink, Ticket } from './contracts.ts';
 import { mapTicket, requireTicket } from './service.ts';
@@ -85,7 +86,7 @@ async function persistDependency(
       operation.payload.predecessorId !== predecessorId ||
       permission.prepared.projectId !== projectId
     )
-      throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
+      throw invalidScope();
     consumeAssistantScope(tx, permission.scope, operation, permission.prepared);
   }
   try {

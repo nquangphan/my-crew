@@ -12,6 +12,8 @@ import {
   captureAssistantOperation,
   consumeAssistantScope,
   createAssistantAccess,
+  invalidScope,
+  uuid,
 } from './assistant-access.ts';
 import type {
   AppendAttachmentComment,
@@ -22,8 +24,6 @@ import type {
   SourceRef,
 } from './contracts.ts';
 import { requireTicket, safeTicketJson } from './service.ts';
-
-const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function appendComment(tx: Tx, ticketId: Id, text: string, actor: Actor): Promise<Comment> {
   if (typeof text !== 'string' || text.length < 1 || text.length > 32768)
@@ -184,7 +184,7 @@ async function persistDecision(
       !permission.prepared.tickets.includes(ticket) ||
       ticket.id !== ticketId.toLowerCase()
     )
-      throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
+      throw invalidScope();
     consumeAssistantScope(tx, permission.scope, operation, permission.prepared);
   }
   const id = randomUUID();
@@ -235,7 +235,7 @@ export function createAssistantDecisionRecorder(
     const payload = operation.payload;
     const prepared = await access.prepare(tx, operation, [payload.ticketId]);
     const [ticket] = prepared.tickets;
-    if (!ticket) throw new ApiError('ORCHESTRATION_SCOPE_INVALID', 403, 'Phạm vi điều phối không khớp');
+    if (!ticket) throw invalidScope();
     await prepareDecision(tx, ticket, payload.input, operation.actor, readSource);
     const scope = await access.authorize(tx, prepared);
     return persistDecision(tx, ticket, payload.ticketId, payload.input, operation.actor, { prepared, scope });

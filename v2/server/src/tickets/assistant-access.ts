@@ -141,7 +141,7 @@ export function createAssistantAccess(authority?: ProjectOrchestrationAuthority)
       if (!verify) throw new ApiError('ORCHESTRATION_UNAVAILABLE', 503, 'Chưa có nguồn xác minh điều phối');
       const payload = operation.payload as { ticketId?: unknown; predecessorId?: unknown };
       const submitted =
-        operation.action === 'decision'
+        operation.action === 'decision' || operation.action === 'signal'
           ? [payload.ticketId]
           : operation.action === 'dependency'
             ? [payload.ticketId, payload.predecessorId]

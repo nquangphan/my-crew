@@ -12,7 +12,7 @@ import { credentialResponseCodec, sha256 } from '../src/auth/session.ts';
 import { createMutator } from '../src/journal/mutation.ts';
 import type { Db, RouteDependencies, ServerOptions, Tx } from '../src/platform/contracts.ts';
 import { ApiError } from '../src/platform/errors.ts';
-import { assistantFixture } from './support/assistant.ts';
+import { assistantFixture, fixtureVerifierBuildSha256 } from './support/assistant.ts';
 import { databaseFixture } from './support/db.ts';
 
 const withDatabase = databaseFixture(11);
@@ -316,7 +316,9 @@ test('assistant authority resolver không cấp Actor từ receipt UNVERIFIED ho
       const { conversation, message } = await f.submitMessage();
       const fence = await f.seedTurn(conversation.id, message.id);
       const proof = { fence, scopeId: randomUUID(), operationId: randomUUID() };
-      const resolveActor = createPersistedAssistantActorResolver();
+      const resolveActor = createPersistedAssistantActorResolver({
+        verifierBuildSha256: fixtureVerifierBuildSha256,
+      });
       await assert.rejects(
         db.begin((tx) => resolveActor(tx, proof)),
         (e: unknown) => e instanceof ApiError && e.code === 'ASSISTANT_SCOPE_NOT_FOUND',
@@ -355,6 +357,83 @@ test('assistant authority resolver không cấp Actor từ receipt UNVERIFIED ho
         db.begin((tx) => resolveActor(tx, { ...proof, scopeId: currentScope })),
         { code: 'ASSISTANT_TURN_STALE' },
       );
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant authority resolver requires a valid pinned verifier build at assembly', () => {
+  for (const verifierBuildSha256 of [undefined, '', 'F'.repeat(64), 'f'.repeat(63), 42])
+    assert.throws(
+      () =>
+        createPersistedAssistantActorResolver({
+          verifierBuildSha256: verifierBuildSha256 as unknown as string,
+        }),
+      /ASSISTANT_VERIFIER_PIN_INVALID/,
+    );
+});
+
+async function admittedScope(db: Db, sessionExpiresInSeconds = 300) {
+  const f = await assistantFixture(db);
+  const { conversation } = await f.submitMessage();
+  const seeded = await f.seedAdmittedTurn({
+    conversationId: conversation.id,
+    messageId: null,
+    target: { kind: 'ticket', id: f.request.id },
+    sessionExpiresInSeconds,
+  });
+  const scopeId = randomUUID();
+  await db`insert into assistant_scopes(id,turn_id,root_ticket_id,project_id,actions,tool_names,input_snapshot_id,scope_sha256,owner_authorization_id,expires_at)
+    values(${scopeId},${seeded.fence.turnId},${f.request.id},${f.project.id},'["decision"]','[]',${seeded.snapshotId},
+    ${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '60 seconds')`;
+  return { f, seeded, proof: { fence: seeded.fence, scopeId, operationId: randomUUID() } };
+}
+
+// Catches a stubbed or fallback resolver: only persisted admitted rows yield the designation machine.
+test('assistant authority resolver returns the designation machine for an admitted PASS turn', async () =>
+  withDatabase(async (db) => {
+    const { f, seeded, proof } = await admittedScope(db);
+    try {
+      const actor = await db.begin((tx) =>
+        createPersistedAssistantActorResolver({ verifierBuildSha256: fixtureVerifierBuildSha256 })(tx, proof),
+      );
+      assert.deepEqual(actor, { kind: 'machine', id: seeded.machineId });
+      assert.ok(Object.isFrozen(actor));
+    } finally {
+      await f.close();
+    }
+  }));
+
+// Catches session expiry measured at transaction start (now()) instead of after the locks.
+test('assistant authority resolver measures session expiry with clock_timestamp after locking', async () =>
+  withDatabase(async (db) => {
+    const { f, proof } = await admittedScope(db, 3);
+    try {
+      const resolveActor = createPersistedAssistantActorResolver({
+        verifierBuildSha256: fixtureVerifierBuildSha256,
+      });
+      const witness = await db
+        .begin(async (tx) => {
+          const [before] =
+            await tx`select now()<expires_at as open, expires_at from attachment_assistant_sessions`;
+          await tx`select pg_sleep_until(${before?.expires_at}::timestamptz + interval '50 milliseconds')`;
+          const [after] = await tx`select now()<expires_at as start_open,
+            clock_timestamp()>=expires_at as clock_expired from attachment_assistant_sessions`;
+          let code: string | null = null;
+          try {
+            await resolveActor(tx, proof);
+          } catch (error) {
+            code = error instanceof ApiError ? error.code : 'UNEXPECTED';
+          }
+          return { open: before?.open, ...after, code };
+        })
+        .then((value) => ({ ...value }));
+      assert.deepEqual(witness, {
+        open: true,
+        start_open: true,
+        clock_expired: true,
+        code: 'ASSISTANT_ADMISSION_DENIED',
+      });
     } finally {
       await f.close();
     }

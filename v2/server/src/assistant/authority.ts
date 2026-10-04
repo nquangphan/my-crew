@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Actor, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
-import type { AssistantConfig, AssistantPolicy, OrchestrationProof } from './contracts.ts';
+import type { AssistantConfig, AssistantPolicy, OrchestrationProof, Sha256 } from './contracts.ts';
 import { assertAssistantId, assertCurrentTurnFence, assertTurnFence } from './store.ts';
 
 export type AssistantConfigChange = {
@@ -106,24 +106,94 @@ export async function setAssistantConfig(
 
 /** Internal T3 seam; callers lock any root/tickets/projects before resolving authority. */
 export type PersistedAssistantActorResolver = (tx: Tx, proof: OrchestrationProof) => Promise<Actor>;
+export type PersistedAssistantActorResolverDependencies = {
+  /** Build hash of the routing verifier pinned at assembly; receipts from any other verifier deny. */
+  verifierBuildSha256: Sha256;
+};
+
+const admissionDenied = () =>
+  new ApiError('ASSISTANT_ADMISSION_DENIED', 403, 'Admission Trợ lý không hợp lệ');
 
 /**
- * Slice A supplies current-identity diagnostics, never admission authority.
- * No injected boolean/callback can turn relational fixture receipts into permission.
- * A measured input/session authority must be reviewed before a positive implementation.
+ * Positive Actor only from persisted rows in this deployment: current fence and
+ * scope, the turn's admitted read session, and a current PASS policy receipt
+ * issued by the pinned verifier. A turn without admission stays 503; every
+ * mismatch is 403 with no fallback. Expiry is measured by `clock_timestamp()`
+ * after the authority rows are locked, never by the transaction start time.
  */
-export function createPersistedAssistantActorResolver(): PersistedAssistantActorResolver {
+export function createPersistedAssistantActorResolver(
+  deps: PersistedAssistantActorResolverDependencies,
+): PersistedAssistantActorResolver {
+  const verifierBuildSha256: unknown = deps?.verifierBuildSha256;
+  if (typeof verifierBuildSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(verifierBuildSha256))
+    throw new Error('ASSISTANT_VERIFIER_PIN_INVALID');
   return async (tx, proof) => {
     assertTurnFence(proof.fence);
     assertAssistantId(proof.scopeId);
     assertAssistantId(proof.operationId);
-    const [scope] = await tx`select turn_id from assistant_scopes where id=${proof.scopeId}`;
-    if (!scope || scope.turn_id !== proof.fence.turnId)
+    const fence = { ...proof.fence };
+    const scopeId = proof.scopeId;
+    const [scope] = await tx`select turn_id from assistant_scopes where id=${scopeId}`;
+    if (!scope || scope.turn_id !== fence.turnId)
       throw new ApiError('ASSISTANT_SCOPE_NOT_FOUND', 404, 'Không tìm thấy phạm vi Trợ lý');
-    await assertCurrentTurnFence(tx, proof.fence, 'claim');
-    const [current] = await tx`select id from assistant_scopes where id=${proof.scopeId}
-      and turn_id=${proof.fence.turnId} and expires_at>clock_timestamp()`;
+    // Locks guard, machine, config, designation, turn and monitor, then rechecks the exact fence.
+    await assertCurrentTurnFence(tx, fence, 'claim');
+    const [current] = await tx`select input_snapshot_id from assistant_scopes where id=${scopeId}
+      and turn_id=${fence.turnId} and expires_at>clock_timestamp()`;
     if (!current) throw new ApiError('ASSISTANT_SCOPE_STALE', 409, 'Phạm vi Trợ lý đã hết hạn');
-    throw new ApiError('ASSISTANT_ADMISSION_NOT_CONFIGURED', 503, 'Chưa cấu hình admission Trợ lý');
+    const [turn] = await tx`select t.admission_id,t.read_session_id,t.model_selection_id,d.machine_id
+      from assistant_turns t join assistant_designations d on d.id=t.designation_id where t.id=${fence.turnId}`;
+    if (!turn) throw new ApiError('ASSISTANT_TURN_STALE', 409, 'Lượt Trợ lý không còn quyền hiện hành');
+    if (turn.admission_id === null)
+      throw new ApiError('ASSISTANT_ADMISSION_NOT_CONFIGURED', 503, 'Chưa cấu hình admission Trợ lý');
+    const [session] =
+      await tx`select id,state,machine_id,process_instance_id,designation_revision,model_selection_id,
+      policy_receipt_id,snapshot_id from attachment_assistant_sessions where admission_id=${turn.admission_id} for share`;
+    const [selection] = session
+      ? await tx`select id,policy_receipt_id,probe_receipt_id from assistant_model_selections
+        where id=${turn.model_selection_id} and turn_id=${fence.turnId} for share`
+      : [];
+    const [receipt] = selection
+      ? await tx`select status,revoked_at,deployment_id,verifier_build_sha256,machine_id
+        from assistant_policy_receipts where id=${selection.policy_receipt_id} for share`
+      : [];
+    const [capability] = receipt
+      ? await tx`select id from routing_capability_receipts where id=${selection?.probe_receipt_id}
+        and certification_receipt_id=${selection?.policy_receipt_id} for share`
+      : [];
+    // Every expiry is measured after the rows above are locked.
+    const [clock] = session
+      ? await tx`select
+          (select expires_at>clock_timestamp() from attachment_assistant_sessions where id=${session.id}) as session_current,
+          (select expires_at>clock_timestamp() from assistant_policy_receipts where id=${selection?.policy_receipt_id ?? null}) as receipt_current,
+          (select expires_at>clock_timestamp() from routing_capability_receipts where id=${capability?.id ?? null}) as capability_current,
+          (select deployment_id from assistant_config where singleton=true) as deployment_id`
+      : [];
+    if (
+      !session ||
+      !selection ||
+      !receipt ||
+      !capability ||
+      !clock ||
+      session.id !== turn.read_session_id ||
+      !['reserved', 'running'].includes(String(session.state)) ||
+      clock.session_current !== true ||
+      session.machine_id !== turn.machine_id ||
+      session.process_instance_id !== fence.processInstanceId ||
+      Number(session.designation_revision) !== fence.designationRevision ||
+      session.model_selection_id !== selection.id ||
+      session.policy_receipt_id !== selection.policy_receipt_id ||
+      session.snapshot_id !== current.input_snapshot_id ||
+      receipt.status !== 'PASS' ||
+      receipt.revoked_at !== null ||
+      clock.receipt_current !== true ||
+      clock.capability_current !== true ||
+      receipt.deployment_id !== clock.deployment_id ||
+      receipt.verifier_build_sha256 !== verifierBuildSha256 ||
+      receipt.machine_id !== turn.machine_id
+    )
+      throw admissionDenied();
+    const actor: Actor = { kind: 'machine', id: String(turn.machine_id) };
+    return Object.freeze(actor);
   };
 }

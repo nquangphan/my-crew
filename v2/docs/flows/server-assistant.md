@@ -8,7 +8,9 @@ Phase06/T1 lưu inbox, lượt Trợ lý và các chứng từ điều phối tr
 
 `assistant/inbox.ts` cung cấp `enqueueWork`, `ingestEvents`, `reconcileWork`, `claimWork`, `ackWork`. `assistant/store.ts` kiểm fence và cấp generation trong transaction. `assistant/contracts.ts` khai báo DTO và runtime schema strict cho toàn bộ DTO serializable, kể cả dữ liệu lồng trong routing tool/event/result, workflow, assessment, capacity và chứng từ R1–R4. Function port không có JSON schema. T1 chưa đăng ký route, driver, admission hoặc lời gọi model.
 
-Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant/config`, strict policy và `preferred:null`. Factory chưa được ghép vào app production. `createPersistedAssistantActorResolver` kiểm scope/fence nhưng luôn từ chối admission hiện hành bằng503; không biến receipt UNVERIFIED thành Actor.
+Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant/config`, strict policy và `preferred:null`. Factory chưa được ghép vào app production. `createPersistedAssistantActorResolver({verifierBuildSha256})` cấp Actor dương chỉ từ hàng persisted; build hash verifier phải được ghim lúc assembly (hex64 thường, sai thì factory ném lỗi).
+
+`assistant/orchestration.ts` → `createProjectOrchestrationPort({tickets,resolver})` là `ProjectOrchestrationPort` thật trên các entry scoped của `server-tickets` (`createTicket`, `decision`, `dependency`, `signal`); `command` luôn 503 `ORCHESTRATION_COMMAND_NOT_RELEASED`. `createPersistedOrchestrationAuthority(resolver)` là authority đi kèm; dùng trần ngoài port thì thiếu target nên luôn 403. App production chưa inject resolver/port, nên mọi entry scoped vẫn trả503 và hôm nay chưa có receipt PASS nào.
 
 ## Các bước
 
@@ -20,7 +22,9 @@ Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant
 6. SQL011 bảo vệ liên kết conversation/message, một turn sống, chứng từ bất biến, scope cụ thể, hex64 effect và ordinal hành động persist trong target identity. R1 tách challenge/certification và measured routing receipt khỏi certificate workflow008. R2 giữ thứ tự tool call và kết quả terminal. R3 chỉ nối derived authorization đúng route với parent còn hiệu lực, không tăng expiry/allowOriginal hoặc mở rộng reference original.
 7. R4 hook trên INSERT attempt kiểm launch đúng command/machine/process, chưa hết hạn hoặc retired, rồi bind attempt và active reservation nguyên tử. Release attempt cần stopped và finalized. Unclaimed release cần retirement cùng proof never-authorized hoặc launch đóng với exact identity và stop/journal chứng từ. Guard release kiểm cả INSERT và UPDATE bằng constraint deferred: terminal row có proof hợp lệ vẫn được insert/restore, row thiếu proof bị rollback. UUID artifact không chứng minh đã dừng.
 8. Owner chọn machine còn hiệu lực bằng cookie, Origin, CSRF và Idempotency-Key. PUT dùng machine UUID chuẩn chữ thường cho identity nội bộ, giữ nguyên request body để journal hash/replay. Thứ tự khóa: journal/event cursor → calibration guard → machines theo thứ tự → config → designation → live turns khi đổi máy → exact owner session FOR SHARE. Sau mọi lần chờ, statement riêng kiểm revoke/expiry bằng `clock_timestamp()`, trước cached reply hoặc mutation. Session lock giữ tới commit để serialize revocation.
-9. Mutation mới kiểm config CAS; replay không tạo designation mới. Policy update cùng machine giữ designation và live turn. Đổi máy khi idle retire identity cũ; turn chưa stopped hoặc calibration active trả409 và không retire một phần. Metadata không tạo grant, turn, command hoặc quyền inference. Positive admission, direct input/doc reads, G1/G2 và retirement runtime vẫn chờ producer tiếp theo.
+9. Mutation mới kiểm config CAS; replay không tạo designation mới. Policy update cùng machine giữ designation và live turn. Đổi máy khi idle retire identity cũ; turn chưa stopped hoặc calibration active trả409 và không retire một phần. Metadata không tạo grant, turn, command hoặc quyền inference. Direct input/doc reads, G2 và retirement runtime vẫn chờ producer tiếp theo.
+10. Resolver: kiểm fence/scope như cũ (scope thiếu404, fence lệch409, scope hết hạn409 đo bằng `clock_timestamp()`). Turn chưa có `admission_id` giữ503 `ASSISTANT_ADMISSION_NOT_CONFIGURED`. Turn đã admit phải có read session của chính admission (`read_session_id`), session `reserved/running`, cùng máy designation, process instance, designation revision, selection, policy receipt và snapshot input của scope. Selection dẫn tới policy receipt `PASS`, chưa revoke, cùng `deployment_id` của config và đúng verifier đã ghim, cùng máy; capability receipt của selection còn hiệu lực. Session, selection và receipt khóa FOR SHARE rồi mới đo hạn bằng `clock_timestamp()`. Mọi lệch trả403 `ASSISTANT_ADMISSION_DENIED`, không fallback. Thành công trả `{kind:'machine', id: designation.machine_id}` đóng băng.
+11. Port chụp actor/proof/payload đồng bộ trước mọi await rồi gọi entry scoped; entry khóa root → ticket theo thứ tự → project trước verify. Authority: resolver; actor gọi phải đúng máy designation (403 `ORCHESTRATION_ACTOR_MISMATCH`); action phải nằm trong `scope.actions` (403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`); `operationId` phải là row `assistant_tool_operations` `pending` của cùng turn (404 `ASSISTANT_OPERATION_NOT_FOUND`) trên snapshot input của scope (409 `ASSISTANT_OPERATION_STALE`), row này khóa FOR UPDATE. Ticket đích, cha hoặc predecessor phải thuộc đúng `scope.root_ticket_id` và project; ngoài gốc hoặc scope message không có root trả404. Tạo request mới chỉ với scope message và quyết định `routing` của message ghi trong chính Tx (`xmin` = transaction hiện hành) với body đúng `{operationId,scopeId,ticketSha256}` bằng hash CreateTicket, cùng snapshot, input revision hiện hành, actor máy A và `sha256` khớp; thiếu hoặc lệch trả403 `ORCHESTRATION_ROUTING_DECISION_REQUIRED`. Dependency không có cột actor: provenance là row tool operation (turn → designation → máy A) cộng journal actor A của mutation. Transport tương lai phải resolve proof → scope trước mọi truy vấn ticket để không lộ sự tồn tại.
 
 ## Files
 
@@ -30,11 +34,13 @@ Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant
 | `server/src/assistant/contracts.ts` | Hợp đồng typed nhập từ producer đã có |
 | `server/src/assistant/store.ts` | Fence và generation persistence |
 | `server/src/assistant/inbox.ts` | Cursor, reconciliation, claim và ACK |
-| `server/src/assistant/authority.ts` | Designation/CAS và resolver mặc định từ chối |
+| `server/src/assistant/authority.ts` | Designation/CAS và resolver Actor từ admission/receipt persisted |
+| `server/src/assistant/orchestration.ts` | `ProjectOrchestrationPort` thật và authority persisted (scope/operation/membership/routing decision) |
 | `server/src/assistant/routes.ts` | Owner config routes và credential lock |
 | `server/test/assistant-store.test.ts` | PostgreSQL constraints, durable inbox và backup/restore |
 | `server/test/assistant-authority.test.ts` | Fastify inject/auth thật, config CAS, lock races và UUID casing |
-| `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử |
+| `server/test/assistant-orchestration-port.test.ts` | Port thật trên PostgreSQL: Actor A, admission/receipt deny, operation, scope action, membership, routing decision, generic 404, command503 |
+| `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử, gồm `seedAdmittedTurn` (receipt PASS của verifier fixture) và `seedToolOperation` |
 
 ## Dữ liệu
 

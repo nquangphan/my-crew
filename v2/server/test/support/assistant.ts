@@ -487,6 +487,110 @@ export function assistantContractSamples(): Record<string, unknown[]> {
 
 // These helpers exercise accepted 009 producers. They do not implement
 // admission, HTTP clients, routing certification, or production authority.
+/** Pinned verifier build of fixture receipts; production pins its own build hash. */
+export const fixtureVerifierBuildSha256 = createHash('sha256')
+  .update('crew-v2:test-only-routing-verifier')
+  .digest('hex');
+
+type TurnRowsInput = {
+  conversationId: Id;
+  messageId: Id | null;
+  machineId?: Id;
+  selectionModelId?: string;
+  receiptMachineId?: Id;
+  receiptStatus?: 'PASS' | 'FAIL' | 'UNVERIFIED';
+  verifierBuildSha256?: string;
+  receiptExpiresInSeconds?: number;
+  admission?: { target: { kind: 'ticket' | 'message'; id: Id }; sessionExpiresInSeconds: number };
+};
+
+// Explicit test-only SQL rows. Defaults reproduce the unadmitted UNVERIFIED turn.
+async function insertTurnRows(tx: Tx, input: TurnRowsInput) {
+  const { allocateAssistantGeneration } = await import('../../src/assistant/store.ts');
+  const machineId = input.machineId ?? randomUUID(),
+    designationId = randomUUID(),
+    turnId = randomUUID();
+  const selectionId = randomUUID(),
+    challengeId = randomUUID(),
+    receiptId = randomUUID(),
+    probeId = randomUUID();
+  const processInstanceId = randomUUID();
+  const status = input.receiptStatus ?? 'UNVERIFIED';
+  const receiptSeconds = input.receiptExpiresInSeconds ?? 300;
+  const [config] = await tx`select deployment_id from assistant_config where singleton=true`;
+  const key = {
+    machineId: input.receiptMachineId ?? machineId,
+    runtime: 'api',
+    providerId: 'fixture',
+    modelId: 'no-inference',
+  };
+  const context = {
+    deploymentId: String(config?.deployment_id),
+    machineId: key.machineId,
+    key,
+    binarySha256: 'a'.repeat(64),
+    policySha256: 'b'.repeat(64),
+    observerSha256: 'c'.repeat(64),
+    osVersion: 'fixture-only',
+  };
+  const contextHash = createHash('sha256').update(canonicalJson(context)).digest('hex');
+  if (!input.machineId)
+    await tx`insert into machines(id,name,token_hash) values(${machineId},'fixture-assistant',${createHash('sha256').update(machineId).digest('hex')})`;
+  await tx`insert into assistant_designations(id,owner_id,machine_id,revision) values(${designationId},'owner',${machineId},1)`;
+  await tx`update assistant_config set designation_id=${designationId} where singleton=true`;
+  await tx`insert into routing_certification_challenges(id,deployment_id,context,nonce_hash,expires_at,budgets,fixture_sha256,state,receipt_id)
+    values(${challengeId},${config?.deployment_id},${tx.json(context)},${'d'.repeat(64)},now()+interval '5 minutes',
+    ${tx.json({ maxTurns: 1, maxTools: 1, maxCostUsd: 0, maxMs: 1000 })},${'e'.repeat(64)},
+    ${status === 'PASS' ? 'verified' : 'failed'},${status === 'PASS' ? receiptId : null})`;
+  await tx`insert into assistant_policy_receipts(id,deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,
+    binary_sha256,policy_sha256,probe_context_sha256,status,evidence_ids,expires_at)
+    values(${receiptId},${config?.deployment_id},${challengeId},${input.verifierBuildSha256 ?? 'f'.repeat(64)},${key.machineId},${tx.json(key)},'fixture-only',
+    ${context.binarySha256},${context.policySha256},${contextHash},${status},'[]',now()+${receiptSeconds}*interval '1 second')`;
+  await tx`insert into routing_capability_receipts(id,certification_receipt_id,model_key,context_sha256,capabilities,received_at,expires_at)
+    values(${probeId},${receiptId},${tx.json(key)},${contextHash},'[]',
+    now()-${input.admission ? 600 : 0}*interval '1 second',now()+${input.admission ? receiptSeconds : 240}*interval '1 second')`;
+  let admission: { snapshotId: Id; sessionId: Id; admissionId: Id } | null = null;
+  if (input.admission) {
+    const { target, sessionExpiresInSeconds } = input.admission;
+    const snapshotId = randomUUID(),
+      authorizationId = randomUUID(),
+      grantId = randomUUID(),
+      sessionId = randomUUID(),
+      admissionId = randomUUID();
+    const snapshotSha256 = createHash('sha256').update(snapshotId).digest('hex');
+    await tx`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+      values(${snapshotId},${target.kind},${target.id},1,0,'{}',${snapshotSha256})`;
+    await tx`insert into attachment_submission_authorizations(id,target_kind,target_id,originals,authorization_sha256,expires_at)
+      values(${authorizationId},${target.kind},${target.id},'[]',${'a'.repeat(64)},now()+interval '10 minutes')`;
+    await tx`insert into attachment_assistant_grants(id,authorization_id,target_kind,target_id,originals,input_revision,route_revision,
+      designation_id,designation_revision,machine_id,snapshot_id,snapshot_sha256,expires_at)
+      values(${grantId},${authorizationId},${target.kind},${target.id},'[]',1,0,${designationId},1,${machineId},
+      ${snapshotId},${snapshotSha256},now()+interval '10 minutes')`;
+    await tx`insert into attachment_assistant_sessions(id,grant_id,snapshot_id,snapshot_sha256,designation_revision,machine_id,runtime,
+      model_key,model_selection_id,policy_receipt_id,process_instance_id,admission_id,admitted_at,model_config_revision,
+      source_enabled_at_admission,state,expires_at)
+      values(${sessionId},${grantId},${snapshotId},${snapshotSha256},1,${machineId},'api',${canonicalJson(key)},${selectionId},
+      ${receiptId},${processInstanceId},${admissionId},now(),1,true,'running',
+      clock_timestamp()+${sessionExpiresInSeconds}*interval '1 second')`;
+    admission = { snapshotId, sessionId, admissionId };
+  }
+  const generation = await allocateAssistantGeneration(tx);
+  await tx`insert into assistant_turns(id,conversation_id,message_id,designation_id,designation_revision,generation,process_instance_id,
+    model_selection_id,admission_id,read_session_id,state)
+    values(${turnId},${input.conversationId},${input.messageId},${designationId},1,${generation},${processInstanceId},${selectionId},
+    ${admission?.admissionId ?? null},${admission?.sessionId ?? null},'running')`;
+  await tx`insert into assistant_model_selections(id,turn_id,model_key,model_config_revision,probe_receipt_id,policy_receipt_id,required,rationale)
+    values(${selectionId},${turnId},${tx.json({ ...key, modelId: input.selectionModelId ?? key.modelId })},1,${probeId},${receiptId},'[]','Fixture SQL không cấp authority production')`;
+  const fence: TurnFence = { turnId, designationId, designationRevision: 1, generation, processInstanceId };
+  return {
+    fence,
+    machineId,
+    policyReceiptId: receiptId,
+    snapshotId: admission?.snapshotId ?? null,
+    sessionId: admission?.sessionId ?? null,
+  };
+}
+
 export async function assistantFixture(db: Db) {
   const attachments = await attachmentFixture(db);
   const messages = createMessageServices({ store: attachments.store, now: attachments.clock.now });
@@ -635,52 +739,53 @@ export async function assistantFixture(db: Db) {
     ): Promise<TurnFence> {
       // Explicit test-only persisted rows. UNVERIFIED routing receipts never
       // demonstrate admission or a production certification implementation.
-      const { allocateAssistantGeneration } = await import('../../src/assistant/store.ts');
-      return db.begin(async (tx) => {
-        const machineId = randomUUID(),
-          designationId = randomUUID(),
-          turnId = randomUUID();
-        const selectionId = randomUUID(),
-          challengeId = randomUUID(),
-          receiptId = randomUUID(),
-          probeId = randomUUID();
-        const processInstanceId = randomUUID();
-        const [config] = await tx`select deployment_id from assistant_config where singleton=true`;
-        const key = {
-          machineId: options.receiptMachineId ?? machineId,
-          runtime: 'api',
-          providerId: 'fixture',
-          modelId: 'no-inference',
-        };
-        const context = {
-          deploymentId: String(config?.deployment_id),
-          machineId: key.machineId,
-          key,
-          binarySha256: 'a'.repeat(64),
-          policySha256: 'b'.repeat(64),
-          observerSha256: 'c'.repeat(64),
-          osVersion: 'fixture-only',
-        };
-        const contextHash = createHash('sha256').update(canonicalJson(context)).digest('hex');
-        await tx`insert into machines(id,name,token_hash) values(${machineId},'fixture-assistant',${createHash('sha256').update(machineId).digest('hex')})`;
-        await tx`insert into assistant_designations(id,owner_id,machine_id,revision) values(${designationId},'owner',${machineId},1)`;
-        await tx`update assistant_config set designation_id=${designationId} where singleton=true`;
-        await tx`insert into routing_certification_challenges(id,deployment_id,context,nonce_hash,expires_at,budgets,fixture_sha256,state)
-          values(${challengeId},${config?.deployment_id},${tx.json(context)},${'d'.repeat(64)},now()+interval '5 minutes',
-          ${tx.json({ maxTurns: 1, maxTools: 1, maxCostUsd: 0, maxMs: 1000 })},${'e'.repeat(64)},'failed')`;
-        await tx`insert into assistant_policy_receipts(id,deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,
-          binary_sha256,policy_sha256,probe_context_sha256,status,evidence_ids,expires_at)
-          values(${receiptId},${config?.deployment_id},${challengeId},${'f'.repeat(64)},${key.machineId},${tx.json(key)},'fixture-only',
-          ${context.binarySha256},${context.policySha256},${contextHash},'UNVERIFIED','[]',now()+interval '5 minutes')`;
-        await tx`insert into routing_capability_receipts(id,certification_receipt_id,model_key,context_sha256,capabilities,received_at,expires_at)
-          values(${probeId},${receiptId},${tx.json(key)},${contextHash},'[]',now(),now()+interval '4 minutes')`;
-        const generation = await allocateAssistantGeneration(tx);
-        await tx`insert into assistant_turns(id,conversation_id,message_id,designation_id,designation_revision,generation,process_instance_id,model_selection_id,state)
-          values(${turnId},${conversationId},${messageId},${designationId},1,${generation},${processInstanceId},${selectionId},'running')`;
-        await tx`insert into assistant_model_selections(id,turn_id,model_key,model_config_revision,probe_receipt_id,policy_receipt_id,required,rationale)
-          values(${selectionId},${turnId},${tx.json({ ...key, modelId: options.selectionModelId ?? key.modelId })},1,${probeId},${receiptId},'[]','Fixture SQL không cấp authority production')`;
-        return { turnId, designationId, designationRevision: 1, generation, processInstanceId };
-      });
+      return db.begin(
+        async (tx) => (await insertTurnRows(tx, { conversationId, messageId, ...options })).fence,
+      );
+    },
+    /**
+     * Test-only admitted turn: input grant, read session and a PASS policy receipt
+     * signed by the fixture verifier constant in this deployment. Production
+     * assembly has no such rows until live certification issues them.
+     */
+    async seedAdmittedTurn(input: {
+      conversationId: Id;
+      messageId: Id | null;
+      target: { kind: 'ticket' | 'message'; id: Id };
+      machineId?: Id;
+      receiptStatus?: 'PASS' | 'FAIL' | 'UNVERIFIED';
+      verifierBuildSha256?: string;
+      receiptExpiresInSeconds?: number;
+      sessionExpiresInSeconds?: number;
+    }) {
+      return db.begin((tx) =>
+        insertTurnRows(tx, {
+          conversationId: input.conversationId,
+          messageId: input.messageId,
+          machineId: input.machineId,
+          receiptStatus: input.receiptStatus ?? 'PASS',
+          verifierBuildSha256: input.verifierBuildSha256 ?? fixtureVerifierBuildSha256,
+          receiptExpiresInSeconds: input.receiptExpiresInSeconds,
+          admission: {
+            target: input.target,
+            sessionExpiresInSeconds: input.sessionExpiresInSeconds ?? 300,
+          },
+        }),
+      );
+    },
+    /** Test-only stand-in for the tools route row written before the port call. */
+    async seedToolOperation(
+      sql: Db | Tx,
+      input: { turnId: Id; snapshotId: Id; state?: 'pending' | 'completed' | 'rejected' },
+    ): Promise<Id> {
+      const operationId = randomUUID();
+      const state = input.state ?? 'pending';
+      await sql`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,request_hash,input_snapshot_id,state,response)
+        values(${operationId},${input.turnId},
+          (select coalesce(max(client_sequence),0)+1 from assistant_tool_operations where turn_id=${input.turnId}),
+          ${`fixture-${operationId}`},${createHash('sha256').update(operationId).digest('hex')},${input.snapshotId},${state},
+          ${state === 'pending' ? null : sql.json({ fixture: true })})`;
+      return operationId;
     },
     async submitMessage(text = 'Yêu cầu cần xử lý sau khi máy kết nối lại') {
       const conversation = await attachments.mutation(randomUUID(), (tx) =>

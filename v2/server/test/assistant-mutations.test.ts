@@ -15,7 +15,7 @@ import { canonicalJson } from '../src/journal/canonical.ts';
 import { createMutator, mutate } from '../src/journal/mutation.ts';
 import type { Actor, Db, Tx } from '../src/platform/contracts.ts';
 import { ApiError } from '../src/platform/errors.ts';
-import { bindProject } from '../src/projects/service.ts';
+import { bindProject, createProject } from '../src/projects/service.ts';
 import type { DecisionInput, DocsSourceReader, TicketServiceDependencies } from '../src/tickets/contracts.ts';
 import { registerTicketRoutes } from '../src/tickets/routes.ts';
 import { createTicketServices } from '../src/tickets/service.ts';
@@ -1046,3 +1046,31 @@ test('B2b-i scoped signal and dependency edge serialize on the root before verif
     const ticket = await f.read(f.a.id);
     assert.deepEqual([ticket.status, ticket.revision], ['ready', 2]);
   }));
+
+// Catches the scoped signal skipping the shared root/project recheck under lock:
+// a ticket whose stored project or root disagrees with its locked root is denied
+// before authority, exactly like decisions and dependencies.
+for (const drift of ['project', 'root'] as const) {
+  test(`scoped signal rechecks ${drift} under the shared prefix before authority`, async () =>
+    withDatabase(async (db) => {
+      const f = await fixture(db);
+      if (drift === 'project') {
+        const other = await f.mutation('other-project', (tx) =>
+          createProject(tx, {
+            key: `Q${randomUUID().slice(0, 8).toUpperCase()}`,
+            name: 'Other',
+            repositoryUrl: null,
+          }),
+        );
+        await db`update projects set machine_id=${f.machines.b.machine.id},checkout_path='/tmp/b2a-test-only-2',
+          binding_revision=2 where id=${other.id}`;
+        await db`update tickets set project_id=${other.id} where id=${f.a.id}`;
+      } else await db`update tickets set root_id=${f.b.id} where id=${f.a.id}`;
+      const before = await f.state();
+      await assert.rejects(() => f.run('signal', signalPayload(f.a.id, 'wait_owner')), {
+        code: 'ORCHESTRATION_SCOPE_INVALID',
+      });
+      assert.equal(f.trust.observed.length, 0);
+      assert.deepEqual(await f.state(), before);
+    }));
+}

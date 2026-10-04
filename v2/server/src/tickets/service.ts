@@ -6,9 +6,11 @@ import type { OrchestrationProof } from '../assistant/contracts.ts';
 import { appendEvent } from '../journal/events.ts';
 import type { Actor, Db, Id, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
-import type { CapturedAssistantOperation } from './assistant-access.ts';
+import type { PreparedAssistantTarget, VerifiedAssistantScope } from './assistant-access.ts';
 import {
   captureAssistantOperation,
+  consumeAssistantScope,
+  createAssistantAccess,
   immutableSnapshot,
   invalidScope,
   orchestrationTargetHash,
@@ -334,6 +336,10 @@ type PreparedSignal = Readonly<{
   continuationDecisionId: Id | null;
 }>;
 type SignalOutcome = { next: Ticket['status']; waitReason: string | null; mergedCommit: string | null };
+type SignalPermission = {
+  target: PreparedAssistantTarget<SignalPayload>;
+  scope: VerifiedAssistantScope<SignalPayload>;
+};
 
 const executionSignals: ReadonlySet<Signal> = new Set<Signal>([
   'start',
@@ -343,36 +349,36 @@ const executionSignals: ReadonlySet<Signal> = new Set<Signal>([
   'passed',
 ]);
 const assistantSignals: ReadonlySet<unknown> = new Set<AssistantSignal>(['dependencies_ready', 'wait_owner']);
-// Module-private: only the scoped writer, after authority verification, can mark
-// a prepared signal as persistable for its captured operation, once.
-const verifiedSignals = new WeakMap<PreparedSignal, CapturedAssistantOperation<SignalPayload>>();
 
 function validateSignalRevision(expectedRevision: number): void {
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
     throw new ApiError('VALIDATION', 400, 'Revision không hợp lệ');
 }
 
-// Shared CAS core for generic and scoped signals. Locks the root, then the target;
-// scoped callers lock the project next and only then enter their authority.
-// `actor` applies the generic ticket ACL; scoped callers pass null because the
-// orchestration authority, not machine binding, decides access.
+// Generic signal prefix: locks the root, then the target under the generic ticket ACL.
 async function prepareSignal(
   tx: Tx,
   ticketId: Id,
   signal: Signal,
   expectedRevision: number,
-  actor: Actor | null,
+  actor: Actor,
 ): Promise<PreparedSignal> {
   const [scope] = await tx`select root_id from tickets where id=${ticketId}`;
   if (!scope) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
   await tx`select id from tickets where id=${scope.root_id} for update`;
-  let ticket: Ticket;
-  if (actor) ticket = await requireTicket(tx, ticketId, actor, true);
-  else {
-    const [row] = await tx`select * from tickets where id=${ticketId} for update`;
-    if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
-    ticket = mapTicket(row);
-  }
+  const ticket = await requireTicket(tx, ticketId, actor, true);
+  return checkSignal(tx, ticket, signal, expectedRevision);
+}
+
+// Shared CAS core for generic and scoped signals; the caller already holds the
+// root and target locks (scoped callers also hold the project lock).
+async function checkSignal(
+  tx: Tx,
+  ticket: Ticket,
+  signal: Signal,
+  expectedRevision: number,
+): Promise<PreparedSignal> {
+  const ticketId = ticket.id;
   if (ticket.revision !== expectedRevision)
     throw new ApiError('REVISION_CONFLICT', 409, 'Ticket đã thay đổi');
   if (signal === 'dependencies_ready') {
@@ -419,21 +425,21 @@ async function persistSignal(
   tx: Tx,
   prepared: PreparedSignal,
   outcome: SignalOutcome,
-  operation?: CapturedAssistantOperation<SignalPayload>,
+  permission?: SignalPermission,
 ): Promise<Ticket> {
   if (prepared.tx !== tx) throw invalidScope();
-  if (operation) {
-    const verified = verifiedSignals.get(prepared);
-    verifiedSignals.delete(prepared);
+  if (permission) {
+    const operation = permission.target.operation;
     if (
-      verified !== operation ||
       operation.action !== 'signal' ||
-      operation.targetSha256 !== orchestrationTargetHash('signal', operation.payload) ||
       operation.payload.ticketId.toLowerCase() !== prepared.ticket.id ||
       operation.payload.signal !== prepared.signal ||
+      permission.target.tickets.length !== 1 ||
+      permission.target.tickets[0]?.id !== prepared.ticket.id ||
       prepared.continuationDecisionId !== null
     )
       throw invalidScope();
+    consumeAssistantScope(tx, permission.scope, operation, permission.target);
   }
   const { ticket, continuationDecisionId } = prepared;
   const [row] = await tx`update tickets set status=${outcome.next}, revision=revision+1,
@@ -506,8 +512,9 @@ async function signalTicketWithDependencies(
 // Scoped A→B signal. Only dependencies_ready and wait_owner on a ticket that is not
 // running: stopping a running process needs an execution terminal intent bound to
 // this Actor, so that branch fails closed instead of borrowing an owner intent.
+// Shares the B2a prefix: root → ticket → project locks with recheck, one-use scope.
 function createAssistantSignalWriter(authority?: TicketServiceDependencies['assistant']) {
-  const verify = authority?.verify.bind(authority);
+  const access = createAssistantAccess(authority);
   return async (
     tx: Tx,
     actor: Actor,
@@ -530,22 +537,22 @@ function createAssistantSignalWriter(authority?: TicketServiceDependencies['assi
     )
       throw new ApiError('VALIDATION', 400, 'Tín hiệu điều phối không hợp lệ');
     validateSignalRevision(payload.expectedRevision);
-    if (!verify) throw new ApiError('ORCHESTRATION_UNAVAILABLE', 503, 'Chưa có nguồn xác minh điều phối');
-    const prepared = await prepareSignal(
-      tx,
-      payload.ticketId,
-      payload.signal,
-      payload.expectedRevision,
-      null,
-    );
-    const [project] = await tx`select id from projects where id=${prepared.ticket.projectId} for update`;
-    if (!project) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy dự án');
+    const target = await access.prepare(tx, operation, [payload.ticketId]);
+    const [locked] = target.tickets;
+    if (!locked) throw invalidScope();
+    const [row] = await tx`select * from tickets where id=${locked.id}`;
+    if (!row) throw invalidScope();
+    const prepared = await checkSignal(tx, mapTicket(row), payload.signal, payload.expectedRevision);
     if (payload.signal === 'wait_owner' && prepared.ticket.status === 'running')
       throw new ApiError('EXECUTION_PROOF_REQUIRED', 409, 'Thiếu xác nhận thực thi');
     const outcome = signalTransition(prepared.ticket, payload.signal);
-    await verify(tx, operation.actor, operation.proof, 'signal', operation.targetSha256);
-    verifiedSignals.set(prepared, operation);
-    return persistSignal(tx, prepared, { ...outcome, mergedCommit: prepared.ticket.mergedCommit }, operation);
+    const scope = await access.authorize(tx, target);
+    return persistSignal(
+      tx,
+      prepared,
+      { ...outcome, mergedCommit: prepared.ticket.mergedCommit },
+      { target, scope },
+    );
   };
 }
 
