@@ -1,0 +1,53 @@
+v2/server/src/assistant/gates.ts:600:7 lint/complexity/useOptionalChain  FIXABLE  ━━━━━━━━━━━━━━━━━━
+
+  ! Change to an optional chain.
+  
+    598 │     const expectedKind = gate ? 'approval' : 'owner_answer';
+    599 │     if (
+  > 600 │       !decision ||
+        │       ^^^^^^^^^^^^
+  > 601 │       decision.actor_kind !== 'owner' ||
+        │       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    602 │       decision.actor_id !== 'owner' ||
+    603 │       decision.kind !== expectedKind ||
+  
+  i Unsafe fix: Change to an optional chain.
+  
+    598 598 │       const expectedKind = gate ? 'approval' : 'owner_answer';
+    599 599 │       if (
+    600     │ - ······!decision·||
+    601     │ - ······decision.actor_kind·!==·'owner'·||
+        600 │ + ······decision?.actor_kind·!==·'owner'·||
+    602 601 │         decision.actor_id !== 'owner' ||
+    603 602 │         decision.kind !== expectedKind ||
+  
+
+v2/server/src/assistant/gates.ts:454:29 lint/correctness/noUnsafeOptionalChaining ━━━━━━━━━━━━━━━━━━
+
+  × Unsafe usage of optional chaining.
+  
+    452 │     if (resolved.length === 0) return null;
+    453 │     const [row] = resolved;
+  > 454 │     const workflowRun = (row?.criteria as Row).workflowRun as Row;
+        │                             ^^
+    455 │     const spec = workflowSteps(context.run.path as WorkflowRun['path']).find(
+    456 │       (item) => item.key === workflowRun.stepKey,
+  
+  i If it short-circuits with 'undefined' the evaluation will throw TypeError here:
+  
+    452 │     if (resolved.length === 0) return null;
+    453 │     const [row] = resolved;
+  > 454 │     const workflowRun = (row?.criteria as Row).workflowRun as Row;
+        │                                                ^^^^^^^^^^^
+    455 │     const spec = workflowSteps(context.run.path as WorkflowRun['path']).find(
+    456 │       (item) => item.key === workflowRun.stepKey,
+  
+
+Checked 2 files in 24ms. No fixes applied.
+Found 1 error.
+Found 1 warning.
+check ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  × Some errors were emitted while running checks.
+  
+

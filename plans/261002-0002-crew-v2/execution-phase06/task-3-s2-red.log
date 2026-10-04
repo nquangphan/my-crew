@@ -1,0 +1,367 @@
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ksyomS
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ksyomS nonceSha256=f3a5623bc7549b528aae1fdd01afe7695a9ebec466d7d1076d4fc9174015d9bb
+attachment DB scratch identity dev=16777231 ino=220552648 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ksyomS
+✔ assistant workflows: definition not proven on machine B is 422 without rows (441.726333ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-z2WCxo
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-z2WCxo nonceSha256=3d7bba6f45ee10d9a11be6d083ab935df3b8933cfc45b79d728d7cb65d0d99b0
+attachment DB scratch identity dev=16777231 ino=220552655 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-z2WCxo
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lqvkAA
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lqvkAA nonceSha256=397e5baaf531a2d1ca049a3698e8e9ce59b7f2f200901495c35187a6d9f4bb43
+attachment DB scratch identity dev=16777231 ino=220552662 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-lqvkAA
+✔ assistant workflows: resolver denial writes no run (496.306041ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hBwwT2
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hBwwT2 nonceSha256=b349844116f076195f4027e9cb6929c8861c8487c89f05195b0c5f6473a7180f
+attachment DB scratch identity dev=16777231 ino=220552669 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hBwwT2
+✔ assistant workflows: createRun accepts only the operation written for this exact run request (391.164459ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pH9ipP
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pH9ipP nonceSha256=ad44117390f0602466e906405f8d5ddd89fb9ab5a3b5cd8290a79abc0766faa2
+attachment DB scratch identity dev=16777231 ino=220552676 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-pH9ipP
+✔ assistant workflows: architectural path follows the pinned brainstorming → writing-plans → execution chain (385.321084ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-s2UoQq
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-s2UoQq nonceSha256=5f978a8087318a60fe11ba14c9fe974eceb866fa3e35d50a4834deda64e4dcdf
+attachment DB scratch identity dev=16777231 ino=220552683 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-s2UoQq
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-aOeZ6M
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-aOeZ6M nonceSha256=860d2a568bcb2f8f17907f1e0b34c4d465a506513cef1ef0fdf2e5475d264d3b
+attachment DB scratch identity dev=16777231 ino=220552690 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-aOeZ6M
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-16FiAc
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-16FiAc nonceSha256=99dbcfae0c809a59cda672d7905a495f89937b870668dc9c6604c1882530be1f
+attachment DB scratch identity dev=16777231 ino=220552705 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-16FiAc
+✔ assistant workflows: bounded, bug and spike paths map their pinned sources (954.055792ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3RajkE
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3RajkE nonceSha256=baf14985841ad1cbf5ee547a4b4e98965657180f14215fe05cda66b08c279e1b
+attachment DB scratch identity dev=16777231 ino=220552956 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-3RajkE
+✔ assistant workflows: bmad-dispatch run waits for a verified render latch (442.830375ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nttSG7
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nttSG7 nonceSha256=c517ae91b639386fef895240fa8a4705d19b052b27e8e91c50b879495414ade2
+attachment DB scratch identity dev=16777231 ino=220553505 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nttSG7
+✔ assistant workflows: bmad-oneshot keeps the official oneshot route without an artifact (321.504375ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zmeEpK
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zmeEpK nonceSha256=dc9221d11f8d44b4938fcb08c7660b90cadeb7415a3025e3aaec42543661cbfb
+attachment DB scratch identity dev=16777231 ino=220553865 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zmeEpK
+✔ assistant workflows: pinned run and step identity is immutable in SQL (323.124625ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-QxCDS5
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-QxCDS5 nonceSha256=4cabb987d8655fcc5c69cd930db00aec863312de8b1b9b8bd899538f977c2847
+attachment DB scratch identity dev=16777231 ino=220554198 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-QxCDS5
+✔ assistant workflows: createRun is all-or-nothing when a later write fails (412.785083ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DaKIbR
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DaKIbR nonceSha256=a85d498ae82ab2e9cb4933523b946b4585e29b2920a34e87b89f2ef98aebf020
+attachment DB scratch identity dev=16777231 ino=220554643 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DaKIbR
+✔ assistant workflows: parallel needs an exact owner approval of this root, sequential otherwise (364.777959ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zz5kAJ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zz5kAJ nonceSha256=d8e8923889b762c3884377b0184f2925b12411db3680af7a094708dfec75880a
+attachment DB scratch identity dev=16777231 ino=220555058 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-zz5kAJ
+✔ assistant workflows: owner approval of another root leaves this run sequential (313.437708ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dhQtgI
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dhQtgI nonceSha256=44e11362144f1cb69ac109c6d2553d8e5eb8b4f8821f551720cca3c6297e7f7a
+attachment DB scratch identity dev=16777231 ino=220555379 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-dhQtgI
+✖ assistant gates: a gate without a verified artifact has no row; the artifact materializes the gate, then its question (316.920542ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MqYG1O
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MqYG1O nonceSha256=fa595f41ee08da43ef4fe9d0ffe6f6ace847395147316126bf8826bca6b06268
+attachment DB scratch identity dev=16777231 ino=220555387 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MqYG1O
+✖ assistant gates: ask_owner needs its own pending operation for this exact proposal, turn and scope (316.21825ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yUlPnO
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yUlPnO nonceSha256=c9f008a5b53a842c1eb5bb81b7f9a10229c3112e91c58634f91396dc7bb56ce6
+attachment DB scratch identity dev=16777231 ino=220555394 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yUlPnO
+✖ assistant gates: only the owner answers; a machine self-answer or another decision cannot advance the gate (319.775166ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-xbjiGZ
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-xbjiGZ nonceSha256=cb12c3c96edeeecb8a6251c384483c73c1c0a85410b7ff44b724d74e9111c3bf
+attachment DB scratch identity dev=16777231 ino=220555401 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-xbjiGZ
+✖ assistant gates: the exact owner answer advances the gate once; stale inputs and replay are 409 (309.27625ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8GwX4I
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8GwX4I nonceSha256=c10bce4394f42ea3e6d4e608f8567dba429e521880e04c9a8f577a712d977d53
+attachment DB scratch identity dev=16777231 ino=220555415 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8GwX4I
+✖ assistant gates: a superseding question makes the earlier revision stale; the gate keeps its artifact (318.055833ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-A45EN2
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-A45EN2 nonceSha256=2bbb8b9cb986f3c57e564eb2cf748ed839b3481ccfdb19cd97c27f68b9d865fa
+attachment DB scratch identity dev=16777231 ino=220555606 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-A45EN2
+✖ assistant gates: a changed definition blocks the answer and a failed write leaves no answer behind (332.840625ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HZo3pY
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HZo3pY nonceSha256=29c0d1255ef03cfe7c2f1b219ec2ac82336b39da1e9aa6de1399265b31c81314
+attachment DB scratch identity dev=16777231 ino=220555643 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-HZo3pY
+✖ assistant gates: the plan gate approval resolves one official execution choice against the run definition (309.035833ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-279CXM
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-279CXM nonceSha256=829d0309b231ba263993b2047a4543c597aa31b3a146dafe9277837ec6cf7a81
+attachment DB scratch identity dev=16777231 ino=220555814 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-279CXM
+✖ assistant gates: the architecture discussion gate opens only after three failed fixes (357.14225ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-5v7JXm
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-5v7JXm nonceSha256=02e79fa519407fcd8626fafe51e655a865f89850877a4d98224aafa9d534a923
+attachment DB scratch identity dev=16777231 ino=220556253 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-5v7JXm
+✖ assistant gates: a ticket question without a gate takes one owner answer (246.257875ms)
+attachment DB container cd0f86202f3e1d9a9519707906d0f13c87cfd48d8b914f1de583f44a42cd8a34 root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8K1C1s
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8K1C1s nonceSha256=0ebc19ae884cb9ce661eb694ea189605016afd8e08268c55acc5351b9cf4beea
+attachment DB scratch identity dev=16777231 ino=220556536 uid=501 pid=658
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8K1C1s
+✖ assistant gates: a BMAD gate needs the latched render of its run (350.953208ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 11
+ℹ fail 10
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8146.660708
+
+✖ failing tests:
+
+test at v2/server/test/assistant-workflows.test.ts:1198:1
+✖ assistant gates: a gate without a verified artifact has no row; the artifact materializes the gate, then its question (316.920542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Comparison {}
+  - Comparison {
+  -   code: 'WORKFLOW_ARTIFACT_REQUIRED',
+  -   status: 409
+  - }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1208:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'WORKFLOW_ARTIFACT_REQUIRED', status: 409 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-workflows.test.ts:1297:1
+✖ assistant gates: ask_owner needs its own pending operation for this exact proposal, turn and scope (316.21825ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Comparison {}
+  - Comparison {
+  -   code: 'ORCHESTRATION_REQUEST_MISMATCH',
+  -   status: 403
+  - }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1306:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'ORCHESTRATION_REQUEST_MISMATCH', status: 403 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-workflows.test.ts:1389:1
+✖ assistant gates: only the owner answers; a machine self-answer or another decision cannot advance the gate (319.775166ms)
+  Error: NOT_IMPLEMENTED
+      at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1398:24
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+
+test at v2/server/test/assistant-workflows.test.ts:1448:1
+✖ assistant gates: the exact owner answer advances the gate once; stale inputs and replay are 409 (309.27625ms)
+  Error: NOT_IMPLEMENTED
+      at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1458:24
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+
+test at v2/server/test/assistant-workflows.test.ts:1565:1
+✖ assistant gates: a superseding question makes the earlier revision stale; the gate keeps its artifact (318.055833ms)
+  Error: NOT_IMPLEMENTED
+      at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1575:21
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+
+test at v2/server/test/assistant-workflows.test.ts:1623:1
+✖ assistant gates: a changed definition blocks the answer and a failed write leaves no answer behind (332.840625ms)
+  Error: NOT_IMPLEMENTED
+      at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1632:24
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+
+test at v2/server/test/assistant-workflows.test.ts:1688:1
+✖ assistant gates: the plan gate approval resolves one official execution choice against the run definition (309.035833ms)
+  Error: NOT_IMPLEMENTED
+      at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+      at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+      at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+      at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1698:24
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+
+test at v2/server/test/assistant-workflows.test.ts:1775:1
+✖ assistant gates: the architecture discussion gate opens only after three failed fixes (357.14225ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Comparison {}
+  - Comparison {
+  -   code: 'WORKFLOW_GATE_NOT_TRIGGERED',
+  -   status: 409
+  - }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1803:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'WORKFLOW_GATE_NOT_TRIGGERED', status: 409 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-workflows.test.ts:1824:1
+✖ assistant gates: a ticket question without a gate takes one owner answer (246.257875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Comparison {}
+  - Comparison {
+  -   code: 'WORKFLOW_QUESTION_TICKET_REQUIRED',
+  -   status: 422
+  - }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1847:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'WORKFLOW_QUESTION_TICKET_REQUIRED', status: 422 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at v2/server/test/assistant-workflows.test.ts:1910:1
+✖ assistant gates: a BMAD gate needs the latched render of its run (350.953208ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Comparison {}
+  - Comparison {
+  -   code: 'WORKFLOW_RENDER_REQUIRED',
+  -   status: 409
+  - }
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1920:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.missing (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/assistant/gates.ts:39:11)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:1083:28
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:196:33
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/src/journal/mutation.ts:41:22
+        at async scope (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:260:18)
+        at async sql.begin (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/node_modules/.pnpm/postgres@3.4.9/node_modules/postgres/src/index.js:243:14)
+        at async Object.inTurn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-workflows.test.ts:183:20)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25),
+    expected: { code: 'WORKFLOW_RENDER_REQUIRED', status: 409 },
+    operator: 'rejects',
+    diff: 'simple'
+  }
