@@ -244,3 +244,5 @@ OWNER: push.
 
 10:40 OWNER: muốn xem design trước khi sửa code sơ đồ. Task4 polish TẠM DỪNG (chưa commit; working tree đang giữa RED/GREEN: layout.ts hằng mới, initialViewport, test graph*.test.ts, log polish-red-unit). Mockup gửi owner: https://claude.ai/artifact/SEjEF3BhyNRvS381b2uAKC (Main = trang sơ đồ, Dialog = chi tiết ticket tối). Delta 1 cần license sửa `tickets/dialog.tsx` hoặc `styles.css` — chờ owner duyệt design.
 G4w `4998044`: tiền đề sai — ba switch đã có từ migration 008 (`model_source_configs`, `PUT/GET /v2/machines/:id/model-sources`, desired/applied, sync_models). Worker chỉ thêm `isSourceEnabled(tx,machineId,runtime)` (master enabled → per-source) và `runtime` tùy chọn cho retry (409 CONFIG_DISABLED). Chờ review. Ruling: S7full đọc/ghi switch qua model-sources, truyền runtime khi retry.
+
+10:55 OWNER DUYỆT design `ui-evidence/design-map-mockup.html` (local). Artifact publish trước đó owner đã xóa. Resume Task4 polish theo mockup; cấp license hẹp sửa `v2/web/src/tickets/dialog.tsx` + `v2/web/src/styles.css` cho delta 1 (dialog tối).
