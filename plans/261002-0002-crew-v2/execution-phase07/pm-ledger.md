@@ -80,3 +80,12 @@ Ruling 13:20: sửa `v2/docs/flows.yaml`/`files.md`/generated phải giữ lock 
 13:30 Wiring FIX2 re-review `task-2-wiring-fix2-re-review.md`: APPROVED, R2/M6/assert/docs ADDRESSED.
 Task 2 wiring: complete — e2dd3e4 (e901fd7 + b08a927 + dbeb6da/e2dd3e4).
 Task 2 wiring: pending check: PM chạy full web `tsc` khi S3a/S5a ổn định (wiring round2 chưa có full tsc do file worker khác dở).
+
+13:50 S3a review `task-3-s3a-review.md`: Spec ✅, Approved, Critical0/Important0/Minor6/⚠️6.
+Task 3 S3a: complete — 167f79c (ba58e42 + 167f79c manifest fix + 5175e23 report). A3 pending G1/G2/G3.
+Task 3 S3a: minor (scheduled S3b): M1 ticketId không lowercase → deep link UUID hoa lệch query key/invalidation và revision guard (`queries.ts:75-78,223-246`).
+Task 3 S3a: minor (scheduled S3b): M2 failureText gọi lỗi local/aborted là "Máy chủ báo lỗi" (`history.tsx:41-48`).
+Task 3 S3a: minor (scheduled S3b): M4 waitReason chỉ hiện ở needs_input, final_result_pending không bao giờ hiện (`detail.tsx:163-167`, `status.ts:87`).
+Task 3 S3a: minor (deferred): M3 role=status bao nút và alert lồng (`list.tsx:82-106`); M5 heading phẳng h2 (`dialog.tsx:76`); M6 refetch toàn trang history/graph mỗi event — ghi giới hạn vào docs.
+Ruling: docs canonical cho web là `v2/docs/flows/<flow>.md` (không phải `docs/v2/...` như brief) — chuẩn v2 docs 7 H2 + manifest — sai thì chỉ đổi đường dẫn tham chiếu.
+Ruling: ⚠️ callers 4/6, hai route ticket, deep link/reload/404/zoom200%, focus-return browser test → checklist S3b + controller mount route + A3.
