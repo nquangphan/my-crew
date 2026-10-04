@@ -1,0 +1,65 @@
+✔ đóng dialog giữ vùng đang xem (1.294875ms)
+✔ mở dialog chọn và focus node, không đổi viewport/expanded; di chuyển chỉ đổi viewport (0.123875ms)
+✔ mở/thu gọn: toggle giữ thứ tự ổn định, “Mở tất cả” khôi phục tất cả, không trùng (18.497333ms)
+✔ trạng thái sơ đồ lưu theo root trong tab storage; dữ liệu hỏng bị bỏ (0.41025ms)
+✔ search của route sơ đồ: UUID về chữ thường, UUID sai bị bỏ (không gây request hay mutation) (0.577791ms)
+✖ sơ đồ: root và bước hiện mặc định, task ẩn có badge; nhãn truy cập có cấp, trạng thái chữ và phiên bản (275.710375ms)
+✖ mở node bằng click mở TicketDetail chung; đóng giữ viewport, expanded và trả focus về node (270.013209ms)
+✖ realtime: refetch cả graph (GET cũ bị hủy), node mới hiện mà viewport và vị trí cũ không đổi (267.017333ms)
+✖ node biến mất khi dialog đang mở: đóng trả focus về khung sơ đồ (260.275667ms)
+✖ bàn phím: mũi tên di chuyển focus giữa node theo cây; bảng quan hệ liệt kê đủ ID (265.833792ms)
+✖ dữ liệu graph hỏng: báo chẩn đoán, có “Tải lại” và danh sách thay thế giữ mọi node (260.632834ms)
+✖ mở bằng URL (reload) với ticket đã chọn: dialog hiện, đóng gọi onSelectTicket(null) (261.112292ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 5
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2602.886875
+
+✖ failing tests:
+
+test at test/graph-state.test.ts:309:1
+✖ sơ đồ: root và bước hiện mặc định, task ẩn có badge; nhãn truy cập có cấp, trạng thái chữ và phiên bản (275.710375ms)
+  Error: TIMEOUT:map rendered
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:299:5
+
+test at test/graph-state.test.ts:328:1
+✖ mở node bằng click mở TicketDetail chung; đóng giữ viewport, expanded và trả focus về node (270.013209ms)
+  Error: TIMEOUT:map rendered
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:299:5
+
+test at test/graph-state.test.ts:360:1
+✖ realtime: refetch cả graph (GET cũ bị hủy), node mới hiện mà viewport và vị trí cũ không đổi (267.017333ms)
+  Error: TIMEOUT:map rendered
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:299:5
+
+test at test/graph-state.test.ts:388:1
+✖ node biến mất khi dialog đang mở: đóng trả focus về khung sơ đồ (260.275667ms)
+  Error: TIMEOUT:map rendered
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:299:5
+
+test at test/graph-state.test.ts:408:1
+✖ bàn phím: mũi tên di chuyển focus giữa node theo cây; bảng quan hệ liệt kê đủ ID (265.833792ms)
+  Error: TIMEOUT:map rendered
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:299:5
+
+test at test/graph-state.test.ts:424:1
+✖ dữ liệu graph hỏng: báo chẩn đoán, có “Tải lại” và danh sách thay thế giữ mọi node (260.632834ms)
+  Error: TIMEOUT:map rendered
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:299:5
+
+test at test/graph-state.test.ts:439:1
+✖ mở bằng URL (reload) với ticket đã chọn: dialog hiện, đóng gọi onSelectTicket(null) (261.112292ms)
+  Error: TIMEOUT:map rendered
+      at settle (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/support/compose-server.ts:491:9)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:299:5
+exit=1

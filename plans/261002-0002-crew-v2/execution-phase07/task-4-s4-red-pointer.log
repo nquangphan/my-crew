@@ -1,0 +1,70 @@
+✔ đóng dialog giữ vùng đang xem (1.829917ms)
+✔ mở dialog chọn và focus node, không đổi viewport/expanded; di chuyển chỉ đổi viewport (0.143292ms)
+✔ mở/thu gọn: toggle giữ thứ tự ổn định, “Mở tất cả” khôi phục tất cả, không trùng (17.783209ms)
+✔ trạng thái sơ đồ lưu theo root trong tab storage; dữ liệu hỏng bị bỏ (0.420375ms)
+✔ search của route sơ đồ: UUID về chữ thường, UUID sai bị bỏ (không gây request hay mutation) (0.603ms)
+✖ sơ đồ: root và bước hiện mặc định, task ẩn có badge; nhãn truy cập có cấp, trạng thái chữ và phiên bản (92.250416ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ mở node bằng click mở TicketDetail chung; đóng giữ viewport, expanded và trả focus về node (88.555958ms)
+✔ realtime: refetch cả graph (GET cũ bị hủy), node mới hiện mà viewport và vị trí cũ không đổi (19.501083ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ node biến mất khi dialog đang mở: đóng trả focus về khung sơ đồ (45.600667ms)
+An update to MapView inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+✔ bàn phím: mũi tên di chuyển focus giữa node theo cây; bảng quan hệ liệt kê đủ ID (22.896541ms)
+✔ dữ liệu graph hỏng: báo chẩn đoán, có “Tải lại” và danh sách thay thế giữ mọi node (16.342167ms)
+✔ mở bằng URL (reload) với ticket đã chọn: dialog hiện, đóng gọi onSelectTicket(null) (33.01575ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1065.094
+
+✖ failing tests:
+
+test at test/graph-state.test.ts:356:1
+✖ sơ đồ: root và bước hiện mặc định, task ẩn có badge; nhãn truy cập có cấp, trạng thái chữ và phiên bản (92.250416ms)
+  AssertionError [ERR_ASSERTION]: thẻ nhận click thật dù node không selectable/draggable
+  
+  'none' !== 'all'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:363:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'none',
+    expected: 'all',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+exit=1

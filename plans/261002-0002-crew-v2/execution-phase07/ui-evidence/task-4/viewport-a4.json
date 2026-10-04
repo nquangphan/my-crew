@@ -1,0 +1,22 @@
+{
+  "storedOnReload": {
+    "x": -594,
+    "y": -1211.6,
+    "zoom": 1.7
+  },
+  "beforeDialog": {
+    "x": -534,
+    "y": -1181.6,
+    "zoom": 1.7
+  },
+  "afterClose": {
+    "x": -534,
+    "y": -1181.6,
+    "zoom": 1.7
+  },
+  "delta": {
+    "x": 0,
+    "y": 0,
+    "zoom": 0
+  }
+}

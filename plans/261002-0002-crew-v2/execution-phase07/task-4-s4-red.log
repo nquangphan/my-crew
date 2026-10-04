@@ -1,0 +1,476 @@
+✖ đóng dialog giữ vùng đang xem (1.503041ms)
+✖ mở dialog chọn và focus node, không đổi viewport/expanded; di chuyển chỉ đổi viewport (0.212542ms)
+✖ mở/thu gọn: toggle giữ thứ tự ổn định, “Mở tất cả” khôi phục tất cả, không trùng (0.10575ms)
+✖ trạng thái sơ đồ lưu theo root trong tab storage; dữ liệu hỏng bị bỏ (0.138791ms)
+✖ search của route sơ đồ: UUID về chữ thường, UUID sai bị bỏ (không gây request hay mutation) (0.099459ms)
+✖ root→hai bước song song→join: mọi cặp dependency giữ nguyên, không có chuỗi tự suy, task thu gọn vào hiddenEdges (1.236ms)
+✖ mở một bước chỉ hiện đúng task của bước đó; cạnh liên bước vẫn ẩn tới khi mở đủ hai đầu; mở tất cả không còn cạnh ẩn (0.169292ms)
+✖ badge đếm quan hệ dependency/repair tới công việc đang thu gọn theo bước chứa nó (0.6715ms)
+✖ repair check→fix chu kỳ 1–5: cạnh repair riêng, cùng đầu mút với parent vẫn giữ cả hai, vòng repair/dependency không làm layout lặp (0.225708ms)
+✖ graph đọc từ ticket con vẫn chiếu cả root: rootId thừa kế từ node (0.126958ms)
+✔ kết quả không phụ thuộc thứ tự input: node, cạnh và vị trí giống nhau (0.1585ms)
+✖ layout trái→phải: cột theo độ sâu (320+100), anh em theo ID, cha nằm giữa cây con, hàng cách 24 (0.099834ms)
+✖ dữ liệu hỏng có diagnostic, không bỏ node mồ côi, không lặp vô hạn (0.141375ms)
+✖ thiếu root: diagnostic ROOT_MISSING, mọi node vẫn được chiếu và có vị trí (3.375ms)
+✖ chuỗi cha rất sâu (20 000) không tràn stack ở chiếu và layout (10.537416ms)
+✖ 200 bước / 600 task: giữ mọi cặp dependency, layout xác định và trong ngân sách thời gian (0.755209ms)
+✖ giữ vị trí cũ khi có node mới; node mới đặt cạnh cha; chỉ “Sắp xếp lại” mới layout lại (0.131708ms)
+✖ quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID (0.168292ms)
+✖ điều hướng bàn phím: trái về cha, phải tới con đầu, lên/xuống theo cột (0.095667ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 1
+ℹ fail 18
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 94.77225
+
+✖ failing tests:
+
+test at test/graph-state.test.ts:22:1
+✖ đóng dialog giữ vùng đang xem (1.503041ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      expanded: [
+        's'
+      ],
+      focusedTicketId: 't',
+      rootId: 'r',
+  +   selectedTicketId: 't',
+  -   selectedTicketId: null,
+      viewport: {
+        x: -480,
+        y: 140,
+        zoom: 1.7
+      }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:30:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { rootId: 'r', viewport: { x: -480, y: 140, zoom: 1.7 }, expanded: [ 's' ], selectedTicketId: 't', focusedTicketId: 't' },
+    expected: { rootId: 'r', viewport: { x: -480, y: 140, zoom: 1.7 }, expanded: [ 's' ], selectedTicketId: null, focusedTicketId: 't' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph-state.test.ts:33:1
+✖ mở dialog chọn và focus node, không đổi viewport/expanded; di chuyển chỉ đổi viewport (0.212542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      expanded: [
+        '0c0c0c0c-0000-4000-8000-000000000003'
+      ],
+  +   focusedTicketId: null,
+  -   focusedTicketId: '0c0c0c0c-0000-4000-8000-000000000003',
+      rootId: '0a0a0a0a-0000-4000-8000-000000000001',
+  +   selectedTicketId: null,
+  -   selectedTicketId: '0c0c0c0c-0000-4000-8000-000000000003',
+      viewport: {
+        x: 12,
+        y: -4,
+        zoom: 0.8
+      }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:36:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { rootId: '0a0a0a0a-0000-4000-8000-000000000001', viewport: { x: 12, y: -4, zoom: 0.8 }, expanded: [ '0c0c0c0c-0000-4000-8000-000000000003' ], selectedTicketId: null, focusedTicketId: null },
+    expected: { rootId: '0a0a0a0a-0000-4000-8000-000000000001', viewport: { x: 12, y: -4, zoom: 0.8 }, expanded: [ '0c0c0c0c-0000-4000-8000-000000000003' ], selectedTicketId: '0c0c0c0c-0000-4000-8000-000000000003', focusedTicketId: '0c0c0c0c-0000-4000-8000-000000000003' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph-state.test.ts:42:1
+✖ mở/thu gọn: toggle giữ thứ tự ổn định, “Mở tất cả” khôi phục tất cả, không trùng (0.10575ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   '0b0b0b0b-0000-4000-8000-000000000002'
+  - ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:45:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ '0b0b0b0b-0000-4000-8000-000000000002' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph-state.test.ts:54:1
+✖ trạng thái sơ đồ lưu theo root trong tab storage; dữ liệu hỏng bị bỏ (0.138791ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:64:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph-state.test.ts:91:1
+✖ search của route sơ đồ: UUID về chữ thường, UUID sai bị bỏ (không gây request hay mutation) (0.099459ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + {}
+  - {
+  -   root: '0a0a0a0a-0000-4000-8000-000000000001',
+  -   ticket: '0c0c0c0c-0000-4000-8000-000000000003'
+  - }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph-state.test.ts:92:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: {},
+    expected: { root: '0a0a0a0a-0000-4000-8000-000000000001', ticket: '0c0c0c0c-0000-4000-8000-000000000003' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:113:1
+✖ root→hai bước song song→join: mọi cặp dependency giữ nguyên, không có chuỗi tự suy, task thu gọn vào hiddenEdges (1.236ms)
+  AssertionError [ERR_ASSERTION]: root và bước hiện mặc định, task ẩn khi bước thu gọn
+  + actual - expected
+  
+  + []
+  - [
+  -   '00000000-0000-4000-8000-000000000001',
+  -   '00000000-0000-4000-8000-000000000010',
+  -   '00000000-0000-4000-8000-000000000011',
+  -   '00000000-0000-4000-8000-000000000012'
+  - ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:118:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000012' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:146:1
+✖ mở một bước chỉ hiện đúng task của bước đó; cạnh liên bước vẫn ẩn tới khi mở đủ hai đầu; mở tất cả không còn cạnh ẩn (0.169292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   '00000000-0000-4000-8000-000000000001',
+  -   '00000000-0000-4000-8000-000000000010',
+  -   '00000000-0000-4000-8000-000000000011',
+  -   '00000000-0000-4000-8000-000000000012',
+  -   '00000000-0000-4000-8000-000000000100',
+  -   '00000000-0000-4000-8000-000000000101'
+  - ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:149:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000100', '00000000-0000-4000-8000-000000000101' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:165:1
+✖ badge đếm quan hệ dependency/repair tới công việc đang thu gọn theo bước chứa nó (0.6715ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + {}
+  - {
+  -   '00000000-0000-4000-8000-000000000010': 2,
+  -   '00000000-0000-4000-8000-000000000011': 1,
+  -   '00000000-0000-4000-8000-000000000012': 2
+  - }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:168:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: {},
+    expected: { '00000000-0000-4000-8000-000000000010': 2, '00000000-0000-4000-8000-000000000011': 1, '00000000-0000-4000-8000-000000000012': 2 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:178:1
+✖ repair check→fix chu kỳ 1–5: cạnh repair riêng, cùng đầu mút với parent vẫn giữ cả hai, vòng repair/dependency không làm layout lặp (0.225708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 5
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:183:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:206:1
+✖ graph đọc từ ticket con vẫn chiếu cả root: rootId thừa kế từ node (0.126958ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '00000000-0000-4000-8000-000000000110'
+  - '00000000-0000-4000-8000-000000000001'
+                                      ^
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:208:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '00000000-0000-4000-8000-000000000110',
+    expected: '00000000-0000-4000-8000-000000000001',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:234:1
+✖ layout trái→phải: cột theo độ sâu (320+100), anh em theo ID, cha nằm giữa cây con, hàng cách 24 (0.099834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== 0
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:242:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:256:1
+✖ dữ liệu hỏng có diagnostic, không bỏ node mồ côi, không lặp vô hạn (0.141375ms)
+  AssertionError [ERR_ASSERTION]: thiếu DUPLICATE_ID:00000000-0000-4000-8000-000000000010: 
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:290:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:307:1
+✖ thiếu root: diagnostic ROOT_MISSING, mọi node vẫn được chiếu và có vị trí (3.375ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(projection.diagnostics.includes(`ROOT_MISSING:${root}`))
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:314:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:319:1
+✖ chuỗi cha rất sâu (20 000) không tràn stack ở chiếu và layout (10.537416ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 20002
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:325:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 20002,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:330:1
+✖ 200 bước / 600 task: giữ mọi cặp dependency, layout xác định và trong ngân sách thời gian (0.755209ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 201
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:349:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:359:1
+✖ giữ vị trí cũ khi có node mới; node mới đặt cạnh cha; chỉ “Sắp xếp lại” mới layout lại (0.131708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== 840
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:367:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 840,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:374:1
+✖ quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID (0.168292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      children: [],
+  +   parentId: null,
+  +   predecessors: [],
+  -   parentId: '00000000-0000-4000-8000-000000000012',
+  -   predecessors: [
+  -     '00000000-0000-4000-8000-000000000101',
+  -     '00000000-0000-4000-8000-000000000110'
+  -   ],
+      repairs: [],
+      successors: []
+    }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:376:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { parentId: null, children: [], predecessors: [], successors: [], repairs: [] },
+    expected: { parentId: '00000000-0000-4000-8000-000000000012', children: [], predecessors: [ '00000000-0000-4000-8000-000000000101', '00000000-0000-4000-8000-000000000110' ], successors: [], repairs: [] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/graph.test.ts:395:1
+✖ điều hướng bàn phím: trái về cha, phải tới con đầu, lên/xuống theo cột (0.095667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + null
+  - '00000000-0000-4000-8000-000000000010'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/graph.test.ts:399:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: '00000000-0000-4000-8000-000000000010',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+exit=1

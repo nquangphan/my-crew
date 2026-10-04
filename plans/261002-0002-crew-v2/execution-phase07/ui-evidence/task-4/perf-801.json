@@ -1,0 +1,27 @@
+{
+  "firstUsableMs": [
+    236,
+    203,
+    206
+  ],
+  "fullReloadDevServerMs": [
+    212,
+    208,
+    217
+  ],
+  "expandAllAndFitMs": 95,
+  "seedSeconds": 3.811,
+  "nodes": 801,
+  "dependencies": 599,
+  "machine": {
+    "platform": "darwin",
+    "release": "25.6.0",
+    "arch": "arm64",
+    "cpu": "Apple M4",
+    "cpuCount": 10,
+    "memoryGiB": 16,
+    "node": "v24.21.0",
+    "chromium": "153.0.8010.12",
+    "fixture": "Task1 fixture: PostgreSQL 18.6 container, Fastify API, Vite dev server, one Playwright worker"
+  }
+}
