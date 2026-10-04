@@ -1,0 +1,50 @@
+TELEMETRY {"at": "2026-10-04T07:01:26.165246+00:00", "pageSize": 16384, "pages": {"Pages free": 26293, "Pages inactive": 298780, "Pages speculative": 2697}, "availableBytes": 5370183680, "availableGiB": 5.001, "pressure": 1, "cpuIdlePercent": 85.17, "cpu": "5.17% user, 9.65% sys, 85.17% idle", "diskFreeBytes": 804554989568, "diskFreeGiB": 749.3, "heavyEligible": true}
+CMD bash -c node --test --test-timeout=240000 test/fixture-scratch.test.ts test/attachment-receivers.test.ts
+{"level":30,"time":1791097288136,"pid":91248,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:59412"}
+✖ upload qua API thật đóng receiver bằng closed-ACK, và port fixture chạy trọn giao thức (2247.033584ms)
+file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/fixture-scratch.test.ts:8
+import { closeScratches, createAttachmentScratch } from '../scripts/e2e-fixture.ts';
+         ^^^^^^^^^^^^^^
+SyntaxError: The requested module '../scripts/e2e-fixture.ts' does not provide an export named 'closeScratches'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.21.0
+✖ test/fixture-scratch.test.ts (167.015291ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2523.851875
+
+✖ failing tests:
+
+test at test/attachment-receivers.test.ts:13:1
+✖ upload qua API thật đóng receiver bằng closed-ACK, và port fixture chạy trọn giao thức (2247.033584ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"ATTACHMENT_UPLOAD_CONFLICT","message":"Lượt nhận đã bị thu hồi"}}
+  
+  409 !== 201
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/attachment-receivers.test.ts:59:14
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async withFixture (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/e2e/support/fixture.ts:99:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/attachment-receivers.test.ts:14:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 201,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/fixture-scratch.test.ts:1:1
+✖ test/fixture-scratch.test.ts (167.015291ms)
+  'test failed'
+EXIT 1

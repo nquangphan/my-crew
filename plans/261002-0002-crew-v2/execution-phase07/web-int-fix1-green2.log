@@ -1,0 +1,5 @@
+TELEMETRY {"at": "2026-10-04T07:03:05.817378+00:00", "pageSize": 16384, "pages": {"Pages free": 7049, "Pages inactive": 290187, "Pages speculative": 3804}, "availableBytes": 4932239360, "availableGiB": 4.594, "pressure": 1, "cpuIdlePercent": 84.64, "cpu": "3.75% user, 11.60% sys, 84.64% idle", "diskFreeBytes": 803833843712, "diskFreeGiB": 748.629, "heavyEligible": true}
+CMD bash -c node --test --test-timeout=300000 test/*.test.ts > /Volumes/CORSAIR/Projects/my-crew-v2/plans/261002-0002-crew-v2/execution-phase07/web-int-fix1-unit.log 2>&1; echo UNIT=$?; npx tsc --noEmit; echo TSC=$?
+UNIT=0
+TSC=0
+EXIT 0

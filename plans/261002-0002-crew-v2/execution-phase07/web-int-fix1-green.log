@@ -1,0 +1,30 @@
+TELEMETRY {"at": "2026-10-04T07:01:47.826146+00:00", "pageSize": 16384, "pages": {"Pages free": 6162, "Pages inactive": 304353, "Pages speculative": 6357}, "availableBytes": 5191630848, "availableGiB": 4.835, "pressure": 1, "cpuIdlePercent": 82.63, "cpu": "5.55% user, 11.80% sys, 82.63% idle", "diskFreeBytes": 804489306112, "diskFreeGiB": 749.239, "heavyEligible": true}
+CMD bash -c node --test --test-timeout=300000 test/*.test.ts > /Volumes/CORSAIR/Projects/my-crew-v2/plans/261002-0002-crew-v2/execution-phase07/web-int-fix1-unit.log 2>&1; echo UNIT=$?; npx tsc --noEmit; echo TSC=$?; npx playwright test e2e/app-router.spec.ts e2e/ticket-routes.spec.ts e2e/docs-assistant.spec.ts e2e/auth.spec.ts e2e/events.spec.ts e2e/tickets.spec.ts
+UNIT=1
+TSC=0
+
+Running 13 tests using 1 worker
+
+{"level":30,"time":1791097319802,"pid":92940,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:61286"}
+  ✓   1 [chromium] › e2e/app-router.spec.ts:23:1 › router thật: guest chuyển login, quay về đúng path, stream trước GET dữ liệu, returnTo ngoài bị bác, logout đóng stream (808ms)
+  ✓   2 [chromium] › e2e/app-router.spec.ts:86:1 › router thật: GET ticket của route deep link đứng sau catch-up /v2/events của phiên vừa xác minh (391ms)
+{"level":30,"time":1791097323245,"pid":93310,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:61719"}
+  ✓   3 [chromium] › e2e/auth.spec.ts:162:1 › A2: mất response → phiên hết hạn → đăng nhập lại cùng owner → replay đúng key/body → một project/receipt (1.0s)
+  ✓   4 [chromium] › e2e/auth.spec.ts:274:1 › logout chỉ giữ tombstone; payload khác cùng key bị 409 và giữ tombstone; secret không vào sessionStorage (622ms)
+{"level":30,"time":1791097327229,"pid":93690,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:62147"}
+  ✓   5 [chromium] › e2e/docs-assistant.spec.ts:41:1 › cây Unicode, mở trang theo URL, link nội bộ và metadata phiên bản (655ms)
+  ✓   6 [chromium] › e2e/docs-assistant.spec.ts:81:1 › mục điều hướng Tài liệu dẫn tới không gian tài liệu của dự án (368ms)
+{"level":30,"time":1791097330700,"pid":94054,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:62646"}
+{"level":30,"time":1791097333179,"pid":94054,"hostname":"Phans-Mac-mini.local","reqId":"req-6","code":"UNAUTHENTICATED","msg":"Luồng sự kiện đã dừng"}
+  ✓   7 [chromium] › e2e/events.spec.ts:125:1 › SSE thật: catch-up rồi stream Last-Event-ID, event làm stale query, hết phiên đóng stream và nối lại sau reauth (3.9s)
+{"level":30,"time":1791097337079,"pid":94534,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:63065"}
+  ✓   8 [chromium] › e2e/ticket-routes.spec.ts:40:1 › deep link /tickets/<id>: guest quay về đúng trang sau đăng nhập, reload vẫn giữ trang, GET ticket sau catch-up (522ms)
+  ✓   9 [chromium] › e2e/ticket-routes.spec.ts:68:1 › id không tồn tại hoặc không phải UUID hiện view không tìm thấy, không lộ dữ liệu (380ms)
+  ✓  10 [chromium] › e2e/ticket-routes.spec.ts:81:1 › bảng/danh sách giữ view và bộ lọc trên URL, dialog dùng chung, nút quay lại từ trang ticket (777ms)
+  ✓  11 [chromium] › e2e/ticket-routes.spec.ts:133:1 › đăng xuất xóa bản nháp: reload không mở ticket rồi logout; logout xong reload ở guest (458ms)
+{"level":30,"time":1791097341827,"pid":94945,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:63781"}
+  ✓  12 [chromium] › e2e/tickets.spec.ts:256:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus (4.7s)
+  ✓  13 [chromium] › e2e/tickets.spec.ts:358:1 › “Tạo yêu cầu” trên bảng: form project/loại/tiêu đề/workflow, Superpowers mặc định, đóng vẫn giữ bản nháp (2.1s)
+
+  13 passed (31.5s)
+EXIT 0

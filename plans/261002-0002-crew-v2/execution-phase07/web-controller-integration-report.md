@@ -33,3 +33,17 @@ Mọi lần chạy nặng đi qua wrapper lấy lock, đọc `heavyEligible` r�
 - A5 file thật vẫn bị chặn bởi extractor (phase05 Task5); `main.ts` production chưa nối `attachments`.
 - `GET /v2/projects` của sidebar chạy sau catch-up `/v2/events` (assert vẫn xanh), nhưng chưa có assert đích danh cho GET này.
 - Có file `perl`, `perl.resource` lạ ở gốc repo, không phải của em.
+
+## Fix round 1 (review `web-controller-integration-review.md`)
+
+Mỗi mục có RED trước (`web-int-fix1-red.log`: fixture-scratch fail vì chưa có `closeScratches`/`createAttachmentScratch`; attachment-receivers fail do mutation `closed` → `writing` trong port, upload trả 409 `ATTACHMENT_UPLOAD_CONFLICT`), rồi GREEN.
+
+- I1: không import chung được (fixture server không export, ngoài phạm vi sửa). Thêm `test/attachment-receivers.test.ts` chạy upload thật qua API (xác nhận receiver `closed` có `stop_proof`, writer `fixture-only` đúng khi non-Linux) và chạy trực tiếp register → run → closeAndAcknowledge → proveStopped (null khi chưa đóng, đóng lặp trả đúng proof, run lần hai bị từ chối). Docs flow ghi port không có bằng chứng native process-gone và không reachable từ production.
+- M1: `closeScratches` tách ra, test deadline REMOVE của attachment scratch: cả hai UNKNOWN, `rm` không chạy, registry còn.
+- M2: `createAttachmentScratch` xóa đúng thư mục vừa tạo nếu `realpath`/`stat` lỗi; có test.
+- M3: xóa test unit guest-reload (vacuous), docs ghi chỉ E2E kiểm đường này.
+- M4: assert đích danh `GET /v2/projects` sau catch-up trong `app-router.spec.ts`.
+- M5 (ledger): bỏ `.toLowerCase()` thừa; port ném `FIXTURE_UPLOAD_NOT_FOUND` thay vì `'undefined'`.
+- Docs: `session.expire()` giữ nháp, chỉ `logout()` xóa (ruling PM).
+
+Kết quả: unit 226/226, tsc 0, E2E 13 passed (`web-int-fix1-*.log`). `crew-docs check --all` chỉ còn R2 của `server/src/assistant/tools.ts` (file chưa theo dõi của worker khác).
