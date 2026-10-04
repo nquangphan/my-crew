@@ -1,0 +1,105 @@
+$ NODE_OPTIONS=--max-old-space-size=384 node --test test/*.test.ts  # 2026-10-04T03:29:37Z
+✔ the event stream starts before the first protected GET (93.24375ms)
+✔ query defaults disable retry because OwnerClient.get retries itself, and keep focus/reconnect refetch (0.806167ms)
+✔ an unauthenticated protected route is sent to login with an internal return path (0.790042ms)
+✔ the login return route accepts only internal /crew-v2/ paths (0.074917ms)
+✔ logout wipes the query cache and closes the event stream (25.485542ms)
+✔ session expiry stops the stream and drops the cache so the route boundary asks for re-authentication (1.347875ms)
+✔ bootstrapping → authenticated / guest / bootstrap-unavailable (29.587875ms)
+✔ login là POST {password} không CSRF/key, mật khẩu 1–4096, 429 không tự thử lại (2.183417ms)
+✔ owner khác sau reauth không được authenticated (1.0675ms)
+✔ mất response → 401 khi gửi lại → reauth cùng owner → replay đúng key/body với CSRF mới (3.445042ms)
+✔ logout: DELETE kèm CSRF, đóng phiên, chỉ giữ tombstone không payload (1.230167ms)
+✔ nhập lại payload khác → 409 giữ tombstone và cùng key; payload đúng thì accepted (0.892ms)
+✔ reload tab: operation tab giữ key/body ở trạng thái ambiguous, operation memory thành tombstone (0.261958ms)
+✔ đóng form secret chuyển operation memory thành tombstone và xóa secret (0.106542ms)
+✔ serializer từ chối memory operation, secret, token và hash của secret (0.184584ms)
+✔ return route chỉ nhận path nội bộ /crew-v2/ (0.134667ms)
+✔ logout với CSRF cũ làm mới CSRF rồi DELETE lại để server thu hồi phiên (0.309ms)
+✔ GET chỉ gọi same-origin /v2/ kèm cookie và từ chối path ngoài (22.997542ms)
+✔ không mutation hoặc upload trước khi có phiên (0.90875ms)
+✔ mutation JSON gửi CSRF, Idempotency-Key = operation.id và đúng bodyJson đã freeze (0.566458ms)
+✔ upload bytes thô gửi CSRF, octet-stream, không Idempotency-Key (0.351875ms)
+✔ 503 không phải JSON thành ApiFailure, GET thử lại tối đa 3 lần (0.492084ms)
+✔ AbortError khi mutation đang gửi → ambiguous, không đổi key, không tự gửi lại (0.280916ms)
+✔ hai lần thử lại sau lỗi transport/503 giữ cùng key và cùng body (0.344542ms)
+✔ lỗi transport hết lượt → Chưa xác nhận, operation vẫn ambiguous với cùng key (0.255167ms)
+✔ 401 khi gửi → phiên expired, khóa write, operation suspended giữ nguyên key/body (0.322166ms)
+✔ IDEMPOTENCY_CONFLICT giữ operation; lỗi 400 là từ chối cuối cho phép key mới (0.423208ms)
+✔ GET cũ bị hủy khi GET mới bắt đầu, kết quả trễ bị bỏ qua (1.090958ms)
+✔ decoder từ chối thiếu field, sai primitive và field lạ chưa review (0.121125ms)
+✔ 403 CSRF_INVALID trên operation ambiguous không nhả key; làm mới CSRF rồi replay đúng key/body (0.373917ms)
+✔ 403 CSRF_INVALID mà làm mới phiên nhận 401 → expired, operation suspended giữ key (0.251791ms)
+✔ 403 ORIGIN_INVALID lặp lại sau một lần làm mới → dừng, operation suspended giữ key (0.588ms)
+✔ 4xx phụ thuộc trạng thái sau lần gửi chưa chắc chắn không nhả key; 400 theo body vẫn là terminal (0.519167ms)
+✔ payload nhập lại cho tombstone bị 400/413/404 → trở về tombstone, không nhả key cũ (0.477959ms)
+✔ hai lượt mutate song song trên cùng operation: lượt sau bị chặn, không gửi request (3.719917ms)
+✔ caller abort trước khi làm mới CSRF hoặc trong lúc làm mới → không replay, giữ key (1.150083ms)
+file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/compose-submit.test.ts:10
+  receiptSummary,
+  ^^^^^^^^^^^^^^
+SyntaxError: The requested module '../src/compose/state.ts' does not provide an export named 'receiptSummary'
+    at #asyncInstantiate (node:internal/modules/esm/module_job:455:21)
+    at async ModuleJob.run (node:internal/modules/esm/module_job:553:5)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.21.0
+✖ test/compose-submit.test.ts (145.6425ms)
+✔ cursor bigint không bị làm tròn (2.242959ms)
+✔ SSE parser: CRLF/CR/LF, multiline, comment, tách chunk giữa UTF-8 và CRLF (2.251542ms)
+✔ SSE parser đóng khi frame vượt 1MiB hoặc UTF-8 hỏng (44.933917ms)
+✔ invalidations: ticket đánh stale detail/graph/list/attention; type lạ invalidation rộng trong scope (0.293792ms)
+✔ catch-up đọc /v2/events?after=&limit=100 tới rỗng rồi stream với Last-Event-ID; dedup trùng/out-of-order (16.846666ms)
+✔ frame hỏng đóng stream, resync qua GET và dừng sau số lần giới hạn (1.832583ms)
+✔ frame có event name khác type trong data bị coi là hỏng (2.844667ms)
+✔ phiên hết hạn (401) đóng stream và báo session expire (0.991584ms)
+✔ reconnect invalidation rộng; invalidation lỗi khi mất kết nối vẫn chờ và thử lại (2.136125ms)
+{"level":30,"time":1791084578854,"pid":40827,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:65252"}
+fixture-identities={"containerName":"crew-v2-web-b741bd1d-e213-4d16-9f1b-f358a1e19eb8","containerImageDigest":"sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280","dbPort":64908,"dbName":"crew_v2_test_04c051d22e894122a57920b23a44f1b9","apiOrigin":"http://127.0.0.1:65252","webOrigin":"http://127.0.0.1:65251","registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-kyS5UT/registry.json","resources":[{"kind":"scratch","id":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-kyS5UT","ownershipNonce":"b741bd1d-e213-4d16-9f1b-f358a1e19eb8","startIdentity":"16777231:220470618"},{"kind":"container","id":"3b5611fbfbbff897ad536a8ba7bef3228429e754169064c730ab33f24b2c2109","ownershipNonce":"b741bd1d-e213-4d16-9f1b-f358a1e19eb8","startIdentity":"3b5611fbfbbff897ad536a8ba7bef3228429e754169064c730ab33f24b2c2109:2026-10-04T03:29:37.382462834Z"},{"kind":"database","id":"crew_v2_test_04c051d22e894122a57920b23a44f1b9","ownershipNonce":"b741bd1d-e213-4d16-9f1b-f358a1e19eb8","startIdentity":"3b5611fbfbbff897ad536a8ba7bef3228429e754169064c730ab33f24b2c2109:16385"},{"kind":"listener","id":"web:65251","ownershipNonce":"b741bd1d-e213-4d16-9f1b-f358a1e19eb8","startIdentity":"40827:Sun Oct  4 10:29:37 2026:web:65251:b741bd1d-e213-4d16-9f1b-f358a1e19eb8"},{"kind":"listener","id":"api:65252","ownershipNonce":"b741bd1d-e213-4d16-9f1b-f358a1e19eb8","startIdentity":"40827:Sun Oct  4 10:29:37 2026:api:65252:b741bd1d-e213-4d16-9f1b-f358a1e19eb8"}]}
+fixture-cleanup=[{"resourceId":"api:65252","state":"stopped","reason":null},{"resourceId":"web:65251","state":"stopped","reason":null},{"resourceId":"crew_v2_test_04c051d22e894122a57920b23a44f1b9","state":"removed","reason":null},{"resourceId":"3b5611fbfbbff897ad536a8ba7bef3228429e754169064c730ab33f24b2c2109","state":"removed","reason":null},{"resourceId":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-kyS5UT","state":"removed","reason":null}]
+✔ withFixture giữ API, web và DB riêng suốt callback rồi đóng đúng tài nguyên (1946.198583ms)
+✔ unit: identity lạ giữ UNKNOWN và không gọi stop/remove (0.337375ms)
+✔ unit: STOP chưa xác minh giữ UNKNOWN và không remove (0.094083ms)
+scratch-timeout-ready={"scratchPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-fix2-C916bL","registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-fix2-C916bL/registry.json","startIdentity":"16777231:220470638"}
+scratch-timeout-own-cleanup={"scratchPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-fix2-C916bL","absent":true}
+✔ unit: scratch REMOVE hết hạn rồi stat trả trễ phải giữ registry (254.949916ms)
+{"level":30,"time":1791084580967,"pid":40827,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:49197"}
+active-request-ready={"registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-BLQLJO/registry.json","apiOrigin":"http://127.0.0.1:49197","resources":[{"kind":"scratch","id":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-BLQLJO","ownershipNonce":"64ee9a14-c8f5-4cad-8831-4587eb8157c1","startIdentity":"16777231:220470640"},{"kind":"container","id":"d37b067c129c8a9194c4f933e5b781433dd04cf18cec258189f83cda6f6e841f","ownershipNonce":"64ee9a14-c8f5-4cad-8831-4587eb8157c1","startIdentity":"d37b067c129c8a9194c4f933e5b781433dd04cf18cec258189f83cda6f6e841f:2026-10-04T03:29:39.563803877Z"},{"kind":"database","id":"crew_v2_test_731f27328d6448f5a7c1ce8a7ed62a36","ownershipNonce":"64ee9a14-c8f5-4cad-8831-4587eb8157c1","startIdentity":"d37b067c129c8a9194c4f933e5b781433dd04cf18cec258189f83cda6f6e841f:16385"},{"kind":"listener","id":"web:49196","ownershipNonce":"64ee9a14-c8f5-4cad-8831-4587eb8157c1","startIdentity":"40827:Sun Oct  4 10:29:37 2026:web:49196:64ee9a14-c8f5-4cad-8831-4587eb8157c1"},{"kind":"listener","id":"api:49197","ownershipNonce":"64ee9a14-c8f5-4cad-8831-4587eb8157c1","startIdentity":"40827:Sun Oct  4 10:29:37 2026:api:49197:64ee9a14-c8f5-4cad-8831-4587eb8157c1"}]}
+active-request-cleanup=[{"resourceId":"api:49197","state":"stopped","reason":null},{"resourceId":"web:49196","state":"stopped","reason":null},{"resourceId":"crew_v2_test_731f27328d6448f5a7c1ce8a7ed62a36","state":"removed","reason":null},{"resourceId":"d37b067c129c8a9194c4f933e5b781433dd04cf18cec258189f83cda6f6e841f","state":"removed","reason":null},{"resourceId":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-BLQLJO","state":"removed","reason":null}]
+✔ request đang gửi dở không được giữ fixture close vô hạn hoặc xóa asset khi STOP chưa rõ (1743.812625ms)
+interrupt-ready={"childPid":41180,"processRecord":"40804 Sun Oct  4 10:29:41 2026","registryPath":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-WZ7X81/registry.json","resources":[{"kind":"scratch","id":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-WZ7X81","ownershipNonce":"6867c407-0969-4cbe-9046-cd2835981b6e","startIdentity":"16777231:220470660"},{"kind":"container","id":"dc767306bdd255897b8e3fcbd75af419880dacbbf3e7e00226db32ca9891d182","ownershipNonce":"6867c407-0969-4cbe-9046-cd2835981b6e","startIdentity":"dc767306bdd255897b8e3fcbd75af419880dacbbf3e7e00226db32ca9891d182:2026-10-04T03:29:41.480597711Z"},{"kind":"database","id":"crew_v2_test_d8f5a0fb1ba846dda3527611a3d89c4a","ownershipNonce":"6867c407-0969-4cbe-9046-cd2835981b6e","startIdentity":"dc767306bdd255897b8e3fcbd75af419880dacbbf3e7e00226db32ca9891d182:16385"},{"kind":"listener","id":"web:49525","ownershipNonce":"6867c407-0969-4cbe-9046-cd2835981b6e","startIdentity":"41180:Sun Oct  4 10:29:41 2026:web:49525:6867c407-0969-4cbe-9046-cd2835981b6e"},{"kind":"listener","id":"api:49526","ownershipNonce":"6867c407-0969-4cbe-9046-cd2835981b6e","startIdentity":"41180:Sun Oct  4 10:29:41 2026:api:49526:6867c407-0969-4cbe-9046-cd2835981b6e"}]}
+interrupt-cleanup=[{"resourceId":"api:49526","state":"stopped","reason":null},{"resourceId":"web:49525","state":"stopped","reason":null},{"resourceId":"crew_v2_test_d8f5a0fb1ba846dda3527611a3d89c4a","state":"removed","reason":null},{"resourceId":"dc767306bdd255897b8e3fcbd75af419880dacbbf3e7e00226db32ca9891d182","state":"removed","reason":null},{"resourceId":"/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-web-WZ7X81","state":"removed","reason":null}]
+✔ SIGTERM trên preview child đóng đúng run và xác minh STOP trước khi thoát (2012.992625ms)
+✔ statusLabels đủ 7 nhãn tiếng Việt, mỗi trạng thái có biểu tượng riêng và thứ tự cột (0.761625ms)
+✔ requestRoots chỉ nhận level request, id===rootId, parentId null; không suy từ title/trang đầu (0.163375ms)
+✔ requestRoots và mergeTicketPages: ID trùng lấy revision mới bất kể thứ tự trang (0.087208ms)
+✔ groupByStatus luôn có đủ 7 nhóm, gom done/cancelled riêng (0.081708ms)
+✔ parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị hợp lệ (0.217958ms)
+✔ ticketListPath dựng đúng query /v2/tickets với cursor UUID và limit (0.273625ms)
+✔ fetchTicketPage giải mã DTO, sai shape báo RESPONSE_SHAPE_INVALID (0.33025ms)
+✔ ticketListOptions phân trang tới nextCursor null, không tự tải hết (0.086291ms)
+✔ fetchAllPages đọc hết trang theo cursor đến null (0.233583ms)
+✔ fetchAllPages dừng khi cursor lặp lại thay vì vòng vô hạn (0.1525ms)
+✔ buildLegacyTimeline sắp theo createdAt rồi id, không theo thứ tự UUID (0.171125ms)
+✔ ticketQueryOptions: response revision cũ không ghi đè revision mới trong cache (0.61675ms)
+✔ ticketQueryOptions từ chối ticketId không phải UUID trước khi gọi mạng (0.098667ms)
+✔ formatTime hiển thị theo Asia/Ho_Chi_Minh, chuỗi lỗi giữ nguyên (0.076375ms)
+✔ actorLabel phân biệt chủ dự án và máy (0.041041ms)
+✔ pickReturnFocus: trả về trigger nếu còn trong DOM, nếu mất thì container dự phòng (0.058834ms)
+✔ web v2 có package độc lập, base riêng và không nhập source v1 (103.536208ms)
+ℹ tests 69
+ℹ suites 0
+ℹ pass 68
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6217.130833
+
+✖ failing tests:
+
+test at test/compose-submit.test.ts:1:1
+✖ test/compose-submit.test.ts (145.6425ms)
+  'test failed'
+exit=1

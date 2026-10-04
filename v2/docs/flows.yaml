@@ -516,3 +516,18 @@ flows:
       - web/e2e/events.spec.ts
 shared: {}
 unassigned: []
+  web-tickets:
+    title: Bảng, danh sách và hộp thoại ticket dùng chung trên web Crew v2
+    doc: docs/flows/web-tickets.md
+    entrypoints:
+      - web/src/tickets/dialog.tsx
+    files:
+      - web/src/tickets/board.tsx
+      - web/src/tickets/list.tsx
+      - web/src/tickets/detail.tsx
+      - web/src/tickets/history.tsx
+      - web/src/tickets/queries.ts
+      - web/src/tickets/status.ts
+    tests:
+      - web/test/tickets.test.ts
+      - web/e2e/tickets.spec.ts

@@ -1,0 +1,26 @@
+$ NODE_OPTIONS=--max-old-space-size=384 node --test test/tickets.test.ts  # 2026-10-04T03:29:36Z
+✔ statusLabels đủ 7 nhãn tiếng Việt, mỗi trạng thái có biểu tượng riêng và thứ tự cột (0.630375ms)
+✔ requestRoots chỉ nhận level request, id===rootId, parentId null; không suy từ title/trang đầu (0.139291ms)
+✔ requestRoots và mergeTicketPages: ID trùng lấy revision mới bất kể thứ tự trang (0.079167ms)
+✔ groupByStatus luôn có đủ 7 nhóm, gom done/cancelled riêng (0.074041ms)
+✔ parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị hợp lệ (0.190167ms)
+✔ ticketListPath dựng đúng query /v2/tickets với cursor UUID và limit (0.232541ms)
+✔ fetchTicketPage giải mã DTO, sai shape báo RESPONSE_SHAPE_INVALID (0.317792ms)
+✔ ticketListOptions phân trang tới nextCursor null, không tự tải hết (0.072292ms)
+✔ fetchAllPages đọc hết trang theo cursor đến null (0.202917ms)
+✔ fetchAllPages dừng khi cursor lặp lại thay vì vòng vô hạn (0.132708ms)
+✔ buildLegacyTimeline sắp theo createdAt rồi id, không theo thứ tự UUID (0.153ms)
+✔ ticketQueryOptions: response revision cũ không ghi đè revision mới trong cache (0.487833ms)
+✔ ticketQueryOptions từ chối ticketId không phải UUID trước khi gọi mạng (0.071833ms)
+✔ formatTime hiển thị theo Asia/Ho_Chi_Minh, chuỗi lỗi giữ nguyên (0.055834ms)
+✔ actorLabel phân biệt chủ dự án và máy (0.029542ms)
+✔ pickReturnFocus: trả về trigger nếu còn trong DOM, nếu mất thì container dự phòng (0.061375ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 104.749375
+exit=0

@@ -1,0 +1,9 @@
+$ NODE_OPTIONS=--max-old-space-size=384 npx playwright test e2e/tickets.spec.ts --reporter=list  # 2026-10-04T03:29:21Z
+
+Running 1 test using 1 worker
+
+{"level":30,"time":1791084563506,"pid":40116,"hostname":"Phans-Mac-mini.local","msg":"Server listening at http://127.0.0.1:64798"}
+  ✓  1 [chromium] › e2e/tickets.spec.ts:232:1 › board/list/dialog đọc cùng ticket và revision, lịch sử theo thời gian, event làm mới dialog, trả focus (3.6s)
+
+  1 passed (6.0s)
+exit=0

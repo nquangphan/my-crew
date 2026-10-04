@@ -1,0 +1,429 @@
+$ NODE_OPTIONS=--max-old-space-size=384 node --test test/tickets.test.ts  # 2026-10-04T03:24:34Z scaffold
+✖ statusLabels đủ 7 nhãn tiếng Việt, mỗi trạng thái có biểu tượng riêng và thứ tự cột (1.452292ms)
+✖ requestRoots chỉ nhận level request, id===rootId, parentId null; không suy từ title/trang đầu (0.21175ms)
+✖ requestRoots và mergeTicketPages: ID trùng lấy revision mới bất kể thứ tự trang (0.120666ms)
+✖ groupByStatus luôn có đủ 7 nhóm, gom done/cancelled riêng (0.080833ms)
+✖ parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị hợp lệ (0.101292ms)
+✖ ticketListPath dựng đúng query /v2/tickets với cursor UUID và limit (0.101375ms)
+✖ fetchTicketPage giải mã DTO, sai shape báo RESPONSE_SHAPE_INVALID (0.188416ms)
+✖ ticketListOptions phân trang tới nextCursor null, không tự tải hết (0.102541ms)
+✖ fetchAllPages đọc hết trang theo cursor đến null (0.137667ms)
+✖ fetchAllPages dừng khi cursor lặp lại thay vì vòng vô hạn (0.192417ms)
+✖ buildLegacyTimeline sắp theo createdAt rồi id, không theo thứ tự UUID (0.147333ms)
+✖ ticketQueryOptions: response revision cũ không ghi đè revision mới trong cache (0.4905ms)
+✖ ticketQueryOptions từ chối ticketId không phải UUID trước khi gọi mạng (0.143417ms)
+✖ formatTime hiển thị theo Asia/Ho_Chi_Minh, chuỗi lỗi giữ nguyên (0.063417ms)
+✖ actorLabel phân biệt chủ dự án và máy (0.063625ms)
+✖ pickReturnFocus: trả về trigger nếu còn trong DOM, nếu mất thì container dự phòng (0.078959ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 0
+ℹ fail 16
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 99.281125
+
+✖ failing tests:
+
+test at test/tickets.test.ts:76:1
+✖ statusLabels đủ 7 nhãn tiếng Việt, mỗi trạng thái có biểu tượng riêng và thứ tự cột (1.452292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   cancelled: '',
+  +   done: '',
+  +   needs_input: '',
+  +   paused: '',
+  +   pending: '',
+  +   ready: '',
+  +   running: ''
+  -   cancelled: 'Đã hủy',
+  -   done: 'Hoàn thành',
+  -   needs_input: 'Chờ bạn',
+  -   paused: 'Tạm dừng',
+  -   pending: 'Chờ thực hiện',
+  -   ready: 'Sẵn sàng',
+  -   running: 'Đang chạy'
+    }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:77:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { pending: '', ready: '', running: '', needs_input: '', paused: '', done: '', cancelled: '' },
+    expected: { pending: 'Chờ thực hiện', ready: 'Sẵn sàng', running: 'Đang chạy', needs_input: 'Chờ bạn', paused: 'Tạm dừng', done: 'Hoàn thành', cancelled: 'Đã hủy' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:95:1
+✖ requestRoots chỉ nhận level request, id===rootId, parentId null; không suy từ title/trang đầu (0.21175ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   '00000000-0000-4000-8000-000000000004',
+      '00000000-0000-4000-8000-000000000001',
+  +   '00000000-0000-4000-8000-000000000005',
+      '00000000-0000-4000-8000-000000000002',
+  +   '00000000-0000-4000-8000-000000000006',
+  +   '00000000-0000-4000-8000-000000000007',
+  +   '00000000-0000-4000-8000-000000000008',
+      '00000000-0000-4000-8000-000000000003'
+    ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:114:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '00000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000006', '00000000-0000-4000-8000-000000000007', '00000000-0000-4000-8000-000000000008', '00000000-0000-4000-8000-000000000003' ],
+    expected: [ '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000003' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:120:1
+✖ requestRoots và mergeTicketPages: ID trùng lấy revision mới bất kể thứ tự trang (0.120666ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 5
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:124:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 5,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:135:1
+✖ groupByStatus luôn có đủ 7 nhóm, gom done/cancelled riêng (0.080833ms)
+  TypeError: Cannot read properties of undefined (reading 'map')
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:144:17)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/tickets.test.ts:152:1
+✖ parseTicketFilters chỉ giữ filter producer hỗ trợ với giá trị hợp lệ (0.101292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + {}
+  - {
+  -   kind: 'research',
+  -   projectId: '00000000-0000-4000-8000-0000000000aa',
+  -   rootId: '00000000-0000-4000-8000-000000000001',
+  -   status: 'needs_input'
+  - }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:153:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: {},
+    expected: { projectId: '00000000-0000-4000-8000-0000000000aa', status: 'needs_input', kind: 'research', rootId: '00000000-0000-4000-8000-000000000001' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:169:1
+✖ ticketListPath dựng đúng query /v2/tickets với cursor UUID và limit (0.101375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '/v2/tickets'
+  - '/v2/tickets?projectId=00000000-0000-4000-8000-0000000000aa&status=done&limit=50'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:171:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '/v2/tickets',
+    expected: '/v2/tickets?projectId=00000000-0000-4000-8000-0000000000aa&status=done&limit=50',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:180:1
+✖ fetchTicketPage giải mã DTO, sai shape báo RESPONSE_SHAPE_INVALID (0.188416ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   items: [],
+  +   nextCursor: null
+  -   items: [
+  -     {
+  -       criteria: {
+  -         workflowChoice: 'superpowers'
+  -       },
+  -       description: 'Mô tả',
+  -       id: '00000000-0000-4000-8000-000000000001',
+  -       inputs: {},
+  -       kind: 'code',
+  -       level: 'request',
+  -       mandatory: true,
+  -       mergedCommit: null,
+  -       outputs: {},
+  -       parentId: null,
+  -       projectId: '00000000-0000-4000-8000-0000000000aa',
+  -       repairCycles: 0,
+  -       revision: 1,
+  -       rootId: '00000000-0000-4000-8000-000000000001',
+  -       skill: null,
+  -       status: 'pending',
+  -       title: 'Yêu cầu',
+  -       waitReason: null,
+  -       workflowPin: null
+  -     }
+  -   ],
+  -   nextCursor: '00000000-0000-4000-8000-000000000001'
+    }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:184:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { items: [], nextCursor: null },
+    expected: { items: [ [Object] ], nextCursor: '00000000-0000-4000-8000-000000000001' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:193:1
+✖ ticketListOptions phân trang tới nextCursor null, không tự tải hết (0.102541ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - null
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:196:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: null,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:219:1
+✖ fetchAllPages đọc hết trang theo cursor đến null (0.137667ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   '00000000-0000-4000-8000-000000000003',
+  -   '00000000-0000-4000-8000-000000000009'
+  - ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:227:10)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ '00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000009' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:238:1
+✖ fetchAllPages dừng khi cursor lặp lại thay vì vòng vô hạn (0.192417ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:240:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:247:1
+✖ buildLegacyTimeline sắp theo createdAt rồi id, không theo thứ tự UUID (0.147333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   [
+  -     'comment',
+  -     '00000000-0000-4000-8000-000000000009'
+  -   ],
+  -   [
+  -     'decision',
+  -     '00000000-0000-4000-8000-000000000002'
+  -   ],
+  -   [
+  -     'decision',
+  -     '00000000-0000-4000-8000-000000000001'
+  -   ],
+  -   [
+  -     'comment',
+  -     '00000000-0000-4000-8000-000000000008'
+  -   ]
+  - ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:253:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ [ 'comment', '00000000-0000-4000-8000-000000000009' ], [ 'decision', '00000000-0000-4000-8000-000000000002' ], [ 'decision', '00000000-0000-4000-8000-000000000001' ], [ 'comment', '00000000-0000-4000-8000-000000000008' ] ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:272:1
+✖ ticketQueryOptions: response revision cũ không ghi đè revision mới trong cache (0.4905ms)
+  Error: NOT_IMPLEMENTED
+      at Object.queryFn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/tickets/queries.ts:57:13)
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:284:31)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/tickets.test.ts:290:1
+✖ ticketQueryOptions từ chối ticketId không phải UUID trước khi gọi mạng (0.143417ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: NOT_IMPLEMENTED
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:293:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at Object.queryFn (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/src/tickets/queries.ts:57:13)
+        at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:294:13)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:300:1
+✖ formatTime hiển thị theo Asia/Ho_Chi_Minh, chuỗi lỗi giữ nguyên (0.063417ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + '2026-10-04T00:30:00.000Z'
+  - '07:30 04/10/2026'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:301:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '2026-10-04T00:30:00.000Z',
+    expected: '07:30 04/10/2026',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:305:1
+✖ actorLabel phân biệt chủ dự án và máy (0.063625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  '' !== 'Chủ dự án'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:306:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: 'Chủ dự án',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/tickets.test.ts:310:1
+✖ pickReturnFocus: trả về trigger nếu còn trong DOM, nếu mất thì container dự phòng (0.078959ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + null
+  - {
+  -   focus: [Function: focus],
+  -   isConnected: true
+  - }
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/web/test/tickets.test.ts:316:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: null,
+    expected: [Object],
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+exit=1

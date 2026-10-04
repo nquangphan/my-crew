@@ -355,6 +355,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/index.html` | [web-shell](flows/web-shell.md) (file) |
 | `web/package.json` | [web-shell](flows/web-shell.md) (file) |
+| `web/e2e/tickets.spec.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/playwright.config.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/pnpm-lock.yaml` | [web-shell](flows/web-shell.md) (file) |
 | `web/scripts/e2e-fixture.ts` | [web-shell](flows/web-shell.md) (file) |
@@ -377,10 +378,18 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
 | `web/test/app-wiring.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
+| `web/src/tickets/board.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `web/src/tickets/detail.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `web/src/tickets/dialog.tsx` | [web-tickets](flows/web-tickets.md) (điểm vào) |
+| `web/src/tickets/history.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `web/src/tickets/list.tsx` | [web-tickets](flows/web-tickets.md) (file) |
+| `web/src/tickets/queries.ts` | [web-tickets](flows/web-tickets.md) (file) |
+| `web/src/tickets/status.ts` | [web-tickets](flows/web-tickets.md) (file) |
 | `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |
+| `web/test/tickets.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/vite.config.ts` | [web-shell](flows/web-shell.md) (file) |
 <!-- crew-docs:files:end -->

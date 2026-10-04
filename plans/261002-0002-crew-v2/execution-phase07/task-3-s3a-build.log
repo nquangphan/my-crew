@@ -1,0 +1,25 @@
+$ NODE_OPTIONS=--max-old-space-size=384 pnpm build  # 2026-10-04T03:29:49Z
+
+> @crew-v2/web@ build /Volumes/CORSAIR/Projects/my-crew-v2/v2/web
+> tsc --noEmit && vite build
+
+test/compose-submit.test.ts(10,3): error TS2305: Module '"../src/compose/state.ts"' has no exported member 'receiptSummary'.
+test/compose-submit.test.ts(80,42): error TS2353: Object literal may only specify known properties, and 'draftKey' does not exist in type '{ kind: "assistant_message"; target: Omit<FromShape<{ id: Decoder<string>; ownerId: Decoder<"owner">; revision: Decoder<number>; state: Decoder<"abandoned" | "open" | "submitted">; ... 4 more ...; conversationId: Decoder<...>; }> & Partial<...>, SessionFields>; conversationId: string; clientMessageId: string; text: ...'.
+test/compose-submit.test.ts(138,52): error TS2353: Object literal may only specify known properties, and 'conversationId' does not exist in type '{ kind: "ticket"; target: Omit<FromShape<{ id: Decoder<string>; ownerId: Decoder<"owner">; revision: Decoder<number>; state: Decoder<"abandoned" | "open" | "submitted">; expiresAt: Decoder<...>; purpose: Decoder<...>; projectId: Decoder<...>; ticketId: Decoder<...>; }> & Partial<...>, SessionFields>; ticket: CreateT...'.
+test/compose-submit.test.ts(139,52): error TS2353: Object literal may only specify known properties, and 'clientMessageId' does not exist in type '{ kind: "ticket"; target: Omit<FromShape<{ id: Decoder<string>; ownerId: Decoder<"owner">; revision: Decoder<number>; state: Decoder<"abandoned" | "open" | "submitted">; expiresAt: Decoder<...>; purpose: Decoder<...>; projectId: Decoder<...>; ticketId: Decoder<...>; }> & Partial<...>, SessionFields>; ticket: CreateT...'.
+ ELIFECYCLE  Command failed with exit code 1.
+exit=1
+$ tsc --noEmit -p tsconfig.s3a-tmp.json (extends tsconfig.json, exclude only foreign in-progress test/compose-submit.test.ts)  # 2026-10-04T03:29:56Z
+exit=0
+$ vite build
+vite v8.3.2 building client environment for production...
+transforming...
+✓ 159 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.79 kB │ gzip:   0.48 kB
+dist/assets/index-L9mWGiLi.css    4.06 kB │ gzip:   1.46 kB
+dist/assets/index-C_biEPji.js   355.29 kB │ gzip: 113.35 kB
+
+✓ built in 89ms
+exit=0
