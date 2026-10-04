@@ -1,0 +1,1729 @@
+922abed feat(v2-assistant): thêm route tool của Trợ lý cho các tool đã nghiệm thu
+ .../execution-phase06/task-2-slice-b3a-report.md   | 154 ++++
+ v2/docs/files.md                                   |   2 +
+ v2/docs/flows.yaml                                 |   2 +
+ v2/docs/flows/server-assistant.md                  |  12 +-
+ v2/server/src/assistant/routes.ts                  |   6 +
+ v2/server/src/assistant/tools.ts                   | 422 +++++++++++
+ v2/server/test/assistant-tools-route.test.ts       | 801 +++++++++++++++++++++
+ v2/server/test/support/assistant.ts                |  13 +-
+ 8 files changed, 1407 insertions(+), 5 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3a-report.md b/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3a-report.md
+new file mode 100644
+index 0000000..7b8b16f
+--- /dev/null
++++ b/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3a-report.md
+@@ -0,0 +1,154 @@
++# Report B3a — Route tool của Trợ lý (server) — 04/10/2026
++
++**Kết quả: DONE_WITH_CONCERNS.** Route `POST /v2/assistant/turns/:id/tools` và consumer cho `read_catalog`, `read_docs`, `create_run`, `ask_owner` đã xong; sáu tool còn lại trả `rejected`/`TOOL_NOT_RELEASED` với row ràng hash và không effect. RED 17/17 fail trên scaffold `NOT_IMPLEMENTED`; GREEN cuối 254/254 (237 cũ của S2/S4/S5 cộng 17 mới); hồi quy 102/102; scoped strict tsc exit 0 (log rỗng); Biome 0 lỗi, 0 warning; `crew-docs generate`, `check --all`, `check --staged` ok trên mirror. Production vẫn chưa mount: `app.ts` không gọi `registerAssistantRoutes`, và khi thiếu assembly `tools` thì route trả 503.
++
++Concern chính: header mang `providerCallId` (`x-crew-provider-call-id`) là lựa chọn của em theo đề xuất "approved-in-principle" ở `task-2-preflight.md:95`. Tên header và cách chuẩn hóa chưa được PM freeze (xem mục cuối).
++
++## Bối cảnh
++
++- Worktree `/Volumes/CORSAIR/Projects/my-crew-v2`, nhánh `codex/crew-v2-server`. **BASE `0bbc63e8d967c6ac9ba8a90ad54739a043ff8aee`.** Lúc viết report, HEAD đã lên `22dda3d` do worker web commit; các commit đó không chạm file của lát này.
++- Node v24.21.0, pnpm 10.32.1, Biome 2.5.14, TypeScript 7.0.2, PostgreSQL `postgres:18.6` (image local `4ef4dbc939d6`).
++- Nguồn đã đọc: brief B3a, phase-06 mục R2, memo PM A2/A3/A7, `progress.md` (các ruling B3), review S2/S4/S5 (N1, N2, W2, W3, W4, W5, W9, M1, M4), source accepted `authority.ts`, `orchestration.ts`, `runs.ts`, `gates.ts`, `operation-request.ts`, `store.ts`, `contracts.ts`, migration 011, `journal/mutation.ts`, `auth/routes.ts`, `docs/read.ts`, fixture `test/support/assistant.ts`.
++
++## File đã đổi
++
++| File | Thay đổi |
++|---|---|
++| `v2/server/src/assistant/tools.ts` (mới, 422 dòng) | `createAssistantTools({verifierBuildSha256, lookup?})` → `{authorize, consume}`; `registerAssistantToolRoutes`; đọc catalog/docs theo scope |
++| `v2/server/src/assistant/routes.ts` | Thêm tham số thứ tư `assembly: {tools?}` (mặc định `{}`) và gọi `registerAssistantToolRoutes`; route config giữ nguyên |
++| `v2/server/test/assistant-tools-route.test.ts` (mới) | 17 test qua Fastify inject, authenticator và journal thật, PostgreSQL riêng |
++| `v2/server/test/support/assistant.ts` | **Bổ sung fixture test-only:** tùy chọn `snapshotCanonical` của `seedAdmittedTurn` (mặc định `{}` như cũ), để snapshot có `required` cho pin selection. Không đổi hành vi mặc định |
++| `v2/docs/flows.yaml` | Thêm `server/src/assistant/tools.ts` và `server/test/assistant-tools-route.test.ts` vào `server-assistant` (sửa dưới lock manifest, đúng hunk của em) |
++| `v2/docs/flows/server-assistant.md` | Điểm vào, bước 13–14, bảng Files, Tests |
++| `v2/docs/files.md` | Do `crew-docs generate` sinh (2 dòng) |
++
++Không sửa `authority.ts`, `orchestration.ts`, `runs.ts`, `gates.ts`, `operation-request.ts`, `contracts.ts`, migration, `app.ts`, `main.ts`, web hay gateway.
++
++## Trace authority, khóa và replay
++
++Handler, theo đúng thứ tự:
++
++1. `tools` vắng → 503 `ASSISTANT_TOOLS_NOT_CONFIGURED`.
++2. Fastify kiểm body bằng `routingToolRequestSchema` strict: tool lạ, trường dư, kết quả giả gắn vào body đều trả 400 và không ghi gì.
++3. `deps.auth.authenticate`: không có bearer hoặc bearer sai trả 401; owner trả 403 `ASSISTANT_MACHINE_REQUIRED`.
++4. Header `x-crew-provider-call-id` phải có đúng một lần (đếm trên `rawHeaders`), ASCII nhìn thấy được, dài 1–4096, giữ nguyên hoa thường, không trim. Sai trả 400.
++5. `deps.mutator` với route `POST:/v2/assistant/turns/:id/tools`, key = `operationId` chữ thường, body journal `{providerCallId, request}`. Mutator lấy advisory lock, rồi `event_cursor` FOR UPDATE, rồi gọi `authorize`:
++   - kiểm lại credential máy trong Tx;
++   - `:id` phải bằng `fence.turnId`;
++   - tìm đúng một `assistant_scopes` của `turn_id` với `input_snapshot_id = pin.snapshotId`, `expires_at > clock_timestamp()`. Scope được suy từ turn và input, model không đưa scopeId;
++   - resolver persisted khóa guard → machine → config → designation → turn → monitor → grant → session → selection → receipt (admission, PASS, deployment, verifier);
++   - Actor do resolver trả phải đúng máy đã xác thực (S4 W2).
++
++   **Mọi lỗi tới đây đều thành cùng 404 `ASSISTANT_SCOPE_NOT_FOUND` với cùng message**, và chưa đọc ticket nào. Sau đó mới kiểm tiếp:
++   - pin input: sha256 của snapshot, input revision, `sha256(canonical(required))` khớp selection, revision và route revision hiện hành của đích. Lệch trả 409 `ASSISTANT_INPUT_STALE`;
++   - `scope.tool_names` phải chứa tool, nếu không trả 403 `ASSISTANT_TOOL_NOT_IN_SCOPE`;
++   - ngân sách: số operation khác của turn phải nhỏ hơn `maxToolsPerTurn`, và turn chưa quá `maxTurnMs`. Sai trả 409 `ASSISTANT_TOOL_BUDGET_EXHAUSTED`; policy hỏng trả 503.
++6. Chỉ sau `authorize` mutator mới tra `idempotency`. Replay cùng body trả response đã lưu, không UPDATE hay upsert gì (S2 N2). Test kiểm `xmin` của row không đổi. Khác body (payload hoặc provider call) trả 409 `IDEMPOTENCY_CONFLICT`.
++7. Với operation mới, `consume` chạy theo các bước sau:
++   - nếu `operation_id`, `client_sequence` hoặc `provider_call_id` đã có trong turn thì trả 409 `ASSISTANT_OPERATION_CONFLICT`;
++   - ghi row `assistant_tool_operations` **trực tiếp trong Tx, không qua savepoint, trước khi gọi port**. `request_hash` được tính bằng `operationRequestSha256`:
++     - `read_catalog`, `read_docs`, và tool chưa release: action là tên tool, payload là input;
++     - `create_run`: trước hết kiểm `rootTicketId` bằng root của scope (lệch trả 404, không tra ticket). Sau đó gọi `runs.createRunRequest`, tức là sau khi proof đã resolve ra scope (S4 N2), và hash bao gồm graphSha256 do server tự tính;
++     - `ask_owner`: payload là `QuestionProposal` đã gửi;
++   - gọi port hoặc service: `runs.createRun`, `gates.createOwnerQuestion`, đọc catalog, hoặc đọc docs cộng ghi receipt 011;
++   - kiểm kind của kết quả (`catalog`, `docs`, `run`, `question`), rồi UPDATE row từ `pending` sang `completed` với response.
++8. Lỗi bất kỳ sau lần ghi đầu đều ném ra ngoài và rollback toàn Tx: row, effect và journal (S4 W4). Response được lưu và trả ở dạng canonical JSON. Khi replay, handler canonical lại phần jsonb đã lưu, nên body giống từng byte.
++
++Về thứ tự khóa: turn (qua resolver) bị khóa trước root (trong `createRun`), đảo so với plan. Điều này vẫn an toàn: writer nào giữ root rồi mới khóa guard/turn đều đi qua `event_cursor` trước (S2 W4), và route giữ `event_cursor` trước tất cả. Đây cũng là thứ tự memo A2 yêu cầu ("transport resolve proof → scope trước mọi truy vấn ticket").
++
++Các ràng buộc 1–10 của brief:
++
++| # | Ràng buộc | Thực hiện |
++|---|---|---|
++| 1 | Xác thực máy, fence, input, tool_names, ngân sách đều xong trước replay | Kiểm trong `authorize` |
++| 2 | Không cho dò sự tồn tại | Một hình dạng 404 trước khi resolve scope |
++| 3 | Mọi tool ràng hash | Tính bằng `operationRequestSha256` |
++| 4 | Thứ tự ghi | Row ghi trực tiếp trước port, `event_cursor` khóa trước |
++| 5 | Replay | Chỉ đọc kết quả đã lưu, ID xung đột trả 409 |
++| 6 | Một port mỗi assembly | Mỗi assembly có đúng một resolver và một port, dùng chung cho runs và gates |
++| 7 | Actor | So máy đã xác thực với resolver; ticket mang `created_actor` = A |
++| 8 | All-or-nothing | Rollback toàn Tx khi lỗi |
++| 9 | Đúng kind kết quả | Tool lạ trả 400 |
++| 10 | `ask_owner` | Câu hỏi không có ticket trả 422; wait intent còn pending |
++
++## TDD
++
++| Lượt | Nội dung | Kết quả | Exit | Log SHA (16) |
++|---|---|---|---|---|
++| RED | `assistant-tools-route.test.ts` trên scaffold: `createAssistantTools` và handler đều ném `NOT_IMPLEMENTED` | 17/17 fail: 16 fail tại `createAssistantTools` sau khi fixture đã seed row thật, 1 fail vì 500 ≠ 503 | 1 | `dac866168b144866` |
++| GREEN run1 | cùng file | 13/17. Hai lỗi: (a) oracle `create_run` của test được tính sau khi run đã tồn tại; (b) replay trả thứ tự key jsonb | 1 | `97acf2cf3fb39b48` |
++| GREEN run2 | sau khi sửa: oracle tính trước; response canonical ở handler | 17/17 | 0 | `a600ec3f9b4e4d2d` |
++| GREEN | 9 file: tools-route, workflows, authority, orchestration-port, mutations, orchestration, tickets, deploy, dependencies | 254/254 | 0 | `dec752a40651c1f9` |
++| Hồi quy | api-acceptance, assistant-store, attachments-routing, attachments-snapshots, attempts, completion, docs-read, repair | 102/102 | 0 | `496dedc3df968a8f` |
++| GREEN cuối | 9 file như trên, trên source cuối (sau khi sửa cleanup fixture trong test) | 254/254, 101 scratch tạo và 101 xóa | 0 | `fc8d542cb6467bef` |
++| tsc strict scoped | `tools.ts`, `routes.ts`, test, `support/assistant.ts` | log rỗng | 0 | `e3b0c44298fc1c14` |
++| Biome | 4 file sở hữu | `Checked 4 files`, 0 lỗi, 0 warning | 0 | `316b2e405612b93d` |
++
++Test được viết trước source. Thứ duy nhất có trước RED là scaffold khai báo type, cộng dòng nối `registerAssistantToolRoutes` vào `routes.ts` với handler ném `NOT_IMPLEMENTED`. Không có source nháp nào ngoài repo.
++
++17 test phủ đủ danh sách RED tối thiểu:
++
++- 503 khi thiếu assembly;
++- 401 khi thiếu hoặc sai token; header provider sai trả 400;
++- một hình dạng lỗi cho 10 biến thể trước resolve: path ≠ fence, turn lạ, generation, process, designation, designation revision, snapshot lạ, máy C, máy B, scope hết hạn;
++- tool lạ, trường dư, kết quả giả, operationId hỏng, sequence 0 → 400;
++- pin cũ (sha, selection, revision, đích đã sang revision mới) → 409;
++- tool ngoài `tool_names` → 403;
++- ngân sách: lần gọi kế bị từ chối nhưng replay vẫn được;
++- `read_catalog`: hash oracle, các field của row, response;
++- `read_docs`: `DocRead` và receipt; dự án ngoài scope, dự án lạ, path thiếu → cùng 404;
++- `create_run` thành công: ticket mang actor A, journal actor A, hash bằng oracle độc lập;
++- `create_run` trên root ngoài scope và root lạ → cùng 404;
++- `ask_owner` thành công; không ticket → 422; lỗi muộn sau khi ghi row → rollback row;
++- ba tool chưa release → `rejected` với hash oracle, không effect;
++- replay sau commit không ghi thêm; bốn kiểu xung đột → 409;
++- response mất trước commit: không effect, retry áp dụng đúng một lần;
++- ba request trùng chạy đồng thời → một run.
++
++Lệnh test: `NODE_OPTIONS=--max-old-space-size=384 CREW_V2_TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:<port>/crew_v2_test CREW_V2_TEST_CONTAINER_ID=<id> node --test --test-concurrency=1 --test-timeout=180000 <files>` (chạy trong `v2/server`).
++
++Lệnh tsc: `pnpm exec tsc --noEmit --ignoreConfig --skipLibCheck --target ESNext --module NodeNext --strict --allowImportingTsExtensions --erasableSyntaxOnly --verbatimModuleSyntax --types node src/platform/picomatch.d.ts src/platform/thread-stream.d.ts src/attachments/extract/yauzl.d.ts <4 file>`.
++
++Lệnh Biome: `node_modules/.bin/biome check <4 file>` (chạy ở gốc repo).
++
++## Hash source cuối (SHA-256)
++
++| File | SHA-256 |
++|---|---|
++| `v2/server/src/assistant/tools.ts` | `7e0952fbbedaf13157941acd21afa55e45c7f3dee7a1984445a03a6d6cfcd32c` |
++| `v2/server/src/assistant/routes.ts` | `27535bc048947ddf3ce4c1a3c50a73d8291002e84131f2bcdedc9736b101b432` |
++| `v2/server/test/support/assistant.ts` | `60f16b43b4ed8a8fcea8f73ecc8553fa4fef705242a1245b399afbeeb8f62122` |
++| `v2/docs/flows.yaml` | `807063642fa3f64765720ea9fc486875ac29bedefe7e26c7c05d8ad34bccdefc` |
++| `v2/docs/flows/server-assistant.md` | `8d5fe52ceca1efd9131ab39e9f5a2e61b3e11fb97c7b985bb99cf4520165679c` |
++| `v2/docs/files.md` | `3f479cd5c3620da157c1c4642ea2a489d6ea07d48dba877d3ae213d9624694ba` |
++
++Test file đổi sau GREEN đầu (thêm `closeAttachments`). Hash của nó nằm trong commit; lượt GREEN cuối chạy trên đúng bản này.
++
++## Docs
++
++Đã cập nhật `server-assistant.md` (điểm vào, bước 13–14, Files, Tests) và hai dòng manifest. Kiểm trên mirror trong `$TMPDIR/crew-v2-b3a/mirror`: lấy `git archive HEAD:v2`, commit baseline, rồi overlay đúng 6 file của lát. `crew-docs generate` cho `index.md` unchanged và `files.md` updated (2 dòng, đã chép về worktree). `check --all` ok, `check --staged` ok. Mirror đã xóa. Hook commit chạy lại khi commit.
++
++## Tài nguyên và dọn dẹp
++
++- Mọi lượt nặng đều lấy `$TMPDIR/crew-v2-heavy-slot.lock` với owner `b3a`, và chỉ chạy khi `pm-telemetry.py` trả `heavyEligible=true`: available 4,16–5,03 GiB, pressure 1, CPU idle ≥ 77,99 %. Có 13 lần kiểm cho kết quả không đủ điều kiện (3,42–3,99 GiB); những lần đó em trả lock và chờ, không chạy. Lock được trả bằng `rm -rf` đúng thư mục trong trap EXIT; hiện tại không còn lock của `b3a`.
++- PG chạy 6 container `crew-v2-test-<uuid>` với `--rm --memory 256m --cpus 1 --pids-limit 64 -p 127.0.0.1::5432`. Inspect cho 268435456 / 1000000000 / 64. Port loopback ngẫu nhiên: 63966, 50214, 49491, 50360, 51538, 54843. Sau mỗi lượt: `pg_database like 'crew_v2_test_%'` = 0, `docker stop`. Kiểm lại cuối: cả 6 ID cho `docker ps -a --filter id` rỗng. Không chạm container của người khác.
++- Không còn process `node --test`.
++- Fixture scratch: các lượt đầu để lại root `crew-v2-attachments-*`, vì `close()` của test em che mất `close()` của fixture attachment. Em đã sửa test để gọi `closeAttachments()`; lượt GREEN cuối tạo 101 root và xóa 101. Ngoài ra em xóa 68 root còn sót. Mỗi root đó đều có tên trong log của chính em và có `.fixture-owner.json`; kiểm lại cho 0 còn lại.
++- Script runner nằm ở `$TMPDIR/crew-v2-b3a/` (thư mục scratch riêng của em). Log và resource log mới đều mang tên `task-2-slice-b3a-*`.
++
++## Tự review
++
++- Không có port test-trust: test dùng `seedAdmittedTurn` thật với resolver production và hằng verifier của fixture.
++- Không test nào chỉ kiểm mock.
++- Các lỗi trước khi resolve scope không lộ sự tồn tại ticket hay project. Sau khi resolve, `create_run` và `read_docs` ngoài scope trả 404 mà không tra row.
++- Một cast có chú thích: `toolRequestSha256` ép `{action: toolName, payload}` sang `OperationRequest`. Lý do: union chỉ liệt kê action mà port tiêu thụ, và `operation-request.ts` đã được nghiệm thu nên không thuộc quyền sửa của lát này. Hash vẫn dùng đúng tag `crew-v2:operation-request:1`, và tên tool tách miền khỏi các action của port.
++- Ngoài ngân sách `maxToolsPerTurn` (cần cho RED), em có thêm `maxTurnMs`. Đây là phần mở rộng theo cách em đọc chữ "budget" của brief; PM có thể bỏ nếu cho là ngoài phạm vi.
++- Validator Fastify của assembly production phải cấu hình `removeAdditional:false`, `coerceTypes:false`, `useDefaults:false` như doc 011 đã ghi. `buildApp` hiện chỉ đặt `removeAdditional:false`. Việc này không ảnh hưởng hôm nay vì route chưa mount, nhưng là điều kiện khi release.
++
++## Câu hỏi và việc còn mở
++
++1. **Carrier `providerCallId` chưa được freeze.** Em dùng header `x-crew-provider-call-id`: đúng một lần, ASCII `0x21–0x7e`, dài 1–4096, không trim, đưa vào body journal và cột `provider_call_id`, nhưng không vào `request_hash` (để giữ ràng buộc 3). PM cần xác nhận tên và quy tắc này, hoặc ra ruling khác, trước khi gateway `tool-client.ts` dùng.
++2. `ask_owner`: wait intent (phase-06:226) vẫn chưa làm. Câu hỏi không có ticket vẫn trả 422 (S5 W5).
++3. Chưa có `GET /v2/assistant/turns/:id/tools/:operationId`. Plan R2 nhắc tới route này nhưng brief B3a không giao.
++4. Catalog của scope message trả mọi dự án, tối đa 1000, không phân trang. `read_docs` với scope message chưa route được đọc docs của mọi dự án. Đây là cách em hiểu quyền route message theo plan ("message read/propose"); cần PM xác nhận.
++5. Production assembly, tức inject `createAssistantTools` và mount `registerAssistantRoutes`, chờ PM release riêng.
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index bc4eb11..358d0f8 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -170,20 +170,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/app.ts` | [server-docs-view](flows/server-docs-view.md) (điểm vào) |
+ | `server/src/assistant/authority.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/contracts.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/gates.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
+ | `server/src/assistant/inbox.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/operation-request.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/orchestration.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/routes.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/runs.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
+ | `server/src/assistant/store.ts` | [server-assistant](flows/server-assistant.md) (file) |
++| `server/src/assistant/tools.ts` | [server-assistant](flows/server-assistant.md) (file) |
+ | `server/src/assistant/workflows.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
+ | `server/src/attachments/access.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/comment-refs.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/config.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/contracts.ts` | [server-attachments](flows/server-attachments.md) (file) |
+ | `server/src/attachments/extract/csv.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/docx.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/formats.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/image.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+ | `server/src/attachments/extract/index.ts` | [attachment-extraction](flows/attachment-extraction.md) (file) |
+@@ -265,20 +266,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/src/tickets/history.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/repair.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/src/tickets/routes.ts` | [server-tickets](flows/server-tickets.md) (điểm vào) |
+ | `server/src/tickets/service.ts` | [server-tickets](flows/server-tickets.md) (file) |
+ | `server/test/api-acceptance.test.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/assistant-authority.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-mutations.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/assistant-orchestration-port.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-orchestration.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/assistant-store.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
++| `server/test/assistant-tools-route.test.ts` | [server-assistant](flows/server-assistant.md) (test) |
+ | `server/test/assistant-workflows.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
+ | `server/test/attachment-event.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachment-mount.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-access.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-api.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-comment-factory.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/attachments-events.unit.test.ts` | [server-journal](flows/server-journal.md) (test), [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-formats.unit.test.ts` | [attachment-extraction](flows/attachment-extraction.md) (test) |
+ | `server/test/attachments-grants.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+ | `server/test/attachments-messages.test.ts` | [server-attachments](flows/server-attachments.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index c2112a1..ca6ba7f 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -455,25 +455,27 @@ flows:
+     doc: docs/flows/server-assistant.md
+     entrypoints: []
+     files:
+       - server/src/assistant/authority.ts
+       - server/src/assistant/contracts.ts
+       - server/src/assistant/inbox.ts
+       - server/src/assistant/operation-request.ts
+       - server/src/assistant/orchestration.ts
+       - server/src/assistant/routes.ts
+       - server/src/assistant/store.ts
++      - server/src/assistant/tools.ts
+       - server/migrations/011_assistant.sql
+     tests:
+       - server/test/assistant-authority.test.ts
+       - server/test/assistant-orchestration-port.test.ts
+       - server/test/assistant-store.test.ts
++      - server/test/assistant-tools-route.test.ts
+       - server/test/support/assistant.ts
+   assistant-workflows:
+     title: Định nghĩa workflow chính thức và pin bất biến
+     doc: docs/flows/assistant-workflows.md
+     entrypoints:
+       - gateway/src/assistant/workflow-manifest.ts
+     files:
+       - gateway/src/assistant/render-artifacts.ts
+       - server/src/assistant/gates.ts
+       - server/src/assistant/runs.ts
+diff --git a/v2/docs/flows/server-assistant.md b/v2/docs/flows/server-assistant.md
+index 040b3c2..ce1db4b 100644
+--- a/v2/docs/flows/server-assistant.md
++++ b/v2/docs/flows/server-assistant.md
+@@ -5,51 +5,57 @@
+ Phase06/T1 lưu inbox, lượt Trợ lý và các chứng từ điều phối trong PostgreSQL. Inbox tích lũy khi máy offline hoặc chưa designation; chỉ fence hiện hành mới claim hoặc ACK. Paid budget mặc định bằng 0. Lượt chưa biết đã dừng hay chưa giữ quyền chiếm chỗ, không tự giải phóng theo TTL.
+ 
+ ## Điểm vào
+ 
+ `assistant/inbox.ts` cung cấp `enqueueWork`, `ingestEvents`, `reconcileWork`, `claimWork`, `ackWork`. `assistant/store.ts` kiểm fence và cấp generation trong transaction. `assistant/contracts.ts` khai báo DTO và runtime schema strict cho toàn bộ DTO serializable, kể cả dữ liệu lồng trong routing tool/event/result, workflow, assessment, capacity và chứng từ R1–R4. Function port không có JSON schema. T1 chưa đăng ký route, driver, admission hoặc lời gọi model.
+ 
+ Slice A T2 thêm factory `registerAssistantRoutes`: owner GET/PUT `/v2/assistant/config`, strict policy và `preferred:null`. Factory chưa được ghép vào app production. `createPersistedAssistantActorResolver({verifierBuildSha256})` cấp Actor dương chỉ từ hàng persisted; build hash verifier phải được ghim lúc assembly (hex64 thường, sai thì factory ném lỗi).
+ 
+ `assistant/orchestration.ts` → `createProjectOrchestrationPort({tickets,resolver})` là `ProjectOrchestrationPort` thật trên các entry scoped của `server-tickets` (`createTicket`, `decision`, `dependency`, `signal`); `command` luôn 503 `ORCHESTRATION_COMMAND_NOT_RELEASED`. `createPersistedOrchestrationAuthority(resolver)` là authority đi kèm; dùng trần ngoài port thì thiếu target nên luôn 403. App production chưa inject resolver/port, nên mọi entry scoped vẫn trả503 và hôm nay chưa có receipt PASS nào.
+ 
++`assistant/tools.ts` → `createAssistantTools({verifierBuildSha256, lookup?})` dựng đúng một resolver, một port, `runs` và `gates` trên chúng, rồi cấp `authorize`/`consume` cho route `POST /v2/assistant/turns/:id/tools`. `registerAssistantRoutes(app, options, deps, {tools})` đăng ký route này; thiếu `tools` thì route trả503 `ASSISTANT_TOOLS_NOT_CONFIGURED`. App production chưa gọi `registerAssistantRoutes`, nên route chưa được mount.
++
+ ## Các bước
+ 
+ 1. Ingestion khóa `event_cursor` rồi monitor, đọc event đã commit theo trang 200, chèn work và tiến cursor trong cùng transaction. Rollback giữ cả work và cursor ở trạng thái trước đó. Event duplicate vẫn cho cursor tiến; work đã claim/ACK không bị ghi đè.
+ 2. `assistant.message.created` và message `attachment.input.changed` đọc revision từ message009. Ticket `attachment.input.changed`, `attachment.changed` đọc counter009 của đích. `comment.created` đọc cây con hiện tại và revision của từng descendant; không tăng counter thêm lần nữa. Ticket lifecycle `ticket.created/changed`, `dependency.added`, `decision.created`, `repair.recorded`, command và attempt events tạo work cursor riêng với `input_revision=null`. Event khác chỉ tiến cursor.
+ 3. Input wake khử trùng trên `(target_kind,target_id,input_revision)` khi revision khác null. `reconcileWork` quét revision message/ticket thực để bù wake mất, dùng cùng khóa dedup và giữ logical key/source cursor ban đầu. Các hàm này không tạo turn hay quyền inference.
+ 4. Ticket claim/ACK khóa event cursor và root trước các khóa authority. Message bắt đầu ở authority và không khóa root về sau. Guard calibration, machine, config, designation, turn và generation hiện hành đều phải khớp exact TurnFence. Trước cả replay, message work phải cùng message/conversation của turn; ticket work cần scope của chính turn còn hạn, đúng root/project, kể cả descendant. Message turn chỉ nhận root scope khi có route chưa revoke tới cùng root/project; monitor turn không message cần explicit root scope. Discovery toàn hệ thống không cấp turn quyền toàn hệ thống. Claim chỉ nhận reserved/running; ACK nhận running/finalizing/stopped. Uncertain bị giữ lại. Replay cùng fence không tăng attempts hoặc sửa ACK terminal.
+ 5. `allocateAssistantGeneration(tx)` khóa guard chung và tăng bigint monitor bằng UPDATE RETURNING, không reset hoặc wrap. Caller admission T2 phải bind giá trị với đúng normal turn hoặc calibration launch trong cùng transaction thành công; đọc/cấp generation tự nó không cấp quyền.
+ 6. SQL011 bảo vệ liên kết conversation/message, một turn sống, chứng từ bất biến, scope cụ thể, hex64 effect và ordinal hành động persist trong target identity. R1 tách challenge/certification và measured routing receipt khỏi certificate workflow008. R2 giữ thứ tự tool call và kết quả terminal. R3 chỉ nối derived authorization đúng route với parent còn hiệu lực, không tăng expiry/allowOriginal hoặc mở rộng reference original.
+ 7. R4 hook trên INSERT attempt kiểm launch đúng command/machine/process, chưa hết hạn hoặc retired, rồi bind attempt và active reservation nguyên tử. Release attempt cần stopped và finalized. Unclaimed release cần retirement cùng proof never-authorized hoặc launch đóng với exact identity và stop/journal chứng từ. Guard release kiểm cả INSERT và UPDATE bằng constraint deferred: terminal row có proof hợp lệ vẫn được insert/restore, row thiếu proof bị rollback. UUID artifact không chứng minh đã dừng.
+ 8. Owner chọn machine còn hiệu lực bằng cookie, Origin, CSRF và Idempotency-Key. PUT dùng machine UUID chuẩn chữ thường cho identity nội bộ, giữ nguyên request body để journal hash/replay. Thứ tự khóa: journal/event cursor → calibration guard → machines theo thứ tự → config → designation → live turns khi đổi máy → exact owner session FOR SHARE. Sau mọi lần chờ, statement riêng kiểm revoke/expiry bằng `clock_timestamp()`, trước cached reply hoặc mutation. Session lock giữ tới commit để serialize revocation.
+ 9. Mutation mới kiểm config CAS; replay không tạo designation mới. Policy update cùng machine giữ designation và live turn. Đổi máy khi idle retire identity cũ; turn chưa stopped hoặc calibration active trả409 và không retire một phần. Metadata không tạo grant, turn, command hoặc quyền inference. Direct input/doc reads, G2 và retirement runtime vẫn chờ producer tiếp theo.
+ 10. Resolver: kiểm fence/scope như cũ (scope thiếu404, fence lệch409, scope hết hạn409 đo bằng `clock_timestamp()`). Turn chưa có `admission_id` giữ503 `ASSISTANT_ADMISSION_NOT_CONFIGURED`. Turn đã admit phải có read session của chính admission (tra thẳng theo `read_session_id` và `admission_id`). Grant của session khóa FOR SHARE trước session: chưa revoke, còn hạn, cùng máy designation, cùng snapshot với session, đúng designation và revision của fence; re-route thu hồi grant nên session `reserved` còn lại cũng bị từ chối. Session `reserved/running`, cùng máy designation, process instance, designation revision, selection, policy receipt và snapshot input của scope. Selection dẫn tới policy receipt `PASS`, chưa revoke, cùng `deployment_id` của config và đúng verifier đã ghim, cùng máy; capability receipt của selection còn hiệu lực. Grant, session, selection và receipt khóa FOR SHARE rồi mới đo hạn bằng `clock_timestamp()`. Mọi lệch trả403 `ASSISTANT_ADMISSION_DENIED`, không fallback. Thành công trả `{kind:'machine', id: designation.machine_id}` đóng băng.
+ 11. Port chụp actor/proof/payload đồng bộ trước mọi await rồi gọi entry scoped; entry khóa root → ticket theo thứ tự → project trước verify. Authority: resolver; actor gọi phải đúng máy designation (403 `ORCHESTRATION_ACTOR_MISMATCH`); action phải nằm trong `scope.actions` (403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`); `operationId` phải là row `assistant_tool_operations` `pending` của cùng turn, được ghi trong chính Tx (`xmin` = transaction hiện hành; row đã commit từ Tx trước bị 404 `ASSISTANT_OPERATION_NOT_FOUND`), trên snapshot input của scope (409 `ASSISTANT_OPERATION_STALE`), row này khóa FOR UPDATE. `request_hash` của row phải bằng `operationRequestSha256` = SHA-256 canonical của `{schema:'crew-v2:operation-request:1', action, payload}` (module `assistant/operation-request.ts`; B3 phải băm mọi tool bằng đúng hàm này) của đúng action và payload đã submit: `create_ticket` → CreateTicket, `decision` → `{ticketId, input}`, `dependency` → `{ticketId, predecessorId, expectedRevision}`, `signal` → `{ticketId, signal, expectedRevision}`, `ask_owner` → `QuestionProposal` đã gửi (tiêu thụ ở `assistant/gates.ts`, flow `assistant-workflows`); lệch trả 403 `ORCHESTRATION_REQUEST_MISMATCH`. Vì action nằm trong hash, operation của tool khác hoặc của `create_run` không authorize được mutation đơn lẻ. Mỗi operation chỉ authorize một mutation trong transaction của nó; dùng lại trả 409 `ASSISTANT_OPERATION_CONSUMED`. Tập đã dùng nằm trong setting cục bộ của transaction (`crew.assistant_consumed_operations`), nên mọi handle cùng transaction, kể cả savepoint, đều thấy; savepoint bị rollback thì trả lại operation cùng các ghi của nó. Ticket đích, cha hoặc predecessor phải thuộc đúng `scope.root_ticket_id` và project; ngoài gốc hoặc scope message không có root trả404. Tạo request mới chỉ với scope message và quyết định `routing` của message ghi trong chính Tx (`xmin` = transaction hiện hành) với body đúng `{operationId,scopeId,ticketSha256}` bằng hash CreateTicket, cùng snapshot, input revision hiện hành (message khóa FOR SHARE khi đọc), actor máy A và `sha256` khớp; thiếu hoặc lệch trả403 `ORCHESTRATION_ROUTING_DECISION_REQUIRED`. Dependency không có cột actor: provenance là row tool operation (turn → designation → máy A) cộng journal actor A của mutation. Precondition cho caller: gọi port bên trong `mutate()` (hoặc khóa `event_cursor` trước root) để giữ thứ tự khóa với ingestion; router ghi tool operation và routing decision trực tiếp trong Tx (không qua savepoint) và ghi decision trước khi tăng `input_revision` của message; transport phải resolve proof → scope trước mọi truy vấn ticket để không lộ sự tồn tại.
+ 12. Graph authorization cho `create_run`: `port.authorizeGraph(tx, actor, proof, request, graph)` nhận `CreateRunRequest = {rootTicketId, path, definitionSha256}` và `RunGraph = {runId, rootTicketId, tickets:[{key, input}], edges:[{key, ticketKey, predecessorKey}]}`. Mọi ticket phải là `step` con trực tiếp của root; key là UUID chữ thường, không trùng; cạnh chỉ nối hai ticket của graph, không tự nối, không lặp; `request.rootTicketId` bằng root của graph (sai shape trả 400). Port tự tính `runGraphSha256(graph)` = SHA-256 canonical của `['crew-v2:orchestration-graph:1', graph]` trên snapshot đồng bộ, không nhận digest từ caller. Port khóa root → project, resolver Actor, kiểm scope là root scope đúng root/project, `tool_names` có `create_run` và `actions` có `create_ticket` (cùng `dependency` nếu có cạnh), nếu thiếu trả 403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`. Operation phải là row pending ghi trong chính transaction như mục 11, chưa dùng (409), và có `request_hash = operationRequestSha256({action:'create_run', payload:{...request, graphSha256}})`; graph hoặc request lệch, hay operation viết cho tool/mutation khác, trả 403 `ORCHESTRATION_REQUEST_MISMATCH`. Mỗi transaction chỉ có một graph. Session trả về chỉ dùng được với đúng handle đã authorize; handle khác hoặc session đã đóng trả 404 `ASSISTANT_OPERATION_NOT_FOUND`. `createTicket(tx, key, input)` và `dependency(tx, ticketId, predecessorId, expectedRevision)` vẫn đi qua entry scoped của `server-tickets`. Authority khớp đúng một phần tử chưa dùng: key lạ, input khác hash đã băm, cạnh không có trong tập hoặc ticket ngoài graph trả 403 `ORCHESTRATION_TARGET_NOT_AUTHORIZED`; phần tử đã dùng trả 409 `ORCHESTRATION_TARGET_CONSUMED`. Mỗi phần tử resolve lại Actor, kiểm lại action của scope và membership root. `close(tx)` trả 409 `ORCHESTRATION_GRAPH_INCOMPLETE` nếu còn phần tử chưa dùng. Transport B3 tính `request_hash` cho `create_run` bằng `runs.createRunRequest(tx, operationId, input)` trước khi ghi row.
++13. Route tool: body là `RoutingToolRequest` strict (`routingToolRequestSchema`), tool lạ hoặc trường dư trả400 và không ghi gì; validator của assembly không được xóa field dư, ép kiểu hay chèn default. Chỉ máy bearer được gọi (thiếu/sai token401, owner403). Header `x-crew-provider-call-id` phải có đúng một lần, 1–4096 ký tự ASCII nhìn thấy được, giữ nguyên hoa thường, không trim; sai trả400. Toàn bộ chạy trong `deps.mutator` với key = `operationId` chữ thường và body journal `{providerCallId, request}`, nên `event_cursor` bị khóa trước mọi khóa khác. Callback `authorize` chạy trước replay: kiểm lại credential máy trong Tx; `:id` phải bằng `fence.turnId`; tìm đúng một scope của turn cho `inputSnapshot.snapshotId` còn hạn (đo bằng `clock_timestamp()`); resolver khóa guard → machine → config → designation → turn → monitor → grant → session và trả Actor; Actor phải đúng máy đã xác thực. Mọi lỗi tới đây (turn/fence/process/generation/designation lệch, snapshot lạ, scope hết hạn, máy không phải Trợ lý, admission thiếu hoặc bị từ chối) đều trả cùng 404 `ASSISTANT_SCOPE_NOT_FOUND` và cùng message, chưa đọc ticket nào. Sau đó: pin input phải khớp đúng snapshot (sha256, input revision, `sha256(canonical(required))` của selection) và revision/route revision hiện hành của đích, lệch trả409 `ASSISTANT_INPUT_STALE`; tool phải nằm trong `scope.tool_names` (403 `ASSISTANT_TOOL_NOT_IN_SCOPE`); ngân sách lượt: số operation khác của turn < `policy.maxToolsPerTurn` và turn chưa quá `policy.maxTurnMs`, sai trả409 `ASSISTANT_TOOL_BUDGET_EXHAUSTED` (policy hỏng503). Replay cùng key và cùng body chỉ đọc kết quả đã lưu, không ghi lại row; cùng key khác body (payload hay provider call) trả409 `IDEMPOTENCY_CONFLICT`. Operation mới mà ID, `client_sequence` hoặc `provider_call_id` đã có trong turn trả409 `ASSISTANT_OPERATION_CONFLICT`.
++14. `consume` ghi row `assistant_tool_operations` trực tiếp trong Tx (không savepoint) trước mọi lời gọi port, `request_hash` luôn qua `operationRequestSha256` với action là tên tool: `read_catalog` → `{}`; `read_docs` → input; `create_run` → request do `runs.createRunRequest` dựng (graph digest server tự tính), chỉ khi `rootTicketId` bằng root của scope (khác thì404 mà không tra ticket); `ask_owner` → `QuestionProposal` đã gửi, rồi `gates.createOwnerQuestion` (câu hỏi không ticket422; wait intent của ticket chưa làm). Kết quả đúng một kind: `catalog`, `docs`, `run`, `question`; row chuyển `completed` với response. `read_catalog` trả dự án của scope (scope message chưa route: mọi dự án, tối đa1000) cùng snapshot mới nhất. `read_docs` đọc đúng file của snapshot thuộc dự án được phép, dự án ngoài scope, snapshot hay path không có đều 404 giống nhau; trả `DocRead` (`state` = `current` khi snapshot verified, mới nhất và trùng `expected_commit`, `stale` nếu không, `unverified` khi chưa verified) và ghi receipt `assistant_doc_read_receipts(id,turn_id,snapshot_id,path,sha256)`. Tool khác của union (`route_message`, `read_execution_candidates`, `assess_ticket`, `request_dispatch`, `request_review`, `publish_reply`) ghi row `rejected` với `errorCode:'TOOL_NOT_RELEASED'`, không effect nào khác, vẫn tính vào ngân sách. Mọi lỗi sau lần ghi đầu ném ra ngoài và rollback cả Tx (row, effect và journal), nên retry chạy lại đúng một lần. Response lưu và trả ở dạng canonical JSON, nên replay giống từng byte. Ticket và dependency do `create_run` tạo mang actor máy A; journal idempotency mang actor A; provenance là row tool operation. Thứ tự khóa turn trước root (resolver trước `createRun`) an toàn vì mọi writer giữ root rồi mới tới guard/turn đều đi qua `event_cursor` trước.
+ 
+ ## Files
+ 
+ | Đường dẫn từ `v2/` | Vai trò |
+ |---|---|
+ | `server/migrations/011_assistant.sql` | Persistence Assistant và ràng buộc R1–R4 |
+ | `server/src/assistant/contracts.ts` | Hợp đồng typed nhập từ producer đã có |
+ | `server/src/assistant/store.ts` | Fence và generation persistence |
+ | `server/src/assistant/inbox.ts` | Cursor, reconciliation, claim và ACK |
+ | `server/src/assistant/authority.ts` | Designation/CAS và resolver Actor từ admission/receipt persisted |
+ | `server/src/assistant/orchestration.ts` | `ProjectOrchestrationPort` thật, authority persisted (scope/operation/request hash/membership/routing decision) và graph authorization một lần cho `create_run` |
+ | `server/src/assistant/operation-request.ts` | Hợp đồng `OperationRequest` và `operationRequestSha256` dùng chung cho port và transport |
+-| `server/src/assistant/routes.ts` | Owner config routes và credential lock |
++| `server/src/assistant/routes.ts` | Owner config routes, credential lock và đăng ký route tool khi assembly cấp `tools` |
++| `server/src/assistant/tools.ts` | Route `POST /v2/assistant/turns/:id/tools`: authority trước replay, row operation ràng hash, consumer `read_catalog`/`read_docs`/`create_run`/`ask_owner`, tool chưa release bị từ chối |
+ | `server/test/assistant-store.test.ts` | PostgreSQL constraints, durable inbox và backup/restore |
+ | `server/test/assistant-authority.test.ts` | Fastify inject/auth thật, config CAS, lock races và UUID casing |
+ | `server/test/assistant-orchestration-port.test.ts` | Port thật trên PostgreSQL: Actor A, admission/receipt deny, operation, scope action, membership, routing decision, generic 404, command503, graph authorization (request hash lệch, tách miền create_run/đơn lẻ/tool khác, ngoài tập, dùng lại, Tx khác, dùng một lần qua savepoint, scope tool) |
+-| `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử, gồm `seedAdmittedTurn` (receipt PASS của verifier fixture) và `seedToolOperation` (ghi `request_hash` của đúng request khi được truyền) |
++| `server/test/assistant-tools-route.test.ts` | Route tool qua Fastify inject, authenticator và journal thật trên PostgreSQL riêng: 503 khi thiếu assembly, một hình dạng lỗi trước khi resolve scope, pin input cũ, `tool_names`, ngân sách, hash của mọi tool, `create_run`/`ask_owner` thành công, tool chưa release, replay/xung đột ID, mất response trước/sau commit và trùng đồng thời |
++| `server/test/support/assistant.ts` | Fixture009 và SQL preconditions chỉ dùng kiểm thử, gồm `seedAdmittedTurn` (receipt PASS của verifier fixture, tùy chọn `snapshotCanonical` cho body snapshot input) và `seedToolOperation` (ghi `request_hash` của đúng request khi được truyền) |
+ 
+ ## Dữ liệu
+ 
+ Migrations001–010 giữ nguyên. SQL011 lưu config/designation/monitor/guard, routing certification, turns/selections/scopes, inbox, workflows/gates/questions/answers, assessments/dispatches, capacity/reservations, interventions/operation IDs, text/budget/route/retirement/launch/tool/doc receipts. Khóa ngoại dùng bảng thực và ON DELETE RESTRICT; các vòng phụ thuộc được kiểm deferred trong transaction.
+ 
+ Constraint identity deferred gắn selection với exact key của policy/capability receipts và machine designation của turn; không yêu cầu fixture UNVERIFIED trở thành PASS. Assessment snapshot phải thuộc chính ticket; dispatch command/step/assessment/decision cùng ticket và workflow run cùng root. Capacity receipt giữ exact ticket/kind/boot/ownership của request; reservation giữ machine/ticket của command và ownership của receipt. Ownership so sánh nguyên JSON array có thứ tự như DTO, không tự diễn giải thành set/sort. Những check này bảo vệ liên kết các hàng, không thay producer telemetry, canonical hash, approval hoặc admission.
+ 
+ `request_sha256` và `receipt_sha256` là SHA256 lowercase hex64 của toàn bộ DTO CapacityRequest/CapacityReceipt qua `canonicalJson`, không bao gồm hash tự thân hoặc linkage `receipt_id` ngoài DTO. Trusted producer T4 tính tại insert; T5 tiêu thụ. Hash không chứng nhận telemetry hay cấp admission. Consent producer phải kiểm identity/hash/current scope trước tạo linkage; artifact UUID chưa có registry generic trong001–010 nên trusted producer T2/native phải xác minh artifact và stop proof thực. Thiếu producer thì mặc định từ chối; fixture UNVERIFIED không phải production certificate.
+ 
+ Schema reject trường ngoài DTO, discriminator lạ, hash/UUID lỗi, số revision không an toàn và decimal bigint vượt 9223372036854775807. SourcePin/ProjectionPin dùng schema exported của producer hiện có. CreateTicket/SourceRef phản ánh shape type/route accepted; serialized CreateTicket bắt buộc workflowPin nullable, còn ticket HTTP route cũ có thể bỏ field và producer chuẩn hóa. Chỉ criteria/inputs/outputs/payload/result là JSON record theo đúng DTO producer; schema kiểm JSON đệ quy và cấm prototype keys, producer vẫn kiểm safeTicketJson/depth và business authority. Consumer phải cấu hình validator không xóa field dư, không ép kiểu hoặc chèn default.
+@@ -60,10 +66,12 @@ Schema reject trường ngoài DTO, discriminator lạ, hash/UUID lỗi, số re
+ 
+ ## Tests
+ 
+ `assistant-store.test.ts` chạy với private PostgreSQL18.6 và accepted baseline `0c838d2` cộng đúng source T1. Kiểm duplicate/restart, rollback cursor, concurrent ingestion, descendant revision, event/reconcile dedup, fence stale/unknown, generation rollback/overflow, bất biến linkage/receipt, effect ordinal, budget uncertain, R3 consent và R4 prelaunch/retirement. Pure validation dùng public compiler thực của Fastify, kiểm mọi DTO/variant cùng các negative nested, không mở HTTP/socket/model. Backup prefix010 được restore trước upgrade; prefix011 có dữ liệu cũng được dump/restore rồi đối chiếu SHA256 toàn bộ bảng và từng migration. Report Phase06/T1 ghi lần chạy cuối, các RED và identity/cleanup; các fixture SQL không chứng minh HTTP/admission/certification production. Typecheck frozen baseline, Biome các file sở hữu và kiểm đúng bảy H2 đi cùng source freeze.
+ 
+ FIX1 bổ sung regression S1–S5: cross-message trước replay, root scope đúng route/monitor và hết hạn, selection mượn model/machine, assessment/dispatch ghép khác ticket, receipt/reservation sai request/ownership, released INSERT thiếu proof; positive terminal-proof row được backup/restore và đối chiếu toàn bộ dữ liệu. Không sửa guard005 hoặc migrations đã chốt.
+ 
+ FIX2 kiểm scope expiry bằng `clock_timestamp()` tại lần kiểm sau khóa và trước replay; không dùng `now()` cố định ở đầu transaction. Bốn regression thực tạo transaction trước deadline, chờ chính deadline PostgreSQL qua `pg_sleep_until`, ghi witness `now()<expires_at` và `clock_timestamp()>=expires_at`, rồi kiểm claim mới/claim replay/ACK/ACK replay đều bị từ chối và toàn bộ work row (state, attempts, claim, ACK) giữ nguyên. Cover ảnh hưởng chỉ chạy các test fence/scope/expiry; evidence S2–S5 và restore của FIX1 được giữ riêng, không cộng dồn thành lượt full suite mới.
+ 
+ Slice A T2 được review và scoped FIX1 re-review đóng A1/A2. Final affected `assistant-authority.test.ts`:19/19 PASS trên Fastify và PostgreSQL riêng, gồm6 test ban đầu và13 regression credential revoke/expiry trong guard/machine/turn lock waits, credential lock giữ qua fresh/replay, uppercase designation/same-machine policy và raw-body idempotency. Scoped strict typecheck dùng `skipLibCheck` cho external declaration theo PM ruling và Biome đạt. Full-server typecheck còn giới hạn dependency extractor ngoài slice; không suy ra full T2/E2E/native PASS. Report/re-review cùng raw SHA và docker/PID/scratch cleanup nằm tại `plans/261002-0002-crew-v2/execution-phase06/` của repo chính.
++
++`assistant-tools-route.test.ts` dựng turn đã admit của máy A bằng `seedAdmittedTurn`, không có port test-trust. Đếm effect (operation, run, ticket, dependency, câu hỏi, receipt, event, journal) trước/sau từng lời gọi; replay kiểm `xmin` của row không đổi. Route `GET /v2/assistant/turns/:id/tools/:operationId`, gateway `tool-client.ts`/driver và các tool còn lại thuộc lát sau.
+diff --git a/v2/server/src/assistant/routes.ts b/v2/server/src/assistant/routes.ts
+index 72c01e5..0e946c0 100644
+--- a/v2/server/src/assistant/routes.ts
++++ b/v2/server/src/assistant/routes.ts
+@@ -3,20 +3,21 @@ import { authenticateCurrentCredential } from '../auth/routes.ts';
+ import { readSessionCookie, sha256 } from '../auth/session.ts';
+ import type { RouteDependencies, ServerOptions, Tx } from '../platform/contracts.ts';
+ import { ApiError } from '../platform/errors.ts';
+ import {
+   type AssistantConfigChange,
+   authorizeAssistantConfigChange,
+   readAssistantConfig,
+   setAssistantConfig,
+ } from './authority.ts';
+ import { assistantConfigSchema, assistantPolicySchema } from './contracts.ts';
++import { type AssistantTools, registerAssistantToolRoutes } from './tools.ts';
+ 
+ const emptyQuery = { type: 'object', properties: {}, additionalProperties: false };
+ const configChangeSchema = {
+   type: 'object',
+   additionalProperties: false,
+   required: ['expectedRevision', 'machineId', 'preferred', 'policy'],
+   properties: {
+     expectedRevision: { type: 'integer', minimum: 1, maximum: Number.MAX_SAFE_INTEGER },
+     machineId: { type: 'string', format: 'uuid' },
+     preferred: { type: 'null' },
+@@ -31,24 +32,28 @@ async function lockCurrentOwnerCredential(tx: Tx, request: FastifyRequest): Prom
+   const idHash = sha256(secret);
+   const [locked] = await tx`select id_hash from sessions
+     where id_hash=${idHash} and owner_id='owner' for share`;
+   if (!locked) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
+   // A separate statement checks wall time after any credential-row lock wait.
+   const [current] = await tx`select 1 from sessions where id_hash=${idHash}
+     and owner_id='owner' and revoked_at is null and expires_at>clock_timestamp()`;
+   if (!current) throw new ApiError('UNAUTHENTICATED', 401, 'Cần đăng nhập');
+ }
+ 
++/** Optional producers of the Assistant routes; an absent producer keeps its route 503. */
++export type AssistantRouteAssembly = { tools?: AssistantTools };
++
+ export function registerAssistantRoutes(
+   app: FastifyInstance,
+   options: ServerOptions,
+   deps: RouteDependencies,
++  assembly: AssistantRouteAssembly = {},
+ ): void {
+   app.get(
+     '/v2/assistant/config',
+     {
+       schema: { querystring: emptyQuery, response: { 200: assistantConfigSchema } },
+     },
+     async (request) => {
+       await deps.auth.requireOwner(request, { csrf: false });
+       return options.db.begin(async (tx) => {
+         const actor = await authenticateCurrentCredential(tx, request, options.now());
+@@ -77,11 +82,12 @@ export function registerAssistantRoutes(
+             await authorizeAssistantConfigChange(tx, current, input.machineId);
+             await lockCurrentOwnerCredential(tx, request);
+           },
+         },
+         async (tx) => ({ status: 200, body: await setAssistantConfig(tx, actor, input) }),
+       );
+       reply.status(result.status);
+       return result.body;
+     },
+   );
++  registerAssistantToolRoutes(app, options, deps, assembly.tools);
+ }
+diff --git a/v2/server/src/assistant/tools.ts b/v2/server/src/assistant/tools.ts
+new file mode 100644
+index 0000000..3345725
+--- /dev/null
++++ b/v2/server/src/assistant/tools.ts
+@@ -0,0 +1,422 @@
++import { randomUUID } from 'node:crypto';
++import type { FastifyInstance, FastifyRequest } from 'fastify';
++import { digest } from '../attachments/submissions.ts';
++import { authenticateCurrentCredential } from '../auth/routes.ts';
++import { validPath } from '../docs/manifest.ts';
++import { canonicalJson } from '../journal/canonical.ts';
++import type { Actor, Id, RouteDependencies, ServerOptions, Tx } from '../platform/contracts.ts';
++import { ApiError } from '../platform/errors.ts';
++import { createPersistedAssistantActorResolver } from './authority.ts';
++import type {
++  DocRead,
++  OrchestrationProof,
++  RoutingTool,
++  RoutingToolRequest,
++  RoutingToolResult,
++  RoutingToolValue,
++  Sha256,
++} from './contracts.ts';
++import { routingToolRequestSchema } from './contracts.ts';
++import { createWorkflowGates } from './gates.ts';
++import { type OperationRequest, operationRequestSha256 } from './operation-request.ts';
++import { createProjectOrchestrationPort } from './orchestration.ts';
++import { createWorkflowRuns } from './runs.ts';
++import { assertAssistantId, assertTurnFence } from './store.ts';
++import type { DefinitionLookup } from './workflows.ts';
++
++export type AssistantToolsDependencies = {
++  /** Build hash of the routing verifier pinned at assembly (see the persisted Actor resolver). */
++  verifierBuildSha256: Sha256;
++  lookup?: DefinitionLookup;
++};
++/** Persisted scope the proof resolved to; the model never names it. */
++export type ToolScope = {
++  id: Id;
++  rootTicketId: Id | null;
++  messageId: Id | null;
++  projectId: Id | null;
++  toolNames: string[];
++  inputSnapshotId: Id;
++};
++/** A request whose authority was verified in `tx`; only `consume` of the same assembly accepts it. */
++export type AuthorizedToolCall = {
++  readonly tx: Tx;
++  readonly actor: Actor;
++  readonly request: RoutingToolRequest;
++  readonly providerCallId: string;
++  readonly proof: OrchestrationProof;
++  readonly scope: ToolScope;
++};
++export type AssistantTools = {
++  /**
++   * Every authority check of a tool call, run before any idempotent replay: authenticated
++   * machine = persisted Assistant of the exact current fence/admission, the turn's scope for the
++   * pinned input, exact current input pin, scope `tool_names` and the per-turn budget.
++   */
++  authorize(
++    tx: Tx,
++    actor: Actor,
++    request: RoutingToolRequest,
++    providerCallId: string,
++  ): Promise<AuthorizedToolCall>;
++  /** Fresh operation only: writes the bound operation row, runs the tool, stores the result. */
++  consume(tx: Tx, call: AuthorizedToolCall): Promise<RoutingToolResult>;
++};
++
++type ToolName = RoutingTool['name'];
++type Released = 'read_catalog' | 'read_docs' | 'create_run' | 'ask_owner';
++// The one RoutingToolValue kind each released tool may return.
++const resultKind: Record<Released, RoutingToolValue['kind']> = {
++  read_catalog: 'catalog',
++  read_docs: 'docs',
++  create_run: 'run',
++  ask_owner: 'question',
++};
++const releasedTools: readonly string[] = Object.keys(resultKind);
++const toolNames: readonly ToolName[] = [
++  'read_catalog',
++  'read_docs',
++  'route_message',
++  'read_execution_candidates',
++  'assess_ticket',
++  'ask_owner',
++  'create_run',
++  'request_dispatch',
++  'request_review',
++  'publish_reply',
++];
++
++/** Same code and message for every failure before the proof resolved to a scope. */
++const scopeNotFound = () => new ApiError('ASSISTANT_SCOPE_NOT_FOUND', 404, 'Không tìm thấy phạm vi Trợ lý');
++const inputStale = () => new ApiError('ASSISTANT_INPUT_STALE', 409, 'Input của lượt Trợ lý đã cũ');
++const operationConflict = () =>
++  new ApiError('ASSISTANT_OPERATION_CONFLICT', 409, 'Định danh thao tác Trợ lý đã được dùng');
++const docsNotFound = () => new ApiError('NOT_FOUND', 404, 'Không tìm thấy tài liệu');
++const ticketNotFound = () => new ApiError('NOT_FOUND', 404, 'Không tìm thấy ticket');
++
++/**
++ * Every tool, released or not, is bound with the shared tagged hash of `{action, payload}`.
++ * `OperationRequest` lists only the requests an orchestration port consumes; the read and
++ * unreleased tools use their tool name as the action domain, which no port action shares.
++ */
++function toolRequestSha256(action: ToolName, payload: unknown): Sha256 {
++  return operationRequestSha256({ action, payload } as unknown as OperationRequest);
++}
++
++const nullableId = (value: unknown): Id | null => (value === null ? null : String(value));
++const plainObject = (value: unknown): value is Record<string, unknown> =>
++  !!value && typeof value === 'object' && !Array.isArray(value);
++
++/**
++ * Tools assembly: one persisted Actor resolver, one orchestration port, and the run and gate
++ * services built on them. Production does not inject it until the owner releases it.
++ */
++export function createAssistantTools(deps: AssistantToolsDependencies): AssistantTools {
++  const resolver = createPersistedAssistantActorResolver({ verifierBuildSha256: deps?.verifierBuildSha256 });
++  const port = createProjectOrchestrationPort({ resolver });
++  const runs = createWorkflowRuns({ port, resolver, ...(deps.lookup ? { lookup: deps.lookup } : {}) });
++  const gates = createWorkflowGates({ resolver, ...(deps.lookup ? { lookup: deps.lookup } : {}) });
++  const issued = new WeakSet<AuthorizedToolCall>();
++
++  async function authorize(
++    tx: Tx,
++    actor: Actor,
++    request: RoutingToolRequest,
++    providerCallId: string,
++  ): Promise<AuthorizedToolCall> {
++    assertTurnFence(request?.fence);
++    assertAssistantId(request.operationId);
++    assertAssistantId(request.inputSnapshot?.snapshotId);
++    if (!toolNames.includes(request.call?.name))
++      throw new ApiError('VALIDATION', 400, 'Tool Trợ lý không hợp lệ');
++    const fence = { ...request.fence };
++    const operationId = request.operationId.toLowerCase();
++    const pin = request.inputSnapshot;
++    // Proof → scope first: the scope comes from the turn and its pinned input, never from the
++    // model. Until it resolves, every failure has one shape and no ticket row is read.
++    let proof: OrchestrationProof;
++    try {
++      if (actor.kind !== 'machine') throw scopeNotFound();
++      const scopes = await tx`select id from assistant_scopes where turn_id=${fence.turnId}
++        and input_snapshot_id=${pin.snapshotId} and expires_at>clock_timestamp()`;
++      if (scopes.length !== 1) throw scopeNotFound();
++      proof = { fence, scopeId: String(scopes[0]?.id), operationId };
++      // Locks guard → machine → config → designation → turn → monitor → grant → session.
++      const resolved = await resolver(tx, proof);
++      if (resolved.kind !== 'machine' || resolved.id !== actor.id) throw scopeNotFound();
++    } catch (error) {
++      if (error instanceof ApiError) throw scopeNotFound();
++      throw error;
++    }
++    const [row] = await tx`select id,root_ticket_id,message_id,project_id,tool_names,input_snapshot_id
++      from assistant_scopes where id=${proof.scopeId}`;
++    if (!row) throw scopeNotFound();
++    const scope: ToolScope = {
++      id: String(row.id),
++      rootTicketId: nullableId(row.root_ticket_id),
++      messageId: nullableId(row.message_id),
++      projectId: nullableId(row.project_id),
++      toolNames: Array.isArray(row.tool_names) ? row.tool_names.map(String) : [],
++      inputSnapshotId: String(row.input_snapshot_id),
++    };
++    // Exact current input: the stored snapshot, its selection, and the target's live revision.
++    const [snapshot] = await tx`select target_kind,target_id,input_revision,route_revision,sha256,canonical
++      from attachment_input_snapshots where id=${scope.inputSnapshotId}`;
++    const [current] = snapshot
++      ? await tx`select revision,route_revision from attachment_input_revisions
++        where target_kind=${snapshot.target_kind} and target_id=${snapshot.target_id}`
++      : [];
++    const required = plainObject(snapshot?.canonical) ? snapshot.canonical.required : undefined;
++    if (
++      !snapshot ||
++      snapshot.sha256 !== pin.snapshotSha256 ||
++      String(snapshot.input_revision) !== pin.inputRevision ||
++      String(current?.revision ?? '1') !== String(snapshot.input_revision) ||
++      Number(current?.route_revision ?? 0) !== Number(snapshot.route_revision) ||
++      !Array.isArray(required) ||
++      digest(required) !== pin.selectionSha256
++    )
++      throw inputStale();
++    if (!scope.toolNames.includes(request.call.name))
++      throw new ApiError('ASSISTANT_TOOL_NOT_IN_SCOPE', 403, 'Tool ngoài phạm vi Trợ lý');
++    // Budget of the turn; the turn row is locked, so concurrent calls of the turn serialize.
++    const [config] = await tx`select policy from assistant_config where singleton=true`;
++    const policy: unknown = config?.policy;
++    const maxTools = plainObject(policy) ? policy.maxToolsPerTurn : undefined;
++    const maxTurnMs = plainObject(policy) ? policy.maxTurnMs : undefined;
++    if (
++      typeof maxTools !== 'number' ||
++      !Number.isSafeInteger(maxTools) ||
++      maxTools < 0 ||
++      typeof maxTurnMs !== 'number' ||
++      !Number.isSafeInteger(maxTurnMs) ||
++      maxTurnMs < 1
++    )
++      throw new ApiError('ASSISTANT_POLICY_INVALID', 503, 'Chính sách Trợ lý không hợp lệ');
++    const [usage] = await tx`select
++      (select count(*)::int from assistant_tool_operations where turn_id=${fence.turnId}
++        and operation_id<>${operationId}) as used,
++      (select created_at+${maxTurnMs}*interval '1 millisecond'<=clock_timestamp()
++        from assistant_turns where id=${fence.turnId}) as elapsed`;
++    if (!usage || Number(usage.used) >= maxTools || usage.elapsed !== false)
++      throw new ApiError('ASSISTANT_TOOL_BUDGET_EXHAUSTED', 409, 'Lượt Trợ lý đã hết ngân sách tool');
++    const call: AuthorizedToolCall = Object.freeze({ tx, actor, request, providerCallId, proof, scope });
++    issued.add(call);
++    return call;
++  }
++
++  async function consume(tx: Tx, call: AuthorizedToolCall): Promise<RoutingToolResult> {
++    if (!issued.has(call) || call.tx !== tx) throw new Error('ASSISTANT_TOOL_CALL_NOT_AUTHORIZED');
++    issued.delete(call);
++    const { request, proof, scope, providerCallId } = call;
++    const operationId = proof.operationId;
++    const turnId = proof.fence.turnId;
++    // A fresh operation: its ID, client sequence and provider call must all be new for the turn.
++    const clash =
++      await tx`select operation_id from assistant_tool_operations where operation_id=${operationId}
++      or (turn_id=${turnId} and (client_sequence=${request.clientSequence} or provider_call_id=${providerCallId}))
++      limit 1`;
++    if (clash.length) throw operationConflict();
++    // Written directly in the caller's Tx (never a savepoint) before any port call.
++    const write = async (requestHash: Sha256, result: RoutingToolResult | null) => {
++      await tx`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,
++        request_hash,input_snapshot_id,state,response)
++        values(${operationId},${turnId},${request.clientSequence},${providerCallId},${requestHash},
++        ${scope.inputSnapshotId},${result ? result.state : 'pending'},${result ? tx.json(result as never) : null})`;
++    };
++    const complete = async (name: Released, value: RoutingToolValue): Promise<RoutingToolResult> => {
++      if (value.kind !== resultKind[name]) throw new Error('ASSISTANT_TOOL_RESULT_KIND_INVALID');
++      const result = canonical({ operationId, state: 'completed', result: value, errorCode: null });
++      const [updated] = await tx`update assistant_tool_operations set state='completed',
++        response=${tx.json(result as never)} where operation_id=${operationId} and state='pending'
++        returning operation_id`;
++      if (!updated) throw new Error('ASSISTANT_TOOL_OPERATION_LOST');
++      return result;
++    };
++    const tool = request.call;
++    switch (tool.name) {
++      case 'read_catalog': {
++        await write(toolRequestSha256(tool.name, tool.input), null);
++        return complete(tool.name, { kind: 'catalog', items: await readCatalog(tx, scope) });
++      }
++      case 'read_docs': {
++        await write(toolRequestSha256(tool.name, tool.input), null);
++        const page = await readDoc(tx, scope, tool.input);
++        const readReceiptId = randomUUID();
++        await tx`insert into assistant_doc_read_receipts(id,turn_id,snapshot_id,path,sha256)
++          values(${readReceiptId},${turnId},${page.snapshotId},${page.path},${page.sha256})`;
++        return complete(tool.name, { kind: 'docs', page, readReceiptId });
++      }
++      case 'create_run': {
++        // Only the scope's own root: a foreign root is never looked up.
++        if (!scope.rootTicketId || tool.input.rootTicketId.toLowerCase() !== scope.rootTicketId)
++          throw ticketNotFound();
++        const bound = await runs.createRunRequest(tx, operationId, tool.input);
++        await write(operationRequestSha256(bound), null);
++        return complete(tool.name, { kind: 'run', run: await runs.createRun(tx, proof, tool.input) });
++      }
++      case 'ask_owner': {
++        await write(operationRequestSha256({ action: 'ask_owner', payload: tool.input }), null);
++        return complete(tool.name, {
++          kind: 'question',
++          question: await gates.createOwnerQuestion(tx, proof, tool.input),
++        });
++      }
++      default: {
++        if (releasedTools.includes(tool.name)) throw new Error('ASSISTANT_TOOL_UNHANDLED');
++        const rejected = canonical({
++          operationId,
++          state: 'rejected',
++          result: null,
++          errorCode: 'TOOL_NOT_RELEASED',
++        });
++        await write(toolRequestSha256(tool.name, tool.input), rejected);
++        return rejected;
++      }
++    }
++  }
++
++  return Object.freeze({ authorize, consume });
++}
++
++// Stored and returned in the same canonical form, so a replay is byte-identical.
++function canonical(result: RoutingToolResult): RoutingToolResult {
++  return JSON.parse(canonicalJson(result)) as RoutingToolResult;
++}
++
++/** Projects the scope may route to: its own project, or every project before routing. */
++async function readCatalog(tx: Tx, scope: ToolScope) {
++  const rows = await tx`select p.id,p.key,p.name,s.id as snapshot_id,s.source_commit from projects p
++    left join lateral(select id,source_commit from docs_snapshots where project_id=p.id
++      order by received_at desc,id desc limit 1) s on true
++    where ${scope.projectId}::uuid is null or p.id=${scope.projectId}
++    order by p.key limit 1000`;
++  return rows.map((row) => ({
++    projectId: String(row.id),
++    key: String(row.key),
++    name: String(row.name),
++    latestSnapshotId: nullableId(row.snapshot_id),
++    sourceCommit: row.source_commit === null ? null : String(row.source_commit),
++  }));
++}
++
++/** One stored docs page of a project the scope may read; anything else is the same 404. */
++async function readDoc(
++  tx: Tx,
++  scope: ToolScope,
++  input: { projectId: Id; snapshotId: Id; path: string },
++): Promise<DocRead> {
++  if (typeof input.path !== 'string' || !validPath(input.path))
++    throw new ApiError('PATH_INVALID', 400, 'Đường dẫn không hợp lệ');
++  assertAssistantId(input.projectId);
++  assertAssistantId(input.snapshotId);
++  const projectId = input.projectId.toLowerCase();
++  if (scope.projectId !== null && projectId !== scope.projectId) throw docsNotFound();
++  const [snapshot] = await tx`select s.id,s.source_commit,s.audit_state,s.received_at,p.expected_commit,
++    (select l.id from docs_snapshots l where l.project_id=s.project_id order by l.received_at desc,l.id desc limit 1) as latest_id
++    from docs_snapshots s join projects p on p.id=s.project_id
++    where s.id=${input.snapshotId} and s.project_id=${projectId}`;
++  if (!snapshot) throw docsNotFound();
++  const [file] = await tx`select bytes,sha,content_class from docs_files
++    where snapshot_id=${snapshot.id} and path=${input.path}`;
++  if (!file) throw docsNotFound();
++  let text: string;
++  try {
++    text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(file.bytes as Buffer);
++  } catch {
++    throw new ApiError('DOCS_ENCODING_INVALID', 422, 'Trang không phải UTF-8 hợp lệ');
++  }
++  const auditState = snapshot.audit_state as DocRead['auditState'];
++  const sourceCommit = snapshot.source_commit === null ? null : String(snapshot.source_commit);
++  const state: DocRead['state'] =
++    auditState !== 'verified'
++      ? 'unverified'
++      : snapshot.latest_id === snapshot.id &&
++          sourceCommit !== null &&
++          sourceCommit === snapshot.expected_commit
++        ? 'current'
++        : 'stale';
++  return {
++    projectId,
++    snapshotId: String(snapshot.id),
++    path: input.path,
++    sha256: String(file.sha),
++    sourceCommit,
++    receivedAt: (snapshot.received_at as Date).toISOString(),
++    auditState,
++    contentClass: file.content_class as DocRead['contentClass'],
++    text,
++    state,
++  };
++}
++
++const providerHeader = 'x-crew-provider-call-id';
++/** Exactly one provider call ID header: visible ASCII, case kept, never trimmed. */
++function providerCallIdOf(request: FastifyRequest): string {
++  const raw = request.raw.rawHeaders;
++  const values: string[] = [];
++  for (let index = 0; index + 1 < raw.length; index += 2)
++    if (raw[index]?.toLowerCase() === providerHeader) values.push(String(raw[index + 1]));
++  const [value] = values;
++  if (values.length !== 1 || value === undefined || !/^[\x21-\x7e]{1,4096}$/.test(value))
++    throw new ApiError('PROVIDER_CALL_ID_INVALID', 400, 'Định danh lời gọi provider không hợp lệ');
++  return value;
++}
++
++const turnParams = {
++  type: 'object',
++  additionalProperties: false,
++  required: ['id'],
++  properties: { id: { type: 'string', format: 'uuid' } },
++};
++const toolRoute = 'POST:/v2/assistant/turns/:id/tools';
++
++/**
++ * `POST /v2/assistant/turns/:id/tools`. Bearer machine only. Authority is checked inside the
++ * journal transaction before the idempotent replay; the replay reads the stored result only.
++ * Without a tools assembly the route is 503.
++ */
++export function registerAssistantToolRoutes(
++  app: FastifyInstance,
++  options: ServerOptions,
++  deps: RouteDependencies,
++  tools: AssistantTools | undefined,
++): void {
++  app.post<{ Params: { id: string }; Body: RoutingToolRequest }>(
++    '/v2/assistant/turns/:id/tools',
++    { schema: { params: turnParams, body: routingToolRequestSchema } },
++    async (request, reply) => {
++      if (!tools) throw new ApiError('ASSISTANT_TOOLS_NOT_CONFIGURED', 503, 'Chưa cấu hình tool của Trợ lý');
++      const actor = await deps.auth.authenticate(request);
++      if (actor.kind !== 'machine')
++        throw new ApiError('ASSISTANT_MACHINE_REQUIRED', 403, 'Chỉ máy Trợ lý được gọi tool');
++      const providerCallId = providerCallIdOf(request);
++      const body = request.body;
++      assertAssistantId(body.operationId);
++      let authorized: AuthorizedToolCall | undefined;
++      const result = await deps.mutator(
++        {
++          actor,
++          route: toolRoute,
++          key: body.operationId.toLowerCase(),
++          body: { providerCallId, request: body },
++          authorize: async (tx) => {
++            const current = await authenticateCurrentCredential(tx, request, options.now());
++            if (current.kind !== actor.kind || current.id !== actor.id)
++              throw new ApiError('UNAUTHENTICATED', 401, 'Cần xác thực máy');
++            if (request.params.id.toLowerCase() !== String(body.fence?.turnId).toLowerCase())
++              throw scopeNotFound();
++            authorized = await tools.authorize(tx, actor, body, providerCallId);
++          },
++        },
++        async (tx) => {
++          if (!authorized) throw new Error('ASSISTANT_TOOL_CALL_NOT_AUTHORIZED');
++          return { status: 200, body: await tools.consume(tx, authorized) };
++        },
++      );
++      reply.status(result.status);
++      // jsonb reorders keys of the stored reply; canonical order keeps every replay byte-identical.
++      return canonical(result.body);
++    },
++  );
++}
+diff --git a/v2/server/test/assistant-tools-route.test.ts b/v2/server/test/assistant-tools-route.test.ts
+new file mode 100644
+index 0000000..6f1d732
+--- /dev/null
++++ b/v2/server/test/assistant-tools-route.test.ts
+@@ -0,0 +1,801 @@
++import assert from 'node:assert/strict';
++import { createHash, randomBytes, randomUUID } from 'node:crypto';
++import { readFile } from 'node:fs/promises';
++import test from 'node:test';
++import Fastify from 'fastify';
++import { createPersistedAssistantActorResolver } from '../src/assistant/authority.ts';
++import type { DocRead, QuestionProposal, RoutingTool, TurnFence } from '../src/assistant/contracts.ts';
++import { operationRequestSha256 } from '../src/assistant/operation-request.ts';
++import { createProjectOrchestrationPort } from '../src/assistant/orchestration.ts';
++import { registerAssistantRoutes } from '../src/assistant/routes.ts';
++import { createWorkflowRuns } from '../src/assistant/runs.ts';
++import { createAssistantTools } from '../src/assistant/tools.ts';
++import { bootstrapOwner } from '../src/auth/bootstrap.ts';
++import { provisionMachine } from '../src/auth/machine.ts';
++import { createAuthenticator } from '../src/auth/routes.ts';
++import { canonicalJson } from '../src/journal/canonical.ts';
++import { createMutator } from '../src/journal/mutation.ts';
++import type { Db, Id, RouteDependencies, ServerOptions } from '../src/platform/contracts.ts';
++import { ApiError } from '../src/platform/errors.ts';
++import { assistantFixture, fixtureVerifierBuildSha256 } from './support/assistant.ts';
++import { databaseFixture } from './support/db.ts';
++import { inputTicket, owner } from './support/tickets.ts';
++
++const withDatabase = databaseFixture(11);
++const route = 'POST:/v2/assistant/turns/:id/tools';
++const sha = (value: unknown) => createHash('sha256').update(canonicalJson(value)).digest('hex');
++// Request hash oracle: the shared tagged form, recomputed here without the module under test.
++const requestOracle = (action: string, payload: unknown) =>
++  createHash('sha256')
++    .update(canonicalJson({ schema: 'crew-v2:operation-request:1', action, payload }))
++    .digest('hex');
++const questionScopeOracle = (context: Record<string, unknown>) =>
++  createHash('sha256')
++    .update(canonicalJson(['crew-v2:owner-question-scope:1', context]))
++    .digest('hex');
++
++type VectorEntry = {
++  source: Record<string, unknown>;
++  projection: Record<string, unknown>;
++  definition: { sha256: string; skills: unknown[]; customizationSha256: string };
++};
++const vector = JSON.parse(
++  await readFile(
++    new URL('../../gateway/test/fixtures/workflow-definitions/install-report-vector.json', import.meta.url),
++    'utf8',
++  ),
++) as { superpowers: VectorEntry; bmad: VectorEntry };
++const missingSlot = { state: 'missing', installed: null, lastError: null, observedAt: null };
++const currentSlot = (installed: unknown, extra: Record<string, unknown> = {}) => ({
++  state: 'current',
++  installed,
++  lastError: null,
++  observedAt: '2026-10-04T00:00:00.000Z',
++  ...extra,
++});
++const workflowStatus = () => ({
++  superpowers: {
++    source: currentSlot(vector.superpowers.source),
++    projections: {
++      claude: currentSlot(vector.superpowers.projection, { definition: vector.superpowers.definition }),
++      codex: missingSlot,
++      api: missingSlot,
++    },
++  },
++  bmad: {
++    source: currentSlot(vector.bmad.source),
++    projections: {
++      claude: currentSlot(vector.bmad.projection, { definition: vector.bmad.definition }),
++      codex: missingSlot,
++      api: missingSlot,
++    },
++  },
++});
++
++const allTools = [
++  'read_catalog',
++  'read_docs',
++  'route_message',
++  'read_execution_candidates',
++  'assess_ticket',
++  'ask_owner',
++  'create_run',
++  'request_dispatch',
++  'request_review',
++  'publish_reply',
++];
++
++type FixtureOptions = { tools?: string[]; maxToolsPerTurn?: number; assembly?: boolean };
++
++// Real rows end to end: owner, machines A (designated Assistant), B (project binding) and
++// C (authenticated, not designated); an admitted PASS turn of A on the root's input
++// snapshot; the root scope; B's stored install report. The route runs on a Fastify
++// instance with the real authenticator, journal mutator and the tools assembly.
++async function toolsFixture(db: Db, options: FixtureOptions = {}) {
++  const f = await assistantFixture(db);
++  await bootstrapOwner(db, randomBytes(24).toString('hex'));
++  const machines = await f.mutation(randomUUID(), async (tx) => ({
++    a: await provisionMachine(tx, 'Assistant A'),
++    b: await provisionMachine(tx, 'Bound B'),
++    c: await provisionMachine(tx, 'Other C'),
++  }));
++  const tokens = { a: machines.a.token, b: machines.b.token, c: machines.c.token };
++  const ids = { a: machines.a.machine.id, b: machines.b.machine.id, c: machines.c.machine.id };
++  await db`update projects set machine_id=${ids.b},checkout_path='/tmp/b3a-test-only',binding_revision=2,
++    expected_commit=${'a'.repeat(40)} where id=${f.project.id}`;
++  const root = await f.mutation(randomUUID(), (tx) =>
++    f.services.createTicket(
++      tx,
++      inputTicket(f.project.id, 'request', null, {
++        kind: 'code',
++        title: 'Yêu cầu chạy workflow',
++        criteria: { workflowChoice: 'superpowers' },
++      }),
++      owner,
++    ),
++  );
++  const otherRoot = await f.mutation(randomUUID(), (tx) =>
++    f.services.createTicket(tx, inputTicket(f.project.id, 'request', null, { kind: 'code' }), owner),
++  );
++  const reportId = randomUUID();
++  await db.begin(async (tx) => {
++    await tx`insert into gateway_boots(machine_id,boot_id,boot_generation,previous_generation,created_at)
++      values(${ids.b},${randomUUID()},1,0,now())`;
++    await tx`insert into gateway_install_reports(id,machine_id,boot_generation,config_revision,body_hash,report,response,received_at)
++      values(${reportId},${ids.b},1,1,${'a'.repeat(64)},${tx.json({ fixture: true })},${tx.json({ accepted: true })},now())`;
++    await tx`insert into gateway_applied(machine_id,revision,inventory,latest_report_id,workflow_status,applied_at)
++      values(${ids.b},1,${tx.json(workflowStatus() as never)},${reportId},${tx.json(workflowStatus() as never)},now())`;
++  });
++  const submitted = await f.submitMessage();
++  const seeded = await f.seedAdmittedTurn({
++    conversationId: submitted.conversation.id,
++    messageId: null,
++    target: { kind: 'ticket', id: root.id },
++    machineId: ids.a,
++    snapshotCanonical: { required: [] },
++  });
++  const fence: TurnFence = seeded.fence;
++  const snapshotId = seeded.snapshotId as Id;
++  const scopeId = randomUUID();
++  await db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,
++    scope_sha256,owner_authorization_id,expires_at)
++    values(${scopeId},${fence.turnId},${root.id},null,${f.project.id},
++    ${db.json(['create_ticket', 'dependency'])},${db.json(options.tools ?? allTools)},${snapshotId},
++    ${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '10 minutes')`;
++  await db`update assistant_config set policy=policy||${db.json({ maxToolsPerTurn: options.maxToolsPerTurn ?? 64 })}
++    where singleton=true`;
++  const [snapshot] = await db`select sha256 from attachment_input_snapshots where id=${snapshotId}`;
++  const pin = {
++    snapshotId,
++    snapshotSha256: String(snapshot?.sha256),
++    inputRevision: '1',
++    selectionSha256: sha([]),
++  };
++
++  const options_: ServerOptions = {
++    db,
++    publicOrigin: 'http://localhost:5183',
++    secureCookies: false,
++    sessionEncryptionKey: randomBytes(32),
++    now: () => new Date(),
++    authorizeDispatch: async () => {
++      throw new Error('DISPATCH_NOT_CONFIGURED');
++    },
++    verifyFinalResult: async () => {
++      throw new Error('FINAL_NOT_CONFIGURED');
++    },
++  };
++  const app = Fastify({
++    logger: false,
++    ajv: { customOptions: { removeAdditional: false, coerceTypes: false, useDefaults: false } },
++  });
++  app.setErrorHandler((error, _request, reply) => {
++    if (error instanceof ApiError)
++      return reply.status(error.status).send({ error: { code: error.code, message: error.message } });
++    return reply
++      .status(error instanceof Error && 'validation' in error ? 400 : 500)
++      .send({ error: { code: 'VALIDATION_OR_INTERNAL' } });
++  });
++  const mutator = createMutator(db);
++  const hooks: { failAfterWork: boolean } = { failAfterWork: false };
++  const deps: RouteDependencies = {
++    auth: createAuthenticator(db, options_),
++    // Test seam: drop the response before commit (the work ran, the Tx rolls back).
++    mutator: (context, work) =>
++      mutator(context, async (tx) => {
++        const result = await work(tx);
++        if (hooks.failAfterWork) {
++          hooks.failAfterWork = false;
++          throw new Error('RESPONSE_LOST_BEFORE_COMMIT');
++        }
++        return result;
++      }),
++  };
++  registerAssistantRoutes(
++    app,
++    options_,
++    deps,
++    options.assembly === false
++      ? {}
++      : { tools: createAssistantTools({ verifierBuildSha256: fixtureVerifierBuildSha256 }) },
++  );
++  await app.ready();
++
++  let sequence = 0;
++  type CallOptions = {
++    operationId?: Id;
++    clientSequence?: string;
++    providerCallId?: string | null;
++    token?: string | null;
++    fence?: Partial<TurnFence>;
++    pin?: Partial<typeof pin>;
++    path?: string;
++    extra?: Record<string, unknown>;
++  };
++  const request = (call: RoutingTool | Record<string, unknown>, opts: CallOptions = {}) => {
++    const operationId = opts.operationId ?? randomUUID();
++    sequence += 1;
++    const body = {
++      fence: { ...fence, ...opts.fence },
++      operationId,
++      clientSequence: opts.clientSequence ?? String(sequence),
++      inputSnapshot: { ...pin, ...opts.pin },
++      call,
++      ...opts.extra,
++    };
++    const providerCallId = opts.providerCallId === undefined ? `toolu_${operationId}` : opts.providerCallId;
++    const token = opts.token === undefined ? tokens.a : opts.token;
++    return { operationId, body, providerCallId, token, path: opts.path ?? fence.turnId };
++  };
++  const send = (prepared: ReturnType<typeof request>) =>
++    app.inject({
++      method: 'POST',
++      url: `/v2/assistant/turns/${prepared.path}/tools`,
++      payload: prepared.body,
++      headers: {
++        ...(prepared.token === null ? {} : { authorization: `Bearer ${prepared.token}` }),
++        ...(prepared.providerCallId === null ? {} : { 'x-crew-provider-call-id': prepared.providerCallId }),
++      },
++    });
++  const call = (tool: RoutingTool | Record<string, unknown>, opts: CallOptions = {}) => {
++    const prepared = request(tool, opts);
++    return send(prepared).then((response) => ({ ...prepared, response }));
++  };
++  const counts = async () => {
++    const [row] = await db`select
++      (select count(*)::int from assistant_tool_operations) as operations,
++      (select count(*)::int from workflow_runs) as runs,
++      (select count(*)::int from tickets) as tickets,
++      (select count(*)::int from dependencies) as dependencies,
++      (select count(*)::int from assistant_questions) as questions,
++      (select count(*)::int from assistant_doc_read_receipts) as receipts,
++      (select count(*)::int from events) as events,
++      (select count(*)::int from idempotency where route=${route}) as replies`;
++    return { ...row };
++  };
++  const operation = async (operationId: Id) => {
++    const [row] = await db`select operation_id,turn_id,client_sequence::text,provider_call_id,request_hash,
++      input_snapshot_id,state,response,xmin::text as xmin from assistant_tool_operations where operation_id=${operationId}`;
++    return row;
++  };
++  const runInput = {
++    rootTicketId: root.id,
++    path: 'architectural',
++    definitionSha256: vector.superpowers.definition.sha256,
++  };
++  // Independent oracle for the create_run request: the accepted producer read on its own Tx.
++  const createRunOracle = async (operationId: Id) => {
++    const resolver = createPersistedAssistantActorResolver({
++      verifierBuildSha256: fixtureVerifierBuildSha256,
++    });
++    const runs = createWorkflowRuns({ port: createProjectOrchestrationPort({ resolver }), resolver });
++    return db.begin((tx) => runs.createRunRequest(tx, operationId, runInput as never));
++  };
++  const [turn] = await db`select conversation_id from assistant_turns where id=${fence.turnId}`;
++  const conversationId = String(turn?.conversation_id);
++  const proposal = (changes: Partial<QuestionProposal> = {}): QuestionProposal => ({
++    conversationId,
++    ticketId: root.id,
++    runId: null,
++    stepId: null,
++    gateId: null,
++    cycleId: null,
++    artifactSha256: null,
++    question: 'Chủ dự án muốn ưu tiên phạm vi nào?',
++    options: ['Phạm vi nhỏ', 'Phạm vi đầy đủ'],
++    scopeSha256: questionScopeOracle({
++      conversationId,
++      rootTicketId: root.id,
++      ticketId: root.id,
++      runId: null,
++      stepId: null,
++    }),
++    ...changes,
++  });
++  const seedDocs = async (
++    projectId: Id,
++    path = 'docs/index.md',
++    text = '# Tài liệu\n\nNội dung kiểm thử\n',
++  ) => {
++    const snapshot = randomUUID();
++    const bytes = Buffer.from(text, 'utf8');
++    await db`insert into docs_snapshots(id,project_id,import_id,source_commit,snapshot_sha,source_kind,audit_state,audit_report,content_class)
++      values(${snapshot},${projectId},null,${'a'.repeat(40)},${createHash('sha256').update(snapshot).digest('hex')},
++      'checkout_sync','verified','{}','implemented')`;
++    await db`insert into docs_files(snapshot_id,path,content_class,bytes,sha,title,search_text)
++      values(${snapshot},${path},'implemented',${bytes},${createHash('sha256').update(bytes).digest('hex')},'Tài liệu',${text})`;
++    const [row] = await db`select received_at from docs_snapshots where id=${snapshot}`;
++    if (!row) throw new Error('DOCS_FIXTURE_MISSING');
++    return {
++      snapshotId: snapshot,
++      path,
++      text,
++      sha256: createHash('sha256').update(bytes).digest('hex'),
++      receivedAt: (row.received_at as Date).toISOString(),
++    };
++  };
++  const closeAttachments = f.close;
++  return {
++    ...f,
++    app,
++    hooks,
++    tokens,
++    ids,
++    root,
++    otherRoot,
++    fence,
++    pin,
++    scopeId,
++    snapshotId,
++    conversationId,
++    request,
++    send,
++    call,
++    counts,
++    operation,
++    runInput,
++    createRunOracle,
++    proposal,
++    seedDocs,
++    async close() {
++      await app.close();
++      // The attachment fixture removes its own scratch root after its ownership checks.
++      await closeAttachments();
++    },
++  };
++}
++type ToolsFixture = Awaited<ReturnType<typeof toolsFixture>>;
++
++async function withTools(options: FixtureOptions, fn: (f: ToolsFixture, db: Db) => Promise<void>) {
++  await withDatabase(async (db) => {
++    const f = await toolsFixture(db, options);
++    try {
++      await fn(f, db);
++    } finally {
++      await f.close();
++    }
++  });
++}
++
++const catalog: RoutingTool = { name: 'read_catalog', input: {} };
++const uniform = { code: 'ASSISTANT_SCOPE_NOT_FOUND' };
++
++test('assistant tools: production assembly without tools is 503 and writes nothing', async () =>
++  withTools({ assembly: false }, async (f) => {
++    const before = await f.counts();
++    const { response } = await f.call(catalog);
++    assert.equal(response.statusCode, 503);
++    assert.equal(response.json().error.code, 'ASSISTANT_TOOLS_NOT_CONFIGURED');
++    assert.deepEqual(await f.counts(), before);
++  }));
++
++test('assistant tools: authentication and provider call ID come before any authority', async () =>
++  withTools({}, async (f) => {
++    const before = await f.counts();
++    const missing = await f.call(catalog, { token: null });
++    assert.equal(missing.response.statusCode, 401);
++    const bad = await f.call(catalog, { token: 'f'.repeat(64) });
++    assert.equal(bad.response.statusCode, 401);
++    for (const providerCallId of [null, '', 'a b', 'x'.repeat(4097), 'gọi-tool'])
++      assert.equal(
++        (await f.call(catalog, { providerCallId })).response.statusCode,
++        400,
++        `provider ${JSON.stringify(providerCallId)?.slice(0, 20)}`,
++      );
++    assert.deepEqual(await f.counts(), before);
++  }));
++
++test('assistant tools: every failure before proof → scope resolution has one shape', async () =>
++  withTools({}, async (f, db) => {
++    const before = await f.counts();
++    const unknownTurn = randomUUID();
++    const variants: [string, Parameters<ToolsFixture['call']>[1]][] = [
++      ['path turn differs from fence', { path: randomUUID() }],
++      ['unknown turn', { fence: { turnId: unknownTurn }, path: unknownTurn }],
++      ['wrong generation', { fence: { generation: String(BigInt(f.fence.generation) + 1n) } }],
++      ['wrong process instance', { fence: { processInstanceId: randomUUID() } }],
++      ['wrong designation', { fence: { designationId: randomUUID() } }],
++      ['wrong designation revision', { fence: { designationRevision: f.fence.designationRevision + 1 } }],
++      ['unknown input snapshot', { pin: { snapshotId: randomUUID() } }],
++      ['authenticated machine is not the designated Assistant', { token: f.tokens.c }],
++      ['project machine B is not the designated Assistant', { token: f.tokens.b }],
++    ];
++    const shapes = [];
++    for (const [label, opts] of variants) {
++      const { response } = await f.call(catalog, opts);
++      shapes.push({ label, status: response.statusCode, body: response.json() });
++    }
++    // An expired scope of the same turn reads exactly like a missing one. The scope row is
++    // immutable, so the test-only tamper bypasses its identity trigger in a replica session.
++    await db.begin(async (tx) => {
++      await tx`set local session_replication_role = replica`;
++      await tx`update assistant_scopes set expires_at=clock_timestamp()-interval '1 second' where id=${f.scopeId}`;
++    });
++    const expired = (await f.call(catalog)).response;
++    shapes.push({ label: 'expired scope', status: expired.statusCode, body: expired.json() });
++    const first = shapes[0];
++    assert.equal(first?.status, 404);
++    assert.equal(first?.body.error.code, uniform.code);
++    for (const shape of shapes)
++      assert.deepEqual(
++        { status: shape.status, body: shape.body },
++        { status: first?.status, body: first?.body },
++        shape.label,
++      );
++    assert.deepEqual(await f.counts(), before);
++  }));
++
++test('assistant tools: unknown tool, extra fields and forged results are rejected without rows', async () =>
++  withTools({}, async (f) => {
++    const before = await f.counts();
++    const cases: [string, Record<string, unknown>, Parameters<ToolsFixture['call']>[1]?][] = [
++      ['unknown tool', { name: 'run_shell', input: { command: 'id' } }],
++      ['extra tool field', { name: 'read_catalog', input: {}, approved: true }],
++      ['extra input field', { name: 'read_catalog', input: { all: true } }],
++      ['forged approval in body', catalog, { extra: { result: { kind: 'run' } } }],
++      ['bad operation id', catalog, { operationId: 'not-a-uuid' }],
++      ['bad client sequence', catalog, { clientSequence: '0' }],
++    ];
++    for (const [label, tool, opts] of cases)
++      assert.equal((await f.call(tool, opts)).response.statusCode, 400, label);
++    assert.deepEqual(await f.counts(), before);
++  }));
++
++test('assistant tools: stale input pin is 409 after scope resolution and writes nothing', async () =>
++  withTools({}, async (f, db) => {
++    const before = await f.counts();
++    for (const pin of [
++      { snapshotSha256: 'f'.repeat(64) },
++      { selectionSha256: 'e'.repeat(64) },
++      { inputRevision: '2' },
++    ]) {
++      const { response } = await f.call(catalog, { pin });
++      assert.equal(response.statusCode, 409, JSON.stringify(pin));
++      assert.equal(response.json().error.code, 'ASSISTANT_INPUT_STALE');
++    }
++    // The root's input moved on after the snapshot was taken.
++    await db`insert into attachment_input_revisions(target_kind,target_id,revision,route_revision)
++      values('ticket',${f.root.id},2,0) on conflict(target_kind,target_id) do update set revision=2`;
++    const { response } = await f.call(catalog);
++    assert.equal(response.statusCode, 409);
++    assert.equal(response.json().error.code, 'ASSISTANT_INPUT_STALE');
++    assert.deepEqual(await f.counts(), before);
++  }));
++
++test('assistant tools: a tool outside the scope tool_names is 403 without rows', async () =>
++  withTools({ tools: ['read_catalog', 'create_run'] }, async (f) => {
++    const before = await f.counts();
++    for (const tool of [
++      { name: 'ask_owner', input: f.proposal() },
++      {
++        name: 'read_docs',
++        input: { projectId: f.project.id, snapshotId: randomUUID(), path: 'docs/index.md' },
++      },
++      {
++        name: 'request_review',
++        input: {
++          runId: randomUUID(),
++          implementationStepId: randomUUID(),
++          implementationAttemptId: randomUUID(),
++        },
++      },
++    ] as RoutingTool[]) {
++      const { response } = await f.call(tool);
++      assert.equal(response.statusCode, 403, tool.name);
++      assert.equal(response.json().error.code, 'ASSISTANT_TOOL_NOT_IN_SCOPE');
++    }
++    assert.deepEqual(await f.counts(), before);
++  }));
++
++test('assistant tools: the per-turn tool budget denies the next call but not the replay', async () =>
++  withTools({ maxToolsPerTurn: 1 }, async (f) => {
++    const first = await f.call(catalog);
++    assert.equal(first.response.statusCode, 200);
++    const after = await f.counts();
++    const second = await f.call(catalog);
++    assert.equal(second.response.statusCode, 409);
++    assert.equal(second.response.json().error.code, 'ASSISTANT_TOOL_BUDGET_EXHAUSTED');
++    assert.deepEqual(await f.counts(), after);
++    const replay = await f.send(first);
++    assert.equal(replay.statusCode, 200);
++    assert.deepEqual(replay.json(), first.response.json());
++    assert.deepEqual(await f.counts(), after);
++  }));
++
++test('assistant tools: read_catalog returns the scoped catalog and stores the bound result', async () =>
++  withTools({}, async (f, db) => {
++    const docs = await f.seedDocs(f.project.id);
++    const { operationId, providerCallId, body, response } = await f.call(catalog);
++    assert.equal(response.statusCode, 200);
++    const [project] = await db`select key,name from projects where id=${f.project.id}`;
++    const expected = {
++      operationId,
++      state: 'completed',
++      result: {
++        kind: 'catalog',
++        items: [
++          {
++            projectId: f.project.id,
++            key: String(project?.key),
++            name: String(project?.name),
++            latestSnapshotId: docs.snapshotId,
++            sourceCommit: 'a'.repeat(40),
++          },
++        ],
++      },
++      errorCode: null,
++    };
++    assert.deepEqual(response.json(), expected);
++    const row = await f.operation(operationId);
++    assert.equal(row?.turn_id, f.fence.turnId);
++    assert.equal(row?.client_sequence, body.clientSequence);
++    assert.equal(row?.provider_call_id, providerCallId);
++    assert.equal(row?.input_snapshot_id, f.snapshotId);
++    assert.equal(row?.state, 'completed');
++    assert.equal(row?.request_hash, requestOracle('read_catalog', {}));
++    assert.deepEqual(row?.response, expected);
++  }));
++
++test('assistant tools: read_docs returns the page with a read receipt; foreign and unknown are one 404', async () =>
++  withTools({}, async (f, db) => {
++    const docs = await f.seedDocs(f.project.id);
++    const input = { projectId: f.project.id, snapshotId: docs.snapshotId, path: docs.path };
++    const { operationId, response } = await f.call({ name: 'read_docs', input });
++    assert.equal(response.statusCode, 200);
++    const value = response.json();
++    const page: DocRead = {
++      projectId: f.project.id,
++      snapshotId: docs.snapshotId,
++      path: docs.path,
++      sha256: docs.sha256,
++      sourceCommit: 'a'.repeat(40),
++      receivedAt: docs.receivedAt,
++      auditState: 'verified',
++      contentClass: 'implemented',
++      text: docs.text,
++      state: 'current',
++    };
++    assert.deepEqual(value, {
++      operationId,
++      state: 'completed',
++      result: { kind: 'docs', page, readReceiptId: value.result.readReceiptId },
++      errorCode: null,
++    });
++    const receipts = await db`select id,turn_id,snapshot_id,path,sha256 from assistant_doc_read_receipts`;
++    assert.deepEqual(
++      receipts.map((row) => ({ ...row })),
++      [
++        {
++          id: value.result.readReceiptId,
++          turn_id: f.fence.turnId,
++          snapshot_id: docs.snapshotId,
++          path: docs.path,
++          sha256: docs.sha256,
++        },
++      ],
++    );
++    assert.equal((await f.operation(operationId))?.request_hash, requestOracle('read_docs', input));
++    // A project outside the root scope reads exactly like a project that does not exist.
++    const other = randomUUID();
++    await db`insert into projects(id,key,name) values(${other},${`O${other.slice(0, 8).toUpperCase()}`},'Khác')`;
++    const otherDocs = await f.seedDocs(other);
++    const before = await f.counts();
++    const foreign = await f.call({
++      name: 'read_docs',
++      input: { projectId: other, snapshotId: otherDocs.snapshotId, path: otherDocs.path },
++    });
++    const unknown = await f.call({
++      name: 'read_docs',
++      input: { projectId: randomUUID(), snapshotId: randomUUID(), path: otherDocs.path },
++    });
++    const missingPath = await f.call({
++      name: 'read_docs',
++      input: { projectId: f.project.id, snapshotId: docs.snapshotId, path: 'docs/khong-co.md' },
++    });
++    assert.equal(foreign.response.statusCode, 404);
++    assert.deepEqual(foreign.response.json(), unknown.response.json());
++    assert.equal(unknown.response.statusCode, 404);
++    assert.equal(missingPath.response.statusCode, 404);
++    assert.deepEqual(await f.counts(), before);
++  }));
++
++test('assistant tools: create_run through the real route creates the graph as machine A once', async () =>
++  withTools({}, async (f, db) => {
++    const before = await f.counts();
++    // The oracle plans the graph from the rows before the run exists.
++    const planned = randomUUID();
++    const oracle = await f.createRunOracle(planned);
++    const { operationId, response } = await f.call({ name: 'create_run', input: f.runInput } as RoutingTool, {
++      operationId: planned,
++    });
++    assert.equal(response.statusCode, 200, response.body);
++    const value = response.json();
++    assert.equal(value.operationId, operationId);
++    assert.equal(value.state, 'completed');
++    assert.equal(value.errorCode, null);
++    assert.equal(value.result.kind, 'run');
++    const run = value.result.run;
++    assert.equal(run.rootTicketId, f.root.id);
++    assert.equal(run.path, 'architectural');
++    assert.ok(run.steps.length > 0);
++    const row = await f.operation(operationId);
++    assert.equal(row?.state, 'completed');
++    assert.deepEqual(row?.response, value);
++    // The row is bound to the exact create_run request with the server-derived graph digest.
++    assert.equal(row?.request_hash, requestOracle('create_run', oracle.payload));
++    assert.equal(row?.request_hash, operationRequestSha256(oracle));
++    const tickets =
++      await db`select created_actor_kind,created_actor_id from tickets where parent_id=${f.root.id}`;
++    assert.equal(tickets.length, run.steps.length);
++    for (const ticket of tickets)
++      assert.deepEqual({ ...ticket }, { created_actor_kind: 'machine', created_actor_id: f.ids.a });
++    // Journal actor of the whole mutation is the authenticated Assistant machine A.
++    const [reply] = await db`select actor_kind,actor_id,key from idempotency where route=${route}`;
++    assert.deepEqual({ ...reply }, { actor_kind: 'machine', actor_id: f.ids.a, key: operationId });
++    const after = await f.counts();
++    assert.equal(after.runs, before.runs + 1);
++    assert.equal(after.operations, before.operations + 1);
++    assert.equal(after.tickets, before.tickets + run.steps.length);
++  }));
++
++test('assistant tools: create_run on a root outside the scope is one 404 without ticket probing', async () =>
++  withTools({}, async (f) => {
++    const before = await f.counts();
++    const foreign = await f.call({
++      name: 'create_run',
++      input: { ...f.runInput, rootTicketId: f.otherRoot.id },
++    } as RoutingTool);
++    const unknown = await f.call({
++      name: 'create_run',
++      input: { ...f.runInput, rootTicketId: randomUUID() },
++    } as RoutingTool);
++    assert.equal(foreign.response.statusCode, 404);
++    assert.deepEqual(foreign.response.json(), unknown.response.json());
++    assert.deepEqual(await f.counts(), before);
++  }));
++
++test('assistant tools: ask_owner through the real route opens the question bound to its operation', async () =>
++  withTools({}, async (f) => {
++    const before = await f.counts();
++    const input = f.proposal();
++    const { operationId, response } = await f.call({ name: 'ask_owner', input });
++    assert.equal(response.statusCode, 200, response.body);
++    const value = response.json();
++    assert.equal(value.state, 'completed');
++    assert.equal(value.result.kind, 'question');
++    assert.deepEqual(
++      { ...value.result.question, id: undefined },
++      { ...input, id: undefined, revision: 1, state: 'open' },
++    );
++    const row = await f.operation(operationId);
++    assert.equal(row?.request_hash, requestOracle('ask_owner', input));
++    assert.deepEqual(row?.response, value);
++    const after = await f.counts();
++    assert.equal(after.questions, before.questions + 1);
++    assert.equal(after.operations, before.operations + 1);
++  }));
++
++test('assistant tools: ask_owner without a ticket is 422 and a late failure rolls the row back', async () =>
++  withTools({}, async (f) => {
++    const before = await f.counts();
++    const noTicket = await f.call({ name: 'ask_owner', input: f.proposal({ ticketId: null }) });
++    assert.equal(noTicket.response.statusCode, 422);
++    assert.equal(noTicket.response.json().error.code, 'WORKFLOW_QUESTION_TICKET_REQUIRED');
++    // Failure after the pending row was written (conversation of another turn): all or nothing.
++    const late = await f.call({ name: 'ask_owner', input: f.proposal({ conversationId: randomUUID() }) });
++    assert.equal(late.response.statusCode, 409);
++    assert.equal(await f.operation(late.operationId), undefined);
++    assert.deepEqual(await f.counts(), before);
++  }));
++
++test('assistant tools: unreleased tools are rejected with a bound row and no effect', async () =>
++  withTools({}, async (f) => {
++    const tools = [
++      {
++        name: 'request_review',
++        input: {
++          runId: randomUUID(),
++          implementationStepId: randomUUID(),
++          implementationAttemptId: randomUUID(),
++        },
++      },
++      { name: 'read_execution_candidates', input: { ticketId: f.root.id, runId: randomUUID() } },
++      {
++        name: 'request_dispatch',
++        input: {
++          stepId: randomUUID(),
++          assessmentId: randomUUID(),
++          chosen: { machineId: f.ids.b, runtime: 'claude', providerId: 'anthropic', modelId: 'claude-test' },
++          priorAttemptId: null,
++        },
++      },
++    ] as RoutingTool[];
++    for (const tool of tools) {
++      const before = await f.counts();
++      const { operationId, response } = await f.call(tool);
++      assert.equal(response.statusCode, 200, `${tool.name}: ${response.body}`);
++      const expected = { operationId, state: 'rejected', result: null, errorCode: 'TOOL_NOT_RELEASED' };
++      assert.deepEqual(response.json(), expected);
++      const row = await f.operation(operationId);
++      assert.equal(row?.state, 'rejected');
++      assert.deepEqual(row?.response, expected);
++      assert.equal(row?.request_hash, requestOracle(tool.name, tool.input));
++      const after = await f.counts();
++      assert.deepEqual(after, { ...before, operations: before.operations + 1, replies: before.replies + 1 });
++    }
++  }));
++
++test('assistant tools: replay returns the stored result without writing; conflicting IDs are 409', async () =>
++  withTools({}, async (f) => {
++    const first = await f.call({ name: 'create_run', input: f.runInput } as RoutingTool);
++    assert.equal(first.response.statusCode, 200);
++    const stored = await f.operation(first.operationId);
++    const after = await f.counts();
++    // Response lost after commit: the exact retry reads the stored result back.
++    const replay = await f.send(first);
++    assert.equal(replay.statusCode, 200);
++    assert.equal(replay.body, first.response.body);
++    assert.deepEqual(await f.operation(first.operationId), stored);
++    assert.deepEqual(await f.counts(), after);
++    const conflicts: [string, ReturnType<ToolsFixture['request']>, string][] = [
++      [
++        'same operation, other payload',
++        { ...first, body: { ...first.body, call: catalog } },
++        'IDEMPOTENCY_CONFLICT',
++      ],
++      [
++        'same operation, other provider call',
++        { ...first, providerCallId: 'toolu_other' },
++        'IDEMPOTENCY_CONFLICT',
++      ],
++      [
++        'same provider call, new operation',
++        f.request(catalog, { providerCallId: first.providerCallId }),
++        'ASSISTANT_OPERATION_CONFLICT',
++      ],
++      [
++        'same client sequence, new operation',
++        f.request(catalog, { clientSequence: first.body.clientSequence }),
++        'ASSISTANT_OPERATION_CONFLICT',
++      ],
++    ];
++    for (const [label, prepared, code] of conflicts) {
++      const response = await f.send(prepared);
++      assert.equal(response.statusCode, 409, label);
++      assert.equal(response.json().error.code, code, label);
++    }
++    assert.deepEqual(await f.operation(first.operationId), stored);
++    assert.deepEqual(await f.counts(), after);
++  }));
++
++test('assistant tools: a response lost before commit leaves no effect and the retry applies once', async () =>
++  withTools({}, async (f) => {
++    const before = await f.counts();
++    const prepared = f.request({ name: 'create_run', input: f.runInput } as RoutingTool);
++    f.hooks.failAfterWork = true;
++    const lost = await f.send(prepared);
++    assert.equal(lost.statusCode, 500);
++    assert.deepEqual(await f.counts(), before);
++    const retried = await f.send(prepared);
++    assert.equal(retried.statusCode, 200, retried.body);
++    const once = await f.counts();
++    assert.equal(once.runs, before.runs + 1);
++    assert.equal(once.operations, before.operations + 1);
++    const again = await f.send(prepared);
++    assert.equal(again.body, retried.body);
++    assert.deepEqual(await f.counts(), once);
++  }));
++
++test('assistant tools: concurrent duplicates of one operation apply exactly once', async () =>
++  withTools({}, async (f) => {
++    const before = await f.counts();
++    const prepared = f.request({ name: 'create_run', input: f.runInput } as RoutingTool);
++    const responses = await Promise.all([f.send(prepared), f.send(prepared), f.send(prepared)]);
++    for (const response of responses) {
++      assert.equal(response.statusCode, 200, response.body);
++      assert.equal(response.body, responses[0]?.body);
++    }
++    const after = await f.counts();
++    assert.equal(after.runs, before.runs + 1);
++    assert.equal(after.operations, before.operations + 1);
++  }));
+diff --git a/v2/server/test/support/assistant.ts b/v2/server/test/support/assistant.ts
+index d2b1aa8..37ae2c6 100644
+--- a/v2/server/test/support/assistant.ts
++++ b/v2/server/test/support/assistant.ts
+@@ -496,21 +496,25 @@ export const fixtureVerifierBuildSha256 = createHash('sha256')
+ 
+ type TurnRowsInput = {
+   conversationId: Id;
+   messageId: Id | null;
+   machineId?: Id;
+   selectionModelId?: string;
+   receiptMachineId?: Id;
+   receiptStatus?: 'PASS' | 'FAIL' | 'UNVERIFIED';
+   verifierBuildSha256?: string;
+   receiptExpiresInSeconds?: number;
+-  admission?: { target: { kind: 'ticket' | 'message'; id: Id }; sessionExpiresInSeconds: number };
++  admission?: {
++    target: { kind: 'ticket' | 'message'; id: Id };
++    sessionExpiresInSeconds: number;
++    snapshotCanonical?: Record<string, unknown>;
++  };
+ };
+ 
+ // Explicit test-only SQL rows. Defaults reproduce the unadmitted UNVERIFIED turn.
+ async function insertTurnRows(tx: Tx, input: TurnRowsInput) {
+   const { allocateAssistantGeneration } = await import('../../src/assistant/store.ts');
+   const machineId = input.machineId ?? randomUUID(),
+     designationId = randomUUID(),
+     turnId = randomUUID();
+   const selectionId = randomUUID(),
+     challengeId = randomUUID(),
+@@ -546,29 +550,29 @@ async function insertTurnRows(tx: Tx, input: TurnRowsInput) {
+     ${status === 'PASS' ? 'verified' : 'failed'},${status === 'PASS' ? receiptId : null})`;
+   await tx`insert into assistant_policy_receipts(id,deployment_id,challenge_id,verifier_build_sha256,machine_id,model_key,os_version,
+     binary_sha256,policy_sha256,probe_context_sha256,status,evidence_ids,expires_at)
+     values(${receiptId},${config?.deployment_id},${challengeId},${input.verifierBuildSha256 ?? 'f'.repeat(64)},${key.machineId},${tx.json(key)},'fixture-only',
+     ${context.binarySha256},${context.policySha256},${contextHash},${status},'[]',now()+${receiptSeconds}*interval '1 second')`;
+   await tx`insert into routing_capability_receipts(id,certification_receipt_id,model_key,context_sha256,capabilities,received_at,expires_at)
+     values(${probeId},${receiptId},${tx.json(key)},${contextHash},'[]',
+     now()-${input.admission ? 600 : 0}*interval '1 second',now()+${input.admission ? receiptSeconds : 240}*interval '1 second')`;
+   let admission: { snapshotId: Id; sessionId: Id; admissionId: Id } | null = null;
+   if (input.admission) {
+-    const { target, sessionExpiresInSeconds } = input.admission;
++    const { target, sessionExpiresInSeconds, snapshotCanonical } = input.admission;
+     const snapshotId = randomUUID(),
+       authorizationId = randomUUID(),
+       grantId = randomUUID(),
+       sessionId = randomUUID(),
+       admissionId = randomUUID();
+     const snapshotSha256 = createHash('sha256').update(snapshotId).digest('hex');
+     await tx`insert into attachment_input_snapshots(id,target_kind,target_id,input_revision,route_revision,canonical,sha256)
+-      values(${snapshotId},${target.kind},${target.id},1,0,'{}',${snapshotSha256})`;
++      values(${snapshotId},${target.kind},${target.id},1,0,${tx.json((snapshotCanonical ?? {}) as never)},${snapshotSha256})`;
+     await tx`insert into attachment_submission_authorizations(id,target_kind,target_id,originals,authorization_sha256,expires_at)
+       values(${authorizationId},${target.kind},${target.id},'[]',${'a'.repeat(64)},now()+interval '10 minutes')`;
+     await tx`insert into attachment_assistant_grants(id,authorization_id,target_kind,target_id,originals,input_revision,route_revision,
+       designation_id,designation_revision,machine_id,snapshot_id,snapshot_sha256,expires_at)
+       values(${grantId},${authorizationId},${target.kind},${target.id},'[]',1,0,${designationId},1,${machineId},
+       ${snapshotId},${snapshotSha256},now()+interval '10 minutes')`;
+     await tx`insert into attachment_assistant_sessions(id,grant_id,snapshot_id,snapshot_sha256,designation_revision,machine_id,runtime,
+       model_key,model_selection_id,policy_receipt_id,process_instance_id,admission_id,admitted_at,model_config_revision,
+       source_enabled_at_admission,state,expires_at)
+       values(${sessionId},${grantId},${snapshotId},${snapshotSha256},1,${machineId},'api',${canonicalJson(key)},${selectionId},
+@@ -752,32 +756,35 @@ export async function assistantFixture(db: Db) {
+      */
+     async seedAdmittedTurn(input: {
+       conversationId: Id;
+       messageId: Id | null;
+       target: { kind: 'ticket' | 'message'; id: Id };
+       machineId?: Id;
+       receiptStatus?: 'PASS' | 'FAIL' | 'UNVERIFIED';
+       verifierBuildSha256?: string;
+       receiptExpiresInSeconds?: number;
+       sessionExpiresInSeconds?: number;
++      /** Canonical body of the seeded input snapshot; default `{}` (no selection recorded). */
++      snapshotCanonical?: Record<string, unknown>;
+     }) {
+       return db.begin((tx) =>
+         insertTurnRows(tx, {
+           conversationId: input.conversationId,
+           messageId: input.messageId,
+           machineId: input.machineId,
+           receiptStatus: input.receiptStatus ?? 'PASS',
+           verifierBuildSha256: input.verifierBuildSha256 ?? fixtureVerifierBuildSha256,
+           receiptExpiresInSeconds: input.receiptExpiresInSeconds,
+           admission: {
+             target: input.target,
+             sessionExpiresInSeconds: input.sessionExpiresInSeconds ?? 300,
++            ...(input.snapshotCanonical ? { snapshotCanonical: input.snapshotCanonical } : {}),
+           },
+         }),
+       );
+     },
+     /**
+      * Test-only stand-in for the tools route row written before the port call. With a
+      * `request` the row carries its exact request hash; without one the hash binds no request.
+      */
+     async seedToolOperation(
+       sql: Db | Tx,

@@ -176,3 +176,5 @@ Task 3 S2: minor (deferred, checklist T7): N5 ownership_keys lưu bản thô —
 23:30 S5 follow-up `cb02a7d` re-review `task-3-s2-fix2-re-review.md`: Approved, N2/N3/N4 ADDRESSED. Task 3 S2 (S5 gates): complete — cb02a7d (2bdc332 + 4653b89 + cb02a7d). Production vẫn deny; route HTTP answer chưa có (W1 chờ ruling).
 
 23:40 Ruling: B3 cắt thành B3a (route server /v2/assistant/turns/:id/tools + consumer read_catalog/read_docs/create_run/ask_owner; tool khác rejected TOOL_NOT_RELEASED) — brief `task-2-slice-b3a-brief.md` gom mọi ràng buộc đã chốt. Gateway tool-client/driver, route_message/assess/dispatch/review/reply là slice sau. Dispatch B3a.
+
+00:50 B3a `922abed` DONE_WITH_CONCERNS (254/254, regression 102/102). Ruling: providerCallId qua header `x-crew-provider-call-id` (đúng một lần, ASCII hiển thị, 1–4096, không trim; vào journal + cột provider_call_id, không vào request_hash) theo đề xuất đã duyệt nguyên tắc `task-2-preflight.md:95` — gateway tool-client dùng đúng carrier này — sai thì đổi carrier ở cả hai phía. Full security review B3a dispatch.
