@@ -169,3 +169,9 @@ Task 3 S3b: complete (source) — ab1bb3a (60f546e + f1cda08 + d9216cc + ab1bb3a
 Task 3 S3b: minor (deferred, lượt A3/A5): N1 re-entry tombstone (editing) bỏ thẳng không xác nhận trùng — cần S5a lộ needsPayload/discardable; N2 handle null coi như discarded (session/tệp còn); N3 nút bỏ bình luận luôn hiện; N4 confirming không reset khi accepted; N5 formDrafts gắn storage lần đầu (WeakMap). B3 vẫn mở.
 
 22:00 Controller integration `2b101ec`/`cf9c863` DONE (13 E2E, lifecycle 6, unit/tsc/build). PM dọn: xóa `perl`/`perl.resource` (rác do lệnh perl alarm sai cú pháp lúc 12:16, untracked); khôi phục `execution-phase06/task-2-c-biome-format.log` về bản commit (một worker append thêm dòng — log bằng chứng là bất biến). Nhắc: log mới phải đặt tên riêng, không ghi vào log của task đã nghiệm thu.
+
+22:15 Controller integration review `web-controller-integration-review.md`: Needs fixes, Important1 (port receivers macOS bản chép 121 dòng không test chạy) /Minor5/⚠️6; bất biến harness giữ đúng. FIX1/5 resume: I1, M1–M4.
+Ruling: session.expire() giữ nháp (khớp brief Task2 "không xóa pending vì hết phiên"), chỉ logout() xóa — sai thì nháp sống qua phiên hết hạn của cùng owner (chấp nhận được).
+Ruling: RequestList mount dạng `view=requests` trong route tickets là chấp nhận — cùng dữ liệu board/list.
+Integration: minor (deferred): M5 toLowerCase thừa trên randomUUID; register macOS String(undefined) khi thiếu upload row.
+Kế tiếp A3/A5: viết E2E text-only create-request và compose trên fixture có attachments (owner Task3/Task5) sau khi integration FIX1 khép.
