@@ -212,3 +212,5 @@ Task 7 S7basic: complete — 3b202e9 (333468a + 2f94ed3 + 3b202e9). A7basic Đ�
 S7basic: minor (deferred): test tombstone chỉ phủ form máy (dự án/gắn máy dùng cùng mã); FakeServer so body thô thay vì canonicalJson, không kiểm schema/auth; máy mồ côi khi 2xx lỗi format vẫn "Đang dùng" tới khi có route thu hồi.
 
 05:10 OWNER: push 174 commit lên origin/codex/crew-v2-server (0c35a43..5e852b5, pre-push ok). Owner duyệt thứ tự quota còn lại: Task4 → G4 phần đọc → S6 hoặc T4; dừng dispatch ở quota còn 5%.
+
+05:45 Task4 `da607c8`/`0a5b94b` DONE_WITH_CONCERNS (unit 281/281, E2E ticket-map 4/4 x2, 801 node ~200ms). Sự cố gate lần 3: lượt unit ~35s khi heavyEligible=false do kiểm tra dùng `grep -o` luôn exit 0 — worker đã đổi script gate chặt. Ruling: mọi worker dùng kiểm tra gate parse JSON (`python3 -c` hoặc `node -e`) với exit code khác 0 khi false.
