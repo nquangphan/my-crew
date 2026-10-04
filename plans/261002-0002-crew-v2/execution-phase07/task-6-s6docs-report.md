@@ -24,3 +24,15 @@ BASE `1574c1e1d2293a716cd20ffc2b3f769de88ed735`. Phạm vi: không gian tài li�
 2. `onOpenTicket(ticketId, trigger)` gọi `TicketDialog` dùng chung.
 3. Ticket detail có thể dùng `useTicketDocsLinks(client, ticketId)` (key `['v2','ticket',id,'docs-links']`, nằm dưới prefix event của ticket).
 4. Fixture E2E: seed một snapshot tài liệu để mở A6docs.
+
+# Fix round 1 (theo review `task-6-s6docs-review.md`)
+
+Mỗi mục có test RED trước (5 test docs-links/space đỏ trước khi sửa; file `docs-ticket-links-dom.test.ts` đỏ vì thiếu module), rồi GREEN.
+
+- **I1** docsState chuyển sang `docsStateKey(projectId)` = `['v2','docs',projectId,'state']`, nằm dưới prefix mà `docs.synced` và `docs.imported` (`queryRoots.allDocs`) đã invalidate; không sửa `events.ts`. Test dùng chính `invalidations()` của event `docs.imported` rồi kiểm tra trạng thái đổi từ “Hiện hành” sang “Chưa xác minh”. Đã sửa câu sai trong `web-docs.md`.
+- **I2** Resolver khớp audit của máy chủ: chặn `%2e/%2f/%5c`, `/` đầu, `?`, `\`, `/` cuối, double-decode ra traversal; bỏ dự phòng thư mục → `index.md` và bỏ link `/abs`. Bảng 23 trường hợp trong `docs-links.test.ts` lấy từ kết quả chạy thật `auditLinks` của máy chủ (chạy trước khi viết). Lệch có chủ ý: máy chủ coi percent hỏng như “trang hiện hành”; web chặn.
+- **I3** `v2/web/src/docs/ticket-links.tsx` → `TicketDocsLinksEditor({ ticketId })`: PUT `{snapshotId, paths, expectedRevision}` qua `PendingStore.begin` + `OwnerClient.mutate` (intent cố định, mất phản hồi thì gửi lại đúng khóa/byte), 409 giữ bản nháp rồi lưu lại với revision mới và khóa mới, bắt buộc đọc hết `useTicketDocsLinks` trước khi lưu, báo liên kết snapshot cũ sẽ bị thay, chặn danh sách rỗng và >100, nút bỏ lần gửi treo. Consumer thật của `useTicketDocsLinks`. Cách nhúng: render `<TicketDocsLinksEditor ticketId={ticket.id} />` trong `TicketDetail`; `tickets/*` không bị sửa.
+- **Minor nâng**: `urlTransform` chỉ cho `href` của `<a>` đi thẳng (do resolver quyết), mọi URL khác qua `defaultUrlTransform`. Metadata (commit, kiểm tra, docsState, loại nội dung, phiên bản) vẫn hiện khi trang lỗi 422/404, chung một vùng `role=alert` với cảnh báo; cảnh báo kiểm tra không còn bị nuốt khi docsState khác current (trừ khi lặp đúng trạng thái đó). 404 của cây phân biệt “không tìm thấy dự án” và “chưa có tài liệu” theo thông điệp máy chủ.
+- Chưa làm (để PM ghi ledger): test đổi snapshot trong cùng dự án, href thật của router, bỏ `new Set(seen)` thừa, NFC/NFD, cuộn fragment.
+
+Kiểm chứng: toàn bộ web test 194/194 pass, `tsc --noEmit` sạch, `pnpm build` pass, Biome sạch trên file của slice. `crew-docs generate`/`check --all` trên bản sao: không có lỗi nào của `web-docs` (4 R2 còn lại của worker khác). Manifest: thêm `ticket-links.tsx` và test mới vào flow `web-docs`; `files.md` +2 dòng.

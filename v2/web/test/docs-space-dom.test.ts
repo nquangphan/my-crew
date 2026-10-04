@@ -12,6 +12,7 @@ const { act, cleanup, fireEvent, render, screen, within } = await import('@testi
 const { createElement, useState } = await import('react');
 const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
 const { RuntimeContext } = await import('../src/app-runtime.ts');
+const { invalidations } = await import('../src/lib/events.ts');
 const { DocsSpace } = await import('../src/docs/space.tsx');
 
 afterEach(() => cleanup());
@@ -106,14 +107,19 @@ function docsServer(handler: Handler) {
 }
 
 type Env = Awaited<ReturnType<typeof harness>>;
-type Mounted = { navigations: string[]; tickets: string[]; setProject: (id: string) => void };
+type Mounted = {
+  navigations: string[];
+  tickets: string[];
+  setProject: (id: string) => void;
+  queryClient: InstanceType<typeof QueryClient>;
+};
 
 function mount(env: Env, initialProject = projectA, initialPath: string | null = null): Mounted {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Number.POSITIVE_INFINITY } },
   });
   const runtime = { client: env.client, session: env.session, pending: env.pending } as unknown as AppRuntime;
-  const out: Mounted = { navigations: [], tickets: [], setProject: () => undefined };
+  const out: Mounted = { navigations: [], tickets: [], setProject: () => undefined, queryClient };
   function Host() {
     const [id, setId] = useState(initialProject);
     const [path, setPath] = useState<string | null>(initialPath);
@@ -410,4 +416,76 @@ test('ticket liên quan hiện đúng danh sách máy chủ trả về, nói rõ
     fireEvent.click(screen.getAllByRole('button', { name: /Mở ticket/ })[0] as HTMLElement);
   });
   assert.deepEqual(mounted.tickets, [ticket1]);
+});
+
+test('sau event docs.imported, docsState được đọc lại và không còn hiện "Hiện hành" từ cache cũ', async () => {
+  let state = 'current';
+  const { server } = standard(
+    { 'docs/index.md': 'trang' },
+    {
+      extra: (url) =>
+        url.pathname === `/v2/projects/${projectA}` ? json(project(projectA, state)) : undefined,
+    },
+  );
+  const mounted = mount(await harness(server));
+  await until(has('Hiện hành'), 'current');
+  state = 'unverified';
+  await act(async () => {
+    await Promise.all(
+      invalidations({
+        cursor: '9',
+        type: 'docs.imported',
+        projectId: null,
+        ticketId: null,
+        audienceMachineId: null,
+        occurredAt: '2026-10-04T05:30:00.000Z',
+        data: {},
+      }).map((queryKey) => mounted.queryClient.invalidateQueries({ queryKey })),
+    );
+  });
+  await until(() => !(document.body.textContent ?? '').includes('Hiện hành'), 'refetched');
+  assert.match(screen.getByLabelText('Thông tin phiên bản tài liệu').textContent ?? '', /Chưa xác minh/);
+});
+
+test('lỗi trang (422) vẫn hiện commit, kiểm tra, trạng thái tài liệu và loại nội dung của cây', async () => {
+  const { server } = standard(
+    { 'docs/index.md': 'x' },
+    {
+      docsState: 'stale',
+      extra: (url) =>
+        url.searchParams.get('path') === 'docs/plan.md'
+          ? apiError(422, 'DOCS_ENCODING_INVALID', 'Trang không phải UTF-8 hợp lệ')
+          : undefined,
+    },
+  );
+  mount(await harness(server), projectA, 'docs/plan.md');
+  await until(has('UTF-8'), 'error');
+  const meta = screen.getByLabelText('Thông tin phiên bản tài liệu').textContent ?? '';
+  assert.match(meta, /abc1234def/);
+  assert.match(meta, /Đã xác minh/);
+  assert.match(meta, /Đã cũ/);
+  assert.match(meta, /Thiết kế\/kế hoạch/);
+});
+
+test('docs cũ và trang chưa xác minh: cả hai cảnh báo cùng hiện', async () => {
+  const { server } = standard(
+    { 'docs/index.md': 'x' },
+    { docsState: 'stale', pageExtra: { auditState: 'invalid' } },
+  );
+  mount(await harness(server));
+  await until(has('Đã cũ'), 'warn');
+  const alert = screen.getByRole('alert').textContent ?? '';
+  assert.match(alert, /đã cũ/);
+  assert.match(alert, /không hợp lệ/);
+});
+
+test('404 của cây: "không có dự án" khác "chưa có tài liệu"', async () => {
+  const { server } = docsServer((url) =>
+    url.pathname.endsWith('/docs/tree')
+      ? apiError(404, 'NOT_FOUND', 'Không tìm thấy dự án')
+      : new Response('', { status: 599 }),
+  );
+  mount(await harness(server));
+  await until(has('Không tìm thấy dự án'), 'no project');
+  assert.doesNotMatch(document.body.textContent ?? '', /chưa có tài liệu/);
 });

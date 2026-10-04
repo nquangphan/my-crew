@@ -387,6 +387,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/src/docs/queries.ts` | [web-docs](flows/web-docs.md) (file) |
 | `web/src/docs/search.tsx` | [web-docs](flows/web-docs.md) (file) |
 | `web/src/docs/space.tsx` | [web-docs](flows/web-docs.md) (điểm vào) |
+| `web/src/docs/ticket-links.tsx` | [web-docs](flows/web-docs.md) (file) |
 | `web/src/lib/api.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/lib/events.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/lib/pending-operation.ts` | [web-data](flows/web-data.md) (file) |
@@ -415,6 +416,7 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `web/test/create-request.test.ts` | [web-tickets](flows/web-tickets.md) (test) |
 | `web/test/docs-links.test.ts` | [web-docs](flows/web-docs.md) (test) |
 | `web/test/docs-space-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
+| `web/test/docs-ticket-links-dom.test.ts` | [web-docs](flows/web-docs.md) (test) |
 | `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/support/compose-server.ts` | [web-attachments](flows/web-attachments.md) (test) |

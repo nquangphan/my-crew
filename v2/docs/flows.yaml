@@ -574,8 +574,10 @@ flows:
       - web/src/docs/search.tsx
       - web/src/docs/links.ts
       - web/src/docs/queries.ts
+      - web/src/docs/ticket-links.tsx
     tests:
       - web/test/docs-links.test.ts
       - web/test/docs-space-dom.test.ts
+      - web/test/docs-ticket-links-dom.test.ts
 shared: {}
 unassigned: []

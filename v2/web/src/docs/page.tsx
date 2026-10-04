@@ -5,7 +5,7 @@
  * `resolveDocLink`, external links open with noopener/noreferrer, and images are never fetched.
  */
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
+import ReactMarkdown, { type Components, defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useRuntime } from '../app-runtime.ts';
 import type { DocsPage, DocsTree } from '../contracts/docs.ts';
@@ -60,25 +60,45 @@ export type DocsPageViewProps = {
   onOpenTicket?: (ticketId: string, trigger: HTMLElement) => void;
 };
 
-function Metadata({ page, docsState }: { page: DocsPage; docsState: ReactNode }) {
+type MetadataFields = {
+  commit: string | null;
+  receivedAt: string | null;
+  auditState: DocsPage['auditState'];
+  contentClass: DocsPage['contentClass'] | DocsTree['contentClass'];
+  snapshotId: string;
+  sha256: string | null;
+  docsState: ReactNode;
+};
+
+function Metadata({ fields }: { fields: MetadataFields }) {
   return (
     <section aria-label="Thông tin phiên bản tài liệu">
       <dl style={gridStyle}>
         <dt>Commit</dt>
-        <dd style={textStyle}>{page.sourceCommit ?? 'Không có commit'}</dd>
+        <dd style={textStyle}>{fields.commit ?? 'Không có commit'}</dd>
         <dt>Nhận lúc</dt>
         <dd>
-          <time dateTime={page.receivedAt}>{formatTime(page.receivedAt)}</time>
+          {fields.receivedAt ? (
+            <time dateTime={fields.receivedAt}>{formatTime(fields.receivedAt)}</time>
+          ) : (
+            'Không có (trang chưa đọc được)'
+          )}
         </dd>
         <dt>Kiểm tra</dt>
-        <dd>{auditLabels[page.auditState]}</dd>
+        <dd>{auditLabels[fields.auditState]}</dd>
         <dt>Trạng thái tài liệu</dt>
-        <dd>{docsState}</dd>
+        <dd>{fields.docsState}</dd>
         <dt>Loại nội dung</dt>
-        <dd>{contentClassLabels[page.contentClass]}</dd>
+        <dd>{contentClassLabels[fields.contentClass]}</dd>
         <dt>Phiên bản</dt>
         <dd style={textStyle}>
-          <code>{page.snapshotId}</code> · sha256 <code>{page.sha256.slice(0, 12)}</code>
+          <code>{fields.snapshotId}</code>
+          {fields.sha256 ? (
+            <>
+              {' '}
+              · sha256 <code>{fields.sha256.slice(0, 12)}</code>
+            </>
+          ) : null}
         </dd>
       </dl>
     </section>
@@ -182,16 +202,13 @@ export function DocsPageView(props: DocsPageViewProps) {
   const { client } = useRuntime();
   const page = useDocsPage(client, props.projectId, props.snapshotId, props.path);
   const state = useProjectDocsState(client, props.projectId);
-  const title = props.tree.pages.find((row) => row.path === props.path)?.title ?? props.path;
+  const row = props.tree.pages.find((candidate) => candidate.path === props.path);
+  const title = row?.title ?? props.path;
 
   if (page.isPending) return <p role="status">Đang tải trang tài liệu…</p>;
-  if (page.isError)
-    return (
-      <p role="alert" style={noticeStyle}>
-        {docsFailureText(page.error)}
-      </p>
-    );
   const data = page.data;
+  const audit = data?.auditState ?? props.tree.auditState;
+  const contentClass = data?.contentClass ?? row?.contentClass ?? props.tree.contentClass;
   const docsState = state.data;
   const stateLabel = docsState
     ? docsStateLabels[docsState]
@@ -202,34 +219,61 @@ export function DocsPageView(props: DocsPageViewProps) {
   if (docsState && docsState !== 'current') warnings.push(docsStateWarnings[docsState]);
   else if (!docsState && state.isError)
     warnings.push('Không xác định được trạng thái tài liệu; chưa thể coi đây là bản hiện hành.');
-  if (data.auditState !== 'verified' && !(docsState && docsState !== 'current'))
-    warnings.push(`Trang này ${auditLabels[data.auditState].toLowerCase()}; không dùng làm nguồn sự thật.`);
-  if (data.contentClass === 'workflow_artifact')
+  // The audit warning stays even when the docs state is also not current, unless it would repeat it.
+  if (audit !== 'verified' && docsState !== audit)
+    warnings.push(`Trang này ${auditLabels[audit].toLowerCase()}; không dùng làm nguồn sự thật.`);
+  if (contentClass === 'workflow_artifact')
     warnings.push('Đây là tài liệu thiết kế/kế hoạch, chưa chắc đã được triển khai.');
-  const pages = new Set(props.tree.pages.map((row) => row.path));
+  const fields: MetadataFields = {
+    commit: data?.sourceCommit ?? props.tree.sourceCommit,
+    receivedAt: data?.receivedAt ?? null,
+    auditState: audit,
+    contentClass,
+    snapshotId: props.snapshotId,
+    sha256: data?.sha256 ?? null,
+    docsState: stateLabel,
+  };
+  const notices = (
+    <>
+      {page.isError && <p style={{ margin: 0 }}>{docsFailureText(page.error)}</p>}
+      {warnings.map((warning) => (
+        <p key={warning} style={{ margin: 0 }}>
+          {warning}
+        </p>
+      ))}
+    </>
+  );
+  const hasNotice = page.isError || warnings.length > 0;
+  const pages = new Set(props.tree.pages.map((candidate) => candidate.path));
 
   return (
-    <div data-testid="docs-page" data-path={data.path} data-snapshot-id={data.snapshotId}>
+    <div data-testid="docs-page" data-path={props.path} data-snapshot-id={props.snapshotId}>
       <h2 style={{ marginTop: 0 }}>{title}</h2>
       <p style={textStyle}>
-        <code>{data.path}</code>
+        <code>{props.path}</code>
       </p>
-      <Metadata page={data} docsState={stateLabel} />
-      {warnings.length > 0 && (
-        <p role="alert" style={noticeStyle}>
-          {warnings.join(' ')}
-        </p>
+      <Metadata fields={fields} />
+      {hasNotice && (
+        <div role="alert" style={noticeStyle}>
+          {notices}
+        </div>
       )}
-      <article style={textStyle}>
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          urlTransform={(url) => url}
-          components={markdownComponents(props, pages)}
-        >
-          {data.text}
-        </ReactMarkdown>
-      </article>
-      <RelatedTickets ids={data.relatedTicketIds} onOpenTicket={props.onOpenTicket} />
+      {data && (
+        <>
+          <article style={textStyle}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              urlTransform={(url, key, node) =>
+                node.tagName === 'a' && key === 'href' ? url : defaultUrlTransform(url)
+              }
+              components={markdownComponents(props, pages)}
+            >
+              {data.text}
+            </ReactMarkdown>
+          </article>
+          <RelatedTickets ids={data.relatedTicketIds} onOpenTicket={props.onOpenTicket} />
+        </>
+      )}
     </div>
   );
 }

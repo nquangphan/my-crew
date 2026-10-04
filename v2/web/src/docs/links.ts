@@ -58,11 +58,12 @@ export function resolveDocLink(input: ResolveDocLinkInput): DocDestination {
   }
   if (href.startsWith('//')) return blocked('Liên kết theo giao thức tương đối không được phép');
 
+  // Same rules as the producer's link audit (`v2/server/src/docs/links.ts`): a link the server flags as
+  // LINK_PATH_ESCAPE, or that names no page of this snapshot, is never clickable here.
+  if (href.includes('?')) return blocked('Liên kết có query không được hỗ trợ');
   const hashAt = href.indexOf('#');
   const rawFragment = hashAt === -1 ? '' : href.slice(hashAt + 1);
-  const beforeFragment = hashAt === -1 ? href : href.slice(0, hashAt);
-  const queryAt = beforeFragment.indexOf('?');
-  const rawPath = queryAt === -1 ? beforeFragment : beforeFragment.slice(0, queryAt);
+  const rawPath = hashAt === -1 ? href : href.slice(0, hashAt);
 
   const fragmentDecoded = rawFragment === '' ? '' : (decode(rawFragment) ?? rawFragment);
   const fragment = fragmentDecoded === '' ? null : fragmentDecoded;
@@ -75,14 +76,14 @@ export function resolveDocLink(input: ResolveDocLinkInput): DocDestination {
   });
 
   if (rawPath === '') return target(input.currentPath);
+  if (/%(?:2e|2f|5c)/i.test(rawPath) || rawPath.startsWith('/'))
+    return blocked('Đường dẫn liên kết không an toàn (mã hóa dấu chấm, dấu gạch hoặc bắt đầu bằng "/")');
 
   const decoded = decode(rawPath);
   if (decoded === null) return blocked('Liên kết có mã hóa phần trăm không hợp lệ');
-  if (controlCharacters.test(decoded) || decoded.includes('\\'))
-    return blocked('Liên kết chứa ký tự không an toàn');
+  if (controlCharacters.test(decoded)) return blocked('Liên kết chứa ký tự không an toàn');
 
-  const absolute = decoded.startsWith('/');
-  const segments: string[] = absolute ? [] : input.currentPath.split('/').slice(0, -1);
+  const segments = input.currentPath.split('/').slice(0, -1);
   for (const segment of decoded.split('/')) {
     if (segment === '' || segment === '.') continue;
     if (segment === '..') {
@@ -92,8 +93,24 @@ export function resolveDocLink(input: ResolveDocLinkInput): DocDestination {
     segments.push(segment);
   }
   const normalized = segments.join('/');
-  const index = normalized === '' ? 'index.md' : `${normalized}/index.md`;
-  if (normalized !== '' && input.pages.has(normalized)) return target(normalized);
-  if (input.pages.has(index)) return target(index);
-  return blocked('Trang này không có trong phiên bản tài liệu đang xem');
+  // A trailing slash names a directory, which the producer rejects; there is no `index.md` fallback.
+  if (normalized === '' || decoded.endsWith('/') || !safeDecodedPath(normalized))
+    return blocked('Đường dẫn liên kết không an toàn');
+  return input.pages.has(normalized)
+    ? target(normalized)
+    : blocked('Trang này không có trong phiên bản tài liệu đang xem');
+}
+
+/** Second decoding pass of the producer's `validPath`: a path that decodes into traversal is rejected. */
+function safeDecodedPath(path: string): boolean {
+  const again = decode(path);
+  if (again === null) return false;
+  return [path, again].every(
+    (item) =>
+      !item.includes('?') &&
+      !item.includes('#') &&
+      !item.includes('\\') &&
+      !item.startsWith('/') &&
+      item.split('/').every((part) => part !== '' && part !== '.' && part !== '..'),
+  );
 }

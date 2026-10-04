@@ -95,11 +95,15 @@ function DocsSpaceInner({ projectId, path, onPathChange, onOpenTicket }: DocsSpa
   if (tree.isPending) return <p role="status">Đang tải cây tài liệu…</p>;
   if (tree.isError) {
     const failure = tree.error as ApiFailure;
-    return failure instanceof ApiFailure && failure.status === 404 ? (
-      <p role="status">Dự án này chưa có tài liệu nào được đồng bộ hoặc nhập vào.</p>
-    ) : (
-      <p role="alert">{docsFailureText(failure)}</p>
-    );
+    // The producer answers 404 both for an unknown/out-of-scope project and for a project without a snapshot;
+    // only the message tells them apart (`docs/read.ts` `requireDocsScope` / `selectSnapshot`).
+    if (failure instanceof ApiFailure && failure.status === 404)
+      return /dự án/i.test(failure.message) ? (
+        <p role="alert">Không tìm thấy dự án hoặc bạn không có quyền xem.</p>
+      ) : (
+        <p role="status">Dự án này chưa có tài liệu nào được đồng bộ hoặc nhập vào.</p>
+      );
+    return <p role="alert">{docsFailureText(failure)}</p>;
   }
   const data = tree.data;
   if (data.pages.length === 0) return <p role="status">Phiên bản tài liệu này chưa có trang nào.</p>;

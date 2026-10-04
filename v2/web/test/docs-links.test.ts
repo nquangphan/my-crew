@@ -14,6 +14,8 @@ const pages = new Set([
   'docs/Kiến-trúc.md',
   'README.md',
   'docs/guide/index.md',
+  'docs/a.md',
+  'docs/đ ê.md',
 ]);
 
 function resolve(href: string, currentPath = 'docs/index.md', snapshot = snapshotId): DocDestination {
@@ -54,16 +56,6 @@ test('fragment giữ nguyên chữ hoa/thường và giải mã percent; #only �
     page('docs/flows/đăng-nhập.md', 'Mục-Một'),
   );
   assert.deepEqual(resolve('Kiến-trúc.md#'), page('docs/Kiến-trúc.md', null));
-});
-
-test('query bị bỏ; thư mục có index.md trỏ tới index.md', () => {
-  assert.deepEqual(resolve('Kiến-trúc.md?x=1#A'), page('docs/Kiến-trúc.md', 'A'));
-  assert.deepEqual(resolve('guide/'), page('docs/guide/index.md'));
-  assert.deepEqual(resolve('guide'), page('docs/guide/index.md'));
-});
-
-test('đường dẫn gốc "/" tính từ root của dự án', () => {
-  assert.deepEqual(resolve('/README.md', 'docs/flows/đăng-nhập.md'), page('README.md'));
 });
 
 test('trang không có trong snapshot bị chặn kèm lý do, không đoán đích', () => {
@@ -150,4 +142,47 @@ test('lỗi 422 mã hóa được nói rõ; lỗi khác không đổ cho ticket'
     /không phải UTF-8 hợp lệ/,
   );
   assert.match(docsFailureText(new ApiFailure(404, 'NOT_FOUND', 'http')), /Không tìm thấy tài liệu/);
+});
+
+/**
+ * Mirrors `auditLinks` (`v2/server/src/docs/links.ts:150-170`). Each row was produced by running the server on
+ * `[x](href)` from `docs/index.md`; `ok` links are clickable pages, everything else (LINK_PATH_ESCAPE, missing,
+ * unsupported) must not be clickable here.
+ */
+const serverParity: [href: string, serverStatus: string, expected: string | null][] = [
+  ['a.md', 'ok', 'docs/a.md'],
+  ['./a.md', 'ok', 'docs/a.md'],
+  ['../README.md', 'ok', 'README.md'],
+  ['guide/index.md', 'ok', 'docs/guide/index.md'],
+  ['đ%20ê.md', 'ok', 'docs/đ ê.md'],
+  ['%C4%91%20%C3%AA.md', 'ok', 'docs/đ ê.md'],
+  ['a/../a.md', 'ok', 'docs/a.md'],
+  ['a.md#', 'ok', 'docs/a.md'],
+  ['../../README.md', 'LINK_PATH_ESCAPE', null],
+  ['a%2eb.md', 'LINK_PATH_ESCAPE', null],
+  ['%2e%2e/README.md', 'LINK_PATH_ESCAPE', null],
+  ['%2fa.md', 'LINK_PATH_ESCAPE', null],
+  ['%2Fa.md', 'LINK_PATH_ESCAPE', null],
+  ['a%5cb.md', 'LINK_PATH_ESCAPE', null],
+  ['/README.md', 'LINK_PATH_ESCAPE', null],
+  ['a.md?x=1', 'LINK_PATH_ESCAPE', null],
+  ['a.md#?q', 'LINK_PATH_ESCAPE', null],
+  ['guide/', 'LINK_PATH_ESCAPE', null],
+  ['%252e%252e/README.md', 'LINK_PATH_ESCAPE', null],
+  ['guide', 'LINK_MISSING', null],
+  ['.', 'LINK_MISSING', null],
+  ['x.md', 'LINK_MISSING', null],
+  ['', 'UNVERIFIED_LINK_SYNTAX', null],
+];
+
+test('resolver khớp từng trường hợp với hành vi audit của máy chủ: chỉ link ok mới bấm được', () => {
+  for (const [href, serverStatus, expected] of serverParity) {
+    const result = resolve(href);
+    if (expected === null) assert.equal(result.kind, 'blocked', `${href} (server ${serverStatus})`);
+    else assert.deepEqual(result, page(expected), `${href} (server ${serverStatus})`);
+  }
+});
+
+test('"#top" ở lại trang hiện hành; fragment giữ nguyên', () => {
+  assert.deepEqual(resolve('#top'), page('docs/index.md', 'top'));
 });

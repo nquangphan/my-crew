@@ -14,7 +14,7 @@ import {
 import { type Infer, isUuid, matching, obj, page, str, uuid } from '../contracts/http.ts';
 import { decodeProject } from '../contracts/machines.ts';
 import { ApiFailure, getDecoded, type OwnerClient } from '../lib/api.ts';
-import { queryKeys } from '../lib/query-keys.ts';
+import { queryKeys, queryRoots } from '../lib/query-keys.ts';
 
 export const docsSearchPageLimit = 50;
 /** `relatedTicketIds` of tree/page is capped by the producer (`read.ts` `limit 20`). */
@@ -78,10 +78,18 @@ export function useDocsPage(
   });
 }
 
-/** Project docs state (`current`/`stale`/...) comes from the project DTO, not from the HTTP status of a page. */
+/**
+ * Project docs state (`current`/`stale`/...) comes from the project DTO, not from the HTTP status of a page.
+ * It lives under the project's docs prefix so every docs event (`docs.synced`, `docs.imported`) refreshes it
+ * together with the tree and pages.
+ */
+export function docsStateKey(projectId: string) {
+  return [...queryRoots.docs(projectId), 'state'] as const;
+}
+
 export function useProjectDocsState(client: OwnerClient, projectId: string) {
   return useQuery({
-    queryKey: queryKeys.project(projectId),
+    queryKey: docsStateKey(projectId),
     queryFn: ({ signal }) =>
       getDecoded(
         client,
