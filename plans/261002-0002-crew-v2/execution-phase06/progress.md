@@ -237,3 +237,7 @@ Câu hỏi mở cho S6b-ii: XNU có giữ không cấp lại pid đang là sid c
 Codex batch 1 (docs/comment) commit — PM chỉnh comment code sang tiếng Anh.
 
 11:45 S6b-i FIX1 `4c4e0aa` re-review `task-3-s6b-i-fix1-re-review.md`: Approved có điều kiện, 7/7 ADDRESSED, execute cũ byte-identical. FIX2/5: N1a sửa khẳng định sai 'snapshot nguyên tử' (điều kiện chặn), N1b probe kill(-g,0) mỗi group lúc phán quyết/xác nhận, N2 prune group rỗng + kiểm lại trước kill (tránh kill nhầm group tái dùng). N3 (dọn receipts/{id}.leader, kiểm vắng trước spawn) → S6b-ii.
+
+12:05 S6b-i FIX2 `b719bf1` re-review `task-3-s6b-i-fix2-re-review.md`: Approved, phase03-owner chấp nhận C tại b719bf1; N1a/N1b/N2 ADDRESSED; execute cũ byte-identical; miễn trừ group leader an toàn vì mọi kill trước waitpid.
+Task 3 S6b-i: complete — b719bf1 (a1981b7 + 4c4e0aa + b719bf1).
+S6b-i: minor (deferred): docs bước 9 còn câu "Helper kill mọi group đã học" — sửa theo cơ chế chỉ kill group đã xác nhận. Ràng buộc S6b-ii: không thêm code kill sau khi reap leader; N3 kiểm vắng + dọn receipts/{id}.leader; render-executor xử lý exit 24 (EXECUTOR_GUARD_INVALID) và EXECUTOR_BUSY không giữ stage.
