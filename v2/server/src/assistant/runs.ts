@@ -192,12 +192,14 @@ function mapRun(row: Record<string, unknown>, steps: SkillStep[]): WorkflowRun {
 }
 
 async function readRun(tx: Tx, runId: Id): Promise<WorkflowRun> {
-  const [row] = await tx`select * from workflow_runs where id=${runId}`;
+  const [row] = await tx`select r.*,t.project_id as root_project_id from workflow_runs r
+    join tickets t on t.id=r.root_ticket_id where r.id=${runId}`;
   if (!row) throw new ApiError('NOT_FOUND', 404, 'Không tìm thấy run');
-  // Creation order of the step tickets is their journal order.
+  // Creation order of the step tickets is their journal order (project event index).
   const rows = await tx`select s.* from workflow_steps s
     where s.run_id=${runId}
-    order by (select min(e.cursor) from events e where e.type='ticket.created' and e.ticket_id=s.ticket_id),s.id`;
+    order by (select min(e.cursor) from events e where e.project_id=${String(row.root_project_id)}
+      and e.type='ticket.created' and e.ticket_id=s.ticket_id),s.id`;
   const order = new Map<string, number>();
   const pending = rows.map((step) => ({
     id: String(step.id),

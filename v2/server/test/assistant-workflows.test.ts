@@ -2303,3 +2303,98 @@ test('assistant gates: ask_owner is a member of the tagged operation request for
       .digest('hex'),
   );
 });
+
+test('assistant gates: parallel ownership conflicts ignore case, Unicode form and percent-encoding', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      const run = await f.create();
+      const plan = run.steps[2];
+      assert.ok(plan);
+      const planSha = textSha('plan v1');
+      await f.artifact(plan.ticketId, planSha);
+      const question = await f.ask(
+        gateProposal(
+          f,
+          run,
+          { step: 2, kind: 'plan_approval_execution_method', artifactSha256: planSha },
+          { options: [] },
+        ),
+      );
+      const units = (api: string[], web: string[]) => {
+        const value = independentUnits();
+        (value.units[0] as { ownershipKeys: string[] }).ownershipKeys = api;
+        (value.units[1] as { ownershipKeys: string[] }).ownershipKeys = web;
+        return value;
+      };
+      const input = (parallel: ReturnType<typeof units>): RecordGateAnswerInput => ({
+        questionId: question.id,
+        expectedRevision: 1,
+        scopeSha256: question.scopeSha256,
+        artifactSha256: planSha,
+        answer: approve({ option: null, executionMethod: 'native', parallel }),
+      });
+      const conflict = { code: 'WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT', status: 409 };
+      const before = await f.gateRows();
+      await assert.rejects(() => f.answer(owner, input(units(['Src/A.ts'], ['src/a.ts']))), conflict);
+      await assert.rejects(() => f.answer(owner, input(units(['docs/café.md'], ['docs/café.md']))), conflict);
+      await assert.rejects(() => f.answer(owner, input(units(['src%2Fdb'], ['src/db/x.ts']))), conflict);
+      await assert.rejects(() => f.answer(owner, input(units(['src/%61.ts'], ['src/a.ts']))), conflict);
+      assert.deepEqual(await f.gateRows(), before);
+      // The stored approval keeps the keys exactly as the owner wrote them.
+      const kept = units(['Src/A.ts'], ['web/B.tsx']);
+      const result = await f.answer(owner, input(kept));
+      const [decision] = await db`select scope from decisions where id=${result.decisionId}`;
+      assert.deepEqual(decision?.scope.parallel, kept);
+    } finally {
+      await f.close();
+    }
+  }));
+
+test('assistant gates: a run whose journal order is unknown fails closed', async () =>
+  withDatabase(async (db) => {
+    const f = await gateFixture(db);
+    try {
+      // A step ticket and run restored without any `ticket.created` event.
+      const ticketId = randomUUID();
+      await db`insert into tickets select (jsonb_populate_record(null::tickets,
+        to_jsonb(t) || jsonb_build_object('id', ${ticketId}::text, 'parent_id', ${f.root.id}::text,
+          'root_id', ${f.root.id}::text, 'level', 'step'))).* from tickets t where t.id=${f.root.id}`;
+      const runId = randomUUID(),
+        stepId = randomUUID();
+      await db`insert into workflow_runs(id,root_ticket_id,source,projection,definition_sha256,customization_sha256,path,revision)
+        values(${runId},${f.root.id},${db.json(vector.superpowers.source as never)},
+        ${db.json(vector.superpowers.projection as never)},${superpowersHash},
+        ${vector.superpowers.definition.customizationSha256},'bounded',1)`;
+      await db`insert into workflow_steps(id,run_id,ticket_id,skill,source_path,source_sha256,predecessor_ids,acceptance,
+        output_kinds,gate_ids,ownership_keys,role)
+        values(${stepId},${runId},${ticketId},'brainstorming','skills/brainstorming/SKILL.md',${'a'.repeat(64)},
+        '[]','[]','[]','[]','[]','research')`;
+      const before = await f.gateRows();
+      await assert.rejects(
+        () =>
+          f.ask({
+            conversationId: f.conversationId,
+            ticketId,
+            runId,
+            stepId,
+            gateId: null,
+            cycleId: null,
+            artifactSha256: null,
+            question: 'Run này còn hiện hành?',
+            options: [],
+            scopeSha256: questionScopeOracle({
+              conversationId: f.conversationId,
+              rootTicketId: f.root.id,
+              ticketId,
+              runId,
+              stepId,
+            }),
+          }),
+        { code: 'WORKFLOW_RUN_SUPERSEDED', status: 409 },
+      );
+      assert.deepEqual(await f.gateRows(), before);
+    } finally {
+      await f.close();
+    }
+  }));

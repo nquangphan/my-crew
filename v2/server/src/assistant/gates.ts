@@ -237,6 +237,9 @@ function ownershipPath(key: unknown): string | null {
   const path = parts.join('/');
   return validPath(path) ? path : null;
 }
+// Conflict comparison only: percent-decoded, NFC and lower case, because the project file
+// system may fold case and Unicode form. Stored keys stay exactly as submitted.
+const conflictKey = (path: string) => decodeURIComponent(path).normalize('NFC').toLowerCase();
 const nested = (left: string, right: string) =>
   left === right || left.startsWith(`${right}/`) || right.startsWith(`${left}/`);
 
@@ -264,15 +267,17 @@ export function parallelUnits(value: unknown, shapeError: () => ApiError): Paral
       (unit.dependsOn !== undefined && !Array.isArray(unit.dependsOn))
     )
       throw shapeError();
-    const paths = unit.ownershipKeys.map(ownershipPath);
-    if (paths.some((path) => path === null) || new Set(paths).size !== paths.length) throw shapeError();
+    const valid = unit.ownershipKeys.map(ownershipPath);
+    if (valid.some((path) => path === null)) throw shapeError();
+    const paths = (valid as string[]).map(conflictKey);
+    if (new Set(paths).size !== paths.length) throw shapeError();
     keys.add(unit.key);
     units.push({
       key: unit.key,
       title: unit.title as string,
       ownershipKeys: [...(unit.ownershipKeys as string[])],
       dependsOn: [...((unit.dependsOn as unknown[] | undefined) ?? [])] as string[],
-      paths: paths as string[],
+      paths,
     });
   }
   for (const unit of units)
@@ -464,16 +469,22 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
   }
 
   // A run stays answerable only while no newer run of the same root exists (journal order
-  // of the runs' step tickets).
-  async function assertRunCurrent(tx: Tx, run: Row): Promise<void> {
-    const [newer] = await tx`with first_created as (
-        select s.run_id,min(e.cursor) as cursor from workflow_steps s
-        join events e on e.ticket_id=s.ticket_id and e.type='ticket.created'
-        join workflow_runs r on r.id=s.run_id
-        where r.root_ticket_id=${String(run.root_ticket_id)} group by s.run_id)
-      select other.run_id from first_created other, first_created own
-      where own.run_id=${String(run.id)} and other.run_id<>own.run_id and other.cursor>own.cursor limit 1`;
-    if (newer) throw new ApiError('WORKFLOW_RUN_SUPERSEDED', 409, 'Run đã có run mới hơn thay thế');
+  // of the runs' step tickets, read through the project's event index). An unknown order,
+  // for this run or any other run of the root, fails closed.
+  async function assertRunCurrent(tx: Tx, run: Row, projectId: unknown): Promise<void> {
+    const runs = await tx`select r.id,(select min(e.cursor) from workflow_steps s
+        join events e on e.project_id=${String(projectId)} and e.ticket_id=s.ticket_id and e.type='ticket.created'
+        where s.run_id=r.id) as cursor
+      from workflow_runs r where r.root_ticket_id=${String(run.root_ticket_id)}`;
+    const own = runs.find((row) => row.id === run.id);
+    if (
+      !own ||
+      own.cursor === null ||
+      runs.some(
+        (row) => row.id !== run.id && (row.cursor === null || BigInt(row.cursor) > BigInt(own.cursor)),
+      )
+    )
+      throw new ApiError('WORKFLOW_RUN_SUPERSEDED', 409, 'Run đã có run mới hơn thay thế');
   }
 
   // Only after three failed fixes, counted as failed initial or repair reviews of this run.
@@ -635,7 +646,7 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
       ? await tx`select * from workflow_runs where id=${String(question.run_id)} for share`
       : [];
     if (question.run_id && (!run || run.root_ticket_id !== root.id)) throw notFound();
-    if (run) await assertRunCurrent(tx, run);
+    if (run) await assertRunCurrent(tx, run, root.project_id);
     if (!gate) return { root, project, question, gate: null };
     const [step] = await tx`select * from workflow_steps where id=${String(gate.step_id)}`;
     if (!run || !step || gate.run_id !== run.id) throw notFound();
@@ -765,7 +776,7 @@ export function createWorkflowGates(deps: WorkflowGateDependencies): WorkflowGat
         ? await tx`select * from workflow_runs where id=${input.runId} for share`
         : [];
       if (input.runId && (!run || run.root_ticket_id !== root.id)) throw notFound();
-      if (run) await assertRunCurrent(tx, run);
+      if (run) await assertRunCurrent(tx, run, root.project_id);
       const [step] = input.stepId
         ? await tx`select * from workflow_steps where id=${input.stepId} and run_id=${input.runId}`
         : [];
