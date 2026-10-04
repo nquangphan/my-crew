@@ -1,0 +1,131 @@
+tsc=0
+▶ isolation workspace materializes and renders BMAD inputs inside prepare
+  ✔ a prepare without a render request is unchanged (2962.978875ms)
+  ✔ BMAD prepare copies exactly the definition subset and renders before the audit (3924.55725ms)
+  ✔ a halted render fails prepare closed and still declares the render destination (3950.985459ms)
+  ✔ an undeclared or altered injected path is an audit blocker (3638.00475ms)
+  ✔ requests that cannot render stop before any render stage is reserved (3389.049875ms)
+  ✔ a render stage left pending by a crash becomes unknown and blocks renders (7113.557833ms)
+✔ isolation workspace materializes and renders BMAD inputs inside prepare (32756.75625ms)
+✔ render artifact inspection measures a supplied schema-1 artifact but returns no authority (5.300125ms)
+✔ render artifact inspection retains captured expectation after nested caller mutation (2.374292ms)
+✔ render artifact inspection denies a self-consistent but unapproved BMAD source tree (0.50575ms)
+✔ render artifact inspection keeps the measured result independent of later byte mutation (0.336958ms)
+✔ render artifact inspection rejects raw optional-layer drift even with equal resolved values (0.652417ms)
+✔ render artifact inspection rejects a missing required layer or undeclared layer key (0.229375ms)
+✔ render artifact inspection rejects source, renderer and output byte changes (0.43075ms)
+✔ render artifact inspection rejects false schema, path and generation claims (3.127542ms)
+✔ render artifact inspection bounds layer bytes as well as manifest and output bytes (0.71625ms)
+✔ render artifact inspection bounds metadata key counts before copying byte maps (7.792167ms)
+✔ render artifact inspection matches Python Unicode and control-character generation hashing (0.354583ms)
+✔ render artifact inspection rejects an undeclared source-authored snapshot target (0.181667ms)
+✔ render artifact inspection refuses unsupported numeric resolved values (0.154125ms)
+✔ render artifact inspection rejects conflicting expected bytes for the one customize path (0.086083ms)
+✔ render artifact inspection rejects accessors before reading manifest or any byte map (0.297167ms)
+✔ render artifact inspection rejects a proxy byte map before triggering its traps (0.095541ms)
+✔ render artifact inspection rejects unpaired surrogates in captured path identities (0.079875ms)
+✔ render artifact inspection rejects a top-level resolved-values array with coherent generation identity (0.114583ms)
+✔ render artifact inspection rejects object and list values for a source-authored config token (0.237ms)
+✔ render artifact inspection rejects a resolved key absent from installed source tokens (0.110042ms)
+✔ render artifact inspection accepts official string-list and normalized review-layer value categories (0.256333ms)
+✔ render artifact inspection rejects non-normalized review-layer table fields (0.122541ms)
+✔ render artifact inspection binds a short config token to one resolved terminal key (0.127291ms)
+✔ render artifact inspection denies ambiguous resolved keys for one short config token (0.113958ms)
+✔ render artifact inspection remains separate from the two-tier BMAD adapter (177.995ms)
+✔ render definition validator applies the inspector limits to a host-independent definition (1.251708ms)
+✔ render executor refuses a non-BMAD definition without reserving or spawning anything (341.360917ms)
+✔ render executor runs the official uv argv once and returns the exact workflow render receipt (279.012416ms)
+✔ render executor leaves an existing byte-identical generation untouched on a second render (254.677709ms)
+✔ render executor never runs one operation twice (205.84525ms)
+✔ render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children (2022.6185ms)
+✔ render executor halts when stdout does not name exactly the rendered workflow entry (3339.589875ms)
+✔ render executor halts when the printed generation does not match its measured bytes (1725.159959ms)
+✔ render executor refuses drifted workspace inputs before reserving or spawning (1957.948625ms)
+✔ render executor binds the project root to the canonical workspace directory (275.2025ms)
+✔ render executor requires the recorded uv bytes before spawning (251.043208ms)
+✔ render executor refuses an inconsistent or unacceptable definition before spawning (123.256125ms)
+✔ render executor validates attempt and operation identifiers before any effect (217.438583ms)
+✔ render executor refuses unpinned files beside the renderer, skill and config before spawning (2765.129084ms)
+✔ render executor refuses unpinned files that appear beside the renderer during the render (604.431583ms)
+✔ render executor tells owned-operation lock contention apart from operation reuse (380.111583ms)
+✔ render executor returns the log digest and a sanitized first line when a run halts (705.210833ms)
+✔ render executor accepts a symlinked uv by hashing and running the resolved executable (429.847458ms)
+✔ render executor requires a canonical owned-operation root before reserving a stage (370.908791ms)
+✔ render executor removes bracketed and home paths and credential values from the halt line (343.551458ms)
+✔ render executor detects a file added and removed beside the renderer during the render (1647.681667ms)
+✔ render executor pins the recorded Python through UV_PYTHON and refuses other interpreter bytes (391.992166ms)
+✔ render executor records every stage transition durably and frees the session leader record (402.028292ms)
+✔ render executor keeps the stage, leader record and an unknown record when closure is unproven (735.788417ms)
+✔ render executor reclaims the stage and keeps nothing when the executor never started the child (952.889ms)
+✔ render executor refuses a run whose session leader record already exists (399.281584ms)
+✔ render executor refuses new renders while an earlier render stage awaits reconciliation (462.481667ms)
+✔ render executor halts without spawning when the durable stage record cannot be written (236.299375ms)
+✔ render executor returns the last non-empty log line, skipping blank lines at either end (561.476167ms)
+✔ render executor redacts credentials that follow a known path in a halt line (384.125958ms)
+✔ render executor detects a closure file rewritten and restored during the render (2576.104083ms)
+✔ install-report probe measures uv and the interpreter uv finds for the pinned renderer (70.247875ms)
+✔ install-report probe refuses an interpreter the pinned renderer cannot run or an unusable answer (359.898125ms)
+✔ install-report probe runs the owner executables without a shell by default (850.535167ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-QcuyEa","device":"16777231","inode":"220889321","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-QcuyEa","device":"16777231","inode":"220889321","uid":501,"deleted":true}
+✔ sync persists partial report and retries same command only missing slot after reconnect/lost ACK (3727.887208ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Aep3xK","device":"16777231","inode":"220890909","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Aep3xK","device":"16777231","inode":"220890909","uid":501,"deleted":true}
+✔ sync superseded command completes immutable failure and new command installs new revision (3240.019917ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-HXueCS","device":"16777231","inode":"220892117","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-HXueCS","device":"16777231","inode":"220892117","uid":501,"deleted":true}
+✔ sync lost report/reopen preserves report key and retries only unavailable declared projection (3188.9975ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-1dtS2O","device":"16777231","inode":"220893503","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-1dtS2O","device":"16777231","inode":"220893503","uid":501,"deleted":true}
+✔ sync verifies cached source bytes even when every desired projection is null (2828.86475ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-OiIYlQ","device":"16777231","inode":"220894611","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-OiIYlQ","device":"16777231","inode":"220894611","uid":501,"deleted":true}
+✔ sync defers command ahead of desired snapshot, then applies after reopen without false supersession (3302.921083ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-SuPcjb","device":"16777231","inode":"220895877","uid":501}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-pmZtri","device":"16777231","inode":"220896818","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-pmZtri","device":"16777231","inode":"220896818","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-QhWJ6l","device":"16777231","inode":"220896964","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-QhWJ6l","device":"16777231","inode":"220896964","uid":501,"deleted":true}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-SuPcjb","device":"16777231","inode":"220895877","uid":501,"deleted":true}
+✔ sync carries the workflow definition on current projections only, and omits it when unavailable (3323.137166ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-b5jfxY","device":"16777231","inode":"220897128","uid":501}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Ot8H1A","device":"16777231","inode":"220898057","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-Ot8H1A","device":"16777231","inode":"220898057","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-NPFV3Q","device":"16777231","inode":"220898218","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-NPFV3Q","device":"16777231","inode":"220898218","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-rpd1R4","device":"16777231","inode":"220898347","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-rpd1R4","device":"16777231","inode":"220898347","uid":501,"deleted":true}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-b5jfxY","device":"16777231","inode":"220897128","uid":501,"deleted":true}
+✔ sync reports measured render prerequisites beside a BMAD render definition only (3909.119083ms)
+✔ gateway definition adapter output matches the committed golden vector the server verifies (4301.62275ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-yJhkfg","device":"16777231","inode":"220900063","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-yJhkfg","device":"16777231","inode":"220900063","uid":501,"deleted":true}
+✔ sync reports an integrity failure of the definition loader as an error slot, never silently current (2484.686292ms)
+✔ workflow manifest binds Superpowers skills to official source and selected projection bytes (3679.8925ms)
+✔ workflow manifest rejects a projected skill hash that differs from its pinned source (3623.717916ms)
+✔ workflow manifest re-reads exact skill bytes instead of trusting manifest hash claims (3399.925709ms)
+✔ workflow manifest rejects a projection bound to another source tree (3426.618583ms)
+✔ workflow manifest keeps one validated snapshot across a deferred registry resolve (3765.512ms)
+✔ workflow manifest rejects a FIFO skill drift within a bounded reader deadline (4080.223291ms)
+ℹ fifo scratch root=/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-workflow-manifest-cWyAP1
+ℹ mkfifo pid=32738 status=0 signal=none
+ℹ fifo child pid=32740 pgid=32740 reaped=close code=0 signal=none timedOut=false
+ℹ fifo child boundary=RESOLVED
+✔ customization context binds the Superpowers digest to the projection tree, not key order (4021.410333ms)
+✔ workflow definition resolves BMAD to a two-tier render expectation with seven measured layers (1820.348ms)
+✔ workflow definition re-reads BMAD layer bytes instead of trusting manifest claims (333.294ms)
+✔ workflow definition digest changes when an optional BMAD layer appears with equal skill tokens (452.564959ms)
+✔ workflow definition selects exactly the bmad-build markdown skills except SKILL.md (1185.854208ms)
+✔ workflow definition rejects a BMAD projection bound to another source tree (336.081333ms)
+✔ workflow definition never spawns uv, the renderer or any child process (323.928209ms)
+✔ workflow definition rejects a BMAD renderer script that is not a regular file with the stable code (239.479333ms)
+✔ workflow definition refuses a BMAD selection the render artifact inspector would reject (2032.508875ms)
+ℹ tests 90
+ℹ suites 0
+ℹ pass 90
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 32888.978125
+tests=0

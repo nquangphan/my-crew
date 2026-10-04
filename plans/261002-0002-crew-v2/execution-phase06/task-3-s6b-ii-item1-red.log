@@ -1,0 +1,646 @@
+✔ render executor refuses a non-BMAD definition without reserving or spawning anything (91.6705ms)
+✖ render executor runs the official uv argv once and returns the exact workflow render receipt (68.67625ms)
+✖ render executor leaves an existing byte-identical generation untouched on a second render (67.429958ms)
+✖ render executor never runs one operation twice (65.062333ms)
+✖ render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children (65.230375ms)
+✖ render executor halts when stdout does not name exactly the rendered workflow entry (64.767708ms)
+✖ render executor halts when the printed generation does not match its measured bytes (68.681584ms)
+✖ render executor refuses drifted workspace inputs before reserving or spawning (68.451209ms)
+✖ render executor binds the project root to the canonical workspace directory (68.786167ms)
+✖ render executor requires the recorded uv bytes before spawning (69.17875ms)
+✖ render executor refuses an inconsistent or unacceptable definition before spawning (72.71825ms)
+✔ render executor validates attempt and operation identifiers before any effect (69.154875ms)
+✖ render executor refuses unpinned files beside the renderer, skill and config before spawning (68.783833ms)
+✖ render executor refuses unpinned files that appear beside the renderer during the render (68.166958ms)
+✖ render executor tells owned-operation lock contention apart from operation reuse (67.6145ms)
+✖ render executor returns the log digest and a sanitized first line when a run halts (66.619542ms)
+✖ render executor accepts a symlinked uv by hashing and running the resolved executable (68.842208ms)
+✖ render executor requires a canonical owned-operation root before reserving a stage (64.062916ms)
+✖ render executor removes bracketed and home paths and credential values from the halt line (65.555292ms)
+✖ render executor detects a file added and removed beside the renderer during the render (63.511875ms)
+✖ render executor pins the recorded Python through UV_PYTHON and refuses other interpreter bytes (66.831458ms)
+✖ render executor records every stage transition durably and frees the session leader record (65.25525ms)
+✖ render executor keeps the stage, leader record and an unknown record when closure is unproven (64.9345ms)
+✖ render executor reclaims the stage and keeps nothing when the executor never started the child (71.019625ms)
+✖ render executor refuses a run whose session leader record already exists (66.711208ms)
+✖ render executor refuses new renders while an earlier render stage awaits reconciliation (63.975708ms)
+✖ render executor halts without spawning when the durable stage record cannot be written (64.3465ms)
+✖ render executor returns the last non-empty log line, skipping blank lines at either end (62.43ms)
+✖ render executor redacts credentials that follow a known path in a halt line (64.32975ms)
+✖ render executor detects a closure file rewritten and restored during the render (66.824125ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 2
+ℹ fail 28
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2137.730542
+
+✖ failing tests:
+
+test at test/render-executor.test.ts:416:1
+✖ render executor runs the official uv argv once and returns the exact workflow render receipt (68.67625ms)
+  AssertionError [ERR_ASSERTION]: {"halt":true,"reason":"RENDER_REQUEST_INVALID"}
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:419:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:417:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:492:1
+✖ render executor leaves an existing byte-identical generation untouched on a second render (67.429958ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert('receipt' in first)
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:495:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:493:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:519:1
+✖ render executor never runs one operation twice (65.062333ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert('receipt' in (await h.render({ operationId: operationIds[2] })))
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:521:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:520:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:527:1
+✖ render executor halts without a receipt on nonzero, unavailable, timed-out or unknown children (65.230375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_EXIT_NONZERO'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:539:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:537:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_EXIT_NONZERO',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:548:1
+✖ render executor halts when stdout does not name exactly the rendered workflow entry (64.767708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_STDOUT_MISMATCH'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:566:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:561:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_STDOUT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:571:1
+✖ render executor halts when the printed generation does not match its measured bytes (68.681584ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_ARTIFACT_MISMATCH'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:581:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:573:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_ARTIFACT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:627:1
+✖ render executor refuses drifted workspace inputs before reserving or spawning (68.451209ms)
+  AssertionError [ERR_ASSERTION]: optional layer appeared
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_INPUT_MISMATCH'
+            ^
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:660:14
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:657:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_INPUT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:667:1
+✖ render executor binds the project root to the canonical workspace directory (68.786167ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_PROJECT_ROOT_MISMATCH'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:671:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:668:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_PROJECT_ROOT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:688:1
+✖ render executor requires the recorded uv bytes before spawning (69.17875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_UV_UNAVAILABLE'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:690:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:689:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_UV_UNAVAILABLE',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:709:1
+✖ render executor refuses an inconsistent or unacceptable definition before spawning (72.71825ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_DEFINITION_MISMATCH'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:711:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:710:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_DEFINITION_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:742:1
+✖ render executor refuses unpinned files beside the renderer, skill and config before spawning (68.783833ms)
+  AssertionError [ERR_ASSERTION]: shadowing module in scripts
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_INPUT_MISMATCH'
+            ^
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:785:14
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:782:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_INPUT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:791:1
+✖ render executor refuses unpinned files that appear beside the renderer during the render (68.166958ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_ARTIFACT_MISMATCH'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:799:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:793:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_ARTIFACT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:804:1
+✖ render executor tells owned-operation lock contention apart from operation reuse (67.6145ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_OPERATION_BUSY'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:807:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:805:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_OPERATION_BUSY',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:815:1
+✖ render executor returns the log digest and a sanitized first line when a run halts (66.619542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_EXIT_NONZERO'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:822:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:816:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_EXIT_NONZERO',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:843:1
+✖ render executor accepts a symlinked uv by hashing and running the resolved executable (68.842208ms)
+  AssertionError [ERR_ASSERTION]: {"halt":true,"reason":"RENDER_REQUEST_INVALID"}
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:848:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:844:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:855:1
+✖ render executor requires a canonical owned-operation root before reserving a stage (64.062916ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_OPERATION_UNAVAILABLE'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:871:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:856:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_OPERATION_UNAVAILABLE',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:876:1
+✖ render executor removes bracketed and home paths and credential values from the halt line (65.555292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_EXIT_NONZERO'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:884:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:877:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_EXIT_NONZERO',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:896:1
+✖ render executor detects a file added and removed beside the renderer during the render (63.511875ms)
+  AssertionError [ERR_ASSERTION]: _bmad/scripts
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_ARTIFACT_MISMATCH'
+            ^
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:908:14
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:899:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_ARTIFACT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:923:1
+✖ render executor pins the recorded Python through UV_PYTHON and refuses other interpreter bytes (66.831458ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_PYTHON_UNAVAILABLE'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:935:43
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:924:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_PYTHON_UNAVAILABLE',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:944:1
+✖ render executor records every stage transition durably and frees the session leader record (65.25525ms)
+  AssertionError [ERR_ASSERTION]: {"halt":true,"reason":"RENDER_REQUEST_INVALID"}
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:947:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:945:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:960:1
+✖ render executor keeps the stage, leader record and an unknown record when closure is unproven (64.9345ms)
+  AssertionError [ERR_ASSERTION]: fork
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_LIFETIME_UNKNOWN'
+            ^
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:968:14
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:965:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_LIFETIME_UNKNOWN',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:981:1
+✖ render executor reclaims the stage and keeps nothing when the executor never started the child (71.019625ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_OPERATION_BUSY'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:988:7
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:986:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_OPERATION_BUSY',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:1008:1
+✖ render executor refuses a run whose session leader record already exists (66.711208ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_OPERATION_REUSED'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1016:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1009:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_OPERATION_REUSED',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:1022:1
+✖ render executor refuses new renders while an earlier render stage awaits reconciliation (63.975708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_RECONCILE_REQUIRED'
+              ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1025:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1023:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_RECONCILE_REQUIRED',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:1033:1
+✖ render executor halts without spawning when the durable stage record cannot be written (64.3465ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_OPERATION_UNAVAILABLE'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1040:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1034:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_OPERATION_UNAVAILABLE',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:1050:1
+✖ render executor returns the last non-empty log line, skipping blank lines at either end (62.43ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_EXIT_NONZERO'
+            ^
+  
+      at halted (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:359:10)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1058:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1051:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_EXIT_NONZERO',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:1075:1
+✖ render executor redacts credentials that follow a known path in a halt line (64.32975ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert('log' in outcome && outcome.log)
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1082:5
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1076:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:1092:1
+✖ render executor detects a closure file rewritten and restored during the render (66.824125ms)
+  AssertionError [ERR_ASSERTION]: _bmad/config.toml
+  + actual - expected
+  
+  + 'RENDER_REQUEST_INVALID'
+  - 'RENDER_ARTIFACT_MISMATCH'
+            ^
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1105:14
+      at async withHarness (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:328:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1095:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'RENDER_REQUEST_INVALID',
+    expected: 'RENDER_ARTIFACT_MISMATCH',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

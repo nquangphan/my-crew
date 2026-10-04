@@ -1,0 +1,86 @@
+✖ install-report probe measures uv and the interpreter uv finds for the pinned renderer (5.522417ms)
+✖ install-report probe refuses an interpreter the pinned renderer cannot run or an unusable answer (3.730792ms)
+✖ install-report probe runs the owner executables without a shell by default (4.354542ms)
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-6b0W8e","device":"16777231","inode":"220889090","uid":501}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-bKCrKx","device":"16777231","inode":"220889249","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-bKCrKx","device":"16777231","inode":"220889249","uid":501,"deleted":true}
+Task5 owned root {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-jgO2rj","device":"16777231","inode":"220889270","uid":501}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-jgO2rj","device":"16777231","inode":"220889270","uid":501,"deleted":true}
+Task5 owned cleanup {"root":"/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-6b0W8e","device":"16777231","inode":"220889090","uid":501,"deleted":true}
+✖ sync reports measured render prerequisites beside a BMAD render definition only (2034.187375ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2131.721959
+
+✖ failing tests:
+
+test at test/render-executor.test.ts:1176:1
+✖ install-report probe measures uv and the interpreter uv finds for the pinned renderer (5.522417ms)
+  Error: NOT_IMPLEMENTED
+      at probeRenderPrerequisites (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/render-executor.ts:989:9)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1178:28
+      at withProbeHost (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1170:11)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1177:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at test/render-executor.test.ts:1205:1
+✖ install-report probe refuses an interpreter the pinned renderer cannot run or an unusable answer (3.730792ms)
+  AssertionError [ERR_ASSERTION]: CLT Python 3.9
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1240:7
+      at async withProbeHost (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1170:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1238:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: Error: NOT_IMPLEMENTED
+        at probeRenderPrerequisites (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/render-executor.ts:989:9)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1242:11
+        at waitForActual (node:assert:632:21)
+        at strict.rejects (node:assert:769:31)
+        at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1240:20
+        at withProbeHost (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1170:11)
+        at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1238:5)
+        at async Test.run (node:internal/test_runner/test:1409:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /RENDER_PYTHON_UNSUPPORTED/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/render-executor.test.ts:1266:1
+✖ install-report probe runs the owner executables without a shell by default (4.354542ms)
+  Error: NOT_IMPLEMENTED
+      at probeRenderPrerequisites (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/src/assistant/render-executor.ts:989:9)
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1280:28
+      at async withProbeHost (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1170:5)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/render-executor.test.ts:1267:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at test/sync.test.ts:504:1
+✖ sync reports measured render prerequisites beside a BMAD render definition only (2034.187375ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   '/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-6b0W8e/workflows/projections/bmad-61e8d6635cebb72f222306c04a6037cb3c75f6108e8d498cd071cc24966eb00f-claude-6aec97bcd57ffec11bd65723b0e174265498a8599692ee25b6e7f80eeb67e8be/tree'
+  - ]
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/sync.test.ts:596:12)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ '/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-task5-bridge-6b0W8e/workflows/projections/bmad-61e8d6635cebb72f222306c04a6037cb3c75f6108e8d498cd071cc24966eb00f-claude-6aec97bcd57ffec11bd65723b0e174265498a8599692ee25b6e7f80eeb67e8be/tree' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

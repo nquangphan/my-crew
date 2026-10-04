@@ -1,0 +1,106 @@
+▶ isolation workspace materializes and renders BMAD inputs inside prepare
+  ✔ a prepare without a render request is unchanged (1427.145166ms)
+  ✖ BMAD prepare copies exactly the definition subset and renders before the audit (1298.721584ms)
+  ✖ a halted render fails prepare closed and still declares the render destination (1283.771875ms)
+  ✖ an undeclared or altered injected path is an audit blocker (1294.712958ms)
+  ✖ requests that cannot render stop before any stage or workspace is reserved (1351.739083ms)
+  ✖ a render stage left pending by a crash becomes unknown and blocks renders (1375.355834ms)
+✖ isolation workspace materializes and renders BMAD inputs inside prepare (12078.37125ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 1
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12174.9595
+
+✖ failing tests:
+
+test at test/isolation-render.test.ts:201:13
+✖ BMAD prepare copies exactly the definition subset and renders before the audit (1298.721584ms)
+  Error: ENOENT: no such file or directory, scandir '/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-ii-3zOW5J/isolation/operations/stages/df96406b-419c-4e45-89ae-5df0848c9f8b/workspace/.claude/skills/bmad-build'
+      at async readdir (node:internal/fs/promises:1661:18)
+      at async filesBelow (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:78:23)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:205:26)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:201:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    errno: -2,
+    code: 'ENOENT',
+    syscall: 'scandir',
+    path: '/private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-s6b-ii-3zOW5J/isolation/operations/stages/df96406b-419c-4e45-89ae-5df0848c9f8b/workspace/.claude/skills/bmad-build'
+  }
+
+test at test/isolation-render.test.ts:260:13
+✖ a halted render fails prepare closed and still declares the render destination (1283.771875ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:263:7)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:260:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /RENDER_HALTED:RENDER_EXIT_NONZERO/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/isolation-render.test.ts:284:13
+✖ an undeclared or altered injected path is an audit blocker (1294.712958ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert(w.injected)
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:287:7)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:284:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at test/isolation-render.test.ts:299:13
+✖ requests that cannot render stop before any stage or workspace is reserved (1351.739083ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:302:7)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:299:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /RENDER_HALTED:RENDER_PYTHON_UNAVAILABLE/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at test/isolation-render.test.ts:330:13
+✖ a render stage left pending by a crash becomes unknown and blocks renders (1375.355834ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'unknown'
+  
+      at TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:353:14)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async TestContext.<anonymous> (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/gateway/test/isolation-render.test.ts:330:5)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'unknown',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
