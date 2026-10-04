@@ -141,3 +141,7 @@ P-G1a2: minor (deferred): hook test khớp text SQL `where root_id=` — ghi com
 18:25 S6docs `2eb8936` review `task-6-s6docs-review.md`: Spec ❌, Needs fixes, Important3 (docsState không invalidate sau docs.imported; resolver lệch server LINK_PATH_ESCAPE; thiếu sửa ticket–docs links CAS/409 brief:19) /Minor7/⚠️5. FIX1/5 resume, nâng urlTransform hardening + metadata khi lỗi + audit warning.
 Ruling: nếu cần, S6docs được thêm đúng entry invalidation docs.imported trong `v2/web/src/lib/events.ts` (Task2-owned) — sai thì Task2 owner sửa lại entry.
 S6docs: minor (deferred): href="#path" cho link nội bộ (mở tab mới vô dụng); copy Set mỗi row O(n·depth); thiếu test đổi snapshot cùng project; NFC/NFD chưa chuẩn hóa; huỷ GET cũ khi đổi snapshot chưa test.
+
+18:50 S6docs FIX1 `cfc233c` re-review `task-6-s6docs-fix1-re-review.md`: Approved; I1–I3 + 3 Minor nâng ADDRESSED; urlTransform không còn lỗ img/src.
+Task 6 S6docs: complete — cfc233c (2eb8936 + cfc233c). A6docs pending: controller mount route docs + nav "Tài liệu" + nhúng TicketDocsLinksEditor vào TicketDetail + fixture seed docs snapshot.
+Task 6 S6docs: minor (deferred): M1 phân biệt 404 bằng text message mong manh — dùng useProjectDocsState (`space.tsx:427-432`); M2 save không xác nhận rồi 409 → kẹt, thông báo nên chỉ nút "Bỏ lần gửi treo" + test (`ticket-links.tsx:562-582`); M3 draft không gắn snapshotId (`ticket-links.tsx:517,541-543`); M4 refetch lỗi hiện cả nội dung cũ và lỗi.
