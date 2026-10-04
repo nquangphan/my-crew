@@ -210,3 +210,5 @@ Ruling (bắt buộc khi mở route_message/request_review): G3a xem lại danh 
 Task 2 B3b: minor (deferred): G3b bộ quét bỏ sót fail('CODE',status) (docs/import.ts:379), mã dựng từ biến, journal/mutation.ts BODY_INVALID.
 
 07:00 Ruling: S6 cắt thành S6a (gateway render-executor.ts: OwnedOperations + D1 inspector + receipt builder, unit, không spawn thật trừ fake child; gộp D2 M2 export validator expectation từ D1) và S6b (workspace materialize transfer phase03, gọi executor trước launch, server registerRenderReceipt, integration uv thật). Lý do quota còn 10% — S6a nhỏ, khép được trước ngưỡng 5%. Dispatch S6a.
+
+07:35 S6a `d577085`/`f158729` DONE_WITH_CONCERNS (61/61, RED semantic). Rủi ro chuyển S6b: uv run spawn Python con → primitive EXECUTOR_LIFETIME_UNKNOWN có thể luôn HALT; PATH=/usr/bin:/bin chỉ thấy /usr/bin/python3; stderr warning làm HALT; chưa reconcile stage render-* sau crash; projectRoot chưa so workspace record.
