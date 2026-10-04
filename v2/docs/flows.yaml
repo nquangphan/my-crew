@@ -489,5 +489,28 @@ flows:
     tests:
       - web/test/workspace.test.ts
       - web/test/fixture-lifecycle.test.ts
+  web-data:
+    title: Transport, phiên owner và đồng bộ sự kiện web Crew v2
+    doc: docs/flows/web-data.md
+    entrypoints:
+      - web/src/auth/session-boundary.tsx
+    files:
+      - web/src/auth/login.tsx
+      - web/src/contracts/attachments.ts
+      - web/src/contracts/docs.ts
+      - web/src/contracts/http.ts
+      - web/src/contracts/machines.ts
+      - web/src/contracts/tickets.ts
+      - web/src/lib/api.ts
+      - web/src/lib/events.ts
+      - web/src/lib/pending-operation.ts
+      - web/src/lib/query-keys.ts
+      - web/src/lib/session.ts
+    tests:
+      - web/test/client.test.ts
+      - web/test/events.test.ts
+      - web/test/auth-recovery.test.ts
+      - web/e2e/auth.spec.ts
+      - web/e2e/events.spec.ts
 shared: {}
 unassigned: []

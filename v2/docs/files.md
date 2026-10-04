@@ -350,16 +350,33 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
 | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
 | `test/workflow-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
 | `test/workspace.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+| `web/e2e/auth.spec.ts` | [web-data](flows/web-data.md) (test) |
+| `web/e2e/events.spec.ts` | [web-data](flows/web-data.md) (test) |
 | `web/e2e/support/fixture.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/index.html` | [web-shell](flows/web-shell.md) (file) |
 | `web/package.json` | [web-shell](flows/web-shell.md) (file) |
 | `web/playwright.config.ts` | [web-shell](flows/web-shell.md) (file) |
 | `web/pnpm-lock.yaml` | [web-shell](flows/web-shell.md) (file) |
 | `web/scripts/e2e-fixture.ts` | [web-shell](flows/web-shell.md) (file) |
+| `web/src/auth/login.tsx` | [web-data](flows/web-data.md) (file) |
+| `web/src/auth/session-boundary.tsx` | [web-data](flows/web-data.md) (điểm vào) |
+| `web/src/contracts/attachments.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/contracts/docs.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/contracts/http.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/contracts/machines.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/contracts/tickets.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/lib/api.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/lib/events.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/lib/pending-operation.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/lib/query-keys.ts` | [web-data](flows/web-data.md) (file) |
+| `web/src/lib/session.ts` | [web-data](flows/web-data.md) (file) |
 | `web/src/main.tsx` | [web-shell](flows/web-shell.md) (điểm vào) |
 | `web/src/router.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/shell.tsx` | [web-shell](flows/web-shell.md) (file) |
 | `web/src/styles.css` | [web-shell](flows/web-shell.md) (file) |
+| `web/test/auth-recovery.test.ts` | [web-data](flows/web-data.md) (test) |
+| `web/test/client.test.ts` | [web-data](flows/web-data.md) (test) |
+| `web/test/events.test.ts` | [web-data](flows/web-data.md) (test) |
 | `web/test/fixture-lifecycle.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/test/workspace.test.ts` | [web-shell](flows/web-shell.md) (test) |
 | `web/tsconfig.json` | [web-shell](flows/web-shell.md) (file) |
