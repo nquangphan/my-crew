@@ -64,3 +64,5 @@ Task 2: complete — 6c35218 (source 2b958b8 + FIX1 a69ea3b + FIX2 6c35218). S2 
 Task 2: minor (deferred, PHẢI triage trước merge): B1 cờ resumed chỉ ở memory — reload biến operation nhập lại thành thường, 400/413/415 nhả key (`pending-operation.ts:166,278-288`).
 Task 2: minor (deferred): B2 thông báo "Máy chủ từ chối yêu cầu" khi payload nhập lại về tombstone — gộp với N3.
 Kế tiếp web: controller wiring `main.tsx`/`router.tsx` (SessionBoundary/LoginScreen/wireSession, QueryClient retry off cho OwnerClient.get, focus refetch, listener trước initial GET) rồi theo source topo S3a/S5a/S6docs/S7basic.
+
+12:05 Dispatch song song: controller wiring main.tsx/router.tsx (sonnet); S3a read/detail (brief task-3-brief.md, chỉ phần S3a); S5a composer source (brief task-5-brief.md). A3/A5 acceptance chờ G1/G2 — worker chỉ claim S, không claim A khi producer chưa mount.
