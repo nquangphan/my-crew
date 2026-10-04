@@ -69,3 +69,7 @@ Riêng writer upload trong test dùng fixture port macOS (`attachmentFixture().r
 
 1. Ai sở hữu wiring `main.ts` cùng biến môi trường storage host (cần một dòng `attachments: {config: loadAttachmentConfig(env), storageHostId}`)? Trước khi có wiring này, entrypoint production chưa phục vụ upload.
 2. Production đang mount `createMessageServices` (Task2b đã accept) không kèm decisionAuthority: owner tạo được conversation và message, còn machine/scope/reply bị 503. Cần PM xác nhận đây là phạm vi G2 mong muốn.
+
+## Đính chính §6 (PM, 04/10 15:25, theo review `producer-g2-review.md` I1)
+
+Ví dụ "`SELECTION_CHANGED` vs `ATTACHMENT_SELECTION_STALE`" ở §6 là sai: fake và server dùng cùng mã ở cùng tầng (staging `staging.ts:344` ↔ `compose-server.ts:263`; submission `submissions.ts:135` ↔ `compose-server.ts:366`). Danh sách lệch đã xác nhận giữa fake web `v2/web/test/support/compose-server.ts` và server là 7 mục ở mục "Web contract mismatches" của `producer-g2-review.md`: thiếu route by-comment; thiếu 503 `EXTRACTION_NOT_CONFIGURED`; selection chứa id lạ server trả 404 `NOT_FOUND` còn fake 409 `SELECTION_CHANGED`; thiếu `ORIGIN_INVALID`/`OWNER_REQUIRED`; login server 200 còn fake 201; thiếu nhánh hết hạn (`SELECTION_CHANGED` khi compose hết hạn, `ATTACHMENT_UPLOAD_EXPIRED`); thiếu 401 `SESSION_INVALID`. Server là hợp đồng chuẩn.
