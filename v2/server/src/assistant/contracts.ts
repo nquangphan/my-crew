@@ -437,6 +437,8 @@ export type RoutingToolValue =
         latestSnapshotId: Id | null;
         sourceCommit: string | null;
       }[];
+      /** True when more projects exist than the listed maximum. */
+      truncated: boolean;
     }
   | { kind: 'execution_candidates'; snapshot: ExecutionCandidateSnapshot }
   | { kind: 'docs'; page: DocRead; readReceiptId: Id }
@@ -1047,6 +1049,7 @@ export const routingToolValueSchema = union([
         sourceCommit: nullable({ type: 'string' }),
       }),
     ),
+    truncated: bool,
   }),
   valueVariant('execution_candidates', { snapshot: executionCandidateSnapshotSchema }),
   valueVariant('docs', { page: docReadSchema, readReceiptId: uuidSchema }),

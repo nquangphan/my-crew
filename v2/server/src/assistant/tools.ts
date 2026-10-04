@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { digest } from '../attachments/submissions.ts';
 import { authenticateCurrentCredential } from '../auth/routes.ts';
 import { validPath } from '../docs/manifest.ts';
+import { readProjectDocsState } from '../docs/read.ts';
 import { canonicalJson } from '../journal/canonical.ts';
 import type { Actor, Id, RouteDependencies, ServerOptions, Tx } from '../platform/contracts.ts';
 import { ApiError } from '../platform/errors.ts';
@@ -193,12 +194,16 @@ export function createAssistantTools(deps: AssistantToolsDependencies): Assistan
       maxTurnMs < 1
     )
       throw new ApiError('ASSISTANT_POLICY_INVALID', 503, 'Chính sách Trợ lý không hợp lệ');
+    // A committed operation of this turn is exempt from both limits: its retry only reads the
+    // stored result back. Every new call still counts against them.
     const [usage] = await tx`select
       (select count(*)::int from assistant_tool_operations where turn_id=${fence.turnId}
         and operation_id<>${operationId}) as used,
+      exists(select 1 from assistant_tool_operations where turn_id=${fence.turnId}
+        and operation_id=${operationId}) as recorded,
       (select created_at+${maxTurnMs}*interval '1 millisecond'<=clock_timestamp()
         from assistant_turns where id=${fence.turnId}) as elapsed`;
-    if (!usage || Number(usage.used) >= maxTools || usage.elapsed !== false)
+    if (!usage || Number(usage.used) >= maxTools || (usage.recorded !== true && usage.elapsed !== false))
       throw new ApiError('ASSISTANT_TOOL_BUDGET_EXHAUSTED', 409, 'Lượt Trợ lý đã hết ngân sách tool');
     const call: AuthorizedToolCall = Object.freeze({ tx, actor, request, providerCallId, proof, scope });
     issued.add(call);
@@ -237,7 +242,7 @@ export function createAssistantTools(deps: AssistantToolsDependencies): Assistan
     switch (tool.name) {
       case 'read_catalog': {
         await write(toolRequestSha256(tool.name, tool.input), null);
-        return complete(tool.name, { kind: 'catalog', items: await readCatalog(tx, scope) });
+        return complete(tool.name, { kind: 'catalog', ...(await readCatalog(tx, scope)) });
       }
       case 'read_docs': {
         await write(toolRequestSha256(tool.name, tool.input), null);
@@ -284,20 +289,26 @@ function canonical(result: RoutingToolResult): RoutingToolResult {
   return JSON.parse(canonicalJson(result)) as RoutingToolResult;
 }
 
-/** Projects the scope may route to: its own project, or every project before routing. */
+const catalogLimit = 1000;
+/**
+ * Projects the scope may route to: its own project, or every project before routing, each with
+ * its latest verified docs snapshot (null until one is verified). `truncated` flags a cut list.
+ */
 async function readCatalog(tx: Tx, scope: ToolScope) {
   const rows = await tx`select p.id,p.key,p.name,s.id as snapshot_id,s.source_commit from projects p
-    left join lateral(select id,source_commit from docs_snapshots where project_id=p.id
-      order by received_at desc,id desc limit 1) s on true
+    left join docs_snapshots s on s.id=p.latest_verified_snapshot_id and s.project_id=p.id
     where ${scope.projectId}::uuid is null or p.id=${scope.projectId}
-    order by p.key limit 1000`;
-  return rows.map((row) => ({
-    projectId: String(row.id),
-    key: String(row.key),
-    name: String(row.name),
-    latestSnapshotId: nullableId(row.snapshot_id),
-    sourceCommit: row.source_commit === null ? null : String(row.source_commit),
-  }));
+    order by p.key limit ${catalogLimit + 1}`;
+  return {
+    items: rows.slice(0, catalogLimit).map((row) => ({
+      projectId: String(row.id),
+      key: String(row.key),
+      name: String(row.name),
+      latestSnapshotId: nullableId(row.snapshot_id),
+      sourceCommit: row.source_commit === null ? null : String(row.source_commit),
+    })),
+    truncated: rows.length > catalogLimit,
+  };
 }
 
 /** One stored docs page of a project the scope may read; anything else is the same 404. */
@@ -312,7 +323,7 @@ async function readDoc(
   assertAssistantId(input.snapshotId);
   const projectId = input.projectId.toLowerCase();
   if (scope.projectId !== null && projectId !== scope.projectId) throw docsNotFound();
-  const [snapshot] = await tx`select s.id,s.source_commit,s.audit_state,s.received_at,p.expected_commit,
+  const [snapshot] = await tx`select s.id,s.source_commit,s.audit_state,s.received_at,
     (select l.id from docs_snapshots l where l.project_id=s.project_id order by l.received_at desc,l.id desc limit 1) as latest_id
     from docs_snapshots s join projects p on p.id=s.project_id
     where s.id=${input.snapshotId} and s.project_id=${projectId}`;
@@ -328,12 +339,13 @@ async function readDoc(
   }
   const auditState = snapshot.audit_state as DocRead['auditState'];
   const sourceCommit = snapshot.source_commit === null ? null : String(snapshot.source_commit);
+  // The project's docs state comes from the docs service; it describes the latest snapshot,
+  // so an older snapshot is stale once verified, and an unverified one stays unverified.
+  const projectState = await readProjectDocsState(tx, projectId);
   const state: DocRead['state'] =
     auditState !== 'verified'
       ? 'unverified'
-      : snapshot.latest_id === snapshot.id &&
-          sourceCommit !== null &&
-          sourceCommit === snapshot.expected_commit
+      : snapshot.latest_id === snapshot.id && projectState === 'current'
         ? 'current'
         : 'stale';
   return {
@@ -351,14 +363,17 @@ async function readDoc(
 }
 
 const providerHeader = 'x-crew-provider-call-id';
-/** Exactly one provider call ID header: visible ASCII, case kept, never trimmed. */
+/**
+ * Exactly one provider call ID header: visible ASCII without a comma (a comma is how repeated
+ * header lines are joined), case kept, never trimmed.
+ */
 function providerCallIdOf(request: FastifyRequest): string {
   const raw = request.raw.rawHeaders;
   const values: string[] = [];
   for (let index = 0; index + 1 < raw.length; index += 2)
     if (raw[index]?.toLowerCase() === providerHeader) values.push(String(raw[index + 1]));
   const [value] = values;
-  if (values.length !== 1 || value === undefined || !/^[\x21-\x7e]{1,4096}$/.test(value))
+  if (values.length !== 1 || value === undefined || !/^[\x21-\x2b\x2d-\x7e]{1,4096}$/.test(value))
     throw new ApiError('PROVIDER_CALL_ID_INVALID', 400, 'Định danh lời gọi provider không hợp lệ');
   return value;
 }

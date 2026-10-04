@@ -85,7 +85,13 @@ const allTools = [
   'publish_reply',
 ];
 
-type FixtureOptions = { tools?: string[]; maxToolsPerTurn?: number; assembly?: boolean };
+type FixtureOptions = {
+  tools?: string[];
+  maxToolsPerTurn?: number;
+  assembly?: boolean;
+  /** Turn input: the root ticket (default), an unrouted message, or a message routed to the project. */
+  target?: 'root' | 'message' | 'routed';
+};
 
 // Real rows end to end: owner, machines A (designated Assistant), B (project binding) and
 // C (authenticated, not designated); an admitted PASS turn of A on the root's input
@@ -127,10 +133,20 @@ async function toolsFixture(db: Db, options: FixtureOptions = {}) {
       values(${ids.b},1,${tx.json(workflowStatus() as never)},${reportId},${tx.json(workflowStatus() as never)},now())`;
   });
   const submitted = await f.submitMessage();
+  const target = options.target ?? 'root';
+  const messageId = submitted.message.id;
+  if (target === 'routed') {
+    // Test-only rows of an accepted routing: the message is routed to the root of the project.
+    const decisionId = randomUUID();
+    await db`insert into attachment_message_decisions(id,message_id,input_revision,actor_kind,actor_id,kind,body,sha256)
+      values(${decisionId},${messageId},1,'owner','owner','routing','{}',${'d'.repeat(64)})`;
+    await db`insert into attachment_message_routes(id,message_id,revision,project_id,ticket_id,decision_id)
+      values(${randomUUID()},${messageId},1,${f.project.id},${root.id},${decisionId})`;
+  }
   const seeded = await f.seedAdmittedTurn({
     conversationId: submitted.conversation.id,
-    messageId: null,
-    target: { kind: 'ticket', id: root.id },
+    messageId: target === 'root' ? null : messageId,
+    target: target === 'root' ? { kind: 'ticket', id: root.id } : { kind: 'message', id: messageId },
     machineId: ids.a,
     snapshotCanonical: { required: [] },
   });
@@ -139,7 +155,8 @@ async function toolsFixture(db: Db, options: FixtureOptions = {}) {
   const scopeId = randomUUID();
   await db`insert into assistant_scopes(id,turn_id,root_ticket_id,message_id,project_id,actions,tool_names,input_snapshot_id,
     scope_sha256,owner_authorization_id,expires_at)
-    values(${scopeId},${fence.turnId},${root.id},null,${f.project.id},
+    values(${scopeId},${fence.turnId},${target === 'root' ? root.id : null},${target === 'root' ? null : messageId},
+    ${target === 'message' ? null : f.project.id},
     ${db.json(['create_ticket', 'dependency'])},${db.json(options.tools ?? allTools)},${snapshotId},
     ${'a'.repeat(64)},${randomUUID()},clock_timestamp()+interval '10 minutes')`;
   await db`update assistant_config set policy=policy||${db.json({ maxToolsPerTurn: options.maxToolsPerTurn ?? 64 })}
@@ -294,14 +311,19 @@ async function toolsFixture(db: Db, options: FixtureOptions = {}) {
   });
   const seedDocs = async (
     projectId: Id,
-    path = 'docs/index.md',
-    text = '# Tài liệu\n\nNội dung kiểm thử\n',
+    opts: { path?: string; text?: string; auditState?: 'verified' | 'unverified'; commit?: string } = {},
   ) => {
+    const path = opts.path ?? 'docs/index.md';
+    const text = opts.text ?? '# Tài liệu\n\nNội dung kiểm thử\n';
+    const auditState = opts.auditState ?? 'verified';
     const snapshot = randomUUID();
     const bytes = Buffer.from(text, 'utf8');
     await db`insert into docs_snapshots(id,project_id,import_id,source_commit,snapshot_sha,source_kind,audit_state,audit_report,content_class)
-      values(${snapshot},${projectId},null,${'a'.repeat(40)},${createHash('sha256').update(snapshot).digest('hex')},
-      'checkout_sync','verified','{}','implemented')`;
+      values(${snapshot},${projectId},null,${opts.commit ?? 'a'.repeat(40)},${createHash('sha256').update(snapshot).digest('hex')},
+      'checkout_sync',${auditState},'{}','implemented')`;
+    // A verified snapshot becomes the project's latest verified docs, as the docs sync records it.
+    if (auditState === 'verified')
+      await db`update projects set latest_verified_snapshot_id=${snapshot} where id=${projectId}`;
     await db`insert into docs_files(snapshot_id,path,content_class,bytes,sha,title,search_text)
       values(${snapshot},${path},'implemented',${bytes},${createHash('sha256').update(bytes).digest('hex')},'Tài liệu',${text})`;
     const [row] = await db`select received_at from docs_snapshots where id=${snapshot}`;
@@ -505,6 +527,8 @@ test('assistant tools: the per-turn tool budget denies the next call but not the
 test('assistant tools: read_catalog returns the scoped catalog and stores the bound result', async () =>
   withTools({}, async (f, db) => {
     const docs = await f.seedDocs(f.project.id);
+    // A newer snapshot that is not verified is never the catalog's latest snapshot.
+    await f.seedDocs(f.project.id, { auditState: 'unverified', commit: 'b'.repeat(40) });
     const { operationId, providerCallId, body, response } = await f.call(catalog);
     assert.equal(response.statusCode, 200);
     const [project] = await db`select key,name from projects where id=${f.project.id}`;
@@ -522,6 +546,7 @@ test('assistant tools: read_catalog returns the scoped catalog and stores the bo
             sourceCommit: 'a'.repeat(40),
           },
         ],
+        truncated: false,
       },
       errorCode: null,
     };
@@ -701,6 +726,46 @@ test('assistant tools: unreleased tools are rejected with a bound row and no eff
       },
       { name: 'read_execution_candidates', input: { ticketId: f.root.id, runId: randomUUID() } },
       {
+        name: 'route_message',
+        input: {
+          messageId: randomUUID(),
+          expectedInputRevision: '1',
+          expectedRouteRevision: 0,
+          ticket: inputTicket(f.project.id, 'request'),
+          confidence: 0.5,
+          rationale: 'Định tuyến thử',
+          docReadIds: [],
+        },
+      },
+      {
+        name: 'assess_ticket',
+        input: {
+          ticketId: f.root.id,
+          candidateReadOperationId: randomUUID(),
+          input: f.pin,
+          complexity: 'bounded',
+          risk: [],
+          uncertainty: [],
+          required: [],
+          strengthRationale: 'Đánh giá thử',
+          sources: [],
+          candidateReasons: [],
+          chosen: { machineId: f.ids.b, runtime: 'claude', providerId: 'anthropic', modelId: 'claude-test' },
+          choiceRationale: 'Chọn thử',
+        },
+      },
+      {
+        name: 'publish_reply',
+        input: {
+          messageId: randomUUID(),
+          inputRevision: '1',
+          snapshotId: f.snapshotId,
+          receiptIds: [],
+          text: 'Trả lời thử',
+          sources: [],
+        },
+      },
+      {
         name: 'request_dispatch',
         input: {
           stepId: randomUUID(),
@@ -798,4 +863,149 @@ test('assistant tools: concurrent duplicates of one operation apply exactly once
     const after = await f.counts();
     assert.equal(after.runs, before.runs + 1);
     assert.equal(after.operations, before.operations + 1);
+  }));
+
+test('assistant tools: an unrouted message scope reads every project; create_run is the one 404', async () =>
+  withTools({ target: 'message' }, async (f, db) => {
+    const other = randomUUID();
+    await db`insert into projects(id,key,name) values(${other},${`O${other.slice(0, 8).toUpperCase()}`},'Khác')`;
+    const otherDocs = await f.seedDocs(other);
+    const projects =
+      await db`select p.id,p.key,p.name,p.latest_verified_snapshot_id,s.source_commit from projects p
+      left join docs_snapshots s on s.id=p.latest_verified_snapshot_id order by p.key`;
+    const listed = await f.call(catalog);
+    assert.equal(listed.response.statusCode, 200, listed.response.body);
+    assert.deepEqual(listed.response.json().result, {
+      kind: 'catalog',
+      items: projects.map((row) => ({
+        projectId: row.id,
+        key: row.key,
+        name: row.name,
+        latestSnapshotId: row.latest_verified_snapshot_id,
+        sourceCommit: row.source_commit,
+      })),
+      truncated: false,
+    });
+    assert.ok(projects.length >= 2);
+    const read = await f.call({
+      name: 'read_docs',
+      input: { projectId: other, snapshotId: otherDocs.snapshotId, path: otherDocs.path },
+    });
+    assert.equal(read.response.statusCode, 200, read.response.body);
+    assert.equal(read.response.json().result.page.projectId, other);
+    const [receipt] = await db`select turn_id,snapshot_id from assistant_doc_read_receipts
+      where id=${read.response.json().result.readReceiptId}`;
+    assert.deepEqual({ ...receipt }, { turn_id: f.fence.turnId, snapshot_id: otherDocs.snapshotId });
+    // A message scope has no root: create_run never looks up the named root.
+    const before = await f.counts();
+    const existing = await f.call({ name: 'create_run', input: f.runInput } as RoutingTool);
+    const unknown = await f.call({
+      name: 'create_run',
+      input: { ...f.runInput, rootTicketId: randomUUID() },
+    } as RoutingTool);
+    assert.equal(existing.response.statusCode, 404);
+    assert.deepEqual(existing.response.json(), unknown.response.json());
+    assert.deepEqual(await f.counts(), before);
+  }));
+
+test('assistant tools: a routed message scope is limited to its one project', async () =>
+  withTools({ target: 'routed' }, async (f, db) => {
+    const own = await f.seedDocs(f.project.id);
+    const other = randomUUID();
+    await db`insert into projects(id,key,name) values(${other},${`O${other.slice(0, 8).toUpperCase()}`},'Khác')`;
+    const otherDocs = await f.seedDocs(other);
+    const listed = await f.call(catalog);
+    assert.equal(listed.response.statusCode, 200, listed.response.body);
+    assert.deepEqual(
+      listed.response.json().result.items.map((item: { projectId: Id }) => item.projectId),
+      [f.project.id],
+    );
+    const ownRead = await f.call({
+      name: 'read_docs',
+      input: { projectId: f.project.id, snapshotId: own.snapshotId, path: own.path },
+    });
+    assert.equal(ownRead.response.statusCode, 200, ownRead.response.body);
+    const before = await f.counts();
+    const foreign = await f.call({
+      name: 'read_docs',
+      input: { projectId: other, snapshotId: otherDocs.snapshotId, path: otherDocs.path },
+    });
+    const unknown = await f.call({
+      name: 'read_docs',
+      input: { projectId: randomUUID(), snapshotId: randomUUID(), path: otherDocs.path },
+    });
+    assert.equal(foreign.response.statusCode, 404);
+    assert.deepEqual(foreign.response.json(), unknown.response.json());
+    assert.deepEqual(await f.counts(), before);
+  }));
+
+test('assistant tools: the catalog flags a cut at 1000 projects', async () =>
+  withTools({ target: 'message' }, async (f, db) => {
+    await db`insert into projects(id,key,name)
+      select gen_random_uuid(),'Z'||lpad(n::text,5,'0'),'Dự án '||n from generate_series(1,1000) n`;
+    const { response } = await f.call(catalog);
+    assert.equal(response.statusCode, 200, response.body.slice(0, 200));
+    const value = response.json().result;
+    assert.equal(value.items.length, 1000);
+    assert.equal(value.truncated, true);
+  }));
+
+test('assistant tools: read_docs reports an older verified snapshot as stale', async () =>
+  withTools({}, async (f) => {
+    const older = await f.seedDocs(f.project.id);
+    await f.seedDocs(f.project.id);
+    const { response } = await f.call({
+      name: 'read_docs',
+      input: { projectId: f.project.id, snapshotId: older.snapshotId, path: older.path },
+    });
+    assert.equal(response.statusCode, 200, response.body);
+    assert.equal(response.json().result.page.state, 'stale');
+  }));
+
+test('assistant tools: the turn time budget denies new calls but replays a committed result', async () =>
+  withTools({}, async (f, db) => {
+    const first = await f.call(catalog);
+    assert.equal(first.response.statusCode, 200);
+    const after = await f.counts();
+    await db`update assistant_config set policy=policy||${db.json({ maxTurnMs: 1 })} where singleton=true`;
+    await db`select pg_sleep(0.01)`;
+    const next = await f.call(catalog);
+    assert.equal(next.response.statusCode, 409);
+    assert.equal(next.response.json().error.code, 'ASSISTANT_TOOL_BUDGET_EXHAUSTED');
+    const replay = await f.send(first);
+    assert.equal(replay.statusCode, 200, replay.body);
+    assert.equal(replay.body, first.response.body);
+    assert.deepEqual(await f.counts(), after);
+  }));
+
+test('assistant tools: a duplicated provider header and an operation ID of another turn are rejected', async () =>
+  withTools({}, async (f, db) => {
+    const before = await f.counts();
+    const prepared = f.request(catalog);
+    const duplicated = await f.app.inject({
+      method: 'POST',
+      url: `/v2/assistant/turns/${prepared.path}/tools`,
+      payload: prepared.body,
+      headers: {
+        authorization: `Bearer ${prepared.token}`,
+        'x-crew-provider-call-id': ['toolu_a', 'toolu_b'],
+      },
+    });
+    assert.equal(duplicated.statusCode, 400);
+    assert.equal(duplicated.json().error.code, 'PROVIDER_CALL_ID_INVALID');
+    assert.deepEqual(await f.counts(), before);
+    // The operation ID is already recorded for another turn (test-only row; FK bypassed in a replica session).
+    const reused = randomUUID();
+    await db.begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`insert into assistant_tool_operations(operation_id,turn_id,client_sequence,provider_call_id,request_hash,
+        input_snapshot_id,state,response)
+        values(${reused},${randomUUID()},1,'toolu_old',${'a'.repeat(64)},${f.snapshotId},'rejected',
+        ${tx.json({ fixture: true })})`;
+    });
+    const seeded = await f.counts();
+    const { response } = await f.call(catalog, { operationId: reused });
+    assert.equal(response.statusCode, 409);
+    assert.equal(response.json().error.code, 'ASSISTANT_OPERATION_CONFLICT');
+    assert.deepEqual(await f.counts(), seeded);
   }));

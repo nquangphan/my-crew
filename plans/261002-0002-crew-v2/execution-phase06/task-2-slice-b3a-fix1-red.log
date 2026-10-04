@@ -1,0 +1,262 @@
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-h3EMmk
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-h3EMmk nonceSha256=471c78db0e27e6359492ab0e948015a41571ab9b99216e2ff44812fc42bc3d9e
+attachment DB scratch identity dev=16777231 ino=220588188 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-h3EMmk
+✔ assistant tools: production assembly without tools is 503 and writes nothing (428.1785ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ScdYVR
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ScdYVR nonceSha256=cb33b5f18f2a269d4f7f9b22a01dfb29f5ff2d0e96ec615b38010b856d079213
+attachment DB scratch identity dev=16777231 ino=220588195 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-ScdYVR
+✔ assistant tools: authentication and provider call ID come before any authority (332.142167ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Xnz3Ri
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Xnz3Ri nonceSha256=dd6a1883f7cd72fe2972c055173b8012e299d2a5a7035253443bdf8abbe0ae23
+attachment DB scratch identity dev=16777231 ino=220588202 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Xnz3Ri
+✔ assistant tools: every failure before proof → scope resolution has one shape (357.73175ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yoCRGF
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yoCRGF nonceSha256=dd2b99fc2e1955723173a991d9d8bda3b1584af3f373805aacc0b29ca10564ab
+attachment DB scratch identity dev=16777231 ino=220588209 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yoCRGF
+✔ assistant tools: unknown tool, extra fields and forged results are rejected without rows (308.275875ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Qd8Kmj
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Qd8Kmj nonceSha256=3e1799b839a980f97419aec6545c9c11b3eda4fd4b5247d6ce80c6f81fb0a34b
+attachment DB scratch identity dev=16777231 ino=220588216 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Qd8Kmj
+✔ assistant tools: stale input pin is 409 after scope resolution and writes nothing (335.867291ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nuQEjE
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nuQEjE nonceSha256=f298f7d88956e796f3ea474338abd740c74a9c5c23526261b32a78c98f2840de
+attachment DB scratch identity dev=16777231 ino=220588223 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-nuQEjE
+✔ assistant tools: a tool outside the scope tool_names is 403 without rows (336.005875ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-LXPkEq
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-LXPkEq nonceSha256=4cd3e895c3ce4182dbfc360c804c0e14694633516d66046f6d8c9ba25e9622a8
+attachment DB scratch identity dev=16777231 ino=220588230 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-LXPkEq
+✔ assistant tools: the per-turn tool budget denies the next call but not the replay (324.201167ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MHUu73
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MHUu73 nonceSha256=6d622fccd9460c86cec3e53762eae63c1349ebaaf27a5647fe39f68a82ca7a20
+attachment DB scratch identity dev=16777231 ino=220588237 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-MHUu73
+✖ assistant tools: read_catalog returns the scoped catalog and stores the bound result (313.551416ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yjlhMw
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yjlhMw nonceSha256=99db1d73bb6d1ded042f47d6442afaac1d4ba84dbfb8557a26c3b368f90015e3
+attachment DB scratch identity dev=16777231 ino=220588244 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-yjlhMw
+✔ assistant tools: read_docs returns the page with a read receipt; foreign and unknown are one 404 (340.269542ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-AcGfsp
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-AcGfsp nonceSha256=c17bf0c858300647d7b6b08a55beed3a9c2b76f63afe1e06b2b14a1dd1abac3f
+attachment DB scratch identity dev=16777231 ino=220588251 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-AcGfsp
+✔ assistant tools: create_run through the real route creates the graph as machine A once (414.920166ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-gVSQqW
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-gVSQqW nonceSha256=231682650ce72007cdd444f0405234a50b71e5dc19a66a3c312bc3ca62207630
+attachment DB scratch identity dev=16777231 ino=220588258 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-gVSQqW
+✔ assistant tools: create_run on a root outside the scope is one 404 without ticket probing (338.899625ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hlHR6r
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hlHR6r nonceSha256=3ea2f627b6746b196c9f8b2d687e98dbb951e41b1ffdc315d199ea604cd9028c
+attachment DB scratch identity dev=16777231 ino=220588278 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-hlHR6r
+✔ assistant tools: ask_owner through the real route opens the question bound to its operation (320.172458ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-bRDgTi
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-bRDgTi nonceSha256=3aebeb159d48f5593a76f1d94fbf21f9ef5fefcd5af34170c943d6e9a40efc13
+attachment DB scratch identity dev=16777231 ino=220588285 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-bRDgTi
+✔ assistant tools: ask_owner without a ticket is 422 and a late failure rolls the row back (317.544834ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6XSsdG
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6XSsdG nonceSha256=f3e3ec9622cb2772600ac101c1f278a232deb2dbd280902012bf01edea148f6a
+attachment DB scratch identity dev=16777231 ino=220588292 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-6XSsdG
+✔ assistant tools: unreleased tools are rejected with a bound row and no effect (343.541042ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jlRwkR
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jlRwkR nonceSha256=3908a22278f41e1ffac2011b7222806c0c75b41672d5f02a53796edc7307fbd3
+attachment DB scratch identity dev=16777231 ino=220588299 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-jlRwkR
+✔ assistant tools: replay returns the stored result without writing; conflicting IDs are 409 (432.498291ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-uEsnhg
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-uEsnhg nonceSha256=6362aef7f31a99eaf2f8fb1217409c8dc62909b48606b917e9ebddcb2fb2f85e
+attachment DB scratch identity dev=16777231 ino=220588306 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-uEsnhg
+✔ assistant tools: a response lost before commit leaves no effect and the retry applies once (494.133667ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9VDsaR
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9VDsaR nonceSha256=df36b76a61ddea9c85e052dbf4c73811bd7a45b7c9021f8f12027899ddbd1bc5
+attachment DB scratch identity dev=16777231 ino=220588313 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-9VDsaR
+✔ assistant tools: concurrent duplicates of one operation apply exactly once (424.338416ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Bt0gvr
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Bt0gvr nonceSha256=7902b6e9bd54510d467c0d4f91a71b26fffcae75b560538df170f676eb501092
+attachment DB scratch identity dev=16777231 ino=220588320 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-Bt0gvr
+✖ assistant tools: an unrouted message scope reads every project; create_run is the one 404 (307.591334ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8BShEc
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8BShEc nonceSha256=547e06fa089bb42b4959134c58ce3636bb8d4554f9dde84c713f8f1865504590
+attachment DB scratch identity dev=16777231 ino=220588333 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-8BShEc
+✔ assistant tools: a routed message scope is limited to its one project (334.5715ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DNSSMj
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DNSSMj nonceSha256=bfe18d00d4b3a58acd5f60c6f227692e58db74653ee8c00fec5cbdc6d5e3f046
+attachment DB scratch identity dev=16777231 ino=220588340 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-DNSSMj
+✖ assistant tools: the catalog flags a cut at 1000 projects (329.666542ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-wznr8p
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-wznr8p nonceSha256=3bfca97e199027da7802d7755ba45f90a932ac57962cd07141c5a2142aff4c13
+attachment DB scratch identity dev=16777231 ino=220588347 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-wznr8p
+✔ assistant tools: read_docs reports an older verified snapshot as stale (328.704333ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RsBszU
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RsBszU nonceSha256=73d345870efca45ba0a995b6be68da7071b897cbf10c11b093f6ce143609d97a
+attachment DB scratch identity dev=16777231 ino=220588354 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-RsBszU
+✖ assistant tools: the turn time budget denies new calls but replays a committed result (355.59525ms)
+attachment DB container 24693ea4e5f32ba9a662e5b9387c58babc6a99a2519adfc50dfb96ad1a51dd0a root /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sssBql
+attachment DB scratch created /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sssBql nonceSha256=d984c69d1646d08e7ba4d48598f2dde416afda3b2e7015549cf64feb1888a388
+attachment DB scratch identity dev=16777231 ino=220588361 uid=501 pid=54879
+attachment DB scratch removed /private/var/folders/wr/3y_dzgm55m3fy0gtp5sznlnh0000gn/T/crew-v2-attachments-sssBql
+✖ assistant tools: a duplicated provider header and an operation ID of another turn are rejected (324.156333ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 18
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8326.571917
+
+✖ failing tests:
+
+test at test/assistant-tools-route.test.ts:527:1
+✖ assistant tools: read_catalog returns the scoped catalog and stores the bound result (313.551416ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      errorCode: null,
+      operationId: '467d4184-ac6a-4c3f-95be-470fc433e8a0',
+      result: {
+        items: [
+          {
+            key: 'P3B4898EB',
+  +         latestSnapshotId: '83352bbd-266a-40fa-82d7-96e1498e6ad1',
+  -         latestSnapshotId: '073ff30d-3609-448d-b66b-254f97dc14ed',
+            name: 'Project',
+            projectId: '30bd0b20-2bdf-4749-ba37-0453101ae2e7',
+  +         sourceCommit: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+  -         sourceCommit: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+          }
+        ],
+        kind: 'catalog',
+  -     truncated: false
+      },
+      state: 'completed'
+    }
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:553:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:375:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:372:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { errorCode: null, operationId: '467d4184-ac6a-4c3f-95be-470fc433e8a0', result: { items: [Array], kind: 'catalog' }, state: 'completed' },
+    expected: { operationId: '467d4184-ac6a-4c3f-95be-470fc433e8a0', state: 'completed', result: { kind: 'catalog', items: [Array], truncated: false }, errorCode: null },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tools-route.test.ts:868:1
+✖ assistant tools: an unrouted message scope reads every project; create_run is the one 404 (307.591334ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+      items: [
+        {
+          key: 'OE9061CEC',
+          latestSnapshotId: '3b82a18b-8f1b-420b-a1d4-78e55f65ba6e',
+  ...
+      kind: 'catalog',
+  -   truncated: false
+    }
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:877:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:375:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:372:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { items: [ [Object], [Object] ], kind: 'catalog' },
+    expected: { kind: 'catalog', items: [ [Object], [Object] ], truncated: false },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tools-route.test.ts:941:1
+✖ assistant tools: the catalog flags a cut at 1000 projects (329.666542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - true
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:949:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:375:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:372:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tools-route.test.ts:964:1
+✖ assistant tools: the turn time budget denies new calls but replays a committed result (355.59525ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"ASSISTANT_TOOL_BUDGET_EXHAUSTED","message":"Lượt Trợ lý đã hết ngân sách tool"}}
+  
+  409 !== 200
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:975:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:375:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:372:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/assistant-tools-route.test.ts:980:1
+✖ assistant tools: a duplicated provider header and an operation ID of another turn are rejected (324.156333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 400
+  
+      at file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:993:12
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:375:7
+      at async file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/support/db.ts:51:9
+      at async withTools (file:///Volumes/CORSAIR/Projects/my-crew-v2/v2/server/test/assistant-tools-route.test.ts:372:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

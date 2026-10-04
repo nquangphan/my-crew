@@ -152,3 +152,57 @@ Test file đổi sau GREEN đầu (thêm `closeAttachments`). Hash của nó n�
 3. Chưa có `GET /v2/assistant/turns/:id/tools/:operationId`. Plan R2 nhắc tới route này nhưng brief B3a không giao.
 4. Catalog của scope message trả mọi dự án, tối đa 1000, không phân trang. `read_docs` với scope message chưa route được đọc docs của mọi dự án. Đây là cách em hiểu quyền route message theo plan ("message read/propose"); cần PM xác nhận.
 5. Production assembly, tức inject `createAssistantTools` và mount `registerAssistantRoutes`, chờ PM release riêng.
+
+## Fix round 1 — 04/10/2026
+
+Đầu vào: review `task-2-slice-b3a-review.md` (không có lỗ hổng authority) và các ruling PM do coordinator chuyển. Lượt này sửa I1, M1, M3, M5, W1, W2. M2, M4, M6 và W3–W6 PM đã ghi vào ledger và checklist T7. Lượt sửa bắt đầu từ HEAD `42d68a2`; khi commit, HEAD đã là `d87f2fd` do worker khác commit.
+
+**Kết quả: DONE_WITH_CONCERNS.**
+
+- RED: 23 test, 18 pass, 5 fail, mỗi test fail đúng vì tính năng còn thiếu.
+- GREEN: 260/260 (237 test S2/S4/S5 cộng 23 test của route tool).
+- Hồi quy: 102/102.
+- Kiểm tĩnh: scoped strict tsc exit 0, log rỗng. Biome 0 lỗi, 0 warning.
+- Docs: `crew-docs check --all` và `check --staged` đều ok.
+
+Concern duy nhất: W1 buộc phải thêm field vào contract, nên `contracts.ts` (ngoài danh sách sở hữu ban đầu) bị đổi theo yêu cầu của PM.
+
+| Mục | Thay đổi | Test |
+|---|---|---|
+| I1 | Không đổi code. Bổ sung test cho đúng ba nhánh scope message. Fixture route test có thêm `target: 'root'\|'message'\|'routed'`: turn và scope theo message; scope `routed` dựa trên row decision và route test-only | Scope chưa route: catalog trả mọi dự án (so oracle SQL), `read_docs` đọc dự án khác được 200 và có receipt, `create_run` trả cùng 404 với root lạ mà không có effect. Scope đã route: catalog chỉ trả đúng một dự án, docs của dự án khác cho cùng 404 với dự án lạ |
+| M1 (ruling) | Nếu đã có row của chính `operationId` trong turn thì miễn `maxTurnMs` cho lần đó (ngân sách số lời gọi vốn đã loại chính operation); lời gọi mới vẫn chịu hạn | Sau khi đặt `maxTurnMs = 1`: lời gọi mới trả 409 `ASSISTANT_TOOL_BUDGET_EXHAUSTED`, replay trả 200 giống từng byte và không có effect |
+| M3 | Header provider không còn nhận dấu phẩy, vì dấu phẩy là cách các dòng header lặp bị gộp. RED cho thấy `inject` gộp hai giá trị thành `a,b` nên lọt qua bộ đếm `rawHeaders`. Bộ đếm vẫn giữ để bắt hai dòng thật | Header lặp trả 400 `PROVIDER_CALL_ID_INVALID`. OperationId đã có ở turn khác (row test-only tạo trong phiên replica) trả 409 `ASSISTANT_OPERATION_CONFLICT`, không có effect. `route_message`, `assess_ticket`, `publish_reply` trả `rejected` với hash oracle, không có effect (giờ đủ 6/6 tool chưa release) |
+| M5 | `read_docs` lấy trạng thái current/stale từ `readProjectDocsState(tx, projectId)` của `docs/read.ts`. Snapshot chưa verified là `unverified`; là bản mới nhất và project `current` thì `current`; còn lại `stale`. Bỏ phần so `expected_commit` tự viết | Test có sẵn (`current`) cộng test mới: bản verified cũ hơn trả `stale` |
+| W2 (ruling) | `latestSnapshotId` lấy theo `projects.latest_verified_snapshot_id` và commit của snapshot đó; null nếu chưa có bản verified | Có một snapshot unverified mới hơn nhưng catalog vẫn trả bản verified. Dự án chưa verified trả null/null (trong oracle của test scope message) |
+| W1 | `RoutingToolValue` kind `catalog` thêm `truncated: boolean` (cả type lẫn schema strict trong `contracts.ts`). Query lấy 1001 dòng, chỉ trả 1000 và đặt `truncated = rows > 1000`. Mẫu contract trong `support/assistant.ts` thêm `truncated:false` | 1000 dự án thêm vào cộng dự án fixture: trả 1000 item và `truncated: true`. Các test catalog khác kiểm `truncated: false`. `assistant-store` (kiểm schema strict với mẫu) PASS |
+
+**Bằng chứng**
+
+| Lượt | Kết quả | Exit | Log SHA (16) |
+|---|---|---|---|
+| RED | 23 test, 18 pass, 5 fail: catalog thiếu `truncated` và latest theo `received_at` (2 test), cờ cắt (1), replay bị chặn bởi `maxTurnMs` (1), header lặp trả 200 (1) | 1 | `bcb72a07daeb2120` |
+| GREEN run1 | tools-route cộng assistant-store: 62/62 | 0 | `a5df5b21cccc1bbb` |
+| GREEN | 9 file như lượt trước: 260/260 | 0 | `bd272ec8ad6fe07f` |
+| Hồi quy | 8 file: 102/102 | 0 | `209974402ed2b31a` |
+| tsc strict scoped | `tools.ts`, `routes.ts`, `contracts.ts`, `assistant-tools-route.test.ts`, `support/assistant.ts`, `assistant-store.test.ts` | 0, log rỗng | `e3b0c44298fc1c14` |
+| Biome | 4 file: `tools.ts`, `contracts.ts`, test, support | 0 | `227777352c39f0b2` |
+
+Hash source cuối (SHA-256):
+
+| File | SHA-256 |
+|---|---|
+| `tools.ts` | `6c1751c9af576698390dea280d05aacc0445345ec845bae70f6cba5b6b5e0d85` |
+| `contracts.ts` | `20f368f46ea4032b68ffafa7226f1c1915be6b3b827b2e8c9e72a0899c62132f` |
+| `assistant-tools-route.test.ts` | `2813913678651548e96630cd0532c32a38fb45b7c13d26ee8dcd30a903bda074` |
+| `support/assistant.ts` | `b6935fb8550f4b623b5e1b64daf0406cbbc00c91afe74750f66df847c177ceaf` |
+| `server-assistant.md` | `f71c31466e728d800afa0a8f95566139aeec5a61ba3d02ff86fe11b89be4066b` |
+
+**Docs.** `server-assistant.md` cập nhật bước 13 (header không nhận dấu phẩy, replay đã commit được miễn ngân sách), bước 14 (catalog theo phạm vi, verified, `truncated`; trạng thái docs qua `readProjectDocsState`) và bảng Files. Manifest không đổi vì `contracts.ts` đã nằm trong flow `server-assistant`. Kiểm trên mirror: `generate` cho `index.md` và `files.md` unchanged; `check --all` và `--staged` ok. Mirror đã xóa.
+
+**Tài nguyên.** Có 5 lượt nặng, cả 5 đều được lock owner `b3a` với `heavyEligible=true` (available 4,31–4,92 GiB, pressure 1). Bốn container PG `crew-v2-test-<uuid>` (256m / 1 CPU / pids 64), port loopback 62151, 62564, 62357, 63278. Sau mỗi lượt còn 0 DB; kiểm `docker ps -a` cho cả 4 ID đều rỗng. Không còn `node --test` nào. Fixture scratch: số root tạo bằng số root xóa ở mọi lượt (23/23, 57/57, 107/107, 53/53), không còn root sót. Không còn lock.
+
+**Concern.**
+
+1. W1 đổi frozen contract `RoutingToolValue` (thêm `truncated` bắt buộc) trong `v2/server/src/assistant/contracts.ts`. File này nằm ngoài danh sách sở hữu của brief; em đổi theo yêu cầu trực tiếp của PM ở lượt này. Gateway hay web chưa có consumer nào của kind `catalog`. Plan phase-06 mục R2 cần được cập nhật type cho khớp.
+2. Test "operationId đã có ở turn khác" giả lập turn kia bằng một row test-only chèn trong phiên replica, vì mỗi lần chỉ có một turn sống và fixture không dựng được turn thứ hai. Test này đi qua nhánh PK/`consume`. Nhánh journal khác body (cùng máy, turn khác) đã được phủ gián tiếp bởi các test `IDEMPOTENCY_CONFLICT`.
+3. Header provider giờ không nhận dấu phẩy. Đây là thu hẹp so với ruling 00:50 (ASCII nhìn thấy được), có tài liệu đi kèm; PM xác nhận.

@@ -315,6 +315,7 @@ export function assistantContractSamples(): Record<string, unknown[]> {
     {
       kind: 'catalog',
       items: [{ projectId: id, key: 'P1', name: 'Fixture', latestSnapshotId: null, sourceCommit: null }],
+      truncated: false,
     },
     { kind: 'execution_candidates', snapshot },
     { kind: 'docs', page: doc, readReceiptId: id },
