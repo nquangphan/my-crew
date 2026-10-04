@@ -193,3 +193,5 @@ Ruling: header `x-crew-provider-call-id` cấm dấu phẩy (hẹp hơn ruling 0
 Task 2 Slice B3a: complete — c348950 (922abed + c348950). Production chưa mount (W4/M4 checklist T7).
 PM cập nhật R2 type trong phase-06 thêm `truncated:boolean` cho kind catalog (R3 review).
 Task 2 B3a: minor (deferred): R1 test cùng máy A dùng lại operationId ở turn khác (cần fixture turn thứ hai); R2 nhãn stale khi đọc latestSnapshotId verified mà có import mới hơn chưa verified — ruling sau; R4 test ask_owner từ scope message chưa route.
+
+02:15 B3b `97737a1` DONE_WITH_CONCERNS (14/14 vs fake node:http, regression 4/4). Vi phạm TDD: không có RED (module chưa tồn tại khi viết test). Journal riêng `<root>/assistant-tools` (một writer mỗi thư mục). Review sẽ đánh giá độc lập test.

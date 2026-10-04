@@ -1,0 +1,1399 @@
+97737a1 feat(v2-assistant): thêm client tool của Trợ lý phía gateway
+ .../execution-phase06/task-2-slice-b3b-report.md   |  24 +
+ v2/docs/files.md                                   |   2 +
+ v2/docs/flows.yaml                                 |   2 +
+ v2/docs/flows/assistant-workflows.md               |   9 +
+ v2/gateway/src/assistant/tool-client.ts            | 540 +++++++++++++++++
+ v2/gateway/test/assistant-tool-client.test.ts      | 641 +++++++++++++++++++++
+ 6 files changed, 1218 insertions(+)
+diff --git a/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3b-report.md b/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3b-report.md
+new file mode 100644
+index 0000000..bca6112
+--- /dev/null
++++ b/plans/261002-0002-crew-v2/execution-phase06/task-2-slice-b3b-report.md
+@@ -0,0 +1,24 @@
++# Task 2 Slice B3b — gateway tool client
++
++**Kết quả: DONE_WITH_CONCERNS.** `v2/gateway/src/assistant/tool-client.ts` là client máy của `POST /v2/assistant/turns/:id/tools` (B3a, c348950). Typecheck gateway sạch, `assistant-tool-client.test.ts` 14/14, hồi quy `http-operations.test.ts` 4/4; Biome 0 lỗi (5 warning `noExplicitAny` trong fixture test, cùng kiểu các test gateway khác). `crew-docs generate`, `check --all`, `check --staged` ok trên mirror (v2 là Git root giả lập); mirror đã xóa.
++
++## Thiết kế
++- API: `createToolClient({root, baseUrl, bearer, fetch?, maxAttempts?, now?, sleep?})` trả `{execute(turn, event, options?), close()}`; `toolOperationId(turnId, providerCallId, sequence)` là UUID layout v5 từ SHA-256 canonical `['crew-v2:assistant-tool-operation:1', turnId, providerCallId, sequence]`.
++- Kiểm union tool viết tay (gateway không có ajv/zod, không import server) trước mọi I/O; payload sâu (`ticket`) chỉ kiểm JSON thuần, server kiểm sâu.
++- Journal: dùng nguyên `HttpOperationJournal` (phase03), thư mục riêng `<root>/assistant-tools` vì `AtomicRecords` khóa một writer mỗi thư mục. `providerCallId` nằm trong `phase` (`assistant-tool:<id>`) để carrier header sống qua restart mà không đổi định dạng journal; transport riêng (cùng guard URL/redirect/timeout với `machineTransport`) gửi header đúng một lần. Không gửi `idempotency-key` vì server khóa theo `operationId`.
++- Gửi lại: mạng/timeout/500/502/503/504 gửi đúng body+ID qua `retryTransient`, lịch 1s nhân đôi tới 60s, tối đa `maxAttempts` (mặc định 6); hết lượt trả `unavailable` retryable, gọi lại tiếp tục đúng operation. 4xx là terminal, được journal giữ nên phát lại sau restart không I/O.
++- Phản hồi: envelope chính xác, operationId khớp, `completed` chỉ nhận đúng kind của tool và đúng tập field; `pending` trả nguyên; `rejected` cần `errorCode`.
++- Không log; bearer chỉ trong closure transport; lỗi chỉ mang kind/status/mã server.
++
++## Test
++Server giả `node:http` trong process, dựng đúng hợp đồng route (header một lần/ASCII/không dấu phẩy, body năm field, idempotency theo operationId, 409 khi khác body hoặc trùng provider call/sequence, trả byte kết quả đã lưu, commit-then-drop). KHÔNG phải route Fastify/PostgreSQL thật: route thật đã có `server/test/assistant-tools-route.test.ts`; dựng lại fixture đó trong gateway cần sao chép ~150 dòng fixture không export (ngoài ownership). Test được viết trước source nhưng chưa chạy được bản đỏ trước (module chưa tồn tại thì import lỗi); lần chạy đầu sau khi viết source đã xanh.
++
++## Files
++`v2/gateway/src/assistant/tool-client.ts`, `v2/gateway/test/assistant-tool-client.test.ts`, `v2/docs/flows.yaml` (2 dòng), `v2/docs/flows/assistant-workflows.md` (bước 19–21, Files, Tests), `v2/docs/files.md` (generate, 2 dòng).
++
++## Concerns
++1. Không có test chéo với route thật (xem trên); đề xuất slice mount/integration T7 chạy client này với `buildApp`.
++2. Retry sau restart: nếu history của journal có `retryAt` xa hơn lịch ngủ của client, một vòng gọi bị tiêu hao mà không gửi; vẫn bị chặn bởi `maxAttempts`.
++3. fence/pin đổi giữa hai lần chạy cùng lời gọi trả `conflict` cục bộ (cùng operationId khác body), caller phải coi lời gọi đó là hỏng.
++4. Chưa có GET `/v2/assistant/turns/:id/tools/:operationId`, ghi fsync kết quả rồi `driver.resolve`, mount production (slice sau, theo W4/T7).
++5. Phụ thuộc ngầm vào việc journal `phase` không bị giới hạn độ dài/ký tự; nếu journal siết sau này cần field riêng.
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index 358d0f8..9ad00fc 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -17,20 +17,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `desktop/src/renderer/index.html` | [desktop-shell](flows/desktop-shell.md) (file) |
+ | `desktop/src/renderer/index.js` | [desktop-shell](flows/desktop-shell.md) (file) |
+ | `desktop/src/renderer/style.css` | [desktop-shell](flows/desktop-shell.md) (file) |
+ | `desktop/test/electron-lifecycle.test.ts` | [desktop-shell](flows/desktop-shell.md) (test) |
+ | `desktop/test/shell.test.ts` | [desktop-shell](flows/desktop-shell.md) (test) |
+ | `desktop/tsconfig.build.json` | [desktop-shell](flows/desktop-shell.md) (file) |
+ | `desktop/tsconfig.json` | [desktop-shell](flows/desktop-shell.md) (file) |
+ | `gateway/package.json` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/pnpm-lock.yaml` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/assistant/render-artifacts.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
++| `gateway/src/assistant/tool-client.ts` | [assistant-workflows](flows/assistant-workflows.md) (file) |
+ | `gateway/src/assistant/workflow-manifest.ts` | [assistant-workflows](flows/assistant-workflows.md) (điểm vào) |
+ | `gateway/src/commands/contracts.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/commands/http-client.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/execution/ticket-command-bridge.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/host/gateway-host.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/host/main.ts` | [gateway-host](flows/gateway-host.md) (điểm vào) |
+ | `gateway/src/host/process-lock.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/host/status.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/ipc/server.ts` | [gateway-host](flows/gateway-host.md) (file) |
+ | `gateway/src/isolation/inventory.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+@@ -69,20 +70,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `gateway/src/workflows/audit.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/builder.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/fetch.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/native-projection.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/operation-native.c` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/operations.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/pins.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/registry.ts` | [gateway-workflows](flows/gateway-workflows.md) (điểm vào) |
+ | `gateway/src/workflows/retention.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
+ | `gateway/src/workflows/stage.ts` | [gateway-workflows](flows/gateway-workflows.md) (file) |
++| `gateway/test/assistant-tool-client.test.ts` | [assistant-workflows](flows/assistant-workflows.md) (test) |
+ | `gateway/test/connection.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/credential-broker.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/credential-provisioning.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/current-credential-resolver.test.ts` | [gateway-models](flows/gateway-models.md) (test) |
+ | `gateway/test/effect-ledger.test.ts` | [gateway-runtime](flows/gateway-runtime.md) (test) |
+ | `gateway/test/event-pump.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/execution-bridge-db.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/execution-bridge.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/execution-crash.test.ts` | [gateway-host](flows/gateway-host.md) (test) |
+ | `gateway/test/fixtures/models/security-channel.c` | [gateway-models](flows/gateway-models.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index ca6ba7f..36928cb 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -470,26 +470,28 @@ flows:
+       - server/test/assistant-store.test.ts
+       - server/test/assistant-tools-route.test.ts
+       - server/test/support/assistant.ts
+   assistant-workflows:
+     title: Định nghĩa workflow chính thức và pin bất biến
+     doc: docs/flows/assistant-workflows.md
+     entrypoints:
+       - gateway/src/assistant/workflow-manifest.ts
+     files:
+       - gateway/src/assistant/render-artifacts.ts
++      - gateway/src/assistant/tool-client.ts
+       - server/src/assistant/gates.ts
+       - server/src/assistant/runs.ts
+       - server/src/assistant/workflows.ts
+     tests:
+       - gateway/test/workflow-manifest.test.ts
+       - gateway/test/render-artifacts.test.ts
++      - gateway/test/assistant-tool-client.test.ts
+       - server/test/assistant-workflows.test.ts
+   web-shell:
+     title: Khung web và fixture cô lập Crew v2
+     doc: docs/flows/web-shell.md
+     entrypoints:
+       - web/src/main.tsx
+     files:
+       - web/src/app-runtime.ts
+       - web/src/router.tsx
+       - web/src/shell.tsx
+diff --git a/v2/docs/flows/assistant-workflows.md b/v2/docs/flows/assistant-workflows.md
+index 398199a..a788a3f 100644
+--- a/v2/docs/flows/assistant-workflows.md
++++ b/v2/docs/flows/assistant-workflows.md
+@@ -2,20 +2,21 @@
+ 
+ ## Mục đích
+ 
+ Gắn định nghĩa workflow với đúng source và projection bất biến trước khi tạo run. Gateway trả định nghĩa cho Superpowers và BMAD cùng một digest customization chung, và có bộ kiểm tra byte artifact BMAD. BMAD là định nghĩa hai tầng: tầng định nghĩa đến từ registry, render receipt được latch sau ở server. Server dựng run graph từ definition mà máy dự án đã báo trong install report, qua port điều phối thật. Server mở gate khi artifact thật đã được xác minh, hỏi chủ dự án qua câu hỏi gắn đúng gate và chỉ cho gate tiến khi có câu trả lời chính xác của owner. Renderer và producer receipt BMAD ở host chưa có; production chưa inject port, resolver hay route trả lời nên mọi lời gọi vẫn bị từ chối.
+ 
+ ## Điểm vào
+ 
+ - `gateway/src/assistant/workflow-manifest.ts` → `createWorkflowManifest(registry).loadDefinition(source, projection)` trả `WorkflowDefinition = {sha256, skills, customizationSha256, render?}`; `customizationContext(source, projection, layers)` là hàm thuần tính digest customization dùng chung.
+ - `gateway/src/workflows/registry.ts` → `WorkflowRegistry.resolve` kiểm cached source/projection và trả root cùng manifest.
+ - `gateway/src/assistant/render-artifacts.ts` → factory chụp expectation và kiểm artifact byte được cung cấp, trả loại `artifact-inspection` không có authority.
++- `gateway/src/assistant/tool-client.ts` → `createToolClient({root, baseUrl, bearer, ...})` trả `{execute(turn, event, options?), close()}`: client máy của `POST /v2/assistant/turns/:id/tools`; `toolOperationId(turnId, providerCallId, sequence)` là hàm thuần dẫn xuất operationId.
+ - `gateway/test/workflow-manifest.test.ts` → kiểm bytes nguồn/projection, pin, mismatch, digest customization và định nghĩa BMAD hai tầng.
+ - `server/src/assistant/runs.ts` → `createWorkflowRuns({port, resolver, lookup?})` trả `createRun(tx, proof, {rootTicketId, path, definitionSha256})` và `latchRenderedArtifact(tx, runId, evidenceId)`.
+ - `server/src/assistant/gates.ts` → `createWorkflowGates({resolver, lookup?})` trả `createOwnerQuestion(tx, proof, proposal)`, `recordGateAnswer(tx, owner, {questionId, expectedRevision, scopeSha256, artifactSha256, answer})` và `answerGate(tx, questionId, decisionId)` (chữ ký đóng băng); `gateScopeSha256`, `questionScopeSha256` là hàm thuần của digest phạm vi.
+ - `server/src/assistant/workflows.ts` → `createDefinitionLookup()` đọc definition đã chứng minh của một máy; `workflowSteps(path)` là bảng ánh xạ nguồn chính thức → bước/gate.
+ 
+ ## Các bước
+ 
+ 1. Chụp sâu `SourcePin` và `ProjectionPin`, kể cả `derivation.options`, trước mọi lần chờ. Kiểm hai snapshot và dùng chính chúng cho `WorkflowRegistry.resolve`, so manifest và tính digest. Caller sửa object sau lời gọi không thể đổi identity đã xác thực.
+ 2. Chọn các `skills/*/SKILL.md` từ manifest source chính thức. Mỗi path phải là regular file trong cả source và projection, có cùng SHA-256. Adapter đọc lại bytes ở hai root, kiểm hash thực tế và so toàn bộ manifest source/projection với pin. File được mở với `O_NOFOLLOW | O_NONBLOCK`; `fstat` loại FIFO và file không regular trước khi đọc; FD được đóng trong `finally`.
+ 3. `customizationSha256` là SHA-256 của canonical `{schema: 'crew-v2:workflow-customization:1', workflow, sourceTreeSha256, projectionTreeSha256, layers}`. Superpowers có `layers = {}`: projection đã pin không chứa layer tùy biến nào, và phát biểu đó gắn vào `projectionTreeSha256`, nên đổi projection thì đổi digest; thứ tự key không ảnh hưởng. BMAD có đủ 7 layer path (SHA-256 hoặc `null`) đo từ projection. Hàm kiểm lại pin, từ chối source/projection lệch nhau, layer thừa/thiếu và layer bắt buộc bằng `null`.
+@@ -29,20 +30,24 @@ Gắn định nghĩa workflow với đúng source và projection bất biến tr
+ 11. Chạy song song chỉ khi `assistant_config.policy.parallelApprovalId` trỏ tới quyết định `approval` của owner trong cùng root, với `scope.parallel = {rootTicketId, path, definitionSha256, units:[{key,title,ownershipKeys}]}` khớp chính yêu cầu. Quyết định của root khác không phải override cho root này: run chạy tuần tự, `parallel_approval_id` null. Trong cùng root, quyết định không phải `approval` của owner trả 403 `WORKFLOW_PARALLEL_APPROVAL_INVALID`. Scope lệch hoặc path khác `bounded` trả 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH` (duyệt song song cho architectural cần kế hoạch đã viết, thuộc gate kế hoạch); danh sách `units` (có thể kèm `dependsOn`) đi qua luật chung `parallelUnits` của `gates.ts` (bước 17), nên path trùng hoặc lồng nhau trả 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`, phụ thuộc trả 409 `WORKFLOW_PARALLEL_DEPENDENCY`. Khi hợp lệ, bước triển khai tách thành từng phần với `stepOperationId` và ownership riêng, cùng chờ bước trước; bước review chờ đủ mọi phần.
+ 12. Mọi ID của run (run, step, `stepOperationId`, gate, khóa cạnh) được dẫn xuất từ `operationId` của proof, nên graph là hàm thuần của operation, input và các row đã đọc. `runs.createRunRequest(tx, operationId, input)` trả đúng request `{action:'create_run', payload:{rootTicketId, path, definitionSha256, graphSha256}}` mà transport băm vào `request_hash`. `createRun` dựng lại graph, rồi trong một savepoint nội bộ gọi `port.authorizeGraph(sp, actor, proof, input, graph)` một lần; port tự tính lại digest và so `request_hash`. Lỗi bất kỳ sau lần ghi đầu (lỗi JS của port hay lỗi DB) rollback toàn bộ ghi của `createRun` và cả lần dùng operation, transaction của caller vẫn dùng được. Trong savepoint: insert `workflow_runs` (revision 1, `rendered_artifact_id` null). Mỗi ticket con đi qua session của port; sau khi ticket và step tồn tại thì ghi `assistant_operation_ids` (`action_kind='create_ticket'`, `target_identity` = ticket ID). Mỗi cạnh dependency cũng đi qua session rồi ghi operation riêng (`target_identity = ticketId:predecessorId`). `precondition_sha256` là hash của graph; `effect_id = sha256(canonicalJson([runId, stepOperationId, actionKind, targetIdentity, preconditionSha256]))`, cùng công thức `deriveEffectId` của gateway. Session phải được `close` với mọi phần tử đã dùng.
+ 13. `latchRenderedArtifact` chỉ cho run `bmad-*` chưa latch (409 `WORKFLOW_RENDER_NOT_REQUIRED` / `WORKFLOW_RENDER_ALREADY_LATCHED`). Evidence phải là `workflow_render_receipt` có attempt. Attempt phải thuộc ticket bước của chính run, đang `active`, cùng máy và `binding_revision` hiện hành của project. `definitionSha256` và `customizationSha256` trong `data` phải khớp run. `generationPath` phải đúng `{projectRoot}/_bmad/render/bmad-build/{slug}-{sha256(projectRoot)[:12]}/{20 hex}` như renderer chính thức. Lệch bất kỳ điều nào trả 409 `WORKFLOW_RENDER_RECEIPT_INVALID`. Đúng thì set `rendered_artifact_id` và tăng revision trong cùng một câu UPDATE có điều kiện. Server chưa có bản ghi workspace nên chưa đối chiếu được `projectRoot` với workspace thật; việc đó thuộc lát đăng ký receipt trên máy B.
+ 
+ 14. `createOwnerQuestion` là tool `ask_owner` của Trợ lý. Câu hỏi phải gắn một ticket (thiếu thì 422 `WORKFLOW_QUESTION_TICKET_REQUIRED`). Thứ tự khóa root → project → resolver Actor persisted, rồi scope của proof phải đúng root và có tool `ask_owner` (thiếu thì 403 `ORCHESTRATION_ACTION_NOT_IN_SCOPE`). Row operation pending phải được ghi trong chính Tx, cùng turn và snapshot của scope, với `request_hash = operationRequestSha256({action:'ask_owner', payload: proposal})` trên đúng proposal đã gửi; lệch thì 403 `ORCHESTRATION_REQUEST_MISMATCH`, row từ Tx trước thì 404. ID câu hỏi dẫn xuất từ `operationId`, nên một operation chỉ hỏi được một lần (lần hai 409 `ASSISTANT_OPERATION_CONSUMED`). `conversationId` phải là hội thoại của turn đang hỏi.
+ 15. Câu hỏi gắn gate chỉ hợp lệ khi gate ID nằm trong `workflow_steps.gate_ids` của bước, ticket là ticket của bước, và stage trong criteria khớp bảng nguồn đã pin cùng row bước bất biến (source, skill, số gate, kind); lệch trả 409 `WORKFLOW_GATE_UNKNOWN`. Thiếu `artifactSha256` trả 409 `WORKFLOW_ARTIFACT_REQUIRED`. Artifact được coi là đã xác minh khi có evidence `artifact` trên chính ticket bước với đúng `data.sha256`, do attempt của máy và `binding_revision` hiện hành của project ghi; nếu không thì 409 `WORKFLOW_ARTIFACT_UNVERIFIED`. Chỉ artifact mới nhất của bước (theo `fence` của attempt, rồi `created_at` của evidence; cùng mốc thì mọi row phải cùng SHA) được hỏi hoặc duyệt; bytes cũ hơn trả 409 `WORKFLOW_ARTIFACT_SUPERSEDED`. Mỗi gate có đúng một artifact hiện hành; bước sinh nhiều file phải gói chúng thành một artifact. Run có run mới hơn trên cùng root (theo thứ tự journal `ticket.created` của ticket bước, đọc qua index `events(project_id, cursor)`) trả 409 `WORKFLOW_RUN_SUPERSEDED` khi hỏi hoặc trả lời; nếu run này hoặc một run khác của root không có event `ticket.created` thì thứ tự không xác định và cũng trả 409 (đóng an toàn). Definition của run phải còn đúng thứ máy dự án đang chứng minh (cùng source, projection, customization), nếu không thì 409 `WORKFLOW_DEFINITION_STALE`. Run BMAD chưa latch render trả 409 `WORKFLOW_RENDER_REQUIRED`. Gate `on_stage` không nhận `cycleId` (400). Gate `after_three_failed_fixes` chỉ mở khi run có ít nhất ba kết quả review `initial_review`/`repair_review` thất bại và `cycleId` là một trong các cycle đó; review hạ tầng hoặc review đạt không tính (409 `WORKFLOW_GATE_NOT_TRIGGERED`).
+ 16. Digest phạm vi do server tự tính: gate là `sha256(canonicalJson(['crew-v2:workflow-gate-scope:1', {rootTicketId, runId, stepId, gateId, kind, requiredActor, trigger, sourcePath, sourceSha256, artifactSha256, cycleId, definitionSha256, customizationSha256, renderedArtifactId}]))`; câu hỏi không gate là `['crew-v2:owner-question-scope:1', {conversationId, rootTicketId, ticketId, runId, stepId}]`. `scopeSha256` của proposal khác giá trị này trả 409 `WORKFLOW_QUESTION_SCOPE_MISMATCH`. Lần hỏi đầu materialize row `workflow_gates` bất biến (`pending`, `decision_id` null) rồi mới tạo câu hỏi revision 1. Câu hỏi mới cho cùng gate đánh dấu câu đang mở là `superseded` và lấy revision kế tiếp. Gate đã ghim artifact khác trả 409 `WORKFLOW_GATE_ARTIFACT_MISMATCH`: artifact mới cần run mới thay run cũ. Gate đã quyết định trả 409 `WORKFLOW_GATE_DECIDED`, nên duyệt đã có hiệu lực không bị hỏi lại. Câu hỏi không gate không mang artifact hay cycle.
+ 17. `recordGateAnswer` chỉ nhận Actor owner; máy, kể cả Trợ lý, trả 403 `OWNER_REQUIRED` trước mọi truy vấn. Hàm tự khóa `event_cursor` trước (cùng thứ tự với `mutate()`, vì decision ghi event), rồi root → project → ticket câu hỏi → gate → câu hỏi; precondition cho caller (route sau này): không giữ các khóa đó theo thứ tự khác. Câu hỏi đã trả lời trả 409 `WORKFLOW_QUESTION_ANSWERED`; câu bị thay hoặc `expectedRevision` lệch trả 409 `WORKFLOW_QUESTION_STALE`; `scopeSha256` lệch trả 409 `WORKFLOW_QUESTION_SCOPE_MISMATCH`; `artifactSha256` lệch trả 409 `WORKFLOW_GATE_ARTIFACT_MISMATCH`. `answer = {verdict, option, executionMethod, parallel, text}`: câu hỏi gate nhận `approve`/`reject`, câu hỏi không gate nhận `answer`; `option` là `null` hoặc một lựa chọn của câu hỏi. Chỉ gate giải quyết bước execution (gate kế hoạch của architectural) nhận `executionMethod` và `parallel`. Khi duyệt, `executionMethod` phải là một `method` của `executionChoices`, và mỗi lựa chọn trong criteria phải khớp bảng nguồn lẫn SHA của definition hiện hành (409 `WORKFLOW_EXECUTION_CHOICE_INVALID`). `parallel = {units:[{key,title,ownershipKeys,dependsOn?}], sharedInputSha256}` chỉ được chấp nhận sau kế hoạch viết và cần hash input dùng chung. `units` theo luật chung `parallelUnits` (cũng áp cho duyệt song song của run `bounded`): 2–16 phần, key/title hợp lệ, không field lạ, ownership key là path tương đối hợp lệ theo `validPath` của server docs (bỏ segment `./` và một `/` cuối; `..`, path tuyệt đối, `//`, dấu `\` bị từ chối). Khi so xung đột, key được so theo `decodeURIComponent(path).normalize('NFC').toLowerCase()` vì FS dự án có thể không phân biệt hoa thường hay dạng Unicode; giá trị lưu giữ nguyên như owner gửi, `dependsOn` chỉ trỏ phần khác. Hai phần sở hữu cùng path hoặc path lồng nhau (thư mục cha/con) trả 409 `WORKFLOW_PARALLEL_OWNERSHIP_CONFLICT`; có phụ thuộc trả 409 `WORKFLOW_PARALLEL_DEPENDENCY`. Lỗi shape trả 400 ở gate, 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH` ở run. Ở gate khác, `parallel` trả 409 `WORKFLOW_PARALLEL_SCOPE_MISMATCH`. Trong một savepoint, server gọi `recordDecision` với Actor owner: `approval` cho gate, `owner_answer` cho câu hỏi; `scope = {questionId, questionRevision, gateId, runId, stepId, artifactSha256, scopeSha256, verdict}` cộng `executionChoice` và `parallel` khi có. Sau đó server ghi `assistant_answers` bất biến rồi gọi `answerGate`. Lỗi bất kỳ hoàn tác cả decision lẫn answer, còn Tx của caller vẫn dùng được.
+ 18. `answerGate(tx, questionId, decisionId)` khóa và đọc lại toàn bộ. Câu hỏi phải đang mở. Decision phải là của owner với kind đúng (`approval` cho gate owner bắt buộc, `owner_answer` cho câu hỏi); decision của máy, `delegated`, hay sai kind đều trả 403 `WORKFLOW_GATE_DECISION_INVALID`. Phải có row `assistant_answers` của owner cho đúng revision, trỏ tới decision này, nếu không thì 403 `WORKFLOW_ANSWER_REQUIRED`. `scope` của decision phải đúng bằng scope dựng lại từ câu hỏi và nội dung answer. Gate phải còn `pending`, artifact và digest phạm vi tính lại từ các row hiện hành phải khớp, artifact vẫn được máy hiện hành xác minh và còn là artifact mới nhất của bước khi duyệt (bytes đã bị thay chỉ được `reject`). Khi đủ điều kiện, server latch `decision_id`, đặt gate `approved`/`rejected` và câu hỏi `answered`, mỗi việc bằng UPDATE có điều kiện nên chỉ tiến một lần; gọi lại trả 409. Route HTTP `POST /v2/assistant/questions/:id/answers` là controller mỏng, chưa mở trong lát này.
+ 
++19. `tool-client.ts` là phía máy của route tool (driver, supervisor và model thuộc lát khác). `execute({fence, inputSnapshot}, event)` kiểm `RoutingEvent` theo union tool trước mọi I/O: tên tool lạ, field thừa/thiếu, UUID/digest/counter sai, `providerCallId` ngoài ASCII hiển thị 1–4096 ký tự hoặc có dấu phẩy, event `finished`, key kiểu secret trong payload đều trả `ToolClientError` kind `invalid` và không ghi journal. `operationId` là UUID (layout v5) của SHA-256 canonical `['crew-v2:assistant-tool-operation:1', turnId, providerCallId, sequence]`, nên mọi lần chạy lại cùng lời gọi, kể cả sau restart, dùng cùng operationId. Request `{fence, operationId, clientSequence = sequence, inputSnapshot, call}` được ghi vào `HttpOperationJournal` (thư mục riêng `<root>/assistant-tools`, vì mỗi thư mục journal có đúng một writer) TRƯỚC lần gửi đầu; `providerCallId` nằm trong `phase` đã journal (`assistant-tool:<id>`) và transport gửi nó đúng một lần ở header `x-crew-provider-call-id`, không nằm trong body hay request hash. Bearer chỉ ở closure transport, không vào journal, lỗi hay log (client không log). Cùng operationId với request khác (fence/pin/payload đổi) trả kind `conflict` ngay, không I/O.
++20. Gửi lại: mất mạng, timeout, body không đọc được hoặc 500/502/503/504 gửi lại đúng body, operationId và header, theo lịch của journal (1s nhân đôi, tối đa 60s) và tối đa `maxAttempts` lần (mặc định 6, ghi đè theo lời gọi); hết lượt trả kind `unavailable` với `retryable = true`, và gọi lại `execute` cùng lời gọi tiếp tục đúng operation đó (server trả kết quả đã lưu nếu lần trước đã commit). Phản hồi đầu không tạm thời được journal giữ bất biến nên restart phát lại không gửi lại. Trạng thái terminal theo hợp đồng server: 400 `invalid`; 401/403 `unauthorized`; 404 `not_found`; 409 `ASSISTANT_INPUT_STALE`/`ASSISTANT_TURN_STALE` `stale`, `ASSISTANT_TOOL_BUDGET_EXHAUSTED` `budget`, còn lại `conflict`; 4xx khác `rejected`. Lỗi mang kind, status và mã server, không mang body.
++21. Phản hồi 200 phải đúng envelope `{operationId, state, result, errorCode}` với operationId khớp. `completed` chỉ nhận đúng một kind giá trị theo tool (`read_catalog`→`catalog` có `truncated`, `read_docs`→`docs`, `route_message`→`route`, `read_execution_candidates`→`execution_candidates`, `assess_ticket`→`assessment`, `ask_owner`→`question`, `create_run`→`run`, `request_dispatch`→`dispatch`, `request_review`→`review`, `publish_reply`→`reply`) và đúng tập field của kind; `pending` và `rejected` không mang giá trị, `rejected` có `errorCode` (ví dụ `TOOL_NOT_RELEASED`). Sai thì kind `response_invalid`. `pending` được trả nguyên cho caller, không bao giờ gửi lại như effect mới. Chưa có: GET `/v2/assistant/turns/:id/tools/:operationId`, ghi fsync kết quả rồi `driver.resolve`, và mount production.
++
+ ### Ánh xạ nguồn → bước/gate
+ 
+ Superpowers 6.4.2 (revision `8ca22dba…`); dòng trích từ archive đã pin. BMAD 6.12.0 `bmad-build` (revision `05bfbd46…`); source path là file projection Claude đã audit.
+ 
+ | Path | Bước (skill, source) | Gate (owner) |
+ |---|---|---|
+ | architectural | design (`skills/brainstorming/SKILL.md:81-84,129-134,171-176`) → spec (`:135-138,237-261`) → plan (`skills/writing-plans/SKILL.md:179-204`) → execute (source `skills/writing-plans/SKILL.md`, lựa chọn `skills/subagent-driven-development/SKILL.md` hoặc `skills/executing-plans/SKILL.md` theo `:200-204`) → finish (`skills/finishing-a-development-branch/SKILL.md`, handoff `subagent-driven-development:120,487`, `executing-plans:104,304`) | `design_approval` (brainstorming `:45-49,134,174-176`), `spec_approval` (`:46-49,256-261`), `plan_approval_execution_method` (writing-plans `:181-198`) |
+ | bounded | design (brainstorming `:71-80,122-127`) → implement (TDD, `brainstorming:127`, `skills/test-driven-development/SKILL.md:31-34`) → review (`skills/requesting-code-review/SKILL.md:12-18`) → verify (`skills/verification-before-completion/SKILL.md:14-36`); không spec/plan | `design_approval` (`:45,76-80,126`) |
+ | bug | root_cause (`skills/systematic-debugging/SKILL.md:14-20,48-119`) → pattern (`:120-142`) → hypothesis (`:143-167`) → fix (`:168-196`) → review → verify | `architecture_discussion` trên fix (`:190-212`), chỉ materialize sau ba lần sửa thất bại |
+ | spike | probe (brainstorming `:65-70,115-118`) → investigate (`:119-120,188-189`); cả hai là ticket `research` | `probe_approval` (`:44,118`) |
+@@ -50,20 +55,22 @@ Superpowers 6.4.2 (revision `8ca22dba…`); dòng trích từ archive đã pin.
+ | bmad-oneshot | step-01 → step-02 (thoát sớm `:20`) → step-oneshot (`step-oneshot.md`, giữ lớp review chính thức) | không có |
+ 
+ TDD và review là kỷ luật bên trong skill thực thi của architectural, không phải bước riêng. Owner chọn skill thực thi ở gate kế hoạch (`writing-plans:200-204`); `source_path` của bước execute bất biến nên lựa chọn nằm ở quyết định của gate, không sửa row bước. Path BMAD cố định lúc tạo run; quyết định dispatch/oneshot của step-02 ghi thành gate, đổi path là run mới thay run cũ (lát gate sau).
+ 
+ ## Files
+ 
+ | Đường dẫn | Vai trò |
+ |---|---|
+ | `gateway/src/assistant/workflow-manifest.ts` | Adapter định nghĩa Superpowers/BMAD hai tầng và digest customization chung |
+ | `gateway/src/assistant/render-artifacts.ts` | Bộ kiểm tra thuần byte của artifact BMAD, không đọc host hoặc chạy renderer |
++| `gateway/src/assistant/tool-client.ts` | Client máy của route tool: kiểm union, operationId bền, journal trước khi gửi, gửi lại có giới hạn, kiểm kind kết quả |
++| `gateway/test/assistant-tool-client.test.ts` | Kiểm client với server giả đúng hợp đồng route (không phải route Fastify/PostgreSQL thật) |
+ | `gateway/test/render-artifacts.test.ts` | Kiểm consistency, cap, descriptor, category và Unicode trên byte fixture |
+ | `gateway/test/workflow-manifest.test.ts` | Kiểm fixture official source/projection, digest customization, định nghĩa BMAD và các điều kiện từ chối |
+ | `gateway/test/fixtures/workflow-definitions/bmad-claude-projection.json` | Tập con layout projection BMAD claude: bytes chính thức lấy từ archive đã pin, config layer tổng hợp |
+ | `server/src/assistant/workflows.ts` | Lookup definition đã chứng minh của máy dự án và bảng ánh xạ nguồn → bước/gate |
+ | `server/src/assistant/runs.ts` | `createRun` qua graph authorization của port và `latchRenderedArtifact` |
+ | `server/src/assistant/gates.ts` | Câu hỏi `ask_owner`, materialize gate từ artifact đã xác minh, câu trả lời owner và `answerGate` |
+ | `server/test/assistant-workflows.test.ts` | PostgreSQL thật: lookup 422, resolver deny, ánh xạ 6 path, DAG/operation ID, latch, SQL bất biến, duyệt song song, gate/câu hỏi/câu trả lời |
+ 
+ ## Dữ liệu
+ 
+@@ -77,10 +84,12 @@ TDD và review là kỷ luật bên trong skill thực thi của architectural,
+ 
+ Từ `v2/gateway`: `node --test test/workflow-manifest.test.ts test/render-artifacts.test.ts`. Superpowers dùng archive 6.4.2 và projection đã audit. BMAD dùng fixture `workflow-definitions/bmad-claude-projection.json`: bytes `bmad-build`, `customize.toml` và script lấy từ archive 6.12.0 đã pin và khớp hash projection build độc lập; config layer là bytes tổng hợp vì bytes installer sinh ra không được giữ lại. Test tính lại `ProjectionPin` trên cây tập con, nên chỉ chứng minh logic chọn/đo, không chứng nhận projection thật. Các case: digest Superpowers đổi theo `projection.treeSha256` và không đổi theo thứ tự key; BMAD đúng 7 layer, thiếu layer bắt buộc hoặc layer là symlink bị từ chối; layer tùy chọn xuất hiện làm đổi digest dù skill và token giữ nguyên; `skills` đúng tập `.md` trừ `SKILL.md` và phải có `workflow.md`; pin lệch trả `SOURCE_PROJECTION_MISMATCH` trước khi gọi registry; spy `child_process` xác nhận không có process con. Test ở `render-artifacts.test.ts` xác nhận `render` của adapter đúng bằng expectation D1 trừ hai root và inspector vẫn là bước riêng. Regression snapshot pin và FIFO giữ nguyên. Chưa có test renderer thực; unit fixture không phải production acceptance.
+ 
+ Từ repo, `node --test v2/server/test/assistant-workflows.test.ts` cần PostgreSQL riêng (`CREW_V2_TEST_DATABASE_URL`, `CREW_V2_TEST_CONTAINER_ID`). Definition của máy B được seed bằng đúng vector chung `install-report-vector.json` của S3b. Turn đã admit dùng `seedAdmittedTurn` (receipt PASS của verifier fixture) và tool operation ghi trong cùng Tx; không có authority test-trust. Ánh xạ được đối chiếu với chính bytes archive đã pin: test đọc từng dòng trích dẫn bằng `tar`, kiểm marker của gate (`User approves design?`, `User Review Gate`, `Which execution approach`, `If 3+ Fixes Failed`, `CHECKPOINT 1`…), lấy lựa chọn execution từ các dòng `REQUIRED SUB-SKILL` của writing-plans, skill hoàn tất từ handoff `Final review clean` của hai skill thực thi, và chuỗi BMAD từ `FIRST STEP`/`NEXT`/`EARLY EXIT`. Các case: hash không chứng minh trên máy B (hash lạ, slot mismatch, digest lệch, chỉ máy khác có) trả 422 và không row; resolver 503/403 không row; ánh xạ đủ 6 path với source SHA khớp definition; ticket con do máy A tạo, DAG đúng predecessor, operation ID riêng và effect ID tính lại được, không có `workflow_gates`; operation không đúng request `create_run` này (tool khác, mutation đơn lẻ, path khác, digest do caller chọn, digest của operation khác) trả 403 không row; lỗi JS của port hoặc lỗi DB sau lần ghi đầu không để lại row và caller vẫn commit được; latch sai máy/binding revision/attempt không active/attempt ngoài run/definition/customization/project root/loại evidence trả 409, đúng thì revision 2, lần hai 409; UPDATE/DELETE identity bị trigger chặn; duyệt song song của máy hoặc không phải `approval` trong cùng root 403 (kiểm cả qua `createRunRequest` lẫn trong chính `createRun` với row operation ghi sẵn), của root khác thì chạy tuần tự, trùng ownership 409, owner hợp lệ thì tách phần và join review.
+ 
+ Gate (cùng file, nhóm `assistant gates:`) dùng cùng fixture với scope có tool `ask_owner`; artifact được seed như attempt đã dừng của máy B ghi. Digest phạm vi được tính lại độc lập trong test từ tag và context. Các case: gate chưa có artifact, artifact của máy khác, binding cũ, bước khác hoặc kind khác không tạo row; gate lạ/của bước khác, `cycleId` trên gate `on_stage`, scope lệch đều bị từ chối; hỏi đúng thì tạo đúng row gate rồi câu hỏi, và UPDATE/DELETE identity bị trigger chặn. Operation `ask_owner` phải đúng proposal, có tool trong scope, cùng hội thoại, cùng root, ghi trong chính Tx và chỉ dùng một lần. Máy (A hoặc B) trả lời trả 403; decision của máy, `delegated`, `owner_answer` trên gate, hoặc approval không có answer của owner không làm gate tiến. Revision, scope, artifact lệch và lựa chọn/verdict sai không ghi gì. Câu trả lời đúng ghi decision `approval` với scope chính xác và answer bất biến, latch gate một lần; replay 409 và gate đã duyệt không bị hỏi lại. Câu hỏi bị thay trả 409; artifact mới không duyệt qua gate đã ghim. Customization đổi chặn câu trả lời; lỗi DB sau khi có decision không để lại gì và caller vẫn commit được. Gate kế hoạch bắt chọn phương pháp chính thức, kiểm SHA lựa chọn với definition, từ chối phần song song trùng ownership hoặc phụ thuộc nhau. Gate `architecture_discussion` chỉ mở sau ba lần sửa thất bại. Câu hỏi không gate nhận `owner_answer`. Gate BMAD cần render đã latch, và render là một phần của scope.
+ 
+ Vòng sửa 1 thêm: duyệt artifact đã bị thay trả 409 và gate vẫn `pending`, còn `reject` vẫn được; hỏi lại bytes cũ cũng 409. Run có run mới hơn trên cùng root không hỏi, không trả lời được. `recordGateAnswer` trong Tx trần giữ `event_cursor` trước khi chờ root (kiểm bằng `NOWAIT` từ kết nối khác). Ownership song song so trên path đã chuẩn hóa và quan hệ thư mục, cho cả gate lẫn run `bounded`. Decision của gate khác hoặc của root khác không làm câu hỏi tiến. `ask_owner` là thành viên của union `OperationRequest`.
+ 
+ Vòng sửa 2 thêm: ownership khác hoa thường, khác dạng NFC/NFD hoặc percent-encoding (`%2F`, `%61`) vẫn là xung đột và scope lưu giữ key gốc; run không có event `ticket.created` không được hỏi (409).
++
++Từ `v2/gateway`: `node --test test/assistant-tool-client.test.ts` chạy client với server HTTP giả trong process, đúng hợp đồng route tool (header `x-crew-provider-call-id` đúng một lần, body năm field, idempotency theo operationId, 409 khi khác body hoặc trùng provider call/sequence, trả lại byte kết quả đã lưu). Không cần PostgreSQL; route thật có test riêng `server/test/assistant-tools-route.test.ts`. Các case: event sai bị từ chối không I/O, restart dùng lại cùng ID/body, 5xx/mất mạng/mất reply sau commit gửi lại đúng request, hết lượt retry rồi phục hồi, bảng trạng thái terminal không gửi lại và phát lại không I/O, kind kết quả sai, bearer không nằm trong journal hay lỗi.
+diff --git a/v2/gateway/src/assistant/tool-client.ts b/v2/gateway/src/assistant/tool-client.ts
+new file mode 100644
+index 0000000..1894e17
+--- /dev/null
++++ b/v2/gateway/src/assistant/tool-client.ts
+@@ -0,0 +1,540 @@
++import { createHash } from 'node:crypto';
++import { join } from 'node:path';
++import { setTimeout as delay } from 'node:timers/promises';
++import { canonicalJson } from '../journal/atomic-records.ts';
++import {
++  HttpOperationJournal,
++  type HttpRequest,
++  type HttpResponse,
++  type HttpTransport,
++} from '../journal/http-operations.ts';
++
++/**
++ * Machine side of `POST /v2/assistant/turns/:id/tools`. The driver emits a `RoutingEvent`; this
++ * client validates it against the tool union, derives the durable operation ID from
++ * (turn, provider call, sequence), persists the exact request in the gateway HTTP operation
++ * journal before the first send, and then sends it, retrying only the identical request.
++ * It runs no model, driver or supervisor and never logs.
++ */
++
++type Id = string;
++type Sha256 = string;
++export type TurnFence = {
++  turnId: Id;
++  designationId: Id;
++  designationRevision: number;
++  generation: string;
++  processInstanceId: Id;
++};
++export type DispatchInputPin = {
++  snapshotId: Id;
++  snapshotSha256: Sha256;
++  inputRevision: string;
++  selectionSha256: Sha256;
++};
++type ModelKey = { machineId: Id; runtime: string; providerId: string; modelId: string };
++type SourceRef = {
++  kind: 'docs' | 'ticket' | 'artifact' | 'owner_decision';
++  id: Id;
++  path?: string;
++  locator?: string;
++};
++type Json = unknown;
++export type RoutingTool =
++  | { name: 'read_catalog'; input: Record<string, never> }
++  | { name: 'read_docs'; input: { projectId: Id; snapshotId: Id; path: string } }
++  | {
++      name: 'route_message';
++      input: {
++        messageId: Id;
++        expectedInputRevision: string;
++        expectedRouteRevision: number;
++        ticket: Record<string, Json>;
++        confidence: number;
++        rationale: string;
++        docReadIds: Id[];
++      };
++    }
++  | { name: 'read_execution_candidates'; input: { ticketId: Id; runId: Id } }
++  | { name: 'assess_ticket'; input: Record<string, Json> }
++  | { name: 'ask_owner'; input: Record<string, Json> }
++  | { name: 'create_run'; input: { rootTicketId: Id; path: string; definitionSha256: Sha256 } }
++  | {
++      name: 'request_dispatch';
++      input: { stepId: Id; assessmentId: Id; chosen: ModelKey; priorAttemptId: Id | null };
++    }
++  | {
++      name: 'request_review';
++      input: { runId: Id; implementationStepId: Id; implementationAttemptId: Id };
++    }
++  | {
++      name: 'publish_reply';
++      input: {
++        messageId: Id;
++        inputRevision: string;
++        snapshotId: Id;
++        receiptIds: Id[];
++        text: string;
++        sources: SourceRef[];
++      };
++    };
++export type RoutingEvent =
++  | { kind: 'tool'; providerCallId: string; sequence: string; call: RoutingTool }
++  | { kind: 'finished'; outcome: 'completed' | 'failed' | 'interrupted' };
++/** Value payloads stay opaque to the gateway; only the kind and its field names are checked. */
++export type RoutingToolValue = { kind: string; [field: string]: Json };
++export type RoutingToolResult = {
++  operationId: Id;
++  state: 'completed' | 'pending' | 'rejected';
++  result: RoutingToolValue | null;
++  errorCode: string | null;
++};
++export type RoutingToolRequest = {
++  fence: TurnFence;
++  operationId: Id;
++  clientSequence: string;
++  inputSnapshot: DispatchInputPin;
++  call: RoutingTool;
++};
++/** The current fence and input pin the call is made under. */
++export type ToolTurn = { fence: TurnFence; inputSnapshot: DispatchInputPin };
++
++export type ToolClientErrorKind =
++  | 'invalid'
++  | 'unauthorized'
++  | 'not_found'
++  | 'stale'
++  | 'conflict'
++  | 'budget'
++  | 'rejected'
++  | 'response_invalid'
++  | 'unavailable'
++  | 'journal';
++/** Never carries a response body or credential: only the kind, HTTP status and server error code. */
++export class ToolClientError extends Error {
++  readonly kind: ToolClientErrorKind;
++  readonly status: number | null;
++  readonly serverCode: string | null;
++  /** True only when the same call may be executed again and resumes the same durable operation. */
++  readonly retryable: boolean;
++  constructor(
++    kind: ToolClientErrorKind,
++    detail: string,
++    extra: { status?: number; serverCode?: string | null; retryable?: boolean } = {},
++  ) {
++    super(`ASSISTANT_TOOL_${kind.toUpperCase()}: ${detail}`);
++    this.name = 'ToolClientError';
++    this.kind = kind;
++    this.status = extra.status ?? null;
++    this.serverCode = extra.serverCode ?? null;
++    this.retryable = extra.retryable ?? false;
++  }
++}
++
++// ---- validation of the RoutingEvent tool union (mirrors the server routingToolSchema) ----
++
++const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++const digestPattern = /^[0-9a-f]{64}$/;
++const maxCounter = 9223372036854775807n;
++// Visible ASCII without a comma: a comma is how repeated header lines are joined.
++const providerCallPattern = /^[\x21-\x2b\x2d-\x7e]{1,4096}$/;
++const maxProse = 32768;
++const maxPath = 4096;
++const forbiddenKeys = new Set(['__proto__', 'prototype', 'constructor']);
++
++type Check = (value: unknown) => boolean;
++const isObject = (value: unknown): value is Record<string, unknown> =>
++  !!value &&
++  typeof value === 'object' &&
++  !Array.isArray(value) &&
++  Object.getPrototypeOf(value) === Object.prototype;
++const uuid: Check = (v) => typeof v === 'string' && uuidPattern.test(v);
++const digest: Check = (v) => typeof v === 'string' && digestPattern.test(v);
++const counter: Check = (v) =>
++  typeof v === 'string' && /^[1-9][0-9]{0,18}$/.test(v) && BigInt(v) <= maxCounter;
++const nonNegative: Check = (v) => Number.isSafeInteger(v) && (v as number) >= 0;
++const prose: Check = (v) => typeof v === 'string' && v.length <= maxProse;
++const text =
++  (min: number, max: number): Check =>
++  (v) =>
++    typeof v === 'string' && v.length >= min && v.length <= max;
++const oneOf =
++  (...values: string[]): Check =>
++  (v) =>
++    typeof v === 'string' && values.includes(v);
++const nullable =
++  (check: Check): Check =>
++  (v) =>
++    v === null || check(v);
++const list =
++  (check: Check, max: number, unique = false): Check =>
++  (v) =>
++    Array.isArray(v) && v.length <= max && v.every(check) && (!unique || new Set(v).size === v.length);
++const json = (value: unknown, depth = 0): boolean => {
++  if (depth > 64) return false;
++  if (value === null || typeof value === 'boolean' || typeof value === 'string') return true;
++  if (typeof value === 'number') return Number.isFinite(value);
++  if (Array.isArray(value)) return value.every((item) => json(item, depth + 1));
++  return (
++    isObject(value) &&
++    Object.entries(value).every(([key, item]) => !forbiddenKeys.has(key) && json(item, depth + 1))
++  );
++};
++/** Exactly these keys (optional ones may be absent), each value passing its check. */
++const shape =
++  (fields: Record<string, Check>, optional: string[] = []): Check =>
++  (v) =>
++    isObject(v) &&
++    Object.keys(v).every((key) => Object.hasOwn(fields, key)) &&
++    Object.entries(fields).every(([key, check]) =>
++      Object.hasOwn(v, key) ? (check(v[key]) ?? false) : optional.includes(key),
++    );
++
++const pin: Check = shape({
++  snapshotId: uuid,
++  snapshotSha256: digest,
++  inputRevision: counter,
++  selectionSha256: digest,
++});
++const fenceShape: Check = shape({
++  turnId: uuid,
++  designationId: uuid,
++  designationRevision: (v) => Number.isSafeInteger(v) && (v as number) >= 1,
++  generation: counter,
++  processInstanceId: uuid,
++});
++const modelKey: Check = shape({
++  machineId: uuid,
++  runtime: text(1, 200),
++  providerId: text(1, 200),
++  modelId: text(1, 200),
++});
++const sources: Check = list(
++  shape(
++    {
++      kind: oneOf('docs', 'ticket', 'artifact', 'owner_decision'),
++      id: uuid,
++      path: text(1, maxPath),
++      locator: text(1, 2048),
++    },
++    ['path', 'locator'],
++  ),
++  100,
++);
++const plainJson: Check = (v) => isObject(v) && json(v);
++const proseList: Check = list(prose, 1000);
++
++const toolInputs: Record<RoutingTool['name'], Check> = {
++  read_catalog: shape({}),
++  read_docs: shape({ projectId: uuid, snapshotId: uuid, path: text(1, maxPath) }),
++  route_message: shape({
++    messageId: uuid,
++    expectedInputRevision: counter,
++    expectedRouteRevision: nonNegative,
++    // The create-ticket body is checked in depth by the server; here it must be plain JSON.
++    ticket: plainJson,
++    confidence: (v) => typeof v === 'number' && v >= 0 && v <= 1,
++    rationale: prose,
++    docReadIds: list(uuid, 1000, true),
++  }),
++  read_execution_candidates: shape({ ticketId: uuid, runId: uuid }),
++  assess_ticket: shape({
++    ticketId: uuid,
++    candidateReadOperationId: uuid,
++    input: pin,
++    complexity: oneOf('bounded', 'integration', 'architectural'),
++    risk: proseList,
++    uncertainty: proseList,
++    required: list(text(1, 200), 100, true),
++    strengthRationale: prose,
++    sources,
++    candidateReasons: list(shape({ key: modelKey, reason: prose }), 1000),
++    chosen: modelKey,
++    choiceRationale: prose,
++  }),
++  ask_owner: shape({
++    conversationId: uuid,
++    ticketId: nullable(uuid),
++    runId: nullable(uuid),
++    stepId: nullable(uuid),
++    gateId: nullable(uuid),
++    cycleId: nullable(uuid),
++    artifactSha256: nullable(digest),
++    question: prose,
++    options: proseList,
++    scopeSha256: digest,
++  }),
++  create_run: shape({
++    rootTicketId: uuid,
++    path: oneOf('architectural', 'bounded', 'bug', 'spike', 'bmad-dispatch', 'bmad-oneshot'),
++    definitionSha256: digest,
++  }),
++  request_dispatch: shape({
++    stepId: uuid,
++    assessmentId: uuid,
++    chosen: modelKey,
++    priorAttemptId: nullable(uuid),
++  }),
++  request_review: shape({ runId: uuid, implementationStepId: uuid, implementationAttemptId: uuid }),
++  publish_reply: shape({
++    messageId: uuid,
++    inputRevision: counter,
++    snapshotId: uuid,
++    receiptIds: list(uuid, 1000, true),
++    text: prose,
++    sources,
++  }),
++};
++
++/** The one RoutingToolValue kind each tool may be answered with. */
++const resultKind: Record<RoutingTool['name'], string> = {
++  read_catalog: 'catalog',
++  read_docs: 'docs',
++  route_message: 'route',
++  read_execution_candidates: 'execution_candidates',
++  assess_ticket: 'assessment',
++  ask_owner: 'question',
++  create_run: 'run',
++  request_dispatch: 'dispatch',
++  request_review: 'review',
++  publish_reply: 'reply',
++};
++const objectField: Check = (v) => isObject(v);
++const valueShapes: Record<string, Check> = {
++  catalog: shape({
++    kind: oneOf('catalog'),
++    items: list(objectField, 100000),
++    truncated: (v) => typeof v === 'boolean',
++  }),
++  execution_candidates: shape({ kind: oneOf('execution_candidates'), snapshot: objectField }),
++  docs: shape({ kind: oneOf('docs'), page: objectField, readReceiptId: uuid }),
++  route: shape({ kind: oneOf('route'), route: objectField }),
++  assessment: shape({ kind: oneOf('assessment'), assessment: objectField }),
++  question: shape({ kind: oneOf('question'), question: objectField }),
++  run: shape({ kind: oneOf('run'), run: objectField }),
++  review: shape({ kind: oneOf('review'), step: objectField }),
++  dispatch: shape({ kind: oneOf('dispatch'), dispatch: objectField }),
++  reply: shape({ kind: oneOf('reply'), decisionId: uuid }),
++};
++
++const invalid = (detail: string) => new ToolClientError('invalid', detail);
++
++type ToolEvent = Extract<RoutingEvent, { kind: 'tool' }>;
++function assertToolEvent(event: unknown): asserts event is ToolEvent {
++  if (!isObject(event) || event.kind !== 'tool') throw invalid('event is not a tool call');
++  if (Object.keys(event).some((key) => !['kind', 'providerCallId', 'sequence', 'call'].includes(key)))
++    throw invalid('unexpected event field');
++  if (typeof event.providerCallId !== 'string' || !providerCallPattern.test(event.providerCallId))
++    throw invalid('provider call id');
++  if (!counter(event.sequence)) throw invalid('sequence');
++  const call = event.call;
++  if (!isObject(call) || Object.keys(call).some((key) => key !== 'name' && key !== 'input'))
++    throw invalid('call shape');
++  const name = call.name;
++  if (typeof name !== 'string' || !Object.hasOwn(toolInputs, name)) throw invalid('unknown tool');
++  const check = toolInputs[name as RoutingTool['name']];
++  if (!check(call.input)) throw invalid(`input of ${name}`);
++  if (!json(call.input)) throw invalid(`input of ${name} is not JSON`);
++}
++function assertTurn(turn: unknown): asserts turn is ToolTurn {
++  if (!isObject(turn) || !fenceShape(turn.fence) || !pin(turn.inputSnapshot))
++    throw invalid('turn fence or input pin');
++}
++
++/**
++ * Deterministic UUID (version 5 layout) of one tool call. The same turn, provider call and
++ * sequence give the same ID after any restart; any difference gives a different one.
++ */
++export function toolOperationId(turnId: Id, providerCallId: string, sequence: string): Id {
++  const bytes = createHash('sha256')
++    .update(
++      canonicalJson(['crew-v2:assistant-tool-operation:1', turnId.toLowerCase(), providerCallId, sequence]),
++    )
++    .digest()
++    .subarray(0, 16);
++  bytes[6] = ((bytes[6] ?? 0) & 0x0f) | 0x50;
++  bytes[8] = ((bytes[8] ?? 0) & 0x3f) | 0x80;
++  const hex = bytes.toString('hex');
++  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
++}
++
++// ---- transport: the provider call ID travels in the journaled phase, so it is crash-safe ----
++
++const phasePrefix = 'assistant-tool:';
++class TransportFailure extends Error {}
++
++function toolTransport(baseUrl: string, bearer: string, fetchImpl: typeof fetch): HttpTransport {
++  const base = new URL(baseUrl);
++  if (base.protocol !== 'https:' && !(base.protocol === 'http:' && base.hostname === '127.0.0.1'))
++    throw new Error('UNSAFE_SERVER_URL');
++  return async (request: Readonly<HttpRequest>): Promise<HttpResponse> => {
++    const providerCallId = request.phase.startsWith(phasePrefix)
++      ? request.phase.slice(phasePrefix.length)
++      : '';
++    if (
++      !providerCallPattern.test(providerCallId) ||
++      !request.route.startsWith('/v2/') ||
++      request.route.includes('..')
++    )
++      throw new Error('UNSAFE_TOOL_REQUEST');
++    try {
++      const response = await fetchImpl(new URL(request.route, base), {
++        method: 'POST',
++        redirect: 'error',
++        signal: AbortSignal.timeout(30000),
++        // The bearer lives only in this closure, never in the journaled request.
++        headers: {
++          authorization: `Bearer ${bearer}`,
++          'content-type': 'application/json',
++          'x-crew-provider-call-id': providerCallId,
++        },
++        body: JSON.stringify(request.canonicalBody),
++      });
++      return { status: response.status, body: await response.json() };
++    } catch {
++      // Network loss, timeout or an unreadable body: the outcome is unknown, so retry the same request.
++      throw new TransportFailure('TOOL_TRANSPORT_FAILED');
++    }
++  };
++}
++
++const transientStatus = (status: number) => [500, 502, 503, 504].includes(status);
++
++function serverCodeOf(body: unknown): string | null {
++  const code = isObject(body) && isObject(body.error) ? body.error.code : undefined;
++  return typeof code === 'string' && /^[A-Za-z0-9_]{1,64}$/.test(code) ? code : null;
++}
++
++/** Terminal (non-retryable) HTTP outcomes per the route contract. */
++function terminalError(status: number, body: unknown): ToolClientError {
++  const serverCode = serverCodeOf(body);
++  const extra = { status, serverCode };
++  const detail = `HTTP ${status}${serverCode ? ` ${serverCode}` : ''}`;
++  if (status === 401 || status === 403) return new ToolClientError('unauthorized', detail, extra);
++  if (status === 404) return new ToolClientError('not_found', detail, extra);
++  if (status === 409) {
++    if (serverCode === 'ASSISTANT_TOOL_BUDGET_EXHAUSTED') return new ToolClientError('budget', detail, extra);
++    if (serverCode === 'ASSISTANT_INPUT_STALE' || serverCode === 'ASSISTANT_TURN_STALE')
++      return new ToolClientError('stale', detail, extra);
++    return new ToolClientError('conflict', detail, extra);
++  }
++  if (status === 400) return new ToolClientError('invalid', detail, extra);
++  if (status >= 400 && status < 500) return new ToolClientError('rejected', detail, extra);
++  return new ToolClientError('response_invalid', detail, extra);
++}
++
++/** Exact envelope of a 200 reply; a completed result must be the one value kind of the tool. */
++function parseResult(tool: RoutingTool['name'], operationId: Id, body: unknown): RoutingToolResult {
++  const bad = (detail: string) => new ToolClientError('response_invalid', detail);
++  if (!isObject(body)) throw bad('reply is not an object');
++  if (Object.keys(body).sort().join(',') !== 'errorCode,operationId,result,state') throw bad('reply fields');
++  if (typeof body.operationId !== 'string' || body.operationId.toLowerCase() !== operationId)
++    throw bad('operation id mismatch');
++  const { state, result, errorCode } = body;
++  if (state === 'completed') {
++    if (errorCode !== null) throw bad('completed with an error code');
++    if (!isObject(result) || result.kind !== resultKind[tool])
++      throw bad('result kind does not match the tool');
++    const shapeOf = valueShapes[resultKind[tool]];
++    if (!shapeOf?.(result)) throw bad('result value shape');
++  } else if (state === 'pending') {
++    if (result !== null || errorCode !== null) throw bad('pending carries a value');
++  } else if (state === 'rejected') {
++    if (result !== null || !text(1, 200)(errorCode)) throw bad('rejected shape');
++  } else throw bad('state');
++  return body as unknown as RoutingToolResult;
++}
++
++export type ToolClientOptions = {
++  /** Gateway private state root; the client owns the `assistant-tools` directory below it. */
++  root: string;
++  baseUrl: string;
++  bearer: string;
++  fetch?: typeof fetch;
++  /** Attempts per `execute` before the call surfaces as retryable `unavailable`. Default 6. */
++  maxAttempts?: number;
++  now?: () => number;
++  sleep?: (ms: number) => Promise<void>;
++};
++export type ExecuteOptions = { maxAttempts?: number };
++export type ToolClient = {
++  execute(turn: ToolTurn, event: RoutingEvent, options?: ExecuteOptions): Promise<RoutingToolResult>;
++  close(): Promise<void>;
++};
++
++export async function createToolClient(options: ToolClientOptions): Promise<ToolClient> {
++  const transport = toolTransport(options.baseUrl, options.bearer, options.fetch ?? fetch);
++  const defaultAttempts = options.maxAttempts ?? 6;
++  const sleep = options.sleep ?? ((ms: number) => delay(ms));
++  const journal = await HttpOperationJournal.open(join(options.root, 'assistant-tools'), transport, {
++    ...(options.now ? { now: options.now } : {}),
++  });
++
++  async function send(operationId: Id, attempts: number): Promise<HttpResponse> {
++    for (let attempt = 0; ; attempt += 1) {
++      try {
++        const response = await journal.retryTransient(operationId);
++        if (!transientStatus(response.status)) return response;
++      } catch (error) {
++        if (!(error instanceof TransportFailure)) throw error;
++      }
++      if (attempt + 1 >= attempts)
++        throw new ToolClientError('unavailable', 'server unavailable', { retryable: true });
++      // Matches the journal schedule (1s doubling to 60s), plus a margin so the gate is open.
++      await sleep(Math.min(60000, 1000 * 2 ** attempt) + 10);
++    }
++  }
++
++  async function execute(
++    turn: ToolTurn,
++    event: RoutingEvent,
++    call: ExecuteOptions = {},
++  ): Promise<RoutingToolResult> {
++    assertToolEvent(event);
++    assertTurn(turn);
++    const attempts = call.maxAttempts ?? defaultAttempts;
++    if (!Number.isSafeInteger(attempts) || attempts < 1) throw invalid('maxAttempts');
++    const operationId = toolOperationId(turn.fence.turnId, event.providerCallId, event.sequence);
++    const request: RoutingToolRequest = {
++      fence: { ...turn.fence },
++      operationId,
++      clientSequence: event.sequence,
++      inputSnapshot: { ...turn.inputSnapshot },
++      call: event.call,
++    };
++    try {
++      // Durable before the first send; the same call after a restart finds this exact record.
++      await journal.prepare({
++        operationId,
++        method: 'POST',
++        route: `/v2/assistant/turns/${turn.fence.turnId.toLowerCase()}/tools`,
++        phase: `${phasePrefix}${event.providerCallId}`,
++        canonicalBody: request,
++      });
++    } catch (error) {
++      const code = error instanceof Error ? error.message : '';
++      if (code === 'OPERATION_CONFLICT')
++        throw new ToolClientError('conflict', 'operation id already bound to a different request');
++      if (
++        code === 'SECRET_BODY_FORBIDDEN' ||
++        code === 'INVALID_CANONICAL_BODY' ||
++        code === 'INVALID_OPERATION'
++      )
++        throw invalid(code.toLowerCase());
++      throw new ToolClientError('journal', 'operation journal failure');
++    }
++    let response: HttpResponse;
++    try {
++      response = await send(operationId, attempts);
++    } catch (error) {
++      if (error instanceof ToolClientError) throw error;
++      throw new ToolClientError('journal', 'operation journal failure');
++    }
++    if (response.status === 200) return parseResult(event.call.name, operationId, response.body);
++    if (response.status >= 200 && response.status < 300)
++      throw new ToolClientError('response_invalid', `HTTP ${response.status}`, { status: response.status });
++    throw terminalError(response.status, response.body);
++  }
++
++  return { execute, close: () => journal.close() };
++}
+diff --git a/v2/gateway/test/assistant-tool-client.test.ts b/v2/gateway/test/assistant-tool-client.test.ts
+new file mode 100644
+index 0000000..7b47b3e
+--- /dev/null
++++ b/v2/gateway/test/assistant-tool-client.test.ts
+@@ -0,0 +1,641 @@
++import assert from 'node:assert/strict';
++import { createHash, randomUUID } from 'node:crypto';
++import { mkdtemp, readdir, readFile, realpath, rm } from 'node:fs/promises';
++import { createServer, type IncomingMessage, type Server } from 'node:http';
++import type { AddressInfo } from 'node:net';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import test from 'node:test';
++import {
++  createToolClient,
++  type RoutingEvent,
++  type ToolClient,
++  ToolClientError,
++  type ToolTurn,
++  toolOperationId,
++} from '../src/assistant/tool-client.ts';
++
++// Contract-faithful fake of `POST /v2/assistant/turns/:id/tools` (server/src/assistant/tools.ts):
++// bearer machine, exactly one `x-crew-provider-call-id` header (visible ASCII, no comma, 1-4096),
++// body of exactly five fields, idempotency by operationId over {providerCallId, request}, one
++// provider call and one client sequence per turn, and stored byte-identical replies. It is not
++// the real Fastify/PostgreSQL route; that route has its own suite.
++const bearer = 'machine-bearer-secret-token-0123456789';
++const providerPattern = /^[\x21-\x2b\x2d-\x7e]{1,4096}$/;
++const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++const canon = (value: unknown): string => {
++  if (Array.isArray(value)) return `[${value.map(canon).join(',')}]`;
++  if (value && typeof value === 'object')
++    return `{${Object.entries(value)
++      .sort(([a], [b]) => (a < b ? -1 : 1))
++      .map(([key, item]) => `${JSON.stringify(key)}:${canon(item)}`)
++      .join(',')}}`;
++  return JSON.stringify(value);
++};
++
++type Seen = { url: string; providerHeaders: string[]; auth: string | undefined; body: any };
++type Behavior =
++  | { kind: 'status'; status: number; body?: unknown }
++  | { kind: 'drop' }
++  | { kind: 'commit-then-drop' };
++type Stored = { fingerprint: string; clientSequence: string; providerCallId: string; reply: unknown };
++
++async function fakeServer() {
++  const seen: Seen[] = [];
++  const queue: Behavior[] = [];
++  const stored = new Map<string, Stored>();
++  const hooks: { transform?: (reply: any, body: any) => any } = {};
++  const sockets = new Set<import('node:net').Socket>();
++  const read = (request: IncomingMessage) =>
++    new Promise<string>((resolve, reject) => {
++      const chunks: Buffer[] = [];
++      request.on('data', (chunk) => chunks.push(chunk));
++      request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
++      request.on('error', reject);
++    });
++  const server: Server = createServer(async (request, response) => {
++    const text = await read(request);
++    const providerHeaders: string[] = [];
++    for (let i = 0; i + 1 < request.rawHeaders.length; i += 2)
++      if (request.rawHeaders[i]?.toLowerCase() === 'x-crew-provider-call-id')
++        providerHeaders.push(String(request.rawHeaders[i + 1]));
++    const body = JSON.parse(text);
++    seen.push({ url: request.url ?? '', providerHeaders, auth: request.headers.authorization, body });
++    const send = (status: number, payload: unknown) => {
++      response.writeHead(status, { 'content-type': 'application/json' });
++      response.end(JSON.stringify(payload));
++    };
++    const fail = (status: number, code: string) => send(status, { error: { code, message: 'x' } });
++    const behavior = queue.shift();
++    if (behavior?.kind === 'drop') return request.socket.destroy();
++    if (behavior?.kind === 'status') return send(behavior.status, behavior.body ?? { error: { code: 'X' } });
++    if (request.headers.authorization !== `Bearer ${bearer}`) return fail(401, 'UNAUTHENTICATED');
++    const [providerCallId] = providerHeaders;
++    if (providerHeaders.length !== 1 || !providerPattern.test(providerCallId ?? ''))
++      return fail(400, 'PROVIDER_CALL_ID_INVALID');
++    const keys = Object.keys(body).sort().join(',');
++    if (keys !== 'call,clientSequence,fence,inputSnapshot,operationId' || !uuidPattern.test(body.operationId))
++      return fail(400, 'VALIDATION');
++    if (request.url !== `/v2/assistant/turns/${body.fence.turnId}/tools`)
++      return fail(404, 'ASSISTANT_SCOPE_NOT_FOUND');
++    const operationId = String(body.operationId).toLowerCase();
++    const fingerprint = canon({ providerCallId, request: body });
++    const old = stored.get(operationId);
++    if (old) {
++      if (old.fingerprint !== fingerprint) return fail(409, 'ASSISTANT_OPERATION_CONFLICT');
++      return send(200, old.reply);
++    }
++    for (const other of stored.values())
++      if (other.clientSequence === body.clientSequence || other.providerCallId === providerCallId)
++        return fail(409, 'ASSISTANT_OPERATION_CONFLICT');
++    const name = body.call.name as string;
++    const reply =
++      name === 'read_catalog'
++        ? {
++            operationId,
++            state: 'completed',
++            result: { kind: 'catalog', items: [], truncated: false },
++            errorCode: null,
++          }
++        : { operationId, state: 'rejected', result: null, errorCode: 'TOOL_NOT_RELEASED' };
++    const final = hooks.transform ? hooks.transform(reply, body) : reply;
++    stored.set(operationId, {
++      fingerprint,
++      clientSequence: body.clientSequence,
++      providerCallId: providerCallId as string,
++      reply: final,
++    });
++    if (behavior?.kind === 'commit-then-drop') return request.socket.destroy();
++    return send(200, final);
++  });
++  server.on('connection', (socket) => {
++    sockets.add(socket);
++    socket.on('close', () => sockets.delete(socket));
++  });
++  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
++  const { port } = server.address() as AddressInfo;
++  return {
++    url: `http://127.0.0.1:${port}`,
++    seen,
++    queue,
++    stored,
++    hooks,
++    close: async () => {
++      for (const socket of sockets) socket.destroy();
++      await new Promise<void>((resolve) => server.close(() => resolve()));
++    },
++  };
++}
++
++const sha = (seed: string) => createHash('sha256').update(seed).digest('hex');
++const turn = (): ToolTurn => ({
++  fence: {
++    turnId: randomUUID(),
++    designationId: randomUUID(),
++    designationRevision: 3,
++    generation: '7',
++    processInstanceId: randomUUID(),
++  },
++  inputSnapshot: {
++    snapshotId: randomUUID(),
++    snapshotSha256: sha('snapshot'),
++    inputRevision: '1',
++    selectionSha256: sha('selection'),
++  },
++});
++const catalogEvent = (
++  providerCallId = 'toolu_01',
++  sequence = '1',
++): Extract<RoutingEvent, { kind: 'tool' }> => ({
++  kind: 'tool',
++  providerCallId,
++  sequence,
++  call: { name: 'read_catalog', input: {} },
++});
++
++async function harness(options: { maxAttempts?: number } = {}) {
++  const root = await mkdtemp(join(await realpath(tmpdir()), 'crew-b3b-'));
++  const server = await fakeServer();
++  const clock = { now: 1_000_000 };
++  const sleeps: number[] = [];
++  const open = () =>
++    createToolClient({
++      root,
++      baseUrl: server.url,
++      bearer,
++      now: () => clock.now,
++      sleep: async (ms) => {
++        sleeps.push(ms);
++        clock.now += ms;
++      },
++      ...(options.maxAttempts ? { maxAttempts: options.maxAttempts } : {}),
++    });
++  const clients: ToolClient[] = [];
++  const client = async () => {
++    const c = await open();
++    clients.push(c);
++    return c;
++  };
++  const journalFiles = async () =>
++    (await readdir(root, { recursive: true }).catch(() => []))
++      .filter((name) => name.endsWith('.json'))
++      .map((name) => join(root, name));
++  return {
++    root,
++    server,
++    clock,
++    sleeps,
++    client,
++    journalFiles,
++    async done() {
++      for (const c of clients) await c.close().catch(() => undefined);
++      await server.close();
++      await rm(root, { recursive: true, force: true });
++    },
++  };
++}
++const kind = (expected: string) => (error: unknown) =>
++  error instanceof ToolClientError && error.kind === expected;
++
++test('tool client: read_catalog posts the exact request with the provider header and returns the matching value', async () => {
++  const h = await harness();
++  try {
++    const c = await h.client();
++    const t = turn();
++    const result = await c.execute(t, catalogEvent());
++    assert.equal(result.state, 'completed');
++    assert.deepEqual(result.result, { kind: 'catalog', items: [], truncated: false });
++    assert.equal(h.server.seen.length, 1);
++    const [seen] = h.server.seen;
++    assert.equal(seen?.url, `/v2/assistant/turns/${t.fence.turnId}/tools`);
++    assert.deepEqual(seen?.providerHeaders, ['toolu_01']);
++    assert.equal(seen?.auth, `Bearer ${bearer}`);
++    assert.deepEqual(seen?.body, {
++      fence: t.fence,
++      operationId: toolOperationId(t.fence.turnId, 'toolu_01', '1'),
++      clientSequence: '1',
++      inputSnapshot: t.inputSnapshot,
++      call: { name: 'read_catalog', input: {} },
++    });
++    assert.equal(result.operationId, seen?.body.operationId);
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: operation ID is a deterministic UUID of turn, provider call and sequence', () => {
++  const turnId = randomUUID();
++  const id = toolOperationId(turnId, 'toolu_a', '5');
++  assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
++  assert.equal(toolOperationId(turnId.toUpperCase(), 'toolu_a', '5'), id);
++  assert.notEqual(toolOperationId(turnId, 'toolu_b', '5'), id);
++  assert.notEqual(toolOperationId(turnId, 'toolu_a', '6'), id);
++  assert.notEqual(toolOperationId(randomUUID(), 'toolu_a', '5'), id);
++});
++
++test('tool client: a completed call replays from the journal after restart without a new request', async () => {
++  const h = await harness();
++  try {
++    const t = turn();
++    const first = await h.client();
++    const result = await first.execute(t, catalogEvent());
++    await first.close();
++    const second = await h.client();
++    assert.deepEqual(await second.execute(t, catalogEvent()), result);
++    assert.equal(h.server.seen.length, 1);
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: the operation is durable before the HTTP call and a restart reuses its ID and body', async () => {
++  const h = await harness();
++  try {
++    const t = turn();
++    h.server.queue.push({ kind: 'drop' });
++    const first = await h.client();
++    await assert.rejects(first.execute(t, catalogEvent(), { maxAttempts: 1 }), kind('unavailable'));
++    assert.equal(h.server.seen.length, 1);
++    assert.ok((await h.journalFiles()).length > 0, 'journal record exists after the lost send');
++    await first.close();
++    const second = await h.client();
++    const result = await second.execute(t, catalogEvent());
++    assert.equal(result.state, 'completed');
++    assert.equal(h.server.seen.length, 2);
++    assert.equal(canon(h.server.seen[0]?.body), canon(h.server.seen[1]?.body));
++    assert.equal(h.server.seen[1]?.body.operationId, toolOperationId(t.fence.turnId, 'toolu_01', '1'));
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: invalid events are rejected before any I/O', async () => {
++  const h = await harness();
++  try {
++    const c = await h.client();
++    const t = turn();
++    const tool = (call: unknown, extra: Record<string, unknown> = {}) =>
++      ({ kind: 'tool', providerCallId: 'toolu_x', sequence: '1', call, ...extra }) as unknown as RoutingEvent;
++    const docs = { projectId: randomUUID(), snapshotId: randomUUID(), path: 'docs/index.md' };
++    const cases: [string, RoutingEvent][] = [
++      ['unknown tool', tool({ name: 'delete_everything', input: {} })],
++      ['extra input field', tool({ name: 'read_catalog', input: { extra: 1 } })],
++      ['extra call field', tool({ name: 'read_catalog', input: {}, forged: true })],
++      ['extra event field', tool({ name: 'read_catalog', input: {} }, { approved: true })],
++      ['bad uuid', tool({ name: 'read_docs', input: { ...docs, projectId: 'nope' } })],
++      ['empty path', tool({ name: 'read_docs', input: { ...docs, path: '' } })],
++      ['missing field', tool({ name: 'read_docs', input: { projectId: docs.projectId } })],
++      [
++        'confidence range',
++        tool({
++          name: 'route_message',
++          input: {
++            messageId: randomUUID(),
++            expectedInputRevision: '1',
++            expectedRouteRevision: 0,
++            ticket: {},
++            confidence: 2,
++            rationale: 'r',
++            docReadIds: [],
++          },
++        }),
++      ],
++      [
++        'secret-named key inside ticket',
++        tool({
++          name: 'route_message',
++          input: {
++            messageId: randomUUID(),
++            expectedInputRevision: '1',
++            expectedRouteRevision: 0,
++            ticket: { criteria: { token: 'leak' } },
++            confidence: 0.5,
++            rationale: 'r',
++            docReadIds: [],
++          },
++        }),
++      ],
++      ['finished is not a tool call', { kind: 'finished', outcome: 'completed' }],
++      ['empty provider id', { ...catalogEvent(), providerCallId: '' }],
++      ['comma provider id', { ...catalogEvent(), providerCallId: 'a,b' }],
++      ['space provider id', { ...catalogEvent(), providerCallId: 'a b' }],
++      ['non-ascii provider id', { ...catalogEvent(), providerCallId: 'toolé' }],
++      ['newline provider id', { ...catalogEvent(), providerCallId: 'a\r\nx: y' }],
++      ['long provider id', { ...catalogEvent(), providerCallId: 'a'.repeat(4097) }],
++      ['sequence zero', { ...catalogEvent(), sequence: '0' }],
++      ['sequence leading zero', { ...catalogEvent(), sequence: '01' }],
++      ['sequence over bigint', { ...catalogEvent(), sequence: '9223372036854775808' }],
++      [
++        'secret-named key',
++        tool({
++          name: 'ask_owner',
++          input: {
++            conversationId: randomUUID(),
++            ticketId: null,
++            runId: null,
++            stepId: null,
++            gateId: null,
++            cycleId: null,
++            artifactSha256: null,
++            question: 'q',
++            options: [],
++            scopeSha256: sha('s'),
++            token: 'leak',
++          },
++        }),
++      ],
++    ];
++    for (const [label, event] of cases) await assert.rejects(c.execute(t, event), kind('invalid'), label);
++    await assert.rejects(
++      c.execute({ ...t, fence: { ...t.fence, generation: '0' } }, catalogEvent()),
++      kind('invalid'),
++    );
++    await assert.rejects(
++      c.execute({ ...t, fence: { ...t.fence, extra: 1 } as never }, catalogEvent()),
++      kind('invalid'),
++    );
++    await assert.rejects(
++      c.execute({ ...t, inputSnapshot: { ...t.inputSnapshot, snapshotSha256: 'zz' } }, catalogEvent()),
++      kind('invalid'),
++    );
++    assert.equal(h.server.seen.length, 0);
++    assert.deepEqual(await h.journalFiles(), []);
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: valid payloads of every released and unreleased tool are accepted', async () => {
++  const h = await harness();
++  try {
++    const c = await h.client();
++    const t = turn();
++    const key = { machineId: randomUUID(), runtime: 'claude', providerId: 'p', modelId: 'm' };
++    const pin = t.inputSnapshot;
++    const calls = [
++      { name: 'read_docs', input: { projectId: randomUUID(), snapshotId: randomUUID(), path: 'docs/a.md' } },
++      { name: 'read_execution_candidates', input: { ticketId: randomUUID(), runId: randomUUID() } },
++      {
++        name: 'assess_ticket',
++        input: {
++          ticketId: randomUUID(),
++          candidateReadOperationId: randomUUID(),
++          input: pin,
++          complexity: 'bounded',
++          risk: [],
++          uncertainty: [],
++          required: [],
++          strengthRationale: 'r',
++          sources: [],
++          candidateReasons: [],
++          chosen: key,
++          choiceRationale: 'c',
++        },
++      },
++      {
++        name: 'create_run',
++        input: { rootTicketId: randomUUID(), path: 'bounded', definitionSha256: sha('d') },
++      },
++      {
++        name: 'request_dispatch',
++        input: { stepId: randomUUID(), assessmentId: randomUUID(), chosen: key, priorAttemptId: null },
++      },
++      {
++        name: 'request_review',
++        input: {
++          runId: randomUUID(),
++          implementationStepId: randomUUID(),
++          implementationAttemptId: randomUUID(),
++        },
++      },
++      {
++        name: 'publish_reply',
++        input: {
++          messageId: randomUUID(),
++          inputRevision: '1',
++          snapshotId: randomUUID(),
++          receiptIds: [],
++          text: 'xin chào',
++          sources: [{ kind: 'docs', id: randomUUID() }],
++        },
++      },
++    ];
++    let sequence = 1;
++    for (const call of calls) {
++      const result = await c.execute(t, {
++        kind: 'tool',
++        providerCallId: `toolu_${sequence}`,
++        sequence: String(sequence++),
++        call,
++      } as unknown as RoutingEvent);
++      assert.equal(result.state, 'rejected', call.name);
++      assert.equal(result.errorCode, 'TOOL_NOT_RELEASED');
++      assert.equal(result.result, null);
++    }
++    assert.equal(h.server.seen.length, calls.length);
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: 5xx and network loss retry the identical request with bounded backoff', async () => {
++  const h = await harness();
++  try {
++    const c = await h.client();
++    const t = turn();
++    h.server.queue.push({ kind: 'status', status: 503 }, { kind: 'drop' }, { kind: 'status', status: 500 });
++    const result = await c.execute(t, catalogEvent());
++    assert.equal(result.state, 'completed');
++    assert.equal(h.server.seen.length, 4);
++    assert.equal(new Set(h.server.seen.map((s) => canon(s.body))).size, 1);
++    assert.ok(
++      h.server.seen.every((s) => s.providerHeaders.length === 1 && s.providerHeaders[0] === 'toolu_01'),
++    );
++    assert.ok(
++      h.sleeps.length >= 3 &&
++        h.sleeps.every((ms, i) => ms >= 1000 && (i === 0 || ms >= (h.sleeps[i - 1] ?? 0))),
++    );
++    assert.ok(h.sleeps.every((ms) => ms <= 61_000));
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: a reply lost after the server committed is read back from the stored result', async () => {
++  const h = await harness();
++  try {
++    const c = await h.client();
++    const t = turn();
++    h.server.queue.push({ kind: 'commit-then-drop' });
++    const result = await c.execute(t, catalogEvent());
++    assert.equal(result.state, 'completed');
++    assert.equal(h.server.stored.size, 1);
++    assert.equal(h.server.seen.length, 2);
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: persistent outage is bounded and retryable, then recovers with the same operation', async () => {
++  const h = await harness({ maxAttempts: 3 });
++  try {
++    const c = await h.client();
++    const t = turn();
++    for (let i = 0; i < 20; i += 1) h.server.queue.push({ kind: 'status', status: 503 });
++    await assert.rejects(c.execute(t, catalogEvent()), (error) => {
++      assert.ok(error instanceof ToolClientError);
++      assert.equal(error.kind, 'unavailable');
++      assert.equal(error.retryable, true);
++      return true;
++    });
++    assert.ok(h.server.seen.length <= 3, `sent ${h.server.seen.length}`);
++    h.server.queue.length = 0;
++    await c.close();
++    const second = await h.client();
++    h.clock.now += 120_000;
++    const result = await second.execute(t, catalogEvent());
++    assert.equal(result.state, 'completed');
++    assert.equal(new Set(h.server.seen.map((s) => s.body.operationId)).size, 1);
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: terminal HTTP statuses are not retried and are replayed after restart without I/O', async () => {
++  const table: [number, string, string][] = [
++    [400, 'VALIDATION', 'invalid'],
++    [400, 'PROVIDER_CALL_ID_INVALID', 'invalid'],
++    [401, 'UNAUTHENTICATED', 'unauthorized'],
++    [403, 'ASSISTANT_TOOL_NOT_IN_SCOPE', 'unauthorized'],
++    [404, 'ASSISTANT_SCOPE_NOT_FOUND', 'not_found'],
++    [409, 'ASSISTANT_INPUT_STALE', 'stale'],
++    [409, 'ASSISTANT_TURN_STALE', 'stale'],
++    [409, 'ASSISTANT_OPERATION_CONFLICT', 'conflict'],
++    [409, 'ASSISTANT_TOOL_BUDGET_EXHAUSTED', 'budget'],
++    [422, 'SOMETHING', 'rejected'],
++  ];
++  for (const [status, code, expected] of table) {
++    const h = await harness();
++    try {
++      const c = await h.client();
++      const t = turn();
++      h.server.queue.push({ kind: 'status', status, body: { error: { code, message: 'secret-detail' } } });
++      await assert.rejects(c.execute(t, catalogEvent()), (error) => {
++        assert.ok(error instanceof ToolClientError);
++        assert.equal(error.kind, expected, `${status} ${code}`);
++        assert.equal(error.status, status);
++        assert.equal(error.serverCode, code);
++        assert.equal(error.retryable, false);
++        assert.ok(!error.message.includes('secret-detail'));
++        return true;
++      });
++      assert.equal(h.server.seen.length, 1, `${status} ${code} not retried`);
++      await c.close();
++      const second = await h.client();
++      await assert.rejects(second.execute(t, catalogEvent()), kind(expected));
++      assert.equal(h.server.seen.length, 1, 'recorded terminal response replays without I/O');
++    } finally {
++      await h.done();
++    }
++  }
++});
++
++test('tool client: only the matching result kind and a well-formed envelope are accepted', async () => {
++  const bad: [string, (reply: any) => unknown][] = [
++    ['wrong kind', (r) => ({ ...r, result: { kind: 'docs', page: {}, readReceiptId: randomUUID() } })],
++    ['wrong operation id', (r) => ({ ...r, operationId: randomUUID() })],
++    ['completed without result', (r) => ({ ...r, result: null })],
++    ['extra field', (r) => ({ ...r, extra: 1 })],
++    ['extra value field', (r) => ({ ...r, result: { ...r.result, extra: 1 } })],
++    ['truncated missing', (r) => ({ ...r, result: { kind: 'catalog', items: [] } })],
++    ['items not array', (r) => ({ ...r, result: { kind: 'catalog', items: {}, truncated: false } })],
++    ['errorCode on completed', (r) => ({ ...r, errorCode: 'X' })],
++    ['unknown state', (r) => ({ ...r, state: 'done' })],
++    ['not an object', () => 'ok'],
++  ];
++  for (const [label, mutate] of bad) {
++    const h = await harness();
++    try {
++      h.server.hooks.transform = (reply) => mutate(reply);
++      const c = await h.client();
++      await assert.rejects(c.execute(turn(), catalogEvent()), kind('response_invalid'), label);
++    } finally {
++      await h.done();
++    }
++  }
++  const h = await harness();
++  try {
++    // rejected needs an error code and no value; pending carries no value.
++    h.server.hooks.transform = (reply, body) => ({
++      ...reply,
++      state: 'pending',
++      result: null,
++      errorCode: null,
++      operationId: body.operationId,
++    });
++    const c = await h.client();
++    const pending = await c.execute(turn(), catalogEvent());
++    assert.equal(pending.state, 'pending');
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: the same provider call with a different payload is a local conflict without I/O', async () => {
++  const h = await harness();
++  try {
++    const c = await h.client();
++    const t = turn();
++    await c.execute(t, {
++      kind: 'tool',
++      providerCallId: 'toolu_dup',
++      sequence: '1',
++      call: { name: 'read_docs', input: { projectId: randomUUID(), snapshotId: randomUUID(), path: 'a.md' } },
++    });
++    const sent = h.server.seen.length;
++    await assert.rejects(
++      c.execute(t, {
++        kind: 'tool',
++        providerCallId: 'toolu_dup',
++        sequence: '1',
++        call: {
++          name: 'read_docs',
++          input: { projectId: randomUUID(), snapshotId: randomUUID(), path: 'b.md' },
++        },
++      }),
++      kind('conflict'),
++    );
++    assert.equal(h.server.seen.length, sent);
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: the bearer never reaches durable files or error messages', async () => {
++  const h = await harness({ maxAttempts: 2 });
++  try {
++    const c = await h.client();
++    h.server.queue.push(
++      { kind: 'status', status: 503 },
++      { kind: 'status', status: 503 },
++      { kind: 'status', status: 503 },
++    );
++    const error = await c.execute(turn(), catalogEvent()).catch((e) => e);
++    assert.ok(error instanceof ToolClientError);
++    assert.ok(!String(error.message).includes(bearer));
++    assert.ok(!JSON.stringify(error).includes(bearer));
++    for (const file of await h.journalFiles()) assert.ok(!(await readFile(file, 'utf8')).includes(bearer));
++  } finally {
++    await h.done();
++  }
++});
++
++test('tool client: unsafe server URLs are refused', async () => {
++  const root = await mkdtemp(join(await realpath(tmpdir()), 'crew-b3b-'));
++  try {
++    for (const url of ['http://example.com', 'ftp://127.0.0.1', 'http://localhost:1'])
++      await assert.rejects(createToolClient({ root, baseUrl: url, bearer }), /UNSAFE_SERVER_URL/);
++  } finally {
++    await rm(root, { recursive: true, force: true });
++  }
++});
