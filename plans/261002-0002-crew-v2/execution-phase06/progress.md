@@ -174,3 +174,5 @@ Follow-up nhỏ giao worker S5: N3 run thiếu cursor ticket.created → 409 (fa
 Task 3 S2: minor (deferred, checklist T7): N5 ownership_keys lưu bản thô — T7 dùng chung hàm chuẩn hóa khi so tập file thật.
 
 23:30 S5 follow-up `cb02a7d` re-review `task-3-s2-fix2-re-review.md`: Approved, N2/N3/N4 ADDRESSED. Task 3 S2 (S5 gates): complete — cb02a7d (2bdc332 + 4653b89 + cb02a7d). Production vẫn deny; route HTTP answer chưa có (W1 chờ ruling).
+
+23:40 Ruling: B3 cắt thành B3a (route server /v2/assistant/turns/:id/tools + consumer read_catalog/read_docs/create_run/ask_owner; tool khác rejected TOOL_NOT_RELEASED) — brief `task-2-slice-b3a-brief.md` gom mọi ràng buộc đã chốt. Gateway tool-client/driver, route_message/assess/dispatch/review/reply là slice sau. Dispatch B3a.
