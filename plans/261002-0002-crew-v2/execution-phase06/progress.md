@@ -201,3 +201,5 @@ Task 2 B3b: minor (deferred): M3 pending journal phát lại vĩnh viễn, chưa
 
 02:50 B3b FIX1 `7ffa25b` re-review `task-2-slice-b3b-fix1-re-review.md`: I1/I2/I3/M1/M2/M4 ADDRESSED; mới N1 Important (ghi journal theo status không theo serverCode → 404 proxy/Fastify mặc định đầu độc journal). FIX2/5: N1, N3 (Retry-After max backoff), N4 (kiểm credential), R3, R1 docs.
 Task 2 B3b: minor (deferred): N2 hai execute đồng thời cùng operation gửi song song (server idempotent); N5 test route thật tự dựng error handler lệch buildApp — 413/404 route-not-found chưa kiểm trên route thật (checklist T7 cùng M4 B3a); create_run/ask_owner completed chỉ kiểm qua fake.
+
+03:10 B3b FIX2 `24dfc7b` re-review `task-2-slice-b3b-fix2-re-review.md`: N1/N3/N4/R3/R1 ADDRESSED; mới G1 Important (thiếu 6 mã nghiệp vụ create_run/ask_owner → misconfigured lặp), G2/G3 Minor. FIX3/5: prefix ASSISTANT_* + mã tường minh, G2 not_configured, G3 test quét ApiError chống trôi. Ruling: mã transient phải dùng 5xx; 4xx trong namespace ASSISTANT_/ORCHESTRATION_/WORKFLOW_ là phán quyết tất định (được ghi journal).
