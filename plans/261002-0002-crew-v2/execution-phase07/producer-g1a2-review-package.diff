@@ -1,0 +1,205 @@
+148875a fix(v2): đọc graph ticket trong một snapshot nhất quán
+ .../execution-phase07/producer-g1a2-report.md      | 18 +++++++
+ v2/docs/files.md                                   |  1 +
+ v2/docs/flows.yaml                                 |  1 +
+ v2/docs/flows/server-tickets.md                    |  2 +-
+ v2/server/src/tickets/dependencies.ts              |  4 +-
+ v2/server/test/ticket-graph-snapshot.test.ts       | 59 ++++++++++++++++++++++
+ 6 files changed, 83 insertions(+), 2 deletions(-)
+diff --git a/plans/261002-0002-crew-v2/execution-phase07/producer-g1a2-report.md b/plans/261002-0002-crew-v2/execution-phase07/producer-g1a2-report.md
+new file mode 100644
+index 0000000..b252102
+--- /dev/null
++++ b/plans/261002-0002-crew-v2/execution-phase07/producer-g1a2-report.md
+@@ -0,0 +1,18 @@
++# Producer P-G1a2: graph full-root một snapshot
++
++BASE: cccbae17e9aefc6cbbfba907914332408f8a6d08
++
++## Thay đổi
++- `v2/server/src/tickets/dependencies.ts` (`readGraph`): `db.begin('isolation level repeatable read read only', ...)`. Snapshot bắt đầu ở truy vấn đầu (resolve root + ACL qua `requireTicket`), rồi nodes, dependencies, repair links cùng đọc từ snapshot đó. Response và ACL không đổi; không đụng hàm assistant/mutation; `routes.ts` không đổi.
++- `v2/server/test/ticket-graph-snapshot.test.ts` (mới): proxy `db.begin` chèn một commit trên kết nối khác (tạo step + cạnh) ngay sau truy vấn nodes. Test khẳng định mọi đầu cạnh đều là node, snapshot không thấy ghi chen, và đọc sau đó thấy đủ.
++- Docs: `v2/docs/flows/server-tickets.md` (bước 2), `flows.yaml` (thêm test vào flow, dưới manifest lock), `files.md` generated.
++
++## Bằng chứng
++- RED (trước fix): fail "edge endpoints must be nodes" (torn read tái hiện được).
++- GREEN: snapshot test + dependencies + ticket-reads + tickets + api-acceptance = 28/28 pass. Biome sạch cho 2 file. `tsc` không lỗi ở file tickets (lỗi có sẵn ở pdf.ts/pdf-lib không liên quan).
++- Docs: mirror `git archive HEAD:v2` + overlay, `generate`, `check --all` ok, `check --staged` ok.
++- PG: container `crew-v2-test-33e2ad73-...` 256m/1CPU/pids64, loopback ngẫu nhiên, đã stop/remove; heavy slot đã trả; heavyEligible=true lúc chạy.
++
++## Lưu ý
++- Giữ `requireTicket` làm truy vấn đầu: nếu đảo thứ tự, snapshot sẽ bắt đầu muộn hơn root resolve (vẫn nhất quán nhưng ACL có thể lệch).
++- Web chưa dùng `/v2/events/latest`; theo ledger đó là follow-up Task2.
+diff --git a/v2/docs/files.md b/v2/docs/files.md
+index d40c9d0..e5271cd 100644
+--- a/v2/docs/files.md
++++ b/v2/docs/files.md
+@@ -337,20 +337,21 @@ File nào thuộc flow nào. Dùng `crew-docs where <file>` để tra từ dòng
+ | `server/test/support/docs.ts` | [server-docs-import](flows/server-docs-import.md) (test) |
+ | `server/test/support/execution.ts` | [server-execution](flows/server-execution.md) (test) |
+ | `server/test/support/gateway.ts` | [server-gateway](flows/server-gateway.md) (test) |
+ | `server/test/support/http.ts` | [server-docs-view](flows/server-docs-view.md) (test) |
+ | `server/test/support/identity-app.ts` | [server-identity](flows/server-identity.md) (test) |
+ | `server/test/support/model-certification.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/support/model-http.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/support/model-observer.ts` | [server-models](flows/server-models.md) (test) |
+ | `server/test/support/tickets.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/ticket-events.unit.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
++| `server/test/ticket-graph-snapshot.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/ticket-reads.test.ts` | [server-journal](flows/server-journal.md) (test), [server-tickets](flows/server-tickets.md) (test) |
+ | `server/test/tickets.test.ts` | [server-tickets](flows/server-tickets.md) (test) |
+ | `server/tsconfig.json` | [server-platform](flows/server-platform.md) (file) |
+ | `src/completion-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/model-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/ticket-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `src/workflow-policy.ts` | [domain-foundation](flows/domain-foundation.md) (file) |
+ | `test/completion-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/model-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+ | `test/ticket-policy.test.ts` | [domain-foundation](flows/domain-foundation.md) (test) |
+diff --git a/v2/docs/flows.yaml b/v2/docs/flows.yaml
+index 4841912..e1b0158 100644
+--- a/v2/docs/flows.yaml
++++ b/v2/docs/flows.yaml
+@@ -119,20 +119,21 @@ flows:
+       - server/migrations/010_attachment_comment_text.sql
+       - server/src/tickets/assistant-access.ts
+     tests:
+       - server/test/tickets.test.ts
+       - server/test/dependencies.test.ts
+       - server/test/completion.test.ts
+       - server/test/repair.test.ts
+       - server/test/support/tickets.ts
+       - server/test/ticket-events.unit.test.ts
+       - server/test/ticket-reads.test.ts
++      - server/test/ticket-graph-snapshot.test.ts
+       - server/test/deploy.test.ts
+       - server/test/assistant-orchestration.test.ts
+       - server/test/attachments-comment-factory.test.ts
+       - server/test/assistant-mutations.test.ts
+   gateway-host:
+     title: Host cổng macOS Crew v2
+     doc: docs/flows/gateway-host.md
+     entrypoints:
+       - gateway/src/host/main.ts
+     files:
+diff --git a/v2/docs/flows/server-tickets.md b/v2/docs/flows/server-tickets.md
+index 8dbca52..e694f6f 100644
+--- a/v2/docs/flows/server-tickets.md
++++ b/v2/docs/flows/server-tickets.md
+@@ -6,21 +6,21 @@ Flow ticket Crew v2 lưu yêu cầu → bước → công việc trong cùng d
+ 
+ ## Điểm vào
+ 
+ - `server/src/tickets/routes.ts` → `registerTicketRoutes`: tạo, đọc, nối phụ thuộc, gửi tín hiệu hợp lệ, bình luận, quyết định, repair result và liên kết docs.
+ - `server/src/tickets/service.ts` → `createTicketServices`: gắn các reader/authority bất biến theo ứng dụng; mặc định từ chối cổng chưa được tích hợp.
+ - `server/src/tickets/dependencies.ts` → `addDependency`, `readGraph`: lưu DAG và trả dữ liệu sơ đồ thực tế.
+ 
+ ## Các bước
+ 
+ 1. `server/src/tickets/service.ts` → `createTicket` kiểm tra quyền dự án, ba cấp cha con, workflow pin của cha rồi chèn ticket. Sau khi khóa root, service đọc lại root/cha và từ chối tạo con nếu một trong hai đã hoàn tất hoặc hủy. Request tự trỏ `root_id` và mặc định chọn Superpowers trong criteria nếu chưa chọn. Event `ticket.created` chỉ mang revision/trạng thái.
+-2. `server/src/tickets/dependencies.ts` → `addDependency` khóa root trước khi kiểm tra hai đầu cạnh và duyệt CTE đệ quy theo predecessor. Hai transaction thêm cạnh ngược chiều không thể cùng commit. Không sửa dependency của ticket đã `ready`, `running` hoặc kết thúc; Task 5 còn kiểm tra lại predecessor khi claim.
++2. `server/src/tickets/dependencies.ts` → `addDependency` khóa root trước khi kiểm tra hai đầu cạnh và duyệt CTE đệ quy theo predecessor. Hai transaction thêm cạnh ngược chiều không thể cùng commit. `readGraph` (`GET /v2/tickets/:id/graph`) đọc nodes, dependencies và repair links của cả root trong một transaction `REPEATABLE READ READ ONLY` bắt đầu từ lúc resolve root và kiểm ACL, nên ghi đồng thời commit giữa các truy vấn không làm sơ đồ lệch (không cạnh trỏ tới node vắng); hình dạng response và ACL không đổi. Không sửa dependency của ticket đã `ready`, `running` hoặc kết thúc; Task 5 còn kiểm tra lại predecessor khi claim.
+ 3. `server/src/tickets/decisions.ts` → `appendComment`, `recordDecision` lưu nội dung trong bảng riêng và phát event chỉ chứa ID metadata. Legacy appendComment giữ nguyên: chấp nhận whitespace, từ chối chuỗi rỗng. Factory bổ sung appendAttachmentComment với callback commentAttachments do controller inject và giữ bất biến lúc tạo factory; thiếu callback từ chối trước INSERT. Method mới yêu cầu text tối đa32768 và text.trim có nội dung hoặc requested attachmentIds không rỗng. Callback xác minh actual ready set sau INSERT, trước một comment.created event trong cùng caller Tx; callback lỗi rollback comment/links/event và fanout009. Không dùng allowEmpty/count/dummy space, không nối consumer qua generic route. Nguồn quyết định phải là ticket/owner decision/artifact đã ghi nhận trong cùng gốc, hoặc trang docs được reader xác minh. Máy không thể ghi owner answer hoặc approval.
+ 4. `server/src/tickets/service.ts` → `signalTicket` cho HTTP chỉ nhận `dependencies_ready`, `wait_owner`, `resume`. Phụ thuộc phải `done`. Với ticket đang chạy, `wait_owner` gọi authority tạo ý định dừng/command trong transaction. Trước khi có stop proof, ticket vẫn `running`; nếu stop proof đã có, callback có thể finalize ngay thành `needs_input`. Event `ticket.changed` lấy trạng thái và revision từ row sau callback, khớp DB/response. Generic `prepareSignal` khóa root rồi ticket theo ACL; lõi chung `checkSignal` so revision, kiểm predecessor `done` cho `dependencies_ready` và tra quyết định tiếp tục vòng sửa cho `resume`; `persistSignal` cập nhật row và phát event. Root lock nối tuần tự completion với việc thêm con. Khi finalize vòng sửa thứ năm, lý do `repair_limit` được giữ nguyên.
+ 5. `server/src/tickets/deploy.ts` → `deployTicketFingerprint`, `readDeployAuthorization` chứng minh provenance của từng hành động deploy. Owner tạo request deploy chỉ cấp quyền cho chính request đó, không cấp quyền thừa kế cho hậu duệ. Máy không tạo request deploy gốc và mọi deploy child do máy tạo phải có approval owner khớp SHA-256 canonical của toàn bộ input có ý nghĩa, gắn đúng root; đổi title, target hoặc body đều bị từ chối. Quyết định được gắn vào một ticket. Gate thực thi Task 5 phải đọc cùng hàm này trước khi chạy deploy.
+ 6. `server/src/tickets/completion.ts` → `readCompletionFacts` kiểm tra mọi hậu duệ bắt buộc, loại evidence `verification='verified'` và loại bổ sung trong `criteria.requiredEvidenceKinds`. Request code cần merge evidence đã xác minh và snapshot docs khớp commit; request research cần artifact đã xác minh; deploy root do owner tạo tự có quyền, mọi deploy child cần approval đúng ticket kể cả khi owner trực tiếp tạo child. Bước/công việc khác đạt theo evidence riêng. Reader docs mặc định trả null tới khi Task 7 nối snapshot thật. Phase 08 bổ sung authority kiểm chứng merge.
+ 7. `server/src/tickets/repair.ts` → `recordRepairResult` xác minh attempt/fence trước cả khi trả cycle lặp, lưu kết quả/evidence và nhánh fix cùng gốc. Initial review, lỗi hạ tầng và đổi model không tăng bộ đếm; chỉ `repair_review` thất bại tăng tới 5. Lần thứ 5 lưu cycle đang chờ duyệt và thời điểm, lý do `repair_limit`, gọi authority lưu ý định/command dừng. Nếu host đã xác nhận dừng, authority có thể finalize ngay thành `needs_input`; bản ghi repair chỉ cập nhật counter/reason/revision, không ghi đè status bằng snapshot `running` cũ. `owner_answer` phải cùng cycle, ghi sau thất bại; `resume` tiêu quyết định một lần dưới khóa root/step, giữ counter 5.
+ 8. `server/src/tickets/docs-links.ts` → `linkDocs` chỉ ghi liên kết trang sau khi reader docs xác minh từng path trong snapshot. Mặc định không có reader nên từ chối.
+ 
+ 8. `server/src/tickets/authorization.ts` → `authorizeTicketMutation`: Mọi ticket mutation create/dependencies/signals/comments/decisions/repair-results/docs-links có authorize(tx) trước cached replay; helper khóa root/ticket/project rồi kiểm tra machine hiện hành dưới FOR SHARE. Rebind/thu hồi commit trước guard khiến replay scoped 404. App nối execution authority và docs source/completion readers. HTTP acceptance kiểm tra mọi family, race hai pool và lần repair thứ năm giữ guard đến physical stop.
+ 
+ 9. `server/src/tickets/service.ts` → `assistantCreateTicket(tx,actor,proof,input)` là entry riêng dành cho machine Trợ lý, dùng optional authority bất biến tại factory. Generic ACL giữ nguyên. Entry chụp input/actor/proof trước await, kiểm descriptor/prototype của cả object và array mà không chạy getter/iterator, rồi SHA-256 canonical tuple `['crew-v2:orchestration-target:1','create_ticket',exactSubmittedCreateTicket]` trước default và pin kế thừa. UUID identity được canonicalize riêng; payload/hash giữ spelling gốc. Khóa root → parent → project trước verify; token runtime private, cùng Tx/actor/action/hash/root/project và chỉ tiêu một lần. Shared create core giữ hierarchy/pin/closed/deploy và audit actorA. Thiếu authority trả503; owner không dùng entry này. Authority thật là `ProjectOrchestrationPort` của `server-assistant` (resolver persisted + membership/routing decision); app production chưa inject nên các entry này vẫn trả503.
+diff --git a/v2/server/src/tickets/dependencies.ts b/v2/server/src/tickets/dependencies.ts
+index 919eaf0..bc97e39 100644
+--- a/v2/server/src/tickets/dependencies.ts
++++ b/v2/server/src/tickets/dependencies.ts
+@@ -153,21 +153,23 @@ export function createAssistantDependencyWriter(authority?: ProjectOrchestration
+ 
+ export async function readGraph(
+   db: Db,
+   ticketId: Id,
+   actor: Actor,
+ ): Promise<{
+   nodes: Ticket[];
+   dependencies: Dependency[];
+   repairLinks: RepairLink[];
+ }> {
+-  return db.begin(async (tx) => {
++  // One REPEATABLE READ snapshot starts at the root resolution, so nodes, edges and repair links
++  // always describe the same committed state of the whole root.
++  return db.begin('isolation level repeatable read read only', async (tx) => {
+     const ticket = await requireTicket(tx, ticketId, actor);
+     const nodes = await tx`select * from tickets where root_id=${ticket.rootId} order by id`;
+     const dependencies = await tx`select d.ticket_id,d.predecessor_id from dependencies d
+       join tickets t on t.id=d.ticket_id where t.root_id=${ticket.rootId} order by d.ticket_id,d.predecessor_id`;
+     const repairLinks = await tx`select r.check_step_id,r.fix_ticket_id,r.cycle_id from repair_links r
+       join tickets t on t.id=r.check_step_id where t.root_id=${ticket.rootId} order by r.check_step_id,r.cycle_id`;
+     return {
+       nodes: nodes.map(mapTicket),
+       dependencies: dependencies.map((row) => ({
+         ticketId: row.ticket_id as Id,
+diff --git a/v2/server/test/ticket-graph-snapshot.test.ts b/v2/server/test/ticket-graph-snapshot.test.ts
+new file mode 100644
+index 0000000..b0483da
+--- /dev/null
++++ b/v2/server/test/ticket-graph-snapshot.test.ts
+@@ -0,0 +1,59 @@
++import assert from 'node:assert/strict';
++import test from 'node:test';
++import type { Db, Id, Tx } from '../src/platform/contracts.ts';
++import { readGraph } from '../src/tickets/dependencies.ts';
++import { databaseFixture } from './support/db.ts';
++import { inputTicket, owner, ticketFixture } from './support/tickets.ts';
++
++const withDatabase = databaseFixture(4);
++
++// Wraps db.begin so that `afterQuery` runs once, right after the first query whose text matches
++// `needle` has returned inside the transaction. The hook uses a different connection (the real db).
++function interleaved(db: Db, needle: string, afterQuery: () => Promise<void>): Db {
++  let fired = false;
++  const wrapTx = (tx: Tx): Tx =>
++    new Proxy(tx, {
++      async apply(target, thisArg, args) {
++        const result = await Reflect.apply(target, thisArg, args);
++        const strings = args[0] as readonly string[] | undefined;
++        if (!fired && Array.isArray(strings) && strings.join('?').includes(needle)) {
++          fired = true;
++          await afterQuery();
++        }
++        return result;
++      },
++    });
++  return new Proxy(db, {
++    get(target, prop) {
++      if (prop !== 'begin') return Reflect.get(target, prop, target);
++      return (...args: unknown[]) => {
++        const work = args.pop() as (tx: Tx) => Promise<unknown>;
++        return (target.begin as (...a: unknown[]) => Promise<unknown>)(...args, (tx: Tx) => work(wrapTx(tx)));
++      };
++    },
++  });
++}
++
++test('graph read is one snapshot even when a write commits between its queries', async () =>
++  withDatabase(async (db) => {
++    const f = await ticketFixture(db);
++    let added: Id | null = null;
++    const hooked = interleaved(db, 'where root_id=', async () => {
++      const step = await f.mutation('late-step', (tx) =>
++        f.services.createTicket(tx, inputTicket(f.project.id, 'step', f.request.id), owner),
++      );
++      await f.mutation('late-edge', (tx) => f.services.addDependency(tx, step.id, f.a.id, 1));
++      added = step.id;
++    });
++    const graph = await readGraph(hooked, f.request.id, owner);
++    assert.ok(added, 'the interleaved write must have committed');
++    const ids = new Set(graph.nodes.map((node) => node.id));
++    for (const edge of graph.dependencies) {
++      assert.ok(ids.has(edge.ticketId) && ids.has(edge.predecessorId), 'edge endpoints must be nodes');
++    }
++    assert.equal(ids.has(added), false, 'snapshot predates the interleaved write');
++    assert.equal(graph.dependencies.length, 0);
++    const after = await readGraph(db, f.request.id, owner);
++    assert.equal(after.nodes.length, graph.nodes.length + 1);
++    assert.equal(after.dependencies.length, 1);
++  }));
