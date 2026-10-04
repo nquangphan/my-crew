@@ -1,0 +1,3 @@
+control [bỏ bản nháp] -> [('pass', '8'), ('fail', '0')]
+sending-not-blocked [bỏ bản nháp khi đang gửi] -> [('pass', '1'), ('fail', '1')]
+pipeline-runs-while-discarding [bỏ bản nháp] -> [('pass', '8'), ('fail', '0')]

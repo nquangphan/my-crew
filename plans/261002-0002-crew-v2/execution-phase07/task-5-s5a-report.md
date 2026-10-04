@@ -159,3 +159,23 @@ Hai test lúc đầu dựng tình huống bằng cách sửa `compose.state = 'o
 **Vi phạm quy trình slot:** lệnh `pnpm add @testing-library/dom` chạy ngay sau khi lấy lock, trong cùng lệnh in telemetry, nên chưa chặn theo kết quả. Telemetry khi đó là `heavyEligible: false` (3,774 GiB khả dụng / pressure 1 / CPU idle 78,99%). Lệnh cài nhỏ (khoảng 1,3 giây, lock thêm 3 dòng); slot được trả ngay sau đó. Lần thử kế tiếp (3,455 GiB) bị từ chối và trả lock. Các lượt sau dùng vòng lặp chỉ chạy khi `heavyEligible` true; RED/GREEN chạy lúc 4,856 GiB / 1 / 81,17% / 751 GiB. Slot đã trả.
 
 Docs: `web-attachments.md` (biên lệch giờ, `discard`), `web-shell.md` (peer đã khai báo). Hai file này nằm ngoài danh sách được giao lượt này, nhưng luật R3 bắt buộc sửa vì `controller.ts`/`composer.tsx`/`package.json` thay đổi. Manifest không đổi.
+
+## 11. API `discardDraft`/`onHandle` cho S3b (ruling 19:50)
+
+**Interface:** `ComposerProps.onHandle?(handle: ComposerHandle)`, với `ComposerHandle = { discardDraft(): Promise<'discarded' | 'blocked' | 'unconfirmed'> }`. Composer gọi `onHandle` mỗi lần controller được tạo; handle là một object ổn định, luôn gọi tới controller hiện tại. Phía controller là `ComposeController.discardDraft(): Promise<DiscardResult>`:
+- `blocked` khi `sending` hoặc đang bỏ dở; không làm gì.
+- Ở `editing`, `ambiguous`/`suspended`, tombstone hay trạng thái khóa: bật `#discarding` (khóa nút gửi), `DELETE /v2/attachment-compose/:id` theo flow hiện có (abandon session và upload). Thành công thì nhả khóa reserve/remove của lượt đó, gọi `startNew()` và trả `discarded`. Khóa submit chưa giải quyết vẫn ở panel, đúng như owner đã duyệt.
+- DELETE chưa xác nhận: trả `unconfirmed`, giữ bản nháp và khóa DELETE, báo `DISCARD_UNCONFIRMED`, rồi lập lịch lại tệp còn bytes. Gọi lại thì gửi lại cùng khóa (như B2).
+- `discard()` (trạng thái khóa) và `abandon()` (nút “Bỏ bản nháp tệp”) giờ ủy quyền cho `discardDraft`. Vì vậy `abandon()` không còn nuốt lỗi và `startNew()` cả khi DELETE thất bại. Composer reset consent khi nhận `discarded`.
+
+| Lệnh (scratch `$TMPDIR/crew-v2-web-s5a/`; slot chỉ chạy khi `heavyEligible` true: 5,016 GiB / 1 / 62,69% / 750 GiB) | Kết quả | Log, SHA-256 |
+|---|---|---|
+| RED (stub trả `blocked`, `onHandle` chưa gọi) | 73 test, 5 fail theo assertion (`'blocked' !== 'discarded'/'unconfirmed'`, `TIMEOUT:handle`). Test “đang gửi thì blocked” PASS trên stub, được chứng minh bằng đột biến bên dưới | `task-5-s5a-fix4-red.log` `14cbc67f945b9bc7ad705aede0e0c7bbea3faf519360a4c19a78f5ff339767d6` |
+| GREEN (sau Biome) | 73/73 | `task-5-s5a-fix4-green.log` `8903190b5123a86bcc0f86e5baedb70b1aa027db7cf08ca71e2bfcf785f2c229` |
+| Đột biến | control 8/8; bỏ nhánh `sending` → fail 1. Guard `#discarding` trong pipeline **không** bị test nào bắt: đây là phòng thủ cho race băm xong rồi giữ chỗ trong lúc bỏ, chưa có test tái hiện | `task-5-s5a-fix4-mutation.log` `a3c21ce5790cda6432b3eb29ee246bbefc42a7675d3842fbcaeb9052e056f040` |
+| Biome 4 file | exit 0 | `task-5-s5a-fix4-biome.log` `4f05f3940c640fb53b47216753079e32099bab6ff37cf684b41626ba889a0103` |
+| Web unit không DB | 112/112 | `task-5-s5a-fix4-unit-full.log` `8db77ef2b76e22534c037cdc1d8b63718e403d4fa7a49841872907c73c444a63` |
+| `tsc --noEmit` | exit 0, không lỗi | `task-5-s5a-fix4-tsc.log` `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` (rỗng) |
+| `vite build` | exit 0 | `task-5-s5a-fix4-vite.log` `11c5c8a518e2b4b7d491faf91f6d81de96413cc293a4d9c7d1843cd6b45726ea` |
+
+Đã kiểm mọi import tương đối trong file compose và test đều trỏ tới file đã track. Slot đã trả; scratch đã xóa. Manifest không đổi. Docs: `web-attachments.md`.

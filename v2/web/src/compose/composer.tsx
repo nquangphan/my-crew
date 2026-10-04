@@ -17,6 +17,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -27,7 +28,7 @@ import type { OwnerClient } from '../lib/api.ts';
 import type { PendingStore, TabStorage } from '../lib/pending-operation.ts';
 import { queryRoots } from '../lib/query-keys.ts';
 import type { SessionController } from '../lib/session.ts';
-import { ComposeController, type ComposeView } from './controller.ts';
+import { ComposeController, type ComposeView, type DiscardResult } from './controller.ts';
 import { createWorkerHasher, type FileHasher } from './file-hash.ts';
 import {
   type ComposeDraft,
@@ -71,7 +72,11 @@ export type ComposerProps = {
   onSubmissionChange: (next: ComposeSubmission) => void;
   onStateChange: (state: ComposeDraft['state']) => void;
   onAccepted: (receipt: ComposeReceipt) => void;
+  /** Receives the handle the form uses to drop the whole draft (text is cleared only on `discarded`). */
+  onHandle?: (handle: ComposerHandle) => void;
 };
+
+export type ComposerHandle = { discardDraft(): Promise<DiscardResult> };
 
 const stateLabels: Record<DraftFile['state'], string> = {
   selected: 'Đã chọn',
@@ -308,6 +313,24 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
   }, [pendingReceipt, controller, queryClient]);
 
   const [allowRead, setAllowRead] = useState(false);
+  // One stable handle per mount; it always talks to the current controller.
+  const controllerRef = useRef<ComposeController | null>(null);
+  controllerRef.current = controller;
+  const handle = useMemo<ComposerHandle>(
+    () => ({
+      async discardDraft() {
+        const current = controllerRef.current;
+        if (!current) return 'blocked';
+        const result = await current.discardDraft();
+        if (result === 'discarded') setAllowRead(false);
+        return result;
+      },
+    }),
+    [],
+  );
+  useEffect(() => {
+    if (controller) latest.current.onHandle?.(handle);
+  }, [controller, handle]);
   const [notice, setNotice] = useState<string | null>(null);
   const inputId = useId();
   const textId = useId();
@@ -461,7 +484,7 @@ export function AttachmentComposer(props: ComposerProps): JSX.Element {
               : submitLabels[submission.kind]}
         </button>
         {locks.showAbandon && (
-          <button type="button" disabled={!authenticated} onClick={() => void controller?.abandon()}>
+          <button type="button" disabled={!authenticated} onClick={() => void handle.discardDraft()}>
             Bỏ bản nháp tệp
           </button>
         )}

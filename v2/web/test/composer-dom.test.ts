@@ -17,6 +17,7 @@ const { act, cleanup, fireEvent, render, screen } = await import('@testing-libra
 const { createElement, useState } = await import('react');
 const { QueryClient, QueryClientProvider } = await import('@tanstack/react-query');
 const { AttachmentComposer, ComposeServicesProvider } = await import('../src/compose/composer.tsx');
+type ComposerHandle = import('../src/compose/composer.tsx').ComposerHandle;
 
 afterEach(() => cleanup());
 after(() => closeDom());
@@ -30,7 +31,9 @@ const comment = (text: string): ComposeSubmission => ({
 type Env = Awaited<ReturnType<typeof harness>>;
 
 function mount(env: Env, initial: ComposeSubmission, draftKey = 'dom') {
+  const handles: ComposerHandle[] = [];
   const events = {
+    handles,
     states: [] as string[],
     accepted: [] as ComposeReceipt[],
     changes: [] as ComposeSubmission[],
@@ -46,6 +49,7 @@ function mount(env: Env, initial: ComposeSubmission, draftKey = 'dom') {
       },
       onStateChange: (state: string) => events.states.push(state),
       onAccepted: (receipt: ComposeReceipt) => events.accepted.push(receipt),
+      onHandle: (handle: ComposerHandle) => handles.push(handle),
     });
   }
   const queryClient = new QueryClient({
@@ -248,4 +252,46 @@ test('máy chủ chưa sẵn sàng xử lý tệp: hiện lý do và nút gửi 
   await until(() => events.states.at(-1) === 'ambiguous', 'ambiguous');
   assert.match(screen.getByRole('alert').textContent ?? '', /Chưa cấu hình xử lý tệp/);
   assert.equal(submitButton(/Gửi lại đúng yêu cầu cũ/).disabled, false);
+});
+
+test('handle bỏ bản nháp cho form: soạn dở thì discarded, tệp và consent được xóa; đang gửi thì blocked', async () => {
+  const server = new FakeComposeServer();
+  const env = await harness(server);
+  const events = mount(env, comment('soạn dở'), 'dom-handle');
+  await ready(env);
+  await until(() => events.handles.length > 0, 'handle');
+  const handle = events.handles.at(-1);
+  assert.ok(handle);
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText('Đính kèm tệp'), { target: { files: [pngFile('a.png', 31)] } });
+  });
+  await until(() => document.querySelector('[data-state="ready"]') !== null, 'ready');
+  await act(async () => {
+    fireEvent.click(consent());
+  });
+  const sessionId = [...server.composes.keys()][0] ?? '';
+  let result = '';
+  await act(async () => {
+    result = await handle.discardDraft();
+  });
+  assert.equal(result, 'discarded');
+  assert.equal(server.composes.get(sessionId)?.state, 'abandoned');
+  assert.equal(document.querySelectorAll('[data-local-id]').length, 0);
+  await act(async () => {
+    fireEvent.change(screen.getByLabelText('Đính kèm tệp'), { target: { files: [pngFile('b.png', 32)] } });
+  });
+  await until(() => document.querySelector('[data-state="ready"]') !== null, 'ready2');
+  assert.equal(consent().checked, false, 'consent không mang sang bản nháp mới');
+  server.hold = (call) => call.url.endsWith('/attachment-comments');
+  await act(async () => {
+    fireEvent.click(submitButton(/Gửi bình luận/));
+  });
+  await until(() => events.states.at(-1) === 'sending', 'sending');
+  await act(async () => {
+    result = await (events.handles.at(-1) as ComposerHandle).discardDraft();
+  });
+  assert.equal(result, 'blocked');
+  server.hold = null;
+  server.release();
+  await until(() => events.accepted.length === 1, 'accepted');
 });

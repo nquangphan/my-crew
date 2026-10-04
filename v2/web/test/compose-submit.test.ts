@@ -777,3 +777,85 @@ test('DELETE bỏ lượt gửi lỗi transport: báo lỗi, giữ bản nháp v
   assert.equal(after.controller.view().draft.sessionId, null);
   assert.equal(after.pending.list().length, 0);
 });
+
+test('bỏ bản nháp khi đang soạn: bỏ lượt gửi và tệp trên server rồi bắt đầu bản nháp mới', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('soạn dở'));
+  await env.controller.addFiles([pngFile('a.png', 21)], 'input');
+  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+  const sessionId = env.controller.view().draft.sessionId ?? '';
+  const uploadId = env.controller.view().draft.files[0]?.uploadId ?? '';
+  assert.equal(await env.controller.discardDraft(), 'discarded');
+  assert.equal(server.composes.get(sessionId)?.state, 'abandoned');
+  assert.equal(server.uploads.get(uploadId)?.state, 'abandoned');
+  assert.equal(env.controller.view().draft.sessionId, null);
+  assert.equal(env.controller.view().draft.files.length, 0);
+  assert.equal(env.controller.view().draft.state, 'editing');
+  assert.equal(env.pending.list().length, 0);
+  assert.equal(await env.controller.discardDraft(), 'discarded', 'bản nháp trống vẫn bỏ được');
+});
+
+test('bỏ bản nháp khi đang gửi: blocked, không đổi gì', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('đang gửi'));
+  server.hold = (call) => call.url.endsWith('/attachment-comments');
+  const sending = env.controller.submit('none');
+  await settle(() => env.controller.view().draft.state === 'sending', 'sending');
+  assert.equal(await env.controller.discardDraft(), 'blocked');
+  assert.equal(env.controller.view().draft.state, 'sending');
+  server.hold = null;
+  server.release();
+  assert.equal((await sending)?.kind, 'comment');
+});
+
+test('bỏ bản nháp khi đang soạn mà DELETE lỗi transport: unconfirmed, giữ bản nháp và khóa; lần sau cùng khóa', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('lỗi bỏ'));
+  await env.controller.addFiles([pngFile('a.png', 22)], 'input');
+  await settle(() => env.controller.view().draft.files[0]?.state === 'ready', 'ready');
+  const sessionId = env.controller.view().draft.sessionId ?? '';
+  server.failBefore = (call) => call.method === 'DELETE';
+  assert.equal(await env.controller.discardDraft(), 'unconfirmed');
+  assert.equal(env.controller.view().errorCode, 'DISCARD_UNCONFIRMED');
+  assert.equal(env.controller.view().draft.sessionId, sessionId);
+  assert.equal(env.controller.view().draft.files.length, 1);
+  const abandon = env.pending.list().find((operation) => operation.method === 'DELETE');
+  assert.ok(abandon);
+  assert.equal(await env.controller.discardDraft(), 'discarded');
+  const deletes = server.calls.filter((call) => call.method === 'DELETE');
+  assert.equal(deletes.at(-1)?.headers.get('idempotency-key'), abandon.id);
+  assert.equal(server.composes.get(sessionId)?.state, 'abandoned');
+});
+
+test('bỏ bản nháp khi chưa xác nhận: bỏ lượt gửi, khóa submit vẫn ở panel', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('mơ hồ'));
+  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
+  await env.controller.submit('none');
+  assert.equal(env.controller.view().draft.state, 'ambiguous');
+  const key = env.controller.view().draft.submitOperation?.id ?? '';
+  const sessionId = env.controller.view().draft.sessionId ?? '';
+  assert.equal(await env.controller.discardDraft(), 'discarded');
+  assert.equal(server.composes.get(sessionId)?.state, 'abandoned');
+  assert.ok(env.pending.get(key), 'khóa submit vẫn trong panel');
+  assert.equal(env.controller.view().draft.state, 'editing');
+  assert.equal(env.controller.view().draft.sessionId, null);
+});
+
+test('bỏ bản nháp sau logout (tombstone): như discard, chỉ còn tombstone submit', async () => {
+  const server = new FakeComposeServer();
+  const env = await controllerFor(server, commentSubmission('tombstone'));
+  server.failBefore = (call) => call.url.endsWith('/attachment-comments');
+  await env.controller.submit('none');
+  const key = env.controller.view().draft.submitOperation?.id;
+  env.pending.tombstoneAll();
+  env.controller.dispose();
+  const after = await controllerFor(server, commentSubmission(''), await harness(server, env.storage));
+  await after.controller.reconcile();
+  assert.equal(await after.controller.discardDraft(), 'discarded');
+  assert.deepEqual(
+    after.pending.tombstones().map((tombstone) => tombstone.id),
+    [key],
+  );
+  assert.equal(after.controller.view().needsPayload, false);
+});

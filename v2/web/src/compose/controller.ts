@@ -74,6 +74,8 @@ export type ComposeView = {
   discardable: boolean;
 };
 
+export type DiscardResult = 'discarded' | 'blocked' | 'unconfirmed';
+
 export type ComposeControllerOptions = {
   draftKey: string;
   submission: ComposeSubmission;
@@ -312,30 +314,8 @@ export class ComposeController {
 
   /** Explicit owner decision to drop the local draft; unresolved keys stay in the PendingStore. */
   async discard(): Promise<void> {
-    if (this.#discarding || this.#draft.state === 'sending') return;
     if (this.#tombstoneId === null && this.#lockReason === null) return;
-    this.#discarding = true;
-    this.#emit();
-    const sessionId = this.#draft.sessionId;
-    if (sessionId !== null) {
-      // An open compose of the dropped draft is abandoned so it cannot be submitted or hold quota; a
-      // submitted one is left as is (the DELETE path reads it back and stops).
-      try {
-        await this.#enqueue(() => this.#abandonSession());
-      } catch (error) {
-        if (this.#unresolved(`${this.#intentId}:abandon:${sessionId}`)) {
-          // Unconfirmed DELETE: keep the draft and its key (shown in the recovery panel); a new discard
-          // resends the same key.
-          this.#discarding = false;
-          this.#setError('DISCARD_UNCONFIRMED', serverMessage(error));
-          this.#emit();
-          return;
-        }
-        // A proven rejection leaves nothing pending for this compose.
-      }
-      this.#releaseSessionKeys(sessionId);
-    }
-    this.startNew();
+    await this.discardDraft();
   }
 
   // ---- form input -------------------------------------------------------------------------------------
@@ -523,9 +503,41 @@ export class ComposeController {
   /** Explicit discard of an editing draft: abandon the compose session, then start a fresh draft. */
   async abandon(): Promise<void> {
     if (this.#draft.state !== 'editing' || this.#unresolved(this.#submitIntent())) return;
-    if (this.#draft.sessionId !== null)
-      await this.#enqueue(() => this.#abandonSession()).catch((error) => this.#fail(error));
+    await this.discardDraft();
+  }
+
+  /**
+   * Owner “drop this draft” for the form: `blocked` while sending, `unconfirmed` when the compose DELETE
+   * could not be confirmed (draft and key kept), `discarded` once the draft was reset.
+   */
+  async discardDraft(): Promise<DiscardResult> {
+    if (this.#discarding || this.#draft.state === 'sending') return 'blocked';
+    this.#discarding = true;
+    this.#emit();
+    const sessionId = this.#draft.sessionId;
+    if (sessionId !== null) {
+      // The compose and its uploads are abandoned so nothing of the dropped draft can be submitted or
+      // hold quota; a submitted compose is left as is (the DELETE path reads it back and stops). An
+      // unresolved submit key stays in the recovery panel, as the owner accepted.
+      try {
+        await this.#enqueue(() => this.#abandonSession());
+      } catch (error) {
+        if (this.#unresolved(`${this.#intentId}:abandon:${sessionId}`)) {
+          // Unconfirmed DELETE: keep the draft and its key; the next discard resends the same key.
+          this.#discarding = false;
+          this.#setError('DISCARD_UNCONFIRMED', serverMessage(error));
+          this.#emit();
+          for (const file of this.#draft.files)
+            if (this.#bytes.has(file.localId) && (file.state === 'selected' || file.state === 'reserved'))
+              this.#schedule(file.localId);
+          return 'unconfirmed';
+        }
+        // A proven rejection leaves nothing pending for this compose.
+      }
+      this.#releaseSessionKeys(sessionId);
+    }
     this.startNew();
+    return 'discarded';
   }
 
   /** After the receipt was delivered: fresh intent, no files, no session. */
@@ -1022,7 +1034,7 @@ export class ComposeController {
   async #process(localId: string): Promise<void> {
     const start = this.#file(localId);
     const file = this.#bytes.get(localId);
-    if (!start || !file || this.#life.signal.aborted) return;
+    if (!start || !file || this.#life.signal.aborted || this.#discarding) return;
     if (start.state !== 'selected' && start.state !== 'reserved' && start.state !== 'uploading') return;
     if (this.isActive(localId)) return;
     const abort = new AbortController();
@@ -1058,6 +1070,7 @@ export class ComposeController {
   }
 
   async #reserve(localId: string): Promise<void> {
+    if (this.#discarding) return;
     await this.#ensureSession();
     for (let attempt = 0; attempt < 3; attempt++) {
       const file = this.#file(localId);
