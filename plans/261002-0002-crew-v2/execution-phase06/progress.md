@@ -249,3 +249,9 @@ OpenCode map N2/N4 (lane bỏ qua bracketRun, aria-hidden nhãn) — chờ teste
 
 13:20 S6b-ii review `task-3-s6b-ii-review.md`: Spec ❌ (I1 _bmad owner track bị dời thay vì từ chối), không traversal/symlink/TOCTOU, journal fail-closed; phase03-owner chấp nhận có điều kiện. FIX1/5 resume: I1, M1–M5.
 Checklist S6b-iii/T7 (từ review): ⚠️1 cần lệnh reconcile render stage trước khi bật production (ngưỡng 1 unknown chặn root); ⚠️2 bật prerequisites khi mở schema server, probe chưa cache; ⚠️3 server so sha prerequisites với gateway_applied (chống giả mạo); ⚠️4 BUSY khi remove cũng bận để stage complete chờ cleanup; ⚠️6 thông báo owner: nâng cấp uv/Python cần report lại, nếu không render HALT.
+
+13:40 S6b-ii FIX1 `cf78d0f` re-review `task-3-s6b-ii-fix1-re-review.md`: Approved, 6/6 ADDRESSED; phase03-owner chấp nhận workspace.ts/inventory.ts tại cf78d0f; trước từ chối không có đường ghi vào _bmad owner.
+Task 3 S6b-ii: complete — cf78d0f (b3ec7a8 + 33a209f + 8689125 + cf78d0f).
+Ruling N3: mở rộng luật từ chối sang owner track `.claude/skills/bmad-build/**` và `_bmad` lồng — cùng rủi ro commit như I1 — làm ở slice kế (S6b-iii hoặc follow-up nhỏ).
+S6b-ii: minor (deferred → T7): N1 stage bị xóa từ ngoài giữa render im lặng thành deleted (chỉ cho phép vắng trong nhánh cleanup); N2 crash giữa quarantine và delete để rác quarantine/. Thông báo owner thêm: project tự pin `.python-version` thì interpreter đó cũng phải là CPython ≥3.11.
+Còn lại S6b: S6b-iii (server registerRenderReceipt + route + latch + so witness/prerequisites với gateway_applied, mở schema prerequisites, bridge beforeRelease, lệnh reconcile render stage) và S6b-iv (integration uv thật, grant heavy slot).
