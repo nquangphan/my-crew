@@ -220,3 +220,7 @@ Ruling route: theo plan `/requests/$rootId/map` (redirect từ /projects/$projec
 Ruling expand/collapse: chỉ "Sắp xếp lại" bố cục toàn bộ; nếu relayout thì giữ step vừa bấm cố định trên màn hình.
 Task4: minor (deferred): M2 label repair bị card che, 599 label "phải xong trước" quá dày ở 801 node.
 ⚠️ Ảnh tham chiếu IMG_6454 KHÔNG còn trong repo hay ~/Downloads (phase-07-web.md:84) — cần owner gửi lại để đối chiếu visual; tạm đối chiếu theo mô tả. E2E ghi repair_links thẳng DB — đường POST /v2/tickets/:id/repair-results (máy) chưa chạy end-to-end (checklist A8). A4 dán ảnh/tệp trong dialog chờ extractor phase05.
+
+06:20 P-G4r `947ffb5` review `producer-g4r-review.md`: Spec đạt, Approved; Important1 (command received kẹt chặn retry vĩnh viễn) /Minor3; không rò secret, race tuần tự hóa dưới khóa máy. Follow-up resume: I1 + M1.
+Ruling M1: retry khi nguồn/runtime enabled=false → 409 CONFIG_DISABLED, không xếp command (fail-closed).
+P-G4r: minor (deferred): M2 route đọc không từ chối máy revoked (nhất quán status cũ); M3 pattern limit tới 999 rồi service 400 >100. Pending: credential key read (phase04), pin digest chuẩn phía server (quyết định riêng), command ticket/attempt read thuộc G5.
