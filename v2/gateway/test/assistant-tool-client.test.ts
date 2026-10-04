@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
+  classifyError,
   createToolClient,
   type RoutingEvent,
   type ToolClient,
@@ -533,6 +534,12 @@ test('tool client: terminal HTTP statuses are not retried and are replayed after
     [409, 'IDEMPOTENCY_CONFLICT', 'conflict'],
     [409, 'ASSISTANT_OPERATION_CONFLICT', 'conflict'],
     [409, 'WORKFLOW_RUN_EXISTS', 'conflict'],
+    [409, 'ASSISTANT_OPERATION_CONSUMED', 'conflict'],
+    [409, 'ASSISTANT_OPERATION_STALE', 'conflict'],
+    [404, 'ASSISTANT_OPERATION_NOT_FOUND', 'not_found'],
+    [409, 'TICKET_CLOSED', 'conflict'],
+    [409, 'PROJECT_NOT_BOUND', 'conflict'],
+    [403, 'ASSISTANT_ADMISSION_DENIED', 'forbidden'],
     [409, 'ASSISTANT_TOOL_BUDGET_EXHAUSTED', 'budget'],
     [422, 'WORKFLOW_QUESTION_TICKET_REQUIRED', 'rejected'],
   ];
@@ -771,7 +778,13 @@ test('tool client: 413 and unlisted 4xx are infrastructure errors that do not cl
 });
 
 test('tool client: 503 not-configured stops retrying but keeps the operation open', async () => {
-  for (const code of ['ASSISTANT_TOOLS_NOT_CONFIGURED', 'ASSISTANT_POLICY_INVALID']) {
+  for (const code of [
+    'ASSISTANT_TOOLS_NOT_CONFIGURED',
+    'ASSISTANT_POLICY_INVALID',
+    'ASSISTANT_STORE_MISSING',
+    'ASSISTANT_ADMISSION_NOT_CONFIGURED',
+    'ORCHESTRATION_COMMAND_NOT_RELEASED',
+  ]) {
     const h = await harness();
     try {
       const c = await h.client();
@@ -999,8 +1012,8 @@ test('tool client: 404, 403, 400 and 409 without a route error code are not reco
     ],
     ['422 without a code', { kind: 'status', status: 422, raw: 'nope' }],
     [
-      '404 with a code of another status',
-      { kind: 'status', status: 404, body: { error: { code: 'ASSISTANT_INPUT_STALE' } } },
+      '404 with an unprefixed code of another status',
+      { kind: 'status', status: 404, body: { error: { code: 'IDEMPOTENCY_CONFLICT' } } },
     ],
   ];
   for (const [label, behavior] of cases) {
@@ -1060,4 +1073,54 @@ test('tool client: an invalid credential is unauthorized, never sent and never r
       await h.done();
     }
   }
+});
+
+// Drift guard: every error the tool route can emit through the Assistant, ticket and docs
+// services is read from the server source (read-only) and must classify to something other than
+// `misconfigured`. A new code with a business status fails here until the client knows it.
+test('tool client: every server error code of the tool path is classified, none as misconfigured', async () => {
+  const root = new URL('../../server/src/', import.meta.url);
+  const pairs = new Map<string, [string, number]>();
+  for (const dir of ['assistant', 'tickets', 'docs']) {
+    for (const entry of await readdir(new URL(`${dir}/`, root), { recursive: true })) {
+      if (!entry.endsWith('.ts')) continue;
+      const source = await readFile(new URL(`${dir}/${entry}`, root), 'utf8');
+      for (const match of source.matchAll(/new ApiError\(\s*'([A-Z][A-Z0-9_]*)',\s*([0-9]{3})/g))
+        pairs.set(`${match[2]} ${match[1]}`, [String(match[1]), Number(match[2])]);
+    }
+  }
+  assert.ok(pairs.size > 50, `scanned ${pairs.size} pairs`);
+  // Codes the tool route cannot reach: list-query validation and owner/deploy-only routes.
+  const unreachable = new Set([
+    '400 CURSOR_INVALID',
+    '400 LIMIT_INVALID',
+    '400 QUERY_INVALID',
+    '403 DEPLOY_OWNER_INTENT_REQUIRED',
+    '403 MACHINE_REQUIRED',
+  ]);
+  for (const key of unreachable) assert.ok(pairs.has(key), `stale exclusion ${key}`);
+  const unknown: string[] = [];
+  for (const [key, [code, status]] of pairs) {
+    if (unreachable.has(key)) continue;
+    const verdict = classifyError(status, code);
+    if (verdict.kind === 'misconfigured') unknown.push(key);
+  }
+  assert.deepEqual(unknown.sort(), []);
+});
+
+test('tool client: classification keeps the journal rule for ASSISTANT_* and transient statuses', () => {
+  const kindOf = (status: number, code: string | null) => classifyError(status, code);
+  for (const status of [400, 403, 404, 409, 422]) {
+    const verdict = kindOf(status, 'ASSISTANT_SOMETHING_NEW');
+    assert.equal(verdict.record, true, String(status));
+    assert.notEqual(verdict.kind, 'misconfigured');
+  }
+  // A transient code on a 5xx is never recorded, whatever its namespace.
+  for (const code of ['ASSISTANT_LOCK_TIMEOUT', 'ORCHESTRATION_BUSY', 'WORKFLOW_BUSY']) {
+    const verdict = kindOf(503, code);
+    assert.equal(verdict.record, false);
+    assert.equal(verdict.retry, true);
+  }
+  assert.equal(kindOf(404, null).kind, 'misconfigured');
+  assert.equal(kindOf(404, 'PROXY_NOT_FOUND').record, false);
 });

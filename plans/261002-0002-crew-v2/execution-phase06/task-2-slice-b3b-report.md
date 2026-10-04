@@ -47,3 +47,14 @@ Concerns: (1) journal tạo bởi 97737a1 có thể đã chứa 4xx hạ tầng 
 - **R1:** docs flow ghi journal `assistant-tools` của bản đầu không tương thích, phải xóa thư mục cũ trước khi mount; cũng ghi N2 (execute đồng thời có thể gửi hai request song song, server idempotent) và quy tắc N1/N3/N4.
 
 Concerns: bảng mã 400/403/404/409/422 phải cập nhật khi route thêm mã mới (mã thiếu bị coi là `misconfigured`, không đầu độc journal nhưng chặn lời gọi tới khi sửa bảng). N5 (test route thật dùng error handler tự viết thay `buildApp`) PM đã ghi ledger.
+
+# FIX3 (G1, G2, G3, docs)
+
+**Kết quả: DONE_WITH_CONCERNS.** RED trước: `task-2-slice-b3b-fix3-red.log` (4 test fail trên 24dfc7b: bảng terminal thiếu mã, nhóm not_configured thiếu mã, test quét server, test phân loại). GREEN: `task-2-slice-b3b-fix3-green.log`, 44/44 (42 cũ cộng 2 mới, gồm route thật trên PostgreSQL 18.6 riêng đã xóa và hồi quy `http-operations` 4/4); typecheck sạch; Biome 0 lỗi.
+
+- **G1:** mọi `ASSISTANT_*` (cùng `ORCHESTRATION_*`, `WORKFLOW_*`) trên status 400/403/404/409/422 là phán quyết tất định, được ghi và có kind theo status (`ASSISTANT_OPERATION_CONSUMED/STALE` và `TICKET_CLOSED`/`PROJECT_NOT_BOUND` là `conflict`, `ASSISTANT_OPERATION_NOT_FOUND` là `not_found`, `ASSISTANT_ADMISSION_DENIED` là `forbidden`). Danh sách tường minh mã không prefix mở rộng theo kết quả quét: `TICKET_HIERARCHY`, `OWNER_*_REQUIRED`, các mã dependency, completion, repair, `INVALID_TICKET_TRANSITION`, `SOURCE_UNVERIFIED`, `DOCS_SOURCE_UNVERIFIED`. Case "404 mã của status khác" đổi sang mã không prefix `IDEMPOTENCY_CONFLICT` ở 404, vì `ASSISTANT_*` giờ hợp lệ trên mọi status nghiệp vụ theo yêu cầu.
+- **G2:** `ASSISTANT_STORE_MISSING`, `ASSISTANT_ADMISSION_NOT_CONFIGURED`, `ORCHESTRATION_COMMAND_NOT_RELEASED` vào nhóm `not_configured` (5xx: dừng ngay, không ghi, giữ operation). Có test từng mã.
+- **G3:** phân loại gom thành `classifyError(status, code) -> {kind, record, retry}` (export), transport và `terminalError` đều dùng nó. Test quét `new ApiError('CODE', status)` trong `server/src/{assistant,tickets,docs}` (read-only) và fail khi cặp nào ra `misconfigured`. Loại trừ có chủ đích (kiểm là còn tồn tại, nên loại trừ lỗi thời cũng fail): `400 CURSOR_INVALID/LIMIT_INVALID/QUERY_INVALID`, `403 DEPLOY_OWNER_INTENT_REQUIRED`, `403 MACHINE_REQUIRED` (query list và route owner/deploy, tool route không tới).
+- **Docs:** quy tắc "mã transient phải 5xx; 4xx trong `ASSISTANT_/ORCHESTRATION_/WORKFLOW_` là phán quyết tất định và được ghi" cùng danh sách mã mới và mô tả test quét.
+
+Concerns: bộ quét chỉ bắt `new ApiError('LITERAL', status)`; mã dựng từ biến hoặc ném bằng cách khác không được thấy. Danh sách mã không prefix vẫn là bảng thủ công, nhưng drift của mã mới trong ba thư mục đó sẽ làm test đỏ.

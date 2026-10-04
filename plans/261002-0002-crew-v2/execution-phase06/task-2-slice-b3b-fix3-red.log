@@ -1,0 +1,13 @@
+# RED: fix round 3 tests against 24dfc7b client
+✖ tool client: terminal HTTP statuses are not retried and are replayed after restart without I/O (1423.51975ms)
+✖ tool client: 503 not-configured stops retrying but keeps the operation open (312.376292ms)
+✖ tool client: every server error code of the tool path is classified, none as misconfigured (5.178375ms)
+✖ tool client: classification keeps the journal rule for ASSISTANT_* and transient statuses (0.098083ms)
+ℹ tests 32
+ℹ pass 28
+ℹ fail 4
+✖ failing tests:
+✖ tool client: terminal HTTP statuses are not retried and are replayed after restart without I/O (1423.51975ms)
+✖ tool client: 503 not-configured stops retrying but keeps the operation open (312.376292ms)
+✖ tool client: every server error code of the tool path is classified, none as misconfigured (5.178375ms)
+✖ tool client: classification keeps the journal rule for ASSISTANT_* and transient statuses (0.098083ms)

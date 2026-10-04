@@ -388,47 +388,97 @@ function parseResult(tool: RoutingTool['name'], operationId: Id, body: unknown):
 const phasePrefix = 'assistant-tool:';
 const maxBackoffMs = 60000;
 /**
- * A status is a business outcome of the route only when the body carries one of the error codes
- * the route emits for it; the journal records those for good. The same status without such a code
- * (Fastify's default 404, a proxy page, an older server without the route) is not a verdict.
+ * A status is a business outcome of the route only when the body carries an error code the route
+ * emits for it; the journal records those for good. The same status without such a code (Fastify's
+ * default 404, a proxy page, an older server without the route) is not a verdict.
+ *
+ * Rule for server authors: a transient failure must use a 5xx status. A 4xx inside the
+ * `ASSISTANT_`, `ORCHESTRATION_` or `WORKFLOW_` namespaces is a deterministic verdict and is
+ * recorded, so the same call never reaches the server again.
  */
-const delegatedNamespace = /^(ORCHESTRATION|WORKFLOW)_[A-Z0-9_]{1,48}$/;
-const routeCodes: Record<number, ReadonlySet<string>> = {
+const verdictNamespace = /^(ASSISTANT|ORCHESTRATION|WORKFLOW)_[A-Z0-9_]{1,56}$/;
+const businessStatuses = new Set([400, 403, 404, 409, 422]);
+/** Business codes of the route and its services that carry no namespace prefix. */
+const unprefixedCodes: Record<number, ReadonlySet<string>> = {
   400: new Set([
     'INVALID_INPUT',
     'VALIDATION',
     'PATH_INVALID',
     'PROVIDER_CALL_ID_INVALID',
-    'ASSISTANT_FENCE_INVALID',
-    'ASSISTANT_ID_INVALID',
+    'TICKET_HIERARCHY',
   ]),
-  403: new Set(['ASSISTANT_MACHINE_REQUIRED', 'ASSISTANT_TOOL_NOT_IN_SCOPE']),
-  404: new Set(['NOT_FOUND', 'ASSISTANT_SCOPE_NOT_FOUND']),
+  403: new Set(['OWNER_REQUIRED', 'OWNER_APPROVAL_REQUIRED', 'OWNER_DECISION_REQUIRED']),
+  404: new Set(['NOT_FOUND']),
   409: new Set([
     'IDEMPOTENCY_CONFLICT',
-    'ASSISTANT_OPERATION_CONFLICT',
-    'ASSISTANT_INPUT_STALE',
-    'ASSISTANT_TOOL_BUDGET_EXHAUSTED',
-    'ASSISTANT_TURN_STALE',
-    'ASSISTANT_TURN_IN_USE',
-    'ASSISTANT_SCOPE_STALE',
-    'ASSISTANT_CALIBRATION_ACTIVE',
-    'ASSISTANT_REASSIGNMENT_PENDING',
-    'ASSISTANT_GENERATION_EXHAUSTED',
-    'ASSISTANT_REVISION_EXHAUSTED',
     'REVISION_CONFLICT',
+    'TICKET_CLOSED',
+    'PROJECT_NOT_BOUND',
+    'TICKET_HIERARCHY',
+    'INVALID_TICKET_TRANSITION',
+    'COMPLETION_GATE',
+    'DEPENDENCIES_NOT_READY',
+    'DEPENDENCY_CYCLE',
+    'DEPENDENCY_EDIT_NOT_ALLOWED',
+    'DEPENDENCY_EXISTS',
+    'DEPENDENCY_SCOPE',
+    'EXECUTION_PROOF_REQUIRED',
+    'REPAIR_CYCLE_CONFLICT',
+    'REPAIR_NOT_RUNNING',
+    'REPAIR_OWNER_DECISION_REQUIRED',
+    'REPAIR_STEP_REQUIRED',
   ]),
-  422: new Set(['DOCS_ENCODING_INVALID']),
+  422: new Set(['DOCS_ENCODING_INVALID', 'DOCS_SOURCE_UNVERIFIED', 'SOURCE_UNVERIFIED']),
 };
 function isRouteOutcome(status: number, serverCode: string | null): boolean {
-  if (status === 200) return true;
-  const codes = routeCodes[status];
-  if (!codes || serverCode === null) return false;
-  // Consumer services (orchestration, workflow) own their code namespaces on any of these statuses.
-  return codes.has(serverCode) || delegatedNamespace.test(serverCode);
+  if (!businessStatuses.has(status) || serverCode === null) return false;
+  return verdictNamespace.test(serverCode) || (unprefixedCodes[status]?.has(serverCode) ?? false);
 }
-/** 503 codes that are server configuration, not load: stop retrying, keep the operation open. */
-const notConfigured = new Set(['ASSISTANT_TOOLS_NOT_CONFIGURED', 'ASSISTANT_POLICY_INVALID']);
+/** 5xx codes that are server configuration, not load: stop retrying, keep the operation open. */
+const notConfigured = new Set([
+  'ASSISTANT_TOOLS_NOT_CONFIGURED',
+  'ASSISTANT_POLICY_INVALID',
+  'ASSISTANT_STORE_MISSING',
+  'ASSISTANT_ADMISSION_NOT_CONFIGURED',
+  'ORCHESTRATION_COMMAND_NOT_RELEASED',
+]);
+
+export type ErrorVerdict = {
+  kind: ToolClientErrorKind;
+  /** True only for a deterministic business verdict, which the journal keeps for good. */
+  record: boolean;
+  /** True when the same request may be sent again within this call. */
+  retry: boolean;
+};
+/** The one place that decides what a non-200 reply means; exported so a test can guard drift. */
+export function classifyError(status: number, serverCode: string | null): ErrorVerdict {
+  const open = (kind: ToolClientErrorKind, retry = false): ErrorVerdict => ({ kind, record: false, retry });
+  if (status >= 300 && status < 400) return open('misconfigured');
+  if (status === 401) return open('unauthorized');
+  if (status >= 500 && serverCode !== null && notConfigured.has(serverCode)) return open('not_configured');
+  if ([408, 425, 429].includes(status) || status >= 500) return open('unavailable', true);
+  if (businessStatuses.has(status)) {
+    if (!isRouteOutcome(status, serverCode)) return open('misconfigured');
+    const kind: ToolClientErrorKind =
+      status === 400
+        ? 'invalid'
+        : status === 403
+          ? 'forbidden'
+          : // 404 is one shape for every unresolvable scope: unknown turn, other machine, stale fence.
+            status === 404
+            ? 'not_found'
+            : status === 422
+              ? 'rejected'
+              : serverCode === 'ASSISTANT_TOOL_BUDGET_EXHAUSTED'
+                ? 'budget'
+                : serverCode === 'ASSISTANT_INPUT_STALE'
+                  ? 'stale'
+                  : 'conflict';
+    return { kind, record: true, retry: false };
+  }
+  // 413 and every other unlisted status: infrastructure, not a business verdict.
+  return open('rejected');
+}
 
 /**
  * A send that must not be recorded. The journal keeps the first response of an operation for
@@ -536,50 +586,28 @@ function toolTransport(
       }
       return { status, body };
     }
-    if (status === 400 || status === 403 || status === 404 || status === 409 || status === 422) {
-      if (isRouteOutcome(status, serverCode)) return { status, body };
-      // Same status, but not the route's own error shape: wrong URL, proxy or an older server.
-      throw new SendFailure(
-        new ToolClientError('misconfigured', `${detail} not a route error`, extra),
-        false,
-      );
-    }
-    if (status >= 300 && status < 400)
-      throw new SendFailure(new ToolClientError('misconfigured', `${detail} redirect`, extra), false);
-    if (status === 401)
-      throw new SendFailure(
-        new ToolClientError('unauthorized', detail, { ...extra, retryable: true }),
-        false,
-      );
-    if (status === 503 && serverCode !== null && notConfigured.has(serverCode))
-      throw new SendFailure(new ToolClientError('not_configured', detail, extra), false);
-    if ([408, 425, 429].includes(status) || status >= 500)
-      throw new SendFailure(
-        new ToolClientError('unavailable', detail, { ...extra, retryable: true }),
-        true,
-        retryAfterMs(response.headers.get('retry-after'), now()),
-      );
-    // 413 and every other unlisted status: infrastructure, not a business verdict.
-    throw new SendFailure(new ToolClientError('rejected', detail, extra), false);
+    const verdict = classifyError(status, serverCode);
+    if (verdict.record) return { status, body };
+    throw new SendFailure(
+      new ToolClientError(verdict.kind, detail, {
+        ...extra,
+        retryable: verdict.retry || verdict.kind === 'unauthorized',
+      }),
+      verdict.retry,
+      verdict.retry ? retryAfterMs(response.headers.get('retry-after'), now()) : null,
+    );
   };
 }
 
-/** Business outcomes the journal records: the route contract's terminal statuses. */
+/** A recorded business verdict, replayed from the journal, as the error it stands for. */
 function terminalError(status: number, body: unknown): ToolClientError {
   const serverCode = serverCodeOf(body);
-  const extra = { status, serverCode };
+  const verdict = classifyError(status, serverCode);
   const detail = `HTTP ${status}${serverCode ? ` ${serverCode}` : ''}`;
-  if (status === 403) return new ToolClientError('forbidden', detail, extra);
-  // 404 is one shape for every unresolvable scope: unknown turn, other machine, stale fence.
-  if (status === 404) return new ToolClientError('not_found', detail, extra);
-  if (status === 409) {
-    if (serverCode === 'ASSISTANT_TOOL_BUDGET_EXHAUSTED') return new ToolClientError('budget', detail, extra);
-    if (serverCode === 'ASSISTANT_INPUT_STALE') return new ToolClientError('stale', detail, extra);
-    return new ToolClientError('conflict', detail, extra);
-  }
-  if (status === 400) return new ToolClientError('invalid', detail, extra);
-  if (status === 422) return new ToolClientError('rejected', detail, extra);
-  return new ToolClientError('response_invalid', detail, extra);
+  return new ToolClientError(verdict.record ? verdict.kind : 'response_invalid', detail, {
+    status,
+    serverCode,
+  });
 }
 
 export type ToolClientOptions = {
