@@ -145,10 +145,11 @@ class Occupancy {
 }
 
 /**
- * Keeps every known position (realtime refetch, new child, expanding a step) and places only new nodes: next
+ * Keeps every known position (realtime refetch, new child arriving while the map is open) and places only new
+ * nodes: next
  * to their parent, below its lowest positioned child, or at their fresh layout position when the parent is
  * unknown; a slot taken by any visible card moves the new card down to the first free slot of its column.
- * Only an explicit “Sắp xếp lại” calls `layoutHierarchy` instead.
+ * Owner actions that change the structure use `relayoutAround`; “Sắp xếp lại” uses `layoutHierarchy`.
  */
 export function placeNewNodes(
   previous: Readonly<Record<string, Point>>,
@@ -212,4 +213,33 @@ export function neighbourInDirection(
   const above = sameColumn.filter((other) => (positions[other]?.y ?? 0) < here.y);
   const below = sameColumn.filter((other) => (positions[other]?.y ?? 0) > here.y);
   return (direction === 'up' ? above[above.length - 1] : below[0]) ?? null;
+}
+
+export type Viewport = { x: number; y: number; zoom: number };
+
+/**
+ * Structural change made by the owner (expand/collapse one step, expand/collapse all): lay the whole tree out
+ * again, so every task sits beside its step, and move the viewport by the anchor's displacement so the anchor
+ * stays exactly where it was on screen. Without an anchor present in both layouts the viewport is unchanged.
+ */
+export function relayoutAround(
+  previous: Readonly<Record<string, Point>>,
+  input: MapProjection,
+  anchor: string | null,
+  viewport: Viewport,
+): { positions: Record<string, Point>; viewport: Viewport } {
+  const positions = layoutHierarchy(input);
+  const from = anchor === null ? undefined : previous[anchor];
+  const to = anchor === null ? undefined : positions[anchor];
+  if (!from || !to) return { positions, viewport };
+  return { positions, viewport: followAnchor(from, to, viewport) };
+}
+
+/** Viewport that keeps a node moved from `from` to `to` (flow coordinates) at the same screen position. */
+export function followAnchor(from: Point, to: Point, viewport: Viewport): Viewport {
+  return {
+    x: viewport.x - (to.x - from.x) * viewport.zoom,
+    y: viewport.y - (to.y - from.y) * viewport.zoom,
+    zoom: viewport.zoom,
+  };
 }

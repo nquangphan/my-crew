@@ -36,6 +36,7 @@ import { levelLabels, mergeTicketPages, requestRoots, statusIcons, statusLabels 
 import {
   cardHeight,
   cardWidth,
+  followAnchor,
   layoutHierarchy,
   type MapDirection,
   neighbourInDirection,
@@ -51,8 +52,10 @@ import {
 } from './project.ts';
 import {
   closeMapDialog,
+  closeMapDialogNavigation,
   initialMapView,
   type MapViewState,
+  mapDialogStateKey,
   maxZoom,
   minZoom,
   moveMapViewport,
@@ -158,8 +161,17 @@ function useFrameHeight(frame: HTMLElement | null): number {
       setHeight(Math.max(minFrameHeight, Math.floor(window.innerHeight - top - 16)));
     };
     measure();
+    // Content above the frame can change height after the first measure (picker paging, the current-step
+    // line wrapping): observe the page and the body, not only window resizes.
+    const observer = new ResizeObserver(measure);
+    observer.observe(document.body);
+    const page = frame.closest('.page-stack');
+    if (page) observer.observe(page);
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
   }, [frame]);
   return height;
 }
@@ -184,7 +196,8 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
     selectedTicketId,
   }));
   const [listMode, setListMode] = useState(narrowScreen);
-  const [layoutRun, setLayoutRun] = useState(0);
+  // Owner relayout requests: “Sắp xếp lại” (no anchor) and structural changes (anchored).
+  const [relayout, setRelayout] = useState<{ run: number; anchor: string | null }>({ run: 0, anchor: null });
   const [container, setContainer] = useState<HTMLElement | null>(null);
   const [frame, setFrame] = useState<HTMLElement | null>(null);
   const frameHeight = useFrameHeight(frame);
@@ -214,20 +227,35 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
   }, [projection, rootId, onRootResolved]);
 
   // Positions follow the projection as derived state (updated during render, React's pattern for state that
-  // tracks inputs): the first projection is laid out, later ones (refetch, new child, expand/collapse) keep
-  // every known card in place and only place new ones; “Sắp xếp lại” bumps `layoutRun` for a full layout.
+  // tracks inputs). The first projection is laid out; data changes (refetch, new child) keep every known card
+  // and only place new ones; an owner relayout request (expand/collapse, “Sắp xếp lại”) lays the whole tree
+  // out and, when it names an anchor, records the anchor's displacement so the viewport can follow it.
   const [layout, setLayout] = useState<{
     projection: MapProjection | null;
     run: number;
     positions: Record<string, Point>;
-  }>({ projection: null, run: 0, positions: {} });
+    anchor: { run: number; id: string; from: Point } | null;
+  }>({ projection: null, run: 0, positions: {}, anchor: null });
   let positions = layout.positions;
-  if (projection && (layout.projection !== projection || layout.run !== layoutRun)) {
+  if (projection && (layout.projection !== projection || layout.run !== relayout.run)) {
+    const requested = layout.run !== relayout.run;
     positions =
-      layout.projection === null || layout.run !== layoutRun
+      layout.projection === null || requested
         ? layoutHierarchy(projection)
         : placeNewNodes(layout.positions, projection);
-    setLayout({ projection, run: layoutRun, positions });
+    // The anchor must be on screen before and after; otherwise (e.g. a focused task hidden by “Thu gọn tất cả”)
+    // the root anchors the move.
+    const candidates = requested && relayout.anchor !== null ? [relayout.anchor, projection.rootId] : [];
+    const anchorId = candidates.find((id) => layout.positions[id] && positions[id]);
+    setLayout({
+      projection,
+      run: relayout.run,
+      positions,
+      anchor:
+        anchorId === undefined
+          ? layout.anchor
+          : { run: relayout.run, id: anchorId, from: layout.positions[anchorId] as Point },
+    });
   }
   const positionsRef = useRef(positions);
   useEffect(() => {
@@ -237,6 +265,19 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
   const saveViewport = useCallback((viewport: Viewport) => {
     setView((current) => moveMapViewport(current, viewport));
   }, []);
+
+  // Keep the anchor of an owner relayout still on screen: shift the viewport by its displacement, once per run.
+  const anchoredRun = useRef(0);
+  useLayoutEffect(() => {
+    const anchor = layout.anchor;
+    if (!anchor || anchoredRun.current === anchor.run) return;
+    anchoredRun.current = anchor.run;
+    const to = layout.positions[anchor.id];
+    if (!to) return;
+    void flow
+      .setViewport(followAnchor(anchor.from, to, flow.getViewport()))
+      .then(() => saveViewport(flow.getViewport()));
+  }, [layout, flow, saveViewport]);
 
   const focusNode = useCallback(
     (ticketId: string) => {
@@ -263,7 +304,10 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
         trigger.current = element;
         onSelectTicket(ticketId);
       },
-      toggle: (ticketId) => setView((current) => toggleMapExpanded(current, ticketId)),
+      toggle: (ticketId) => {
+        setView((current) => toggleMapExpanded(current, ticketId));
+        setRelayout((current) => ({ run: current.run + 1, anchor: ticketId }));
+      },
       navigate: (ticketId, direction: MapDirection) => {
         if (!projection) return;
         const next = neighbourInDirection(projection, positionsRef.current, ticketId, direction);
@@ -361,8 +405,15 @@ function MapView({ rootId, selectedTicketId, onSelectTicket, onRootResolved }: T
   const explicit = (action: Promise<boolean>) => {
     void action.then(() => saveViewport(flow.getViewport()));
   };
-  const rearrange = () => setLayoutRun((run) => run + 1);
-  const setExpandedIds = (ids: readonly string[]) => setView((current) => setMapExpanded(current, ids));
+  const rearrange = () => setRelayout((current) => ({ run: current.run + 1, anchor: null }));
+  // “Mở/Thu gọn tất cả” anchor on the focused card, or on the root when no card has focus.
+  const setExpandedIds = (ids: readonly string[]) => {
+    setView((current) => setMapExpanded(current, ids));
+    setRelayout((current) => ({
+      run: current.run + 1,
+      anchor: view.focusedTicketId ?? projection?.rootId ?? null,
+    }));
+  };
 
   const diagnostics = projection?.diagnostics ?? [];
   const showList = listMode || diagnostics.length > 0;
@@ -736,19 +787,22 @@ export function RequestMapPage() {
     [navigate],
   );
   const onRootResolved = useCallback((resolved: string) => go(resolved, ticket, true), [go, ticket]);
-  const history = useRouter().history;
-  // A dialog opened in the app pushed one history entry: closing goes back over it, so Back never reopens
-  // what was just closed. A dialog that came with the URL (deep link, reload) is closed by replacing it.
-  const openedInApp = useRef(false);
+  const router = useRouter();
+  // Opening pushes one history entry marked with this root; closing goes back over it only when the current
+  // entry carries that mark (so the previous entry is this map). A deep link, a reload of an unmarked entry or
+  // an entry pushed by anything else is closed by replacing it. Back while the dialog is open closes it.
   const selectTicket = (ticketId: string | null) => {
     if (!rootId) return;
     if (ticketId !== null) {
-      openedInApp.current = true;
-      go(rootId, ticketId);
-    } else if (openedInApp.current) {
-      openedInApp.current = false;
-      history.back();
-    } else go(rootId, null, true);
+      void navigate({
+        to: '/requests/$rootId/map',
+        params: { rootId },
+        search: { ticket: ticketId },
+        state: (previous) => Object.assign({}, previous, { [mapDialogStateKey]: rootId }),
+      });
+    } else if (closeMapDialogNavigation(router.history.location.state, rootId) === 'back')
+      router.history.back();
+    else go(rootId, null, true);
   };
   if (!rootId) return <MapNotFound what="yêu cầu" />;
   const root = graph.data?.nodes.find((row) => row.id === rootId);

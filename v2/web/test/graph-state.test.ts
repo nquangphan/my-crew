@@ -4,8 +4,10 @@ import type { AppRuntime } from '../src/app-runtime.ts';
 import type { Ticket, TicketGraph } from '../src/contracts/tickets.ts';
 import {
   closeMapDialog,
+  closeMapDialogNavigation,
   initialMapView,
   type MapViewState,
+  mapDialogStateKey,
   mapViewStorageKey,
   moveMapViewport,
   openMapDialog,
@@ -113,6 +115,19 @@ test('search của route sơ đồ: UUID về chữ thường, UUID sai bị b�
   assert.deepEqual(parseMapSearch(null), {});
 });
 
+test('đóng dialog chỉ lùi history khi mục hiện tại do chính sơ đồ của root này push', () => {
+  assert.equal(closeMapDialogNavigation({ [mapDialogStateKey]: rootA, __TSR_index: 3 }, rootA), 'back');
+  assert.equal(closeMapDialogNavigation({ [mapDialogStateKey]: rootB }, rootA), 'replace', 'root khác');
+  assert.equal(
+    closeMapDialogNavigation({ __TSR_index: 3 }, rootA),
+    'replace',
+    'deep link/reload không có dấu',
+  );
+  assert.equal(closeMapDialogNavigation({ [mapDialogStateKey]: true }, rootA), 'replace');
+  assert.equal(closeMapDialogNavigation(null, rootA), 'replace');
+  assert.equal(closeMapDialogNavigation(undefined, rootA), 'replace');
+});
+
 // ---------------------------------------------------------------------------------------------------------
 // Component: the map inside the app providers, over the real Task2 client/session on an in-memory producer.
 // ---------------------------------------------------------------------------------------------------------
@@ -123,10 +138,23 @@ useDomEventConstructors();
 
 /** jsdom has no layout engine: ReactFlow needs ResizeObserver, DOMMatrixReadOnly, animation frames and sizes. */
 const view = globalThis.window as unknown as Record<string, unknown>;
+const observers = new Set<StubResizeObserver>();
 class StubResizeObserver {
-  observe() {}
+  readonly #callback: (entries: unknown[], observer: unknown) => void;
+  constructor(callback: (entries: unknown[], observer: unknown) => void) {
+    this.#callback = callback;
+  }
+  observe() {
+    observers.add(this);
+  }
   unobserve() {}
-  disconnect() {}
+  disconnect() {
+    observers.delete(this);
+  }
+  /** Test hook: report a size change of the observed elements. */
+  trigger() {
+    this.#callback([], this);
+  }
 }
 class StubMatrix {
   m22: number;
@@ -385,35 +413,66 @@ const taskA2 = '0d0d0d0d-0000-4000-8000-000000000101';
 const cardAt = (id: string) =>
   nodeButton(id)?.closest<HTMLElement>('.react-flow__node')?.style.transform ?? '';
 
-test('mở/thu gọn bước không bố cục lại: thẻ đã hiện giữ nguyên chỗ; chỉ “Sắp xếp lại” mới bố cục toàn bộ', async () => {
+/** Card position on the screen: node translate × zoom + viewport translate (ReactFlow's own transforms). */
+function screenOf(id: string): { x: number; y: number } {
+  const card = /translate\(([-\d.e]+)px,\s*([-\d.e]+)px\)/.exec(cardAt(id));
+  const view = /translate\(([-\d.e]+)px,\s*([-\d.e]+)px\)\s*scale\(([-\d.e]+)\)/.exec(
+    document.querySelector<HTMLElement>('.react-flow__viewport')?.style.transform ?? '',
+  );
+  if (!card || !view) throw new Error(`TRANSFORM_UNREADABLE:${id}`);
+  const zoom = Number(view[3]);
+  return { x: Number(card[1]) * zoom + Number(view[1]), y: Number(card[2]) * zoom + Number(view[2]) };
+}
+const cardY = (id: string) => Number(/translate\([-\d.e]+px,\s*([-\d.e]+)px\)/.exec(cardAt(id))?.[1]);
+
+function assertStill(id: string, before: { x: number; y: number }, label: string) {
+  const now = screenOf(id);
+  assert.ok(
+    Math.abs(now.x - before.x) <= 1 && Math.abs(now.y - before.y) <= 1,
+    `${label}: (${before.x},${before.y}) → (${now.x},${now.y})`,
+  );
+}
+
+test('mở/thu gọn: bố cục lại cả cây, task liền bước cha, node neo đứng yên trên màn hình (bước vừa bấm; focus hoặc root khi “tất cả”)', async () => {
   const graph = baseGraph();
   graph.nodes.push(row(taskA2, 'task', stepA, 'Việc A2'));
   const source = graphServer(graph);
   const storage = new MemoryStorage();
-  writeMapView(storage, { ...initialMapView(mapRoot), viewport: { x: 0, y: 0, zoom: 0.5 } });
+  writeMapView(storage, { ...initialMapView(mapRoot), viewport: { x: 40, y: 30, zoom: 0.5 } });
   await mountMap(source, storage);
-  const shown = [mapRoot, stepA, stepB];
-  const before = Object.fromEntries(shown.map((id) => [id, cardAt(id)]));
+  const a0 = screenOf(stepA);
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở công việc của Bước A' })));
   await until(() => nodeButton(taskA2) !== null, 'tasks of A');
-  for (const id of shown) assert.equal(cardAt(id), before[id], `mở bước không dời ${id}`);
-  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở tất cả' })));
-  await until(() => nodeButton(taskB1) !== null, 'expand all');
-  for (const id of shown) assert.equal(cardAt(id), before[id], `mở tất cả không dời ${id}`);
-  const cards = [...document.querySelectorAll<HTMLElement>('.react-flow__node')].map(
-    (el) => el.style.transform,
-  );
-  assert.equal(new Set(cards).size, cards.length, 'không có hai thẻ cùng chỗ');
+  await settleQuietly(() => false);
+  assertStill(stepA, a0, 'bước A khi mở');
+  const pitch = 112 + 24;
+  for (const task of [taskA1, taskA2])
+    assert.ok(Math.abs(cardY(task) - cardY(stepA)) <= pitch / 2 + 0.5, `${task} liền bước A`);
+  const a1 = screenOf(stepA);
   await act(async () =>
     fireEvent.click(screen.getByRole('button', { name: 'Thu gọn công việc của Bước A' })),
   );
   await until(() => nodeButton(taskA2) === null, 'collapse A');
-  for (const id of shown) assert.equal(cardAt(id), before[id], `thu gọn không dời ${id}`);
-  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Sắp xếp lại' })));
-  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở công việc của Bước A' })));
-  await until(() => nodeButton(taskA2) !== null, 'reopen A');
-  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Sắp xếp lại' })));
-  await until(() => cardAt(stepA) !== before[stepA], 'relayout moves step A between its two tasks');
+  await settleQuietly(() => false);
+  assertStill(stepA, a1, 'bước A khi thu gọn');
+  // “Mở tất cả” without a focused card anchors on the root.
+  const r0 = screenOf(mapRoot);
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Mở tất cả' })));
+  await until(() => nodeButton(taskB1) !== null, 'expand all');
+  await settleQuietly(() => false);
+  assertStill(mapRoot, r0, 'root khi mở tất cả');
+  assert.ok(Math.abs(cardY(taskB1) - cardY(stepB)) <= 0.5, 'task duy nhất của B ngang hàng B');
+  const cards = [...document.querySelectorAll<HTMLElement>('.react-flow__node')].map(
+    (el) => el.style.transform,
+  );
+  assert.equal(new Set(cards).size, cards.length, 'không có hai thẻ cùng chỗ');
+  // With a focused card, “Thu gọn tất cả” anchors on it.
+  await act(async () => fireEvent.focus(nodeButton(stepB) as HTMLElement));
+  const b0 = screenOf(stepB);
+  await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Thu gọn tất cả' })));
+  await until(() => nodeButton(taskB1) === null, 'collapse all');
+  await settleQuietly(() => false);
+  assertStill(stepB, b0, 'bước B đang focus khi thu gọn tất cả');
 });
 
 test('mở node bằng click mở TicketDetail chung; đóng giữ viewport, expanded và trả focus về node', async () => {
@@ -544,4 +603,18 @@ test('mở bằng URL (reload) với ticket đã chọn: dialog hiện, đóng g
   await act(async () => selectTicket(null));
   await until(() => screen.queryByRole('dialog') === null, 'closed');
   assert.ok(nodeButton(stepA));
+});
+
+test('khung sơ đồ đo lại chiều cao khi nội dung phía trên đổi cỡ (ResizeObserver), không chỉ khi resize cửa sổ', async () => {
+  const source = graphServer(baseGraph());
+  await mountMap(source);
+  const frame = document.querySelector<HTMLElement>('.react-flow')?.parentElement as HTMLElement;
+  const first = frame.style.height;
+  // Content above the frame grows: the frame now starts 300px down.
+  frame.getBoundingClientRect = () =>
+    ({ top: 300, left: 0, right: 1024, bottom: 768, width: 1024, height: 468, x: 0, y: 300 }) as DOMRect;
+  await act(async () => {
+    for (const observer of observers) observer.trigger();
+  });
+  assert.equal(frame.style.height, `${window.innerHeight - 300 - 16}px`, `trước: ${first}`);
 });

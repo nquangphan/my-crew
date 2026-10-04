@@ -118,3 +118,16 @@ export function parseMapSearch(search: unknown): MapSearch {
   if (isUuid(source.ticket)) result.ticket = source.ticket.toLowerCase();
   return result;
 }
+
+/** History-state key the map writes on the entry it pushes when it opens a dialog (value: the root ID). */
+export const mapDialogStateKey = 'crewMapDialog';
+
+/**
+ * How to close the dialog: go back only when the current history entry is the one this root's map pushed
+ * (so the previous entry is the map itself); a deep link, a reload of another entry or anything pushed by
+ * someone else is closed by replacing the entry.
+ */
+export function closeMapDialogNavigation(historyState: unknown, rootId: string): 'back' | 'replace' {
+  if (!historyState || typeof historyState !== 'object') return 'replace';
+  return (historyState as Record<string, unknown>)[mapDialogStateKey] === rootId ? 'back' : 'replace';
+}

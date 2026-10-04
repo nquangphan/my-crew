@@ -242,6 +242,34 @@ async function expectNoOverlap(page: Page): Promise<void> {
   expect(clashes).toEqual([]);
 }
 
+function expectSameBox(
+  after: { x: number; y: number } | null,
+  before: { x: number; y: number } | null,
+  label: string,
+): void {
+  expect(after, label).not.toBeNull();
+  expect(before, label).not.toBeNull();
+  expect(Math.abs((after?.x ?? 0) - (before?.x ?? 0)), label).toBeLessThanOrEqual(1);
+  expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0)), label).toBeLessThanOrEqual(1);
+}
+
+/** Every task card sits in its step's band: at most (tasks − 1) / 2 rows (pitch 136 × zoom) from the step. */
+async function expectTasksBesideSteps(page: Page, graph: TicketGraph): Promise<void> {
+  const { zoom } = await viewport(page);
+  const far: string[] = [];
+  for (const step of graph.nodes.filter((row) => row.level === 'step')) {
+    const tasks = graph.nodes.filter((row) => row.parentId === step.id);
+    if (tasks.length === 0) continue;
+    const stepBox = await node(page, step.id).boundingBox();
+    const band = ((tasks.length - 1) / 2) * 136 * zoom + 1;
+    for (const task of tasks) {
+      const box = await node(page, task.id).boundingBox();
+      if (!stepBox || !box || Math.abs(box.y - stepBox.y) > band) far.push(`${task.title} ↔ ${step.title}`);
+    }
+  }
+  expect(far).toEqual([]);
+}
+
 /** After “Vừa khung” the whole frame is inside the window and every card is inside the frame. */
 async function expectFittedInWindow(page: Page): Promise<void> {
   const result = await page.evaluate(() => {
@@ -332,6 +360,26 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
     `Bước: ${steps.A.title}. Trạng thái: Chờ thực hiện. Phiên bản ${(fromRoot.nodes.find((row) => row.id === steps.A.id) as Ticket).revision}`,
   );
 
+  // Owner relayouts keep their anchor still on screen: the clicked step, or the root for “Mở tất cả”.
+  const rootBefore = await node(page, root.id).boundingBox();
+  await map.getByRole('button', { name: 'Mở tất cả' }).click();
+  await expect(map).toHaveAttribute('data-nodes', '14');
+  await page.waitForTimeout(300);
+  expectSameBox(await node(page, root.id).boundingBox(), rootBefore, 'root khi Mở tất cả');
+  // Bring every card on screen (off-screen cards are not mounted) before the single-step check.
+  await map.getByRole('button', { name: 'Vừa khung' }).click();
+  await expect(node(page, steps.C.id)).toBeVisible();
+  await page.waitForTimeout(300);
+  const stepBefore = await node(page, steps.C.id).boundingBox();
+  await map.getByRole('button', { name: `Thu gọn công việc của ${steps.C.title}` }).click();
+  await expect(map).toHaveAttribute('data-nodes', '13');
+  await page.waitForTimeout(300);
+  expectSameBox(await node(page, steps.C.id).boundingBox(), stepBefore, 'bước C khi thu gọn');
+  await map.getByRole('button', { name: `Mở công việc của ${steps.C.title}` }).click();
+  await expect(map).toHaveAttribute('data-nodes', '14');
+  await page.waitForTimeout(300);
+  expectSameBox(await node(page, steps.C.id).boundingBox(), stepBefore, 'bước C khi mở lại');
+
   // Expand everything, fit, and compare every drawn edge with the producer graph.
   await map.getByRole('button', { name: 'Mở tất cả' }).click();
   // Cards outside the viewport are not mounted, so fit before looking for the new tasks.
@@ -340,6 +388,7 @@ test('A4: sơ đồ root/fork/join/repair, mở node bằng dialog chung, đóng
   await page.waitForTimeout(400);
   await expectNoOverlap(page);
   await expectFittedInWindow(page);
+  await expectTasksBesideSteps(page, fromRoot);
   await shoot(page, 'map-root-fork-join-repair.png');
   await expectEdgesMatch(page, fromRoot);
   await expect(map.getByText('phải xong trước').first()).toBeVisible();

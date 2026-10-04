@@ -8,6 +8,7 @@ import {
   layoutHierarchy,
   neighbourInDirection,
   placeNewNodes,
+  relayoutAround,
   rowGap,
 } from '../src/graph/layout.ts';
 import {
@@ -445,6 +446,74 @@ test('mở tất cả 200 bước / 600 task bằng placeNewNodes: không chồn
     for (let i = 1; i < ys.length; i++) assert.ok((ys[i] as number) - (ys[i - 1] as number) >= pitch);
   }
   assert.ok(elapsed < 500, `placeNewNodes 801 node mất ${elapsed.toFixed(1)}ms`);
+});
+
+/** Every visible task sits inside its step's band: at most (tasks - 1) / 2 rows from the step. */
+function tasksBesideParents(
+  projection: MapProjection,
+  positions: Record<string, { x: number; y: number }>,
+): string[] {
+  const far: string[] = [];
+  const parents = new Map<string, string[]>();
+  for (const edge of projection.edges)
+    if (edge.kind === 'parent') parents.set(edge.source, [...(parents.get(edge.source) ?? []), edge.target]);
+  for (const [parent, kids] of parents) {
+    // Only steps with tasks: the root's children are subtrees, spaced by subtree height.
+    if (kids.some((kid) => parents.has(kid))) continue;
+    const band = ((kids.length - 1) / 2) * pitch;
+    for (const kid of kids) {
+      const dy = Math.abs((positions[kid]?.y ?? 0) - (positions[parent]?.y ?? 0));
+      const dx = (positions[kid]?.x ?? 0) - (positions[parent]?.x ?? 0);
+      if (dy > band + 1e-6 || dx !== column) far.push(`${kid} cách ${parent} ${dy}`);
+    }
+  }
+  return far;
+}
+
+const screen = (
+  point: { x: number; y: number } | undefined,
+  view: { x: number; y: number; zoom: number },
+) => ({
+  x: (point?.x ?? 0) * view.zoom + view.x,
+  y: (point?.y ?? 0) * view.zoom + view.y,
+});
+
+test('mở tất cả: bố cục lại cả cây, task nằm liền bước cha, node neo (root) đứng yên trên màn hình', () => {
+  const graph = repairCycles();
+  graph.nodes.push(ticket(21, 'step', 1), ticket(210, 'task', 21), ticket(211, 'task', 21));
+  const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
+  const view = { x: 37, y: -120, zoom: 0.8 };
+  const expanded = projectGraph(graph, root, new Set(expandableIds(graph)));
+  const result = relayoutAround(collapsed, expanded, root, view);
+  assert.deepEqual(result.positions, layoutHierarchy(expanded), 'bố cục toàn bộ như Sắp xếp lại');
+  assert.deepEqual(tasksBesideParents(expanded, result.positions), []);
+  assert.deepEqual(overlaps(result.positions), []);
+  const before = screen(collapsed[root], view);
+  const after = screen(result.positions[root], result.viewport);
+  assert.ok(Math.abs(after.x - before.x) <= 1e-6 && Math.abs(after.y - before.y) <= 1e-6, 'root đứng yên');
+  assert.equal(result.viewport.zoom, view.zoom);
+});
+
+test('mở/thu gọn một bước: bước vừa bấm đứng yên trên màn hình, task của nó liền kề', () => {
+  const graph = forkJoin();
+  const view = { x: 0, y: 0, zoom: 1.3 };
+  const collapsed = layoutHierarchy(projectGraph(graph, root, new Set()));
+  const open = projectGraph(graph, root, new Set([id(10)]));
+  const opened = relayoutAround(collapsed, open, id(10), view);
+  assert.deepEqual(tasksBesideParents(open, opened.positions), []);
+  const s0 = screen(collapsed[id(10)], view);
+  const s1 = screen(opened.positions[id(10)], opened.viewport);
+  assert.ok(Math.abs(s1.x - s0.x) <= 1e-6 && Math.abs(s1.y - s0.y) <= 1e-6, 'bước 10 đứng yên khi mở');
+  const closed = relayoutAround(
+    opened.positions,
+    projectGraph(graph, root, new Set()),
+    id(10),
+    opened.viewport,
+  );
+  const s2 = screen(closed.positions[id(10)], closed.viewport);
+  assert.ok(Math.abs(s2.x - s0.x) <= 1e-6 && Math.abs(s2.y - s0.y) <= 1e-6, 'bước 10 đứng yên khi thu gọn');
+  const missing = relayoutAround(collapsed, open, id(999), view);
+  assert.deepEqual(missing.viewport, view, 'neo không có ở cả hai bố cục thì viewport giữ nguyên');
 });
 
 test('quan hệ của node liệt kê đủ cha, predecessor, successor và repair ID', () => {
