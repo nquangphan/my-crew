@@ -66,3 +66,8 @@ Task 2: minor (deferred): B2 thông báo "Máy chủ từ chối yêu cầu" khi
 Kế tiếp web: controller wiring `main.tsx`/`router.tsx` (SessionBoundary/LoginScreen/wireSession, QueryClient retry off cho OwnerClient.get, focus refetch, listener trước initial GET) rồi theo source topo S3a/S5a/S6docs/S7basic.
 
 12:05 Dispatch song song: controller wiring main.tsx/router.tsx (sonnet); S3a read/detail (brief task-3-brief.md, chỉ phần S3a); S5a composer source (brief task-5-brief.md). A3/A5 acceptance chờ G1/G2 — worker chỉ claim S, không claim A khi producer chưa mount.
+
+12:30 04/10 Wiring `e901fd7` review `task-2-wiring-review.md`: Spec tuân thủ, Approved có điều kiện I1/I2 (Important2/Minor6). FIX1/5 resume: commit `e2e/app-router.spec.ts` (router thật + listener trước GET), M2/M4/M6.
+Ruling: chấp nhận ngoại lệ ownership `v2/web/src/app-runtime.ts` (Node test import .ts), nút Đăng xuất trong shell.tsx, 4 locator scope `#task2-harness` ở auth/events spec — cần cho real app render login riêng — sai thì đổi lại locator.
+Wiring: minor (deferred): M3 `returnTo` thành required search của /login (`router.tsx:128`); M5 runtime không dispose khi HMR dev (`main.tsx`).
+Ruling: workers không amend commit (concurrency) — tạo commit mới.
