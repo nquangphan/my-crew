@@ -37,3 +37,10 @@ Task1 FIX1/5: full independent review95fc6c1a SPEC issues/QUALITY Needs fixes; I
 22:38 FIX2 actual helper delayed-stat RED assertionremoveCalls1vs0 raw482aa14f rootverified; old callback behavior-preserving extraction beforeRED, narrow post-stat AbortSignal fence only afterRED. FocusedGREEN1/1 raw4cc8c5a1 rootverified plus exact unit scratchZAGNfP/devino16777229:64675993 andPID84133absence. Final6/strict/Biome pending B2a stable source closure and fresh resource grant, originalreviewerFIX2 scoped follows. Existing UI11hashes unchanged/no repeatedMCP. Weekly71used29remaining, no newtask.
 
 09:38 04/10 PM Claude: B2a GREEN118 `213cc5d` (Node24.21), full independent review đang chạy. Ruling: chạy Task1 FIX2 final lifecycle6/strict/Biome ngay trên closure `213cc5d` thay vì chờ B2a review khép — fixture chỉ import buildApp, B2a fix (nếu có) nằm trong tickets/* nội bộ — sai thì phải chạy lại final6 sau B2a fix. Gate quota đổi thành còn>5% theo owner. Web worker giữ sole heavy slot; B2a fix round (nếu có) chờ slot.
+
+09:45 04/10 FIX2 final checks `d3f092f`: lifecycle6/6, typecheck exit0, Biome exit0 (2 warning noNonNullAssertion e2e-fixture.ts:318/:391 ngoài diff, 29 info useTemplate). Scoped re-review FIX2 `task-1-fix2-re-review.md`: I1 ADDRESSED, F1 ADDRESSED, không breakage mới.
+Task 1: complete — d3f092f. S1 source và A1 (fixture lifecycle thật + shell UI evidence `ui-evidence/`) đạt; literal zoom200% vẫn là layout-equivalent ruling cũ, không claim PASS literal.
+Task 1: minor (deferred): M1 callback rejection falsy trong withFixture (`v2/web/e2e/support/fixture.ts:112-115`).
+Task 1: minor (deferred): Biome 2 warning noNonNullAssertion `v2/web/scripts/e2e-fixture.ts:318,:391` có sẵn trước FIX2.
+
+09:48 Task2 dispatch (brief `execution-phase07/task-2-brief.md`, BASE ghi khi commit này). Ruling: sole heavy slot giữa các worker song song được điều phối bằng lock thư mục atomic `$TMPDIR/crew-v2-heavy-slot.lock` (mkdir, ghi owner/PID/thời điểm; rmdir khi trả) — việc tĩnh không cần lock — sai thì hai job nặng có thể chồng nhau nếu worker bỏ qua lock.
