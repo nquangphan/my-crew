@@ -257,3 +257,6 @@ S6b-ii: minor (deferred → T7): N1 stage bị xóa từ ngoài giữa render im
 Còn lại S6b: S6b-iii (server registerRenderReceipt + route + latch + so witness/prerequisites với gateway_applied, mở schema prerequisites, bridge beforeRelease, lệnh reconcile render stage) và S6b-iv (integration uv thật, grant heavy slot).
 
 14:00 Codex batch3 (chạy lại với </dev/null sau khi treo chờ stdin) — commit `0d86cd7` bỏ non-null assertion e2e-fixture (PM biome + tsc web 0). Ruling N3 chỉnh lại: chỉ mở rộng từ chối sang entry tracked trùng/nằm dưới gốc đích materialize (vd .claude/skills/bmad-build/**); _bmad lồng không bị materialize đè nên giữ exclusion cũ. Giao OpenCode batch6 (code+test, tester chạy sau).
+
+14:30 N3(b) `8d0ef6e` (worker Claude sonnet, thay OpenCode hết quota) review `task-3-s6b-ii-n3-review.md`: Approved. Ruling N3: complete.
+N3: minor (deferred): M1 thêm assert chặn khớp nhầm `.claude/skills/bmad-build-x`; ⚠️A log sha/diff trước-sau biome format; ⚠️B APFS không phân biệt hoa thường — `_BMAD/x` dừng an toàn bằng errno thay vì BMAD_TRACKED_IN_CHECKOUT.
